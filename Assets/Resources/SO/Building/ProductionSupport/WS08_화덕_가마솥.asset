@@ -108,6 +108,7 @@ MonoBehaviour:
         - workstation:kitchen-basic
         kind: 0
         batchCapacity: 1
+        maximumLinkedInstancesPerWorkstation: 1
         requiresPower: 0
         cleanWaterPerCycle: 0
         wastewaterPerCycle: 0

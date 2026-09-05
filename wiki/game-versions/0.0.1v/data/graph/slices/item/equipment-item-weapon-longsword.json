@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "equipment-item-weapon-longsword",
+    "spoiler_tier": "none",
+    "title": "장검"
+  },
+  "edges": [],
+  "schema_version": 1
+}

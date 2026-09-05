@@ -33,17 +33,16 @@ public sealed class BuildingManagementWorldQueryAdapter : IBuildingManagementWor
         .Select(warehouse =>
         {
             WarehouseInventory inventory = warehouse.Inventory;
-            bool massAuthoritative = inventory.HasMassCapacityAuthority;
+            if (!inventory.HasMassCapacityAuthority)
+                throw new InvalidOperationException(
+                    "Published warehouse lacks positive gram-capacity authority.");
             return new WarehouseManagementSnapshot(
                 inventory.TotalStock,
-                massAuthoritative ? 0 : inventory.MaxCapacity,
-                !massAuthoritative && inventory.HasCapacityLimit,
                 inventory.EnumerateStock().ToDictionary(
                     pair => pair.Key,
                     pair => pair.Value),
-                massAuthoritative,
-                massAuthoritative ? inventory.StoredMassGrams : 0L,
-                massAuthoritative ? inventory.MaxMassGrams : 0L);
+                inventory.StoredMassGrams,
+                inventory.MaxMassGrams);
         })
         .ToArray();
 }

@@ -1,0 +1,95 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-survival-seasonal-storage",
+    "spoiler_tier": "none",
+    "title": "계절 저장"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-survival-seasonal-storage",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-life-seasonal-calendar",
+      "target_spoiler_tier": "none",
+      "target_title": "계절 역법",
+      "to": "research/research-life-seasonal-calendar",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-seasonal-storage",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-life-seasonal-calendar",
+      "target_spoiler_tier": "none",
+      "target_title": "계절 역법",
+      "to": "research/research-life-seasonal-calendar",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-seasonal-storage",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-life-seasonal-calendar",
+      "target_spoiler_tier": "none",
+      "target_title": "계절 역법",
+      "to": "research/research-life-seasonal-calendar",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-seasonal-storage",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-preservation",
+      "target_spoiler_tier": "none",
+      "target_title": "식량 보존",
+      "to": "research/research-survival-preservation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-seasonal-storage",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-preservation",
+      "target_spoiler_tier": "none",
+      "target_title": "식량 보존",
+      "to": "research/research-survival-preservation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-seasonal-storage",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-preservation",
+      "target_spoiler_tier": "none",
+      "target_title": "식량 보존",
+      "to": "research/research-survival-preservation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-seasonal-storage",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8853",
+      "target_spoiler_tier": "none",
+      "target_title": "계절 저장 선반",
+      "to": "facility/building-8853",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-sealed-seasonal-container",
+      "label": "필요 조건",
+      "to": "research/research-survival-seasonal-storage",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

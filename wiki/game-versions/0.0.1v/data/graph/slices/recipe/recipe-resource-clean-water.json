@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-resource-clean-water",
+    "spoiler_tier": "none",
+    "title": "깨끗한 물"
+  },
+  "edges": [
+    {
+      "amount": "8",
+      "from": "recipe/recipe-resource-clean-water",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "resource-clean-water",
+      "target_spoiler_tier": "none",
+      "target_title": "깨끗한 물",
+      "to": "item/resource-clean-water",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-resource-clean-water",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-irrigation",
+      "target_spoiler_tier": "none",
+      "target_title": "관개",
+      "to": "research/research-agriculture-irrigation",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

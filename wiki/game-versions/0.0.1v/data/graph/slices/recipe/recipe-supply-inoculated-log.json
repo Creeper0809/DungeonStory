@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-supply-inoculated-log",
+    "spoiler_tier": "none",
+    "title": "접종 원목"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-supply-inoculated-log",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-treated-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "처리 목재",
+      "to": "item/material-treated-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-supply-inoculated-log",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-cave-mushroom",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴버섯",
+      "to": "item/resource-cave-mushroom",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-supply-inoculated-log",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "supply-inoculated-log",
+      "target_spoiler_tier": "none",
+      "target_title": "접종 원목",
+      "to": "item/supply-inoculated-log",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-supply-inoculated-log",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-forestry-fungal",
+      "target_spoiler_tier": "none",
+      "target_title": "실내 균목림",
+      "to": "research/research-forestry-fungal",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

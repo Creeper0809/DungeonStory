@@ -1,0 +1,2 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+FactionArcDefinitionSO,content-type,,type-reference; save-restore-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20CampaignRuntime.cs

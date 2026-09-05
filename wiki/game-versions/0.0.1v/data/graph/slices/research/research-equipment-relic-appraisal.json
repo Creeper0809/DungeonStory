@@ -1,0 +1,193 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-equipment-relic-appraisal",
+    "spoiler_tier": "none",
+    "title": "유물 부품 감정과 복원"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-equipment-relic-appraisal",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-records",
+      "target_spoiler_tier": "none",
+      "target_title": "기록 체계",
+      "to": "research/research-arcane-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-relic-appraisal",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-records",
+      "target_spoiler_tier": "none",
+      "target_title": "기록 체계",
+      "to": "research/research-arcane-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-relic-appraisal",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-records",
+      "target_spoiler_tier": "none",
+      "target_title": "기록 체계",
+      "to": "research/research-arcane-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-relic-appraisal",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-logistics",
+      "target_spoiler_tier": "none",
+      "target_title": "창고 구획",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-relic-appraisal",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-logistics",
+      "target_spoiler_tier": "none",
+      "target_title": "창고 구획",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-relic-appraisal",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-logistics",
+      "target_spoiler_tier": "none",
+      "target_title": "창고 구획",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-relic-appraisal",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 단조",
+      "to": "research/research-metallurgy-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-relic-appraisal",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 단조",
+      "to": "research/research-metallurgy-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-relic-appraisal",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 단조",
+      "to": "research/research-metallurgy-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-relic-appraisal",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉",
+      "to": "research/research-textile-tailoring",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-relic-appraisal",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉",
+      "to": "research/research-textile-tailoring",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-relic-appraisal",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉",
+      "to": "research/research-textile-tailoring",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-relic-appraisal",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8842",
+      "target_spoiler_tier": "none",
+      "target_title": "부품 감정대",
+      "to": "facility/building-8842",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-relic-appraisal",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8843",
+      "target_spoiler_tier": "none",
+      "target_title": "부품 복원 작업대",
+      "to": "facility/building-8843",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-loot-appraisal",
+      "label": "필요 조건",
+      "to": "research/research-equipment-relic-appraisal",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-precision-fitting",
+      "label": "선행 연구",
+      "to": "research/research-equipment-relic-appraisal",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-precision-fitting",
+      "label": "선행 연구",
+      "to": "research/research-equipment-relic-appraisal",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-precision-fitting",
+      "label": "선행 연구",
+      "to": "research/research-equipment-relic-appraisal",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

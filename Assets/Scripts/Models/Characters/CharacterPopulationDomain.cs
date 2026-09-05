@@ -11,6 +11,7 @@ namespace DungeonStory.Characters
         bool IsAlive { get; set; }
         bool IsStaff { get; set; }
         bool IsVisiting { get; set; }
+        CharacterSettlementStanding SettlementStanding { get; set; }
         int VisitCount { get; set; }
         bool IsReady { get; }
     }
@@ -62,6 +63,9 @@ namespace DungeonStory.Characters
             profiles.Add(profile);
         }
 
+        public bool Remove(TProfile profile) => profile != null
+            && profiles.Remove(profile);
+
         public bool TryGet(string persistentId, out TProfile profile)
         {
             profile = profiles.FirstOrDefault(candidate => candidate != null
@@ -95,6 +99,19 @@ namespace DungeonStory.Characters
 
             profile.IsStaff = true;
             profile.IsVisiting = false;
+            profile.SettlementStanding = CharacterSettlementStanding.Resident;
+        }
+
+        public void PromoteToMinion(TProfile profile)
+        {
+            if (profile == null)
+            {
+                return;
+            }
+
+            profile.IsStaff = true;
+            profile.IsVisiting = false;
+            profile.SettlementStanding = CharacterSettlementStanding.Minion;
         }
 
         public List<TProfile> Capture(Func<TProfile, TProfile> clone)
@@ -146,6 +163,14 @@ namespace DungeonStory.Characters
             profiles.AddRange(restored);
             foreach (TProfile profile in profiles)
             {
+                profile.SettlementStanding =
+                    CharacterSettlementStandingRules.NormalizeLegacy(
+                        profile.SettlementStanding,
+                        profile.IsStaff,
+                        profile.IsVisiting);
+                profile.IsStaff =
+                    CharacterSettlementStandingRules.IsSettlementResident(
+                        profile.SettlementStanding);
                 profile.IsVisiting = false;
             }
 

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "75"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "잡화진열선반에 상품을 진열하고 손님과 거래하도록 꾸린 설치 부품이다. 라카쉬 세갈래길의 잡화진열선반 가격판에는 동전 옆에 운반과 길 안내로 값을 치르는 빈칸이 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "facility-kit-1013",
+  "spoiler_tier": "none",
+  "summary": "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.",
+  "title": "잡화진열선반 설치 키트"
+}

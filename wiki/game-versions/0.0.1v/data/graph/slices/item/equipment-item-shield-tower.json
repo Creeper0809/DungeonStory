@@ -1,0 +1,46 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "equipment-item-shield-tower",
+    "spoiler_tier": "none",
+    "title": "대형 방패"
+  },
+  "edges": [
+    {
+      "amount": "3",
+      "from": "event/faction-chapter-beastkin-3",
+      "label": "필요 조건",
+      "to": "item/equipment-item-shield-tower",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "event/faction-contract-beastkin-strategic",
+      "label": "필요 조건",
+      "to": "item/equipment-item-shield-tower",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "from": "event/faction-chapter-beastkin-6",
+      "label": "필요 조건",
+      "to": "item/equipment-item-shield-tower",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "event/faction-chapter-beastkin-3",
+      "label": "필요 조건",
+      "to": "item/equipment-item-shield-tower",
+      "type": "requires"
+    },
+    {
+      "amount": "9",
+      "from": "event/faction-chapter-beastkin-6",
+      "label": "필요 조건",
+      "to": "item/equipment-item-shield-tower",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

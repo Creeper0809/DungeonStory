@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-runtime-exterior-zone-3-0",
+    "spoiler_tier": "none",
+    "title": "경비 초소"
+  },
+  "edges": [],
+  "schema_version": 1
+}

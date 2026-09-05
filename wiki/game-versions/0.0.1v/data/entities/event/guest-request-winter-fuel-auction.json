@@ -1,0 +1,31 @@
+{
+  "facts": [
+    {
+      "label": "성공 효과",
+      "value": "2개"
+    },
+    {
+      "label": "실패 효과",
+      "value": "1개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "12",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "guest-request-winter-fuel-auction",
+  "spoiler_tier": "none",
+  "summary": "세 세력이 숯과 석탄을 놓고 공개 경매를 열 장소를 요청한다.",
+  "title": "겨울 연료 경매"
+}

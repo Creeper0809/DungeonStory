@@ -1,0 +1,121 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "equipment-item-weapon-composite-bow",
+    "spoiler_tier": "none",
+    "title": "복합궁"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-composite-bow",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-bowstring",
+      "target_spoiler_tier": "none",
+      "target_title": "활시위",
+      "to": "item/material-bowstring",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-composite-bow",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-laminated-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "적층 목재",
+      "to": "item/material-laminated-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-composite-bow",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-rope",
+      "target_spoiler_tier": "none",
+      "target_title": "밧줄",
+      "to": "item/material-rope",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-composite-bow",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-arrow",
+      "target_spoiler_tier": "none",
+      "target_title": "화살",
+      "to": "item/ammo-arrow",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-composite-bow",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-arrow-bone",
+      "target_spoiler_tier": "none",
+      "target_title": "뼈촉 화살",
+      "to": "item/ammo-arrow-bone",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-composite-bow",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-arrow-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철촉 화살",
+      "to": "item/ammo-arrow-iron",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-composite-bow",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-arrow-rune",
+      "target_spoiler_tier": "none",
+      "target_title": "룬촉 화살",
+      "to": "item/ammo-arrow-rune",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-composite-bow",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-arrow-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "강철촉 화살",
+      "to": "item/ammo-arrow-steel",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-composite-bow",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-incendiary-arrow",
+      "target_spoiler_tier": "none",
+      "target_title": "소이 화살",
+      "to": "item/ammo-incendiary-arrow",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-composite-bow",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-bowyery",
+      "target_spoiler_tier": "none",
+      "target_title": "궁시 제작학",
+      "to": "research/research-equipment-bowyery",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

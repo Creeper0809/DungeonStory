@@ -83,11 +83,15 @@ MonoBehaviour:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:crop-plot
         stockSensorInstallationItemId: component:stock-sensor-panel
+        lanePolicy: 1
+        manualWorkLaneCount: 1
+        automaticWorkLaneCount: 0
     - rid: 1003
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
         defaultBatchCapacity: 4
+        physicalOutputBufferCycleCapacity: 4
         outputCapacities:
         - itemId: material:lead-ingot
           capacity: 24
@@ -151,7 +155,7 @@ MonoBehaviour:
         - itemId: material:cloth
           amount: 6
         - itemId: material:iron-ingot
-          amount: 2
+          amount: 3
         - itemId: component:machine-parts
           amount: 2
     - rid: 7737211921440178547

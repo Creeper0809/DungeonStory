@@ -1,0 +1,17 @@
+{
+  "architecture_mapped_code_file_count": 168,
+  "architecture_source_link_count": 179,
+  "architecture_system_count": 19,
+  "code_source_file_count": 2505,
+  "code_system_count": 74,
+  "content_impact_type_count": 73,
+  "content_source_digest": "57030c02bd4e96dfc3f70f37a6b7401f48775c0243b81f2df7de661418feb64d",
+  "document_broken_link_count": 0,
+  "document_count": 74,
+  "implementation_status_count": 37,
+  "observation_code_file_count": 1098,
+  "persistence_code_file_count": 399,
+  "research_unlock_relation_count": 924,
+  "state_authority_count": 36,
+  "system_content_relation_count": 276
+}

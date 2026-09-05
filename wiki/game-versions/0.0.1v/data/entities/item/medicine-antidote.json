@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.6kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "18개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "56"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "독소와 과다 복용 증상을 완화한다. 므네실라산 해독제는 독의 계통과 맞지 않으면 약병의 포자점부터 검게 변한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "medicine-antidote",
+  "spoiler_tier": "none",
+  "summary": "독소와 과다 복용 증상을 완화한다.",
+  "title": "해독제"
+}

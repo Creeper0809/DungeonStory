@@ -1,0 +1,53 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "내압 화기와 방폭"
+    },
+    {
+      "label": "제작 작업",
+      "value": "140"
+    },
+    {
+      "label": "무게",
+      "value": "1.1kg"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "combat",
+  "relations": [
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-pressure-barrels",
+      "target_spoiler_tier": "none",
+      "target_title": "내압 화기와 방폭",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "textile-sterile-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "무균 천",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "textile-insulating-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "절연 직물",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "equipment-item-armor-smoke-hood",
+  "spoiler_tier": "none",
+  "summary": "연기 두건 전투 장비",
+  "title": "연기 두건"
+}

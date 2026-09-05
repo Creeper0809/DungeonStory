@@ -58,7 +58,7 @@ public sealed class CaptivityQueryView
         Find(characterId)?.carePriorityUnlocked == true ? 100 : 0;
 
     public bool IsCareSubject(string characterId) =>
-        Find(characterId)?.IsActive == true;
+        Find(characterId)?.IsInCustody == true;
 
     private CaptiveState Find(string characterId) =>
         stateStore.State.Captives.FirstOrDefault(candidate =>

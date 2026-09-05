@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Arcane"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "heritable-mana-reservoir",
+  "spoiler_tier": "none",
+  "summary": "마나 수용량이 늘지만 폭주 시 손상도 커진다.",
+  "title": "마나 저장낭"
+}

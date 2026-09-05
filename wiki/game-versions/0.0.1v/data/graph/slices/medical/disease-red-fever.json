@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "medical",
+    "slug": "disease-red-fever",
+    "spoiler_tier": "none",
+    "title": "적열병"
+  },
+  "edges": [
+    {
+      "amount": "10",
+      "from": "event/seasonal-spring-fever-camp",
+      "label": "연결",
+      "to": "medical/disease-red-fever",
+      "type": "adds-disease-exposure"
+    },
+    {
+      "amount": null,
+      "from": "nature/cave-hound",
+      "label": "관련",
+      "to": "medical/disease-red-fever",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

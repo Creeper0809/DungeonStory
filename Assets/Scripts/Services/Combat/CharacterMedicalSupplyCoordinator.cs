@@ -49,12 +49,14 @@ internal sealed class CharacterMedicalSupplyCoordinator
     private readonly IResourceEconomyContentCatalog resourceCatalog;
     private readonly IPhysicalFacilityItemSinkGateway physicalSinks;
     private readonly IPackagedLotTareDispositionService packagedTare;
+    private readonly ICharacterMedicalSupplyDestinationRuntime destinations;
 
     public CharacterMedicalSupplyCoordinator(
         ICharacterMedicalSupplyStockPort stock,
         IResourceEconomyContentCatalog resourceCatalog,
         IPhysicalFacilityItemSinkGateway physicalSinks,
-        IPackagedLotTareDispositionService packagedTare)
+        IPackagedLotTareDispositionService packagedTare,
+        ICharacterMedicalSupplyDestinationRuntime destinations)
     {
         this.stock = stock ?? throw new ArgumentNullException(nameof(stock));
         this.resourceCatalog = resourceCatalog
@@ -63,6 +65,8 @@ internal sealed class CharacterMedicalSupplyCoordinator
             ?? throw new ArgumentNullException(nameof(physicalSinks));
         this.packagedTare = packagedTare
             ?? throw new ArgumentNullException(nameof(packagedTare));
+        this.destinations = destinations
+            ?? throw new ArgumentNullException(nameof(destinations));
     }
 
     public bool EnsureTreatmentSupplyReady(
@@ -75,6 +79,11 @@ internal sealed class CharacterMedicalSupplyCoordinator
         }
 
         EnsureDestination(order);
+        if (!destinations.TryEnsure(order, facility, out _))
+        {
+            order.SetStatus(CharacterMedicalStatusCode.SupplyUnavailable);
+            return false;
+        }
         if (!TryRecoverPendingSupply(order, out _))
         {
             order.SetStatus(CharacterMedicalStatusCode.SupplyUnavailable);
@@ -116,9 +125,20 @@ internal sealed class CharacterMedicalSupplyCoordinator
             return;
         }
 
+        if (order.nextTreatmentMaterialDestinationSequence <= 0)
+        {
+            throw new InvalidOperationException(
+                "character-medical-supply-destination-sequence-invalid:"
+                + order.orderId);
+        }
+        order.treatmentDestinationSequence =
+            order.nextTreatmentMaterialDestinationSequence;
+        order.nextTreatmentMaterialDestinationSequence = checked(
+            order.nextTreatmentMaterialDestinationSequence + 1);
         order.treatmentMaterialDestinationId =
-            WorldItemStackRuntime.FacilityInputDestinationPrefix
-            + $"medical:{order.orderId}";
+            CharacterMedicalSupplyDestinationAuthority.FormatDestinationId(
+                order.orderId,
+                order.treatmentDestinationSequence);
     }
 
     private bool TryConsumeAssignedSupply(

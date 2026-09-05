@@ -1,0 +1,83 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "shadow-hare",
+    "spoiler_tier": "none",
+    "title": "그림자토끼"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "nature/shadow-hare",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "resource-meat",
+      "target_spoiler_tier": "none",
+      "target_title": "생고기",
+      "to": "item/resource-meat",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/shadow-hare",
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-cave-flu",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴 독감",
+      "to": "medical/disease-cave-flu",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/shadow-hare",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-rat",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴쥐",
+      "to": "nature/cave-rat",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/shadow-hare",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "shadow-wolf",
+      "target_spoiler_tier": "none",
+      "target_title": "그림자늑대",
+      "to": "nature/shadow-wolf",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/anatomy-quadruped",
+      "label": "관련",
+      "to": "nature/shadow-hare",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/carrion-drake",
+      "label": "관련",
+      "to": "nature/shadow-hare",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/cave-hound",
+      "label": "관련",
+      "to": "nature/shadow-hare",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/shadow-wolf",
+      "label": "관련",
+      "to": "nature/shadow-hare",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "surgery-organ-liver",
+    "spoiler_tier": "none",
+    "title": "적출 간"
+  },
+  "edges": [],
+  "schema_version": 1
+}

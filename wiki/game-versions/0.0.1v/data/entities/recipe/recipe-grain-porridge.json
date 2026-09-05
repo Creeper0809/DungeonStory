@@ -1,0 +1,53 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "28"
+    },
+    {
+      "label": "필요 연구",
+      "value": "농산 조리"
+    },
+    {
+      "label": "사이클당 깨끗한 물",
+      "value": "3.4"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "6",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "food-grain-porridge",
+      "target_spoiler_tier": "none",
+      "target_title": "황혼곡죽",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-crops",
+      "target_spoiler_tier": "none",
+      "target_title": "농산 조리",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-twilight-grain",
+      "target_spoiler_tier": "none",
+      "target_title": "황혼곡",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-grain-porridge",
+  "spoiler_tier": "none",
+  "summary": "황혼곡죽 생산 주문",
+  "title": "황혼곡죽"
+}

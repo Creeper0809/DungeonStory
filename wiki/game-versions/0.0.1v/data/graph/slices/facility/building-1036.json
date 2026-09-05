@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1036",
+    "spoiler_tier": "none",
+    "title": "마력수정선반"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9106",
+      "label": "관련",
+      "to": "facility/building-1036",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/recipe-arcane-reservoir-1",
+      "label": "관련",
+      "to": "facility/building-1036",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

@@ -136,7 +136,10 @@ public enum ProductionOutputLifecycleBlockCode
     HaulIntent = 14,
     CarriedPhysicalMass = 15,
     RecoveryPending = 16,
-    EquipmentRepairOrder = 17
+    EquipmentRepairOrder = 17,
+    StockSensorInstallPending = 18,
+    StockSensorEmbedded = 19,
+    StockSensorRemovalAwaitingAck = 20
 }
 
 public readonly struct ProductionOutputLifecycleBlock
@@ -310,10 +313,51 @@ public interface IProductionOutputDestinationLifecycleQuery
     ProductionOutputDestinationLifecycleSnapshot Capture(BuildingInstanceId facilityId);
 }
 
+public enum ProductionFacilityMutationFenceKind
+{
+    TransientTopology = 0,
+    DurableDestructiveDrain = 1
+}
+
+public readonly struct ProductionFacilityMutationFenceSnapshot
+{
+    public ProductionFacilityMutationFenceSnapshot(
+        BuildingInstanceId facilityId,
+        string operationId,
+        long operationRevision,
+        ProductionFacilityMutationFenceKind kind)
+    {
+        if (!facilityId.IsValid
+            || !ProductionOutputLifecycleCanonical.IsToken(operationId)
+            || operationRevision <= 0L
+            || (kind != ProductionFacilityMutationFenceKind.TransientTopology
+                && kind != ProductionFacilityMutationFenceKind
+                    .DurableDestructiveDrain))
+        {
+            throw new ArgumentException(
+                "Production facility mutation fence snapshot is invalid.");
+        }
+
+        FacilityId = facilityId;
+        OperationId = operationId;
+        OperationRevision = operationRevision;
+        Kind = kind;
+    }
+
+    public BuildingInstanceId FacilityId { get; }
+    public string OperationId { get; }
+    public long OperationRevision { get; }
+    public ProductionFacilityMutationFenceKind Kind { get; }
+}
+
 public interface IProductionFacilityMutationEpochQuery
 {
     long Revision { get; }
     bool IsFrozen(BuildingInstanceId facilityId);
+
+    bool TryCaptureOpen(
+        BuildingInstanceId facilityId,
+        out ProductionFacilityMutationFenceSnapshot snapshot);
 }
 
 public interface IProductionFacilityMutationEpochAuthority :

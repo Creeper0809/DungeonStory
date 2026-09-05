@@ -184,7 +184,6 @@ public sealed class BuildingProstheticAssemblyAbility :
 {
     [Min(0.25f)] public float assemblySpeedMultiplier = 1f;
     [Range(0f, 0.25f)] public float qualityBonus = 0.05f;
-    [Min(1)] public int outputCapacity = 2;
 
     public SurgeryFacilityTag FacilityTags => SurgeryFacilityTag.ProstheticAssembly;
     public bool IsPrimaryOperatingFacility => false;

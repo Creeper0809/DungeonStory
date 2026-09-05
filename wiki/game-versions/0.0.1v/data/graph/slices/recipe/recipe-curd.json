@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-curd",
+    "spoiler_tier": "none",
+    "title": "응유 만들기"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-curd",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-saltstone",
+      "target_spoiler_tier": "none",
+      "target_title": "소금석",
+      "to": "item/resource-saltstone",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-curd",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-curd",
+      "target_spoiler_tier": "none",
+      "target_title": "응유",
+      "to": "item/material-curd",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-curd",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-milk",
+      "target_spoiler_tier": "none",
+      "target_title": "우유",
+      "to": "item/resource-milk",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-curd",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-livestock",
+      "target_spoiler_tier": "none",
+      "target_title": "축산 조리",
+      "to": "research/research-cuisine-livestock",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

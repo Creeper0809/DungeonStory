@@ -1,0 +1,50 @@
+[PASS] BOOT_TITLE_READY Title scope and production scene navigator are ready.
+[PASS] BOOT_PREPARATION_READY Preparation owner selection is ready.
+[PASS] BOOT_PREPARED_START_READY Prepared start command is interactable.
+[PASS] BOOT_PREPARED_START_REQUESTED PreparedNewRun was accepted through the production preparation UI.
+[PASS] BOOT_GAMEPLAY_SCENE_PATH_EXACT active=Assets/__V27SyntheticPreparedOutputCanary/GameplayScene.unity; synthetic=False
+[PASS] BOOT_GAMEPLAY_READY PreparedNewRun reached the exact Gameplay scene with a runtime container.
+[PASS] BOOT_PRODUCTION_FACILITY_AUTHORITY_BASELINE scene=Assets/__V27SyntheticPreparedOutputCanary/GameplayScene.unity; productionFacilities=1; mixedWorldEntries=153
+[PASS] RUNTIME_COMPOSITION_READY scope/container and authored owner provider match
+[PASS] SCOPE_READY gameplay LifetimeScope resolved
+[PASS] ITEM_RUNTIME_READY world item runtime resolved
+[PASS] WORK_ORDER_RUNTIME_READY work order runtime resolved
+[PASS] EQUIPMENT_RUNTIME_READY common combat equipment runtime resolved
+[PASS] EQUIPMENT_MAINTENANCE_READY equipment maintenance runtime resolved
+[PASS] ECONOMY_CATALOG_READY resource economy catalog resolved
+[PASS] PREPARATION_RUNTIME_READY offense preparation service resolved
+[PASS] DESTINATION_CLAIM_RUNTIME_READY haul destination claim authority resolved
+[PASS] WAREHOUSE_MASS_ADMISSION_RUNTIME_READY warehouse gram admission authority resolved
+[PASS] DEBUG_MODE_READY debug mode service resolved
+[PASS] GRID_READY grid resolved
+[PASS] RUN_READY owner=Leon; staff=2
+[PASS] NATURAL_PORTFOLIO_RESEARCH_SPACE_READY research=research:mining:deep;tier=3;columns=87;grid=104x3;changed=False
+[PASS] NATURAL_PORTFOLIO_AUTHORED_HALLWAYS_READY created=59;reachable=108;expandedReachable=13;expandedStart=46;grid=104x3
+[PASS] HAULER_READY Roma
+[PASS] OUTPUT_CLEARANCE_CONSUMABLE_DELIVERY_FROZEN originalPaused=False
+[PASS] OUTPUT_CLEARANCE_INVASION_THREAT_FROZEN originalEnabled=True
+[PASS] OUTPUT_CLEARANCE_SPAWNER_FROZEN originalPaused=False
+[PASS] OUTPUT_CLEARANCE_SCHEDULER_DETERMINISTIC originalDeterministic=False
+[PASS] OUTPUT_CLEARANCE_DEPRIVATION_ISOLATION_AVAILABLE command=True; query=True
+[PASS] OUTPUT_CLEARANCE_ACTOR_DECISION_STATE_ISOLATED actor=owner; reset=True; breakdown=False; mood=False; macro=False
+[PASS] OUTPUT_CLEARANCE_ACTOR_DECISION_STATE_ISOLATED actor=character:staff:-1520174046:01; reset=True; breakdown=False; mood=False; macro=False
+[PASS] OUTPUT_CLEARANCE_ACTOR_DECISION_STATE_ISOLATED actor=character:staff:-1520174046:02; reset=True; breakdown=False; mood=False; macro=False
+[PASS] OUTPUT_CLEARANCE_PREFIXTURE_HAULS_DRAINED activeHaulers=0; committedHauls=0; idle=True; actors=3; turns=1/4096
+[PASS] OUTPUT_CLEARANCE_NATURAL_AI_POOL_READY actors=3; owner:paused=True:logisticsOnly=True:haul=False,character:staff:-1520174046:01:paused=True:logisticsOnly=True:haul=False,character:staff:-1520174046:02:paused=True:logisticsOnly=True:haul=False
+[PASS] NATURAL_PORTFOLIO_OFFICIAL_SCENE_BEFORE_EXACT 6c35a17693d3cedca2c85b89b22a8bff9b5bae6de88c01b255481c058d2aee40
+[PASS] NATURAL_PORTFOLIO_RUNTIME_COMPOSITION_READY resolved=19/19
+[PASS] NATURAL_PORTFOLIO_LIVE_HOSTS_READY special=True;recipe=True
+[PASS] NATURAL_PORTFOLIO_EXECUTION_NO_EXCEPTION none
+[PASS] NATURAL_PORTFOLIO_CURRENT_X_32_COMPLETE plans=92;seeds=32;observations=2944;resumed=2944;executed=0
+[PASS] NATURAL_PORTFOLIO_OFFICIAL_SCENE_AFTER_EXACT 6c35a17693d3cedca2c85b89b22a8bff9b5bae6de88c01b255481c058d2aee40->6c35a17693d3cedca2c85b89b22a8bff9b5bae6de88c01b255481c058d2aee40
+capturedErrors=0; <none>
+capturedWarnings=0; <none>
+currentSourceDigest=444e10da91803afd572fb9bc947e1bca5ebdb8575793fdc40b8ab26cc827ee35
+gameplaySceneSha256=6c35a17693d3cedca2c85b89b22a8bff9b5bae6de88c01b255481c058d2aee40
+naturalRunnerSchema=v27-production-output-clearance-natural-runner@2
+naturalMinimumV27Plans=92
+naturalPlanCount=92
+naturalPortfolioReportSha256=91fee72382dddca3f68260200206b930be65533972fa62ba2c8b25d82829fba5
+naturalObservationsCsvSha256=2d9b51fb41785e8134872d0df25ca23e2baf2596beb6fba73518c3b1339c136e
+naturalOutputSlicesCsvSha256=03d424fad488937965040485122c9726726543c6fd5629588bd0091412a15f66
+RESULT=PASS; failures=0; <none>

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.5kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "60개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "15"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "전분과 소금으로 수분을 줄여 먼 원정에도 버티도록 만든 단단한 배급식이다. 하르나크의 귀환자의 식탁에는 보존 배급식의 봉인도 놓인다. 빈 포장 하나가 돌아오지 못한 한 끼를 뜻한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "food-preserved-ration",
+  "spoiler_tier": "none",
+  "summary": "전분과 소금으로 수명을 늘린 원정 식량.",
+  "title": "보존 배급식"
+}

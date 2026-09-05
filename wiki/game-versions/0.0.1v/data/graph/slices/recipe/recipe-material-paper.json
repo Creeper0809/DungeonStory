@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-material-paper",
+    "spoiler_tier": "none",
+    "title": "종이"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-material-paper",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-clean-water",
+      "target_spoiler_tier": "none",
+      "target_title": "깨끗한 물",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-material-paper",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "목재",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-material-paper",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "to": "item/material-paper",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-material-paper",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-industry-powered-tools",
+      "target_spoiler_tier": "none",
+      "target_title": "공장 공학",
+      "to": "research/research-industry-powered-tools",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

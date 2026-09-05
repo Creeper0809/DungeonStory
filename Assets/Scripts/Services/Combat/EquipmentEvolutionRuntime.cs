@@ -17,6 +17,7 @@ public sealed class EquipmentEvolutionRuntime :
     private readonly IResourceEconomyContentCatalog economyCatalog;
     private readonly IWorldItemStackRuntime worldItems;
     private readonly IPhysicalItemBatchDispositionService batchDispositions;
+    private readonly IEquipmentEvolutionInputOwnerRuntime inputOwners;
     private readonly IFacilityEvolutionStateComponentFactory facilityStates;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
 
@@ -38,6 +39,7 @@ public sealed class EquipmentEvolutionRuntime :
         IResourceEconomyContentCatalog economyCatalog,
         IWorldItemStackRuntime worldItems,
         IPhysicalItemBatchDispositionService batchDispositions,
+        IEquipmentEvolutionInputOwnerRuntime inputOwners,
         IFacilityEvolutionStateComponentFactory facilityStates,
         DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
@@ -52,6 +54,8 @@ public sealed class EquipmentEvolutionRuntime :
             ?? throw new ArgumentNullException(nameof(worldItems));
         this.batchDispositions = batchDispositions
             ?? throw new ArgumentNullException(nameof(batchDispositions));
+        this.inputOwners = inputOwners
+            ?? throw new ArgumentNullException(nameof(inputOwners));
         this.facilityStates = facilityStates
             ?? throw new ArgumentNullException(nameof(facilityStates));
         this.aggregateRootStore = aggregateRootStore
@@ -223,7 +227,8 @@ public sealed class EquipmentEvolutionRuntime :
             failureReason = "재단조할 장비를 찾을 수 없습니다.";
             return false;
         }
-        if (instance.worldState == CombatEquipmentWorldState.RetailStock)
+        if (CombatEquipmentWorldStateRules.IsExternalCustody(
+                instance.worldState))
         {
             failureReason = "상점 재고인 장비는 재단조할 수 없습니다.";
             return false;
@@ -311,51 +316,31 @@ public sealed class EquipmentEvolutionRuntime :
         };
 
         Dictionary<string, int> requirements = BuildRequirements(created);
-        foreach (KeyValuePair<string, int> requirement in requirements)
+        if (!TryBuildInputOwnerDescriptor(
+                created,
+                requirements,
+                out EquipmentEvolutionInputOwnerDescriptor descriptor,
+                out failureReason)
+            || !inputOwners.TryOpen(
+                descriptor,
+                out EquipmentEvolutionInputOwnerProjection projection,
+                out failureReason))
         {
-            string requestFailure = string.Empty;
-            if (worldItems == null
-                || !worldItems.TryRequestItemDelivery(
-                    requirement.Key,
-                    requirement.Value,
-                    position,
-                    destinationId,
-                    out int requested,
-                    out requestFailure)
-                || requested < requirement.Value)
-            {
-                worldItems?.ReleaseStacksByDestination(destinationId, position);
-                failureReason = string.IsNullOrWhiteSpace(requestFailure)
-                    ? $"재료가 부족합니다: {requirement.Key}"
-                    : requestFailure;
-                return false;
-            }
-        }
-
-        if (string.IsNullOrWhiteSpace(instance.sourceStackId))
-        {
-            worldItems.ReleaseStacksByDestination(destinationId, position);
-            failureReason =
-                "장비를 물리 창고나 바닥에 내려놓은 뒤 재단조할 수 있습니다.";
             return false;
         }
-        else
+        ApplyInputOwnerProjection(created, projection);
+        if (!TryBuildInputOwnerDescriptor(
+                created,
+                requirements,
+                out descriptor,
+                out failureReason)
+            || !inputOwners.TryRequest(descriptor, out failureReason))
         {
-            if (!worldItems.TryRequestStackDelivery(
-                    instance.sourceStackId,
-                    1,
-                    position,
-                    destinationId,
-                    out int requestedEquipment,
-                    out string equipmentFailure)
-                || requestedEquipment < 1)
-            {
-                worldItems.ReleaseStacksByDestination(destinationId, position);
-                failureReason = string.IsNullOrWhiteSpace(equipmentFailure)
-                    ? "장비를 대장작업대로 운반할 수 없습니다."
-                    : equipmentFailure;
-                return false;
-            }
+            CloseInputOwnerOrThrow(
+                created,
+                requirements,
+                "equipment-reforge-queue-rollback");
+            return false;
         }
         orders.Add(created);
         order = created.Clone();
@@ -436,12 +421,30 @@ public sealed class EquipmentEvolutionRuntime :
         state.reforgeReady = false;
         state.pendingHistoryHash = string.Empty;
         state.pendingDirection = EquipmentEvolutionDirection.Balanced;
-        equipment.TryUpdateEvolutionState(instance.instanceId, state);
+        EquipmentEvolutionState previousState = instance.evolution?.Clone()
+            ?? new EquipmentEvolutionState();
+        if (!equipment.TryUpdateEvolutionState(instance.instanceId, state))
+        {
+            failureReason = "재단조 장비 상태를 게시할 수 없습니다.";
+            return false;
+        }
+        if (!TryCloseInputOwner(
+                order,
+                BuildRequirements(order),
+                "equipment-reforge-completed",
+                out failureReason))
+        {
+            if (!equipment.TryUpdateEvolutionState(
+                    instance.instanceId,
+                    previousState))
+            {
+                throw new InvalidOperationException(
+                    "Equipment reforge state rollback failed after input close rejection.");
+            }
+            return false;
+        }
         order.state = EvolutionReforgeOrderState.Completed;
         order.completedWork = order.requiredWork;
-        worldItems?.ReleaseStacksByDestination(
-            order.destinationId,
-            new Vector2Int(order.destinationX, order.destinationY));
         completedNode = node.Clone();
         return true;
     }
@@ -517,10 +520,15 @@ public sealed class EquipmentEvolutionRuntime :
             return false;
         }
 
+        if (!TryCloseInputOwner(
+                order,
+                BuildRequirements(order),
+                "equipment-reforge-cancelled",
+                out failureReason))
+        {
+            return false;
+        }
         order.state = EvolutionReforgeOrderState.Cancelled;
-        worldItems?.ReleaseStacksByDestination(
-            order.destinationId,
-            new Vector2Int(order.destinationX, order.destinationY));
         return true;
     }
 
@@ -594,7 +602,8 @@ public sealed class EquipmentEvolutionRuntime :
             failureReason = "재귀속할 장비를 찾을 수 없습니다.";
             return false;
         }
-        if (instance.worldState == CombatEquipmentWorldState.RetailStock)
+        if (CombatEquipmentWorldStateRules.IsExternalCustody(
+                instance.worldState))
         {
             failureReason = "상점 재고인 장비는 재귀속할 수 없습니다.";
             return false;
@@ -678,38 +687,34 @@ public sealed class EquipmentEvolutionRuntime :
                 lockedStateHash = ComputeAttunementStateHash(state)
             };
 
-        string catalystFailure = string.Empty;
-        int requestedCatalyst = 0;
-        if (worldItems == null
-            || !worldItems.TryRequestItemDelivery(
-                created.catalystItemId,
-                1,
-                position,
-                destinationId,
-                out requestedCatalyst,
-                out catalystFailure)
-            || requestedCatalyst < 1)
+        Dictionary<string, int> requirements = new(StringComparer.Ordinal)
         {
-            worldItems?.ReleaseStacksByDestination(destinationId, position);
-            failureReason = string.IsNullOrWhiteSpace(catalystFailure)
-                ? "재귀속 촉매가 부족합니다."
-                : catalystFailure;
+            [created.catalystItemId] = 1
+        };
+        if (!TryBuildInputOwnerDescriptor(
+                created,
+                requirements,
+                out EquipmentEvolutionInputOwnerDescriptor descriptor,
+                out failureReason)
+            || !inputOwners.TryOpen(
+                descriptor,
+                out EquipmentEvolutionInputOwnerProjection projection,
+                out failureReason))
+        {
             return false;
         }
-
-        if (!worldItems.TryRequestStackDelivery(
-                instance.sourceStackId,
-                1,
-                position,
-                destinationId,
-                out int requestedEquipment,
-                out string equipmentFailure)
-            || requestedEquipment < 1)
+        ApplyInputOwnerProjection(created, projection);
+        if (!TryBuildInputOwnerDescriptor(
+                created,
+                requirements,
+                out descriptor,
+                out failureReason)
+            || !inputOwners.TryRequest(descriptor, out failureReason))
         {
-            worldItems.ReleaseStacksByDestination(destinationId, position);
-            failureReason = string.IsNullOrWhiteSpace(equipmentFailure)
-                ? "장비를 대장작업대로 운반할 수 없습니다."
-                : equipmentFailure;
+            CloseInputOwnerOrThrow(
+                created,
+                requirements,
+                "equipment-reattunement-queue-rollback");
             return false;
         }
 
@@ -798,14 +803,36 @@ public sealed class EquipmentEvolutionRuntime :
             return false;
         }
 
+        EquipmentEvolutionState previousState = instance.evolution?.Clone()
+            ?? new EquipmentEvolutionState();
         state.activeHistoricalNodeIds =
             new List<string>(order.resultingActiveNodeIds);
-        equipment.TryUpdateEvolutionState(instance.instanceId, state);
+        if (!equipment.TryUpdateEvolutionState(instance.instanceId, state))
+        {
+            failureReason = "재귀속 장비 상태를 게시할 수 없습니다.";
+            return false;
+        }
+        Dictionary<string, int> requirements = new(StringComparer.Ordinal)
+        {
+            [order.catalystItemId] = 1
+        };
+        if (!TryCloseInputOwner(
+                order,
+                requirements,
+                "equipment-reattunement-completed",
+                out failureReason))
+        {
+            if (!equipment.TryUpdateEvolutionState(
+                    instance.instanceId,
+                    previousState))
+            {
+                throw new InvalidOperationException(
+                    "Equipment reattunement state rollback failed after input close rejection.");
+            }
+            return false;
+        }
         order.state = EvolutionReforgeOrderState.Completed;
         order.completedWork = order.requiredWork;
-        worldItems?.ReleaseStacksByDestination(
-            order.destinationId,
-            new Vector2Int(order.destinationX, order.destinationY));
         completed = true;
         return true;
     }
@@ -837,15 +864,25 @@ public sealed class EquipmentEvolutionRuntime :
             return false;
         }
 
+        Dictionary<string, int> requirements = new(StringComparer.Ordinal)
+        {
+            [order.catalystItemId] = 1
+        };
+        if (!TryCloseInputOwner(
+                order,
+                requirements,
+                "equipment-reattunement-cancelled",
+                out failureReason))
+        {
+            return false;
+        }
         order.state = EvolutionReforgeOrderState.Cancelled;
-        worldItems?.ReleaseStacksByDestination(
-            order.destinationId,
-            new Vector2Int(order.destinationX, order.destinationY));
         return true;
     }
 
     public EquipmentEvolutionSaveData Capture()
     {
+        ValidateInputOwnersBeforeCapture();
         return new EquipmentEvolutionSaveData
         {
             reforgeOrders = CurrentState.ReforgeOrders
@@ -872,9 +909,24 @@ public sealed class EquipmentEvolutionRuntime :
     public void PublishRestoreCandidate(
         EquipmentEvolutionRestoreCandidate candidate)
     {
-        aggregateRootStore.Replace(
+        EquipmentEvolutionAggregateState restored =
             (candidate ?? throw new ArgumentNullException(nameof(candidate)))
-            .State);
+            .State;
+        if (!TryBuildInputOwnerDescriptors(
+                restored.ReforgeOrders,
+                restored.ReattunementOrders,
+                out IReadOnlyList<EquipmentEvolutionInputOwnerDescriptor>
+                    descriptors,
+                out string failureReason)
+            || !inputOwners.TryReplaceForRestore(
+                descriptors,
+                out failureReason))
+        {
+            throw new InvalidOperationException(
+                "Equipment evolution input restore publication failed: "
+                + failureReason);
+        }
+        aggregateRootStore.Replace(restored);
     }
 
     private bool EnsureMaterialsReady(
@@ -882,6 +934,18 @@ public sealed class EquipmentEvolutionRuntime :
         out string failureReason)
     {
         failureReason = string.Empty;
+        Dictionary<string, int> requirements = BuildRequirements(order);
+        if (!TryBuildInputOwnerDescriptor(
+                order,
+                requirements,
+                out EquipmentEvolutionInputOwnerDescriptor descriptor,
+                out failureReason)
+            || !inputOwners.TryValidateAuthority(
+                descriptor,
+                out failureReason))
+        {
+            return false;
+        }
         if (order.materialsConsumed
             && string.IsNullOrEmpty(order.materialTransferOperationId))
         {
@@ -935,6 +999,21 @@ public sealed class EquipmentEvolutionRuntime :
         out string failureReason)
     {
         failureReason = string.Empty;
+        Dictionary<string, int> requirements = new(StringComparer.Ordinal)
+        {
+            [order.catalystItemId] = 1
+        };
+        if (!TryBuildInputOwnerDescriptor(
+                order,
+                requirements,
+                out EquipmentEvolutionInputOwnerDescriptor descriptor,
+                out failureReason)
+            || !inputOwners.TryValidateAuthority(
+                descriptor,
+                out failureReason))
+        {
+            return false;
+        }
         if (order.materialsConsumed
             && string.IsNullOrEmpty(order.materialTransferOperationId))
         {
@@ -978,6 +1057,339 @@ public sealed class EquipmentEvolutionRuntime :
         }
 
         return true;
+    }
+
+    private void ValidateInputOwnersBeforeCapture()
+    {
+        if (!TryBuildInputOwnerDescriptors(
+                CurrentState.ReforgeOrders,
+                CurrentState.ReattunementOrders,
+                out IReadOnlyList<EquipmentEvolutionInputOwnerDescriptor>
+                    descriptors,
+                out string failureReason))
+        {
+            throw new InvalidOperationException(
+                "Equipment evolution input capture projection failed: "
+                + failureReason);
+        }
+        foreach (EquipmentEvolutionInputOwnerDescriptor descriptor in descriptors)
+        {
+            if (!inputOwners.TryValidateAuthority(
+                    descriptor,
+                    out failureReason))
+            {
+                throw new InvalidOperationException(
+                    "Equipment evolution input authority is invalid for order '"
+                    + descriptor.OrderId + "': " + failureReason);
+            }
+        }
+    }
+
+    private bool TryBuildInputOwnerDescriptors(
+        IEnumerable<EvolutionReforgeOrder> reforge,
+        IEnumerable<EquipmentReattunementOrder> reattunement,
+        out IReadOnlyList<EquipmentEvolutionInputOwnerDescriptor> descriptors,
+        out string failureReason)
+    {
+        List<EquipmentEvolutionInputOwnerDescriptor> result = new();
+        foreach (EvolutionReforgeOrder order in
+                 (reforge ?? Array.Empty<EvolutionReforgeOrder>())
+                 .Where(value => value != null
+                     && value.state is not EvolutionReforgeOrderState.Completed
+                         and not EvolutionReforgeOrderState.Cancelled)
+                 .OrderBy(value => value.orderId, StringComparer.Ordinal))
+        {
+            if (!TryBuildInputOwnerDescriptor(
+                    order,
+                    BuildRequirements(order),
+                    out EquipmentEvolutionInputOwnerDescriptor descriptor,
+                    out failureReason))
+            {
+                descriptors = null;
+                return false;
+            }
+            result.Add(descriptor);
+        }
+        foreach (EquipmentReattunementOrder order in
+                 (reattunement ?? Array.Empty<EquipmentReattunementOrder>())
+                 .Where(value => value != null
+                     && value.state is not EvolutionReforgeOrderState.Completed
+                         and not EvolutionReforgeOrderState.Cancelled)
+                 .OrderBy(value => value.orderId, StringComparer.Ordinal))
+        {
+            Dictionary<string, int> requirements = new(StringComparer.Ordinal)
+            {
+                [order.catalystItemId] = 1
+            };
+            if (!TryBuildInputOwnerDescriptor(
+                    order,
+                    requirements,
+                    out EquipmentEvolutionInputOwnerDescriptor descriptor,
+                    out failureReason))
+            {
+                descriptors = null;
+                return false;
+            }
+            result.Add(descriptor);
+        }
+        descriptors = result
+            .OrderBy(value => value.DestinationId, StringComparer.Ordinal)
+            .ToArray();
+        failureReason = string.Empty;
+        return true;
+    }
+
+    private bool TryBuildInputOwnerDescriptor(
+        EvolutionReforgeOrder order,
+        IReadOnlyDictionary<string, int> requirements,
+        out EquipmentEvolutionInputOwnerDescriptor descriptor,
+        out string failureReason) => TryBuildInputOwnerDescriptor(
+        order?.orderId,
+        order?.destinationId,
+        order?.facilityPersistentId,
+        order == null
+            ? default
+            : new Vector2Int(order.destinationX, order.destinationY),
+        order?.equipmentInstanceId,
+        order?.inputBufferCapacityGrams ?? 0L,
+        order?.inputMassAuthorityRevision ?? 0L,
+        order?.inputCapacityFingerprint,
+        requirements,
+        out descriptor,
+        out failureReason);
+
+    private bool TryBuildInputOwnerDescriptor(
+        EquipmentReattunementOrder order,
+        IReadOnlyDictionary<string, int> requirements,
+        out EquipmentEvolutionInputOwnerDescriptor descriptor,
+        out string failureReason) => TryBuildInputOwnerDescriptor(
+        order?.orderId,
+        order?.destinationId,
+        order?.facilityPersistentId,
+        order == null
+            ? default
+            : new Vector2Int(order.destinationX, order.destinationY),
+        order?.equipmentInstanceId,
+        order?.inputBufferCapacityGrams ?? 0L,
+        order?.inputMassAuthorityRevision ?? 0L,
+        order?.inputCapacityFingerprint,
+        requirements,
+        out descriptor,
+        out failureReason);
+
+    private bool TryBuildInputOwnerDescriptor(
+        string orderId,
+        string destinationId,
+        string facilityPersistentId,
+        Vector2Int position,
+        string equipmentInstanceId,
+        long storedCapacityGrams,
+        long storedMassAuthorityRevision,
+        string storedCapacityFingerprint,
+        IReadOnlyDictionary<string, int> requirements,
+        out EquipmentEvolutionInputOwnerDescriptor descriptor,
+        out string failureReason)
+    {
+        descriptor = null;
+        failureReason = string.Empty;
+        try
+        {
+            if (!equipment.TryGetInstance(
+                    equipmentInstanceId,
+                    out CombatEquipmentInstance instance)
+                || string.IsNullOrWhiteSpace(instance.sourceStackId))
+            {
+                failureReason = "equipment-evolution-input-instance-missing";
+                return false;
+            }
+            string equipmentItemId = PhysicalItemIds.ForEquipment(
+                instance.definitionId);
+            WorldItemStackSnapshot[] sourceStacks = worldItems.GetAllStacks()
+                .Where(value => value != null && string.Equals(
+                    value.StackId,
+                    instance.sourceStackId,
+                    StringComparison.Ordinal))
+                .ToArray();
+            if (sourceStacks.Length != 1
+                || sourceStacks[0].Quantity != 1
+                || !string.Equals(
+                    sourceStacks[0].ItemId,
+                    equipmentItemId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    sourceStacks[0].ItemInstanceId,
+                    instance.instanceId,
+                    StringComparison.Ordinal)
+                || !equipment.TryGetInstanceBySourceStack(
+                    instance.sourceStackId,
+                    out CombatEquipmentInstance linked)
+                || !string.Equals(
+                    linked.instanceId,
+                    instance.instanceId,
+                    StringComparison.Ordinal))
+            {
+                failureReason =
+                    "equipment-evolution-input-unique-equipment-custody-invalid";
+                return false;
+            }
+
+            Dictionary<string, EquipmentModuleInstance> modulesById =
+                (equipment.ModuleInstances
+                    ?? Array.Empty<EquipmentModuleInstance>())
+                .Where(value => value != null
+                    && !string.IsNullOrWhiteSpace(value.instanceId))
+                .ToDictionary(
+                    value => value.instanceId,
+                    value => value,
+                    StringComparer.Ordinal);
+            List<EquipmentModuleInstance> attachedModules = new();
+            HashSet<int> slotIndexes = new();
+            HashSet<string> moduleIds = new(StringComparer.Ordinal);
+            foreach (EquipmentModuleSlotState slot in
+                     (instance.moduleSlots
+                         ?? new List<EquipmentModuleSlotState>())
+                     .Where(value => value != null
+                         && !string.IsNullOrWhiteSpace(value.moduleInstanceId))
+                     .OrderBy(value => value.slotIndex)
+                     .ThenBy(value => value.moduleInstanceId,
+                         StringComparer.Ordinal))
+            {
+                if (!slotIndexes.Add(slot.slotIndex)
+                    || !moduleIds.Add(slot.moduleInstanceId)
+                    || !modulesById.TryGetValue(
+                        slot.moduleInstanceId,
+                        out EquipmentModuleInstance module)
+                    || module.state != EquipmentModuleProcessState.Installed
+                    || !string.Equals(
+                        module.attachedEquipmentInstanceId,
+                        instance.instanceId,
+                        StringComparison.Ordinal))
+                {
+                    failureReason =
+                        "equipment-evolution-input-attached-module-invalid";
+                    return false;
+                }
+                attachedModules.Add(module);
+            }
+            ItemInstanceComponentSaveData expectedComponent =
+                EquipmentItemStateCodec.Encode(instance, attachedModules);
+            ItemInstanceComponentSaveData[] actualEquipmentComponents =
+                (sourceStacks[0].Components
+                    ?? Array.Empty<ItemInstanceComponentSaveData>())
+                .Where(value => value != null && string.Equals(
+                    value.componentTypeId,
+                    ItemInstanceComponentIds.Equipment,
+                    StringComparison.Ordinal))
+                .ToArray();
+            if (actualEquipmentComponents.Length != 1
+                || !string.Equals(
+                    actualEquipmentComponents[0].ToCanonicalString(),
+                    expectedComponent.ToCanonicalString(),
+                    StringComparison.Ordinal))
+            {
+                failureReason =
+                    "equipment-evolution-input-equipment-component-drift";
+                return false;
+            }
+
+            descriptor = new EquipmentEvolutionInputOwnerDescriptor(
+                orderId,
+                destinationId,
+                facilityPersistentId,
+                position,
+                instance.instanceId,
+                equipmentItemId,
+                instance.sourceStackId,
+                sourceStacks[0].Components,
+                requirements,
+                storedCapacityGrams,
+                storedMassAuthorityRevision,
+                storedCapacityFingerprint);
+            return true;
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidOperationException
+                                           or OverflowException)
+        {
+            failureReason = "equipment-evolution-input-descriptor-invalid:"
+                + exception.GetType().Name + ":" + exception.Message;
+            return false;
+        }
+    }
+
+    private static void ApplyInputOwnerProjection(
+        EvolutionReforgeOrder order,
+        EquipmentEvolutionInputOwnerProjection projection)
+    {
+        order.inputBufferCapacityGrams = projection.CapacityGrams;
+        order.inputMassAuthorityRevision = projection.MassAuthorityRevision;
+        order.inputCapacityFingerprint = projection.CapacityFingerprint;
+    }
+
+    private static void ApplyInputOwnerProjection(
+        EquipmentReattunementOrder order,
+        EquipmentEvolutionInputOwnerProjection projection)
+    {
+        order.inputBufferCapacityGrams = projection.CapacityGrams;
+        order.inputMassAuthorityRevision = projection.MassAuthorityRevision;
+        order.inputCapacityFingerprint = projection.CapacityFingerprint;
+    }
+
+    private bool TryCloseInputOwner(
+        EvolutionReforgeOrder order,
+        IReadOnlyDictionary<string, int> requirements,
+        string reasonCode,
+        out string failureReason) =>
+        TryBuildInputOwnerDescriptor(
+            order,
+            requirements,
+            out EquipmentEvolutionInputOwnerDescriptor descriptor,
+            out failureReason)
+        && inputOwners.TryClose(descriptor, reasonCode, out failureReason);
+
+    private bool TryCloseInputOwner(
+        EquipmentReattunementOrder order,
+        IReadOnlyDictionary<string, int> requirements,
+        string reasonCode,
+        out string failureReason) =>
+        TryBuildInputOwnerDescriptor(
+            order,
+            requirements,
+            out EquipmentEvolutionInputOwnerDescriptor descriptor,
+            out failureReason)
+        && inputOwners.TryClose(descriptor, reasonCode, out failureReason);
+
+    private void CloseInputOwnerOrThrow(
+        EvolutionReforgeOrder order,
+        IReadOnlyDictionary<string, int> requirements,
+        string reasonCode)
+    {
+        if (!TryCloseInputOwner(
+                order,
+                requirements,
+                reasonCode,
+                out string failureReason))
+        {
+            throw new InvalidOperationException(
+                "Equipment reforge input rollback failed: " + failureReason);
+        }
+    }
+
+    private void CloseInputOwnerOrThrow(
+        EquipmentReattunementOrder order,
+        IReadOnlyDictionary<string, int> requirements,
+        string reasonCode)
+    {
+        if (!TryCloseInputOwner(
+                order,
+                requirements,
+                reasonCode,
+                out string failureReason))
+        {
+            throw new InvalidOperationException(
+                "Equipment reattunement input rollback failed: "
+                + failureReason);
+        }
     }
 
     private bool HasActiveEquipmentOrder(string equipmentInstanceId)

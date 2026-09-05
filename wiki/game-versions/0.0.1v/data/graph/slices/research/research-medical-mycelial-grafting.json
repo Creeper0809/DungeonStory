@@ -1,0 +1,133 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-medical-mycelial-grafting",
+    "spoiler_tier": "none",
+    "title": "균사 접목학"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-medical-mycelial-grafting",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-fungal",
+      "target_spoiler_tier": "none",
+      "target_title": "실내 균목림",
+      "to": "research/research-forestry-fungal",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-mycelial-grafting",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-fungal",
+      "target_spoiler_tier": "none",
+      "target_title": "실내 균목림",
+      "to": "research/research-forestry-fungal",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-mycelial-grafting",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-fungal",
+      "target_spoiler_tier": "none",
+      "target_title": "실내 균목림",
+      "to": "research/research-forestry-fungal",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-mycelial-grafting",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-anatomy",
+      "target_spoiler_tier": "none",
+      "target_title": "해부학",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-mycelial-grafting",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-anatomy",
+      "target_spoiler_tier": "none",
+      "target_title": "해부학",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-mycelial-grafting",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-anatomy",
+      "target_spoiler_tier": "none",
+      "target_title": "해부학",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-myconid-core-graft",
+      "label": "필요 조건",
+      "to": "research/research-medical-mycelial-grafting",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-myconid-hypha-binding",
+      "label": "필요 조건",
+      "to": "research/research-medical-mycelial-grafting",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-myconid-regrowth",
+      "label": "필요 조건",
+      "to": "research/research-medical-mycelial-grafting",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-myconid-spore-cleaning",
+      "label": "필요 조건",
+      "to": "research/research-medical-mycelial-grafting",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-medical-sterile-mycelium-graft",
+      "label": "필요 조건",
+      "to": "research/research-medical-mycelial-grafting",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-regenerative-culture",
+      "label": "선행 연구",
+      "to": "research/research-medical-mycelial-grafting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-regenerative-culture",
+      "label": "선행 연구",
+      "to": "research/research-medical-mycelial-grafting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-regenerative-culture",
+      "label": "선행 연구",
+      "to": "research/research-medical-mycelial-grafting",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "48"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "작은 금속 고리를 촘촘히 이어 방어구의 유연한 덮개로 쓰는 사슬 망이다. 특히 크릭 제7굴산 사슬 망에는 일곱 톱니 자국과 되녹인 횟수가 찍혀 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-chain-mesh",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 사슬 망.",
+  "title": "사슬 망"
+}

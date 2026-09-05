@@ -18,6 +18,10 @@ public static class CropPhysicalTransactionOutbox
         "crop-sow-wip-loss:";
     public const string DestroyedPlotLossReasonCode =
         "crop-sow-wip-destroyed-with-plot";
+    public const string DestroyedFacilityLossOperationPrefix =
+        "certified-seed-wip-loss:";
+    public const string DestroyedFacilityLossReasonCode =
+        "certified-seed-wip-destroyed-with-facility";
 
     public static string FormatSowOperationId(string plotId, int sequence) =>
         $"{SowOperationPrefix}{plotId}:{Math.Max(0, sequence):D8}";
@@ -28,6 +32,11 @@ public static class CropPhysicalTransactionOutbox
     public static string FormatDestroyedPlotLossOperationId(
         string inputOperationId) =>
         DestroyedPlotLossOperationPrefix + (inputOperationId ?? string.Empty);
+
+    public static string FormatDestroyedFacilityLossOperationId(
+        string inputOperationId) =>
+        DestroyedFacilityLossOperationPrefix
+        + (inputOperationId ?? string.Empty);
 
     public static bool TryCommitOrResume(
         CropPhysicalCommitSaveData owner,
@@ -224,6 +233,84 @@ public static class CropPhysicalTransactionOutbox
         return items.AcknowledgeBatchPhysicalDisposition(
             owner.commitId,
             out failureReason);
+    }
+
+    public static bool TryAcknowledgeDestroyedFacilityLoss(
+        CropPhysicalCommitSaveData owner,
+        IPhysicalSeedLotGateway items,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (owner == null || items == null)
+        {
+            failureReason = "certified-seed-destroyed-facility-loss-invalid-request";
+            return false;
+        }
+
+        if (owner.phase == CropPhysicalCommitPhase.InputCommitted)
+        {
+            if (!items.TryGetPendingBatchPhysicalDisposition(
+                    owner.operationId,
+                    out PhysicalItemBatchDispositionReceipt receipt)
+                || !ValidateReceipt(
+                    owner,
+                    receipt,
+                    owner.requestFingerprint,
+                    out failureReason)
+                || !HasNoTerminalDisposition(owner))
+            {
+                if (failureReason.Length == 0)
+                {
+                    failureReason =
+                        "certified-seed-destroyed-facility-loss-owner-invalid";
+                }
+                return false;
+            }
+
+            owner.phase = CropPhysicalCommitPhase.FacilityDestroyedLossPending;
+            owner.terminalDisposition =
+                CropWipTerminalDisposition.DestroyedWithFacilityLoss;
+            owner.terminalOperationId =
+                FormatDestroyedFacilityLossOperationId(owner.operationId);
+            owner.terminalReasonCode = DestroyedFacilityLossReasonCode;
+            owner.terminalLossQuantity = owner.inputQuantity;
+            owner.terminalLossMassGrams = owner.inputMassGrams;
+        }
+
+        if (!ValidateDestroyedFacilityLoss(owner, out failureReason))
+            return false;
+
+        return items.AcknowledgeBatchPhysicalDisposition(
+            owner.commitId,
+            out failureReason);
+    }
+
+    public static bool ValidateDestroyedFacilityLoss(
+        CropPhysicalCommitSaveData owner,
+        out string failureReason)
+    {
+        bool valid = owner != null
+            && owner.phase
+                == CropPhysicalCommitPhase.FacilityDestroyedLossPending
+            && owner.terminalDisposition
+                == CropWipTerminalDisposition.DestroyedWithFacilityLoss
+            && string.Equals(
+                owner.terminalOperationId,
+                FormatDestroyedFacilityLossOperationId(owner.operationId),
+                StringComparison.Ordinal)
+            && string.Equals(
+                owner.terminalReasonCode,
+                DestroyedFacilityLossReasonCode,
+                StringComparison.Ordinal)
+            && owner.terminalLossQuantity == owner.inputQuantity
+            && owner.terminalLossQuantity > 0
+            && owner.terminalLossMassGrams == owner.inputMassGrams
+            && owner.terminalLossMassGrams > 0L
+            && string.IsNullOrEmpty(owner.ecologyAfterFingerprint);
+        failureReason = valid
+            ? string.Empty
+            : "certified-seed-destroyed-facility-loss-owner-invalid";
+        return valid;
     }
 
     public static bool ValidateDestroyedPlotLoss(

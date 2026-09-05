@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.65kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "16개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "232"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "연구와 비전 감각을 증폭하는 중독성 약물이다. 베르사디온의 마나 각성제에는 환자, 집도의와 마나 제공자가 누른 세 봉인이 모두 있어야 빛이 돈다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "drug-mana-awakener",
+  "spoiler_tier": "none",
+  "summary": "연구와 비전 감각을 증폭하는 중독성 약물.",
+  "title": "마나 각성제"
+}

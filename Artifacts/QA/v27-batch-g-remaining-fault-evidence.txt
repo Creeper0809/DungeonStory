@@ -1,0 +1,11 @@
+RESULT=PASS
+schema=v27-batch-g-remaining-fault-evidence-v1
+BATCH_G_DROP_PUBLICATION_FAILURE_EXACT_ONCE=PASS
+BATCH_G_RECOVERY_PENDING_RETRY_ACK=PASS
+BATCH_G_MULTI_STACK_QUANTITY_GRAM_EXACT=PASS
+BATCH_G_PARTIAL_PICKUP_CUSTODY_EXACT=PASS
+dropRetry=drop-publication-failure=recovery-pending; retry=exact-once; acknowledgement=exact
+multiStack=pickups=3; reserved=15; deposited=15; massGrams=15000
+partialPickup=reserved=3; remaining=7; carriedGrams=30000; sourceGrams=70000
+currentSourceDigest=444e10da91803afd572fb9bc947e1bca5ebdb8575793fdc40b8ab26cc827ee35
+gameplaySceneSha256=6c35a17693d3cedca2c85b89b22a8bff9b5bae6de88c01b255481c058d2aee40

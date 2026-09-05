@@ -1,0 +1,3 @@
+﻿source_path,code_system,layer,domain,scope,namespace,declared_symbol_count,declared_symbols,symbol_kinds,architectural_roles,optimization_techniques,architecture_system_ids
+Assets/Scripts/Models/Synthesis/Core/FacilitySynthesisRules.cs,models:synthesis,Models,Synthesis,runtime,,1,FacilitySynthesisRules,class,runtime-support,,architecture-system:19
+Assets/Scripts/Models/Synthesis/Editor/FacilitySynthesisRulesDebugScenarios.cs,models:synthesis,Models,Synthesis,editor-verification,,1,FacilitySynthesisRulesDebugScenarios,class,editor-verification; validation,,

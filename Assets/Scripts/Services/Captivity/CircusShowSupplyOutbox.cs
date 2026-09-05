@@ -24,6 +24,10 @@ public static class CircusShowSupplyOutbox
             || sequence != order.nextSupplyOperationSequence
             || !receipt.IsCommitted
             || receipt.Kind != PhysicalItemDispositionKind.Sink
+            || receipt.Quantity != 1
+            || receipt.InputMassGrams !=
+                CircusPerformanceSupplyContracts
+                    .PerformancePropBoxMassGrams
             || !string.Equals(receipt.OperationId, FormatOperationId(order.orderId, sequence), StringComparison.Ordinal)
             || !string.Equals(receipt.ReasonCode, ReasonCode, StringComparison.Ordinal)
             || string.IsNullOrWhiteSpace(cartStackId)
@@ -72,21 +76,18 @@ public static class CircusShowSupplyOutbox
                 return false;
             }
             WorldItemStackSnapshot cart = items.GetAllStacks().FirstOrDefault(x => x != null && x.StackId == order.pendingSupplyCartStackId);
-            if (cart == null)
+            if (cart == null
+                || !string.Equals(
+                    cart.ItemId,
+                    DurableToolItemRules.BanquetCart,
+                    StringComparison.Ordinal))
             {
                 failureReason = "circus-show-supply-cart-missing";
                 return false;
             }
             float current = DurableToolItemRules.ReadCurrentDurability(cart.ItemId, cart.Components);
-            if (Math.Abs(current - order.pendingSupplyCartDurabilityBefore) < 0.001f)
-            {
-                if (!items.TrySetInstanceComponent(cart.StackId, DurableToolItemRules.CreateDurability(cart.ItemId, order.pendingSupplyCartDurabilityAfter)))
-                {
-                    failureReason = "circus-show-supply-cart-update-failed";
-                    return false;
-                }
-            }
-            else if (Math.Abs(current - order.pendingSupplyCartDurabilityAfter) >= 0.001f)
+            if (Math.Abs(current - order.pendingSupplyCartDurabilityAfter)
+                >= 0.001f)
             {
                 failureReason = "circus-show-supply-cart-conflict";
                 return false;
@@ -118,11 +119,16 @@ public static class CircusShowSupplyOutbox
         && string.Equals(order.pendingSupplyOperationId, FormatOperationId(order.orderId, order.pendingSupplyOperationSequence), StringComparison.Ordinal)
         && string.Equals(order.pendingSupplyReasonCode, ReasonCode, StringComparison.Ordinal)
         && order.pendingSupplyQuantity == 1
-        && order.pendingSupplyMassGrams > 0
+        && order.pendingSupplyMassGrams ==
+            CircusPerformanceSupplyContracts.PerformancePropBoxMassGrams
         && order.pendingSupplySourceStackIds != null
         && order.pendingSupplySourceStackIds.Count > 0
         && !string.IsNullOrWhiteSpace(order.pendingSupplyCartStackId)
         && order.pendingSupplyCartDurabilityBefore > order.pendingSupplyCartDurabilityAfter
+        && Math.Abs(
+            order.pendingSupplyCartDurabilityBefore
+            - order.pendingSupplyCartDurabilityAfter
+            - CircusPerformanceSupplyContracts.BanquetCartWearPerShow) < 0.001d
         && order.pendingSupplyCartDurabilityAfter >= 0f;
 
     private static void Clear(CircusShowOrder order)

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.3kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "40개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "58"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "금괴, 장식과 권위 설비의 원료이다. 노르칸드라 채굴대는 금광석을 실은 자루에 광맥보다 먼저 돌아갈 갱도의 방향을 그린다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "resource-gold-ore",
+  "spoiler_tier": "none",
+  "summary": "금괴, 장식과 권위 설비의 원료.",
+  "title": "금광석"
+}

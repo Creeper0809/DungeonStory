@@ -1,0 +1,123 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-equipment-weapon-patterns",
+    "spoiler_tier": "none",
+    "title": "무기 형식학"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-equipment-weapon-patterns",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-tools",
+      "target_spoiler_tier": "none",
+      "target_title": "벌목 도구",
+      "to": "research/research-forestry-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-weapon-patterns",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-tools",
+      "target_spoiler_tier": "none",
+      "target_title": "벌목 도구",
+      "to": "research/research-forestry-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-weapon-patterns",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-tools",
+      "target_spoiler_tier": "none",
+      "target_title": "벌목 도구",
+      "to": "research/research-forestry-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-weapon-patterns",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-primitive",
+      "target_spoiler_tier": "none",
+      "target_title": "원시 단조",
+      "to": "research/research-metallurgy-primitive",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-weapon-patterns",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-primitive",
+      "target_spoiler_tier": "none",
+      "target_title": "원시 단조",
+      "to": "research/research-metallurgy-primitive",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-weapon-patterns",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-primitive",
+      "target_spoiler_tier": "none",
+      "target_title": "원시 단조",
+      "to": "research/research-metallurgy-primitive",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-weapon-patterns",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8834",
+      "target_spoiler_tier": "none",
+      "target_title": "무기 도면걸이",
+      "to": "facility/building-8834",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-shield-buckler",
+      "label": "필요 조건",
+      "to": "research/research-equipment-weapon-patterns",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-falchion",
+      "label": "필요 조건",
+      "to": "research/research-equipment-weapon-patterns",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-halberd",
+      "label": "필요 조건",
+      "to": "research/research-equipment-weapon-patterns",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-longsword",
+      "label": "필요 조건",
+      "to": "research/research-equipment-weapon-patterns",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-throwing-axe",
+      "label": "필요 조건",
+      "to": "research/research-equipment-weapon-patterns",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

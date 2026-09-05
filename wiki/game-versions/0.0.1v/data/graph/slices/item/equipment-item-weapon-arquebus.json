@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "equipment-item-weapon-arquebus",
+    "spoiler_tier": "none",
+    "title": "아쿼버스"
+  },
+  "edges": [],
+  "schema_version": 1
+}

@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "festival-many-tables",
+    "spoiler_tier": "none",
+    "title": "열 문화의 식탁"
+  },
+  "edges": [
+    {
+      "amount": "8",
+      "from": "character/festival-many-tables",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "food-lavish-vegan",
+      "target_spoiler_tier": "none",
+      "target_title": "월야 비건 만찬",
+      "to": "item/food-lavish-vegan",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

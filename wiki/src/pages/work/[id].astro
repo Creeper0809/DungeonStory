@@ -1,0 +1,13 @@
+---
+import BaseLayout from '../../components/BaseLayout.astro';
+import WorkReferenceContent from '../../components/WorkReferenceContent.astro';
+import { getCurrentVersion, getWorkReference } from '../../lib/wiki-data';
+
+const version = getCurrentVersion();
+const reference = getWorkReference(version, Astro.params.id ?? '');
+if (!reference) return new Response(null, { status: 404 });
+---
+
+<BaseLayout title={reference.title} description={reference.summary} version={version}>
+  <WorkReferenceContent reference={reference} version={version} />
+</BaseLayout>

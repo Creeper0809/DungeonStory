@@ -60,7 +60,11 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
     MonoBehaviour
 {
     public bool PowerFuelOnly { get; set; }
-    private const string ConveyorDestination = "qa:industrial-output";
+    private const string ConveyorDestinationPrefix = "qa:industrial-output:";
+    private const string ConveyorBufferOwnerDomain =
+        "qa.infrastructure.conveyor";
+    private const string ConveyorBufferOperationId =
+        "qa:industrial-conveyor-output";
     private const string NormalStackIdPrefix = "qa:normal-stack";
     private const string OverflowPayloadPrefix = "qa:overflow-payload:";
     private const float TimeoutSeconds = 30f;
@@ -89,6 +93,11 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
     private IItemTransferService itemTransfers;
     private IDungeonSaveSectionRegistry saveSections;
     private IFacilityBufferPhysicalOccupancyQuery bufferOccupancy;
+    private IFacilityBufferDestinationLifecycleCommand bufferLifecycle;
+    private IFacilityBufferDestinationClaimAuthorityQuery bufferClaimAuthority;
+    private IFacilityBufferMassCapacityAuthorityQuery bufferCapacityAuthority;
+    private IFacilityBufferMassCapacityQuery bufferCapacity;
+    private IPhysicalItemMassQuery itemMass;
     private IGameClock clock;
     private GameManager gameManager;
     private OwnerSelectionPanel ownerSelection;
@@ -107,12 +116,20 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
     private DungeonConveyorInfrastructureSaveData originalConveyor;
     private DungeonAutomationSaveData originalAutomation;
     private DungeonPhysicalItemSaveData originalItems;
+    private List<DungeonSaveSectionEnvelope> originalWorld;
+    private bool originalStateCaptured;
+    private string conveyorDestination = string.Empty;
+    private FacilityBufferDestinationClaim[] originalConveyorBufferClaims =
+        Array.Empty<FacilityBufferDestinationClaim>();
+    private FacilityBufferCapacityProfile[] originalConveyorBufferProfiles =
+        Array.Empty<FacilityBufferCapacityProfile>();
     private Exception verificationFailure;
 
     private IEnumerator Start()
     {
         yield return ExecuteGuarded(RunVerification());
 
+        Cleanup();
         bool passed = verificationFailure == null;
         report.Add(passed ? "result=PASS" : "result=FAIL");
         if (!passed)
@@ -122,8 +139,6 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         }
 
         WriteReport();
-        Cleanup();
-
         if (passed)
         {
             Debug.Log(
@@ -280,6 +295,15 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         saveSections = scope.Container.Resolve<IDungeonSaveSectionRegistry>();
         bufferOccupancy = scope.Container.Resolve<
             IFacilityBufferPhysicalOccupancyQuery>();
+        bufferLifecycle = scope.Container.Resolve<
+            IFacilityBufferDestinationLifecycleCommand>();
+        bufferClaimAuthority = scope.Container.Resolve<
+            IFacilityBufferDestinationClaimAuthorityQuery>();
+        bufferCapacityAuthority = scope.Container.Resolve<
+            IFacilityBufferMassCapacityAuthorityQuery>();
+        bufferCapacity = scope.Container.Resolve<
+            IFacilityBufferMassCapacityQuery>();
+        itemMass = scope.Container.Resolve<IPhysicalItemMassQuery>();
         clock = scope.Container.Resolve<IGameClock>();
         gameManager = UnityEngine.Object.FindFirstObjectByType<GameManager>();
         ownerSelection =
@@ -306,11 +330,27 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
 
     private void CaptureOriginalState()
     {
+        originalWorld = saveSections.CaptureAll();
         originalPower = powerPersistence.Capture();
         originalFluid = fluidPersistence.Capture();
         originalConveyor = conveyorPersistence.Capture();
         originalAutomation = automationPersistence.Capture();
         originalItems = items.Capture();
+        originalConveyorBufferClaims = bufferClaimAuthority
+            .CaptureAuthorityClaims()
+            .Where(value => string.Equals(
+                value.OwnerDomain,
+                ConveyorBufferOwnerDomain,
+                StringComparison.Ordinal))
+            .ToArray();
+        originalConveyorBufferProfiles = bufferCapacityAuthority
+            .CaptureAuthorityProfiles()
+            .Where(value => string.Equals(
+                value.OwnerDomain,
+                ConveyorBufferOwnerDomain,
+                StringComparison.Ordinal))
+            .ToArray();
+        originalStateCaptured = true;
         originalTimeScale = Time.timeScale;
         originalPause = gameManager != null && gameManager.isPause;
         ownerSelectionWasActive =
@@ -816,14 +856,40 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
     {
         BuildableObject input = FindBuilding("C02");
         BuildableObject output = FindBuilding("C03");
+        string outputFacilityId =
+            output.RequirePersistentInstanceId().Value;
+        conveyorDestination = ConveyorDestinationPrefix + outputFacilityId;
+        Vector2Int outputDropPosition = output.BuildingData
+            .GetGridPosList(output.centerPos)
+            .First();
+        PhysicalMassGrams blockedCapacity = itemMass.GetQuantityMass(
+            (ItemDefinitionId)"material:lumber",
+            PhysicalItemMassSubject.ForDefinition(
+                (ItemDefinitionId)"material:lumber"),
+            2);
+        PhysicalMassGrams outputCapacity = itemMass.GetQuantityMass(
+            (ItemDefinitionId)"material:lumber",
+            PhysicalItemMassSubject.ForDefinition(
+                (ItemDefinitionId)"material:lumber"),
+            3);
+        PublishConveyorOutputAuthority(
+            output,
+            outputFacilityId,
+            outputDropPosition,
+            blockedCapacity,
+            1L);
         Require(conveyorCommands.SetPortDestination(
                 input,
-                ConveyorDestination).Succeeded,
+                conveyorDestination).Succeeded,
             "컨베이어 입력 목적지를 설정하지 못했습니다.");
         Require(conveyorCommands.SetPortDestination(
                 output,
-                ConveyorDestination).Succeeded,
+                conveyorDestination).Succeeded,
             "컨베이어 출력 목적지를 설정하지 못했습니다.");
+        HashSet<string> preexistingInputStackIds = items
+            .GetStacksAt(input.centerPos, includeStored: true)
+            .Select(stack => stack.StackId)
+            .ToHashSet(StringComparer.Ordinal);
         Require(items.SpawnItemAt(
                 "material:lumber",
                 3,
@@ -834,8 +900,9 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
             && spawned == 3,
             "컨베이어 입력 칸에 실제 물리 스택을 생성하지 못했습니다.");
         WorldItemStackSnapshot source = items.GetStacksAt(input.centerPos)
-            .FirstOrDefault(stack =>
-                stack.ItemId == "material:lumber");
+            .SingleOrDefault(stack =>
+                stack.ItemId == "material:lumber"
+                && !preexistingInputStackIds.Contains(stack.StackId));
         Require(source != null,
             "컨베이어 입력 스택 ID를 확인하지 못했습니다.");
 
@@ -843,28 +910,161 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         Require(conveyorTransactions.TryLoadStack(
                 new ItemStackId(originalStackId),
                 input,
-                ConveyorDestination,
+                conveyorDestination,
                 out string payloadId,
                 out DomainFailure loadFailure),
             "실제 물리 스택을 컨베이어에 적재하지 못했습니다: "
             + loadFailure.Code);
         Require(!string.IsNullOrWhiteSpace(payloadId),
             "컨베이어 화물 ID가 생성되지 않았습니다.");
+        WorldItemStackSnapshot transitBeforeFailure = items.GetAllStacks()
+            .Single(stack => stack.StackId == originalStackId);
 
         yield return WaitUntil(
+            () => conveyor.Networks
+                .SelectMany(network => network.Payloads)
+                .Any(payload => string.Equals(
+                        payload.PayloadId,
+                        payloadId,
+                        StringComparison.Ordinal)
+                    && payload.StallReason
+                        == ConveyorStallReason.DestinationFull),
+            "출력 버퍼 질량 부족이 실제 컨베이어 화물을 정지시키지 않았습니다.");
+        Require(itemTransfers.TryGetTransitStack(
+                new ItemStackId(originalStackId),
+                payloadId,
+                out ItemTransitStackSnapshot retained)
+            && retained.Quantity == 3,
+            "출력 버퍼 입고 실패가 InTransit 화물을 보존하지 못했습니다.");
+        WorldItemStackSnapshot transitAfterFailure = items.GetAllStacks()
+            .Single(stack => stack.StackId == originalStackId);
+        RequireSameTransitCustody(
+            transitBeforeFailure,
+            transitAfterFailure,
+            payloadId);
+        Require(conveyor.Networks
+                .SelectMany(network => network.Payloads)
+                .Count(payload => string.Equals(
+                    payload.PayloadId,
+                    payloadId,
+                    StringComparison.Ordinal)) == 1,
+            "출력 버퍼 입고 실패 후 컨베이어 payload가 유실·복제됐습니다.");
+        Require(bufferOccupancy.Capture(conveyorDestination)
+                .TotalMassGrams == 0L,
+            "실패한 컨베이어 입고가 출력 버퍼 점유 질량을 남겼습니다.");
+        Require(bufferCapacity.TryGetCapacity(
+                conveyorDestination,
+                outputDropPosition,
+                out FacilityBufferMassCapacitySnapshot blockedSnapshot)
+            && blockedSnapshot.ReservedMassGrams == 0L,
+            "실패한 컨베이어 입고가 예약 질량을 남겼습니다.");
+        report.Add(
+            $"blockedPayload={payloadId};"
+            + $"capacityGrams={blockedCapacity.Value};"
+            + "state=InTransit;retry=retained");
+
+        PublishConveyorOutputAuthority(
+            output,
+            outputFacilityId,
+            outputDropPosition,
+            outputCapacity,
+            2L);
+        yield return WaitUntil(
             () => items.GetStacksAt(
-                    output.centerPos,
+                    outputDropPosition,
                     includeStored: true)
                 .Any(stack =>
                     stack.StackId == originalStackId
                     && stack.State == WorldItemStackState.FacilityBuffer
-                    && stack.DestinationId == ConveyorDestination),
+                    && stack.DestinationId == conveyorDestination),
             "화물이 실제 벨트를 이동해 출력 버퍼에 도착하지 않았습니다.");
-        Require(conveyor.Networks.Sum(network => network.PayloadCount) == 0,
+        Require(!conveyor.Networks
+                .SelectMany(network => network.Payloads)
+                .Any(payload => string.Equals(
+                    payload.PayloadId,
+                    payloadId,
+                    StringComparison.Ordinal)),
             "정상 배송이 끝난 뒤 컨베이어 화물이 남았습니다.");
+        WorldItemStackSnapshot delivered = items.GetStacksAt(
+                outputDropPosition,
+                includeStored: true)
+            .Single(stack => stack.StackId == originalStackId);
+        Require(delivered.State == WorldItemStackState.FacilityBuffer
+                && delivered.Quantity == 3
+                && delivered.DestinationId == conveyorDestination
+                && delivered.Position == outputDropPosition
+                && delivered.StackSignature
+                    == transitBeforeFailure.StackSignature
+                && delivered.ItemInstanceId
+                    == transitBeforeFailure.ItemInstanceId,
+            "재시도 성공 후 exact 물리 lot이 달라졌습니다.");
+        Require(bufferOccupancy.Capture(conveyorDestination)
+                .TotalMassGrams == outputCapacity.Value,
+            "재시도 성공 후 출력 버퍼 점유 질량이 exact payload gram과 다릅니다.");
         report.Add(
             $"normalPayload={payloadId};"
-            + $"distance={Mathf.Abs(output.centerPos.x - origin.x)}");
+            + $"distance={Mathf.Abs(output.centerPos.x - origin.x)};"
+            + $"capacityGrams={outputCapacity.Value};"
+            + "admission=exact-owner-profile");
+    }
+
+    private void PublishConveyorOutputAuthority(
+        BuildableObject output,
+        string outputFacilityId,
+        Vector2Int outputDropPosition,
+        PhysicalMassGrams capacity,
+        long capacityRevision)
+    {
+        Require(bufferLifecycle.TryReplaceOwnedAuthorities(
+                ConveyorBufferOwnerDomain,
+                originalConveyorBufferClaims.Concat(new[]
+                {
+                    new FacilityBufferDestinationClaim(
+                        conveyorDestination,
+                        outputDropPosition,
+                        ConveyorBufferOwnerDomain,
+                        ConveyorBufferOperationId + ":" + outputFacilityId,
+                        outputFacilityId,
+                        FacilityBufferDestinationAnchorKind.LiveBuilding)
+                }).ToArray(),
+                originalConveyorBufferProfiles.Concat(new[]
+                {
+                    new FacilityBufferCapacityProfile(
+                        conveyorDestination,
+                        outputDropPosition,
+                        ConveyorBufferOwnerDomain,
+                        ConveyorBufferOperationId + ":" + outputFacilityId,
+                        outputFacilityId,
+                        capacity,
+                        capacityRevision)
+                }).ToArray(),
+                out string authorityFailure),
+            "컨베이어 출력 버퍼의 exact owner/capacity 권위를 게시하지 못했습니다: "
+            + authorityFailure);
+    }
+
+    private static void RequireSameTransitCustody(
+        WorldItemStackSnapshot before,
+        WorldItemStackSnapshot after,
+        string payloadId)
+    {
+        Require(before != null && after != null
+                && before.StackId == after.StackId
+                && before.ItemId == after.ItemId
+                && before.ItemInstanceId == after.ItemInstanceId
+                && before.Quantity == after.Quantity
+                && before.ContentRevision == after.ContentRevision
+                && before.ReservationRevision == after.ReservationRevision
+                && before.StackSignature == after.StackSignature
+                && before.Position == after.Position
+                && before.SourceStorageDestinationId
+                    == after.SourceStorageDestinationId
+                && before.HasDestinationPosition
+                    == after.HasDestinationPosition
+                && before.DestinationPosition == after.DestinationPosition
+                && after.State == WorldItemStackState.InTransit
+                && after.DestinationId == payloadId,
+            "실패한 컨베이어 입고가 exact InTransit custody를 변경했습니다.");
     }
 
     private IEnumerator VerifyAutomation()
@@ -1291,70 +1491,163 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
 
     private void Cleanup()
     {
-        fuelHauler?.GetComponent<AbilityHaul>()?.StopHauling(
-            "qa-industrial-power-fuel-cleanup");
-        if (fuelHauler != null)
+        try
         {
-            fuelHauler.SetAiPaused(originalFuelHaulerAiPause);
-            fuelHauler.transform.position = originalFuelHaulerWorldPosition;
-            fuelHauler.Brain?.ClearPathSearchCache();
-        }
-        Time.timeScale = originalTimeScale;
-        if (gameManager != null)
-        {
-            gameManager.isPause = originalPause;
-        }
-
-        SetOwnerSelectionVisible(ownerSelectionWasActive);
-        if (mainCamera != null)
-        {
-            mainCamera.transform.position = originalCameraPosition;
-            mainCamera.orthographicSize = originalCameraSize;
-        }
-
-        for (int index = createdBuildings.Count - 1; index >= 0; index--)
-        {
-            BuildableObject building = createdBuildings[index];
-            if (building == null)
+            fuelHauler?.GetComponent<AbilityHaul>()?.StopHauling(
+                "qa-industrial-power-fuel-cleanup");
+            if (fuelHauler != null && originalStateCaptured)
             {
-                continue;
+                fuelHauler.SetAiPaused(originalFuelHaulerAiPause);
+                fuelHauler.transform.position = originalFuelHaulerWorldPosition;
+                fuelHauler.Brain?.ClearPathSearchCache();
+            }
+            if (originalStateCaptured)
+            {
+                Time.timeScale = originalTimeScale;
+                if (gameManager != null)
+                    gameManager.isPause = originalPause;
             }
 
-            BuildingSO data = building.BuildingData;
-            if (data != null)
+            if (originalStateCaptured)
             {
-                grid.RemoveOccupant(
-                    building,
-                    data.layer,
-                    data.GetGridPosList(building.centerPos),
-                    data.Placement.IsMovement);
+                SetOwnerSelectionVisible(ownerSelectionWasActive);
+                if (mainCamera != null)
+                {
+                    mainCamera.transform.position = originalCameraPosition;
+                    mainCamera.orthographicSize = originalCameraSize;
+                }
             }
 
-            Destroy(building.gameObject);
+            for (int index = createdBuildings.Count - 1; index >= 0; index--)
+            {
+                BuildableObject building = createdBuildings[index];
+                if (building == null)
+                    continue;
+
+                BuildingSO data = building.BuildingData;
+                if (data != null && grid != null)
+                {
+                    grid.RemoveOccupant(
+                        building,
+                        data.layer,
+                        data.GetGridPosList(building.centerPos),
+                        data.Placement.IsMovement);
+                }
+
+                Destroy(building.gameObject);
+            }
+
+            createdBuildings.Clear();
+            if (powerPersistence != null && originalPower != null)
+            {
+                powerPersistence.Restore(
+                    powerPersistence.PrepareRestore(originalPower));
+            }
+            if (fluidPersistence != null && originalFluid != null)
+            {
+                fluidPersistence.Restore(
+                    fluidPersistence.PrepareRestore(originalFluid));
+            }
+            if (items != null && originalItems != null)
+                items.Restore(originalItems);
+            if (conveyorPersistence != null && originalConveyor != null)
+            {
+                conveyorPersistence.Restore(
+                    conveyorPersistence.PrepareRestore(originalConveyor));
+            }
+            if (automationPersistence != null && originalAutomation != null)
+            {
+                automationPersistence.Restore(
+                    automationPersistence.PrepareRestore(originalAutomation));
+            }
+        }
+        catch (Exception exception)
+        {
+            verificationFailure ??= new InvalidOperationException(
+                "산업 PlayMode 수동 정리 실패.",
+                exception);
         }
 
-        createdBuildings.Clear();
-        if (powerPersistence != null && originalPower != null)
+        bool worldRestored = false;
+        try
         {
-            powerPersistence.Restore(
-                powerPersistence.PrepareRestore(originalPower));
+            if (originalStateCaptured && saveSections != null
+                && originalWorld != null)
+            {
+                DungeonGameRestoreReport restoreReport = new();
+                worldRestored = saveSections.RestoreAll(
+                    originalWorld,
+                    restoreReport)
+                    && restoreReport.Success;
+                if (!worldRestored)
+                {
+                    throw new InvalidOperationException(
+                        "whole-registry baseline restore failed: "
+                        + string.Join(" | ", restoreReport.Errors));
+                }
+            }
         }
-        if (fluidPersistence != null && originalFluid != null)
+        catch (Exception exception)
         {
-            fluidPersistence.Restore(
-                fluidPersistence.PrepareRestore(originalFluid));
+            verificationFailure ??= new InvalidOperationException(
+                "산업 PlayMode 전체 baseline 복원 실패.",
+                exception);
         }
-        items?.Restore(originalItems);
-        if (conveyorPersistence != null && originalConveyor != null)
+
+        try
         {
-            conveyorPersistence.Restore(
-                conveyorPersistence.PrepareRestore(originalConveyor));
+            if (originalStateCaptured && bufferLifecycle != null
+                && !bufferLifecycle.TryReplaceOwnedAuthorities(
+                    ConveyorBufferOwnerDomain,
+                    originalConveyorBufferClaims,
+                    originalConveyorBufferProfiles,
+                    out string authorityRestoreFailure))
+            {
+                throw new InvalidOperationException(authorityRestoreFailure);
+            }
+
+            if (worldRestored)
+            {
+                List<DungeonSaveSectionEnvelope> after =
+                    saveSections.CaptureAll();
+                if (!SaveEnvelopesEqual(originalWorld, after))
+                {
+                    throw new InvalidOperationException(
+                        "whole-registry baseline is not byte-equivalent after cleanup.");
+                }
+            }
         }
-        if (automationPersistence != null && originalAutomation != null)
+        catch (Exception exception)
         {
-            automationPersistence.Restore(
-                automationPersistence.PrepareRestore(originalAutomation));
+            verificationFailure ??= new InvalidOperationException(
+                "산업 PlayMode FacilityBuffer 권위/byte 복원 실패.",
+                exception);
         }
+    }
+
+    private static bool SaveEnvelopesEqual(
+        IReadOnlyList<DungeonSaveSectionEnvelope> left,
+        IReadOnlyList<DungeonSaveSectionEnvelope> right)
+    {
+        if (left == null || right == null || left.Count != right.Count)
+            return false;
+        for (int index = 0; index < left.Count; index++)
+        {
+            DungeonSaveSectionEnvelope a = left[index];
+            DungeonSaveSectionEnvelope b = right[index];
+            if (!string.Equals(a.sectionId, b.sectionId, StringComparison.Ordinal)
+                || a.sectionVersion != b.sectionVersion
+                || a.restorePhase != b.restorePhase
+                || a.optional != b.optional
+                || !string.Equals(
+                    a.payloadJson,
+                    b.payloadJson,
+                    StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static void Require(bool condition, string message)

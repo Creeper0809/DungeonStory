@@ -171,6 +171,34 @@ public readonly struct ProductionPhysicalCustodyDrainResult
     public string FailureReason { get; }
 }
 
+public interface IProductionPhysicalCustodyDrainCheckpointGcCandidate
+{
+}
+
+/// <summary>
+/// Row-scoped checkpoint collector for acknowledged physical-custody
+/// tombstones. Preparation is read-only; publish removes only the captured
+/// rows and rollback restores those exact rows without changing gameplay
+/// repository revisions.
+/// </summary>
+public interface IProductionPhysicalCustodyDrainCheckpointGcPort
+{
+    bool TryPrepareCheckpointGarbageCollection(
+        IReadOnlyList<ProductionPhysicalCustodyDrainSaveData> records,
+        out IProductionPhysicalCustodyDrainCheckpointGcCandidate candidate,
+        out string failureReason);
+
+    bool TryPublishCheckpointGarbageCollection(
+        IProductionPhysicalCustodyDrainCheckpointGcCandidate candidate,
+        out string failureReason);
+
+    void RollbackCheckpointGarbageCollection(
+        IProductionPhysicalCustodyDrainCheckpointGcCandidate candidate);
+
+    void CompleteCheckpointGarbageCollection(
+        IProductionPhysicalCustodyDrainCheckpointGcCandidate candidate);
+}
+
 public interface IProductionPhysicalCustodyDrainOutbox
 {
     ProductionPhysicalCustodyDrainResult TryPrepare(

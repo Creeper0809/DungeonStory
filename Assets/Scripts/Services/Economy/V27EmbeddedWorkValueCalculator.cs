@@ -29,6 +29,63 @@ namespace DungeonStory.Balance
     }
 
     [BalanceImmutableRecord]
+    public sealed class V27RecipeOutputCostBreakdown
+    {
+        internal V27RecipeOutputCostBreakdown(
+            string outputLineId,
+            string itemId,
+            ProductionOutputRole role,
+            long allocationWeight,
+            bool isAcquisitionCandidate,
+            EwuRational expectedOutputUnits,
+            EwuAmount allocatedDebit,
+            EwuAmount perUnitAcquisition)
+        {
+            OutputLineId = outputLineId;
+            ItemId = itemId;
+            Role = role;
+            AllocationWeight = allocationWeight;
+            IsAcquisitionCandidate = isAcquisitionCandidate;
+            ExpectedOutputUnits = expectedOutputUnits;
+            AllocatedDebit = allocatedDebit;
+            PerUnitAcquisition = perUnitAcquisition;
+        }
+
+        public string OutputLineId { get; }
+        public string ItemId { get; }
+        public ProductionOutputRole Role { get; }
+        public long AllocationWeight { get; }
+        public bool IsAcquisitionCandidate { get; }
+        public EwuRational ExpectedOutputUnits { get; }
+        public EwuAmount AllocatedDebit { get; }
+        public EwuAmount PerUnitAcquisition { get; }
+    }
+
+    [BalanceImmutableRecord]
+    public sealed class V27RecipeOutputItemValue
+    {
+        internal V27RecipeOutputItemValue(
+            string itemId,
+            EwuRational expectedOutputUnits,
+            EwuAmount allocatedDebit,
+            EwuAmount perUnitAcquisition,
+            bool isAcquisitionCandidate)
+        {
+            ItemId = itemId;
+            ExpectedOutputUnits = expectedOutputUnits;
+            AllocatedDebit = allocatedDebit;
+            PerUnitAcquisition = perUnitAcquisition;
+            IsAcquisitionCandidate = isAcquisitionCandidate;
+        }
+
+        public string ItemId { get; }
+        public EwuRational ExpectedOutputUnits { get; }
+        public EwuAmount AllocatedDebit { get; }
+        public EwuAmount PerUnitAcquisition { get; }
+        public bool IsAcquisitionCandidate { get; }
+    }
+
+    [BalanceImmutableRecord]
     public sealed class V27RecipeValueBreakdown
     {
         internal V27RecipeValueBreakdown(
@@ -40,6 +97,8 @@ namespace DungeonStory.Balance
             EwuAmount expectedLossDebit,
             EwuRational expectedOutputUnits,
             EwuAmount perUnitAcquisition,
+            IReadOnlyList<V27RecipeOutputCostBreakdown> outputCosts,
+            IReadOnlyList<V27RecipeOutputItemValue> outputItemValues,
             EwuAmount totalOutputCredit,
             long transformMarginMilliEwu)
         {
@@ -51,6 +110,8 @@ namespace DungeonStory.Balance
             ExpectedLossDebit = expectedLossDebit;
             ExpectedOutputUnits = expectedOutputUnits;
             PerUnitAcquisition = perUnitAcquisition;
+            OutputCosts = outputCosts;
+            OutputItemValues = outputItemValues;
             TotalOutputCredit = totalOutputCredit;
             TransformMarginMilliEwu = transformMarginMilliEwu;
         }
@@ -63,6 +124,8 @@ namespace DungeonStory.Balance
         public EwuAmount ExpectedLossDebit { get; }
         public EwuRational ExpectedOutputUnits { get; }
         public EwuAmount PerUnitAcquisition { get; }
+        public IReadOnlyList<V27RecipeOutputCostBreakdown> OutputCosts { get; }
+        public IReadOnlyList<V27RecipeOutputItemValue> OutputItemValues { get; }
         public EwuAmount TotalOutputCredit { get; }
         public long TransformMarginMilliEwu { get; }
         public EwuAmount TotalDebit => InputDebit + DirectWorkDebit + LogisticsDebit
@@ -163,6 +226,8 @@ namespace DungeonStory.Balance
         private readonly IMaterialEconomicProfileCatalog materialProfiles;
         private readonly decimal laborScale;
         private readonly IReadOnlyDictionary<string, string> authoredBeforeValues;
+        private readonly ProductionOutputCostAllocationCapabilityRegistry
+            outputCostAllocationRegistry;
 
         public V27EmbeddedWorkValueCalculator(
             IEnumerable<ProductionRecipeSO> recipes,
@@ -207,6 +272,8 @@ namespace DungeonStory.Balance
                 throw new ArgumentOutOfRangeException(nameof(laborScale));
             this.laborScale = laborScale;
             this.authoredBeforeValues = authoredBeforeValues;
+            outputCostAllocationRegistry =
+                ProductionOutputCostAllocationCapabilityRegistry.CreateDefault();
         }
 
         public V27EmbeddedWorkValueSnapshot Calculate()
@@ -249,9 +316,9 @@ namespace DungeonStory.Balance
                     if (!TryCalculateRecipe(recipe, values, out V27RecipeValueBreakdown result))
                         continue;
                     breakdowns[recipe.RecipeId] = result;
-                    foreach (ProductionOutputDefinition output in recipe.Outputs)
+                    foreach (V27RecipeOutputItemValue output in result.OutputItemValues)
                     {
-                        if (output == null || output.Probability <= 0f)
+                        if (!output.IsAcquisitionCandidate)
                             continue;
                         string itemId = BalanceCanonicalText.StableId(
                             output.ItemId,
@@ -259,11 +326,11 @@ namespace DungeonStory.Balance
                         if (!items.TryGetValue(itemId, out ItemDefinitionSO item))
                             continue;
                         if (!values.TryGetValue(itemId, out V27ItemValue current)
-                            || result.PerUnitAcquisition < current.AcquisitionCost)
+                            || output.PerUnitAcquisition < current.AcquisitionCost)
                         {
                             values[itemId] = CreateItemValue(
                                 item,
-                                result.PerUnitAcquisition,
+                                output.PerUnitAcquisition,
                                 recipe.RecipeId);
                             updated = true;
                             updatedOnLastPass.Add(recipe.RecipeId);
@@ -447,8 +514,14 @@ namespace DungeonStory.Balance
                 inputDebit += itemValue.AcquisitionCost * input.Amount;
             }
 
+            ProductionOutputDefinition[] physicalOutputs = recipe.Outputs
+                .Where(output => output != null
+                    && ProductionOutputRoleRules.IsPhysical(output.Role)
+                    && output.Probability > 0f)
+                .OrderBy(output => output.OutputLineId, StringComparer.Ordinal)
+                .ToArray();
             EwuRational expectedOutputUnits = EwuRational.Zero;
-            foreach (ProductionOutputDefinition output in recipe.Outputs)
+            foreach (ProductionOutputDefinition output in physicalOutputs)
             {
                 if (output == null)
                     continue;
@@ -485,13 +558,37 @@ namespace DungeonStory.Balance
                     : 0.02m;
             EwuAmount expectedLoss = V27EwuQuantizer.MultiplyInputDebit(subtotal, lossRate);
             EwuAmount total = subtotal + expectedLoss;
-            EwuAmount perUnit = V27EwuQuantizer.DivideInputCost(
-                total.MilliEwu,
-                expectedOutputUnits);
+            IReadOnlyList<ProductionOutputCostAllocationWeight> allocationWeights;
+            if (physicalOutputs.Length == 1)
+            {
+                allocationWeights = Array.AsReadOnly(new[]
+                {
+                    new ProductionOutputCostAllocationWeight(
+                        physicalOutputs[0].OutputLineId,
+                        1L)
+                });
+            }
+            else
+            {
+                allocationWeights = outputCostAllocationRegistry.ResolveWeights(
+                    recipe.OutputCostAllocation,
+                    physicalOutputs);
+            }
+            V27RecipeOutputCostBreakdown[] outputCosts = AllocateOutputCosts(
+                recipe.RecipeId,
+                total,
+                physicalOutputs,
+                allocationWeights);
+            V27RecipeOutputItemValue[] outputItemValues =
+                AggregateOutputItemValues(outputCosts);
+            ProductionOutputDefinition mainOutput = physicalOutputs.Single(
+                output => output.Role == ProductionOutputRole.Main);
+            EwuAmount perUnit = outputItemValues.Single(
+                output => output.ItemId == mainOutput.ItemId).PerUnitAcquisition;
 
             EwuAmount outputCredit = EwuAmount.Zero;
             bool creditResolved = true;
-            foreach (ProductionOutputDefinition output in recipe.Outputs)
+            foreach (ProductionOutputDefinition output in physicalOutputs)
             {
                 if (output == null
                     || !values.TryGetValue(output.ItemId, out V27ItemValue outputValue))
@@ -519,10 +616,101 @@ namespace DungeonStory.Balance
                 expectedLoss,
                 expectedOutputUnits,
                 perUnit,
+                Array.AsReadOnly(outputCosts),
+                Array.AsReadOnly(outputItemValues),
                 outputCredit,
                 margin);
             return true;
         }
+
+        public static V27RecipeOutputCostBreakdown[] AllocateOutputCosts(
+            string recipeId,
+            EwuAmount totalDebit,
+            IReadOnlyList<ProductionOutputDefinition> outputs,
+            IReadOnlyList<ProductionOutputCostAllocationWeight> weights)
+        {
+            Dictionary<string, long> byLine = weights.ToDictionary(
+                value => value.OutputLineId,
+                value => value.Weight,
+                StringComparer.Ordinal);
+            long totalWeight = checked(byLine.Values.Sum());
+            if (totalWeight <= 0L || byLine.Count != outputs.Count)
+                throw new InvalidOperationException(
+                    $"Recipe '{recipeId}' has an invalid output-cost weight set.");
+            string mainLineId = outputs.Single(
+                value => value.Role == ProductionOutputRole.Main).OutputLineId;
+            long allocated = 0L;
+            var rows = new V27RecipeOutputCostBreakdown[outputs.Count];
+            for (int index = 0; index < outputs.Count; index++)
+            {
+                ProductionOutputDefinition output = outputs[index];
+                if (!byLine.TryGetValue(output.OutputLineId, out long weight))
+                    throw new InvalidOperationException(
+                        $"Recipe '{recipeId}' has no allocation for '{output.OutputLineId}'.");
+                long lineDebit = output.OutputLineId == mainLineId
+                    ? 0L
+                    : checked((long)decimal.Floor(
+                        totalDebit.MilliEwu * (decimal)weight / totalWeight));
+                allocated = checked(allocated + lineDebit);
+                decimal probability = BalanceCanonicalText.DecimalFromFiniteFloat(
+                    output.Probability,
+                    $"recipe:{recipeId}:probability");
+                EwuRational expectedUnits =
+                    EwuRational.FromDecimal(probability) * output.Amount;
+                rows[index] = new V27RecipeOutputCostBreakdown(
+                    output.OutputLineId,
+                    output.ItemId,
+                    output.Role,
+                    weight,
+                    output.Role != ProductionOutputRole.ReturnedPackaging
+                        && weight > 0L,
+                    expectedUnits,
+                    EwuAmount.FromMilliEwu(lineDebit),
+                    lineDebit == 0L
+                        ? EwuAmount.Zero
+                        : V27EwuQuantizer.DivideInputCost(lineDebit, expectedUnits));
+            }
+            long remainder = checked(totalDebit.MilliEwu - allocated);
+            int mainIndex = Array.FindIndex(rows,
+                value => value.OutputLineId == mainLineId);
+            V27RecipeOutputCostBreakdown main = rows[mainIndex];
+            rows[mainIndex] = new V27RecipeOutputCostBreakdown(
+                main.OutputLineId,
+                main.ItemId,
+                main.Role,
+                main.AllocationWeight,
+                main.IsAcquisitionCandidate,
+                main.ExpectedOutputUnits,
+                EwuAmount.FromMilliEwu(remainder),
+                V27EwuQuantizer.DivideInputCost(
+                    remainder,
+                    main.ExpectedOutputUnits));
+            return rows;
+        }
+
+        internal static V27RecipeOutputItemValue[] AggregateOutputItemValues(
+            IEnumerable<V27RecipeOutputCostBreakdown> lines) => lines
+            .GroupBy(value => value.ItemId, StringComparer.Ordinal)
+            .OrderBy(group => group.Key, StringComparer.Ordinal)
+            .Select(group =>
+            {
+                EwuRational units = group.Aggregate(
+                    EwuRational.Zero,
+                    (current, value) => current + value.ExpectedOutputUnits);
+                long debit = checked(group.Sum(value =>
+                    value.AllocatedDebit.MilliEwu));
+                bool isAcquisitionCandidate = group.Any(value =>
+                    value.IsAcquisitionCandidate);
+                return new V27RecipeOutputItemValue(
+                    group.Key,
+                    units,
+                    EwuAmount.FromMilliEwu(debit),
+                    debit == 0L
+                        ? EwuAmount.Zero
+                        : V27EwuQuantizer.DivideInputCost(debit, units),
+                    isAcquisitionCandidate);
+            })
+            .ToArray();
 
         private void AddEquipmentValues(IDictionary<string, V27ItemValue> values)
         {

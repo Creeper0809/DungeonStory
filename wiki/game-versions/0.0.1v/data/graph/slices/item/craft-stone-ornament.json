@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "craft-stone-ornament",
+    "spoiler_tier": "none",
+    "title": "석조 장식"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-stone-ornament",
+      "label": "생산·해금",
+      "to": "item/craft-stone-ornament",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

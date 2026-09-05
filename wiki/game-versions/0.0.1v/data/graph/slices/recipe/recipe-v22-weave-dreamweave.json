@@ -1,0 +1,51 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-v22-weave-dreamweave",
+    "spoiler_tier": "none",
+    "title": "몽직물 직조"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-weave-dreamweave",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-dreamweave",
+      "target_spoiler_tier": "none",
+      "target_title": "몽직물",
+      "to": "item/material-dreamweave",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-weave-dreamweave",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "yarn-dreamweave",
+      "target_spoiler_tier": "none",
+      "target_title": "몽직물 원사",
+      "to": "item/yarn-dreamweave",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-weave-dreamweave",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "to": "recipe/recipe-v22-weave-dreamweave",
+      "type": "unlocks-recipe"
+    }
+  ],
+  "schema_version": 1
+}

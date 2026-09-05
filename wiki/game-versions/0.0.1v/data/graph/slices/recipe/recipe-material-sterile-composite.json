@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-material-sterile-composite",
+    "spoiler_tier": "none",
+    "title": "무균 복합재"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-material-sterile-composite",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-mana-crystal",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 결정",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-sterile-composite",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-sterile-composite",
+      "target_spoiler_tier": "none",
+      "target_title": "무균 복합재",
+      "to": "item/material-sterile-composite",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-material-sterile-composite",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-clean-water",
+      "target_spoiler_tier": "none",
+      "target_title": "깨끗한 물",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-material-sterile-composite",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "천",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-material-sterile-composite",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-regenerative-culture",
+      "target_spoiler_tier": "none",
+      "target_title": "재생 배양",
+      "to": "research/research-medical-regenerative-culture",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

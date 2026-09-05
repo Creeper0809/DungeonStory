@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "medical",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "disease-ash-lung",
+  "spoiler_tier": "none",
+  "summary": "재와 금속 분진이 폐에 쌓여 호흡과 장시간 작업을 무너뜨린다.",
+  "title": "재먼지폐"
+}

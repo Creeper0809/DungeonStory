@@ -512,15 +512,9 @@ public sealed class CharacterPerformanceQuery : ICharacterPerformanceQuery
         }
         CharacterProficiencyEffectSnapshot effects =
             ProficiencyProgressionRules.ResolveEffects(snapshot.CurrentMilliExperience);
-        float factor = resultChannel switch
-        {
-            CharacterPerformanceResultChannel.AccidentRisk => effects.AccidentMultiplier,
-            CharacterPerformanceResultChannel.Quality
-                or CharacterPerformanceResultChannel.Yield
-                or CharacterPerformanceResultChannel.SuccessChance =>
-                    Math.Max(0f, effects.QualityScore / 58f),
-            _ => effects.WorkSpeedMultiplier
-        };
+        float factor = CharacterPerformanceProficiencyFactorAuthority.Resolve(
+            resultChannel,
+            effects);
         trace.Add(new CharacterPerformanceContributionTrace
         {
             SourceKind = "proficiency",

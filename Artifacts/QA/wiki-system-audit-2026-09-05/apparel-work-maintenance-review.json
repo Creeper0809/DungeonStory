@@ -1,0 +1,995 @@
+{
+  "schemaVersion": 1,
+  "status": "partial-domain-audit",
+  "date": "2026-09-05",
+  "scope": "의복 유지관리 주문(세탁·건조·수선·기존 개구부 여닫기), 해당 시설5개와 공개 도감5개, 수선 재료 도감2개. 제작·품질 반복·불합격품 회수 및 의복 오염/마모 생성자는 후속 조사이며 전체 목표는 미완료.",
+  "freshness": {
+    "query": "ApparelWorkOrder Textile Laundry Repair",
+    "areas": [
+      "code",
+      "content",
+      "authority"
+    ],
+    "limit": 8,
+    "session": 30998,
+    "status": "stale",
+    "failures": 4,
+    "returnedRows": 0,
+    "contentSourceDigest": "139a0a989275ecdd5a4a26c10ceb6a1931041c7c928ed0421628faea5cd928c6",
+    "knowledgeBaseSourceDigest": "ceef8dc8f25f4d327205b15e12346aee0ebc5d6a84aa7eeb1f08af5ce14db0dd",
+    "generatedIndexesUsed": false,
+    "regenerated": false
+  },
+  "reviewedSections": [
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs",
+      "ranges": [
+        "1-244(previous batch, hash unchanged)",
+        "325-349",
+        "511-994",
+        "1451-1523",
+        "1831-2378",
+        "2803-2917"
+      ],
+      "unreviewed": "제작/해체/중간 terminal-state 관리 전체는 이번 배치 검토 제외"
+    },
+    {
+      "path": "Assets/Scripts/Views/Buildings/UI/ApparelBuildingPanelPresenter.cs",
+      "ranges": [
+        "1-210(previous batch, hash unchanged)",
+        "211-EOF"
+      ]
+    },
+    {
+      "path": "Assets/Scripts/Services/Research/ResearchFacilityOperationFallbackHandler.cs",
+      "ranges": [
+        "full"
+      ]
+    },
+    {
+      "path": "Assets/Scripts/Services/Items/LeasedItemReservationService.cs",
+      "ranges": [
+        "full"
+      ]
+    },
+    {
+      "path": "Assets/Scripts/Services/Run/V20ContentResolutionService.cs",
+      "ranges": [
+        "61-195"
+      ]
+    },
+    {
+      "path": "Assets/Scripts/Services/Buildings/Abilities/BuildingAbilityHandlers.cs",
+      "ranges": [
+        "1-118"
+      ]
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/CharacterEnvironmentRuntime.cs",
+      "ranges": [
+        "197-315"
+      ]
+    },
+    {
+      "path": "Assets/Scripts/Views/Buildings/UI/UIBuildingInfo.cs",
+      "ranges": [
+        "439-472"
+      ]
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/species-culture-and-life.md",
+      "ranges": [
+        "full"
+      ]
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/world-state.md",
+      "ranges": [
+        "full"
+      ]
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/work-references.json",
+      "ranges": [
+        "apparel/refit matched rows; full read is previous checkpoint"
+      ]
+    }
+  ],
+  "facilities": [
+    {
+      "path": "Assets/Resources/SO/Building/V22Apparel/V22_9303_손세탁_수조.asset",
+      "metaPath": "Assets/Resources/SO/Building/V22Apparel/V22_9303_손세탁_수조.asset.meta",
+      "guid": "b4cd6431e3edb9f44ab6e09ff2676e2b",
+      "id": 9303,
+      "command": 41,
+      "operateWork": 10,
+      "modules": [
+        "BuildingFacilityPartAbility",
+        "BuildingSemanticTagsAbility",
+        "BuildingProductionWorkstationAbility",
+        "BuildingProductionBufferAbility",
+        "BuildingWorkAmountAbility"
+      ],
+      "entryPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-9303.json",
+      "entry": {
+        "facts": [
+          {
+            "label": "분류",
+            "value": "제작"
+          },
+          {
+            "label": "크기",
+            "value": "1×1"
+          }
+        ],
+        "game_version": "0.0.1v",
+        "group": "production-facilities",
+        "kind": "facility",
+        "relations": [],
+        "schema_version": 1,
+        "slug": "building-9303",
+        "spoiler_tier": "none",
+        "summary": "시설의 고유 역할은 생산 작업대이다. 건설에는 작업량 653, 재료 석재 블록×6, 목재×3이 필요하다.",
+        "title": "손세탁 수조"
+      },
+      "rootCatalogReferences": 0,
+      "domainCatalogReferences": 1
+    },
+    {
+      "path": "Assets/Resources/SO/Building/V22Apparel/V22_9304_실내_건조대.asset",
+      "metaPath": "Assets/Resources/SO/Building/V22Apparel/V22_9304_실내_건조대.asset.meta",
+      "guid": "8665a3736fb54454c946f7a14ecee3e0",
+      "id": 9304,
+      "command": 42,
+      "operateWork": 10,
+      "modules": [
+        "BuildingFacilityPartAbility",
+        "BuildingSemanticTagsAbility",
+        "BuildingProductionWorkstationAbility",
+        "BuildingProductionBufferAbility",
+        "BuildingWorkAmountAbility"
+      ],
+      "entryPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-9304.json",
+      "entry": {
+        "facts": [
+          {
+            "label": "분류",
+            "value": "제작"
+          },
+          {
+            "label": "크기",
+            "value": "1×1"
+          }
+        ],
+        "game_version": "0.0.1v",
+        "group": "production-facilities",
+        "kind": "facility",
+        "relations": [],
+        "schema_version": 1,
+        "slug": "building-9304",
+        "spoiler_tier": "none",
+        "summary": "시설의 고유 역할은 생산 작업대이다. 건설에는 작업량 609, 재료 목재×6, 철괴×3이 필요하다.",
+        "title": "실내 건조대"
+      },
+      "rootCatalogReferences": 0,
+      "domainCatalogReferences": 1
+    },
+    {
+      "path": "Assets/Resources/SO/Building/V22Apparel/V22_9305_동력_세탁_건조기.asset",
+      "metaPath": "Assets/Resources/SO/Building/V22Apparel/V22_9305_동력_세탁_건조기.asset.meta",
+      "guid": "f0677a9d10d64554d9c21691f7b5a4fb",
+      "id": 9305,
+      "command": 43,
+      "operateWork": 10,
+      "modules": [
+        "BuildingFacilityPartAbility",
+        "BuildingSemanticTagsAbility",
+        "BuildingProductionWorkstationAbility",
+        "BuildingProductionBufferAbility",
+        "BuildingWorkAmountAbility"
+      ],
+      "entryPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-9305.json",
+      "entry": {
+        "facts": [
+          {
+            "label": "분류",
+            "value": "제작"
+          },
+          {
+            "label": "크기",
+            "value": "1×1"
+          }
+        ],
+        "game_version": "0.0.1v",
+        "group": "production-facilities",
+        "kind": "facility",
+        "relations": [],
+        "schema_version": 1,
+        "slug": "building-9305",
+        "spoiler_tier": "none",
+        "summary": "시설의 고유 역할은 생산 작업대이다. 건설에는 작업량 711, 재료 강철×4, 기계 부품×3, 목재×2이 필요하다.",
+        "title": "동력 세탁·건조기"
+      },
+      "rootCatalogReferences": 0,
+      "domainCatalogReferences": 1
+    },
+    {
+      "path": "Assets/Resources/SO/Building/V22Apparel/V22_9307_탈의_칸막이.asset",
+      "metaPath": "Assets/Resources/SO/Building/V22Apparel/V22_9307_탈의_칸막이.asset.meta",
+      "guid": "2cbf44ffa4a28b449a8c00016494e05e",
+      "id": 9307,
+      "command": 45,
+      "operateWork": 10,
+      "modules": [
+        "BuildingFacilityPartAbility",
+        "BuildingSemanticTagsAbility",
+        "BuildingProductionWorkstationAbility",
+        "BuildingProductionBufferAbility",
+        "BuildingWorkAmountAbility"
+      ],
+      "entryPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-9307.json",
+      "entry": {
+        "facts": [
+          {
+            "label": "분류",
+            "value": "제작"
+          },
+          {
+            "label": "크기",
+            "value": "1×1"
+          }
+        ],
+        "game_version": "0.0.1v",
+        "group": "production-facilities",
+        "kind": "facility",
+        "relations": [],
+        "schema_version": 1,
+        "slug": "building-9307",
+        "spoiler_tier": "none",
+        "summary": "시설의 고유 역할은 생산 작업대이다. 건설에는 작업량 609, 재료 목재×6, 철괴×3이 필요하다.",
+        "title": "탈의 칸막이"
+      },
+      "rootCatalogReferences": 0,
+      "domainCatalogReferences": 1
+    },
+    {
+      "path": "Assets/Resources/SO/Building/V22Apparel/V22_9308_수선_접수대.asset",
+      "metaPath": "Assets/Resources/SO/Building/V22Apparel/V22_9308_수선_접수대.asset.meta",
+      "guid": "ca9bc7a7aa4e41b408b210ca62e4757a",
+      "id": 9308,
+      "command": 46,
+      "operateWork": 10,
+      "modules": [
+        "BuildingFacilityPartAbility",
+        "BuildingSemanticTagsAbility",
+        "BuildingProductionWorkstationAbility",
+        "BuildingProductionBufferAbility",
+        "BuildingWorkAmountAbility"
+      ],
+      "entryPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-9308.json",
+      "entry": {
+        "facts": [
+          {
+            "label": "분류",
+            "value": "제작"
+          },
+          {
+            "label": "크기",
+            "value": "1×1"
+          }
+        ],
+        "game_version": "0.0.1v",
+        "group": "production-facilities",
+        "kind": "facility",
+        "relations": [],
+        "schema_version": 1,
+        "slug": "building-9308",
+        "spoiler_tier": "none",
+        "summary": "시설의 고유 역할은 생산 작업대이다. 건설에는 작업량 609, 재료 목재×6, 철괴×3이 필요하다.",
+        "title": "수선 접수대"
+      },
+      "rootCatalogReferences": 0,
+      "domainCatalogReferences": 1
+    }
+  ],
+  "catalogPath": "Assets/Resources/SO/Content/GameDomainContentCatalog.asset",
+  "rootToDomainGuid": "ca85b9de9b508c046af6fe6dfdc302cd",
+  "rules": {
+    "batchMaxValidDistinctInstances": 12,
+    "laundryUi": {
+      "contaminationAbove": 0,
+      "excludeEquipped": true,
+      "maxSelected": 12
+    },
+    "dryingUi": {
+      "minimumMoisture": 20,
+      "maximumContamination": 0,
+      "excludeEquipped": true,
+      "maxSelected": 12
+    },
+    "orderWorkValues": {
+      "handLaundry": 12,
+      "poweredLaundry": 4,
+      "drying": 24,
+      "lightRepair": 8,
+      "heavyRepair": 18,
+      "openingToggle": 3,
+      "generalAlteration": 14
+    },
+    "orderWorkWarning": "주문 WU는 실제 경과 시간·누적 노동의 검증값이 아니다. 5시설 모두 operateWorkRequired=10이고 현재 완료 호출은 남은 주문 WU 전체를 적용한다.",
+    "outputs": {
+      "handLaundry": {
+        "contamination": 0,
+        "moisture": 100
+      },
+      "poweredLaundry": {
+        "contamination": 0,
+        "moisture": 0
+      },
+      "drying": {
+        "moisture": 0,
+        "contamination": "unchanged"
+      }
+    },
+    "repair": {
+      "minimumDurability": 20,
+      "lightRepairMinimum": 60,
+      "lightResult": "min(100, durability + 25)",
+      "heavyResult": 70,
+      "heavyInputs": {
+        "material:sewing-thread": 1,
+        "material:mending-scrap": 1
+      },
+      "ui": "20<=durability<100; lowest first; unequipped available item"
+    },
+    "openings": {
+      "shortWork": "closedOpenings = requestedMask & existing modifications; size/modifications unchanged",
+      "generalWork": "size/modifications replaced; closedOpenings &= modifications; live UI caller unconfirmed"
+    },
+    "retry": {
+      "hours": [
+        0.25,
+        0.5,
+        1
+      ],
+      "afterExhaustion": "repeat 1 hour",
+      "onReturnToWaiting": "release reservations, completedWork=0",
+      "onRestore": "keep progress, nextRetry=0, NeedsRevalidation or pending repair finalization"
+    },
+    "save": {
+      "capture": "non-completed orders plus separate terminal states",
+      "physicalRepair": "same committed resolved state; material acknowledgement before closure",
+      "actualRoundtrip": "not-run"
+    }
+  },
+  "livePath": "UIBuildingInfo -> ApparelBuildingPanelPresenter -> IApparelWorkOrderCommand; Operate completion -> BuildingAbilityRuntimeDispatcher -> ResearchFacilityOperationFallbackHandler -> ApplyWork -> ResolveBatchState/ResolveRepair/ResolveAlteration; CharacterEnvironmentRuntime Capture/BuildRestoreCandidate/PublishRestoreCandidate -> work-order persistence",
+  "implementationQuestions": [
+    {
+      "id": "APPAREL-WORK-U01",
+      "title": "주문 WU와 실제 시설 노동 회계",
+      "evidence": "ResearchFacilityOperationFallbackHandler.ApplyApparelOrder는 Operate 한 사이클 완료 때 requiredWork-completedWork 전부를 ApplyWork에 전달한다. 다섯 시설의 operateWorkRequired는 모두 10이다.",
+      "impact": "주문 4/8/12/18/24 WU를 실제 노동·시간으로 직접 안내하면 오해가 생긴다. 시설 작업 후보와 한 사이클 경과시간, 기여·숙련 회계를 실제 경로에서 추가 검증해야 한다.",
+      "sources": [
+        "Assets/Scripts/Services/Research/ResearchFacilityOperationFallbackHandler.cs",
+        "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs",
+        "Assets/Resources/SO/Building/V22Apparel/V22_9303_손세탁_수조.asset",
+        "wiki/game-versions/0.0.1v/data/entities/facility/building-9303.json",
+        "Assets/Resources/SO/Building/V22Apparel/V22_9304_실내_건조대.asset",
+        "wiki/game-versions/0.0.1v/data/entities/facility/building-9304.json",
+        "Assets/Resources/SO/Building/V22Apparel/V22_9305_동력_세탁_건조기.asset",
+        "wiki/game-versions/0.0.1v/data/entities/facility/building-9305.json",
+        "Assets/Resources/SO/Building/V22Apparel/V22_9307_탈의_칸막이.asset",
+        "wiki/game-versions/0.0.1v/data/entities/facility/building-9307.json",
+        "Assets/Resources/SO/Building/V22Apparel/V22_9308_수선_접수대.asset",
+        "wiki/game-versions/0.0.1v/data/entities/facility/building-9308.json"
+      ]
+    },
+    {
+      "id": "APPAREL-WORK-U02",
+      "title": "완료 경계 재시도에 전달되는 0 WU",
+      "evidence": "ApplyApparelOrder는 남은 WU가 0이면 0을 전달한다. ApplyWork는 amount<=0을 처리 확정 대기 검사보다 먼저 거부한다. 따라서 수선 재료 처리나 출력 확정 중 실패한 주문의 다음 작업 완료 호출이 재시도를 막을 수 있다.",
+      "impact": "저장된 영수증과 재시도 함수의 존재만으로 실제 복구 성공을 선언하지 않는다. 직접 UI/저장 실패 재현은 미실행이다.",
+      "sources": [
+        "Assets/Scripts/Services/Research/ResearchFacilityOperationFallbackHandler.cs",
+        "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs"
+      ]
+    },
+    {
+      "id": "APPAREL-WORK-U03",
+      "title": "일반 개조와 취소의 실제 UI 호출",
+      "evidence": "전체 비 Editor CreateAlteration 호출은 이 패널의 shortWardrobeOperation=true 한 곳이다. 14 WU 일반 개조는 API 및 완료 처리만 확인했다. 읽은 의복 패널 전체에는 주문 Cancel 호출이 없다.",
+      "impact": "새 구멍·사이즈를 변경하거나 의복 주문을 취소할 수 있는 실제 플레이 경로가 확인될 때까지 현재 UI 기능으로 쓰지 않는다. 해체/품질 반복의 나머지 경로는 후속 조사다.",
+      "sources": [
+        "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs",
+        "Assets/Scripts/Views/Buildings/UI/ApparelBuildingPanelPresenter.cs"
+      ]
+    },
+    {
+      "id": "APPAREL-WORK-U04",
+      "title": "선택한 시설·의복과 실제 명령 대상의 차이",
+      "evidence": "세탁·건조·수선·옷장 UI는 시설 ID를 명령에 전달하지 않는다. 명령은 같은 기능의 가동 시설을 안정 ID 순 첫 번째로 선택한다. 대상도 전체 재고 순서의 첫 배치 또는 첫 개조 의복이다.",
+      "impact": "여러 시설을 설치했을 때 다른 시설의 주문 목록에 들어가거나 엉뚱한 의복을 고칠 수 있는지 확인해야 한다. 수동 대상 선택 UI는 이 패널에 없다.",
+      "sources": [
+        "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs",
+        "Assets/Scripts/Views/Buildings/UI/ApparelBuildingPanelPresenter.cs",
+        "Assets/Scripts/Services/Run/V20ContentResolutionService.cs"
+      ]
+    },
+    {
+      "id": "APPAREL-WORK-U05",
+      "title": "동력·물·세제 공급의 미확인 연결",
+      "evidence": "5개 작성 시설에는 전력·급배수 모듈이 없고, CreateItemBatchOrder/ResolveBatchState는 의복만 예약·변경한다. FacilityCapabilityQuery의 가동 판정도 방과 파괴 상태만 본다.",
+      "impact": "시설 이름만으로 전력·물·세제 소모, 전력 단절 정지를 사실로 설명하지 않는다. 별도 기본 제공 모듈/실행 경로 여부는 추가 확인 대상이다.",
+      "sources": [
+        "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs",
+        "Assets/Scripts/Services/Run/V20ContentResolutionService.cs",
+        "Assets/Resources/SO/Building/V22Apparel/V22_9303_손세탁_수조.asset",
+        "wiki/game-versions/0.0.1v/data/entities/facility/building-9303.json",
+        "Assets/Resources/SO/Building/V22Apparel/V22_9304_실내_건조대.asset",
+        "wiki/game-versions/0.0.1v/data/entities/facility/building-9304.json",
+        "Assets/Resources/SO/Building/V22Apparel/V22_9305_동력_세탁_건조기.asset",
+        "wiki/game-versions/0.0.1v/data/entities/facility/building-9305.json",
+        "Assets/Resources/SO/Building/V22Apparel/V22_9307_탈의_칸막이.asset",
+        "wiki/game-versions/0.0.1v/data/entities/facility/building-9307.json",
+        "Assets/Resources/SO/Building/V22Apparel/V22_9308_수선_접수대.asset",
+        "wiki/game-versions/0.0.1v/data/entities/facility/building-9308.json"
+      ]
+    },
+    {
+      "id": "APPAREL-WORK-U06",
+      "title": "수선·세탁의 실물 이동과 정책 검증",
+      "evidence": "LeasedItemReservationService는 수량 예약을 한다. Reserve의 대상은 원래 스택 위치이고 목적지 ID는 비어 있다. ResolveBatchState/ResolveRepair/ResolveAlteration은 원래 스택을 직접 변경하며 시설 도착 여부를 검사하지 않는다. UI는 착용 의복을 제외하지만 명령의 TryFindApparel은 같은 제한을 직접 검사하지 않는다.",
+      "impact": "실제 운반/착용 잠금·거리 정책을 별도 경로가 보장하는지 확인해야 한다. '운반 대기'를 운반 실행 증거로 세지 않는다.",
+      "sources": [
+        "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs",
+        "Assets/Scripts/Views/Buildings/UI/ApparelBuildingPanelPresenter.cs",
+        "Assets/Scripts/Services/Items/LeasedItemReservationService.cs"
+      ]
+    },
+    {
+      "id": "APPAREL-WORK-U07",
+      "title": "제작 고급 설정의 민첩 라벨",
+      "evidence": "UI의 '작업자: 민첩 7 이상'은 DexterityPolicy에서 crafting 최소 경험치 400의 RuleSet을 생성한다.",
+      "impact": "이를 실제 민첩 제한으로 문서화하지 않는다. 제작 주문·작업자 정책 전체 대조에서 원인과 의도값을 확인한다.",
+      "sources": [
+        "Assets/Scripts/Views/Buildings/UI/ApparelBuildingPanelPresenter.cs"
+      ]
+    }
+  ],
+  "gaps": [
+    "GAP-100",
+    "GAP-101",
+    "GAP-102",
+    "GAP-103"
+  ],
+  "validation": {
+    "facilitySelection": "Resources researchFacilityCommand values41/42/43/45/46",
+    "facilities": 5,
+    "publicFacilityEntries": 5,
+    "repairItemEntries": 2,
+    "domainCatalogReferences": 5,
+    "rootToDomainReferences": 1,
+    "independentArithmeticChecks": 28,
+    "arithmeticErrors": 0,
+    "actualUi": "not-run",
+    "unityCompile": "not-run",
+    "saveRoundtrip": "not-run",
+    "fullAuditComplete": false
+  },
+  "independentArithmeticChecks": [
+    {
+      "id": "batch-0",
+      "input": {
+        "validDistinctItems": 0
+      },
+      "actual": false,
+      "expected": false,
+      "pass": true
+    },
+    {
+      "id": "batch-1",
+      "input": {
+        "validDistinctItems": 1
+      },
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "id": "batch-12",
+      "input": {
+        "validDistinctItems": 12
+      },
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "id": "batch-13",
+      "input": {
+        "validDistinctItems": 13
+      },
+      "actual": false,
+      "expected": false,
+      "pass": true
+    },
+    {
+      "id": "batch-24",
+      "input": {
+        "validDistinctItems": 24
+      },
+      "actual": false,
+      "expected": false,
+      "pass": true
+    },
+    {
+      "id": "laundry-false",
+      "input": {
+        "moisture": 68,
+        "contamination": 35,
+        "powered": false
+      },
+      "actual": {
+        "moisture": 100,
+        "contamination": 0
+      },
+      "expected": {
+        "moisture": 100,
+        "contamination": 0
+      },
+      "pass": true
+    },
+    {
+      "id": "laundry-true",
+      "input": {
+        "moisture": 68,
+        "contamination": 35,
+        "powered": true
+      },
+      "actual": {
+        "moisture": 0,
+        "contamination": 0
+      },
+      "expected": {
+        "moisture": 0,
+        "contamination": 0
+      },
+      "pass": true
+    },
+    {
+      "id": "drying-false",
+      "input": {
+        "moisture": 68,
+        "contamination": 35,
+        "powered": false
+      },
+      "actual": {
+        "moisture": 0,
+        "contamination": 35
+      },
+      "expected": {
+        "moisture": 0,
+        "contamination": 35
+      },
+      "pass": true
+    },
+    {
+      "id": "repair-19.99",
+      "input": {
+        "durability": 19.99
+      },
+      "actual": null,
+      "expected": null,
+      "pass": true
+    },
+    {
+      "id": "repair-20",
+      "input": {
+        "durability": 20
+      },
+      "actual": [
+        18,
+        1,
+        1,
+        70
+      ],
+      "expected": [
+        18,
+        1,
+        1,
+        70
+      ],
+      "pass": true
+    },
+    {
+      "id": "repair-59.99",
+      "input": {
+        "durability": 59.99
+      },
+      "actual": [
+        18,
+        1,
+        1,
+        70
+      ],
+      "expected": [
+        18,
+        1,
+        1,
+        70
+      ],
+      "pass": true
+    },
+    {
+      "id": "repair-60",
+      "input": {
+        "durability": 60
+      },
+      "actual": [
+        8,
+        0,
+        0,
+        85
+      ],
+      "expected": [
+        8,
+        0,
+        0,
+        85
+      ],
+      "pass": true
+    },
+    {
+      "id": "repair-75",
+      "input": {
+        "durability": 75
+      },
+      "actual": [
+        8,
+        0,
+        0,
+        100
+      ],
+      "expected": [
+        8,
+        0,
+        0,
+        100
+      ],
+      "pass": true
+    },
+    {
+      "id": "repair-99",
+      "input": {
+        "durability": 99
+      },
+      "actual": [
+        8,
+        0,
+        0,
+        100
+      ],
+      "expected": [
+        8,
+        0,
+        0,
+        100
+      ],
+      "pass": true
+    },
+    {
+      "id": "repair-100",
+      "input": {
+        "durability": 100
+      },
+      "actual": [
+        8,
+        0,
+        0,
+        100
+      ],
+      "expected": [
+        8,
+        0,
+        0,
+        100
+      ],
+      "pass": true
+    },
+    {
+      "id": "drying-ui-19.99-0",
+      "input": {
+        "moisture": 19.99,
+        "contamination": 0
+      },
+      "actual": false,
+      "expected": false,
+      "pass": true
+    },
+    {
+      "id": "drying-ui-20-0",
+      "input": {
+        "moisture": 20,
+        "contamination": 0
+      },
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "id": "drying-ui-20-1",
+      "input": {
+        "moisture": 20,
+        "contamination": 1
+      },
+      "actual": false,
+      "expected": false,
+      "pass": true
+    },
+    {
+      "id": "drying-ui-100-0",
+      "input": {
+        "moisture": 100,
+        "contamination": 0
+      },
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "id": "retry-0",
+      "input": {
+        "retryCount": 0
+      },
+      "actual": 0.25,
+      "expected": 0.25,
+      "pass": true
+    },
+    {
+      "id": "retry-1",
+      "input": {
+        "retryCount": 1
+      },
+      "actual": 0.5,
+      "expected": 0.5,
+      "pass": true
+    },
+    {
+      "id": "retry-2",
+      "input": {
+        "retryCount": 2
+      },
+      "actual": 1,
+      "expected": 1,
+      "pass": true
+    },
+    {
+      "id": "retry-3",
+      "input": {
+        "retryCount": 3
+      },
+      "actual": 1,
+      "expected": 1,
+      "pass": true
+    },
+    {
+      "id": "retry-10",
+      "input": {
+        "retryCount": 10
+      },
+      "actual": 1,
+      "expected": 1,
+      "pass": true
+    },
+    {
+      "id": "opening-0",
+      "input": {
+        "existing": 3,
+        "supported": 7,
+        "requested": 0
+      },
+      "actual": {
+        "accepted": true,
+        "closed": 0
+      },
+      "expected": {
+        "accepted": true,
+        "closed": 0
+      },
+      "pass": true
+    },
+    {
+      "id": "opening-1",
+      "input": {
+        "existing": 3,
+        "supported": 7,
+        "requested": 1
+      },
+      "actual": {
+        "accepted": true,
+        "closed": 1
+      },
+      "expected": {
+        "accepted": true,
+        "closed": 1
+      },
+      "pass": true
+    },
+    {
+      "id": "opening-3",
+      "input": {
+        "existing": 3,
+        "supported": 7,
+        "requested": 3
+      },
+      "actual": {
+        "accepted": true,
+        "closed": 3
+      },
+      "expected": {
+        "accepted": true,
+        "closed": 3
+      },
+      "pass": true
+    },
+    {
+      "id": "opening-4",
+      "input": {
+        "existing": 3,
+        "supported": 7,
+        "requested": 4
+      },
+      "actual": {
+        "accepted": false,
+        "closed": null
+      },
+      "expected": {
+        "accepted": false,
+        "closed": null
+      },
+      "pass": true
+    }
+  ],
+  "sourceEvidence": [
+    {
+      "path": "Assets/Resources/SO/Building/V22Apparel/V22_9303_손세탁_수조.asset",
+      "sha256": "03b0111d30bff597bb50ce3fd9e02266727feba5943bce80f0bd51c6593b4b43"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/V22Apparel/V22_9303_손세탁_수조.asset.meta",
+      "sha256": "346ec06550c3319b650ea2a999ecc9022ef610d0c49179b5e0d0ecc639405dd3"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/V22Apparel/V22_9304_실내_건조대.asset",
+      "sha256": "b733c4517f679be4687c441e5701b66ffb56af79bfc183217a9c41dc22e0f6d0"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/V22Apparel/V22_9304_실내_건조대.asset.meta",
+      "sha256": "1c117456b3d6abcd5afa78a0d3a93b20a8a00c7e74f6efee703ab8132f4749b7"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/V22Apparel/V22_9305_동력_세탁_건조기.asset",
+      "sha256": "5bd7a087df71defd00592624233c52a51694bb0ec4a701ba213222d58cf7a4f6"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/V22Apparel/V22_9305_동력_세탁_건조기.asset.meta",
+      "sha256": "a54309bbea9c945ce814661f7e05248588ba9e2b8cbf003836c9a76f72ef31ed"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/V22Apparel/V22_9307_탈의_칸막이.asset",
+      "sha256": "3f6d31237e360e01847cd42ca14ebafbd636e6e2a5511cfc2e64a2469722716d"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/V22Apparel/V22_9307_탈의_칸막이.asset.meta",
+      "sha256": "ccd064f81121331085b4496978929f373a75f83ad93bae876e33c657a66c3a08"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/V22Apparel/V22_9308_수선_접수대.asset",
+      "sha256": "364f966ceffaf9bbd6e1a18faf64c85548ff6935a1db5fe794f125111002835a"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/V22Apparel/V22_9308_수선_접수대.asset.meta",
+      "sha256": "ae226d1e735a8e5de9913b5ad8f609b08dc32a137a2ee69ce26e3694dec07d7e"
+    },
+    {
+      "path": "Assets/Resources/SO/Content/GameDomainContentCatalog.asset",
+      "sha256": "78e87c3239487cb4b4ded6309d549de06320bbe1db8362c0c25fe7abdecd808e"
+    },
+    {
+      "path": "Assets/Resources/SO/Content/GameDomainContentCatalog.asset.meta",
+      "sha256": "c1c65d35728aaeb0466c5586c1a26559b39e0991bb49db4614dc4508bdf7e05a"
+    },
+    {
+      "path": "Assets/Resources/SO/GameContentCatalog.asset",
+      "sha256": "8b3fe3d0265e1c18a3a25c54e4c0d011c64e4f75eb264aee22d4466700861645"
+    },
+    {
+      "path": "Assets/Scripts/Services/Buildings/Abilities/BuildingAbilityHandlers.cs",
+      "sha256": "1f9ec75f90e066bf4004af8805c05235390e6b2dbdcb8c1670a64edd40b3422a"
+    },
+    {
+      "path": "Assets/Scripts/Services/Buildings/SO/BuildingSO.cs",
+      "sha256": "4e12a603906a907653bdca1749cf0555f834e0de749a9898b45d1d5f8a273f47"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs",
+      "sha256": "4fda39ad5c2d06f0ff649b4d5740250f8ca8b0e786acb92dd4f97b3e265f70bf"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/CharacterEnvironmentRuntime.cs",
+      "sha256": "51fd4c04887fc8992fab41747063c72458f3a1a5de50c6e947bc575c5fcb42db"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonWorkRegistration.cs",
+      "sha256": "7c3a9135ee6907ad0c23c5222edddbb0fdf1744564e32b723dc671c8b302d5a6"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonWorldSimulationRegistration.cs",
+      "sha256": "182830b5b282724cbbd58d293319f5ef774b921f50dcf3318c945b3145d989c3"
+    },
+    {
+      "path": "Assets/Scripts/Services/Items/LeasedItemReservationService.cs",
+      "sha256": "35aedb12142f93a5d8e893bc44424f62b2caf04f7b3d427e0e3a544bfae73bea"
+    },
+    {
+      "path": "Assets/Scripts/Services/Research/ResearchFacilityOperationFallbackHandler.cs",
+      "sha256": "d4a70ca4da6d5b284b766f0b5f26b30600cde84bfcb646ccdfd5e2ff947e4206"
+    },
+    {
+      "path": "Assets/Scripts/Services/Run/V20ContentResolutionService.cs",
+      "sha256": "59bc6266603b711c88799093ae38e8506d150cc3df4bb9fd59f067574ded3959"
+    },
+    {
+      "path": "Assets/Scripts/Views/Buildings/UI/ApparelBuildingPanelPresenter.cs",
+      "sha256": "e441cc4fa1a6a5b9879c7ba2c639c53ff070bd315b2fd0af88800c51980c7e14"
+    },
+    {
+      "path": "Assets/Scripts/Views/Buildings/UI/UIBuildingInfo.cs",
+      "sha256": "a0eaeb39366c03a3d390039c25b9fb75b6115e44f24cb92c3e8a480997b92fa8"
+    },
+    {
+      "path": "docs_final/game-design/content-plans/items/apparel-and-module-numeric-notes.md",
+      "sha256": "881b713a9dfdeabd4e0011c3c3d6239d22936126843a730d4b86b5fc6a8e3ae9"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/species-culture-and-life.md",
+      "sha256": "cd356f79ff6edde0835a1590c3f4e2688a41b97cd2e510e320671bf79dfe5c04"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/world-state.md",
+      "sha256": "0b2dd58f66e109bf07177bc131b391113d68392030053a96bc08aeb615ad43ae"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/work-references.json",
+      "sha256": "f2d38f6ca3a1747d6a79034fe8f8ac373d788bca8d1ff691f454b2910cbbf405"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-9303.json",
+      "sha256": "74a0a102ccbc9acb22f4960a5a345d9c4b8a5be6bcdd96d953237b7c5faa5365"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-9304.json",
+      "sha256": "93e46fe4e43e8a2695dae9605ed32562a82f6718b7b6bf65a3627861332eb65f"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-9305.json",
+      "sha256": "803aa6266592fbe3340accb705904e96fe472c8d02ef701a701960d0592ea46d"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-9307.json",
+      "sha256": "ed86cf25cbf3a1d79407adc2ff7ae2d10eef2df2e390b2b9b2936fc40b0d12c0"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-9308.json",
+      "sha256": "3493bc669bac233bed6c86013aef46031c7241583356160a7cbd34331397f62d"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/material-mending-scrap.json",
+      "sha256": "b13c17f17f6cf34052cfb91c3ce12025a00e666845c533b9261e94bca858d0da"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/material-sewing-thread.json",
+      "sha256": "08397431b46f53b1a00774d5daa5ebc8dea9913b721321ba6ab6c30ff19549a8"
+    }
+  ]
+}

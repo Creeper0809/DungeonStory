@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "weather-rain",
+    "spoiler_tier": "none",
+    "title": "비"
+  },
+  "edges": [],
+  "schema_version": 1
+}

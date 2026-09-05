@@ -1,0 +1,225 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-medical-prosthetics",
+    "spoiler_tier": "none",
+    "title": "보철 공학"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-medical-prosthetics",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-surgery",
+      "target_spoiler_tier": "none",
+      "target_title": "외과술",
+      "to": "research/research-medical-surgery",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-prosthetics",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-surgery",
+      "target_spoiler_tier": "none",
+      "target_title": "외과술",
+      "to": "research/research-medical-surgery",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-prosthetics",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-surgery",
+      "target_spoiler_tier": "none",
+      "target_title": "외과술",
+      "to": "research/research-medical-surgery",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-prosthetics",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-prosthetics",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-prosthetics",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-prosthetics",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9506",
+      "target_spoiler_tier": "none",
+      "target_title": "보철 조립대",
+      "to": "facility/building-9506",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-prosthetics",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9507",
+      "target_spoiler_tier": "none",
+      "target_title": "재활 보조대",
+      "to": "facility/building-9507",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-beastkin-sprint-joint",
+      "label": "필요 조건",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-beastkin-tail-reconstruction",
+      "label": "필요 조건",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-human-neural-assist",
+      "label": "필요 조건",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-human-precision-prosthetic",
+      "label": "필요 조건",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-implant-installation",
+      "label": "필요 조건",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-kobold-precision-hand",
+      "label": "필요 조건",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-kobold-tail-balance",
+      "label": "필요 조건",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-prosthetic-installation",
+      "label": "필요 조건",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-rehabilitation",
+      "label": "필요 조건",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-artificial-eye",
+      "label": "필요 조건",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-prosthetic-arm",
+      "label": "필요 조건",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-prosthetic-leg",
+      "label": "필요 조건",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-avian-prosthetics",
+      "label": "선행 연구",
+      "to": "research/research-medical-prosthetics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-avian-prosthetics",
+      "label": "선행 연구",
+      "to": "research/research-medical-prosthetics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-avian-prosthetics",
+      "label": "선행 연구",
+      "to": "research/research-medical-prosthetics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-construct-core-maintenance",
+      "label": "선행 연구",
+      "to": "research/research-medical-prosthetics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-construct-core-maintenance",
+      "label": "선행 연구",
+      "to": "research/research-medical-prosthetics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-construct-core-maintenance",
+      "label": "선행 연구",
+      "to": "research/research-medical-prosthetics",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

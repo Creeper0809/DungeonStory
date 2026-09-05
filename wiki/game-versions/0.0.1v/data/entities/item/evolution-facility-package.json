@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "12kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "0"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "해체한 시설과 그 기록을 보존한 운반 상자이며, 하르나크에서는 원래 시설과 같은 이름으로 관리한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "evolution-facility-package",
+  "spoiler_tier": "none",
+  "summary": "해체한 시설과 그 기록을 보존한 운반 상자.",
+  "title": "포장된 시설"
+}

@@ -1,0 +1,27 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "철제 가공"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "world",
+  "relations": [
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "material-iron-ingot",
+  "spoiler_tier": "none",
+  "summary": "다른 콘텐츠 15개가 이 정의를 참조한다.",
+  "title": "철"
+}

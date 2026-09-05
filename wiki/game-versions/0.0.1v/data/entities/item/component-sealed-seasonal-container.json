@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "75"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "밀폐형 계절 보관함으로 용기와 장치의 경계를 닫아 내용물과 조율 상태를 보존한다. 크릭 제7굴의 밀폐형 계절 보관함에는 교체 날짜와 밀봉 상태를 확인하는 일곱 칸 표시가 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "component-sealed-seasonal-container",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 밀폐형 계절 보관함.",
+  "title": "밀폐형 계절 보관함"
+}

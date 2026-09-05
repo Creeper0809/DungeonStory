@@ -12,7 +12,8 @@ public readonly struct OffenseExpeditionLaunchDomain
         IOffenseBattleRuntime battleRuntime,
         IOffensePreparationService preparationService,
         ICombatEquipmentRuntime equipment,
-        ICharacterPerformanceQuery performance)
+        ICharacterPerformanceQuery performance,
+        ICharacterSettlementStandingQuery settlementStandings = null)
     {
         WorldMap = worldMap;
         Targets = targets;
@@ -21,6 +22,7 @@ public readonly struct OffenseExpeditionLaunchDomain
         PreparationService = preparationService;
         Equipment = equipment ?? throw new ArgumentNullException(nameof(equipment));
         Performance = performance ?? throw new ArgumentNullException(nameof(performance));
+        SettlementStandings = settlementStandings;
     }
 
     public OffenseWorldMapRuntime WorldMap { get; }
@@ -30,6 +32,7 @@ public readonly struct OffenseExpeditionLaunchDomain
     public IOffensePreparationService PreparationService { get; }
     public ICombatEquipmentRuntime Equipment { get; }
     public ICharacterPerformanceQuery Performance { get; }
+    public ICharacterSettlementStandingQuery SettlementStandings { get; }
 }
 
 public readonly struct OffenseExpeditionLaunchInfrastructure
@@ -157,6 +160,12 @@ public sealed class OffenseExpeditionLaunchService
         foreach (CharacterActor member in party)
         {
             if (!OffenseExpeditionService.CanJoinExpedition(member, out string reason))
+            {
+                message = $"{member.name}: {reason}";
+                return false;
+            }
+            if (domain.SettlementStandings != null
+                && !domain.SettlementStandings.CanJoinExpedition(member, out reason))
             {
                 message = $"{member.name}: {reason}";
                 return false;

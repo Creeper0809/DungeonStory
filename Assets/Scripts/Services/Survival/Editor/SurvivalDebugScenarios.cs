@@ -42,6 +42,9 @@ public static class SurvivalDebugScenarios
         Run("meal_four_second_commit_and_spoil_abort", VerifyMealFourSecondCommitAndSpoilAbort, errors);
         Run("tavern_recreational_substance_service", VerifyTavernRecreationalSubstanceService, errors);
         Run("consumables_strict_restore", VerifyConsumablesStrictRestore, errors);
+        Run("consumables_persistent_actor_capture_closure",
+            VerifyConsumablesPersistentActorCaptureClosure,
+            errors);
         return errors;
     }
 
@@ -53,6 +56,113 @@ public static class SurvivalDebugScenarios
 
     public static string RunPackagedConsumableTareRecoveryFocused() =>
         VerifyPackagedConsumableMissingTareRecovery();
+
+    public static string RunPersistentActorCaptureClosureFocused() =>
+        VerifyConsumablesPersistentActorCaptureClosure();
+
+    private static string VerifyConsumablesPersistentActorCaptureClosure()
+    {
+        GameObject actorObject = new("ConsumablesPersistentActorFixture");
+        GameObject facilityObject = new("ConsumablesPersistentFacilityFixture");
+        CharacterActor actor = null;
+        BuildableObject facility = null;
+        BuildingSO buildingData = null;
+        WorldItemStackRuntime itemRuntime = null;
+        ICharacterAiWorldRegistry world = CharacterAiEditorTestDependencies.WorldRegistry;
+        try
+        {
+            actor = actorObject.AddComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.Inject(actorObject);
+            actor.EnsureRuntimeState();
+            actor.Identity.SetPersistentId(
+                new CharacterId("character:consumables-persistent-fixture"));
+            actor.SetLifecycleState(CharacterLifecycleState.Active);
+            world.RegisterCharacter(actor);
+            world.RegisterCharacterLifetime(actor);
+
+            facility = facilityObject.AddComponent<BuildableObject>();
+            CharacterAiEditorTestDependencies.Inject(facility);
+            buildingData = ScriptableObject.CreateInstance<BuildingSO>();
+            buildingData.id = 99143;
+            buildingData.objectName = "Consumables persistent fixture";
+            buildingData.width = 1;
+            buildingData.height = 1;
+            buildingData.category = BuildingCategory.Shop;
+            buildingData.Facility = new FacilityData
+            {
+                roles = FacilityRole.Meal,
+                capacity = 1
+            };
+            facility.Initialization(buildingData, Vector2Int.zero);
+            world.RegisterBuilding(facility);
+
+            itemRuntime = PhysicalItemDebugScenarios
+                .CreateRuntimeForCrossDomainFixture();
+            IItemDefinitionCatalog itemCatalog = new ResourceItemDefinitionCatalog(
+                new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+            CharacterConsumablesApplicationPorts ports = new(
+                itemCatalog,
+                itemRuntime,
+                world,
+                new GameEventBus(),
+                EmptyCombatCommands.Instance,
+                CharacterAiEditorTestDependencies.NeutralPerformance);
+            CharacterConsumablesRuntime runtime = new(
+                ports,
+                ports,
+                ports,
+                new UnityGameClock(),
+                new RandomStreamProvider(711),
+                new DungeonRuntimeAggregateRootStore(),
+                DefaultCharacterNeedBalanceRuntime.Instance);
+
+            DungeonCharacterConsumablesSaveData payload = runtime.Capture();
+            payload.pendingMealDeliveries.Add(new CharacterMealDeliveryState
+            {
+                deliveryId =
+                    "consumable-delivery:auto:v1:0000000000000001",
+                characterId = actor.Identity.PersistentId,
+                buildingInstanceId = facility.RequirePersistentInstanceId().Value,
+                itemDefinitionId = "food:preserved-ration",
+                requestedAt = 0f,
+                retryAfter = 30f
+            });
+            payload.nextDeliverySequence = 2;
+            runtime.PublishRestoreCandidate(runtime.BuildRestoreCandidate(payload));
+            Require(runtime.Capture().pendingMealDeliveries.Count == 1,
+                "fixture could not publish a valid pending meal delivery");
+
+            runtime.ReconcilePersistentActorReferences(Array.Empty<CharacterId>());
+            DungeonCharacterConsumablesSaveData reconciled = runtime.Capture();
+            Require(reconciled.pendingMealDeliveries.Count == 0
+                    && reconciled.dietPolicies.Count == 0
+                    && reconciled.mealQualityPolicies.Count == 0
+                    && reconciled.substancePolicies.Count == 0
+                    && reconciled.substanceStates.Count == 0
+                    && reconciled.completedOperations.Count == 0
+                    && reconciled.mealFollowupCooldowns.Count == 0
+                    && reconciled.activeMealPlans.Count == 0
+                    && reconciled.activeSubstanceUsePlans.Count == 0,
+                "capture reconciliation retained an actor-owned reference outside characters.world");
+            runtime.ValidateRestorePayload(reconciled, requireWorldReferences: true);
+            return "pending-delivery=1->0; persistent-reference-closure=exact";
+        }
+        finally
+        {
+            if (facility != null)
+                world.UnregisterBuilding(facility);
+            if (actor != null)
+            {
+                world.UnregisterCharacter(actor);
+                world.UnregisterCharacterLifetime(actor);
+            }
+            itemRuntime?.Dispose();
+            if (buildingData != null)
+                UnityEngine.Object.DestroyImmediate(buildingData);
+            UnityEngine.Object.DestroyImmediate(facilityObject);
+            UnityEngine.Object.DestroyImmediate(actorObject);
+        }
+    }
 
     private static string VerifyStaleMealNeedClassification()
     {
@@ -175,8 +285,9 @@ public static class SurvivalDebugScenarios
                 new RandomStreamProvider(4204),
                 new DungeonRuntimeAggregateRootStore(),
                 DefaultCharacterNeedBalanceRuntime.Instance);
-            string destination =
-                $"facility-input:meal:{facility.RequirePersistentInstanceId().Value}";
+            string destination = CharacterConsumablesRuntime.GetMealDestinationId(
+                facility.RequirePersistentInstanceId(),
+                new ConsumableItemDefinitionId(FoodId));
 
             Require(items.SpawnItemAt(
                     FoodId,
@@ -1895,7 +2006,9 @@ public static class SurvivalDebugScenarios
                 new CharacterConsumablesCompatibilityAdapter(core);
             BuildingInstanceId facilityId = facility.RequirePersistentInstanceId();
             string destination = CharacterConsumablesRuntime
-                .GetRecreationalSubstanceDestinationId(facilityId);
+                .GetRecreationalSubstanceDestinationId(
+                    facilityId,
+                    new ConsumableItemDefinitionId(beverageId));
 
             runtime.SetPolicy(
                 actor,

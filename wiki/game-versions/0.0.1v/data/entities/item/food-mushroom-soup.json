@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.65kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "8"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "동굴버섯을 푹 끓여 진한 향과 단백질을 국물에 우려낸 비건식이다. 므네실라의 동굴버섯국은 균사가 국물 위로 다시 떠오르기 직전에 불을 내려 향을 지킨다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "food-mushroom-soup",
+  "spoiler_tier": "none",
+  "summary": "단백질이 풍부한 비건 국.",
+  "title": "동굴버섯국"
+}

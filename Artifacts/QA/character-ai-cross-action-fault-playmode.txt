@@ -1,10 +1,15 @@
 # AI Cross-Action Fault PlayMode Matrix
 authority=production-runtime
-rows=haul-source-despawn,haul-source-shrink,haul-destination-destroy,rescue-patient-despawn,rescue-save-load,rescue-patient-death,rescue-bed-destroy,rescue-medicine-loss,hunt-hunter-downed,hunt-hunter-dead,hunt-prey-despawn,hunt-path-invalidation,drink-item-loss,field-meal-item-loss,substance-item-loss
+currentSourceDigest=444e10da91803afd572fb9bc947e1bca5ebdb8575793fdc40b8ab26cc827ee35
+gameplaySceneSha256=6c35a17693d3cedca2c85b89b22a8bff9b5bae6de88c01b255481c058d2aee40
+rows=haul-source-despawn,haul-source-shrink,haul-destination-destroy,haul-carrier-dead,rescue-patient-despawn,rescue-save-load,rescue-patient-death,rescue-bed-destroy,rescue-medicine-loss,hunt-hunter-downed,hunt-hunter-dead,hunt-prey-despawn,hunt-path-invalidation,drink-item-loss,field-meal-item-loss,substance-item-loss
 PASS	live scope
 PASS	live actor
 PASS	physical item authorities resolved
 PASS	medical and wildlife authorities resolved
+PASS	cross-action fixture reconciled the direct-entry grid through the production Tier-0 path: changed=False;columns=29->29;startX=17;entrance=(17, 0)
+PASS	cross-action fixture Tier-0 publication did not expose the exact canonical layout: 
+PASS	cross-action fixture resolves exactly one aggregate reference preflight at the captured-save boundary
 PASS	stable full-world snapshot captured after AI quiescence
 PASS	haul-source-despawn: seed item found
 PASS	haul-source-despawn: physical seed spawned
@@ -39,16 +44,23 @@ HAUL_DOWNED_CURRENT_CELL_TRANSIENT_DROP=PASS
 HAUL_DOWNED_QUANTITY_NO_TELEPORT=PASS
 haul-destination-destroy=PASS
 PASS	haul-dead-drop: temporary carrier created
+PASS	haul-dead-drop: pre-existing haul jobs quarantined; failures=0
 PASS	haul-dead-drop: reachable carrier start located
 PASS	haul-dead-drop: temporary warehouse created
+PASS	haul-dead-drop: non-survival physical fixture item resolved
 PASS	haul-dead-drop: physical source spawned
 PASS	haul-dead-drop: source prioritized
-PASS	haul-dead-drop: physical pickup committed
+PASS	haul-dead-drop: isolated production haul can start; 
+PASS	haul-dead-drop: physical pickup committed; stage=픽업 완료; failure=; plan=1스택 · 0.4kg
 PASS	haul-dead-drop: exact last actor-cell physical drop without teleport
 PASS	haul-dead-drop: quantity conserved across death interruption
 HAUL_DEAD_CURRENT_CELL_TRANSIENT_DROP=PASS
 HAUL_DEAD_QUANTITY_NO_TELEPORT=PASS
-PASS	rescue-save-load: medical aggregate restored through V18 transaction boundary
+PASS	haul-dead-drop: current-format physical checkpoint exact
+PASS	haul-dead-drop: recovery row removed before restore
+PASS	haul-dead-drop: current-format restore preserves exact physical drop
+HAUL_DEAD_CURRENT_FORMAT_RESTORE_EXACT=PASS
+PASS	rescue-save-load: full aggregate restored through V18 transaction boundary; 
 PASS	rescue-patient-despawn/save-load: coroutine and reservation terminal
 PASS	rescue-patient-despawn/save-load: medical ownership released
 rescue-patient-despawn-save-load=PASS
@@ -101,4 +113,5 @@ PASS	substance-item-loss: late commit rejected by missing physical stack
 substance-item-loss=PASS
 PASS	hunt-prey-despawn: wildlife restored through full V18 transaction boundary
 lateCommit=0
+RESULT=PASS
 result=PASS

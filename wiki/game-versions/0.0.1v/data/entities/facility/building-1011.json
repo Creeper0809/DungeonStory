@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "상점"
+    },
+    {
+      "label": "크기",
+      "value": "1×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-1011",
+  "spoiler_tier": "none",
+  "summary": "시설의 고유 역할은 생산 작업대, 손님 서비스이다. 건설에는 작업량 241, 재료 처리 목재×6, 철괴×2이 필요하다.",
+  "title": "술음료장"
+}

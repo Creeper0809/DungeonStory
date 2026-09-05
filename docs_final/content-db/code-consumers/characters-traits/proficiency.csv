@@ -1,0 +1,14 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+ProficiencyDefinitionSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/CharacterNarrativeAggregate.cs
+ProficiencyDefinitionSO,content-type,,type-reference,services:character,content-loading,structural-type-consumer,Assets/Scripts/Services/Character/CharacterNarrativeCatalog.cs
+ProficiencyDefinitionSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/CharacterNarrativeContracts.cs
+ProficiencyDefinitionSO,content-type,,type-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/UI/CharacterSummaryShellPresenter.cs
+ProficiencyDefinitionSO,stable-id,proficiency:construction-engineering,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterProficiencyPrimitives.cs
+ProficiencyDefinitionSO,stable-id,proficiency:crafting,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterProficiencyPrimitives.cs
+ProficiencyDefinitionSO,stable-id,proficiency:fieldwork,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterProficiencyPrimitives.cs
+ProficiencyDefinitionSO,stable-id,proficiency:food-production,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterProficiencyPrimitives.cs
+ProficiencyDefinitionSO,stable-id,proficiency:medicine,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterProficiencyPrimitives.cs
+ProficiencyDefinitionSO,stable-id,proficiency:melee-combat,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterProficiencyPrimitives.cs
+ProficiencyDefinitionSO,stable-id,proficiency:ranged-combat,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterProficiencyPrimitives.cs
+ProficiencyDefinitionSO,stable-id,proficiency:scholarship,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterProficiencyPrimitives.cs
+ProficiencyDefinitionSO,stable-id,proficiency:social,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterProficiencyPrimitives.cs

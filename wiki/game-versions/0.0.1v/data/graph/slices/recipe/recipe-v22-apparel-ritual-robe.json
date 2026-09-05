@@ -1,0 +1,62 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-v22-apparel-ritual-robe",
+    "spoiler_tier": "none",
+    "title": "의식 로브 재단"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-ritual-robe",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "apparel-ritual-robe",
+      "target_spoiler_tier": "none",
+      "target_title": "의식 로브",
+      "to": "item/apparel-ritual-robe",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-v22-apparel-ritual-robe",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "천",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-v22-apparel-ritual-robe",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-sewing-thread",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉실",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-ritual-robe",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "to": "recipe/recipe-v22-apparel-ritual-robe",
+      "type": "unlocks-recipe"
+    }
+  ],
+  "schema_version": 1
+}

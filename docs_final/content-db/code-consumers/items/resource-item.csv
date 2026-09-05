@@ -1,0 +1,241 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+ResourceItemDefinitionSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/EmptyResourceEconomyContentCatalog.cs
+ResourceItemDefinitionSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ItemDefinitionCatalogSO.cs
+ResourceItemDefinitionSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ItemDefinitionSO.cs
+ResourceItemDefinitionSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/MaterialEconomicProfileSO.cs
+ResourceItemDefinitionSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionOutputPlanningService.cs
+ResourceItemDefinitionSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ResourceEconomyModels.cs
+ResourceItemDefinitionSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ResourceItemSemanticDigest.cs
+ResourceItemDefinitionSO,content-type,,type-reference,models:economy,persistence,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ResourceStockPolicySaveValidation.cs
+ResourceItemDefinitionSO,content-type,,type-reference,models:economy,runtime,structural-type-consumer,Assets/Scripts/Models/Economy/Core/CharacterConsumableModels.cs
+ResourceItemDefinitionSO,content-type,,type-reference; save-restore-reference,services:captivity,runtime,structural-type-consumer,Assets/Scripts/Services/Captivity/CaptivityCareLaborInputOwnerRuntime.cs
+ResourceItemDefinitionSO,content-type,,type-reference; save-restore-reference,services:captivity,runtime,structural-type-consumer,Assets/Scripts/Services/Captivity/WildlifeCaptureRuntime.cs
+ResourceItemDefinitionSO,content-type,,type-reference; save-restore-reference,services:captivity,runtime,structural-type-consumer,Assets/Scripts/Services/Captivity/WildlifeCareInputOwnerRuntime.cs
+ResourceItemDefinitionSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/PhysicalVaccinationRuntime.cs
+ResourceItemDefinitionSO,content-type,,type-reference; save-restore-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/CharacterMedicalSupplyDestinationRuntimeDebugScenarios.cs
+ResourceItemDefinitionSO,content-type,,type-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/CharacterMedicalSupplyOutboxDebugScenarios.cs
+ResourceItemDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/CombatAmmunitionPreparedOutputMaterializer.cs
+ResourceItemDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/CropCycleInputRequirementAuthority.cs
+ResourceItemDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/CropPlotRuntime.cs
+ResourceItemDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/PerishableFoodPreparedOutputMaterializer.cs
+ResourceItemDefinitionSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/Planning/RegionalSupplyContractApplicationAdapter.cs
+ResourceItemDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/Planning/ResourceEconomyForecastService.cs
+ResourceItemDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/Planning/ResourceStockPolicyRuntime.cs
+ResourceItemDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,persistence,structural-type-consumer,Assets/Scripts/Services/Economy/Planning/ResourceStockPolicySaveSection.cs
+ResourceItemDefinitionSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/Planning/WildlifeFeedSelectionRules.cs
+ResourceItemDefinitionSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionInputLogisticsService.cs
+ResourceItemDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,content-loading,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionMaximumOutputFactorCatalog.cs
+ResourceItemDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionPassiveBatchOutputPortfolioAuthority.cs
+ResourceItemDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,persistence,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionPreparedOutputComponentCodec.cs
+ResourceItemDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionPreparedOutputExecutionAdapter.cs
+ResourceItemDefinitionSO,content-type,,type-reference,services:economy,content-loading,structural-type-consumer,Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs
+ResourceItemDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/StandardDefinitionProductionOutputHandler.cs
+ResourceItemDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,content-loading,structural-type-consumer,Assets/Scripts/Services/Economy/SurvivalContinuityCatalogQuery.cs
+ResourceItemDefinitionSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/V23EmbeddedWorkValueCalculator.cs
+ResourceItemDefinitionSO,content-type,,type-reference; save-restore-reference,services:infrastructure,persistence,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearProductionOutputRestoreCapabilityValidatorDebugScenarios.cs
+ResourceItemDefinitionSO,content-type,,type-reference,services:infrastructure,content-loading,structural-type-consumer,Assets/Scripts/Services/Infrastructure/ResearchRewardCatalogAdapter.cs
+ResourceItemDefinitionSO,content-type,,type-reference; save-restore-reference,services:items,runtime,structural-type-consumer,Assets/Scripts/Services/Items/ItemPileInfoPanel.cs
+ResourceItemDefinitionSO,content-type,,type-reference; save-restore-reference,services:survival,runtime,structural-type-consumer,Assets/Scripts/Services/Survival/CharacterConsumablesApplicationAdapters.cs
+ResourceItemDefinitionSO,content-type,,type-reference; save-restore-reference,services:survival,runtime,structural-type-consumer,Assets/Scripts/Services/Survival/SurvivalFoodRuntime.cs
+ResourceItemDefinitionSO,content-type,,type-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/Buildings/UI/CropPlotBuildingPanelPresenter.cs
+ResourceItemDefinitionSO,content-type,,type-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/Buildings/UI/ProductionBuildingPanelPresenter.cs
+ResourceItemDefinitionSO,content-type,,type-reference; save-restore-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/UI/WarehouseFeatureSurfacePresenter.cs
+ResourceItemDefinitionSO,stable-id,ammo:armor-piercing-cartridge,stable-id-literal,models:combat,runtime,exact-literal-consumer,Assets/Scripts/Models/Combat/Core/CombatWeaponPrimitives.cs
+ResourceItemDefinitionSO,stable-id,ammo:arrow-steel,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+ResourceItemDefinitionSO,stable-id,ammo:blacksteel-bolt,stable-id-literal,models:combat,runtime,exact-literal-consumer,Assets/Scripts/Models/Combat/Core/CombatWeaponPrimitives.cs
+ResourceItemDefinitionSO,stable-id,ammo:bolt-steel,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+ResourceItemDefinitionSO,stable-id,ammo:incendiary-arrow,stable-id-literal,models:combat,runtime,exact-literal-consumer,Assets/Scripts/Models/Combat/Core/CombatWeaponPrimitives.cs
+ResourceItemDefinitionSO,stable-id,ammo:incendiary-bolt,stable-id-literal,models:combat,runtime,exact-literal-consumer,Assets/Scripts/Models/Combat/Core/CombatWeaponPrimitives.cs
+ResourceItemDefinitionSO,stable-id,ammo:mana-disruptor-bolt,stable-id-literal,models:combat,runtime,exact-literal-consumer,Assets/Scripts/Models/Combat/Core/CombatWeaponPrimitives.cs
+ResourceItemDefinitionSO,stable-id,ammo:paper-cartridge,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/ProductionOutputPlanningService.cs
+ResourceItemDefinitionSO,stable-id,ammo:rune-cartridge,stable-id-literal,models:combat,runtime,exact-literal-consumer,Assets/Scripts/Models/Combat/Core/CombatWeaponPrimitives.cs
+ResourceItemDefinitionSO,stable-id,ammo:scatter-cartridge,stable-id-literal,models:combat,runtime,exact-literal-consumer,Assets/Scripts/Models/Combat/Core/CombatWeaponPrimitives.cs
+ResourceItemDefinitionSO,stable-id,ammo:signal-flare,stable-id-literal,models:combat,runtime,exact-literal-consumer,Assets/Scripts/Models/Combat/Core/CombatWeaponPrimitives.cs
+ResourceItemDefinitionSO,stable-id,ammo:smoke-cartridge,stable-id-literal,models:combat,runtime,exact-literal-consumer,Assets/Scripts/Models/Combat/Core/CombatWeaponPrimitives.cs
+ResourceItemDefinitionSO,stable-id,ammo:tranquilizer-dart,stable-id-literal,models:combat,runtime,exact-literal-consumer,Assets/Scripts/Models/Combat/Core/CombatWeaponPrimitives.cs
+ResourceItemDefinitionSO,stable-id,ammo:tranquilizer-dart,stable-id-literal,services:offense,runtime,exact-literal-consumer,Assets/Scripts/Services/Offense/OffenseBattleModel.cs
+ResourceItemDefinitionSO,stable-id,apparel:lower-underwear,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/Core/PreparedStartPartyGameplayApplier.cs
+ResourceItemDefinitionSO,stable-id,apparel:undershirt,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/Core/PreparedStartPartyGameplayApplier.cs
+ResourceItemDefinitionSO,stable-id,book:seasonal-almanac,stable-id-literal,models:items,runtime,exact-literal-consumer,Assets/Scripts/Models/Items/Core/ItemPrimitives.cs
+ResourceItemDefinitionSO,stable-id,component:golem-core-case,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/ReproductionCommandRuntime.cs
+ResourceItemDefinitionSO,stable-id,component:machine-parts,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/ProductionOutputPlanningService.cs
+ResourceItemDefinitionSO,stable-id,component:material-test-coupon,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,component:material-test-coupon,stable-id-literal,services:combat,runtime,exact-literal-consumer,Assets/Scripts/Services/Combat/EquipmentModuleInputOwnerRuntime.cs
+ResourceItemDefinitionSO,stable-id,component:material-test-coupon,stable-id-literal,services:combat,runtime,exact-literal-consumer,Assets/Scripts/Services/Combat/EquipmentModuleRuntime.cs
+ResourceItemDefinitionSO,stable-id,component:precision-parts,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/ProductionOutputPlanningService.cs
+ResourceItemDefinitionSO,stable-id,component:reclaimed-water-filter,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,component:reclaimed-water-filter,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/DiseaseFieldResponseRuntime.cs
+ResourceItemDefinitionSO,stable-id,component:rune-conductor,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/PhysicalAgeTreatmentRuntime.cs
+ResourceItemDefinitionSO,stable-id,component:stock-sensor-panel,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/ProductionBillRuntime.cs
+ResourceItemDefinitionSO,stable-id,craft:candle,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/Core/PreparedStartPartyGameplayApplier.cs
+ResourceItemDefinitionSO,stable-id,craft:resin-balm,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/Core/PreparedStartPartyGameplayApplier.cs
+ResourceItemDefinitionSO,stable-id,drug:dreamleaf-analgesic,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,drug:dreamleaf-analgesic,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/DiseaseFieldResponseRuntime.cs
+ResourceItemDefinitionSO,stable-id,feed:dog-food,stable-id-literal,services:economy,runtime,exact-literal-consumer,Assets/Scripts/Services/Economy/Planning/ResourceEconomyForecastService.cs
+ResourceItemDefinitionSO,stable-id,feed:hay,stable-id-literal,services:economy,runtime,exact-literal-consumer,Assets/Scripts/Services/Economy/Planning/ResourceEconomyForecastService.cs
+ResourceItemDefinitionSO,stable-id,food:grain-porridge,stable-id-literal,services:economy,content-loading,exact-literal-consumer,Assets/Scripts/Services/Economy/SurvivalContinuityCatalogQuery.cs
+ResourceItemDefinitionSO,stable-id,food:grain-porridge,stable-id-literal,services:items,runtime,exact-literal-consumer,Assets/Scripts/Services/Items/Diagnostics/PreparedOutputCustodyMutationGuardDebugScenarios.cs
+ResourceItemDefinitionSO,stable-id,food:preserved-ration,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+ResourceItemDefinitionSO,stable-id,food:preserved-ration,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,food:preserved-ration,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/Core/PreparedStartPartyGameplayApplier.cs
+ResourceItemDefinitionSO,stable-id,food:preserved-ration,stable-id-literal,services:infrastructure,runtime,exact-literal-consumer,Assets/Scripts/Services/Infrastructure/Exterior/ExteriorIncidentHandlers.cs
+ResourceItemDefinitionSO,stable-id,food:preserved-ration,stable-id-literal,services:offense,runtime,exact-literal-consumer,Assets/Scripts/Services/Offense/OffenseJourneyModel.cs
+ResourceItemDefinitionSO,stable-id,item:equipment-module,stable-id-literal,services:items,content-loading,exact-literal-consumer,Assets/Scripts/Services/Items/DungeonItemCatalog.cs
+ResourceItemDefinitionSO,stable-id,item:lineage-seal,stable-id-literal,models:combat,runtime,exact-literal-consumer,Assets/Scripts/Models/Combat/Core/EquipmentProgressionModels.cs
+ResourceItemDefinitionSO,stable-id,material:alchemical-solvent,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+ResourceItemDefinitionSO,stable-id,material:black-powder,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/ProductionOutputPlanningService.cs
+ResourceItemDefinitionSO,stable-id,material:blacksteel-ingot,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+ResourceItemDefinitionSO,stable-id,material:cloth,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+ResourceItemDefinitionSO,stable-id,material:cloth,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/Core/PreparedStartPartyGameplayApplier.cs
+ResourceItemDefinitionSO,stable-id,material:compost,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+ResourceItemDefinitionSO,stable-id,material:compost,stable-id-literal,services:economy,runtime,exact-literal-consumer,Assets/Scripts/Services/Economy/CropCycleInputRequirementAuthority.cs
+ResourceItemDefinitionSO,stable-id,material:compost,stable-id-literal,services:economy,runtime,exact-literal-consumer,Assets/Scripts/Services/Economy/Planning/ResourceStockPolicyRuntime.cs
+ResourceItemDefinitionSO,stable-id,material:gold-ingot,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+ResourceItemDefinitionSO,stable-id,material:iron-ingot,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+ResourceItemDefinitionSO,stable-id,material:iron-ingot,stable-id-literal,services:combat,content-loading,exact-literal-consumer,Assets/Scripts/Services/Combat/CombatCraftDefinitionCatalog.cs
+ResourceItemDefinitionSO,stable-id,material:iron-ingot,stable-id-literal,services:defense,runtime,exact-literal-consumer,Assets/Scripts/Services/Defense/DefenseFacilityPhysicalTransactionOutbox.cs
+ResourceItemDefinitionSO,stable-id,material:lead-ingot,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/ProductionOutputPlanningService.cs
+ResourceItemDefinitionSO,stable-id,material:lead-shot,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/ProductionOutputPlanningService.cs
+ResourceItemDefinitionSO,stable-id,material:low-fuel,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,material:low-fuel,stable-id-literal,services:infrastructure,runtime,exact-literal-consumer,Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureBuildingAbilities.cs
+ResourceItemDefinitionSO,stable-id,material:lumber,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+ResourceItemDefinitionSO,stable-id,material:lumber,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,material:lumber,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/Core/PreparedStartPartyGameplayApplier.cs
+ResourceItemDefinitionSO,stable-id,material:lumber,stable-id-literal,services:combat,content-loading,exact-literal-consumer,Assets/Scripts/Services/Combat/CombatCraftDefinitionCatalog.cs
+ResourceItemDefinitionSO,stable-id,material:lumber,stable-id-literal,services:infrastructure,runtime,exact-literal-consumer,Assets/Scripts/Services/Infrastructure/Exterior/ExteriorIncidentHandlers.cs
+ResourceItemDefinitionSO,stable-id,material:lumber,stable-id-literal,services:infrastructure,runtime,exact-literal-consumer,Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureStressProbe.cs
+ResourceItemDefinitionSO,stable-id,material:lumber,stable-id-literal,services:items,runtime,exact-literal-consumer,Assets/Scripts/Services/Items/Diagnostics/ExactWarehouseHaulAdmissionJoinDebugScenarios.cs
+ResourceItemDefinitionSO,stable-id,material:lumber,stable-id-literal,services:items,runtime,exact-literal-consumer,Assets/Scripts/Services/Items/Diagnostics/PreparedOutputBufferAggregationGuardDebugScenarios.cs
+ResourceItemDefinitionSO,stable-id,material:lumber,stable-id-literal,services:items,runtime,exact-literal-consumer,Assets/Scripts/Services/Items/Diagnostics/PreparedOutputCustodyCarryBoundaryDebugScenarios.cs
+ResourceItemDefinitionSO,stable-id,material:lumber,stable-id-literal,services:items,runtime,exact-literal-consumer,Assets/Scripts/Services/Items/Diagnostics/PreparedOutputCustodyMutationGuardDebugScenarios.cs
+ResourceItemDefinitionSO,stable-id,material:lumber,stable-id-literal,services:items,runtime,exact-literal-consumer,Assets/Scripts/Services/Items/Diagnostics/PreparedOutputHaulPlannerGateDebugScenarios.cs
+ResourceItemDefinitionSO,stable-id,material:mending-scrap,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/Core/PreparedStartPartyGameplayApplier.cs
+ResourceItemDefinitionSO,stable-id,material:mending-scrap,stable-id-literal,services:economy,content-loading,exact-literal-consumer,Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs
+ResourceItemDefinitionSO,stable-id,material:mending-scrap,stable-id-literal,services:infrastructure,runtime,exact-literal-consumer,Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs
+ResourceItemDefinitionSO,stable-id,material:paper,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/ProductionOutputPlanningService.cs
+ResourceItemDefinitionSO,stable-id,material:sewing-thread,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/Core/PreparedStartPartyGameplayApplier.cs
+ResourceItemDefinitionSO,stable-id,material:sewing-thread,stable-id-literal,services:economy,content-loading,exact-literal-consumer,Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs
+ResourceItemDefinitionSO,stable-id,material:sewing-thread,stable-id-literal,services:infrastructure,runtime,exact-literal-consumer,Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs
+ResourceItemDefinitionSO,stable-id,material:steel-ingot,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+ResourceItemDefinitionSO,stable-id,material:stone-block,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+ResourceItemDefinitionSO,stable-id,material:treated-lumber,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+ResourceItemDefinitionSO,stable-id,medical:cross-lineage-medium,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,medical:cross-lineage-medium,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/ReproductionCommandRuntime.cs
+ResourceItemDefinitionSO,stable-id,medical:fertility-treatment,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,medical:fertility-treatment,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/ReproductionCommandRuntime.cs
+ResourceItemDefinitionSO,stable-id,medical:isolation-care-kit,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,medical:isolation-care-kit,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/DiseaseFieldResponseRuntime.cs
+ResourceItemDefinitionSO,stable-id,medical:organ-preservation-canister,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,medical:organ-preservation-canister,stable-id-literal,services:medical,runtime,exact-literal-consumer,Assets/Scripts/Services/Medical/SurgicalPartRuntime.cs
+ResourceItemDefinitionSO,stable-id,medical:regenerative-medium,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,medical:sterile-bandage,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,medical:trait-analysis-kit,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,medical:trait-analysis-kit,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/CharacterNarrativeRuntime.cs
+ResourceItemDefinitionSO,stable-id,medical:trauma-care-kit,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,medical:trauma-care-kit,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/FuneralFestivalRuntime.cs
+ResourceItemDefinitionSO,stable-id,medicine:advanced,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,medicine:anesthetic,stable-id-literal,models:medical,runtime,exact-literal-consumer,Assets/Scripts/Models/Medical/Core/BuildingSurgeryAbilities.cs
+ResourceItemDefinitionSO,stable-id,medicine:anesthetic,stable-id-literal,models:medical,runtime,exact-literal-consumer,Assets/Scripts/Models/Medical/Core/SurgeryItemDefinitions.cs
+ResourceItemDefinitionSO,stable-id,medicine:antidote,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,medicine:antidote,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/DiseaseFieldResponseRuntime.cs
+ResourceItemDefinitionSO,stable-id,medicine:antiseptic,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,medicine:herbal-poultice,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,medicine:mycelial-culture-pack,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,medicine:mycelial-culture-pack,stable-id-literal,models:medical,runtime,exact-literal-consumer,Assets/Scripts/Models/Medical/Core/SurgeryItemDefinitions.cs
+ResourceItemDefinitionSO,stable-id,medicine:mycelial-culture-pack,stable-id-literal,services:economy,content-loading,exact-literal-consumer,Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs
+ResourceItemDefinitionSO,stable-id,medicine:standard,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+ResourceItemDefinitionSO,stable-id,medicine:standard,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,medicine:standard,stable-id-literal,services:infrastructure,runtime,exact-literal-consumer,Assets/Scripts/Services/Infrastructure/Exterior/ExteriorIncidentHandlers.cs
+ResourceItemDefinitionSO,stable-id,medicine:standard,stable-id-literal,services:offense,runtime,exact-literal-consumer,Assets/Scripts/Services/Offense/OffenseJourneyModel.cs
+ResourceItemDefinitionSO,stable-id,medicine:vaccine:blood-wasting,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,medicine:vaccine:cave-flu,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,medicine:vaccine:gut-rot,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,medicine:vaccine:mana-pox,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,medicine:vaccine:red-fever,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,medicine:vaccine:slime-blight,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,medicine:vaccine:spore-lung,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,offense:appraised-valuables,stable-id-literal,services:offense,runtime,exact-literal-consumer,Assets/Scripts/Services/Offense/OffenseRewardSystem.cs
+ResourceItemDefinitionSO,stable-id,offense:unappraised-loot,stable-id-literal,services:economy,content-loading,exact-literal-consumer,Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs
+ResourceItemDefinitionSO,stable-id,offense:unappraised-loot,stable-id-literal,services:offense,runtime,exact-literal-consumer,Assets/Scripts/Services/Offense/OffenseRewardSystem.cs
+ResourceItemDefinitionSO,stable-id,record:arcane-index,stable-id-literal,models:items,runtime,exact-literal-consumer,Assets/Scripts/Models/Items/Core/ItemPrimitives.cs
+ResourceItemDefinitionSO,stable-id,record:breeding-ledger,stable-id-literal,models:items,runtime,exact-literal-consumer,Assets/Scripts/Models/Items/Core/ItemPrimitives.cs
+ResourceItemDefinitionSO,stable-id,record:career-ledger,stable-id-literal,models:items,runtime,exact-literal-consumer,Assets/Scripts/Models/Items/Core/ItemPrimitives.cs
+ResourceItemDefinitionSO,stable-id,resource:clean-water,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+ResourceItemDefinitionSO,stable-id,resource:clean-water,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,resource:clean-water,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/Core/PreparedStartPartyGameplayApplier.cs
+ResourceItemDefinitionSO,stable-id,resource:clean-water,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/DiseaseFieldResponseRuntime.cs
+ResourceItemDefinitionSO,stable-id,resource:clean-water,stable-id-literal,services:economy,runtime,exact-literal-consumer,Assets/Scripts/Services/Economy/CropCycleInputRequirementAuthority.cs
+ResourceItemDefinitionSO,stable-id,resource:clean-water,stable-id-literal,services:economy,runtime,exact-literal-consumer,Assets/Scripts/Services/Economy/Planning/ResourceEconomyForecastService.cs
+ResourceItemDefinitionSO,stable-id,resource:clean-water,stable-id-literal,services:economy,runtime,exact-literal-consumer,Assets/Scripts/Services/Economy/V27EmbeddedWorkValueCalculator.cs
+ResourceItemDefinitionSO,stable-id,resource:clean-water,stable-id-literal,services:infrastructure,runtime,exact-literal-consumer,Assets/Scripts/Services/Infrastructure/Industrial/FluidFacilityInputOwnerAuthority.cs
+ResourceItemDefinitionSO,stable-id,resource:clean-water,stable-id-literal,services:infrastructure,runtime,exact-literal-consumer,Assets/Scripts/Services/Infrastructure/Industrial/FluidNetworkRuntime.cs
+ResourceItemDefinitionSO,stable-id,resource:clean-water,stable-id-literal,services:infrastructure,persistence,exact-literal-consumer,Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureSaveValidation.cs
+ResourceItemDefinitionSO,stable-id,resource:clean-water,stable-id-literal,services:infrastructure,runtime,exact-literal-consumer,Assets/Scripts/Services/Infrastructure/Industrial/ProcessFluidUseRuntime.cs
+ResourceItemDefinitionSO,stable-id,resource:clean-water,stable-id-literal,services:medical,runtime,exact-literal-consumer,Assets/Scripts/Services/Medical/SurgeryOrderPlanningService.cs
+ResourceItemDefinitionSO,stable-id,resource:clean-water,stable-id-literal,services:survival,runtime,exact-literal-consumer,Assets/Scripts/Services/Survival/CharacterPrimitiveSurvivalRunner.cs
+ResourceItemDefinitionSO,stable-id,resource:clean-water,stable-id-literal,services:survival,runtime,exact-literal-consumer,Assets/Scripts/Services/Survival/SurvivalFoodRuntime.cs
+ResourceItemDefinitionSO,stable-id,resource:dark-resin,stable-id-literal,services:combat,runtime,exact-literal-consumer,Assets/Scripts/Services/Combat/EquipmentEvolutionRuntime.cs
+ResourceItemDefinitionSO,stable-id,resource:dark-resin,stable-id-literal,services:facilityevolution,runtime,exact-literal-consumer,Assets/Scripts/Services/FacilityEvolution/FacilityInstanceEvolutionRuntime.cs
+ResourceItemDefinitionSO,stable-id,resource:egg,stable-id-literal,services:wildlife,runtime,exact-literal-consumer,Assets/Scripts/Services/Wildlife/WildlifeModels.cs
+ResourceItemDefinitionSO,stable-id,resource:fang,stable-id-literal,models:wildlife,runtime,exact-literal-consumer,Assets/Scripts/Models/Wildlife/Core/WildlifeSpeciesDefinition.cs
+ResourceItemDefinitionSO,stable-id,resource:feather,stable-id-literal,services:combat,content-loading,exact-literal-consumer,Assets/Scripts/Services/Combat/CombatCraftDefinitionCatalog.cs
+ResourceItemDefinitionSO,stable-id,resource:feather,stable-id-literal,services:wildlife,runtime,exact-literal-consumer,Assets/Scripts/Services/Wildlife/WildlifeModels.cs
+ResourceItemDefinitionSO,stable-id,resource:hide,stable-id-literal,models:wildlife,runtime,exact-literal-consumer,Assets/Scripts/Models/Wildlife/Core/WildlifeSpeciesDefinition.cs
+ResourceItemDefinitionSO,stable-id,resource:horn,stable-id-literal,services:wildlife,runtime,exact-literal-consumer,Assets/Scripts/Services/Wildlife/WildlifeModels.cs
+ResourceItemDefinitionSO,stable-id,resource:log,stable-id-literal,services:economy,runtime,exact-literal-consumer,Assets/Scripts/Services/Economy/ProductionWorkshopAbilities.cs
+ResourceItemDefinitionSO,stable-id,resource:mana-crystal,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+ResourceItemDefinitionSO,stable-id,resource:mana-crystal,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,resource:mana-crystal,stable-id-literal,models:survival,runtime,exact-literal-consumer,Assets/Scripts/Models/Survival/Core/SurvivalBuildingAbilities.cs
+ResourceItemDefinitionSO,stable-id,resource:mana-crystal,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/PhysicalAgeTreatmentRuntime.cs
+ResourceItemDefinitionSO,stable-id,resource:mana-crystal,stable-id-literal,services:medical,runtime,exact-literal-consumer,Assets/Scripts/Services/Medical/SurgeryOrderPlanningService.cs
+ResourceItemDefinitionSO,stable-id,resource:mana-crystal,stable-id-literal,services:offense,runtime,exact-literal-consumer,Assets/Scripts/Services/Offense/OffenseJourneyModel.cs
+ResourceItemDefinitionSO,stable-id,resource:mana-crystal,stable-id-literal,views,player-observation,exact-literal-consumer,Assets/Scripts/Views/Buildings/UI/InstanceEquipmentEvolutionSection.cs
+ResourceItemDefinitionSO,stable-id,resource:manure,stable-id-literal,services:economy,runtime,exact-literal-consumer,Assets/Scripts/Services/Economy/Husbandry/AnimalHusbandryRuntime.cs
+ResourceItemDefinitionSO,stable-id,resource:manure,stable-id-literal,services:economy,persistence,exact-literal-consumer,Assets/Scripts/Services/Economy/Husbandry/AnimalHusbandrySaveSection.cs
+ResourceItemDefinitionSO,stable-id,resource:manure,stable-id-literal,services:economy,runtime,exact-literal-consumer,Assets/Scripts/Services/Economy/Planning/ResourceEconomyForecastService.cs
+ResourceItemDefinitionSO,stable-id,resource:meat,stable-id-literal,services:wildlife,runtime,exact-literal-consumer,Assets/Scripts/Services/Wildlife/WildlifeModels.cs
+ResourceItemDefinitionSO,stable-id,resource:milk,stable-id-literal,services:wildlife,runtime,exact-literal-consumer,Assets/Scripts/Services/Wildlife/WildlifeModels.cs
+ResourceItemDefinitionSO,stable-id,resource:rune-dust,stable-id-literal,models:wildlife,runtime,exact-literal-consumer,Assets/Scripts/Models/Wildlife/Core/WildlifeSpeciesDefinition.cs
+ResourceItemDefinitionSO,stable-id,resource:rune-dust,stable-id-literal,services:economy,content-loading,exact-literal-consumer,Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs
+ResourceItemDefinitionSO,stable-id,resource:shade-fiber,stable-id-literal,services:items,runtime,exact-literal-consumer,Assets/Scripts/Services/Items/TextileBatchCompactionService.cs
+ResourceItemDefinitionSO,stable-id,resource:trail-charm,stable-id-literal,models:coresession,runtime,exact-literal-consumer,Assets/Scripts/Models/CoreSession/ExternalInfluenceContracts.cs
+ResourceItemDefinitionSO,stable-id,resource:wool,stable-id-literal,services:items,runtime,exact-literal-consumer,Assets/Scripts/Services/Items/Diagnostics/PreparedOutputCustodyMutationGuardDebugScenarios.cs
+ResourceItemDefinitionSO,stable-id,resource:wool,stable-id-literal,services:items,runtime,exact-literal-consumer,Assets/Scripts/Services/Items/TextileBatchCompactionService.cs
+ResourceItemDefinitionSO,stable-id,resource:wool,stable-id-literal,services:wildlife,runtime,exact-literal-consumer,Assets/Scripts/Services/Wildlife/WildlifeModels.cs
+ResourceItemDefinitionSO,stable-id,supply:alliance-signal-kit,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,supply:alliance-signal-kit,stable-id-literal,services:invasion,runtime,exact-literal-consumer,Assets/Scripts/Services/Invasion/InvasionDefenseKitSupplyRuntime.cs
+ResourceItemDefinitionSO,stable-id,supply:certified-seed-kit,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,supply:certified-seed-kit,stable-id-literal,services:economy,runtime,exact-literal-consumer,Assets/Scripts/Services/Economy/CertifiedSeedSpecialThroughputContributor.cs
+ResourceItemDefinitionSO,stable-id,supply:defense-mixed-ammo-box,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,supply:defense-mixed-ammo-box,stable-id-literal,services:defense,runtime,exact-literal-consumer,Assets/Scripts/Services/Defense/DefenseFacilityInputOwnerContracts.cs
+ResourceItemDefinitionSO,stable-id,supply:funeral-preparation-kit,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,supply:funeral-preparation-kit,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/FuneralFestivalRuntime.cs
+ResourceItemDefinitionSO,stable-id,supply:fungicide,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,supply:fungicide,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/DiseaseFieldResponseRuntime.cs
+ResourceItemDefinitionSO,stable-id,supply:performance-prop-box,stable-id-literal,models:captivity,runtime,exact-literal-consumer,Assets/Scripts/Models/Captivity/Core/CircusModels.cs
+ResourceItemDefinitionSO,stable-id,supply:performance-prop-box,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,supply:pest-lure,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,supply:pest-lure,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/DiseaseFieldResponseRuntime.cs
+ResourceItemDefinitionSO,stable-id,tool:administrative-seal,stable-id-literal,models:items,runtime,exact-literal-consumer,Assets/Scripts/Models/Items/Core/ItemPrimitives.cs
+ResourceItemDefinitionSO,stable-id,tool:banquet-cart,stable-id-literal,models:captivity,runtime,exact-literal-consumer,Assets/Scripts/Models/Captivity/Core/CircusModels.cs
+ResourceItemDefinitionSO,stable-id,tool:banquet-cart,stable-id-literal,models:items,runtime,exact-literal-consumer,Assets/Scripts/Models/Items/Core/ItemPrimitives.cs
+ResourceItemDefinitionSO,stable-id,tool:field-repair-kit,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+ResourceItemDefinitionSO,stable-id,tool:field-repair-kit,stable-id-literal,services:offense,runtime,exact-literal-consumer,Assets/Scripts/Services/Offense/OffenseJourneyModel.cs
+ResourceItemDefinitionSO,stable-id,tool:hauling-harness,stable-id-literal,models:items,runtime,exact-literal-consumer,Assets/Scripts/Models/Items/Core/ItemPrimitives.cs
+ResourceItemDefinitionSO,stable-id,tool:inspection-gauge,stable-id-literal,models:items,runtime,exact-literal-consumer,Assets/Scripts/Models/Items/Core/ItemPrimitives.cs
+ResourceItemDefinitionSO,stable-id,tool:prisoner-work-kit,stable-id-literal,models:captivity,runtime,exact-literal-consumer,Assets/Scripts/Models/Captivity/Core/CaptivityItemDefinitions.cs
+ResourceItemDefinitionSO,stable-id,tool:prisoner-work-kit,stable-id-literal,models:items,runtime,exact-literal-consumer,Assets/Scripts/Models/Items/Core/ItemPrimitives.cs
+ResourceItemDefinitionSO,stable-id,tool:reinforced-restraint,stable-id-literal,models:captivity,runtime,exact-literal-consumer,Assets/Scripts/Models/Captivity/Core/CaptivityItemDefinitions.cs
+ResourceItemDefinitionSO,stable-id,tool:reinforced-restraint,stable-id-literal,models:items,runtime,exact-literal-consumer,Assets/Scripts/Models/Items/Core/ItemPrimitives.cs
+ResourceItemDefinitionSO,stable-id,tool:rune-identification-lens,stable-id-literal,models:items,runtime,exact-literal-consumer,Assets/Scripts/Models/Items/Core/ItemPrimitives.cs
+ResourceItemDefinitionSO,stable-id,tool:sewing-kit,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/Core/PreparedStartPartyGameplayApplier.cs
+ResourceItemDefinitionSO,stable-id,tool:sewing-kit,stable-id-literal,services:economy,content-loading,exact-literal-consumer,Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs
+ResourceItemDefinitionSO,stable-id,tool:watch-signal-horn,stable-id-literal,models:items,runtime,exact-literal-consumer,Assets/Scripts/Models/Items/Core/ItemPrimitives.cs
+ResourceItemDefinitionSO,stable-id,tool:weather-observation-kit,stable-id-literal,models:items,runtime,exact-literal-consumer,Assets/Scripts/Models/Items/Core/ItemPrimitives.cs
+ResourceItemDefinitionSO,stable-id,waste:animal-rot,stable-id-literal,services:items,runtime,exact-literal-consumer,Assets/Scripts/Services/Items/WorldItemStackRuntime.cs
+ResourceItemDefinitionSO,stable-id,waste:animal-rot,stable-id-literal,services:survival,runtime,exact-literal-consumer,Assets/Scripts/Services/Survival/SurvivalFoodSpoilageRuntime.cs
+ResourceItemDefinitionSO,stable-id,waste:forbidden-rot,stable-id-literal,services:items,runtime,exact-literal-consumer,Assets/Scripts/Services/Items/WorldItemStackRuntime.cs
+ResourceItemDefinitionSO,stable-id,waste:forbidden-rot,stable-id-literal,services:survival,runtime,exact-literal-consumer,Assets/Scripts/Services/Survival/SurvivalFoodSpoilageRuntime.cs
+ResourceItemDefinitionSO,stable-id,waste:mixed-rot,stable-id-literal,services:survival,runtime,exact-literal-consumer,Assets/Scripts/Services/Survival/SurvivalFoodSpoilageRuntime.cs
+ResourceItemDefinitionSO,stable-id,waste:plant-rot,stable-id-literal,services:items,runtime,exact-literal-consumer,Assets/Scripts/Services/Items/WorldItemStackRuntime.cs
+ResourceItemDefinitionSO,stable-id,waste:plant-rot,stable-id-literal,services:survival,runtime,exact-literal-consumer,Assets/Scripts/Services/Survival/SurvivalFoodSpoilageRuntime.cs

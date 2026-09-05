@@ -1,0 +1,481 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,m_Name,service-incident_brawl,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,stableId,service-incident:brawl,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,displayName,난투,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,description,술자리의 모욕이 무장 난투로 번졌다.,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,authoringRevision,1,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,kind,0,ServiceIncidentKind,Brawl,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,triggerRequirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,triggerRequirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,triggerRequirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,triggerRequirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,triggerRequirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,triggerRequirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,triggerRequirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,triggerRequirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.0.choiceId,separate,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.0.title,경비가 분리한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.0.outcomeText,경비가 분리한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.0.requirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.0.requirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.0.requirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.0.requirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.0.requirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.0.requirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.0.requirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.0.requirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.0.effects.0.kind,4,V20ContentEffectKind,Health (건강),explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.0.effects.0.targetId,service-incident:brawl,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.0.effects.0.amount,-3,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.0.effects.0.durationDays,0,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.1.choiceId,mediate,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.1.title,당사자를 중재한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.1.outcomeText,당사자를 중재한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.1.requirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.1.requirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.1.requirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.1.requirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.1.requirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.1.requirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.1.requirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.1.requirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.1.effects.0.kind,5,V20ContentEffectKind,Relationship (관계),explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.1.effects.0.targetId,service-incident:brawl,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.1.effects.0.amount,4,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.1.effects.0.durationDays,0,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.2.choiceId,arrest,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.2.title,주동자를 체포한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.2.outcomeText,주동자를 체포한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.2.requirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.2.requirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.2.requirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.2.requirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.2.requirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.2.requirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.2.requirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.2.requirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.2.effects.0.kind,7,V20ContentEffectKind,FactionGrievance (세력 원한),explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.2.effects.0.targetId,affected-faction,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.2.effects.0.amount,4,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,responses.2.effects.0.durationDays,0,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,m_Name,service-incident_contamination,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,stableId,service-incident:contamination,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,displayName,객실 오염,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,description,객실과 음식에서 같은 오염원이 발견됐다.,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,authoringRevision,1,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,kind,2,ServiceIncidentKind,Contamination,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,triggerRequirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,triggerRequirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,triggerRequirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,triggerRequirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,triggerRequirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,triggerRequirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,triggerRequirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,triggerRequirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.0.choiceId,quarantine,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.0.title,구역을 격리한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.0.outcomeText,구역을 격리한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.0.requirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.0.requirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.0.requirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.0.requirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.0.requirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.0.requirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.0.requirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.0.requirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.0.effects.0.kind,13,V20ContentEffectKind,WorkDelayDays (작업 지연),explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.0.effects.0.targetId,service-incident:contamination,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.0.effects.0.amount,2,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.0.effects.0.durationDays,0,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.1.choiceId,treat,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.1.title,노출자를 치료한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.1.outcomeText,노출자를 치료한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.1.requirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.1.requirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.1.requirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.1.requirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.1.requirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.1.requirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.1.requirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.1.requirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.1.effects.0.kind,4,V20ContentEffectKind,Health (건강),explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.1.effects.0.targetId,service-incident:contamination,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.1.effects.0.amount,5,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.1.effects.0.durationDays,0,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.2.choiceId,conceal,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.2.title,오염 사실을 은폐한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.2.outcomeText,오염 사실을 은폐한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.2.requirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.2.requirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.2.requirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.2.requirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.2.requirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.2.requirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.2.requirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.2.requirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.2.effects.0.kind,14,V20ContentEffectKind,Threat (위협),explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.2.effects.0.targetId,service-incident:contamination,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.2.effects.0.amount,6,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,responses.2.effects.0.durationDays,0,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,m_Name,service-incident_culturalinsult,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,stableId,service-incident:culturalinsult,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,displayName,문화적 모욕,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,description,사절이 다른 문화의 장례 관습을 공개적으로 조롱했다.,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,authoringRevision,1,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,kind,3,ServiceIncidentKind,Cultural Insult,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,triggerRequirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,triggerRequirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,triggerRequirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,triggerRequirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,triggerRequirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,triggerRequirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,triggerRequirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,triggerRequirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.0.choiceId,apology,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.0.title,공개 사과를 요구한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.0.outcomeText,공개 사과를 요구한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.0.requirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.0.requirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.0.requirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.0.requirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.0.requirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.0.requirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.0.requirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.0.requirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.0.effects.0.kind,5,V20ContentEffectKind,Relationship (관계),explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.0.effects.0.targetId,service-incident:culturalinsult,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.0.effects.0.amount,5,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.0.effects.0.durationDays,0,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.1.choiceId,ritual,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.1.title,화해 의식을 연다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.1.outcomeText,화해 의식을 연다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.1.requirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.1.requirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.1.requirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.1.requirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.1.requirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.1.requirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.1.requirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.1.requirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.1.effects.0.kind,1,V20ContentEffectKind,Mood (기분),explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.1.effects.0.targetId,service-incident:culturalinsult,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.1.effects.0.amount,4,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.1.effects.0.durationDays,0,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.2.choiceId,expel,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.2.title,모욕한 사절을 추방한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.2.outcomeText,모욕한 사절을 추방한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.2.requirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.2.requirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.2.requirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.2.requirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.2.requirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.2.requirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.2.requirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.2.requirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.2.effects.0.kind,7,V20ContentEffectKind,FactionGrievance (세력 원한),explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.2.effects.0.targetId,affected-faction,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.2.effects.0.amount,8,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,responses.2.effects.0.durationDays,0,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,m_Name,service-incident_envoyconflict,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,stableId,service-incident:envoyconflict,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,displayName,외교 사절 충돌,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,description,적대 세력 사절이 같은 객실 구역에서 마주쳤다.,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,authoringRevision,1,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,kind,6,ServiceIncidentKind,Envoy Conflict,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,triggerRequirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,triggerRequirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,triggerRequirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,triggerRequirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,triggerRequirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,triggerRequirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,triggerRequirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,triggerRequirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.0.choiceId,separate-envoys,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.0.title,동선을 분리한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.0.outcomeText,동선을 분리한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.0.requirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.0.requirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.0.requirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.0.requirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.0.requirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.0.requirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.0.requirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.0.requirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.0.effects.0.kind,13,V20ContentEffectKind,WorkDelayDays (작업 지연),explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.0.effects.0.targetId,service-incident:envoyconflict,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.0.effects.0.amount,1,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.0.effects.0.durationDays,0,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.1.choiceId,joint-talk,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.1.title,공동 회담을 연다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.1.outcomeText,공동 회담을 연다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.1.requirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.1.requirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.1.requirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.1.requirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.1.requirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.1.requirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.1.requirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.1.requirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.1.effects.0.kind,6,V20ContentEffectKind,FactionRapport (세력 우호도),explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.1.effects.0.targetId,affected-faction,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.1.effects.0.amount,5,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.1.effects.0.durationDays,0,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.2.choiceId,choose-side,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.2.title,한쪽을 퇴실시킨다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.2.outcomeText,한쪽을 퇴실시킨다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.2.requirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.2.requirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.2.requirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.2.requirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.2.requirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.2.requirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.2.requirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.2.requirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.2.effects.0.kind,7,V20ContentEffectKind,FactionGrievance (세력 원한),explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.2.effects.0.targetId,affected-faction,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.2.effects.0.amount,8,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,responses.2.effects.0.durationDays,0,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,m_Name,service-incident_forbiddenmeal,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,stableId,service-incident:forbiddenmeal,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,displayName,금기 음식 제공,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,description,조리표 오류로 손님에게 금기 음식이 제공됐다.,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,authoringRevision,1,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,kind,4,ServiceIncidentKind,Forbidden Meal,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,triggerRequirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,triggerRequirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,triggerRequirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,triggerRequirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,triggerRequirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,triggerRequirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,triggerRequirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,triggerRequirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.0.choiceId,replace,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.0.title,즉시 대체식을 제공한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.0.outcomeText,즉시 대체식을 제공한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.0.requirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.0.requirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.0.requirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.0.requirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.0.requirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.0.requirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.0.requirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.0.requirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.0.effects.0.kind,1,V20ContentEffectKind,Mood (기분),explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.0.effects.0.targetId,service-incident:forbiddenmeal,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.0.effects.0.amount,2,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.0.effects.0.durationDays,0,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.1.choiceId,compensate,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.1.title,숙박비를 보상한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.1.outcomeText,숙박비를 보상한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.1.requirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.1.requirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.1.requirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.1.requirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.1.requirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.1.requirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.1.requirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.1.requirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.1.effects.0.kind,9,V20ContentEffectKind,Money (자금),explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.1.effects.0.targetId,service-incident:forbiddenmeal,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.1.effects.0.amount,-60,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.1.effects.0.durationDays,0,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.2.choiceId,deny,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.2.title,금기 표기가 없었다고 항변한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.2.outcomeText,금기 표기가 없었다고 항변한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.2.requirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.2.requirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.2.requirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.2.requirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.2.requirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.2.requirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.2.requirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.2.requirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.2.effects.0.kind,7,V20ContentEffectKind,FactionGrievance (세력 원한),explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.2.effects.0.targetId,affected-faction,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.2.effects.0.amount,5,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,responses.2.effects.0.durationDays,0,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,m_Name,service-incident_medicalcollapse,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,stableId,service-incident:medicalcollapse,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,displayName,의료 응급상황,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,description,식사 중 손님이 급성 증상으로 쓰러졌다.,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,authoringRevision,1,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,kind,5,ServiceIncidentKind,Medical Collapse,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,triggerRequirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,triggerRequirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,triggerRequirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,triggerRequirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,triggerRequirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,triggerRequirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,triggerRequirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,triggerRequirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.0.choiceId,emergency-care,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.0.title,응급 치료한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.0.outcomeText,응급 치료한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.0.requirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.0.requirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.0.requirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.0.requirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.0.requirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.0.requirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.0.requirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.0.requirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.0.effects.0.kind,4,V20ContentEffectKind,Health (건강),explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.0.effects.0.targetId,service-incident:medicalcollapse,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.0.effects.0.amount,8,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.0.effects.0.durationDays,0,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.1.choiceId,transfer,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.1.title,격리 병동으로 옮긴다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.1.outcomeText,격리 병동으로 옮긴다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.1.requirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.1.requirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.1.requirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.1.requirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.1.requirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.1.requirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.1.requirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.1.requirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.1.effects.0.kind,13,V20ContentEffectKind,WorkDelayDays (작업 지연),explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.1.effects.0.targetId,service-incident:medicalcollapse,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.1.effects.0.amount,1,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.1.effects.0.durationDays,0,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.2.choiceId,refuse,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.2.title,외부 환자라 거부한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.2.outcomeText,외부 환자라 거부한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.2.requirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.2.requirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.2.requirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.2.requirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.2.requirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.2.requirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.2.requirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.2.requirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.2.effects.0.kind,7,V20ContentEffectKind,FactionGrievance (세력 원한),explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.2.effects.0.targetId,affected-faction,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.2.effects.0.amount,10,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,responses.2.effects.0.durationDays,0,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,m_Name,service-incident_sabotage,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,stableId,service-incident:sabotage,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,displayName,내부 파괴 공작,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,description,손님 구역에서 생산 시설로 이어진 고의 파손 흔적이 발견됐다.,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,authoringRevision,1,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,kind,7,ServiceIncidentKind,Sabotage,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,triggerRequirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,triggerRequirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,triggerRequirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,triggerRequirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,triggerRequirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,triggerRequirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,triggerRequirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,triggerRequirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.0.choiceId,lockdown,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.0.title,시설을 봉쇄하고 수색한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.0.outcomeText,시설을 봉쇄하고 수색한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.0.requirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.0.requirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.0.requirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.0.requirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.0.requirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.0.requirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.0.requirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.0.requirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.0.effects.0.kind,13,V20ContentEffectKind,WorkDelayDays (작업 지연),explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.0.effects.0.targetId,service-incident:sabotage,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.0.effects.0.amount,2,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.0.effects.0.durationDays,0,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.1.choiceId,bait,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.1.title,가짜 부품으로 공작원을 유인한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.1.outcomeText,가짜 부품으로 공작원을 유인한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.1.requirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.1.requirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.1.requirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.1.requirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.1.requirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.1.requirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.1.requirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.1.requirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.1.effects.0.kind,12,V20ContentEffectKind,WorldFlag (세계 플래그),explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.1.effects.0.targetId,service-incident:sabotage,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.1.effects.0.amount,1,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.1.effects.0.durationDays,0,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.2.choiceId,quiet-repair,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.2.title,조용히 수리하고 감시한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.2.outcomeText,조용히 수리하고 감시한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.2.requirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.2.requirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.2.requirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.2.requirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.2.requirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.2.requirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.2.requirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.2.requirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.2.effects.0.kind,14,V20ContentEffectKind,Threat (위협),explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.2.effects.0.targetId,service-incident:sabotage,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.2.effects.0.amount,3,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,responses.2.effects.0.durationDays,0,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,m_Name,service-incident_theft,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,stableId,service-incident:theft,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,displayName,절도,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,description,손님의 귀중품이 사라지고 직원 한 명이 의심받는다.,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,authoringRevision,1,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,kind,1,ServiceIncidentKind,Theft,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,triggerRequirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,triggerRequirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,triggerRequirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,triggerRequirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,triggerRequirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,triggerRequirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,triggerRequirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,triggerRequirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.0.choiceId,search,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.0.title,공개 수색한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.0.outcomeText,공개 수색한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.0.requirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.0.requirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.0.requirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.0.requirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.0.requirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.0.requirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.0.requirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.0.requirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.0.effects.0.kind,13,V20ContentEffectKind,WorkDelayDays (작업 지연),explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.0.effects.0.targetId,service-incident:theft,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.0.effects.0.amount,1,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.0.effects.0.durationDays,0,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.1.choiceId,compensate,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.1.title,현물로 보상한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.1.outcomeText,현물로 보상한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.1.requirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.1.requirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.1.requirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.1.requirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.1.requirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.1.requirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.1.requirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.1.requirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.1.effects.0.kind,9,V20ContentEffectKind,Money (자금),explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.1.effects.0.targetId,service-incident:theft,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.1.effects.0.amount,-100,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.1.effects.0.durationDays,0,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.2.choiceId,investigate,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.2.title,기록과 동선을 조사한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.2.outcomeText,기록과 동선을 조사한다,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.2.requirements.items,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.2.requirements.facilities,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.2.requirements.research,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.2.requirements.characters,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.2.requirements.factions,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.2.requirements.worldMetrics,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.2.requirements.requiredFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.2.requirements.excludedFlags,[],,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.2.effects.0.kind,12,V20ContentEffectKind,WorldFlag (세계 플래그),explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.2.effects.0.targetId,service-incident:theft,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.2.effects.0.amount,1,,,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,responses.2.effects.0.durationDays,0,,,explicit-serialized

@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "module-weapon-quick-action",
+    "spoiler_tier": "none",
+    "title": "속동 기구"
+  },
+  "edges": [],
+  "schema_version": 1
+}

@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "surgery-organ-kidney-left",
+    "spoiler_tier": "none",
+    "title": "적출 왼쪽 신장"
+  },
+  "edges": [],
+  "schema_version": 1
+}

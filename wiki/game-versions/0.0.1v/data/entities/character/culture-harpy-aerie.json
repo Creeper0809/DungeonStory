@@ -1,0 +1,31 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-harpy-dawn-chorus",
+      "target_spoiler_tier": "none",
+      "target_title": "새벽 합창",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-harpy-first-flight",
+      "target_spoiler_tier": "none",
+      "target_title": "첫 비행의 깃",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "culture-harpy-aerie",
+  "spoiler_tier": "none",
+  "summary": "높은 공간과 바람길을 선호하며 소식과 노래를 공동 자산으로 여긴다.",
+  "title": "높은 둥지 문화"
+}

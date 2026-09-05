@@ -1,0 +1,81 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-blood",
+    "spoiler_tier": "none",
+    "title": "피"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-blood-stimulant",
+      "label": "필요 조건",
+      "to": "item/resource-blood",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-ritual-reagent",
+      "label": "필요 조건",
+      "to": "item/resource-blood",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/source-animal-blood",
+      "label": "생산·해금",
+      "to": "item/resource-blood",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-harpy-feather-regrowth",
+      "label": "관련",
+      "to": "item/resource-blood",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-harpy-tail-graft",
+      "label": "관련",
+      "to": "item/resource-blood",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-live-organ-extraction",
+      "label": "관련",
+      "to": "item/resource-blood",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-myconid-hypha-binding",
+      "label": "관련",
+      "to": "item/resource-blood",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-myconid-regrowth",
+      "label": "관련",
+      "to": "item/resource-blood",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-slime-membrane-suture",
+      "label": "관련",
+      "to": "item/resource-blood",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-slime-pseudopod-reshape",
+      "label": "관련",
+      "to": "item/resource-blood",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

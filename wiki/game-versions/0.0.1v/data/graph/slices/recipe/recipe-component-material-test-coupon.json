@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-component-material-test-coupon",
+    "spoiler_tier": "none",
+    "title": "재료 시험편"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-material-test-coupon",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-steel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "강철",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-material-test-coupon",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-material-test-coupon",
+      "target_spoiler_tier": "none",
+      "target_title": "재료 시험편",
+      "to": "item/component-material-test-coupon",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-material-test-coupon",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-plate-blank",
+      "target_spoiler_tier": "none",
+      "target_title": "판금 소재판",
+      "to": "item/material-plate-blank",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-material-test-coupon",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-material-testing",
+      "target_spoiler_tier": "none",
+      "target_title": "재료 시험학",
+      "to": "research/research-equipment-material-testing",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

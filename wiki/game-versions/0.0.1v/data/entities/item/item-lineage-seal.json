@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "42"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "가계와 상속 기록이 어느 계통에서 이어졌는지 확인하도록 문서에 찍는 계보 인장이다. 오르데나 등기원의 계보 인장은 혈연, 양육과 상속 가운데 법이 인정할 관계를 한 칸으로 고정한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "item-lineage-seal",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 계보 인장.",
+  "title": "계보 인장"
+}

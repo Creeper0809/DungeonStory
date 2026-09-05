@@ -1,0 +1,112 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-cuisine-vegan",
+    "spoiler_tier": "none",
+    "title": "채식 조리"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-cuisine-vegan",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-field",
+      "target_spoiler_tier": "none",
+      "target_title": "외부 경작",
+      "to": "research/research-agriculture-field",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-vegan",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-field",
+      "target_spoiler_tier": "none",
+      "target_title": "외부 경작",
+      "to": "research/research-agriculture-field",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-vegan",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-field",
+      "target_spoiler_tier": "none",
+      "target_title": "외부 경작",
+      "to": "research/research-agriculture-field",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-vegan",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-milling",
+      "target_spoiler_tier": "none",
+      "target_title": "제분·제빵",
+      "to": "research/research-cuisine-milling",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-vegan",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-milling",
+      "target_spoiler_tier": "none",
+      "target_title": "제분·제빵",
+      "to": "research/research-cuisine-milling",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-vegan",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-milling",
+      "target_spoiler_tier": "none",
+      "target_title": "제분·제빵",
+      "to": "research/research-cuisine-milling",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-garden-meal",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-vegan",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-preserved-vegetable",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-vegan",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-livestock",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-vegan",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-livestock",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-vegan",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-livestock",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-vegan",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

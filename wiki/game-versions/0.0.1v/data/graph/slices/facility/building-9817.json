@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-9817",
+    "spoiler_tier": "none",
+    "title": "상수 탱크"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-plumbing-basics",
+      "label": "시설 해금",
+      "to": "facility/building-9817",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

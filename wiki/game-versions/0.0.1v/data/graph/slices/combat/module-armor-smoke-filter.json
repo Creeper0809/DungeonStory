@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "module-armor-smoke-filter",
+    "spoiler_tier": "none",
+    "title": "연기 여과기"
+  },
+  "edges": [],
+  "schema_version": 1
+}

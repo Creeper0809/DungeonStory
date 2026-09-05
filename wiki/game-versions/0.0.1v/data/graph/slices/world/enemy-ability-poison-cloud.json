@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "enemy-ability-poison-cloud",
+    "spoiler_tier": "none",
+    "title": "독성 구름"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/enemy-merchant-alchemist",
+      "label": "관련",
+      "to": "world/enemy-ability-poison-cloud",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-rival-spore-shepherd",
+      "label": "관련",
+      "to": "world/enemy-ability-poison-cloud",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-settler-herbalist",
+      "label": "관련",
+      "to": "world/enemy-ability-poison-cloud",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

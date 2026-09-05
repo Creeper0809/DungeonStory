@@ -1,0 +1,22 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [
+    {
+      "amount": "10",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-night-grape",
+      "target_spoiler_tier": "none",
+      "target_title": "밤포도",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "festival-open-sky-chorus",
+  "spoiler_tier": "none",
+  "summary": "하피가 높은 통로를 비우고 계절 바람의 변화를 합창으로 기록한다.",
+  "title": "열린 하늘 합창"
+}

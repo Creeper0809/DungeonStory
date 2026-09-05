@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "9개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "39"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "서로 다른 세력의 표식을 함께 올려 지원 요청과 집결 지점을 알리는 신호 도구다. 하르나크의 여섯 도시는 동맹 신호 키트의 표식 순서를 맞춰 서로 다른 경비대도 같은 구조 신호를 알아보게 한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "supply-alliance-signal-kit",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 동맹 신호 키트.",
+  "title": "동맹 신호 키트"
+}

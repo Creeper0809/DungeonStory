@@ -1,0 +1,128 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-medical-trauma-medicine",
+    "spoiler_tier": "none",
+    "title": "트라우마 의학"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-medical-trauma-medicine",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-reception",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 접수",
+      "to": "research/research-medical-reception",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-trauma-medicine",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-reception",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 접수",
+      "to": "research/research-medical-reception",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-trauma-medicine",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-reception",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 접수",
+      "to": "research/research-medical-reception",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-trauma-medicine",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 약리",
+      "to": "research/research-pharmacology-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-trauma-medicine",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 약리",
+      "to": "research/research-pharmacology-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-trauma-medicine",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 약리",
+      "to": "research/research-pharmacology-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-trauma-medicine",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-household-records",
+      "target_spoiler_tier": "none",
+      "target_title": "가구 기록과 영아 돌봄",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-trauma-medicine",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-household-records",
+      "target_spoiler_tier": "none",
+      "target_title": "가구 기록과 영아 돌봄",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-trauma-medicine",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-household-records",
+      "target_spoiler_tier": "none",
+      "target_title": "가구 기록과 영아 돌봄",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-trauma-medicine",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8885",
+      "target_spoiler_tier": "none",
+      "target_title": "상담실",
+      "to": "facility/building-8885",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-medical-trauma-care-kit",
+      "label": "필요 조건",
+      "to": "research/research-medical-trauma-medicine",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

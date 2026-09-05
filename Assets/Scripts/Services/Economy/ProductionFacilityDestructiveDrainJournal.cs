@@ -5,7 +5,8 @@ using System.Linq;
 public sealed class ProductionFacilityDestructiveDrainJournal :
     IProductionFacilityDestructiveDrainJournalQuery,
     IProductionFacilityDestructiveDrainJournalCommand,
-    IProductionFacilityDestructiveDrainPersistence
+    IProductionFacilityDestructiveDrainPersistence,
+    IProductionFacilityDestructiveDrainCheckpointGcJournal
 {
     public static readonly string EmptyRegistryFingerprint =
         ProductionFacilityDestructiveDrainCanonical.ComputeFingerprint(
@@ -15,6 +16,7 @@ public sealed class ProductionFacilityDestructiveDrainJournal :
     private readonly string registryFingerprint;
     private readonly IProductionFacilityDestructiveDrainParticipantRegistry
         registry;
+    private CheckpointGcCandidate activeCheckpointGcCandidate;
 
     public ProductionFacilityDestructiveDrainJournal(
         DungeonRuntimeAggregateRootStore roots)
@@ -56,6 +58,10 @@ public sealed class ProductionFacilityDestructiveDrainJournal :
     }
 
     public int Version => State.Version;
+    public long LastConfirmedCheckpointSequence =>
+        State.LastConfirmedCheckpointSequence;
+    public string LastConfirmedSerializedByteDigest =>
+        State.LastConfirmedSerializedByteDigest;
 
     public IReadOnlyList<ProductionFacilityDestructiveDrainEntrySaveData>
         CaptureOpen() => State.Entries.Values
@@ -263,11 +269,175 @@ public sealed class ProductionFacilityDestructiveDrainJournal :
         return true;
     }
 
+    public ProductionFacilityDestructiveDrainCheckpointGcResult
+        PrepareCheckpointGarbageCollection(
+            ProductionFacilityDestructiveDrainCheckpointGcContext context,
+            IReadOnlyList<string> operationIds,
+            out IProductionFacilityDestructiveDrainCheckpointGcJournalCandidate
+                candidate)
+    {
+        candidate = null;
+        ProductionFacilityDestructiveDrainAggregateState current = State;
+        if (activeCheckpointGcCandidate != null)
+        {
+            return CheckpointGcResult(
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Deferred,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .LiveAuthorityChanged,
+                context,
+                "A destructive-drain checkpoint candidate is already active.");
+        }
+        if (context.CheckpointSequence == current.LastConfirmedCheckpointSequence
+            && string.Equals(
+                context.SerializedByteDigest,
+                current.LastConfirmedSerializedByteDigest,
+                StringComparison.Ordinal))
+        {
+            return CheckpointGcResult(
+                ProductionFacilityDestructiveDrainCheckpointGcStatus
+                    .AlreadyApplied,
+                ProductionFacilityDestructiveDrainCheckpointGcReason.None,
+                context,
+                "The destructive-drain durable callback was already applied.");
+        }
+        if (context.CheckpointSequence
+                != checked(current.LastConfirmedCheckpointSequence + 1L)
+            || context.CheckpointSequence
+                <= current.LastConfirmedCheckpointSequence)
+        {
+            return CheckpointGcResult(
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Corruption,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .StaleCheckpoint,
+                context,
+                "The destructive-drain checkpoint sequence is stale or noncontiguous.");
+        }
+
+        string[] selected = (operationIds ?? Array.Empty<string>()).ToArray();
+        string previous = null;
+        foreach (string operation in selected)
+        {
+            if (!ProductionFacilityDestructiveDrainOperationId.TryParse(
+                    operation,
+                    out _)
+                || previous != null
+                && string.CompareOrdinal(previous, operation) >= 0
+                || !current.Entries.TryGetValue(operation, out var entry)
+                || entry.phase != ProductionFacilityDestructiveDrainPhase
+                    .WorldRemovedAwaitingCheckpointGc)
+            {
+                return CheckpointGcResult(
+                    ProductionFacilityDestructiveDrainCheckpointGcStatus
+                        .Corruption,
+                    ProductionFacilityDestructiveDrainCheckpointGcReason
+                        .LiveAuthorityChanged,
+                    context,
+                    "The destructive-drain journal GC selection is invalid or stale.");
+            }
+            previous = operation;
+        }
+
+        activeCheckpointGcCandidate = new CheckpointGcCandidate(
+            context,
+            current.Clone(),
+            current.Version,
+            Array.AsReadOnly(selected));
+        candidate = activeCheckpointGcCandidate;
+        return CheckpointGcResult(
+            ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied,
+            selected.Length == 0
+                ? ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .NoEligibleOperation
+                : ProductionFacilityDestructiveDrainCheckpointGcReason.None,
+            context,
+            selected.Length == 0
+                ? "No destructive-drain journal row is currently eligible."
+                : "Destructive-drain journal checkpoint candidate prepared.",
+            selected.Length);
+    }
+
+    public ProductionFacilityDestructiveDrainCheckpointGcResult
+        PublishCheckpointGarbageCollection(
+            IProductionFacilityDestructiveDrainCheckpointGcJournalCandidate
+                candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        ProductionFacilityDestructiveDrainAggregateState current = State;
+        if (current.Version != exact.ExpectedVersion
+            || current.LastConfirmedCheckpointSequence
+                != exact.Before.LastConfirmedCheckpointSequence
+            || !string.Equals(
+                current.LastConfirmedSerializedByteDigest,
+                exact.Before.LastConfirmedSerializedByteDigest,
+                StringComparison.Ordinal))
+        {
+            return CheckpointGcResult(
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Deferred,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .LiveAuthorityChanged,
+                exact.Context,
+                "The destructive-drain journal changed after GC preparation.");
+        }
+        foreach (string operation in exact.OperationIds)
+        {
+            if (!current.Entries.TryGetValue(operation, out var row)
+                || row.phase != ProductionFacilityDestructiveDrainPhase
+                    .WorldRemovedAwaitingCheckpointGc)
+            {
+                return CheckpointGcResult(
+                    ProductionFacilityDestructiveDrainCheckpointGcStatus
+                        .Deferred,
+                    ProductionFacilityDestructiveDrainCheckpointGcReason
+                        .LiveAuthorityChanged,
+                    exact.Context,
+                    "A destructive-drain journal row changed before publication.");
+            }
+        }
+
+        ProductionFacilityDestructiveDrainAggregateState replacement =
+            current.Clone();
+        foreach (string operation in exact.OperationIds)
+            replacement.Entries.Remove(operation);
+        replacement.ConfirmCheckpoint(
+            exact.Context.CheckpointSequence,
+            exact.Context.SerializedByteDigest);
+        replacement.AdvanceVersion();
+        roots.Replace(replacement);
+        exact.Published = true;
+        return CheckpointGcResult(
+            ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied,
+            ProductionFacilityDestructiveDrainCheckpointGcReason.None,
+            exact.Context,
+            "Destructive-drain journal rows were checkpoint-collected last.",
+            exact.OperationIds.Count);
+    }
+
+    public void RollbackCheckpointGarbageCollection(
+        IProductionFacilityDestructiveDrainCheckpointGcJournalCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        if (!exact.Published)
+            return;
+        roots.Replace(exact.Before.Clone());
+        exact.Published = false;
+    }
+
+    public void CompleteCheckpointGarbageCollection(
+        IProductionFacilityDestructiveDrainCheckpointGcJournalCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        activeCheckpointGcCandidate = null;
+    }
+
     public DungeonProductionFacilityDestructiveDrainSaveData Capture() => new()
     {
         version = DungeonProductionFacilityDestructiveDrainSaveData
             .CurrentVersion,
         registryFingerprint = registryFingerprint,
+        lastConfirmedCheckpointSequence =
+            State.LastConfirmedCheckpointSequence,
+        lastConfirmedSerializedByteDigest =
+            State.LastConfirmedSerializedByteDigest,
         entries = CaptureOpen().Select(value => value.Clone()).ToList()
     };
 
@@ -286,7 +456,9 @@ public sealed class ProductionFacilityDestructiveDrainJournal :
             throw new ArgumentNullException(nameof(candidate));
         ValidatePayload(candidate.Payload);
         roots.Replace(new ProductionFacilityDestructiveDrainAggregateState(
-            candidate.Payload.entries));
+            candidate.Payload.entries,
+            candidate.Payload.lastConfirmedCheckpointSequence,
+            candidate.Payload.lastConfirmedSerializedByteDigest));
     }
 
     private void ValidatePayload(
@@ -299,6 +471,13 @@ public sealed class ProductionFacilityDestructiveDrainJournal :
                 payload.registryFingerprint,
                 registryFingerprint,
                 StringComparison.Ordinal)
+            || payload.lastConfirmedCheckpointSequence < 0L
+            || (payload.lastConfirmedCheckpointSequence == 0L
+                    ? !string.IsNullOrEmpty(
+                        payload.lastConfirmedSerializedByteDigest)
+                    : !ProductionFacilityDestructiveDrainCanonical
+                        .IsFingerprint(
+                            payload.lastConfirmedSerializedByteDigest))
             || payload.entries == null)
         {
             throw new InvalidOperationException(
@@ -622,8 +801,64 @@ public sealed class ProductionFacilityDestructiveDrainJournal :
     {
         version = payload.version,
         registryFingerprint = payload.registryFingerprint,
+        lastConfirmedCheckpointSequence =
+            payload.lastConfirmedCheckpointSequence,
+        lastConfirmedSerializedByteDigest =
+            payload.lastConfirmedSerializedByteDigest,
         entries = payload.entries.Select(value => value?.Clone()).ToList()
     };
+
+    private static ProductionFacilityDestructiveDrainCheckpointGcResult
+        CheckpointGcResult(
+            ProductionFacilityDestructiveDrainCheckpointGcStatus status,
+            ProductionFacilityDestructiveDrainCheckpointGcReason reason,
+            ProductionFacilityDestructiveDrainCheckpointGcContext context,
+            string message,
+            int collectedOperationCount = 0) => new(
+            status,
+            reason,
+            context.CheckpointSequence,
+            message,
+            collectedOperationCount);
+
+    private CheckpointGcCandidate RequireCheckpointGcCandidate(
+        IProductionFacilityDestructiveDrainCheckpointGcJournalCandidate
+            candidate)
+    {
+        if (candidate is not CheckpointGcCandidate exact
+            || !ReferenceEquals(activeCheckpointGcCandidate, exact))
+        {
+            throw new InvalidOperationException(
+                "Destructive-drain journal checkpoint candidate is not active.");
+        }
+        return exact;
+    }
+
+    private sealed class CheckpointGcCandidate :
+        IProductionFacilityDestructiveDrainCheckpointGcJournalCandidate
+    {
+        internal CheckpointGcCandidate(
+            ProductionFacilityDestructiveDrainCheckpointGcContext context,
+            ProductionFacilityDestructiveDrainAggregateState before,
+            int expectedVersion,
+            IReadOnlyList<string> operationIds)
+        {
+            Context = context;
+            Before = before;
+            ExpectedVersion = expectedVersion;
+            OperationIds = operationIds;
+        }
+
+        public long CheckpointSequence => Context.CheckpointSequence;
+        public string SerializedByteDigest => Context.SerializedByteDigest;
+        public IReadOnlyList<string> OperationIds { get; }
+        internal ProductionFacilityDestructiveDrainCheckpointGcContext Context
+            { get; }
+        internal ProductionFacilityDestructiveDrainAggregateState Before
+            { get; }
+        internal int ExpectedVersion { get; }
+        internal bool Published { get; set; }
+    }
 
     private ProductionFacilityDestructiveDrainAggregateState State =>
         roots.GetOrCreate(() =>
@@ -643,7 +878,9 @@ internal sealed class ProductionFacilityDestructiveDrainAggregateState
     }
 
     internal ProductionFacilityDestructiveDrainAggregateState(
-        IEnumerable<ProductionFacilityDestructiveDrainEntrySaveData> entries)
+        IEnumerable<ProductionFacilityDestructiveDrainEntrySaveData> entries,
+        long lastConfirmedCheckpointSequence = 0L,
+        string lastConfirmedSerializedByteDigest = "")
     {
         foreach (ProductionFacilityDestructiveDrainEntrySaveData entry in
                  entries
@@ -652,19 +889,33 @@ internal sealed class ProductionFacilityDestructiveDrainAggregateState
         {
             Entries.Add(entry.operationId, entry.Clone());
         }
+        LastConfirmedCheckpointSequence = lastConfirmedCheckpointSequence;
+        LastConfirmedSerializedByteDigest =
+            lastConfirmedSerializedByteDigest ?? string.Empty;
     }
 
     internal Dictionary<string,
         ProductionFacilityDestructiveDrainEntrySaveData> Entries { get; } =
         new(StringComparer.Ordinal);
     internal int Version { get; private set; }
+    internal long LastConfirmedCheckpointSequence { get; private set; }
+    internal string LastConfirmedSerializedByteDigest { get; private set; } =
+        string.Empty;
 
     internal void AdvanceVersion() => Version = checked(Version + 1);
+
+    internal void ConfirmCheckpoint(long sequence, string digest)
+    {
+        LastConfirmedCheckpointSequence = sequence;
+        LastConfirmedSerializedByteDigest = digest;
+    }
 
     internal ProductionFacilityDestructiveDrainAggregateState Clone()
     {
         ProductionFacilityDestructiveDrainAggregateState clone = new(
-            Entries.Values);
+            Entries.Values,
+            LastConfirmedCheckpointSequence,
+            LastConfirmedSerializedByteDigest);
         clone.Version = Version;
         return clone;
     }

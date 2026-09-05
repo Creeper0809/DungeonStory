@@ -1,0 +1,102 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-control-blood-show",
+    "spoiler_tier": "none",
+    "title": "피의 흥행"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-control-blood-show",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-control-show",
+      "target_spoiler_tier": "none",
+      "target_title": "흥행 운영",
+      "to": "research/research-control-show",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-control-blood-show",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-control-show",
+      "target_spoiler_tier": "none",
+      "target_title": "흥행 운영",
+      "to": "research/research-control-show",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-control-blood-show",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-control-show",
+      "target_spoiler_tier": "none",
+      "target_title": "흥행 운영",
+      "to": "research/research-control-show",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-control-blood-show",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-watch",
+      "target_spoiler_tier": "none",
+      "target_title": "경계 근무",
+      "to": "research/research-defense-watch",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-control-blood-show",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-watch",
+      "target_spoiler_tier": "none",
+      "target_title": "경계 근무",
+      "to": "research/research-defense-watch",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-control-blood-show",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-watch",
+      "target_spoiler_tier": "none",
+      "target_title": "경계 근무",
+      "to": "research/research-defense-watch",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-control-blood-show",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8808",
+      "target_spoiler_tier": "none",
+      "target_title": "피의 무대 배수구",
+      "to": "facility/building-8808",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-ritual-reagent",
+      "label": "필요 조건",
+      "to": "research/research-control-blood-show",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/source-spoilage-forbidden",
+      "label": "필요 조건",
+      "to": "research/research-control-blood-show",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.12kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "2"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "천, 붕대, 활시위와 깔짚의 원료이다. 노르칸드라 산기슭의 직조가는 그늘섬유를 여러 체형의 옷으로 고쳐 쓰도록 폭과 늘어나는 방향을 가장자리에 표시한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "resource-shade-fiber",
+  "spoiler_tier": "none",
+  "summary": "천, 붕대, 활시위와 깔짚의 원료.",
+  "title": "그늘섬유"
+}

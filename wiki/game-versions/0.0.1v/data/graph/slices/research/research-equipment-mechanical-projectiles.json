@@ -1,0 +1,116 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-equipment-mechanical-projectiles",
+    "spoiler_tier": "none",
+    "title": "기계식 투사"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-equipment-mechanical-projectiles",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-bowyery",
+      "target_spoiler_tier": "none",
+      "target_title": "궁시 제작학",
+      "to": "research/research-equipment-bowyery",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-mechanical-projectiles",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-bowyery",
+      "target_spoiler_tier": "none",
+      "target_title": "궁시 제작학",
+      "to": "research/research-equipment-bowyery",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-mechanical-projectiles",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-bowyery",
+      "target_spoiler_tier": "none",
+      "target_title": "궁시 제작학",
+      "to": "research/research-equipment-bowyery",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-mechanical-projectiles",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-mechanical-projectiles",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-mechanical-projectiles",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-mechanical-projectiles",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8837",
+      "target_spoiler_tier": "none",
+      "target_title": "권양 작업대",
+      "to": "facility/building-8837",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-crossbow",
+      "label": "필요 조건",
+      "to": "research/research-equipment-mechanical-projectiles",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-repeating-crossbow",
+      "label": "필요 조건",
+      "to": "research/research-equipment-mechanical-projectiles",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-windlass-crossbow",
+      "label": "필요 조건",
+      "to": "research/research-equipment-mechanical-projectiles",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-siege-counterweight",
+      "label": "필요 조건",
+      "to": "research/research-equipment-mechanical-projectiles",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

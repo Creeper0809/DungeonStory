@@ -1,0 +1,9 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+AnatomyConditionLexiconSO,content-type,,type-reference,services:medical,content-loading,structural-type-consumer,Assets/Scripts/Services/Medical/AnatomyConditionLexiconCatalog.cs
+AnatomyConditionLexiconSO,stable-id,condition:biological,stable-id-literal,services:medical,content-loading,exact-literal-consumer,Assets/Scripts/Services/Medical/AnatomyConditionLexiconCatalog.cs
+AnatomyConditionLexiconSO,stable-id,condition:demon,stable-id-literal,services:medical,content-loading,exact-literal-consumer,Assets/Scripts/Services/Medical/AnatomyConditionLexiconCatalog.cs
+AnatomyConditionLexiconSO,stable-id,condition:golem,stable-id-literal,services:medical,content-loading,exact-literal-consumer,Assets/Scripts/Services/Medical/AnatomyConditionLexiconCatalog.cs
+AnatomyConditionLexiconSO,stable-id,condition:harpy,stable-id-literal,services:medical,content-loading,exact-literal-consumer,Assets/Scripts/Services/Medical/AnatomyConditionLexiconCatalog.cs
+AnatomyConditionLexiconSO,stable-id,condition:myconid,stable-id-literal,services:medical,content-loading,exact-literal-consumer,Assets/Scripts/Services/Medical/AnatomyConditionLexiconCatalog.cs
+AnatomyConditionLexiconSO,stable-id,condition:slime,stable-id-literal,services:medical,content-loading,exact-literal-consumer,Assets/Scripts/Services/Medical/AnatomyConditionLexiconCatalog.cs
+AnatomyConditionLexiconSO,stable-id,condition:vampire,stable-id-literal,services:medical,content-loading,exact-literal-consumer,Assets/Scripts/Services/Medical/AnatomyConditionLexiconCatalog.cs

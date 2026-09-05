@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.55kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "476"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "룬 동면 촉매는 일반 붕대가 맞지 않는 특수 신체 구조를 안정시키는 처치 도구다. 베르사디온의 룬 동면 촉매에는 환자, 집도의와 마나 제공자가 누른 세 봉인이 모두 있어야 빛이 돈다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "medical-rune-hibernation-catalyst",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 룬 동면 촉매.",
+  "title": "룬 동면 촉매"
+}

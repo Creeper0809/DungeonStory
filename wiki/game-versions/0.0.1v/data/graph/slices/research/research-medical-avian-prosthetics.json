@@ -1,0 +1,105 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-medical-avian-prosthetics",
+    "spoiler_tier": "none",
+    "title": "조류 보철학"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-medical-avian-prosthetics",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-prosthetics",
+      "target_spoiler_tier": "none",
+      "target_title": "보철 공학",
+      "to": "research/research-medical-prosthetics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-avian-prosthetics",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-prosthetics",
+      "target_spoiler_tier": "none",
+      "target_title": "보철 공학",
+      "to": "research/research-medical-prosthetics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-avian-prosthetics",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-prosthetics",
+      "target_spoiler_tier": "none",
+      "target_title": "보철 공학",
+      "to": "research/research-medical-prosthetics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-avian-prosthetics",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "to": "research/research-textile-layered",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-avian-prosthetics",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "to": "research/research-textile-layered",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-avian-prosthetics",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "to": "research/research-textile-layered",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-harpy-air-sac-suture",
+      "label": "필요 조건",
+      "to": "research/research-medical-avian-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-harpy-feather-regrowth",
+      "label": "필요 조건",
+      "to": "research/research-medical-avian-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-harpy-tail-graft",
+      "label": "필요 조건",
+      "to": "research/research-medical-avian-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-harpy-wing-fixation",
+      "label": "필요 조건",
+      "to": "research/research-medical-avian-prosthetics",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

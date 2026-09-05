@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "apparel-smoke-protection-hood",
+    "spoiler_tier": "none",
+    "title": "연기 방호 두건"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-smoke-protection-hood",
+      "label": "생산·해금",
+      "to": "item/apparel-smoke-protection-hood",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

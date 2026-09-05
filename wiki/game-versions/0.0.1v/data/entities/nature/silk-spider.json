@@ -1,0 +1,58 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "nature",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-dream-mold",
+      "target_spoiler_tier": "none",
+      "target_title": "꿈곰팡이증",
+      "type": "references"
+    },
+    {
+      "amount": "2",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "fiber-cave-silk",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴 비단 원섬유",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-hound",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴사냥개",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-rat",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴쥐",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "glow-moth",
+      "target_spoiler_tier": "none",
+      "target_title": "발광나방",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "silk-spider",
+  "spoiler_tier": "none",
+  "summary": "발광나방을 잡고 채집 가능한 질긴 거미줄을 만든다.",
+  "title": "동굴명주거미"
+}

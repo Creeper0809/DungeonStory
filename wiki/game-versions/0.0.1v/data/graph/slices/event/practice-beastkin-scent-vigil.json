@@ -1,0 +1,54 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "practice-beastkin-scent-vigil",
+    "spoiler_tier": "none",
+    "title": "향취 철야"
+  },
+  "edges": [
+    {
+      "amount": "-2",
+      "from": "event/practice-beastkin-scent-vigil",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "practice-beastkin-scent-vigil",
+      "target_spoiler_tier": "none",
+      "target_title": "향취 철야",
+      "to": "event/practice-beastkin-scent-vigil",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "-4",
+      "from": "event/practice-beastkin-scent-vigil",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "practice-beastkin-scent-vigil",
+      "target_spoiler_tier": "none",
+      "target_title": "향취 철야",
+      "to": "event/practice-beastkin-scent-vigil",
+      "type": "changes-trauma"
+    },
+    {
+      "amount": "-2",
+      "from": "event/practice-beastkin-scent-vigil",
+      "label": "연결",
+      "to": "event/practice-beastkin-scent-vigil",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "-4",
+      "from": "event/practice-beastkin-scent-vigil",
+      "label": "연결",
+      "to": "event/practice-beastkin-scent-vigil",
+      "type": "changes-trauma"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-beastkin-pack",
+      "label": "관련",
+      "to": "event/practice-beastkin-scent-vigil",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

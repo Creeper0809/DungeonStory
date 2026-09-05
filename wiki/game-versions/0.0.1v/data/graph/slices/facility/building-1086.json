@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1086",
+    "spoiler_tier": "none",
+    "title": "증류기"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-distillation",
+      "label": "시설 해금",
+      "to": "facility/building-1086",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "proficiency-fieldwork",
+    "spoiler_tier": "none",
+    "title": "현장 작업"
+  },
+  "edges": [],
+  "schema_version": 1
+}

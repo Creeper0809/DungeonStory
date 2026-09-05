@@ -311,13 +311,15 @@ public sealed class DungeonDebugWorkCommandProvider : IDungeonDebugCommandProvid
     private readonly BlueprintResearchRuntime research;
     private readonly IFacilityShopCatalog facilityCatalog;
     private readonly IFacilityShopUnlockStateService shopUnlockStateService;
+    private readonly IBuildingDestructiveLossRuntime destructiveLoss;
 
     public DungeonDebugWorkCommandProvider(
         IWorkOrderRuntime workOrderRuntime,
         IWorldItemStackRuntime itemRuntime,
         ProgressionSceneRuntimeReferences progressionRuntimes,
         IFacilityShopCatalog facilityCatalog,
-        IFacilityShopUnlockStateService shopUnlockStateService)
+        IFacilityShopUnlockStateService shopUnlockStateService,
+        IBuildingDestructiveLossRuntime destructiveLoss)
     {
         this.workOrderRuntime = workOrderRuntime ?? throw new ArgumentNullException(nameof(workOrderRuntime));
         this.itemRuntime = itemRuntime ?? throw new ArgumentNullException(nameof(itemRuntime));
@@ -329,6 +331,8 @@ public sealed class DungeonDebugWorkCommandProvider : IDungeonDebugCommandProvid
         this.facilityCatalog = facilityCatalog ?? throw new ArgumentNullException(nameof(facilityCatalog));
         this.shopUnlockStateService = shopUnlockStateService
             ?? throw new ArgumentNullException(nameof(shopUnlockStateService));
+        this.destructiveLoss = destructiveLoss
+            ?? throw new ArgumentNullException(nameof(destructiveLoss));
     }
 
     public IEnumerable<IDungeonDebugCommand> GetCommands()
@@ -343,12 +347,30 @@ public sealed class DungeonDebugWorkCommandProvider : IDungeonDebugCommandProvid
             building.SetDamaged(true);
             return $"{building.BuildingData?.objectName ?? building.name} 파손";
         }, dangerous: true);
-        yield return BuildingCommand("building:destroy", "시설 철거", building =>
-        {
-            string label = building.BuildingData?.objectName ?? building.name;
-            building.DestroySelf();
-            return $"{label} 철거";
-        }, dangerous: true);
+        yield return new DelegateDungeonDebugCommand(
+            "building:destroy",
+            "시설 철거",
+            "정확히 클릭한 시설을 공통 물리 배수 경로로 철거합니다.",
+            DungeonDebugCategory.BuildingWork,
+            DungeonDebugTargetKind.Building,
+            context =>
+            {
+                BuildableObject building = context.Target.Building;
+                string label = building.BuildingData?.objectName ?? building.name;
+                BuildingDestructiveLossResult result = destructiveLoss.Apply(
+                    building,
+                    ProductionFacilityDestructiveDrainCause.ExplicitDemolition);
+                if (!result.Accepted)
+                {
+                    return DungeonDebugCommandResult.Failed(
+                        "시설 철거 거부: " + result.FailureReason);
+                }
+                return DungeonDebugCommandResult.Succeeded(
+                    result.Removed
+                        ? $"{label} 철거"
+                        : $"{label} 철거 배수 처리 시작");
+            },
+            isDangerous: true);
         yield return new DelegateDungeonDebugCommand(
             "work:complete-selected",
             "선택 작업 완료",

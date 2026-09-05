@@ -1,0 +1,40 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "faction-chapter-beastkin-4",
+    "spoiler_tier": "warning",
+    "title": "누구의 무리인가"
+  },
+  "edges": [
+    {
+      "amount": "4",
+      "from": "event/faction-chapter-beastkin-4",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "food-salted-meat-stew",
+      "target_spoiler_tier": "none",
+      "target_title": "염장육 스튜",
+      "to": "item/food-salted-meat-stew",
+      "type": "requires"
+    },
+    {
+      "amount": "7",
+      "from": "event/faction-chapter-beastkin-4",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "food-salted-meat-stew",
+      "target_spoiler_tier": "none",
+      "target_title": "염장육 스튜",
+      "to": "item/food-salted-meat-stew",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-beastkin",
+      "label": "관련",
+      "to": "event/faction-chapter-beastkin-4",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

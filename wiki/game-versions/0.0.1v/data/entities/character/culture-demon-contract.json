@@ -1,0 +1,31 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-demon-oath-embers",
+      "target_spoiler_tier": "none",
+      "target_title": "맹세의 잿불",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-demon-third-bell",
+      "target_spoiler_tier": "none",
+      "target_title": "세 번째 종",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "culture-demon-contract",
+  "spoiler_tier": "none",
+  "summary": "말보다 기록된 약속을 중시하고 결연과 장례에 계약 소각을 쓴다.",
+  "title": "재의 계약 문화"
+}

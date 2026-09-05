@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-component-paper-paste",
+    "spoiler_tier": "none",
+    "title": "종이 풀칠"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-paper-paste",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-starch",
+      "target_spoiler_tier": "none",
+      "target_title": "전분",
+      "to": "item/material-starch",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-paper-paste",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-paper-paste",
+      "target_spoiler_tier": "none",
+      "target_title": "종이 풀칠",
+      "to": "item/component-paper-paste",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-component-paper-paste",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-clean-water",
+      "target_spoiler_tier": "none",
+      "target_title": "깨끗한 물",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-paper-paste",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-milling",
+      "target_spoiler_tier": "none",
+      "target_title": "제분·제빵",
+      "to": "research/research-cuisine-milling",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

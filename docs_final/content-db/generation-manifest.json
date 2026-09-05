@@ -1,0 +1,163 @@
+{
+  "artifact_kind": "dungeonstory-content-database",
+  "generator": "tools/Documentation/generate_content_database.py",
+  "output_digest": "68936bd267fff1de3f0fb0d9ac6c419cf826900075b867652a064451b1ae087a",
+  "output_file_count": 479,
+  "output_files_manifest_sha256": "2b9c8b58859af7dd9e901c4ce6bc9385e4d279f9c933f7e5ac099b3be1ec933b",
+  "output_root": "docs_final/content-db",
+  "schema_version": 1,
+  "source_digest": "57030c02bd4e96dfc3f70f37a6b7401f48775c0243b81f2df7de661418feb64d",
+  "source_file_count": 16561,
+  "source_files_manifest_sha256": "a2675e2b69e5083b029ebc0f708674430e70093543e4ca570cd396cb6d457760",
+  "source_specs": [
+    {
+      "name": "unity-authored-assets",
+      "patterns": [
+        "**/*.asset"
+      ],
+      "root": "Assets"
+    },
+    {
+      "name": "unity-guid-metadata",
+      "patterns": [
+        "**/*.meta"
+      ],
+      "root": "Assets"
+    },
+    {
+      "name": "csharp-authority",
+      "patterns": [
+        "**/*.cs"
+      ],
+      "root": "Assets/Scripts"
+    },
+    {
+      "name": "content-db-generator",
+      "patterns": [
+        "generate_content_database.py",
+        "knowledge_manifest.py"
+      ],
+      "root": "Tools/Documentation"
+    }
+  ],
+  "statistics": {
+    "code_consumer_csv_count": 73,
+    "code_consumer_row_count": 1226,
+    "content_csv_count": 73,
+    "duplicate_typed_id_groups": 10,
+    "excluded_asset_type_count": 65,
+    "field_csv_count": 73,
+    "generated_from": "Assets/**/*.asset",
+    "group_counts": {
+      "characters-traits": 288,
+      "combat-health-world": 357,
+      "events-campaign": 194,
+      "items": 1090,
+      "production-facilities": 958,
+      "research-effects": 589
+    },
+    "incoming_csv_count": 73,
+    "lifecycle_counts": {
+      "active-authored": 3420,
+      "deprecated-compatibility": 21,
+      "duplicate-authority-review": 20,
+      "legacy-authoring-review": 15
+    },
+    "parse_error_count": 0,
+    "relation_count": 6346,
+    "relation_csv_count": 73,
+    "relation_status_counts": {
+      "non-content-protocol": 1687,
+      "resolved-content": 4520,
+      "unresolved-content-reference": 54,
+      "unresolved-runtime-domain-id": 85
+    },
+    "review_counts": {
+      "근거 확인": 3427,
+      "수동 검토 필요": 49
+    },
+    "row_count": 3476,
+    "runtime_counts": {
+      "catalog-registered-static-consumer": 3210,
+      "deprecated-compatibility": 21,
+      "resources-authored-consumer-unverified": 184,
+      "stable-id-literal-consumer": 43,
+      "type-consumer-registration-unverified": 18
+    },
+    "type_counts": {
+      "AgeConditionDefinitionSO": 6,
+      "AnatomyConditionLexiconSO": 7,
+      "AnatomyProfileSO": 12,
+      "ApparelDefinitionSO": 56,
+      "BattlefieldModifierDefinitionSO": 12,
+      "BuildingSO": 419,
+      "CareerPositionDefinitionSO": 6,
+      "CharacterAmbitionDefinitionSO": 18,
+      "CharacterBackgroundDefinitionSO": 12,
+      "CharacterFunctionalCapacityDefinitionSO": 14,
+      "CharacterPerformanceFormulaDefinitionSO": 107,
+      "CharacterSO": 15,
+      "CharacterSpeciesSO": 10,
+      "CharacterStartingHistorySO": 9,
+      "CharacterStartingOriginSO": 6,
+      "CharacterTraitSO": 113,
+      "ClimateZoneDefinitionSO": 5,
+      "CombatArmorSO": 21,
+      "CombatShieldSO": 9,
+      "CombatWeaponSO": 31,
+      "CraftMaterialDefinitionSO": 12,
+      "CropDefinitionSO": 12,
+      "CropGenomeDefinitionSO": 32,
+      "CulturalPracticeDefinitionSO": 20,
+      "DefenseBurnEffectSO": 2,
+      "DefenseChargeEffectSO": 3,
+      "DefenseCorrosionEffectSO": 3,
+      "DefenseDamageEffectSO": 11,
+      "DefenseGuardAttackEffectSO": 5,
+      "DefenseSlowEffectSO": 3,
+      "DiseaseDefinitionSO": 16,
+      "DungeonFactionDefinitionSO": 12,
+      "EndingDefinitionSO": 9,
+      "EnemyAbilityDefinitionSO": 18,
+      "EnemyArchetypeDefinitionSO": 36,
+      "EnvironmentalWorkwearSO": 4,
+      "EquipmentModuleDefinitionSO": 20,
+      "FacilityBlueprintSO": 7,
+      "FacilityEvolutionRecipeSO": 6,
+      "FacilityEvolutionRecordTokenDefinitionSO": 9,
+      "FacilitySynthesisRecipeSO": 9,
+      "FactionArcDefinitionSO": 6,
+      "FactionChapterDefinitionSO": 36,
+      "FactionContractDefinitionSO": 18,
+      "FestivalDefinitionSO": 20,
+      "FuneralCultureSO": 10,
+      "GameplayEffectConditionDefinitionSO": 45,
+      "GameplayEffectDefinitionSO": 63,
+      "GenericItemDefinitionSO": 710,
+      "GuestRequestDefinitionSO": 14,
+      "HeritableTraitDefinitionSO": 24,
+      "LifeEventDefinitionSO": 32,
+      "OffenseDecisionCardSO": 49,
+      "OffenseEncounterSO": 36,
+      "OffenseSiteArchetypeSO": 12,
+      "OffenseUrgentSiteDefinitionSO": 6,
+      "ProductionRecipeSO": 355,
+      "ProficiencyDefinitionSO": 9,
+      "ReproductionProfileSO": 10,
+      "ResearchProjectSO": 180,
+      "ResearchUnlockBundleDefinitionSO": 180,
+      "ResourceItemDefinitionSO": 365,
+      "SaleItem": 4,
+      "SeasonalWorldEventDefinitionSO": 28,
+      "ServiceIncidentDefinitionSO": 8,
+      "ServiceProcessSO": 5,
+      "SpeciesCultureDefinitionSO": 10,
+      "SpeciesLifeHistorySO": 10,
+      "StockInfo": 11,
+      "SurgicalProcedureSO": 47,
+      "TextileMaterialDefinitionSO": 12,
+      "WeatherFrontDefinitionSO": 6,
+      "WildlifeSpeciesSO": 18
+    }
+  }
+}

@@ -588,15 +588,22 @@ public class CharacterSpawner : BuildableObject,IInteractable
         }
 
         // ObjectPool.Release invokes OnReturnedToPool synchronously. The
-        // lifecycle/active guard therefore also makes repeated restore cleanup
-        // idempotent without maintaining a second ownership registry.
-        if (!actor.gameObject.activeSelf
-            || actor.CurrentLifecycleState == CharacterLifecycleState.Despawned)
+        // inactive guard therefore also makes repeated restore cleanup
+        // idempotent without maintaining a second ownership registry. An
+        // active Despawned actor is an invalid half-retired state and must not
+        // be silently accepted.
+        if (!actor.gameObject.activeSelf)
         {
             return true;
         }
+        if (actor.CurrentLifecycleState == CharacterLifecycleState.Despawned)
+        {
+            failureReason =
+                "restore retirement found an active Despawned customer: "
+                + identity.PersistentId;
+            return false;
+        }
 
-        actor.ReleaseTransientAiOwnership("character-world-restore-retirement");
         if (characterPool != null)
         {
             characterPool.Release(actor.gameObject);

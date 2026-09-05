@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "food-cheese-mushroom",
+    "spoiler_tier": "none",
+    "title": "치즈버섯찜"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-cheese-mushroom",
+      "label": "생산·해금",
+      "to": "item/food-cheese-mushroom",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

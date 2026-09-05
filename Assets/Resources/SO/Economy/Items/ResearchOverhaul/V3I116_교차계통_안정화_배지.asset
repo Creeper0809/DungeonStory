@@ -27,10 +27,10 @@ MonoBehaviour:
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uAD50\uCC28\uACC4\uD1B5
     \uC548\uC815\uD654 \uBC30\uC9C0."
   stockCategory: 5
-  unitWeight: 0.55
-  maxStack: 50
+  unitWeight: 3.4
+  maxStack: 3
   sprite: {fileID: 0}
-  unitPrice: 93
+  unitPrice: 838
   features:
   - rid: 7737212042857939781
   - rid: 1000
@@ -51,4 +51,4 @@ MonoBehaviour:
     - rid: 7737212042857939781
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.59839064
+        saleRate: 0.59992874

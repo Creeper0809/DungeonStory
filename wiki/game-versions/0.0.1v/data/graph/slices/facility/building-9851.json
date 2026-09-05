@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-9851",
+    "spoiler_tier": "none",
+    "title": "오버플로 배출 게이트"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-industry-lifts",
+      "label": "시설 해금",
+      "to": "facility/building-9851",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

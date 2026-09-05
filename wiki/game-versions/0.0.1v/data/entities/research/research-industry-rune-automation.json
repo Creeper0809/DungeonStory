@@ -1,0 +1,85 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "546"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Industry And Automation"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-mana-power",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 동력과 룬 전력망",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-mana-power",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 동력과 룬 전력망",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-mana-power",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 동력과 룬 전력망",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-precision",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 자동화",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-precision",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 자동화",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-precision",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 자동화",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8833",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 제어반",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-industry-rune-automation",
+  "spoiler_tier": "none",
+  "summary": "룬 제어반으로 복잡한 생산선의 작업과 유지보수를 보조한다.",
+  "title": "룬 자동화"
+}

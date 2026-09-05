@@ -1,0 +1,1369 @@
+{
+  "capturedAt": "2026-09-05T04:24:58.447Z",
+  "method": "Inventory only, not semantic review",
+  "groups": [
+    {
+      "root": "docs/handbook",
+      "count": 11,
+      "digest": "abab4f5e725d14f5812fcb13fb83823b4423f74ec668d282c364b08dc316be97",
+      "files": [
+        {
+          "path": "docs/handbook/01-game-vision-and-player-loop.md",
+          "bytes": 21926,
+          "sha256": "808ad1ae4fded6d93e356466284d7fba8b54a8ae70980f1e93bbf6b00f2049b5"
+        },
+        {
+          "path": "docs/handbook/02-system-map-and-authority.md",
+          "bytes": 18022,
+          "sha256": "a3bc95e6a4abd877f555c8b33aea7570535781a6c2b79baddde41a7916b2e552"
+        },
+        {
+          "path": "docs/handbook/03-world-building-facilities-environment.md",
+          "bytes": 27677,
+          "sha256": "161532cdd0ede7706e4af597fc135579b7462db43c8b5945a98f2dabe7f11d39"
+        },
+        {
+          "path": "docs/handbook/04-items-production-logistics-economy.md",
+          "bytes": 24403,
+          "sha256": "0d79fd4a90d8874dd197b4583547ce61c0aea4fa8d42e6cb193d589c9a972d98"
+        },
+        {
+          "path": "docs/handbook/05-characters-ai-society-health.md",
+          "bytes": 23887,
+          "sha256": "680690e4cea93ff1ddab633635d632950c7f1cb05c9ce2b26854c8d745662278"
+        },
+        {
+          "path": "docs/handbook/06-research-progression-and-strategy.md",
+          "bytes": 21884,
+          "sha256": "afce0057d5585374d0a70c868c7ed6e8a5342d5dec6499b0bd9dce810d8cb60f"
+        },
+        {
+          "path": "docs/handbook/07-combat-invasions-expeditions-factions.md",
+          "bytes": 19216,
+          "sha256": "6e32f55583554845b73899c827a42f3c0a67404eaa9b5cb0a07105b145a22298"
+        },
+        {
+          "path": "docs/handbook/08-content-events-and-authoring.md",
+          "bytes": 25489,
+          "sha256": "023713aba91671c14c14b2e1c81a9e62621415c47a78dbe6697700fb1799f3e4"
+        },
+        {
+          "path": "docs/handbook/09-save-restore-determinism-and-validation.md",
+          "bytes": 10444,
+          "sha256": "76410bf4e18a08e586e955b569bd8b7b287c42a4b26e81f80a9a18d641070978"
+        },
+        {
+          "path": "docs/handbook/README.md",
+          "bytes": 3085,
+          "sha256": "db7b8cbfbaa5aee9e8168ee2a389a64a7a289a4cb298cded84c3191d13e8e39f"
+        },
+        {
+          "path": "docs/handbook/appendix-source-map.md",
+          "bytes": 7423,
+          "sha256": "b3f663823b455189891bf29dc032e88edf46ae313e340b332d1877d44d6cb884"
+        }
+      ]
+    },
+    {
+      "root": "docs/architecture",
+      "count": 32,
+      "digest": "aa64976ce6927db8815e385bde092d16cc7233f5d37cc7ed48129ccdc5f8aca5",
+      "files": [
+        {
+          "path": "docs/architecture/01-modules-composition-and-ports.md",
+          "bytes": 18668,
+          "sha256": "2f5e9feeb8a4c486150880742f5ca046fe78a8dcfd5b88070514babb18513e2a"
+        },
+        {
+          "path": "docs/architecture/02-domain-model-state-and-commands.md",
+          "bytes": 16642,
+          "sha256": "6278a9112d4c361615329ab7a1648a43fe533dd1825981282f1c480f409a3817"
+        },
+        {
+          "path": "docs/architecture/03-content-capabilities-and-dispatch.md",
+          "bytes": 18770,
+          "sha256": "20cf9b65b9d1ebd9b09c0f86e0a02ea1b2f499d083ee138b0a7ef7288c15ecd3"
+        },
+        {
+          "path": "docs/architecture/04-workflows-events-and-presentation.md",
+          "bytes": 18379,
+          "sha256": "493221e8c2fd15690a07e525b517a16716666ba1689f1fe8923432af1d664fbc"
+        },
+        {
+          "path": "docs/architecture/05-persistence-transactions-and-idempotency.md",
+          "bytes": 19624,
+          "sha256": "63cd5b89aa966a6beb67ca2b3ff158f1ddae31942eff0ef9e5cfca103cd81b58"
+        },
+        {
+          "path": "docs/architecture/06-extension-playbook-and-assessment.md",
+          "bytes": 20897,
+          "sha256": "9c1bb4597282c4134c3ed2351b113654f643def9e0c6b897fe18225601a6ceec"
+        },
+        {
+          "path": "docs/architecture/07-history-driven-evolution-architecture.md",
+          "bytes": 18421,
+          "sha256": "fe3643da71c548c81843de6dad72d4c83bba08e403c81af7671c46aee315ccef"
+        },
+        {
+          "path": "docs/architecture/08-whole-runtime-topology.md",
+          "bytes": 14742,
+          "sha256": "ed3402eb4f12d64895840173a739d24789b0882490b6af5c2cf418c7b6e66493"
+        },
+        {
+          "path": "docs/architecture/09-state-authority-ledger.md",
+          "bytes": 19672,
+          "sha256": "30627cc805a7a41f01f93c0ad7b451223bb6775c8a5311356411dcf6dd62b0bf"
+        },
+        {
+          "path": "docs/architecture/10-cross-domain-transactions.md",
+          "bytes": 18625,
+          "sha256": "1a7342218b57d59dba3ddfeac989dd13c4f081cadd956d419c777761f924e187"
+        },
+        {
+          "path": "docs/architecture/11-runtime-scheduling-and-projections.md",
+          "bytes": 17453,
+          "sha256": "8d3e3d8ee1e831e178139934619969d77ff7e7d02d4da1d4b63a54db7bb57afd"
+        },
+        {
+          "path": "docs/architecture/code-architecture-guide.md",
+          "bytes": 9963,
+          "sha256": "00f76540eec2d1890de8fd88ddba91d3d6af517d252f49f33240b016b9ae8182"
+        },
+        {
+          "path": "docs/architecture/systems/01-character-ai-and-behavior.md",
+          "bytes": 6085,
+          "sha256": "6a232a92160987a8505c5dc719df8220ba77db2ea30f1ac9adea5c6ecc8b3fb4"
+        },
+        {
+          "path": "docs/architecture/systems/02-grid-spatial-and-pathfinding.md",
+          "bytes": 5228,
+          "sha256": "81c7eabf97e9e94f12823ae7309b41a9b1091fd4b1fcbd383dc0bd41a26047e1"
+        },
+        {
+          "path": "docs/architecture/systems/03-buildings-construction-and-rooms.md",
+          "bytes": 4582,
+          "sha256": "09a8636d5191ce5f1aa60c5eed51723509c982655ebdb4c90e7f7ef4b9a8e6aa"
+        },
+        {
+          "path": "docs/architecture/systems/04-work-orders-and-labor.md",
+          "bytes": 4798,
+          "sha256": "b2544270144e73b12a2f9404d4abb905283495ab9ee3f3e4395dc4c9fe05d9a7"
+        },
+        {
+          "path": "docs/architecture/systems/05-items-inventory-and-hauling.md",
+          "bytes": 10732,
+          "sha256": "3b19cf7f4ff0a9a8a1b5727f7ef7c734d0d135f27d5e4fa536efbcecb47001bd"
+        },
+        {
+          "path": "docs/architecture/systems/06-production-and-output-routing.md",
+          "bytes": 6763,
+          "sha256": "5a6033640a64d396c4c17ef98a6637946c8c1e1818f63b9311ffba043e669375"
+        },
+        {
+          "path": "docs/architecture/systems/07-industrial-networks-and-automation.md",
+          "bytes": 6591,
+          "sha256": "d78d2dc3c8b7ef13c039fa8a6ee35c1e673fcfb1f18098363260bde62f2585d0"
+        },
+        {
+          "path": "docs/architecture/systems/08-character-life-needs-and-society.md",
+          "bytes": 3848,
+          "sha256": "b30a4b30747c27d9599882f3adaecbcfbc6e3b8bc7a05f27b8cd21a810500cec"
+        },
+        {
+          "path": "docs/architecture/systems/09-medical-disease-and-body-health.md",
+          "bytes": 3456,
+          "sha256": "8ba4259e3269e6001591fa390419dc5c2ca4a8f8694a593467403ab02462d738"
+        },
+        {
+          "path": "docs/architecture/systems/10-environment-survival-and-sanitation.md",
+          "bytes": 3784,
+          "sha256": "e98474118d3c956cc903513daf454487ae045a149dea36129ae1dd102d427c47"
+        },
+        {
+          "path": "docs/architecture/systems/11-wildlife-agriculture-and-husbandry.md",
+          "bytes": 3778,
+          "sha256": "2b7bb86a9f54c2e9a7879af0e7e450be9bd6b81760fc5df5cf110e1b150987c5"
+        },
+        {
+          "path": "docs/architecture/systems/12-combat-equipment-and-damage.md",
+          "bytes": 8502,
+          "sha256": "0e97178e3cde00233f474398f207e822507c788514c43c2a2f3bed5fe1ad953a"
+        },
+        {
+          "path": "docs/architecture/systems/13-defense-invasion-and-threat.md",
+          "bytes": 3795,
+          "sha256": "90959e495321cbe6b3ee4a68b06b92ae4a546454a4ba7631d84b400d2890f6b9"
+        },
+        {
+          "path": "docs/architecture/systems/14-offense-expeditions-and-world-map.md",
+          "bytes": 5610,
+          "sha256": "5364dce88cf2e71a746d3a5fc719523fda9a1ed754de7f36ad6b0de93b59b432"
+        },
+        {
+          "path": "docs/architecture/systems/15-research-progression-and-meta.md",
+          "bytes": 3714,
+          "sha256": "939ad7a505e01c462a01b592d3d8c30c19ee1371f351e22e51ab5cc3b81d80ae"
+        },
+        {
+          "path": "docs/architecture/systems/16-factions-events-recruitment-and-captivity.md",
+          "bytes": 7385,
+          "sha256": "9ab6d47e47919edb22074f7b9594fbee0a803f529025215798fe7a1f1d6e7955"
+        },
+        {
+          "path": "docs/architecture/systems/17-session-save-and-determinism.md",
+          "bytes": 6338,
+          "sha256": "7bc4930afcf6b8ab8e13f3afe10c6da07cadc47a1b701ab561d53d76a164902f"
+        },
+        {
+          "path": "docs/architecture/systems/18-presentation-notifications-and-diagnostics.md",
+          "bytes": 4213,
+          "sha256": "b219ba30985a1d493397bbaddd0a58473838aab0c0f364d5933ab99c3d1bf81b"
+        },
+        {
+          "path": "docs/architecture/systems/19-facility-synthesis-and-use-based-evolution.md",
+          "bytes": 25494,
+          "sha256": "5fe1e6957b48c50b5db807d79267ac74da5c88350dad723cbe095b4cc6e5897a"
+        },
+        {
+          "path": "docs/architecture/systems/README.md",
+          "bytes": 5715,
+          "sha256": "c15f51fff41b7939ba14a85de047d87dff07516190cc9ba5261ad4610bdd228d"
+        }
+      ]
+    },
+    {
+      "root": "docs/game-design",
+      "count": 117,
+      "digest": "0874ee7e40011d1a490264b8fda75f0897a581a17e58ead0449309a9d2641346",
+      "files": [
+        {
+          "path": "docs/game-design/balance-progression-validation-contract.md",
+          "bytes": 12370,
+          "sha256": "e88081b399f094802e9d8a4024bd62aec54cbba71233ea2b75795ba3e234e3c5"
+        },
+        {
+          "path": "docs/game-design/balance-records/v25-proficiency-balance-record.md",
+          "bytes": 2543,
+          "sha256": "2de483d245b0b223dbea489c9de4d91977bdd708b23fbd4dc7e83b19ee1e06a1"
+        },
+        {
+          "path": "docs/game-design/character-model.md",
+          "bytes": 18751,
+          "sha256": "ec116d052519c16e0fd166df917efa6637b267393ff8b84a8d920067da459334"
+        },
+        {
+          "path": "docs/game-design/content-plans/README.md",
+          "bytes": 10657,
+          "sha256": "a7bba2a2901bd8a1dc67319ba2f0e3559ec263bf6a291dd581d2d297f5815aef"
+        },
+        {
+          "path": "docs/game-design/content-plans/balance-validation-binding.csv",
+          "bytes": 10301,
+          "sha256": "c090a944c7fcc88a3fcfee08cb6e6a15aeecf473e063dcaa9175ff4204187c4a"
+        },
+        {
+          "path": "docs/game-design/content-plans/context/climate-operation-contract.csv",
+          "bytes": 6125,
+          "sha256": "ab9b50f2d435fabb9817015d8c5ebeb4778de4526724e04503a6a1ff6fe96754"
+        },
+        {
+          "path": "docs/game-design/content-plans/context/climate-profiles.csv",
+          "bytes": 3834,
+          "sha256": "141d0b9d48a556e8cb68574a60a597385825c13ac9867adafdfc504e992b67e5"
+        },
+        {
+          "path": "docs/game-design/content-plans/context/culture-accommodation-contract.csv",
+          "bytes": 25565,
+          "sha256": "c4d218d0271b09468c07b884cb42b167db8d4afb17ef2b8e265f2cfd79f02b4d"
+        },
+        {
+          "path": "docs/game-design/content-plans/context/faction-portfolio-route.csv",
+          "bytes": 3971,
+          "sha256": "1fda63e9fb581bfbc992df5813e072884c2bab6e135e01458092334a6e2c2870"
+        },
+        {
+          "path": "docs/game-design/content-plans/context/faction-source-reconciliation.csv",
+          "bytes": 3228,
+          "sha256": "03828bb20de578f65de57feb56cd3883413f4412a3cc39eec9419381badd10df"
+        },
+        {
+          "path": "docs/game-design/content-plans/context/faction-strategy-contract.csv",
+          "bytes": 13706,
+          "sha256": "b324d3cb885950f9b4b4fd0bab5ad0203439e409db2e03626b06ce6dbe26a17a"
+        },
+        {
+          "path": "docs/game-design/content-plans/context/population-culture-faction-package.csv",
+          "bytes": 28009,
+          "sha256": "6e493e20be06bfacc486bcda7c833a9b36053e2d61af6ebae1d0c368cf648928"
+        },
+        {
+          "path": "docs/game-design/content-plans/context/portfolio-context-matrix.csv",
+          "bytes": 22839,
+          "sha256": "6e7e582b05152221798472029aec7e6b84cb489e7dc40c2500a99c4b2f49fcf8"
+        },
+        {
+          "path": "docs/game-design/content-plans/context/species-strategy-contract.csv",
+          "bytes": 26193,
+          "sha256": "0572787faa0f967ae25268a3a1ea833401d1dcaabd76d9a27c34da7c2f788bf7"
+        },
+        {
+          "path": "docs/game-design/content-plans/context/species-strategy.csv",
+          "bytes": 7829,
+          "sha256": "bbb374d2f4cbc6dbab29d2e66fd037a8108dab08af22f8f9f9e047b5c21afc3b"
+        },
+        {
+          "path": "docs/game-design/content-plans/context/traits/advantage-traits-contract.csv",
+          "bytes": 69088,
+          "sha256": "67c2acfc9638f7e7f5cd5fe480db5488a37aaf4ee6ecf19890d372bccb0ab7fe"
+        },
+        {
+          "path": "docs/game-design/content-plans/context/traits/extreme-traits-contract.csv",
+          "bytes": 11519,
+          "sha256": "3b812638d791fd161fbe3d4e7b04d5e2d1879e169094717be5ec028becce7c49"
+        },
+        {
+          "path": "docs/game-design/content-plans/context/traits/negative-traits-contract.csv",
+          "bytes": 29793,
+          "sha256": "5e654bf8baa2c7000a7fd15a2b9b8afb9f8d105152b46d2de9c10044b66a89aa"
+        },
+        {
+          "path": "docs/game-design/content-plans/context/traits/quirk-traits-contract.csv",
+          "bytes": 5066,
+          "sha256": "ac7ac9b24794cf424e842d9d10f8a7af4b4186d0a7ccf2ecb072290f5cde9964"
+        },
+        {
+          "path": "docs/game-design/content-plans/context/traits/tradeoff-traits-contract.csv",
+          "bytes": 69661,
+          "sha256": "93c3797ea748f63c1fb653622003158617de18672ac07d02fda1b2ed14515cfb"
+        },
+        {
+          "path": "docs/game-design/content-plans/cultural-practice-integration.csv",
+          "bytes": 11542,
+          "sha256": "fa444f6e0b1d95658c8eb026f4cba6c0edff658cff3aba162a79dd90ee637901"
+        },
+        {
+          "path": "docs/game-design/content-plans/facilities/building-asset-classification.csv",
+          "bytes": 338614,
+          "sha256": "39627304f631812eb8a8d768b2f4a6293b7ca049c79f6b18717e16e041336efd"
+        },
+        {
+          "path": "docs/game-design/content-plans/facilities/facility-blueprints.csv",
+          "bytes": 4275,
+          "sha256": "0448959eb0dba94f6df11c68d476cb50cf7dc1d647d3a0015110cfe94c0af6ff"
+        },
+        {
+          "path": "docs/game-design/content-plans/facilities/facility-evolution.csv",
+          "bytes": 3935,
+          "sha256": "5bbc3034fbdbc90f54d845838f1b10da09822e28b84ad3f579d2236f24db0c83"
+        },
+        {
+          "path": "docs/game-design/content-plans/facilities/facility-synthesis.csv",
+          "bytes": 5347,
+          "sha256": "d12ed11fcc7a702687d1949b5cca4d8c22395992e4cc93b5a37bd4d51cd830ff"
+        },
+        {
+          "path": "docs/game-design/content-plans/facilities/player-building-functional-contract.csv",
+          "bytes": 385900,
+          "sha256": "c088ab1ef1e574d3a39cff6fc5e77f84274db6bcd9bbced28c9bcc88543b5bcd"
+        },
+        {
+          "path": "docs/game-design/content-plans/facility-portfolio.csv",
+          "bytes": 3816,
+          "sha256": "9304139223b814b34adf9c93bc45fdcb0720784e589a4b61ee4f3d3ac0204759"
+        },
+        {
+          "path": "docs/game-design/content-plans/faction-chapter-integration.csv",
+          "bytes": 18777,
+          "sha256": "c0bd7261088d9760ef4d74bb5079c975f91892f9eabc9a224a54d5f9b9a2ee85"
+        },
+        {
+          "path": "docs/game-design/content-plans/faction-contract-integration.csv",
+          "bytes": 15114,
+          "sha256": "b8c4dd1513638fe68d41eb34dee7608a1ab22273048510a9a212dbcb97c08fad"
+        },
+        {
+          "path": "docs/game-design/content-plans/festival-integration.csv",
+          "bytes": 9046,
+          "sha256": "5170b04e05d80a88b3d3838d01af7f060d33010cab8fb1f95d8c742e08f6d0d1"
+        },
+        {
+          "path": "docs/game-design/content-plans/festival-source-reconciliation.csv",
+          "bytes": 1350,
+          "sha256": "8aea5a46699e6a92a7d918031cfd296c6f13d052325aed16ef2360ad7093fa44"
+        },
+        {
+          "path": "docs/game-design/content-plans/full-design-scope.csv",
+          "bytes": 8738,
+          "sha256": "c4edf4efe8607518a7dacd2e24093838c52291d997343b43fce654e4012be552"
+        },
+        {
+          "path": "docs/game-design/content-plans/guest-request-integration.csv",
+          "bytes": 8115,
+          "sha256": "3e2a77fbdd05ef45a9d930609981336d41f4af185d4cd630363e756fbff48927"
+        },
+        {
+          "path": "docs/game-design/content-plans/items/apparel-role-contract.csv",
+          "bytes": 106065,
+          "sha256": "f737ddeb01167b423f214ea1fd06dc132a0ed9a8035af0f99689860b2145e75b"
+        },
+        {
+          "path": "docs/game-design/content-plans/items/combat-armor-role-contract.csv",
+          "bytes": 45391,
+          "sha256": "a9c8278a3e790a3f1b9b8f66789b0d74e1f51946011e4f47afba579b4e449d60"
+        },
+        {
+          "path": "docs/game-design/content-plans/items/combat-shield-role-contract.csv",
+          "bytes": 15646,
+          "sha256": "81c7ce52ce184a215ac60e3d3835d113870d0687d1349d16d71410dfe1b85be3"
+        },
+        {
+          "path": "docs/game-design/content-plans/items/combat-weapon-role-contract.csv",
+          "bytes": 72780,
+          "sha256": "80f84f17956aeb90d1fdbc546cd2fcfe42ee573786e07cab06d27e10758a1fa3"
+        },
+        {
+          "path": "docs/game-design/content-plans/items/environmental-workwear-role-contract.csv",
+          "bytes": 5629,
+          "sha256": "b371e8c917599a77c088bdd32d646c40e671c51c30cec91216c6f43308bd88b0"
+        },
+        {
+          "path": "docs/game-design/content-plans/items/equipment-module-build-contract.csv",
+          "bytes": 20462,
+          "sha256": "c0b2f19637782a3169578b435224cd22de6c481da825055870b0508e77d54c7a"
+        },
+        {
+          "path": "docs/game-design/content-plans/items/generic-item-role-contract.csv",
+          "bytes": 1050949,
+          "sha256": "e0d126b87aaf2efb21265bee6df94fc06558bbbc5279254cc64d6d959ea69687"
+        },
+        {
+          "path": "docs/game-design/content-plans/items/resource-item-role-contract.csv",
+          "bytes": 534550,
+          "sha256": "9f94368db1f30d2e7ab0c5cbdd795430b6005d27f5455af4e1f63b41b0044e1e"
+        },
+        {
+          "path": "docs/game-design/content-plans/life-event-integration.csv",
+          "bytes": 12728,
+          "sha256": "f2bdb7bdecef6980b0ff5821f28c51b72f81c6e8552c1338b4725024530402fa"
+        },
+        {
+          "path": "docs/game-design/content-plans/production/production-recipe-contract.csv",
+          "bytes": 572646,
+          "sha256": "47c70543d48e9de6e62ce457aaef4a4ed98203496950ed00caf79914bf05d73b"
+        },
+        {
+          "path": "docs/game-design/content-plans/research-portfolio.csv",
+          "bytes": 2824,
+          "sha256": "4adb9eecc0587d4530644b895f1f3721d09264455fd3c2519c25357392266e26"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/agriculture.csv",
+          "bytes": 6615,
+          "sha256": "d47a92e9275c1f07d00dedceea3e6fad628c5ff65f42f09a513560d7375af88c"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/authority-and-housing.csv",
+          "bytes": 8493,
+          "sha256": "4f28ef8e3979b1c44919fb70277e9a73ae3f889a97a01937dfb99c451c45e75e"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/captivity-and-entertainment.csv",
+          "bytes": 3229,
+          "sha256": "6c675049ead405e749a4400c733c05ae1b5404826ffbe9780c24b2dfc25974e0"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/clinical-and-preventive-medicine.csv",
+          "bytes": 7951,
+          "sha256": "3808b07b65f25dd721e733b85dd32e9a745cd33181c604caaf4543b3273f5650"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/commerce-and-craft.csv",
+          "bytes": 5240,
+          "sha256": "2a37d600e49ac9f23aee7386b88ece2f52ea33c37ba33691af49e5377d1e9dc6"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/cuisine.csv",
+          "bytes": 7370,
+          "sha256": "4d4559d82c3461ee8cc72adc039cee76a2438f342ae5f491fe7b144f68afd877"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/defense-and-tactics.csv",
+          "bytes": 8566,
+          "sha256": "4966f4f07f2590cd3d9758f67da38201479ce43035ae54008e1c19ef954dedcc"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/forestry-and-husbandry.csv",
+          "bytes": 9276,
+          "sha256": "41b867b5e6d58855d08ad9e8be85eae58972b163a7390ac0bd4d3b753d47eb43"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/industry-and-automation.csv",
+          "bytes": 19935,
+          "sha256": "541afc1f68281e791ef87b7dfc7f71a969c3d3aa5cebede2a33f05575b2d59da"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/life-and-survival.csv",
+          "bytes": 5955,
+          "sha256": "4ccd43bcc687c14b006739fba7b5d752e1fdabf058a77056c8cd8ec6605faece"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/mining-and-metallurgy.csv",
+          "bytes": 9912,
+          "sha256": "787fbf19cdeedf93b9606ec0d3121637e7ac2983766c863aef7e9e3572983d24"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/pharmacology.csv",
+          "bytes": 4041,
+          "sha256": "a4212e399af007cd16ccb26ccc65ee294771d258a75739aacbd45a9d5c3d4b07"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/reconstruction-and-augmentation.csv",
+          "bytes": 13199,
+          "sha256": "f13469c00003cb6674fdda415c624d28927b2fda729ee02f1c0e969f38448e29"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/records-and-arcane.csv",
+          "bytes": 9199,
+          "sha256": "26ceec1c0c63e220787b63ecfb4285482436e50195c102b889b308e52aa1a1cc"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/textiles.csv",
+          "bytes": 5198,
+          "sha256": "55f1cc50712695e2c9a69aea581487fd3601db0b8174dab6a91771c8e1666841"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/unlocks/agriculture-unlock-contract.csv",
+          "bytes": 12984,
+          "sha256": "e7a56c9e3f41543f1951748f93d043a50eb5491b2e08a69b6557b3f0a670af29"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/unlocks/authority-and-housing-unlock-contract.csv",
+          "bytes": 7331,
+          "sha256": "39d39e0fbc691a7cfe3adeafd9367723e8f6cd29efad4d646977239ab75b7fae"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/unlocks/captivity-and-entertainment-unlock-contract.csv",
+          "bytes": 6109,
+          "sha256": "3b2ef72fe5d951506f3161bcc4981885869efe1d2f58a2f16eb6e06d7c75cb83"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/unlocks/clinical-and-preventive-medicine-unlock-contract.csv",
+          "bytes": 5237,
+          "sha256": "1b95d52811e70257909a7e1659f8e123ad0268e39ca56e2b8b1a40ecd2523b93"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/unlocks/commerce-and-craft-unlock-contract.csv",
+          "bytes": 5051,
+          "sha256": "4b7b83a4690409ec9fcf735870668eebef1a13d24cb0315650cca63ea6ea63c9"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/unlocks/cuisine-unlock-contract.csv",
+          "bytes": 13123,
+          "sha256": "dc68b39e2f6edb4448886fa2796ed1cfe5b6cab26abbdcaecc5222200b4d0752"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/unlocks/defense-and-tactics-unlock-contract.csv",
+          "bytes": 39102,
+          "sha256": "3293ba4a0dcf3d01817a485b82f64ab75c0dab71a0776d6f2ca38e26663279a2"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/unlocks/forestry-and-husbandry-unlock-contract.csv",
+          "bytes": 16191,
+          "sha256": "6502d371432d0d53c1da260de309953d90d73c84d2127f3006d2cc714f22159a"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/unlocks/industry-and-automation-unlock-contract.csv",
+          "bytes": 23560,
+          "sha256": "973c5af48d9918b722826d653a722436199f98b09b5ed4bef4ff2dffef57adac"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/unlocks/life-and-survival-unlock-contract.csv",
+          "bytes": 15877,
+          "sha256": "c176c9eb768b4044b7b3782353eb39ff9e505e1fc50b65e69b2e061e3f390122"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/unlocks/mining-and-metallurgy-unlock-contract.csv",
+          "bytes": 14735,
+          "sha256": "6f8a0394753f007eedc1fabe25da7d9675f847406818f901b03d359599789c29"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/unlocks/pharmacology-unlock-contract.csv",
+          "bytes": 7822,
+          "sha256": "f606044a212601ba81746c1ba80264c120c6a7f432da599edb9cac9bef1089d3"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/unlocks/reconstruction-and-augmentation-unlock-contract.csv",
+          "bytes": 32301,
+          "sha256": "eeb8f43d5053f4ef3b8db8f7359286167bb4da4ad3890776bdfcab2c8802acd9"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/unlocks/records-and-arcane-unlock-contract.csv",
+          "bytes": 5001,
+          "sha256": "592cfc9d29900d66552845b0a8909e45bf69e5b25dcc50cd99cd20d590ed5169"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/unlocks/textiles-unlock-contract.csv",
+          "bytes": 13654,
+          "sha256": "c5a474b3e7210994bcf445e65bff8a3b619d2f34e0ee3354c2da88e5ef11b5fc"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/unlocks/water-and-sanitation-unlock-contract.csv",
+          "bytes": 15257,
+          "sha256": "56c245081816b147b0688593851d36c4e6f8de64f3088c54a892b42fe2f3633c"
+        },
+        {
+          "path": "docs/game-design/content-plans/research/water-and-sanitation.csv",
+          "bytes": 3492,
+          "sha256": "3e7d384a2ce2dab29dd15582f92e35628ed884f2bef9b400722b51011425be14"
+        },
+        {
+          "path": "docs/game-design/content-plans/seasonal-event-integration.csv",
+          "bytes": 16151,
+          "sha256": "ef208841967a95472e88578b3bfc567e3fb33c62118edbc85c9e2f4edd90104a"
+        },
+        {
+          "path": "docs/game-design/content-plans/service-incident-integration.csv",
+          "bytes": 7453,
+          "sha256": "07e034ffd846f01750146f10daf0eec69a962aca73fb7c0b37a0fb1f0e3af16f"
+        },
+        {
+          "path": "docs/game-design/content-plans/strategic-portfolio-assembly.md",
+          "bytes": 16369,
+          "sha256": "8870451d63e8628043507d61ed18fb071302f660eff76e7fe2e49b9ed05df9f2"
+        },
+        {
+          "path": "docs/game-design/content/item-in-game-descriptions.ko.json",
+          "bytes": 730304,
+          "sha256": "77a589552b8c1f83cb46577d7734c0cb7e18ec9dec60f899c1c3673a13ccb253"
+        },
+        {
+          "path": "docs/game-design/context-driven-facility-evolution.md",
+          "bytes": 30627,
+          "sha256": "eb74775780a1730625299284cb2e1bef92d2583ca6d3e30613243ae07658ba65"
+        },
+        {
+          "path": "docs/game-design/current-system-inventory.md",
+          "bytes": 35006,
+          "sha256": "0f0cc5131816b48c3ea1a04aa88d82b1d68377de32f5578e3faf196d4fd3f5d1"
+        },
+        {
+          "path": "docs/game-design/customer-ai.md",
+          "bytes": 12499,
+          "sha256": "418ea4d4b89e4fc2756cb0f7b91d35fed9234db5dd3aaece642543b073aea164"
+        },
+        {
+          "path": "docs/game-design/dungeon-structure.md",
+          "bytes": 15577,
+          "sha256": "2857e0a382cbbee3cfed0d676e12941a4a431e421d69bab27783153292c34da1"
+        },
+        {
+          "path": "docs/game-design/economy-and-time.md",
+          "bytes": 4768,
+          "sha256": "862cffa1279274c4f9ea97a26bc6e93748b9d862aa877c7bce528ea848d4fff1"
+        },
+        {
+          "path": "docs/game-design/facilities-and-synthesis.md",
+          "bytes": 23134,
+          "sha256": "ffd7b375831f3f71806d28290ed1f426a6a624a6c7af2d75441773b867916779"
+        },
+        {
+          "path": "docs/game-design/facility-attack-concepts.md",
+          "bytes": 21390,
+          "sha256": "2c5d07875009b53fe5b377ae7f0dbe8431ce467d8bc8e8ea3008e2512125ece1"
+        },
+        {
+          "path": "docs/game-design/facility-lineage-evolution.md",
+          "bytes": 55430,
+          "sha256": "c426cdce1e162056d896bd042da9e8887f23cbc5ce070512148cd241bd25331d"
+        },
+        {
+          "path": "docs/game-design/game-completion-readiness.md",
+          "bytes": 7368,
+          "sha256": "5fda1719ca22b09f633220bc1c3b948a71f0fb217a5dc76906f91c7db5dcd892"
+        },
+        {
+          "path": "docs/game-design/invasion-events.md",
+          "bytes": 3463,
+          "sha256": "3fa971d4b5dabd962a0bd2f55297bd4fe8b8ba097b647fb29ba086cd304b0923"
+        },
+        {
+          "path": "docs/game-design/inventory-and-logistics.md",
+          "bytes": 19927,
+          "sha256": "694bf0384c4cbbd29c0600a6743953ae181e2a0331c4469472eecdf3bf50f66a"
+        },
+        {
+          "path": "docs/game-design/management-facilities.md",
+          "bytes": 16965,
+          "sha256": "37606613122771dd9e1a958f7664b6a2cf95357796995c4929eafc005eb04544"
+        },
+        {
+          "path": "docs/game-design/meta-progression.md",
+          "bytes": 7877,
+          "sha256": "165205499254a48c7e3d6673471eaaf87a0b9295dd82f967c8747095de2b9a62"
+        },
+        {
+          "path": "docs/game-design/modular-facility-catalog.md",
+          "bytes": 14358,
+          "sha256": "1088a54e6144999755b0fc526e7d382bd7bdfc22e737a10b4d931583ddebf499"
+        },
+        {
+          "path": "docs/game-design/monster-customers.md",
+          "bytes": 11094,
+          "sha256": "08a2dd36cc0d8f5f372b5f8eadab0ba513b76c7f1795610973423dccdbd85de2"
+        },
+        {
+          "path": "docs/game-design/monster-race-concepts.md",
+          "bytes": 13947,
+          "sha256": "76fc3c9e17d339053d497ceb22580660d198a6106cb3e1d4deaaf14e7b454caf"
+        },
+        {
+          "path": "docs/game-design/offense.md",
+          "bytes": 2949,
+          "sha256": "3cbe2ccdc93a264f1dcef1e41bc8de77d973df23cd8dcd27c9cadd5cfa9d7c4d"
+        },
+        {
+          "path": "docs/game-design/overview.md",
+          "bytes": 6868,
+          "sha256": "c397c115182c4922c92b3a11cacaec74dd41cd22379343cffd1f7109a26d4db5"
+        },
+        {
+          "path": "docs/game-design/plan.md",
+          "bytes": 7661,
+          "sha256": "94e641ff99eb176a360d3b3517bfabb869095f270dc76f1aaac793b9122def6b"
+        },
+        {
+          "path": "docs/game-design/player-experience.md",
+          "bytes": 8678,
+          "sha256": "1908115441d586f6672539e53e6503f140823052febb43fc8cd7e8614c2738b5"
+        },
+        {
+          "path": "docs/game-design/progression-and-scope.md",
+          "bytes": 7058,
+          "sha256": "c6087287c22be5a6cb8265ab7fbd6f402a770937c2de3cf97fb4b12c2cda5fb8"
+        },
+        {
+          "path": "docs/game-design/reference-game-design-synthesis.md",
+          "bytes": 21385,
+          "sha256": "47bc95034d6a61d190e2a8eae864b51bfa3d3f61480f629b9e2beec4b602ffa1"
+        },
+        {
+          "path": "docs/game-design/replay-meta-validation.md",
+          "bytes": 6735,
+          "sha256": "2bd94128640e86c7cd7a6a0c5b2d7d787e1941f4685d49bcac2fa370a82c3eb8"
+        },
+        {
+          "path": "docs/game-design/room-context-lineage-evolution.md",
+          "bytes": 40214,
+          "sha256": "8a0f518f4c3b4f19fa600cbd125121f53b9967298ce866d742fb040fa510b097"
+        },
+        {
+          "path": "docs/game-design/run-variables-and-events.md",
+          "bytes": 7398,
+          "sha256": "b3dfb43c0cf37423e869625f36adb59ceebec81fc31dcee08e34934a4d9a5c02"
+        },
+        {
+          "path": "docs/game-design/staff-and-actors.md",
+          "bytes": 13941,
+          "sha256": "beb000680374460b140822353c06b4712e97c18460b31be188ce950662850c10"
+        },
+        {
+          "path": "docs/game-design/strategic-build-and-progression-design.md",
+          "bytes": 45004,
+          "sha256": "3cd075e2e5249660337d26020f977b49619bdffa4ac9482e44cef6fdb681abe4"
+        },
+        {
+          "path": "docs/game-design/strategic-vertical-slices.md",
+          "bytes": 7846,
+          "sha256": "d87d5ae76dc6c134f080a68635c1bdeb1fa659d7f435395becb9c98b52aa671d"
+        },
+        {
+          "path": "docs/game-design/systemic-content-event-catalog.md",
+          "bytes": 110558,
+          "sha256": "9d7c334e8a2a9ff4476717857833abd80e62d31e85fe58a39febdb726289acca"
+        },
+        {
+          "path": "docs/game-design/systemic-content-integration-design.md",
+          "bytes": 31369,
+          "sha256": "72ff4ef79139d7634492d6a34fe37082b1e926caa283aca84aefac5965823e10"
+        },
+        {
+          "path": "docs/game-design/systemic-event-vertical-slices.md",
+          "bytes": 6716,
+          "sha256": "eb2f6be20fe92d058525f71690e44621af8d4a79b25dbdf6fe1cdcfe88a91504"
+        },
+        {
+          "path": "docs/game-design/v27-balance-construction-review-decisions.json",
+          "bytes": 15560,
+          "sha256": "dd720e772029de1bfc599da30eef6036a6c085a6be32dd22107ebb1bac7f1c65"
+        },
+        {
+          "path": "docs/game-design/v27-balance-critical-approvals.json",
+          "bytes": 1418227,
+          "sha256": "b89c8af161b5d7711766e47ce893a596d8260c19fb9be71e7ca19ebac966373a"
+        },
+        {
+          "path": "docs/game-design/v27-balance-market-review-decisions.json",
+          "bytes": 640275,
+          "sha256": "f430c335f9f688b8334728b306c4ffe0cc45fcd64d564feb7c8053687bd103cc"
+        },
+        {
+          "path": "docs/game-design/v27-physical-mass-and-hauling-recalibration-plan.md",
+          "bytes": 1137325,
+          "sha256": "a115d06349bbb329d58e59b423c37763911b3e17491a8427544e1a5ef5fd7914"
+        },
+        {
+          "path": "docs/game-design/whole-game-balance-baseline.md",
+          "bytes": 1148181,
+          "sha256": "64ba86b62824a99f76c70b981e3e3e8a70943acb88d0a5e122e7ea1d104b3fa7"
+        },
+        {
+          "path": "docs/game-design/whole-game-balance-recalibration-inventory.md",
+          "bytes": 32460,
+          "sha256": "a681ed873d44a5ea0df216e3998436ab3e26c70490d2776cd5a5337a759a3a3f"
+        }
+      ]
+    },
+    {
+      "root": "Assets/Scripts",
+      "count": 2505,
+      "digest": "ac971f8afbeaa3da26f1e90ab9e272f83ce0f0372d0029b7bc0b6ec18f669e7f",
+      "directoryCounts": {
+        "Content": 29,
+        "Controllers": 17,
+        "Editor": 16,
+        "Models": 506,
+        "Services": 1732,
+        "Views": 205
+      }
+    },
+    {
+      "root": "Assets/Resources",
+      "count": 3533,
+      "digest": "bcb834635377d660fc4ba5c872c786fd5d842644f8f97a3b05f98db09d6f13eb",
+      "directoryCounts": {
+        "Audio": 1,
+        "Config": 4,
+        "DOTweenSettings.asset": 1,
+        "SO": 3527
+      }
+    },
+    {
+      "root": "wiki/game-versions/0.0.1v/content",
+      "count": 41,
+      "digest": "1042c79d13cddd2b68bd0f19be1bc41b63f58a6c439eebbe4c3dd70a9b9be718",
+      "files": [
+        {
+          "path": "wiki/game-versions/0.0.1v/content/anatomy-profile-groups.json",
+          "bytes": 2257,
+          "sha256": "ebb12b5f57dab0f8447c5ffe2a569a4cdbd37472b0edd748de7284425ada1034"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/anatomy-references.json",
+          "bytes": 20184,
+          "sha256": "b33823cec4fbb2da43aad93b7475f534d5638e32fec1c64826eb7a5829b71aa7"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/directory.yml",
+          "bytes": 7874,
+          "sha256": "c283972d447f61ad531fd8c4b9db5da875ebccc908ed7b4459b451c1722cc375"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/combat-and-equipment.md",
+          "bytes": 19120,
+          "sha256": "b472698a299c1618bf19942aa28073905e5b907674e99e27ade78a06df026470"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/continuity.md",
+          "bytes": 4159,
+          "sha256": "82422ecf9374e0f0e560ef9c09248284f6152c77a4f3ae27cb1cb69816514460"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/disease-and-public-health.md",
+          "bytes": 4213,
+          "sha256": "d48cf65ccc736ed4e6cf7915e9628efa991ede15b4355e2e00e760ba10496151"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/economy-and-trade.md",
+          "bytes": 3902,
+          "sha256": "a87587c997aaf2096afaae7abaf93e5aeb10ee4acc858da301d9b6a19f9798cd"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/events-and-choices.md",
+          "bytes": 4671,
+          "sha256": "d644a761006fd4b4558b3383b15d020666468d23fd4cee9f6cf2bf5ac11a3487"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/expeditions.md",
+          "bytes": 4625,
+          "sha256": "eae2524e82c1cb4e6daf84af5fda17584269dba530c91500ca252e6afcdbe028"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/facility-growth.md",
+          "bytes": 3500,
+          "sha256": "943ca7117cae0513233c431d2f722bad18f88d6379520b3743d46bfb98f010eb"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/factions-contracts-and-prisoners.md",
+          "bytes": 18933,
+          "sha256": "d1d8bce6256200fef122f6e6d88ac39465c15aa62893d87dc0ab5a04d5448b50"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/family-education-and-legacy.md",
+          "bytes": 3980,
+          "sha256": "0bcce3bff6de111650e87e4513c73f69e0f754cc634f956c204338aca991a2dd"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/food-and-ecology.md",
+          "bytes": 15936,
+          "sha256": "b60555255f4158fb6332175c337dda7f54d0523dae70fcb9ae5665dfee7e6116"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/getting-started.md",
+          "bytes": 3125,
+          "sha256": "cd32ecc218a9dfa72ec67d045100a44a8318bcaa401f4840f9e4702231515f83"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/guests-services-and-performance.md",
+          "bytes": 3470,
+          "sha256": "b5b8bee969ebda05c7cd24c4dc68efa917d9277e2cf4520f3d554302a3fd78d7"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/guide-navigation.json",
+          "bytes": 9064,
+          "sha256": "07c6f46320a533af1ffe0a19a03deb48ab768b923d535c2f92e3eac051b03382"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/health-and-community.md",
+          "bytes": 1640,
+          "sha256": "c21e7ae7f9294cc6d37c550ef2b25ab019a8004f32e8cb4fa99416b73ddd5a68"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/infrastructure.md",
+          "bytes": 5537,
+          "sha256": "721c2c6448a623e0383e360a379722217a2179b0a7e637b8cfd97edd791bd2f4"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/invasions-and-defence.md",
+          "bytes": 4258,
+          "sha256": "c0fdf75358b9f1c702e48907f933a1945c4d13514aa3d924e1e06ae181a63db7"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/inventory-and-carrying.md",
+          "bytes": 3313,
+          "sha256": "8cef7e1f76c53cd8177c77f05c6428bf956ff92b07fe512edadde3e13eb27f7a"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/medical-care-and-surgery.md",
+          "bytes": 3736,
+          "sha256": "181a74c3514b95f84066857bea86d5e8cfb29eab2006a888d51b59c57a9b4b3d"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/milestones-runs-and-meta.md",
+          "bytes": 2251,
+          "sha256": "84e74c226b0f3fca1271193bc9af5c49139eb392a7dc0506656decbc4f669369"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/overview.md",
+          "bytes": 3234,
+          "sha256": "2e4bb6d72f12d833968f301f5bdbce354f8db4178450f5441f23de9a8944e587"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/production-quality-and-supply.md",
+          "bytes": 2764,
+          "sha256": "dbbf378081f65cc9f88f2cc7d36a6a6e2606f78c69a6841f2a626b94d61f0ec0"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/production.md",
+          "bytes": 3607,
+          "sha256": "c46cec0e434165f21723c1bb39947a87f1a2528697cc4e5d00bffe08b8847817"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/research.md",
+          "bytes": 5106,
+          "sha256": "b0a050888df110c570fb088db8c60ca8f818898c7e8f58c2ddf373574ee77d6e"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/residents-and-work.md",
+          "bytes": 15012,
+          "sha256": "b9a07ed1aeee6715beb3bfb50c25b3445844e5feb9da8a48b783ebc44b1480a8"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/source-coverage.json",
+          "bytes": 19984,
+          "sha256": "1f55e0e166623f36bbb1a1de46c35c16ffbc0ed7da74396f362a55cf9f0c3c44"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/spaces.md",
+          "bytes": 4741,
+          "sha256": "23d0a3fbc2bcea791e7ded6180de8a6d8bc6a3ea8d7c83a97784f7d0dc30e311"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/species-culture-and-life.md",
+          "bytes": 3384,
+          "sha256": "cd356f79ff6edde0835a1590c3f4e2688a41b97cd2e510e320671bf79dfe5c04"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/starting-party.md",
+          "bytes": 2485,
+          "sha256": "8ca7c87cac152226ad7a2aa1970298b6e2afedd65cec3841f8507b40c5a479a4"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/weather-seasons-and-environment.md",
+          "bytes": 3396,
+          "sha256": "e2e4371f61725319f30e74da29c0a31742cdcf48f746ba7fcb785fe97a665ad6"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/world-dungeons.md",
+          "bytes": 1926,
+          "sha256": "698755608552a3c3d1f42c617c7c7112a25683d742dcbe52c7671ff629eed9c5"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/world-state.md",
+          "bytes": 4285,
+          "sha256": "0b2dd58f66e109bf07177bc131b391113d68392030053a96bc08aeb615ad43ae"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/guides/world.md",
+          "bytes": 13055,
+          "sha256": "c6f46c78d3752173e5626040e9419be2976f5ca931a1e4af9a049624874bc5bc"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/need-references.json",
+          "bytes": 19095,
+          "sha256": "30a6a7b3b1ebec1ece5c8d08a2216a236813268acd38db69180bba64876d6277"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/publication.yml",
+          "bytes": 272,
+          "sha256": "a154e3085fde39f8f2f75d8ac652ea4e8d9490120472a80bb5fc7ed1ccb502ae"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/slug-registry.csv",
+          "bytes": 163763,
+          "sha256": "46ccbef6ea0b06319d07c5020c7432773527ef8bac2a78997939ea9f8cbc6418"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/special-anatomy-references.json",
+          "bytes": 42999,
+          "sha256": "9dc09773ebb9fad048b3ff09052486223d404087a642f774bc422f8d43fff382"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/waivers.yml",
+          "bytes": 43,
+          "sha256": "1a53dacac2848b1e0f8989f876d8f7b27c1afc641c6fb7fc2348f15d24551c6a"
+        },
+        {
+          "path": "wiki/game-versions/0.0.1v/content/work-references.json",
+          "bytes": 20249,
+          "sha256": "f2d38f6ca3a1747d6a79034fe8f8ac373d788bca8d1ff691f454b2910cbbf405"
+        }
+      ]
+    },
+    {
+      "root": "wiki/game-versions/0.0.1v/data",
+      "count": 8728,
+      "digest": "0124aee803b016f795d20bb9e66b2bf83c04535e321625654df129069f7e2509",
+      "directoryCounts": {
+        "entities": 2905,
+        "graph": 5811,
+        "manifest.json": 1,
+        "navigation": 2,
+        "qa": 6,
+        "relations": 2,
+        "search": 1
+      }
+    },
+    {
+      "root": "wiki/src",
+      "count": 57,
+      "digest": "863dce07f787680e9a0e3f47e3d8eab2ded2f6243af0c1a8203fd2490b03bad4",
+      "files": [
+        {
+          "path": "wiki/src/components/AnatomyIndexContent.astro",
+          "bytes": 4327,
+          "sha256": "6352d9339adaa2283148534b118206b3137a6e4bdf6a4ca2f417b8a4f578feb4"
+        },
+        {
+          "path": "wiki/src/components/AnatomyReferenceContent.astro",
+          "bytes": 3227,
+          "sha256": "f9b68b34b0326412c70df5efda35a3f295b12410729f5feabac793d4dd7b39d8"
+        },
+        {
+          "path": "wiki/src/components/BacklinkTable.astro",
+          "bytes": 1450,
+          "sha256": "132d77e016bd1890c75df187fad069e350a163f193b631ba9def2195be3b5997"
+        },
+        {
+          "path": "wiki/src/components/BaseLayout.astro",
+          "bytes": 2813,
+          "sha256": "e7c3e04db67fd307ba8b934acb438fc9009725ce460f1491033f83c5635c362f"
+        },
+        {
+          "path": "wiki/src/components/CategoryContent.astro",
+          "bytes": 842,
+          "sha256": "633a35ce90aed13a7960105271a333b33b36e2fd6ec993106263a1e7eca5797e"
+        },
+        {
+          "path": "wiki/src/components/DirectoryBoard.astro",
+          "bytes": 1331,
+          "sha256": "a298ce16bf924a6d970f8e269bcfa1491fedaf6be0d7a65ab12575434221e5b6"
+        },
+        {
+          "path": "wiki/src/components/DocumentToc.astro",
+          "bytes": 4647,
+          "sha256": "32516e528ea7be36acceff7e53c8c62122e9a6401444e62a61d1901c4f5b0e66"
+        },
+        {
+          "path": "wiki/src/components/EntityCatalogue.astro",
+          "bytes": 1741,
+          "sha256": "d8cb208345bacf2b5c118a784cb013721cc2ee91078ea44d31fed839e82ed41a"
+        },
+        {
+          "path": "wiki/src/components/EntryContent.astro",
+          "bytes": 4575,
+          "sha256": "fd453a44a1ff9a29dc1280b4c1a82fb05ab58f562a047fd4fb272dd5a1edeea3"
+        },
+        {
+          "path": "wiki/src/components/FactInfobox.astro",
+          "bytes": 340,
+          "sha256": "44fc9dc77ea5b35758eb3f6c95e9f7ad1ed4313ceded880610464c1f5beb4f0c"
+        },
+        {
+          "path": "wiki/src/components/GuideBody.astro",
+          "bytes": 6570,
+          "sha256": "dbe2fba455aeb5dd35d22c18545e68ab0d33f6d7db8f93069ef33ce3719ab8fd"
+        },
+        {
+          "path": "wiki/src/components/HealthCommunityContent.astro",
+          "bytes": 4337,
+          "sha256": "120ba68eee1f212b9661fce796f52afb9da8747dc9765d107ef66a8c86197de1"
+        },
+        {
+          "path": "wiki/src/components/Icon.astro",
+          "bytes": 1527,
+          "sha256": "f1df07887b554feb2320fdf840cae1f41c9052b4db15fed5eb03625e68291865"
+        },
+        {
+          "path": "wiki/src/components/NeedReferenceContent.astro",
+          "bytes": 3943,
+          "sha256": "24afea7a1ab5957ad681ce5c05d890c9f913fe3aede8939018b702baa82ea637"
+        },
+        {
+          "path": "wiki/src/components/RecipeSection.astro",
+          "bytes": 4053,
+          "sha256": "2a9abda85ddfcb58940efedead66b2cbce436f4b57dd67e28f0f973bdc920667"
+        },
+        {
+          "path": "wiki/src/components/RelatedRecipeTable.astro",
+          "bytes": 2385,
+          "sha256": "8c568840f22ec2452f9358a187432d1d596debd14600de793f705fffbe76331b"
+        },
+        {
+          "path": "wiki/src/components/RelationGraph.astro",
+          "bytes": 1850,
+          "sha256": "61e31a571248bdc45b2aee114c6d73c996176a966ca2e3dbe2190b1e6ace91f6"
+        },
+        {
+          "path": "wiki/src/components/RelationTable.astro",
+          "bytes": 3917,
+          "sha256": "8cc84da1d1ab8aa52f0d7a47bf7a413762455e40572fa7f769eb1b7e3131d4a7"
+        },
+        {
+          "path": "wiki/src/components/SpoilerBlock.astro",
+          "bytes": 906,
+          "sha256": "852a332fc3be89006b538d1c7e24b2c646db7212c0cd85cdcd86252866dc50e0"
+        },
+        {
+          "path": "wiki/src/components/SystemIndex.astro",
+          "bytes": 2495,
+          "sha256": "d0e75d57756a4a682018617ea2bb2317602d75ef9060b6b6831d77bf69b88b1f"
+        },
+        {
+          "path": "wiki/src/components/WorkReferenceContent.astro",
+          "bytes": 2354,
+          "sha256": "d1b47e4b77089aa3f12be3d835abebe7660b8c0d2e3f5f4dbaefc129786bba09"
+        },
+        {
+          "path": "wiki/src/components/WorkTaskContent.astro",
+          "bytes": 2738,
+          "sha256": "09ada4220e200484e511613858a1912041b274ba3a3b2de482fe54966fa1bf2b"
+        },
+        {
+          "path": "wiki/src/lib/guide-markdown.mjs",
+          "bytes": 3667,
+          "sha256": "7cf1d5274189cc8f37a33e343c7a6c315f192f47e61c6741909d4c004b7b6b83"
+        },
+        {
+          "path": "wiki/src/lib/wiki-data.ts",
+          "bytes": 18749,
+          "sha256": "a26491c298b048f0b38148dab786be1505c43406d87cfe13c025ec9bdb0d225f"
+        },
+        {
+          "path": "wiki/src/middleware.ts",
+          "bytes": 403,
+          "sha256": "7f952107d88e9ea125d9fb8babb15e90702223b6b71d237446d85d1fce62c0b4"
+        },
+        {
+          "path": "wiki/src/pages/404.astro",
+          "bytes": 480,
+          "sha256": "28fa3dacb2be442def7faae07e41c4d2d1f39813270390f8913387dd8670041e"
+        },
+        {
+          "path": "wiki/src/pages/api/search.json.ts",
+          "bytes": 3737,
+          "sha256": "9c6de2735bab418b9836fdc719062af64a6bea6c7c36b70559d0f136581939da"
+        },
+        {
+          "path": "wiki/src/pages/api/spoiler/[version]/[kind]/[slug].json.ts",
+          "bytes": 698,
+          "sha256": "206e1bc34ed2797d24110c00c466f67010c53e1a56a744271febe2c9752e9f63"
+        },
+        {
+          "path": "wiki/src/pages/category/[id].astro",
+          "bytes": 780,
+          "sha256": "e973f4f0dcd335e089379a0d48874f1928931d8081ffb593f0b2f41bc065e72f"
+        },
+        {
+          "path": "wiki/src/pages/directory.astro",
+          "bytes": 334,
+          "sha256": "7fa356013aaefb44db92172b5c076b59e5d20608422c914f4acf797e41a7322b"
+        },
+        {
+          "path": "wiki/src/pages/download.astro",
+          "bytes": 1188,
+          "sha256": "4789f8a238b77fbd2f4ca7768ad3907a2c19ac32feca9d2ab4fce8024c95a245"
+        },
+        {
+          "path": "wiki/src/pages/entry/[kind]/[slug].astro",
+          "bytes": 691,
+          "sha256": "e5e4b9a9683afe321189a559ff7cd8b8503f283834896eadc414298435aec6aa"
+        },
+        {
+          "path": "wiki/src/pages/game-versions/[version]/category/[id].astro",
+          "bytes": 962,
+          "sha256": "97e447a5e903c673768cfa9c9f69aff8939bc5b101e504fa320899f6398328f2"
+        },
+        {
+          "path": "wiki/src/pages/game-versions/[version]/entry/[kind]/[slug].astro",
+          "bytes": 743,
+          "sha256": "0e477458083c7a9bd6015aa6f70eb62d91546aedc95b679a21ed22a7acc662b5"
+        },
+        {
+          "path": "wiki/src/pages/game-versions/[version]/guide/[id].astro",
+          "bytes": 1462,
+          "sha256": "af178fde8021ed52e47034fdf2818c79003417d10820d12f26dcd3ad90dbbb9e"
+        },
+        {
+          "path": "wiki/src/pages/game-versions/[version]/health-community/index.astro",
+          "bytes": 517,
+          "sha256": "b00529a8e4d375d56e33d5439edbc5097805ea4937afdc27d06632a716bc8238"
+        },
+        {
+          "path": "wiki/src/pages/game-versions/[version]/health/[id].astro",
+          "bytes": 700,
+          "sha256": "c84a888219ead844b3555ccd4f78846b3ab9784b375ae7b3e1e6d0e11d0a8b1c"
+        },
+        {
+          "path": "wiki/src/pages/game-versions/[version]/health/index.astro",
+          "bytes": 590,
+          "sha256": "2608a3c01286647c1f277272640afcce59ed515cbcfdc326c10e39a58f4544c8"
+        },
+        {
+          "path": "wiki/src/pages/game-versions/[version]/index.astro",
+          "bytes": 635,
+          "sha256": "21e59a2633113351c63c2e35a6174772b0c2998561a2626684cefb8d10bf5b46"
+        },
+        {
+          "path": "wiki/src/pages/game-versions/[version]/needs/[id].astro",
+          "bytes": 684,
+          "sha256": "2ad68dfc35c2997bd5d4a472a5ccdbf6ab774d99f7bdbeeccd46cf64eebad9b3"
+        },
+        {
+          "path": "wiki/src/pages/game-versions/[version]/recipes.astro",
+          "bytes": 818,
+          "sha256": "fb25650947fc26362576f15736b671ac1642273a00a9f47066d9dad31882ea10"
+        },
+        {
+          "path": "wiki/src/pages/game-versions/[version]/work/[id].astro",
+          "bytes": 683,
+          "sha256": "de05a0d49286adf37e906f64e9cb5fbee50b907af05a8d6b895131ad72d9c137"
+        },
+        {
+          "path": "wiki/src/pages/game-versions/[version]/work/[reference]/[task].astro",
+          "bytes": 744,
+          "sha256": "79781b386ab4ce90e236bf40b851bab7b1820c1cf8a2218a01f04e652e63dd6f"
+        },
+        {
+          "path": "wiki/src/pages/guide/[id].astro",
+          "bytes": 1822,
+          "sha256": "3ab642a31c7886763602abf0e70925bced95e4d1cc1591544ad3688481a0ad74"
+        },
+        {
+          "path": "wiki/src/pages/health-community/index.astro",
+          "bytes": 468,
+          "sha256": "78cf37f6695dd3823b0a2670c9e7f8cc529e73909adb10fb6db83058c0cbf03a"
+        },
+        {
+          "path": "wiki/src/pages/health/[id].astro",
+          "bytes": 573,
+          "sha256": "7dd922537d52f833dc3dc0c8555f625683e33b5af1ec881cb7657e011ca1e3bd"
+        },
+        {
+          "path": "wiki/src/pages/health/index.astro",
+          "bytes": 530,
+          "sha256": "33fcf0b884fe4e481448f313ac8e6f982ccdc3cc43bead863dd2f7e7929bbf19"
+        },
+        {
+          "path": "wiki/src/pages/index.astro",
+          "bytes": 2983,
+          "sha256": "6d2a63dcaa373aa0874206867c4fe390f565c86e52647200edc98dbd514a36d0"
+        },
+        {
+          "path": "wiki/src/pages/needs/[id].astro",
+          "bytes": 558,
+          "sha256": "2ed85000590f30ec122af6d014ea28e8ca8fdbbb8fc0fd277bcbf57fd3d01c3e"
+        },
+        {
+          "path": "wiki/src/pages/recipes.astro",
+          "bytes": 661,
+          "sha256": "72237152b56174d274813bb64c37eabc6c89c734acf51f20a1dfe403fe7ef889"
+        },
+        {
+          "path": "wiki/src/pages/search.astro",
+          "bytes": 975,
+          "sha256": "58bdbda76e573301ccf141576320865dfab44e3e5e144015ce21a6a44fc7d391"
+        },
+        {
+          "path": "wiki/src/pages/status.astro",
+          "bytes": 2858,
+          "sha256": "488b20d8b67764757611658bddbc4970f56b5662fcb904526f6fbc1edbfdde48"
+        },
+        {
+          "path": "wiki/src/pages/updates/[version].astro",
+          "bytes": 1302,
+          "sha256": "81a3f2d52c6da614fbeeac6f1cea305351a1ac8bb94cc97dec648542f4b3333e"
+        },
+        {
+          "path": "wiki/src/pages/updates/index.astro",
+          "bytes": 916,
+          "sha256": "8b571cf3b09d4a2bd522ef674e64de1b0b278f0bb03ef47d731baed798cd2571"
+        },
+        {
+          "path": "wiki/src/pages/work/[id].astro",
+          "bytes": 558,
+          "sha256": "7f33e487e2181a63520d57e955b725efc6872dfe12c089be969c5f2c3f5e0eab"
+        },
+        {
+          "path": "wiki/src/pages/work/[reference]/[task].astro",
+          "bytes": 603,
+          "sha256": "3d271cd962a21512eddd097bc6e2008fa785f2c00fd5870bc66df68a451523fe"
+        },
+        {
+          "path": "wiki/src/styles/global.css",
+          "bytes": 38729,
+          "sha256": "00da0ac1fb0602926cfc784679b9e7f7b29ed20a049c11197efd373f64954682"
+        }
+      ]
+    }
+  ]
+}

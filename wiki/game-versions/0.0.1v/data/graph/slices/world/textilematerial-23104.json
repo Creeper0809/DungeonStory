@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "textilematerial-23104",
+    "spoiler_tier": "none",
+    "title": "습지 캔버스"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/textilematerial-23104",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

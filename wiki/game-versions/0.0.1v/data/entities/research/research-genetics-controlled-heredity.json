@@ -1,0 +1,85 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "819"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Surgery And Transplant"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-reproductive-medicine",
+      "target_spoiler_tier": "none",
+      "target_title": "생식 의학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-reproductive-medicine",
+      "target_spoiler_tier": "none",
+      "target_title": "생식 의학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-reproductive-medicine",
+      "target_spoiler_tier": "none",
+      "target_title": "생식 의학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-genetics-hereditary-records",
+      "target_spoiler_tier": "none",
+      "target_title": "유전 기록과 형질 분석",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-genetics-hereditary-records",
+      "target_spoiler_tier": "none",
+      "target_title": "유전 기록과 형질 분석",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-genetics-hereditary-records",
+      "target_spoiler_tier": "none",
+      "target_title": "유전 기록과 형질 분석",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8880",
+      "target_spoiler_tier": "none",
+      "target_title": "유전 상담실",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-genetics-controlled-heredity",
+  "spoiler_tier": "none",
+  "summary": "형질 분석과 생식 의학, 선별 사육을 유전 상담에 적용한다.",
+  "title": "통제 유전"
+}

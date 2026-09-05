@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.85kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "40개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "13"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "멧돼지 고기와 뿌리채소를 오래 끓여 국물까지 든든하게 만든 고급식이다. 하르나크의 큰솥의 몫에서는 멧돼지 스튜의 살코기와 국물을 어린 주민과 부상자에게 먼저 나눈다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "food-boar-stew",
+  "spoiler_tier": "none",
+  "summary": "고기와 뿌리를 끓인 혼합 고급식.",
+  "title": "멧돼지 스튜"
+}

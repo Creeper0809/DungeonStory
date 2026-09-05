@@ -1,0 +1,53 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "28"
+    },
+    {
+      "label": "필요 연구",
+      "value": "농산 조리"
+    },
+    {
+      "label": "사이클당 깨끗한 물",
+      "value": "1.9"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "food-mushroom-soup",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴버섯국",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-crops",
+      "target_spoiler_tier": "none",
+      "target_title": "농산 조리",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-cave-mushroom",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴버섯",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-mushroom-soup",
+  "spoiler_tier": "none",
+  "summary": "동굴버섯국 생산 주문",
+  "title": "동굴버섯국"
+}

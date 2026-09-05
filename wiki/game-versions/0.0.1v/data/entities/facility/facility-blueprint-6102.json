@@ -1,0 +1,22 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "research",
+      "target_slug": "research-defense-fortification",
+      "target_spoiler_tier": "none",
+      "target_title": "요새화",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "facility-blueprint-6102",
+  "spoiler_tier": "none",
+  "summary": "경비 동선과 병영을 강화하는 전술·보안 파츠를 즉시 해금한다.",
+  "title": "요새화 설계도"
+}

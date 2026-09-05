@@ -1,0 +1,246 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-society-household-records",
+    "spoiler_tier": "none",
+    "title": "가구 기록과 영아 돌봄"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-society-household-records",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-quarters",
+      "target_spoiler_tier": "none",
+      "target_title": "기본 숙소",
+      "to": "research/research-authority-quarters",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-household-records",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-quarters",
+      "target_spoiler_tier": "none",
+      "target_title": "기본 숙소",
+      "to": "research/research-authority-quarters",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-household-records",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-quarters",
+      "target_spoiler_tier": "none",
+      "target_title": "기본 숙소",
+      "to": "research/research-authority-quarters",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-household-records",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-medical",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 회복",
+      "to": "research/research-survival-medical",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-household-records",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-medical",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 회복",
+      "to": "research/research-survival-medical",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-household-records",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-medical",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 회복",
+      "to": "research/research-survival-medical",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-household-records",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8857",
+      "target_spoiler_tier": "none",
+      "target_title": "가구 등록대",
+      "to": "facility/building-8857",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-household-records",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8858",
+      "target_spoiler_tier": "none",
+      "target_title": "보육실",
+      "to": "facility/building-8858",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-housing-room-assignment",
+      "label": "선행 연구",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-housing-room-assignment",
+      "label": "선행 연구",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-housing-room-assignment",
+      "label": "선행 연구",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "선행 연구",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "선행 연구",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "선행 연구",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-reproductive-medicine",
+      "label": "선행 연구",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-reproductive-medicine",
+      "label": "선행 연구",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-reproductive-medicine",
+      "label": "선행 연구",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-trauma-medicine",
+      "label": "선행 연구",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-trauma-medicine",
+      "label": "선행 연구",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-trauma-medicine",
+      "label": "선행 연구",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-career-records",
+      "label": "선행 연구",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-career-records",
+      "label": "선행 연구",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-career-records",
+      "label": "선행 연구",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-child-education",
+      "label": "선행 연구",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-child-education",
+      "label": "선행 연구",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-child-education",
+      "label": "선행 연구",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-corpse-care",
+      "label": "선행 연구",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-corpse-care",
+      "label": "선행 연구",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-corpse-care",
+      "label": "선행 연구",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

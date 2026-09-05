@@ -1,0 +1,112 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "2182"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Surgery And Transplant"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-mycelial-grafting",
+      "target_spoiler_tier": "none",
+      "target_title": "균사 접목학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-mycelial-grafting",
+      "target_spoiler_tier": "none",
+      "target_title": "균사 접목학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-mycelial-grafting",
+      "target_spoiler_tier": "none",
+      "target_title": "균사 접목학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-gerontology",
+      "target_spoiler_tier": "none",
+      "target_title": "노인학과 생물학적 연령 계측",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-gerontology",
+      "target_spoiler_tier": "none",
+      "target_title": "노인학과 생물학적 연령 계측",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-gerontology",
+      "target_spoiler_tier": "none",
+      "target_title": "노인학과 생물학적 연령 계측",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-organ-preservation",
+      "target_spoiler_tier": "none",
+      "target_title": "장기 보존",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-organ-preservation",
+      "target_spoiler_tier": "none",
+      "target_title": "장기 보존",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-organ-preservation",
+      "target_spoiler_tier": "none",
+      "target_title": "장기 보존",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8867",
+      "target_spoiler_tier": "none",
+      "target_title": "재생 배양조",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-medical-regenerative-culture",
+  "spoiler_tier": "none",
+  "summary": "생물학적 연령 계측, 장기 보존과 균사 이식으로 재생 조직을 배양한다.",
+  "title": "재생 배양"
+}

@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Community"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ambition-mentor-generation",
+  "spoiler_tier": "none",
+  "summary": "세 명의 도제를 숙련자로 성장시키고 자신의 실패까지 전하려 한다.",
+  "title": "다음 세대의 스승"
+}

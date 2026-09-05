@@ -1,0 +1,62 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "방어구 재단"
+    },
+    {
+      "label": "제작 작업",
+      "value": "168"
+    },
+    {
+      "label": "무게",
+      "value": "6.2kg"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "combat",
+  "relations": [
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-armor-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "방어구 재단",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-brigandine-padding",
+      "target_spoiler_tier": "none",
+      "target_title": "브리간딘 안감",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-textile-hardener",
+      "target_spoiler_tier": "none",
+      "target_title": "직물 경화제",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "textile-quilted-liner",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 충전재",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "equipment-item-armor-brigandine",
+  "spoiler_tier": "none",
+  "summary": "브리간딘 전투 장비",
+  "title": "브리간딘"
+}

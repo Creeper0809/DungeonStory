@@ -10,6 +10,7 @@ public sealed class ProcessFluidUseRuntime : IProcessFluidUseRuntime
     private readonly IManualWaterTransferTransaction manualWater;
     private readonly IFluidWastewaterTransaction wastewater;
     private readonly IWorldItemStackRuntime items;
+    private readonly IFluidFacilityInputOwnerAuthority inputOwners;
 
     public ProcessFluidUseRuntime(
         IFluidInfrastructureTransaction water,
@@ -17,6 +18,10 @@ public sealed class ProcessFluidUseRuntime : IProcessFluidUseRuntime
         IWorldItemStackRuntime items)
     {
         this.water = water ?? throw new ArgumentNullException(nameof(water));
+        inputOwners = water as IFluidFacilityInputOwnerAuthority
+            ?? throw new ArgumentException(
+                "Process fluid requires exact input-owner authority.",
+                nameof(water));
         batchWater = water as IFluidInfrastructureBatchTransaction;
         manualWater = water as IManualWaterTransferTransaction;
         this.wastewater = wastewater
@@ -58,6 +63,16 @@ public sealed class ProcessFluidUseRuntime : IProcessFluidUseRuntime
         string facilityId = IndustrialInfrastructureIdentity.GetNodeId(facility);
         string destinationId =
             $"plumbing:process-water:{facilityId}:{workTypeId.Value}";
+        if (!inputOwners.TryEnsureManualDestination(
+                facility,
+                destinationId,
+                ability.cleanWaterPerCycle,
+                out string ownerFailure))
+        {
+            throw new InvalidOperationException(
+                "Process-fluid destination authority is unavailable: "
+                + ownerFailure);
+        }
         int requiredContainers = Mathf.Max(
             1,
             Mathf.CeilToInt(ability.cleanWaterPerCycle));
@@ -89,8 +104,8 @@ public sealed class ProcessFluidUseRuntime : IProcessFluidUseRuntime
             && stack.Quantity > 0);
         if (!alreadyRequested)
         {
-            items.TryRequestFacilityDelivery(
-                StockCategory.Water,
+            items.TryRequestItemDelivery(
+                FluidFacilityInputOwnerProjectionAuthority.CleanWaterItemId,
                 requiredContainers,
                 facility.centerPos,
                 destinationId,
@@ -152,6 +167,16 @@ public sealed class ProcessFluidUseRuntime : IProcessFluidUseRuntime
                 IndustrialInfrastructureIdentity.GetNodeId(facility);
             string destinationId =
                 $"plumbing:process-water:{facilityId}:{workTypeId.Value}";
+            if (!inputOwners.TryEnsureManualDestination(
+                    facility,
+                    destinationId,
+                    ability.cleanWaterPerCycle,
+                    out string ownerFailure))
+            {
+                throw new InvalidOperationException(
+                    "Process-fluid destination authority is unavailable: "
+                    + ownerFailure);
+            }
             consumed = water.TryConsumeManualContainer(
                 facility,
                 destinationId,
@@ -159,8 +184,8 @@ public sealed class ProcessFluidUseRuntime : IProcessFluidUseRuntime
                 out _);
             if (!consumed)
             {
-                items.TryRequestFacilityDelivery(
-                    StockCategory.Water,
+                items.TryRequestItemDelivery(
+                    FluidFacilityInputOwnerProjectionAuthority.CleanWaterItemId,
                     1,
                     facility.centerPos,
                     destinationId,
@@ -245,6 +270,16 @@ public sealed class ProcessFluidUseRuntime : IProcessFluidUseRuntime
                 IndustrialInfrastructureIdentity.GetNodeId(facility);
             string destinationId =
                 $"plumbing:process-water:{facilityId}:{workTypeId.Value}";
+            if (!inputOwners.TryEnsureManualDestination(
+                    facility,
+                    destinationId,
+                    requiredWater,
+                    out string ownerFailure))
+            {
+                throw new InvalidOperationException(
+                    "Process-fluid destination authority is unavailable: "
+                    + ownerFailure);
+            }
             consumed = water.TryConsumeManualContainer(
                 facility,
                 destinationId,
@@ -252,8 +287,8 @@ public sealed class ProcessFluidUseRuntime : IProcessFluidUseRuntime
                 out _);
             if (!consumed)
             {
-                items.TryRequestFacilityDelivery(
-                    StockCategory.Water,
+                items.TryRequestItemDelivery(
+                    FluidFacilityInputOwnerProjectionAuthority.CleanWaterItemId,
                     Mathf.Max(1, Mathf.CeilToInt(requiredWater)),
                     facility.centerPos,
                     destinationId,
@@ -413,6 +448,16 @@ public sealed class ProcessFluidUseRuntime : IProcessFluidUseRuntime
                     demand.Facility);
                 string destinationId =
                     $"plumbing:process-water:{nodeId}:{demand.WorkTypeId.Value}";
+                if (!inputOwners.TryEnsureManualDestination(
+                        demand.Facility,
+                        destinationId,
+                        demand.CleanWater,
+                        out string ownerFailure))
+                {
+                    throw new InvalidOperationException(
+                        "Process-fluid batch destination authority is unavailable: "
+                        + ownerFailure);
+                }
                 string manualOperation =
                     $"{operation}:manual-water:{i:D4}:{nodeId}";
                 if (!manualWater.TryStageManualWaterTransfer(

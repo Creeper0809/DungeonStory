@@ -1,0 +1,7 @@
+faction_id,species_tag,trade_cargo_line_count,trade_cargo_weight_g,trade_cargo_market_value,supply_cargo_line_count,supply_cargo_weight_g,supply_cargo_market_value,trade_cooldown_days,supply_cooldown_days,reinforcement_cooldown_days,source_path
+faction:dungeon:beastkin,Beastkin,3,13250,62,3,11560,328,7,20,10,Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset
+faction:dungeon:demon,Demon,3,7700,1393,3,17700,4685,23,84,10,Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset
+faction:dungeon:golem,Golem,3,21600,1068,3,16300,5571,27,99,10,Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset
+faction:dungeon:harpy,Harpy,3,2380,176,3,3320,504,16,22,10,Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset
+faction:dungeon:kobold,Kobold,3,17820,430,3,20480,1242,25,49,10,Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset
+faction:dungeon:myconid,Myconid,3,9100,178,3,13700,808,22,38,10,Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset

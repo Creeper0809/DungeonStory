@@ -82,11 +82,15 @@ MonoBehaviour:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:quarry
         stockSensorInstallationItemId: component:stock-sensor-panel
+        lanePolicy: 1
+        manualWorkLaneCount: 1
+        automaticWorkLaneCount: 0
     - rid: 1003
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
         defaultBatchCapacity: 4
+        physicalOutputBufferCycleCapacity: 4
         outputCapacities:
         - itemId: material:lead-ingot
           capacity: 24

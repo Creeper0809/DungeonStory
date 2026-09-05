@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "relic-faction-harpy-3",
+    "spoiler_tier": "none",
+    "title": "귀환노래 방울"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "event/faction-arc-harpy",
+      "label": "관련",
+      "to": "item/relic-faction-harpy-3",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

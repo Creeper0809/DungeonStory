@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "자원"
+    },
+    {
+      "label": "크기",
+      "value": "2×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-1501",
+  "spoiler_tier": "none",
+  "summary": "시설의 고유 역할은 전력 소비, 열 공급이다. 건설에는 작업량 456, 재료 처리 목재×6, 철괴×6, 석재 블록×2, 기계 부품×3이 필요하다.",
+  "title": "냉각기"
+}

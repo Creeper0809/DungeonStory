@@ -15,6 +15,7 @@ public sealed class ProductionBillSceneFacade :
     private readonly IProductionBillCoreOrderCommand orders;
     private readonly IProductionBillCoreWorkExecution work;
     private readonly IProductionAssemblyBridge bridge;
+    private readonly IAutomationExecutionModeQuery automationModes;
     private readonly ExtremeTraitRuntime extremeTraits;
     private readonly IGameClock clock;
     private readonly CharacterIdentityEventPublisher identityEvents;
@@ -24,6 +25,7 @@ public sealed class ProductionBillSceneFacade :
         IProductionBillCoreOrderCommand orders,
         IProductionBillCoreWorkExecution work,
         IProductionAssemblyBridge bridge,
+        IAutomationExecutionModeQuery automationModes,
         ExtremeTraitRuntime extremeTraits,
         IGameClock clock,
         CharacterIdentityEventPublisher identityEvents)
@@ -32,6 +34,8 @@ public sealed class ProductionBillSceneFacade :
         this.orders = orders ?? throw new ArgumentNullException(nameof(orders));
         this.work = work ?? throw new ArgumentNullException(nameof(work));
         this.bridge = bridge ?? throw new ArgumentNullException(nameof(bridge));
+        this.automationModes = automationModes
+            ?? throw new ArgumentNullException(nameof(automationModes));
         this.extremeTraits = extremeTraits
             ?? throw new ArgumentNullException(nameof(extremeTraits));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
@@ -41,10 +45,13 @@ public sealed class ProductionBillSceneFacade :
 
     public int Version => query.Version;
     public IReadOnlyList<ProductionBillSnapshot> GetBills(
-        BuildableObject facility) => query.GetBills(
-            bridge.CaptureFacility(facility));
+        BuildableObject facility) =>
+        ProductionFacilityDefinitionIdentity.IsProductionWorkstation(facility)
+            ? query.GetBills(bridge.CaptureFacility(facility))
+            : Array.Empty<ProductionBillSnapshot>();
     public bool HasStockSensor(BuildableObject facility) =>
-        query.HasStockSensor(bridge.CaptureFacility(facility));
+        ProductionFacilityDefinitionIdentity.IsProductionWorkstation(facility)
+        && query.HasStockSensor(bridge.CaptureFacility(facility));
     public ProductionBillCommandResult AddBill(
         BuildableObject facility,
         string recipeId,
@@ -94,15 +101,36 @@ public sealed class ProductionBillSceneFacade :
             bridge.CaptureFacility(facility));
     public ProductionWorkAvailabilityResult CheckWorkAvailability(
         BuildableObject facility,
-        WorkTypeId workTypeId) => work.CheckWorkAvailability(
-            bridge.CaptureFacility(facility),
-            workTypeId);
+        WorkTypeId workTypeId)
+    {
+        ProductionFacilityHandle handle = bridge.CaptureFacility(facility);
+        if (!TryAuthorizeExecution(
+                handle,
+                ProductionFacilityDefinitionIdentity.IsProductionWorkstation(facility),
+                ProductionWorkstationExecutionAuthority.ManualActor,
+                out DomainFailure failure))
+        {
+            return new ProductionWorkAvailabilityResult(false, failure, null);
+        }
+        return work.CheckWorkAvailability(handle, workTypeId);
+    }
     public ProductionWorkBeginResult BeginWork(
         CharacterActor worker,
         BuildableObject facility,
         WorkTypeId workTypeId)
     {
         ProductionFacilityHandle facilityHandle = bridge.CaptureFacility(facility);
+        ProductionWorkstationExecutionAuthority authority = worker == null
+            ? ProductionWorkstationExecutionAuthority.AutomaticExecutor
+            : ProductionWorkstationExecutionAuthority.ManualActor;
+        if (!TryAuthorizeExecution(
+                facilityHandle,
+                ProductionFacilityDefinitionIdentity.IsProductionWorkstation(facility),
+                authority,
+                out DomainFailure executionFailure))
+        {
+            return new ProductionWorkBeginResult(null, executionFailure);
+        }
         ProductionWorkAvailabilityResult preview = work.CheckWorkAvailability(
             facilityHandle,
             workTypeId);
@@ -126,7 +154,9 @@ public sealed class ProductionBillSceneFacade :
         }
 
         ProductionWorkBeginResult result = work.BeginWork(
-            bridge.CaptureWorker(worker),
+            authority == ProductionWorkstationExecutionAuthority.AutomaticExecutor
+                ? ProductionWorkerHandle.AutomaticExecutor
+                : bridge.CaptureWorker(worker),
             facilityHandle,
             workTypeId);
         if (!result.Succeeded
@@ -156,24 +186,74 @@ public sealed class ProductionBillSceneFacade :
         ProductionBillId billId,
         float amount)
     {
+        ProductionFacilityHandle facilityHandle = bridge.CaptureFacility(facility);
+        ProductionWorkstationExecutionAuthority authority = worker == null
+            ? ProductionWorkstationExecutionAuthority.AutomaticExecutor
+            : ProductionWorkstationExecutionAuthority.ManualActor;
+        if (!TryAuthorizeExecution(
+                facilityHandle,
+                ProductionFacilityDefinitionIdentity.IsProductionWorkstation(facility),
+                authority,
+                out DomainFailure executionFailure))
+        {
+            return new ProductionWorkExecutionResult(
+                false,
+                false,
+                ProductionBillOutcomeCode.None,
+                executionFailure);
+        }
         ProductionWorkExecutionResult result = work.ExecuteWork(
-            bridge.CaptureWorker(worker),
-            bridge.CaptureFacility(facility),
+            authority == ProductionWorkstationExecutionAuthority.AutomaticExecutor
+                ? ProductionWorkerHandle.AutomaticExecutor
+                : bridge.CaptureWorker(worker),
+            facilityHandle,
             billId,
             amount);
-        if (result.Succeeded)
+        if (worker != null && result.Succeeded)
         {
             extremeTraits.RefreshProductionLimitBreak(
                 worker,
                 billId.Value,
                 clock.Time);
         }
-        if (result.CycleCompleted)
+        if (worker != null && result.CycleCompleted)
         {
             extremeTraits.EndProductionLimitBreak(worker, billId.Value, clock.Time);
             PublishProductionCompleted(worker, billId, result.Outcome.ToString());
         }
         return result;
+    }
+
+    private bool TryAuthorizeExecution(
+        ProductionFacilityHandle facility,
+        bool isProductionWorkstation,
+        ProductionWorkstationExecutionAuthority authority,
+        out DomainFailure failure)
+    {
+        AutomationMode mode = automationModes.GetMode(facility.InstanceId);
+        if (!ProductionWorkstationExecutionModeRules.RequiresLaneAuthorization(
+                isProductionWorkstation,
+                mode,
+                authority))
+        {
+            failure = DomainFailure.None;
+            return true;
+        }
+        if (ProductionWorkstationExecutionModeRules.TryAuthorize(
+                facility.WorkstationLaneProfile,
+                mode,
+                authority,
+                out string failureReason))
+        {
+            failure = DomainFailure.None;
+            return true;
+        }
+
+        failure = new DomainFailure(
+            FailureCode.ProductionBillUnavailable,
+            facility.InstanceId.Value,
+            failureReason);
+        return false;
     }
 
     [GameplayEntryPoint(

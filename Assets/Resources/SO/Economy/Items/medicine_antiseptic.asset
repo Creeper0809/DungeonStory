@@ -26,10 +26,10 @@ MonoBehaviour:
   displayName: "\uC18C\uB3C5\uC81C"
   description: "\uAC10\uC5FC \uC704\uD5D8\uC744 \uB0AE\uCD94\uB294 \uC678\uC6A9 \uC57D\uD488."
   stockCategory: 5
-  unitWeight: 0.18
-  maxStack: 50
+  unitWeight: 0.28
+  maxStack: 40
   sprite: {fileID: 0}
-  unitPrice: 13
+  unitPrice: 15
   features:
   - rid: 1000
   - rid: 1001
@@ -51,7 +51,7 @@ MonoBehaviour:
     - rid: 1002
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.58576924
+        saleRate: 0.5933333
     - rid: 1003
       type: {class: MedicineItemFeature, ns: , asm: DungeonStory.Economy}
       data:

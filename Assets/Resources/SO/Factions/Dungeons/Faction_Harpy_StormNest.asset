@@ -43,6 +43,12 @@ MonoBehaviour:
     amount: 12
   - itemId: resource:feather
     amount: 14
+  tradeEconomicPolicy:
+    capabilityId: faction-economy:paid-market-purchase
+    capabilityVersion: 1
+  supplyEconomicPolicy:
+    capabilityId: faction-economy:alliance-benefit
+    capabilityVersion: 1
   tradeCooldownDays: 16
   supplyCooldownDays: 22
   reinforcementCooldownDays: 10

@@ -34,6 +34,10 @@ public sealed class CharacterBodyHealthRuntime :
     private int tickStateIndex;
     private bool tickPassActive;
     private int observedAggregateRevision;
+#if UNITY_EDITOR
+    private bool creationDiagnosticsEnabledForEditor;
+    private readonly List<string> creationDiagnosticsForEditor = new();
+#endif
 
     public CharacterBodyHealthRuntime(
         ICharacterAiWorldRegistry worldRegistry,
@@ -772,6 +776,24 @@ public sealed class CharacterBodyHealthRuntime :
         }
     }
 
+#if UNITY_EDITOR
+    public void BeginCreationDiagnosticsForEditor()
+    {
+        creationDiagnosticsForEditor.Clear();
+        creationDiagnosticsEnabledForEditor = true;
+    }
+
+    public string EndCreationDiagnosticsForEditor()
+    {
+        creationDiagnosticsEnabledForEditor = false;
+        string result = creationDiagnosticsForEditor.Count == 0
+            ? "none"
+            : string.Join(" || ", creationDiagnosticsForEditor);
+        creationDiagnosticsForEditor.Clear();
+        return result;
+    }
+#endif
+
     private CharacterBodyHealthState GetOrCreate(CharacterActor actor)
     {
         EnsureAggregateRevision();
@@ -786,7 +808,7 @@ public sealed class CharacterBodyHealthRuntime :
             lastTickAt[id] = gameClock.Time;
         }
 
-        CharacterBodyHealthState state = GetOrCreate(id);
+        CharacterBodyHealthState state = GetOrCreate(id, actor);
         AnatomyProfileDefinition profile = stateRules.ResolveForSpecies(
             actor?.SpeciesTag);
         stateRules.EnsureAnatomy(state, profile);
@@ -816,11 +838,14 @@ public sealed class CharacterBodyHealthRuntime :
         // the end of the frame. Read-only queries during that window must not
         // recreate state that an authoritative restore just removed.
         return actor.gameObject.activeInHierarchy
+            && actor.CurrentLifecycleState != CharacterLifecycleState.Despawned
             ? GetOrCreate(actor)
             : null;
     }
 
-    private CharacterBodyHealthState GetOrCreate(CharacterId characterId)
+    private CharacterBodyHealthState GetOrCreate(
+        CharacterId characterId,
+        CharacterActor actorContext = null)
     {
         if (!characterId.IsValid)
         {
@@ -836,6 +861,27 @@ public sealed class CharacterBodyHealthRuntime :
                 stateRules.ResolveProfile(state.anatomyProfileId));
             return state;
         }
+
+#if UNITY_EDITOR
+        if (creationDiagnosticsEnabledForEditor)
+        {
+            string callStack = Environment.StackTrace
+                .Replace("\r", string.Empty)
+                .Replace("\n", " <- ");
+            creationDiagnosticsForEditor.Add(
+                $"id={characterId.Value};actor={actorContext?.name ?? "none"};"
+                + $"type={actorContext?.Identity?.CharacterType.ToString() ?? "none"};"
+                + $"owner={actorContext?.IsOwner ?? false};"
+                // Do not query IsDead while diagnosing creation: for an active
+                // actor it reads the body-health projection and would
+                // recursively enter this exact missing-state path.
+                + $"despawned={actorContext?.CurrentLifecycleState == CharacterLifecycleState.Despawned};"
+                + $"lifecycle={actorContext?.CurrentLifecycleState.ToString() ?? "none"};"
+                + $"activeSelf={actorContext?.gameObject.activeSelf ?? false};"
+                + $"activeInHierarchy={actorContext?.gameObject.activeInHierarchy ?? false};"
+                + $"stack={callStack}");
+        }
+#endif
 
         state = new CharacterBodyHealthState
         {

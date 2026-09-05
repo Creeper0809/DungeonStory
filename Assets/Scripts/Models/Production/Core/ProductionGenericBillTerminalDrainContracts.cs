@@ -117,10 +117,53 @@ public interface IProductionGenericBillTerminalDrainCommand
         out string failureReason);
 }
 
+public interface IProductionGenericBillWipTerminalCheckpointGcCandidate
+{
+}
+
+public interface IProductionGenericBillWipTerminalCheckpointGcPort
+{
+    bool TryPrepareCheckpointGarbageCollection(
+        IReadOnlyList<ProductionGenericBillTerminalDrainSaveData> producers,
+        out IProductionGenericBillWipTerminalCheckpointGcCandidate candidate,
+        out string failureReason);
+
+    bool TryPublishCheckpointGarbageCollection(
+        IProductionGenericBillWipTerminalCheckpointGcCandidate candidate,
+        out string failureReason);
+
+    void RollbackCheckpointGarbageCollection(
+        IProductionGenericBillWipTerminalCheckpointGcCandidate candidate);
+
+    void CompleteCheckpointGarbageCollection(
+        IProductionGenericBillWipTerminalCheckpointGcCandidate candidate);
+}
+
+public interface IProductionGenericBillTerminalDrainCheckpointGcPort
+{
+    ProductionFacilityDestructiveDrainCheckpointGcResult
+        PrepareCheckpointGarbageCollection(
+            ProductionFacilityDestructiveDrainCheckpointGcContext context,
+            IReadOnlyList<ProductionFacilityDestructiveDrainEntrySaveData>
+                entries,
+            out IProductionFacilityDestructiveDrainCheckpointGcCandidate
+                candidate);
+
+    ProductionFacilityDestructiveDrainCheckpointGcResult
+        PublishCheckpointGarbageCollection(
+            IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate);
+
+    void RollbackCheckpointGarbageCollection(
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate);
+
+    void CompleteCheckpointGarbageCollection(
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate);
+}
+
 [Serializable]
 public sealed class ProductionGenericBillTerminalDrainSaveData
 {
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
 
     public int schemaVersion = CurrentSchemaVersion;
     public string parentOperationId = string.Empty;
@@ -189,7 +232,7 @@ public static class ProductionGenericBillTerminalDrainCanonical
 
     public static string CreateSourceBillFingerprint(
         ProductionBillSaveData sourceBill) => Hash(
-        "production-generic-bill-terminal-source@1|"
+        "production-generic-bill-terminal-source@2|"
         + (sourceBill == null ? string.Empty : JsonUtility.ToJson(sourceBill)));
 
     public static string CreateRequestFingerprint(
@@ -249,6 +292,94 @@ public static class ProductionGenericBillTerminalDrainCanonical
         AppendToken(canonical, commitId);
         return Hash(canonical.ToString());
     }
+
+    public static bool TryCreateWipTerminalReceipt(
+        ProductionBillSaveData source,
+        out ProductionWipTerminalReceiptSaveData receipt,
+        out string failureReason)
+    {
+        receipt = null;
+        failureReason = string.Empty;
+        try
+        {
+            long committedOutputMass = (source?.resolvedOutputs
+                    ?? new List<ProductionResolvedOutputSaveData>())
+                .Where(value => value != null)
+                .Aggregate(0L, (total, value) => checked(
+                    total + value.committedMassGrams));
+            long availableMass = checked(
+                source.wipInputMassGrams + source.processCleanWaterMassGrams);
+            long accountedMass = checked(
+                committedOutputMass + source.processWastewaterMassGrams);
+            long declaredLoss = checked(availableMass - accountedMass);
+            if (declaredLoss < 0L)
+            {
+                failureReason =
+                    "production-generic-terminal-wip-negative-declared-loss";
+                return false;
+            }
+            receipt = new ProductionWipTerminalReceiptSaveData
+            {
+                commitId = CreateWipTerminalCommitId(
+                    source.billId,
+                    source.cycleSequence),
+                billId = source.billId,
+                recipeId = source.recipeId,
+                buildingInstanceId = source.buildingInstanceId,
+                cycleSequence = source.cycleSequence,
+                inputCommitId = source.wipInputCommitId,
+                inputQuantity = source.wipInputQuantity,
+                inputMassGrams = source.wipInputMassGrams,
+                processCleanWaterMassGrams = source.processCleanWaterMassGrams,
+                processWastewaterMassGrams = source.processWastewaterMassGrams,
+                wastewaterComponents = (source.processWastewaterComponents
+                        ?? new List<ProductionWastewaterComponentSaveData>())
+                    .OrderBy(value => (int)value.composition)
+                    .ThenBy(value => (int)value.sourceKind)
+                    .ThenBy(value => value.sourceStableId,
+                        StringComparer.Ordinal)
+                    .Select(value => value.Clone())
+                    .ToList(),
+                committedOutputMassGrams = committedOutputMass,
+                reason = ProductionWipTerminalReason.FacilityDestroyed,
+                lossKind = ProductionWipTerminalLossKind
+                    .ExplicitIrrecoverableProcessLoss,
+                declaredLossMassGrams = declaredLoss
+            };
+            return true;
+        }
+        catch (Exception exception) when (exception is NullReferenceException
+                                           or OverflowException)
+        {
+            failureReason = "production-generic-terminal-wip-mass-invalid";
+            return false;
+        }
+    }
+
+    public static bool WipReceiptEquals(
+        ProductionWipTerminalReceiptSaveData left,
+        ProductionWipTerminalReceiptSaveData right) => left != null
+        && right != null
+        && string.Equals(left.commitId, right.commitId, StringComparison.Ordinal)
+        && string.Equals(left.billId, right.billId, StringComparison.Ordinal)
+        && string.Equals(left.recipeId, right.recipeId, StringComparison.Ordinal)
+        && string.Equals(left.buildingInstanceId, right.buildingInstanceId,
+            StringComparison.Ordinal)
+        && left.cycleSequence == right.cycleSequence
+        && string.Equals(left.inputCommitId, right.inputCommitId,
+            StringComparison.Ordinal)
+        && left.inputQuantity == right.inputQuantity
+        && left.inputMassGrams == right.inputMassGrams
+        && left.processCleanWaterMassGrams == right.processCleanWaterMassGrams
+        && left.processWastewaterMassGrams == right.processWastewaterMassGrams
+        && left.committedOutputMassGrams == right.committedOutputMassGrams
+        && left.reason == right.reason
+        && left.lossKind == right.lossKind
+        && left.declaredLossMassGrams == right.declaredLossMassGrams
+        && string.Equals(
+            JsonUtility.ToJson(left.wastewaterComponents),
+            JsonUtility.ToJson(right.wastewaterComponents),
+            StringComparison.Ordinal);
 
     public static bool IsValidSave(
         ProductionGenericBillTerminalDrainSaveData value)
@@ -379,6 +510,12 @@ public static class ProductionGenericBillTerminalDrainCanonical
         && bill.processCleanWaterMassGrams >= 0L
         && bill.processWastewaterMassGrams >= 0L
         && bill.resolvedOutputs != null
+        && bill.resolvedOutputs.All(output => output != null
+            && string.IsNullOrEmpty(output.pendingCommitId)
+            && !output.pendingCommitApplied
+            && output.pendingOutputPublication != null
+            && output.pendingOutputPublication.phase
+                == ProductionExactOutputPublicationPhase.None)
         && bill.processWastewaterComponents != null
         && bill.processManualWaterTransfers != null
         && bill.allowedMaterialIds != null

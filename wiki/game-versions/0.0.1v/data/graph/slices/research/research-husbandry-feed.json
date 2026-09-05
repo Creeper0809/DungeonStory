@@ -1,0 +1,164 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-husbandry-feed",
+    "spoiler_tier": "none",
+    "title": "사료·깔짚"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-husbandry-feed",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-stable",
+      "target_spoiler_tier": "none",
+      "target_title": "축사 관리",
+      "to": "research/research-husbandry-stable",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-feed",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-stable",
+      "target_spoiler_tier": "none",
+      "target_title": "축사 관리",
+      "to": "research/research-husbandry-stable",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-feed",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-stable",
+      "target_spoiler_tier": "none",
+      "target_title": "축사 관리",
+      "to": "research/research-husbandry-stable",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-feed",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1089",
+      "target_spoiler_tier": "none",
+      "target_title": "사료 배합대",
+      "to": "facility/building-1089",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-feed",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1616",
+      "target_spoiler_tier": "none",
+      "target_title": "영양 배합 저울",
+      "to": "facility/building-1616",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-bedding-animal",
+      "label": "필요 조건",
+      "to": "research/research-husbandry-feed",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-bedding-straw",
+      "label": "필요 조건",
+      "to": "research/research-husbandry-feed",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-dog-food",
+      "label": "필요 조건",
+      "to": "research/research-husbandry-feed",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-dog-food-fresh",
+      "label": "필요 조건",
+      "to": "research/research-husbandry-feed",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-hay-feed",
+      "label": "필요 조건",
+      "to": "research/research-husbandry-feed",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-low-fuel-manure",
+      "label": "필요 조건",
+      "to": "research/research-husbandry-feed",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-silage",
+      "label": "필요 조건",
+      "to": "research/research-husbandry-feed",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/source-animal-manure",
+      "label": "필요 조건",
+      "to": "research/research-husbandry-feed",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-livestock",
+      "label": "선행 연구",
+      "to": "research/research-husbandry-feed",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-livestock",
+      "label": "선행 연구",
+      "to": "research/research-husbandry-feed",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-livestock",
+      "label": "선행 연구",
+      "to": "research/research-husbandry-feed",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-taming",
+      "label": "선행 연구",
+      "to": "research/research-husbandry-feed",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-taming",
+      "label": "선행 연구",
+      "to": "research/research-husbandry-feed",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-taming",
+      "label": "선행 연구",
+      "to": "research/research-husbandry-feed",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

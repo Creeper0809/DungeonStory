@@ -2,160 +2,165 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+public enum ProductionOutputCapabilityRoute
+{
+    None = 0,
+    PreparedBatch = 1,
+    ExactCapability = 2
+}
+
 /// <summary>
-/// Positive migration scope for the first production-output vertical slice.
-/// Recipes outside this exact set remain on the legacy output executor.
+/// Selects the common prepared-output transaction from the frozen output
+/// capabilities of a recipe. Content IDs, prefixes and migration cardinality
+/// are deliberately absent: a future definition-only recipe is admitted by
+/// the same standard capability, while a stateful/special capability remains
+/// on its own exact-once producer until it supplies a prepared batch codec.
+/// </summary>
+public static class ProductionPreparedOutputCapabilitySelection
+{
+    public static bool UsesPreparedOutputMaterializer(
+        ProductionRecipeSO recipe,
+        IProductionAssemblyBridge bridge)
+    {
+        if (recipe == null)
+            return false;
+        if (bridge == null)
+            throw new ArgumentNullException(nameof(bridge));
+
+        ProductionOutputDefinition[] physical = recipe
+            .CaptureCanonicalOutputs()
+            .Where(value => value != null
+                && ProductionOutputRoleRules.IsPhysical(value.Role)
+                && value.Amount > 0
+                && value.Probability > 0f)
+            .OrderBy(value => value.OutputLineId, StringComparer.Ordinal)
+            .ToArray();
+        if (physical.Length == 0)
+            return false;
+
+        ProductionOutputCapabilityDescriptor[] descriptors =
+            new ProductionOutputCapabilityDescriptor[physical.Length];
+        for (int i = 0; i < physical.Length; i++)
+        {
+            ProductionOutputDefinition output = physical[i];
+            try
+            {
+                descriptors[i] = bridge.CaptureOutputCapability(
+                    output.OutputLineId,
+                    output.ItemId);
+            }
+            catch (InvalidOperationException)
+            {
+                // Read-only portfolio projections may be built with a partial
+                // domain registry. The executable bill path captures the full
+                // vector again before RNG and fails loudly if it is genuinely
+                // unsupported in the live composition root.
+                return false;
+            }
+        }
+        return ClassifyPhysicalCapabilities(
+                descriptors,
+                bridge.OutputCapabilityContracts)
+            == ProductionOutputCapabilityRoute.PreparedBatch;
+    }
+
+    /// <summary>
+    /// Classifies the complete authored physical-output vector before any RNG
+    /// draw or publication. Standard definition output is transaction-owned by
+    /// the prepared batch coordinator and may never be mixed into the legacy
+    /// per-line exact-capability route.
+    /// </summary>
+    public static ProductionOutputCapabilityRoute ClassifyPhysicalCapabilities(
+        IReadOnlyList<ProductionOutputCapabilityDescriptor> descriptors,
+        IReadOnlyList<ProductionOutputCapabilityContractSnapshot> contracts)
+    {
+        if (descriptors == null)
+            throw new ArgumentNullException(nameof(descriptors));
+        if (contracts == null)
+            throw new ArgumentNullException(nameof(contracts));
+        if (descriptors.Count == 0)
+            return ProductionOutputCapabilityRoute.None;
+
+        Dictionary<string, ProductionOutputCapabilityContractSnapshot>
+            contractById = new(StringComparer.Ordinal);
+        for (int index = 0; index < contracts.Count; index++)
+        {
+            ProductionOutputCapabilityContractSnapshot contract =
+                contracts[index];
+            if (!contractById.TryAdd(contract.CapabilityId, contract))
+            {
+                throw new InvalidOperationException(
+                    "duplicate-output-capability-contract");
+            }
+        }
+
+        bool hasPreparedMaterializer = false;
+        bool hasExactCapability = false;
+        for (int i = 0; i < descriptors.Count; i++)
+        {
+            ProductionOutputCapabilityDescriptor descriptor = descriptors[i];
+            if (!contractById.TryGetValue(
+                    descriptor.CapabilityId,
+                    out ProductionOutputCapabilityContractSnapshot contract)
+                || contract.ContractVersion != descriptor.CapabilityVersion
+                || !string.Equals(
+                    contract.ComponentCodecId,
+                    descriptor.ComponentCodecId,
+                    StringComparison.Ordinal)
+                || contract.ComponentCodecVersion !=
+                    descriptor.ComponentCodecVersion)
+            {
+                throw new InvalidOperationException(
+                    "output-capability-contract-missing-or-drifted");
+            }
+            hasPreparedMaterializer |= contract.ParticipatesInPreparedOutput;
+            hasExactCapability |= !contract.ParticipatesInPreparedOutput;
+        }
+
+        if (hasPreparedMaterializer && hasExactCapability)
+        {
+            throw new InvalidOperationException(
+                "mixed-prepared-output-capability-route-unsupported");
+        }
+        return hasPreparedMaterializer
+            ? ProductionOutputCapabilityRoute.PreparedBatch
+            : ProductionOutputCapabilityRoute.ExactCapability;
+    }
+}
+
+/// <summary>
+/// Canonical profile authority for a capability-selected prepared-output
+/// recipe. The profile is derived from live recipe semantics; it never owns a
+/// recipe registry or content-ID allowlist.
 /// </summary>
 public static class ProductionPreparedOutputMigrationScope
 {
     public const string ProfileDigestSchemaToken =
-        "production-prepared-output-migration-profile@1";
-    public const string RegistryDigestSchemaToken =
-        "production-prepared-output-migration-registry@1";
+        "production-prepared-output-migration-profile@2";
 
-    private static readonly ExactRecipeProfile[] Profiles =
+    public static string CaptureProfileDigest(ProductionRecipeSO recipe)
     {
-        Profile(
-            "recipe:charcoal",
-            ProductionProcessKind.WorkOnly,
-            "charcoal-kiln",
-            "waste:mixed-rot",
-            Line(
-                "output:recipe:charcoal/000/main/material:charcoal",
-                ProductionOutputRole.Main,
-                "material:charcoal",
-                2,
-                1f)),
-        Profile(
-            "recipe:dog-food",
-            ProductionProcessKind.WorkOnly,
-            "feedbench",
-            "waste:mixed-rot",
-            Line("output:main", ProductionOutputRole.Main, "feed:dog-food", 2, 1f)),
-        Profile(
-            "recipe:dog-food-fresh",
-            ProductionProcessKind.WorkOnly,
-            "feedbench",
-            "waste:mixed-rot",
-            Line("output:main", ProductionOutputRole.Main, "feed:dog-food", 2, 1f)),
-        Profile(
-            "recipe:hay-feed",
-            ProductionProcessKind.WorkOnly,
-            "feedbench",
-            "waste:mixed-rot",
-            Line("output:main", ProductionOutputRole.Main, "feed:hay", 3, 1f)),
-        Profile(
-            "recipe:milling-flour",
-            ProductionProcessKind.WorkOnly,
-            "mill",
-            "waste:mixed-rot",
-            Line(
-                "output:recipe:milling-flour/000/main/material:flour",
-                ProductionOutputRole.Main,
-                "material:flour",
-                2,
-                1f)),
-        Profile(
-            "recipe:malt",
-            ProductionProcessKind.WorkOnly,
-            "mill",
-            "waste:mixed-rot",
-            Line(
-                "output:recipe:malt/000/main/material:malt",
-                ProductionOutputRole.Main,
-                "material:malt",
-                2,
-                1f)),
-        Profile(
-            "recipe:sawmill-lumber",
-            ProductionProcessKind.WorkOnly,
-            "sawmill",
-            "waste:mixed-rot",
-            Line(
-                "output:recipe:sawmill-lumber/000/main/material:lumber",
-                ProductionOutputRole.Main,
-                "material:lumber",
-                3,
-                1f)),
-        Profile(
-            "recipe:silage",
-            ProductionProcessKind.PassiveBatch,
-            "feedbench",
-            "waste:plant-rot",
-            Line("output:main", ProductionOutputRole.Main, "feed:silage", 3, 1f)),
-        Profile(
-            "recipe:starch",
-            ProductionProcessKind.WorkOnly,
-            "mill",
-            "waste:mixed-rot",
-            Line(
-                "output:recipe:starch/000/main/material:starch",
-                ProductionOutputRole.Main,
-                "material:starch",
-                2,
-                1f)),
-        Profile(
-            "recipe:steel-ingot",
-            ProductionProcessKind.WorkOnly,
-            "steelworks",
-            "waste:mixed-rot",
-            Line(
-                "output:recipe:steel-ingot/000/main/material:steel-ingot",
-                ProductionOutputRole.Main,
-                "material:steel-ingot",
-                1,
-                1f)),
-        Profile(
-            "recipe:treated-lumber",
-            ProductionProcessKind.WorkOnly,
-            "workstation:v3:treated-lumber",
-            "waste:mixed-rot",
-            Line(
-                "output:recipe:treated-lumber/000/main/material:treated-lumber",
-                ProductionOutputRole.Main,
-                "material:treated-lumber",
-                2,
-                1f))
-    };
-
-    public static bool Contains(string recipeId) => Find(recipeId) != null;
-
-    public static string CaptureProfileDigest(string recipeId)
-    {
-        ExactRecipeProfile profile = Find(recipeId);
-        if (profile == null)
-        {
-            throw new InvalidOperationException(
-                $"Recipe '{recipeId}' is outside the prepared-output migration profile registry.");
-        }
+        if (recipe == null)
+            throw new ArgumentNullException(nameof(recipe));
+        ValidateCanonicalProfileOrThrow(recipe);
         CanonicalSemanticDigestBuilder canonical = new();
         canonical.Append(ProfileDigestSchemaToken);
-        profile.AppendTo(canonical);
-        return canonical.ComputeSha256();
-    }
-
-    public static string CaptureRegistryDigest()
-    {
-        CanonicalSemanticDigestBuilder canonical = new();
-        canonical.Append(RegistryDigestSchemaToken);
-        ExactRecipeProfile[] ordered = Profiles
-            .OrderBy(value => value.RecipeId, StringComparer.Ordinal)
-            .ToArray();
-        canonical.Append(ordered.Length);
-        foreach (ExactRecipeProfile profile in ordered)
-            profile.AppendTo(canonical);
+        canonical.Append(ProductionRecipeSemanticDigest.Capture(recipe));
         return canonical.ComputeSha256();
     }
 
     public static void ValidateSavedProfileDigest(
         ProductionPreparedOutputBatchSaveData batch,
+        ProductionRecipeSO recipe,
         string context)
     {
         if (batch == null)
             throw new ArgumentNullException(nameof(batch));
+        if (recipe == null)
+            throw new ArgumentNullException(nameof(recipe));
         if (batch.phase == ProductionPreparedOutputPhase.Unresolved)
             return;
-        string current = CaptureProfileDigest(batch.recipeId);
+        string current = CaptureProfileDigest(recipe);
         if (!string.Equals(
                 batch.migrationProfileDigest,
                 current,
@@ -163,32 +168,20 @@ public static class ProductionPreparedOutputMigrationScope
         {
             throw new InvalidOperationException(
                 (context ?? string.Empty)
-                + ":prepared-output-migration-profile-stale");
+                + ":prepared-output-capability-profile-stale");
         }
     }
 
-    public static bool MatchesExactProfile(ProductionRecipeSO recipe)
-    {
-        if (recipe == null)
-            return false;
-        ExactRecipeProfile profile = Find(recipe.RecipeId);
-        return profile != null && profile.Matches(recipe);
-    }
-
-    public static void ValidateExactProfileOrThrow(ProductionRecipeSO recipe)
+    public static void ValidateCanonicalProfileOrThrow(
+        ProductionRecipeSO recipe)
     {
         if (recipe == null)
             throw new ArgumentNullException(nameof(recipe));
-        ExactRecipeProfile profile = Find(recipe.RecipeId);
-        if (profile == null)
+        if (string.IsNullOrEmpty(recipe.RecipeId)
+            || recipe.CaptureCanonicalOutputs().Count == 0)
         {
             throw new InvalidOperationException(
-                $"Recipe '{recipe.RecipeId}' is outside the prepared-output migration profile registry.");
-        }
-        if (!profile.Matches(recipe))
-        {
-            throw new InvalidOperationException(
-                $"Recipe '{recipe.RecipeId}' drifted from its exact prepared-output migration profile.");
+                $"Recipe '{recipe.RecipeId}' has no canonical prepared-output profile.");
         }
     }
 
@@ -230,165 +223,6 @@ public static class ProductionPreparedOutputMigrationScope
                 && !record.materialsConsumed;
     }
 
-    private static ExactRecipeProfile Find(string recipeId)
-    {
-        if (string.IsNullOrEmpty(recipeId))
-            return null;
-        for (int index = 0; index < Profiles.Length; index++)
-        {
-            if (string.Equals(
-                    Profiles[index].RecipeId,
-                    recipeId,
-                    StringComparison.Ordinal))
-            {
-                return Profiles[index];
-            }
-        }
-        return null;
-    }
-
-    private static ExactRecipeProfile Profile(
-        string recipeId,
-        ProductionProcessKind processKind,
-        string facilityTag,
-        string spoilageItemId,
-        params ExactOutputLine[] lines) => new(
-        recipeId,
-        processKind,
-        facilityTag,
-        spoilageItemId,
-        lines);
-
-    private static ExactOutputLine Line(
-        string outputLineId,
-        ProductionOutputRole role,
-        string itemId,
-        int amount,
-        float probability) => new(
-        outputLineId,
-        role,
-        itemId,
-        amount,
-        probability);
-
-    private sealed class ExactRecipeProfile
-    {
-        private readonly ProductionProcessKind processKind;
-        private readonly string facilityTag;
-        private readonly string spoilageItemId;
-        private readonly ExactOutputLine[] lines;
-
-        public ExactRecipeProfile(
-            string recipeId,
-            ProductionProcessKind processKind,
-            string facilityTag,
-            string spoilageItemId,
-            IReadOnlyList<ExactOutputLine> lines)
-        {
-            RecipeId = recipeId;
-            this.processKind = processKind;
-            this.facilityTag = facilityTag;
-            this.spoilageItemId = spoilageItemId;
-            this.lines = (lines ?? throw new ArgumentNullException(nameof(lines)))
-                .OrderBy(value => value.OutputLineId, StringComparer.Ordinal)
-                .ToArray();
-            if (string.IsNullOrEmpty(RecipeId)
-                || string.IsNullOrEmpty(this.facilityTag)
-                || string.IsNullOrEmpty(this.spoilageItemId)
-                || this.lines.Length == 0)
-            {
-                throw new InvalidOperationException(
-                    "Prepared-output exact profile is incomplete.");
-            }
-        }
-
-        public string RecipeId { get; }
-
-        public void AppendTo(CanonicalSemanticDigestBuilder canonical)
-        {
-            if (canonical == null)
-                throw new ArgumentNullException(nameof(canonical));
-            canonical.Append(RecipeId);
-            canonical.AppendEnum(processKind);
-            canonical.Append(facilityTag);
-            canonical.Append(spoilageItemId);
-            canonical.Append(lines.Length);
-            foreach (ExactOutputLine line in lines)
-                line.AppendTo(canonical);
-        }
-
-        public bool Matches(ProductionRecipeSO recipe)
-        {
-            if (recipe == null
-                || recipe.ProcessKind != processKind
-                || !string.Equals(recipe.FacilityTag, facilityTag, StringComparison.Ordinal)
-                || !string.Equals(
-                    recipe.SpoilageItemId,
-                    spoilageItemId,
-                    StringComparison.Ordinal))
-            {
-                return false;
-            }
-
-            ProductionOutputDefinition[] authored = recipe
-                .CaptureCanonicalOutputs()
-                .OrderBy(value => value.OutputLineId, StringComparer.Ordinal)
-                .ToArray();
-            if (authored.Length != lines.Length)
-                return false;
-            for (int index = 0; index < authored.Length; index++)
-            {
-                if (!lines[index].Matches(authored[index]))
-                    return false;
-            }
-            return true;
-        }
-    }
-
-    private readonly struct ExactOutputLine
-    {
-        public ExactOutputLine(
-            string outputLineId,
-            ProductionOutputRole role,
-            string itemId,
-            int amount,
-            float probability)
-        {
-            OutputLineId = outputLineId;
-            Role = role;
-            ItemId = itemId;
-            Amount = amount;
-            ProbabilityBits = BitConverter.SingleToInt32Bits(probability);
-        }
-
-        public string OutputLineId { get; }
-        private ProductionOutputRole Role { get; }
-        private string ItemId { get; }
-        private int Amount { get; }
-        private int ProbabilityBits { get; }
-
-        public void AppendTo(CanonicalSemanticDigestBuilder canonical)
-        {
-            if (canonical == null)
-                throw new ArgumentNullException(nameof(canonical));
-            canonical.Append(OutputLineId);
-            canonical.AppendEnum(Role);
-            canonical.Append(ItemId);
-            canonical.Append(Amount);
-            canonical.Append(ProbabilityBits);
-        }
-
-        public bool Matches(ProductionOutputDefinition output) => output != null
-            && string.Equals(
-                output.OutputLineId,
-                OutputLineId,
-                StringComparison.Ordinal)
-            && output.Role == Role
-            && string.Equals(output.ItemId, ItemId, StringComparison.Ordinal)
-            && output.Amount == Amount
-            && BitConverter.SingleToInt32Bits(output.Probability)
-                == ProbabilityBits;
-    }
 }
 
 public readonly struct ProductionPreparedOutputCapacityResult

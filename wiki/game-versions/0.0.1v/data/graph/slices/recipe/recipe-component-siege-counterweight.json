@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-component-siege-counterweight",
+    "spoiler_tier": "none",
+    "title": "공성 균형추 조립품"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-siege-counterweight",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-siege-counterweight",
+      "target_spoiler_tier": "none",
+      "target_title": "공성 균형추 조립품",
+      "to": "item/component-siege-counterweight",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-siege-counterweight",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-lead-counterweight",
+      "target_spoiler_tier": "none",
+      "target_title": "납 균형추",
+      "to": "item/component-lead-counterweight",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-siege-counterweight",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-machine-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "기계 부품",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-siege-counterweight",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-mechanical-projectiles",
+      "target_spoiler_tier": "none",
+      "target_title": "기계식 투사",
+      "to": "research/research-equipment-mechanical-projectiles",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

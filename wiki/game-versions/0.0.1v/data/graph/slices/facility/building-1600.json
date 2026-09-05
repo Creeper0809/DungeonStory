@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1600",
+    "spoiler_tier": "none",
+    "title": "미세 체 선반"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-cuisine-milling",
+      "label": "시설 해금",
+      "to": "facility/building-1600",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

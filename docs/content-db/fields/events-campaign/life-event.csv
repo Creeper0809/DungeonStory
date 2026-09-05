@@ -1,0 +1,1321 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,m_Name,life-event_apprentice-mistake,,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,stableId,life-event:apprentice-mistake,,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,displayName,도제의 큰 실수,,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,description,도제가 귀한 중간재 한 묶음을 망치고 보고를 망설인다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,category,1,LifeEventCategory,Apprenticeship,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,automatic,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,responseDeadlineDays,3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,cooldownDays,90,,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.0.choiceId,first,,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.0.title,손실을 감수하고 원인을 가르친다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.0.outcomeText,손실을 감수하고 원인을 가르친다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.0.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.0.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.0.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.0.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.0.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.0.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.0.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.0.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.0.effects.0.kind,3,V20ContentEffectKind,SkillExperience (숙련 경험치),explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.0.effects.0.targetId,life-event:apprentice-mistake,,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.0.effects.0.amount,25,,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.0.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.1.choiceId,second,,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.1.title,재료 회수 작업을 맡긴다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.1.outcomeText,재료 회수 작업을 맡긴다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.1.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.1.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.1.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.1.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.1.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.1.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.1.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.1.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.1.effects.0.kind,1,V20ContentEffectKind,Mood (기분),explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.1.effects.0.targetId,life-event:apprentice-mistake,,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.1.effects.0.amount,-4,,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,choices.1.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,automaticEffects,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,m_Name,life-event_captains-test,,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,stableId,life-event:captains-test,,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,displayName,대장의 시험,,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,description,퇴로가 불안한 방어전에서 경비대장 후보가 위험한 역습을 제안한다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,category,3,LifeEventCategory,Career,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,automatic,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,responseDeadlineDays,3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,cooldownDays,90,,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.0.choiceId,first,,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.0.title,제한된 역습을 허가한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.0.outcomeText,제한된 역습을 허가한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.0.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.0.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.0.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.0.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.0.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.0.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.0.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.0.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.0.effects.0.kind,16,V20ContentEffectKind,AmbitionProgress (야망 진행),explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.0.effects.0.targetId,life-event:captains-test,,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.0.effects.0.amount,45,,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.0.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.1.choiceId,second,,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.1.title,민간인 철수를 우선한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.1.outcomeText,민간인 철수를 우선한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.1.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.1.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.1.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.1.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.1.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.1.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.1.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.1.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.1.effects.0.kind,5,V20ContentEffectKind,Relationship (관계),explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.1.effects.0.targetId,life-event:captains-test,,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.1.effects.0.amount,6,,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,choices.1.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,automaticEffects,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,m_Name,life-event_childhood-bully,,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,stableId,life-event:childhood-bully,,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,displayName,놀림의 대가,,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,description,문화가 다른 아이를 향한 반복적인 놀림이 다툼으로 번졌다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,category,0,LifeEventCategory,Childhood,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,automatic,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,responseDeadlineDays,3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,cooldownDays,90,,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.0.choiceId,first,,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.0.title,공개 화해 의식을 연다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.0.outcomeText,공개 화해 의식을 연다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.0.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.0.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.0.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.0.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.0.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.0.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.0.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.0.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.0.effects.0.kind,5,V20ContentEffectKind,Relationship (관계),explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.0.effects.0.targetId,life-event:childhood-bully,,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.0.effects.0.amount,5,,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.0.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.1.choiceId,second,,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.1.title,가해자를 별도 교육한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.1.outcomeText,가해자를 별도 교육한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.1.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.1.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.1.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.1.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.1.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.1.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.1.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.1.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.1.effects.0.kind,13,V20ContentEffectKind,WorkDelayDays (작업 지연),explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.1.effects.0.targetId,life-event:childhood-bully,,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.1.effects.0.amount,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,choices.1.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,automaticEffects,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,m_Name,life-event_clinic-shortage,,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,stableId,life-event:clinic-shortage,,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,displayName,누구를 먼저 치료할 것인가,,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,description,의약품이 부족한 날 직원과 외부 손님이 동시에 중증으로 쓰러졌다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,category,3,LifeEventCategory,Career,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,automatic,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,responseDeadlineDays,3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,cooldownDays,90,,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.0.choiceId,first,,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.0.title,위급도 순으로 배분한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.0.outcomeText,위급도 순으로 배분한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.0.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.0.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.0.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.0.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.0.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.0.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.0.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.0.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.0.effects.0.kind,4,V20ContentEffectKind,Health (건강),explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.0.effects.0.targetId,life-event:clinic-shortage,,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.0.effects.0.amount,8,,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.0.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.1.choiceId,second,,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.1.title,공동체 구성원을 우선한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.1.outcomeText,공동체 구성원을 우선한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.1.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.1.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.1.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.1.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.1.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.1.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.1.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.1.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.1.effects.0.kind,6,V20ContentEffectKind,FactionRapport (세력 우호도),explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.1.effects.0.targetId,affected-faction,,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.1.effects.0.amount,-6,,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,choices.1.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,automaticEffects,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,m_Name,life-event_cultural-petition,,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,stableId,life-event:cultural-petition,,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,displayName,식탁의 금기,,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,description,가구가 공동 식당에서 문화적 금기를 지켜 달라는 청원을 냈다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,category,2,LifeEventCategory,Partnership Family,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,automatic,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,responseDeadlineDays,3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,cooldownDays,90,,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.0.choiceId,first,,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.0.title,별도 조리대를 배정한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.0.outcomeText,별도 조리대를 배정한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.0.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.0.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.0.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.0.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.0.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.0.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.0.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.0.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.0.effects.0.kind,1,V20ContentEffectKind,Mood (기분),explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.0.effects.0.targetId,life-event:cultural-petition,,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.0.effects.0.amount,5,,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.0.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.1.choiceId,second,,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.1.title,공통 대체식을 합의한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.1.outcomeText,공통 대체식을 합의한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.1.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.1.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.1.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.1.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.1.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.1.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.1.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.1.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.1.effects.0.kind,5,V20ContentEffectKind,Relationship (관계),explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.1.effects.0.targetId,life-event:cultural-petition,,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.1.effects.0.amount,5,,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,choices.1.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,automaticEffects,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,m_Name,life-event_dangerous-friendship,,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,stableId,life-event:dangerous-friendship,,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,displayName,위험 구역의 친구,,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,description,두 아이가 감독 없이 산업 구역을 지름길로 쓰다 적발됐다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,category,0,LifeEventCategory,Childhood,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,automatic,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,responseDeadlineDays,3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,cooldownDays,90,,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.0.choiceId,first,,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.0.title,안전 교육에 함께 참여시킨다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.0.outcomeText,안전 교육에 함께 참여시킨다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.0.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.0.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.0.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.0.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.0.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.0.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.0.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.0.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.0.effects.0.kind,3,V20ContentEffectKind,SkillExperience (숙련 경험치),explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.0.effects.0.targetId,life-event:dangerous-friendship,,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.0.effects.0.amount,15,,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.0.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.1.choiceId,second,,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.1.title,통행을 엄격히 금지한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.1.outcomeText,통행을 엄격히 금지한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.1.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.1.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.1.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.1.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.1.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.1.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.1.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.1.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.1.effects.0.kind,1,V20ContentEffectKind,Mood (기분),explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.1.effects.0.targetId,life-event:dangerous-friendship,,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.1.effects.0.amount,-3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,choices.1.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,automaticEffects,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,m_Name,life-event_disputed-thesis,,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,stableId,life-event:disputed-thesis,,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,displayName,논쟁적인 논문,,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,description,새 발견이 수석 연구원의 기존 이론을 정면으로 반박한다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,category,3,LifeEventCategory,Career,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,automatic,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,responseDeadlineDays,3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,cooldownDays,90,,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.0.choiceId,first,,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.0.title,증거를 공개 검증한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.0.outcomeText,증거를 공개 검증한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.0.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.0.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.0.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.0.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.0.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.0.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.0.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.0.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.0.effects.0.kind,3,V20ContentEffectKind,SkillExperience (숙련 경험치),explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.0.effects.0.targetId,life-event:disputed-thesis,,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.0.effects.0.amount,30,,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.0.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.1.choiceId,second,,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.1.title,추가 실험까지 보류한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.1.outcomeText,추가 실험까지 보류한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.1.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.1.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.1.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.1.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.1.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.1.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.1.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.1.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.1.effects.0.kind,13,V20ContentEffectKind,WorkDelayDays (작업 지연),explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.1.effects.0.targetId,life-event:disputed-thesis,,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.1.effects.0.amount,2,,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,choices.1.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,automaticEffects,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,m_Name,life-event_elder-birthday,,,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,stableId,life-event:elder-birthday,,,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,displayName,노년의 생일상,,,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,description,여러 세대가 한 자리에 모여 노년 구성원의 생일을 축하했다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,category,4,LifeEventCategory,Elder Retirement,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,automatic,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,responseDeadlineDays,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,cooldownDays,45,,,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,choices,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,automaticEffects.0.kind,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,automaticEffects.0.targetId,life-event:elder-birthday,,,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,automaticEffects.0.amount,3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,automaticEffects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,m_Name,life-event_family-room,,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,stableId,life-event:family-room,,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,displayName,가족이 함께 살 방,,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,description,늘어난 가족이 다른 가구와 뒤섞인 침실을 벗어나길 원한다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,category,2,LifeEventCategory,Partnership Family,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,automatic,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,responseDeadlineDays,3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,cooldownDays,90,,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.0.choiceId,first,,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.0.title,가족실을 우선 배정한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.0.outcomeText,가족실을 우선 배정한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.0.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.0.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.0.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.0.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.0.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.0.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.0.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.0.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.0.effects.0.kind,5,V20ContentEffectKind,Relationship (관계),explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.0.effects.0.targetId,life-event:family-room,,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.0.effects.0.amount,7,,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.0.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.1.choiceId,second,,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.1.title,공동 보육실을 확장한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.1.outcomeText,공동 보육실을 확장한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.1.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.1.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.1.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.1.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.1.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.1.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.1.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.1.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.1.effects.0.kind,1,V20ContentEffectKind,Mood (기분),explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.1.effects.0.targetId,life-event:family-room,,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.1.effects.0.amount,3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,choices.1.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,automaticEffects,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,m_Name,life-event_first-forbidden-door,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,stableId,life-event:first-forbidden-door,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,displayName,잠긴 문 너머,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,description,아이가 출입 금지 구역에서 들려오는 소리를 따라가려 한다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,category,0,LifeEventCategory,Childhood,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,automatic,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,responseDeadlineDays,3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,cooldownDays,90,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.0.choiceId,first,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.0.title,함께 안전하게 확인한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.0.outcomeText,함께 안전하게 확인한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.0.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.0.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.0.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.0.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.0.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.0.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.0.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.0.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.0.effects.0.kind,5,V20ContentEffectKind,Relationship (관계),explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.0.effects.0.targetId,life-event:first-forbidden-door,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.0.effects.0.amount,4,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.0.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.1.choiceId,second,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.1.title,금지 이유를 설명하고 돌려보낸다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.1.outcomeText,금지 이유를 설명하고 돌려보낸다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.1.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.1.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.1.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.1.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.1.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.1.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.1.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.1.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.1.effects.0.kind,1,V20ContentEffectKind,Mood (기분),explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.1.effects.0.targetId,life-event:first-forbidden-door,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.1.effects.0.amount,-2,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,choices.1.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,automaticEffects,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,m_Name,life-event_first-lost-tooth,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,stableId,life-event:first-lost-tooth,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,displayName,첫 이갈이,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,description,아이가 빠진 이를 문화 관습에 따라 간직한다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,category,0,LifeEventCategory,Childhood,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,automatic,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,responseDeadlineDays,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,cooldownDays,45,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,choices,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,automaticEffects.0.kind,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,automaticEffects.0.targetId,life-event:first-lost-tooth,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,automaticEffects.0.amount,2,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,automaticEffects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,m_Name,life-event_first-safe-task,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,stableId,life-event:first-safe-task,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,displayName,첫 안전 작업,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,description,청소년이 감독 아래 첫 작업을 사고 없이 마쳤다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,category,1,LifeEventCategory,Apprenticeship,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,automatic,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,responseDeadlineDays,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,cooldownDays,45,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,choices,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,automaticEffects.0.kind,3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,automaticEffects.0.targetId,life-event:first-safe-task,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,automaticEffects.0.amount,10,,,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,automaticEffects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,m_Name,life-event_foundling-question,,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,stableId,life-event:foundling-question,,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,displayName,나는 어디서 왔어?,,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,description,입양된 아이가 자신의 친부모 기록을 보여 달라고 요청한다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,category,0,LifeEventCategory,Childhood,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,automatic,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,responseDeadlineDays,3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,cooldownDays,90,,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.0.choiceId,first,,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.0.title,기록을 함께 읽는다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.0.outcomeText,기록을 함께 읽는다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.0.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.0.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.0.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.0.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.0.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.0.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.0.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.0.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.0.effects.0.kind,5,V20ContentEffectKind,Relationship (관계),explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.0.effects.0.targetId,life-event:foundling-question,,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.0.effects.0.amount,6,,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.0.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.1.choiceId,second,,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.1.title,성년까지 봉인한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.1.outcomeText,성년까지 봉인한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.1.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.1.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.1.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.1.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.1.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.1.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.1.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.1.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.1.effects.0.kind,2,V20ContentEffectKind,Trauma (트라우마),explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.1.effects.0.targetId,life-event:foundling-question,,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.1.effects.0.amount,3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,choices.1.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,automaticEffects,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,m_Name,life-event_grave-visit,,,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,stableId,life-event:grave-visit,,,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,displayName,묘비 앞의 약속,,,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,description,가까운 이가 묘비를 찾아 지난 선택을 되새겼다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,category,5,LifeEventCategory,Death Legacy,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,automatic,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,responseDeadlineDays,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,cooldownDays,45,,,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,choices,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,automaticEffects.0.kind,2,,,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,automaticEffects.0.targetId,life-event:grave-visit,,,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,automaticEffects.0.amount,-2,,,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,automaticEffects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,m_Name,life-event_guardian-oath,,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,stableId,life-event:guardian-oath,,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,displayName,보호자의 맹세,,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,description,고아가 된 미성년자의 보호자 후보 둘이 서로 다른 미래를 약속한다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,category,2,LifeEventCategory,Partnership Family,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,automatic,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,responseDeadlineDays,3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,cooldownDays,90,,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.0.choiceId,first,,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.0.title,가까운 관계를 우선한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.0.outcomeText,가까운 관계를 우선한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.0.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.0.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.0.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.0.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.0.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.0.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.0.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.0.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.0.effects.0.kind,5,V20ContentEffectKind,Relationship (관계),explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.0.effects.0.targetId,life-event:guardian-oath,,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.0.effects.0.amount,6,,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.0.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.1.choiceId,second,,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.1.title,안정된 가구를 우선한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.1.outcomeText,안정된 가구를 우선한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.1.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.1.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.1.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.1.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.1.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.1.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.1.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.1.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.1.effects.0.kind,4,V20ContentEffectKind,Health (건강),explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.1.effects.0.targetId,life-event:guardian-oath,,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.1.effects.0.amount,4,,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,choices.1.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,automaticEffects,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,m_Name,life-event_household-meal,,,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,stableId,life-event:household-meal,,,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,displayName,늦은 가족 식사,,,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,description,엇갈리던 가구 구성원들이 오랜만에 같은 식탁에 앉았다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,category,2,LifeEventCategory,Partnership Family,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,automatic,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,responseDeadlineDays,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,cooldownDays,45,,,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,choices,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,automaticEffects.0.kind,5,,,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,automaticEffects.0.targetId,life-event:household-meal,,,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,automaticEffects.0.amount,2,,,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,automaticEffects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,m_Name,life-event_inherited-debt,,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,stableId,life-event:inherited-debt,,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,displayName,가구에 남은 빚,,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,description,사망자의 세력 의무가 남은 가족에게 청구됐다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,category,2,LifeEventCategory,Partnership Family,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,automatic,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,responseDeadlineDays,3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,cooldownDays,90,,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.0.choiceId,first,,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.0.title,물자로 상환한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.0.outcomeText,물자로 상환한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.0.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.0.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.0.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.0.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.0.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.0.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.0.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.0.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.0.effects.0.kind,8,V20ContentEffectKind,FactionObligation (세력 의무),explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.0.effects.0.targetId,affected-faction,,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.0.effects.0.amount,-1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.0.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.1.choiceId,second,,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.1.title,계약의 정당성을 다툰다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.1.outcomeText,계약의 정당성을 다툰다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.1.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.1.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.1.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.1.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.1.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.1.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.1.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.1.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.1.effects.0.kind,7,V20ContentEffectKind,FactionGrievance (세력 원한),explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.1.effects.0.targetId,affected-faction,,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.1.effects.0.amount,8,,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,choices.1.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,automaticEffects,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,m_Name,life-event_killer-sighted,,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,stableId,life-event:killer-sighted,,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,displayName,원수의 깃발,,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,description,원정 정찰대가 오래전 죽음의 책임자를 발견했다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,category,5,LifeEventCategory,Death Legacy,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,automatic,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,responseDeadlineDays,3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,cooldownDays,90,,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.0.choiceId,first,,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.0.title,생포 작전을 준비한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.0.outcomeText,생포 작전을 준비한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.0.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.0.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.0.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.0.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.0.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.0.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.0.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.0.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.0.effects.0.kind,16,V20ContentEffectKind,AmbitionProgress (야망 진행),explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.0.effects.0.targetId,life-event:killer-sighted,,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.0.effects.0.amount,60,,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.0.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.1.choiceId,second,,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.1.title,복수를 접고 기록을 공개한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.1.outcomeText,복수를 접고 기록을 공개한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.1.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.1.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.1.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.1.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.1.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.1.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.1.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.1.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.1.effects.0.kind,2,V20ContentEffectKind,Trauma (트라우마),explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.1.effects.0.targetId,life-event:killer-sighted,,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.1.effects.0.amount,-8,,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,choices.1.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,automaticEffects,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,m_Name,life-event_last-lesson,,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,stableId,life-event:last-lesson,,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,displayName,마지막 수업,,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,description,쇠약해진 스승이 위험을 감수하고 마지막 실습을 열려 한다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,category,4,LifeEventCategory,Elder Retirement,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,automatic,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,responseDeadlineDays,3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,cooldownDays,90,,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.0.choiceId,first,,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.0.title,안전한 시연으로 바꾼다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.0.outcomeText,안전한 시연으로 바꾼다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.0.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.0.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.0.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.0.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.0.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.0.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.0.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.0.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.0.effects.0.kind,3,V20ContentEffectKind,SkillExperience (숙련 경험치),explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.0.effects.0.targetId,life-event:last-lesson,,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.0.effects.0.amount,25,,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.0.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.1.choiceId,second,,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.1.title,원래 실습을 지원한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.1.outcomeText,원래 실습을 지원한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.1.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.1.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.1.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.1.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.1.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.1.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.1.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.1.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.1.effects.0.kind,4,V20ContentEffectKind,Health (건강),explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.1.effects.0.targetId,life-event:last-lesson,,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.1.effects.0.amount,-5,,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,choices.1.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,automaticEffects,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,m_Name,life-event_lineage-relic,,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,stableId,life-event:lineage-relic,,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,displayName,유산의 행방,,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,description,가문의 유물을 계승할지 공동 랜드마크에 봉헌할지 결정해야 한다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,category,5,LifeEventCategory,Death Legacy,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,automatic,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,responseDeadlineDays,3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,cooldownDays,90,,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.0.choiceId,first,,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.0.title,후계자에게 계승한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.0.outcomeText,후계자에게 계승한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.0.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.0.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.0.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.0.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.0.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.0.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.0.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.0.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.0.effects.0.kind,5,V20ContentEffectKind,Relationship (관계),explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.0.effects.0.targetId,life-event:lineage-relic,,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.0.effects.0.amount,7,,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.0.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.1.choiceId,second,,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.1.title,공동체에 봉헌한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.1.outcomeText,공동체에 봉헌한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.1.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.1.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.1.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.1.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.1.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.1.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.1.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.1.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.1.effects.0.kind,12,V20ContentEffectKind,WorldFlag (세계 플래그),explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.1.effects.0.targetId,life-event:lineage-relic,,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.1.effects.0.amount,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,choices.1.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,automaticEffects,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,m_Name,life-event_masterpiece-commission,,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,stableId,life-event:masterpiece-commission,,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,displayName,첫 대작 의뢰,,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,description,대가 시험을 위한 장비 제작 의뢰가 들어왔다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,category,1,LifeEventCategory,Apprenticeship,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,automatic,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,responseDeadlineDays,3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,cooldownDays,90,,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.0.choiceId,first,,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.0.title,희귀 재료를 배정한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.0.outcomeText,희귀 재료를 배정한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.0.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.0.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.0.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.0.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.0.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.0.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.0.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.0.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.0.effects.0.kind,16,V20ContentEffectKind,AmbitionProgress (야망 진행),explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.0.effects.0.targetId,life-event:masterpiece-commission,,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.0.effects.0.amount,50,,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.0.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.1.choiceId,second,,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.1.title,일반 재료로 실력을 증명한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.1.outcomeText,일반 재료로 실력을 증명한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.1.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.1.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.1.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.1.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.1.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.1.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.1.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.1.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.1.effects.0.kind,3,V20ContentEffectKind,SkillExperience (숙련 경험치),explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.1.effects.0.targetId,life-event:masterpiece-commission,,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.1.effects.0.amount,35,,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,choices.1.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,automaticEffects,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,m_Name,life-event_mentor-favor,,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,stableId,life-event:mentor-favor,,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,displayName,스승의 편애,,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,description,한 도제에게만 좋은 작업이 몰린다는 불만이 터졌다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,category,1,LifeEventCategory,Apprenticeship,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,automatic,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,responseDeadlineDays,3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,cooldownDays,90,,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.0.choiceId,first,,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.0.title,작업 배정을 공개한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.0.outcomeText,작업 배정을 공개한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.0.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.0.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.0.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.0.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.0.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.0.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.0.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.0.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.0.effects.0.kind,5,V20ContentEffectKind,Relationship (관계),explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.0.effects.0.targetId,life-event:mentor-favor,,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.0.effects.0.amount,5,,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.0.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.1.choiceId,second,,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.1.title,스승의 재량을 지지한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.1.outcomeText,스승의 재량을 지지한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.1.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.1.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.1.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.1.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.1.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.1.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.1.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.1.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.1.effects.0.kind,1,V20ContentEffectKind,Mood (기분),explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.1.effects.0.targetId,life-event:mentor-favor,,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.1.effects.0.amount,-3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,choices.1.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,automaticEffects,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,m_Name,life-event_newborn-welcome,,,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,stableId,life-event:newborn-welcome,,,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,displayName,새 생명의 환영,,,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,description,가구가 새 구성원을 공동체에 소개했다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,category,2,LifeEventCategory,Partnership Family,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,automatic,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,responseDeadlineDays,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,cooldownDays,45,,,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,choices,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,automaticEffects.0.kind,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,automaticEffects.0.targetId,life-event:newborn-welcome,,,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,automaticEffects.0.amount,3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,automaticEffects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,m_Name,life-event_position-rivalry,,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,stableId,life-event:position-rivalry,,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,displayName,"한 자리, 두 후보",,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,description,같은 직위를 원하는 두 숙련자가 공개 평가를 요구한다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,category,3,LifeEventCategory,Career,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,automatic,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,responseDeadlineDays,3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,cooldownDays,90,,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.0.choiceId,first,,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.0.title,실기 평가로 정한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.0.outcomeText,실기 평가로 정한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.0.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.0.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.0.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.0.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.0.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.0.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.0.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.0.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.0.effects.0.kind,3,V20ContentEffectKind,SkillExperience (숙련 경험치),explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.0.effects.0.targetId,life-event:position-rivalry,,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.0.effects.0.amount,20,,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.0.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.1.choiceId,second,,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.1.title,공동 임무 성과로 정한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.1.outcomeText,공동 임무 성과로 정한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.1.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.1.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.1.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.1.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.1.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.1.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.1.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.1.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.1.effects.0.kind,5,V20ContentEffectKind,Relationship (관계),explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.1.effects.0.targetId,life-event:position-rivalry,,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.1.effects.0.amount,4,,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,choices.1.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,automaticEffects,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,m_Name,life-event_quiet-promotion,,,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,stableId,life-event:quiet-promotion,,,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,displayName,조용한 승급,,,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,description,꾸준히 일한 직원이 다음 숙련 등급에 도달했다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,category,3,LifeEventCategory,Career,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,automatic,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,responseDeadlineDays,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,cooldownDays,45,,,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,choices,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,automaticEffects.0.kind,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,automaticEffects.0.targetId,life-event:quiet-promotion,,,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,automaticEffects.0.amount,2,,,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,automaticEffects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,m_Name,life-event_retiree-story,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,stableId,life-event:retiree-story,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,displayName,휴게실의 옛 이야기,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,description,은퇴자가 실패담을 들려주어 젊은 직원이 같은 실수를 피했다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,category,4,LifeEventCategory,Elder Retirement,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,automatic,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,responseDeadlineDays,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,cooldownDays,45,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,choices,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,automaticEffects.0.kind,3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,automaticEffects.0.targetId,life-event:retiree-story,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,automaticEffects.0.amount,8,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,automaticEffects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,m_Name,life-event_retirement-request,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,stableId,life-event:retirement-request,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,displayName,도구를 내려놓는 날,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,description,노년의 대가가 현장 은퇴와 후계자 지명을 요청한다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,category,4,LifeEventCategory,Elder Retirement,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,automatic,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,responseDeadlineDays,3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,cooldownDays,90,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.0.choiceId,first,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.0.title,은퇴와 멘토직을 보장한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.0.outcomeText,은퇴와 멘토직을 보장한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.0.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.0.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.0.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.0.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.0.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.0.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.0.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.0.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.0.effects.0.kind,1,V20ContentEffectKind,Mood (기분),explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.0.effects.0.targetId,life-event:retirement-request,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.0.effects.0.amount,6,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.0.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.choiceId,second,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.title,한 계절 더 현장을 부탁한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.outcomeText,한 계절 더 현장을 부탁한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.effects.0.kind,13,V20ContentEffectKind,WorkDelayDays (작업 지연),explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.effects.0.targetId,life-event:retirement-request,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.effects.0.amount,-2,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,automaticEffects,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,m_Name,life-event_shared-lullaby,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,stableId,life-event:shared-lullaby,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,displayName,서로 다른 자장가,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,description,보육실에서 두 문화의 노래가 하나의 곡으로 섞인다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,category,0,LifeEventCategory,Childhood,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,automatic,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,responseDeadlineDays,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,cooldownDays,45,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,choices,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,automaticEffects.0.kind,5,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,automaticEffects.0.targetId,life-event:shared-lullaby,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,automaticEffects.0.amount,2,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,automaticEffects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,m_Name,life-event_shift-saved,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,stableId,life-event:shift-saved,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,displayName,교대를 구한 손,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,description,작업자가 동료 대신 위험한 교대의 마무리를 맡았다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,category,3,LifeEventCategory,Career,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,automatic,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,responseDeadlineDays,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,cooldownDays,45,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,choices,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,automaticEffects.0.kind,5,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,automaticEffects.0.targetId,life-event:shift-saved,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,automaticEffects.0.amount,2,,,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,automaticEffects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,m_Name,life-event_stolen-design,,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,stableId,life-event:stolen-design,,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,displayName,닮은 설계도,,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,description,경쟁 작업반이 도제의 시제품 설계를 자신의 성과로 제출했다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,category,1,LifeEventCategory,Apprenticeship,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,automatic,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,responseDeadlineDays,3,,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,cooldownDays,90,,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.0.choiceId,first,,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.0.title,공식 심사를 청구한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.0.outcomeText,공식 심사를 청구한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.0.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.0.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.0.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.0.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.0.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.0.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.0.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.0.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.0.effects.0.kind,12,V20ContentEffectKind,WorldFlag (세계 플래그),explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.0.effects.0.targetId,life-event:stolen-design,,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.0.effects.0.amount,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.0.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.1.choiceId,second,,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.1.title,공동 설계로 타협한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.1.outcomeText,공동 설계로 타협한다,,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.1.requirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.1.requirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.1.requirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.1.requirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.1.requirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.1.requirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.1.requirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.1.requirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.1.effects.0.kind,5,V20ContentEffectKind,Relationship (관계),explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.1.effects.0.targetId,life-event:stolen-design,,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.1.effects.0.amount,4,,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,choices.1.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,automaticEffects,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,m_Name,life-event_story-compressed,,,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,stableId,life-event:story-compressed,,,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,displayName,이름으로 남은 생애,,,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,description,오래된 개인 기록이 가계의 핵심 이야기로 정리됐다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,category,5,LifeEventCategory,Death Legacy,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,automatic,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,responseDeadlineDays,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,cooldownDays,45,,,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,choices,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,automaticEffects.0.kind,12,,,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,automaticEffects.0.targetId,life-event:story-compressed,,,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,automaticEffects.0.amount,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,automaticEffects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,m_Name,life-event_tool-inheritance,,,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,stableId,life-event:tool-inheritance,,,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,displayName,물려받은 도구,,,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,description,도제가 은퇴자의 낡은 도구와 사용 기록을 넘겨받았다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,authoringRevision,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,category,1,LifeEventCategory,Apprenticeship,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,automatic,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,emergency,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,responseDeadlineDays,1,,,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,cooldownDays,45,,,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,triggerRequirements.items,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,triggerRequirements.facilities,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,triggerRequirements.research,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,triggerRequirements.characters,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,triggerRequirements.factions,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,triggerRequirements.worldMetrics,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,triggerRequirements.requiredFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,triggerRequirements.excludedFlags,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,choices,[],,,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,automaticEffects.0.kind,16,,,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,automaticEffects.0.targetId,life-event:tool-inheritance,,,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,automaticEffects.0.amount,10,,,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,automaticEffects.0.durationDays,0,,,explicit-serialized

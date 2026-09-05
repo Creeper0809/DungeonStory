@@ -1,0 +1,143 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "equipment-item-weapon-rune-bow",
+    "spoiler_tier": "none",
+    "title": "룬 활"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-rune-bow",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-growth-frame",
+      "target_spoiler_tier": "none",
+      "target_title": "성장형 장비 골격",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-rune-bow",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-bowstring",
+      "target_spoiler_tier": "none",
+      "target_title": "활시위",
+      "to": "item/material-bowstring",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-rune-bow",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-laminated-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "적층 목재",
+      "to": "item/material-laminated-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-rune-bow",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-mana-alloy",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 합금",
+      "to": "item/material-mana-alloy",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-rune-bow",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-arrow",
+      "target_spoiler_tier": "none",
+      "target_title": "화살",
+      "to": "item/ammo-arrow",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-rune-bow",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-arrow-bone",
+      "target_spoiler_tier": "none",
+      "target_title": "뼈촉 화살",
+      "to": "item/ammo-arrow-bone",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-rune-bow",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-arrow-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철촉 화살",
+      "to": "item/ammo-arrow-iron",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-rune-bow",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-arrow-rune",
+      "target_spoiler_tier": "none",
+      "target_title": "룬촉 화살",
+      "to": "item/ammo-arrow-rune",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-rune-bow",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-arrow-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "강철촉 화살",
+      "to": "item/ammo-arrow-steel",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-rune-bow",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-incendiary-arrow",
+      "target_spoiler_tier": "none",
+      "target_title": "소이 화살",
+      "to": "item/ammo-incendiary-arrow",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-rune-bow",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-rune-cartridge",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 탄약통",
+      "to": "item/ammo-rune-cartridge",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-rune-bow",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-rune-module-tuning",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 부품 조율",
+      "to": "research/research-equipment-rune-module-tuning",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

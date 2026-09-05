@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "medical-rejuvenation-serum",
+    "spoiler_tier": "none",
+    "title": "회춘 혈청"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-rejuvenation-serum",
+      "label": "생산·해금",
+      "to": "item/medical-rejuvenation-serum",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-blood-rejuvenation",
+      "label": "관련",
+      "to": "item/medical-rejuvenation-serum",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

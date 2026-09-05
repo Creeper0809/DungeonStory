@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "culture-harpy-aerie",
+    "spoiler_tier": "none",
+    "title": "높은 둥지 문화"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/culture-harpy-aerie",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-harpy-dawn-chorus",
+      "target_spoiler_tier": "none",
+      "target_title": "새벽 합창",
+      "to": "event/practice-harpy-dawn-chorus",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-harpy-aerie",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-harpy-first-flight",
+      "target_spoiler_tier": "none",
+      "target_title": "첫 비행의 깃",
+      "to": "event/practice-harpy-first-flight",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

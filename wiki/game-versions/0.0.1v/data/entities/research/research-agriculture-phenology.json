@@ -1,0 +1,67 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "268"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Agriculture"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-life-seasonal-calendar",
+      "target_spoiler_tier": "none",
+      "target_title": "계절 역법",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-life-seasonal-calendar",
+      "target_spoiler_tier": "none",
+      "target_title": "계절 역법",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-life-seasonal-calendar",
+      "target_spoiler_tier": "none",
+      "target_title": "계절 역법",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8850",
+      "target_spoiler_tier": "none",
+      "target_title": "작물 달력대",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8890",
+      "target_spoiler_tier": "none",
+      "target_title": "종자 선별대",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-agriculture-phenology",
+  "spoiler_tier": "none",
+  "summary": "생물계절학과 종자 선별에 필요한 이론, 제작 절차, 안전 기준과 운용 보상을 하나의 완결된 연구 패키지로 통합한다.",
+  "title": "생물계절학과 종자 선별"
+}

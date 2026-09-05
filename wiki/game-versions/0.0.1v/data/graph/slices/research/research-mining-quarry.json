@@ -1,0 +1,83 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-mining-quarry",
+    "spoiler_tier": "none",
+    "title": "채석장"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-mining-quarry",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-mining-surface",
+      "target_spoiler_tier": "none",
+      "target_title": "노천 채석",
+      "to": "research/research-mining-surface",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-mining-quarry",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-mining-surface",
+      "target_spoiler_tier": "none",
+      "target_title": "노천 채석",
+      "to": "research/research-mining-surface",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-mining-quarry",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-mining-surface",
+      "target_spoiler_tier": "none",
+      "target_title": "노천 채석",
+      "to": "research/research-mining-surface",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-mining-quarry",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1094",
+      "target_spoiler_tier": "none",
+      "target_title": "심부 채석장",
+      "to": "facility/building-1094",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/source-quarry",
+      "label": "필요 조건",
+      "to": "research/research-mining-quarry",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-mining-stonecutting",
+      "label": "선행 연구",
+      "to": "research/research-mining-quarry",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-mining-stonecutting",
+      "label": "선행 연구",
+      "to": "research/research-mining-quarry",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-mining-stonecutting",
+      "label": "선행 연구",
+      "to": "research/research-mining-quarry",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

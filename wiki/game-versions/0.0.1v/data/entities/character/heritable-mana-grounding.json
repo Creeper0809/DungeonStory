@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Arcane"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "heritable-mana-grounding",
+  "spoiler_tier": "none",
+  "summary": "비전 교란을 흘려보내지만 주문 증폭은 약하다.",
+  "title": "마나 접지맥"
+}

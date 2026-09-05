@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "nature",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "shadow-wolf",
+      "target_spoiler_tier": "none",
+      "target_title": "그림자늑대",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-cave-flu",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴 독감",
+      "type": "references"
+    },
+    {
+      "amount": "3",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "fiber-frost-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "서리 양모직 원섬유",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "frost-ram",
+  "spoiler_tier": "none",
+  "summary": "겨울에 활동하는 대형 초식동물로 길들이면 털과 운반력을 제공한다.",
+  "title": "서리숫양"
+}

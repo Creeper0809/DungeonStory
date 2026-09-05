@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "career-position-foreman",
+  "spoiler_tier": "none",
+  "summary": "조직 내 직책의 권한 범위와 최대 재직자 1명을 규정한다. research-overhaul 시설을 요구해 직책을 실제 운영 기반과 연결한다.",
+  "title": "작업반장"
+}

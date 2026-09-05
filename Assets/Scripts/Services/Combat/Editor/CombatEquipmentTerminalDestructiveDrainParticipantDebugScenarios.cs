@@ -9,14 +9,35 @@ public static class CombatEquipmentTerminalDestructiveDrainParticipantDebugScena
     [MenuItem("DungeonStory/V27/Physical Mass/Verify Combat Terminal Drain Participant")]
     public static void Run()
     {
+        VerifyUnrelatedFacilityNeedsNoCombatHandle();
         Verify(CombatEquipmentTerminalSourceKind.CraftOrder, "craft-fixture");
         Verify(CombatEquipmentTerminalSourceKind.RepairOrder, "repair-fixture");
         Debug.Log("V27_COMBAT_EQUIPMENT_TERMINAL_DRAIN_PARTICIPANT=PASS");
     }
 
+    private static void VerifyUnrelatedFacilityNeedsNoCombatHandle()
+    {
+        BuildingInstanceId facilityId =
+            (BuildingInstanceId)"building:unrelated-rest-facility";
+        string contribution = ProductionFacilityDestructiveDrainCanonical
+            .ComputeFingerprint("combat-terminal-contribution:none");
+        FakeProducer producer = new();
+        CombatEquipmentTerminalDestructiveDrainParticipant participant = new(
+            new FakeLifecycle(facilityId, contribution, hasAuthority: false),
+            new FakeNoSources(), producer, producer,
+            new NoChildDrain(), new ThrowingFacility());
+        ProductionFacilityDestructiveDrainParticipantPlan plan = participant.Prepare(
+            new ProductionFacilityDestructiveDrainPrepareContext(
+                ProductionFacilityDestructiveDrainOperationId.FromFacility(facilityId),
+                ProductionFacilityDestructiveDrainCause.ExplicitDemolition,
+                facilityId, ProductionOutputDestinationId.FromFacility(facilityId),
+                contribution));
+        Require(plan.Owners.Count == 0, "unrelated-facility-owner-count");
+    }
+
     private static void Verify(CombatEquipmentTerminalSourceKind kind, string sourceId)
     {
-        const string facilityText = "combat-terminal-facility";
+        const string facilityText = "building:combat-terminal-facility";
         BuildingInstanceId facilityId = (BuildingInstanceId)facilityText;
         CombatEquipmentTerminalFrozenSubject source = CreateSource(
             kind, sourceId, facilityText);
@@ -67,7 +88,7 @@ public static class CombatEquipmentTerminalDestructiveDrainParticipantDebugScena
         ProductionFacilityDestructiveDrainStepResult committed =
             participant.TryCommit(context);
         Require(committed.Status == ProductionFacilityDestructiveDrainStepStatus.Applied,
-            "commit-map");
+            "commit-map:" + committed.Status);
         owner.phase = ProductionFacilityDestructiveDrainStepPhase
             .EffectCommittedAwaitingOwnerAck;
         owner.commitId = committed.CommitId;
@@ -168,22 +189,47 @@ public static class CombatEquipmentTerminalDestructiveDrainParticipantDebugScena
             new[] { source };
     }
 
+    private sealed class FakeNoSources :
+        ICombatEquipmentTerminalFacilitySourceQuery
+    {
+        public IReadOnlyList<CombatEquipmentTerminalPreparedSource>
+            CaptureFacilitySources(BuildingInstanceId facilityId) =>
+            Array.Empty<CombatEquipmentTerminalPreparedSource>();
+    }
+
     private sealed class FakeLifecycle : IProductionOutputDestinationLifecycleQuery
     {
         private readonly BuildingInstanceId facility;
         private readonly string fingerprint;
-        public FakeLifecycle(BuildingInstanceId facility, string fingerprint)
-        { this.facility = facility; this.fingerprint = fingerprint; }
+        private readonly bool hasAuthority;
+        public FakeLifecycle(
+            BuildingInstanceId facility,
+            string fingerprint,
+            bool hasAuthority = true)
+        {
+            this.facility = facility;
+            this.fingerprint = fingerprint;
+            this.hasAuthority = hasAuthority;
+        }
         public ProductionOutputDestinationLifecycleSnapshot Capture(BuildingInstanceId value)
         {
             Require(value.Equals(facility), "facility-drift");
             ProductionOutputDestinationLifecycleContribution contribution = new(
-                CombatEquipmentTerminalDrainCanonical.ParticipantId, true, 0L, 1, 0L,
+                CombatEquipmentTerminalDrainCanonical.ParticipantId,
+                hasAuthority, 0L, hasAuthority ? 1 : 0, 0L,
                 Array.Empty<ProductionOutputLifecycleBlock>(), fingerprint, fingerprint);
             return new ProductionOutputDestinationLifecycleSnapshot(
                 facility, ProductionOutputDestinationId.FromFacility(facility),
                 new[] { contribution }, fingerprint, fingerprint);
         }
+    }
+
+    private sealed class ThrowingFacility :
+        ICombatEquipmentTerminalFacilityQuery
+    {
+        public ProductionFacilityHandle Capture(BuildingInstanceId facilityId) =>
+            throw new InvalidOperationException(
+                "unrelated facility must not require a production handle");
     }
 
     private sealed class FakeFacility : ICombatEquipmentTerminalFacilityQuery
@@ -200,11 +246,13 @@ public static class CombatEquipmentTerminalDestructiveDrainParticipantDebugScena
         ICombatEquipmentTerminalDrainCommand
     {
         private CombatEquipmentTerminalDrainSaveData state;
+        private CombatEquipmentTerminalFrozenSubject frozenSource;
         public CombatEquipmentTerminalDrainResult TryPrepare(
             CombatEquipmentTerminalDrainRequest request)
         {
             if (state != null)
                 return Result(CombatEquipmentTerminalDrainStatus.Replay);
+            frozenSource = request.Source;
             state = new CombatEquipmentTerminalDrainSaveData
             {
                 parentOperationId = request.ParentOperationId,
@@ -219,10 +267,26 @@ public static class CombatEquipmentTerminalDestructiveDrainParticipantDebugScena
         }
         public CombatEquipmentTerminalDrainResult TryProgress(string stepOperationId)
         {
+            CombatEquipmentTerminalWipLossReceiptSaveData wip =
+                CombatEquipmentTerminalDrainCanonical.CreateWipLossReceipt(
+                    frozenSource);
+            CombatEquipmentTerminalSourceRemovalReceiptSaveData removal =
+                CombatEquipmentTerminalDrainCanonical.CreateSourceRemovalReceipt(
+                    frozenSource);
+            state.wipLossCommitId = wip?.commitId ?? string.Empty;
+            state.wipLossReceiptFingerprint =
+                wip?.receiptFingerprint ?? string.Empty;
+            state.sourceRemovalCommitId = removal.commitId;
+            state.sourceRemovalReceiptFingerprint =
+                removal.receiptFingerprint;
             state.commitId = CombatEquipmentTerminalDrainCanonical.CreateCommitId(
                 state.stepOperationId, state.requestFingerprint);
-            state.terminalEffectFingerprint = ProductionFacilityDestructiveDrainCanonical
-                .ComputeFingerprint("terminal:" + state.requestFingerprint);
+            state.terminalEffectFingerprint = CombatEquipmentTerminalDrainCanonical
+                .CreateTerminalEffectFingerprint(
+                    state.requestFingerprint,
+                    state.inputDestinationDrainReceiptFingerprint,
+                    state.wipLossReceiptFingerprint,
+                    state.sourceRemovalReceiptFingerprint);
             state.receiptFingerprint = CombatEquipmentTerminalDrainCanonical
                 .CreateReceiptFingerprint(state.requestFingerprint,
                     state.terminalEffectFingerprint, state.commitId);

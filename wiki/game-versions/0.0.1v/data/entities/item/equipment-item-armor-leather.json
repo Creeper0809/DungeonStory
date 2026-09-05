@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "4.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "148"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "두꺼운 가죽을 겹치고 묶어 몸통의 움직임을 해치지 않는 경갑이다. 라카쉬 세갈래길의 수선공은 가죽 갑옷을 새 주인에게 맞추되 오래된 이름은 안감 아래 남겨 둔다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-armor-leather",
+  "spoiler_tier": "none",
+  "summary": "가죽 갑옷 전투 장비",
+  "title": "가죽 갑옷"
+}

@@ -187,6 +187,58 @@ public interface IProductionApparelOrderSourceTerminalPort
         ProductionApparelOrderSourceTerminalReceipt expectedReceipt);
 }
 
+public interface IProductionApparelTerminalStateCheckpointGcCandidate
+{
+}
+
+/// <summary>
+/// Row-scoped checkpoint collector for the paired terminal-effect and
+/// source-terminal receipts stored by the apparel work-order authority.
+/// </summary>
+public interface IProductionApparelTerminalStateCheckpointGcPort
+{
+    bool TryPrepareCheckpointGarbageCollection(
+        IReadOnlyList<ProductionApparelOrderTerminalDrainSaveData> producers,
+        out IProductionApparelTerminalStateCheckpointGcCandidate candidate,
+        out string failureReason);
+
+    bool TryPublishCheckpointGarbageCollection(
+        IProductionApparelTerminalStateCheckpointGcCandidate candidate,
+        out string failureReason);
+
+    void RollbackCheckpointGarbageCollection(
+        IProductionApparelTerminalStateCheckpointGcCandidate candidate);
+
+    void CompleteCheckpointGarbageCollection(
+        IProductionApparelTerminalStateCheckpointGcCandidate candidate);
+}
+
+/// <summary>
+/// Checkpoint-GC facade owned by the apparel terminal producer. It removes
+/// lower terminal-state receipts before producer tombstones and can restore
+/// the exact rows if a later upper participant fails.
+/// </summary>
+public interface IProductionApparelOrderTerminalDrainCheckpointGcPort
+{
+    ProductionFacilityDestructiveDrainCheckpointGcResult
+        PrepareCheckpointGarbageCollection(
+            ProductionFacilityDestructiveDrainCheckpointGcContext context,
+            IReadOnlyList<ProductionFacilityDestructiveDrainEntrySaveData>
+                entries,
+            out IProductionFacilityDestructiveDrainCheckpointGcCandidate
+                candidate);
+
+    ProductionFacilityDestructiveDrainCheckpointGcResult
+        PublishCheckpointGarbageCollection(
+            IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate);
+
+    void RollbackCheckpointGarbageCollection(
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate);
+
+    void CompleteCheckpointGarbageCollection(
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate);
+}
+
 public sealed class ProductionApparelOrderTerminalDrainRequest
 {
     public ProductionApparelOrderTerminalDrainRequest(
@@ -286,7 +338,7 @@ public interface IProductionApparelOrderTerminalDrainCommand
 [Serializable]
 public sealed class ProductionApparelOrderTerminalDrainSaveData
 {
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 3;
 
     public int schemaVersion = CurrentSchemaVersion;
     public string parentOperationId = string.Empty;
@@ -324,13 +376,16 @@ public sealed class ProductionApparelOrderTerminalDrainSaveData
         sourceOrderFingerprint = sourceOrderFingerprint,
         hasLeaseAuthority = hasLeaseAuthority,
         leaseAuthorityFingerprint = leaseAuthorityFingerprint,
-        pendingEffect = pendingEffect?.Clone(),
+        pendingEffect = ProductionApparelOrderTerminalDrainCanonical
+            .CloneOptionalPendingEffect(pendingEffect),
         requestFingerprint = requestFingerprint,
         phase = phase,
         leaseReleaseCommitId = leaseReleaseCommitId,
         leaseReleaseReceiptFingerprint = leaseReleaseReceiptFingerprint,
-        terminalEffectReceipt = terminalEffectReceipt?.Clone(),
-        sourceTerminalReceipt = sourceTerminalReceipt?.Clone(),
+        terminalEffectReceipt = ProductionApparelOrderTerminalDrainCanonical
+            .CloneOptionalTerminalEffectReceipt(terminalEffectReceipt),
+        sourceTerminalReceipt = ProductionApparelOrderTerminalDrainCanonical
+            .CloneOptionalSourceTerminalReceipt(sourceTerminalReceipt),
         commitId = commitId,
         receiptFingerprint = receiptFingerprint
     };
@@ -350,9 +405,62 @@ public static class ProductionApparelOrderTerminalDrainCanonical
             JsonUtility.ToJson(source));
     }
 
+    public static ProductionApparelOrderPendingEffectIdentity
+        CloneOptionalPendingEffect(
+            ProductionApparelOrderPendingEffectIdentity value) =>
+        IsEmpty(value) ? null : value.Clone();
+
+    public static ProductionApparelOrderTerminalEffectReceipt
+        CloneOptionalTerminalEffectReceipt(
+            ProductionApparelOrderTerminalEffectReceipt value) =>
+        IsEmpty(value) ? null : value.Clone();
+
+    public static ProductionApparelOrderSourceTerminalReceipt
+        CloneOptionalSourceTerminalReceipt(
+            ProductionApparelOrderSourceTerminalReceipt value) =>
+        IsEmpty(value) ? null : value.Clone();
+
+    private static bool IsEmpty(
+        ProductionApparelOrderPendingEffectIdentity value) => value == null
+        || value.kind == ProductionApparelOrderPendingEffectKind.None
+        && string.IsNullOrEmpty(value.operationId)
+        && string.IsNullOrEmpty(value.priorCommitId)
+        && string.IsNullOrEmpty(value.reasonCode)
+        && value.phase == 0
+        && value.quantity == 0
+        && value.massGrams == 0L
+        && value.completedQuantity == 0
+        && !value.sourceAlreadyConsumed
+        && (value.sourceStackIds == null || value.sourceStackIds.Count == 0)
+        && string.IsNullOrEmpty(value.targetStackId)
+        && string.IsNullOrEmpty(value.originalStateFingerprint)
+        && string.IsNullOrEmpty(value.resolvedStateFingerprint)
+        && string.IsNullOrEmpty(value.identityFingerprint);
+
+    private static bool IsEmpty(
+        ProductionApparelOrderTerminalEffectReceipt value) => value == null
+        || string.IsNullOrEmpty(value.stepOperationId)
+        && string.IsNullOrEmpty(value.orderId)
+        && string.IsNullOrEmpty(value.sourceOrderFingerprint)
+        && string.IsNullOrEmpty(value.pendingEffectIdentityFingerprint)
+        && value.abandonedRequiredWorkBits == 0
+        && value.abandonedCompletedWorkBits == 0
+        && value.historicalConsumedWorkBits == 0
+        && string.IsNullOrEmpty(value.commitId)
+        && string.IsNullOrEmpty(value.receiptFingerprint);
+
+    private static bool IsEmpty(
+        ProductionApparelOrderSourceTerminalReceipt value) => value == null
+        || string.IsNullOrEmpty(value.stepOperationId)
+        && string.IsNullOrEmpty(value.orderId)
+        && string.IsNullOrEmpty(value.sourceOrderFingerprint)
+        && string.IsNullOrEmpty(value.terminalEffectReceiptFingerprint)
+        && string.IsNullOrEmpty(value.commitId)
+        && string.IsNullOrEmpty(value.receiptFingerprint);
+
     public static string CreateSourceOrderFingerprint(
         ApparelWorkOrderSaveData sourceOrder) => Hash(
-        "production-apparel-order-terminal-source@1|"
+        "production-apparel-order-terminal-source@3|"
         + (sourceOrder == null ? string.Empty : JsonUtility.ToJson(sourceOrder)));
 
     public static string CreateNoLeaseAuthorityFingerprint(string orderId) =>

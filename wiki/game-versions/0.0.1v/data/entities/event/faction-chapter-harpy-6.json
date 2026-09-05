@@ -1,0 +1,31 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "5",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "tool-weather-observation-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "기상 관측 도구함",
+      "type": "requires"
+    },
+    {
+      "amount": "9",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "tool-weather-observation-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "기상 관측 도구함",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "faction-chapter-harpy-6",
+  "spoiler_tier": "warning",
+  "summary": "둥지는 동맹·종속·결별 뒤 하늘길을 누구에게 열지 맹세한다.",
+  "title": "열린 바람의 맹세"
+}

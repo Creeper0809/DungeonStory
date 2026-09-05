@@ -1,0 +1,58 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "nature",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "shadow-wolf",
+      "target_spoiler_tier": "none",
+      "target_title": "그림자늑대",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-cave-flu",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴 독감",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-rat",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴쥐",
+      "type": "references"
+    },
+    {
+      "amount": "2",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "resource-rune-dust",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 가루",
+      "type": "references"
+    },
+    {
+      "amount": "6",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "resource-meat",
+      "target_spoiler_tier": "none",
+      "target_title": "생고기",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "rune-deer",
+  "spoiler_tier": "none",
+  "summary": "몸에 흐릿한 룬빛이 도는 희귀한 초식동물. 고기와 마나 부산물을 남긴다.",
+  "title": "룬사슴"
+}

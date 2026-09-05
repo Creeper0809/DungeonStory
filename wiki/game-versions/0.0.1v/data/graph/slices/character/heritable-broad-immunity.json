@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "heritable-broad-immunity",
+    "spoiler_tier": "none",
+    "title": "광범위 면역"
+  },
+  "edges": [],
+  "schema_version": 1
+}

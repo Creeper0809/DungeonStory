@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "효과",
+      "value": "1개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "world",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "enemy-ability-shield-wall",
+  "spoiler_tier": "none",
+  "summary": "인접 전열을 보호하고 밀려남을 막는다.",
+  "title": "방패벽"
+}

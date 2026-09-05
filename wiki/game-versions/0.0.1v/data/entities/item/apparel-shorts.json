@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.32kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "19"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "무릎 위에서 끝나 더운 작업장과 빠른 이동에 부담이 적은 바지다. 하르나크에서 만든 반바지는 꼬리가 있는 주민도 입을 수 있도록 허리 뒤쪽 솔기를 고치기 쉽게 남겨 둔다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "apparel-shorts",
+  "spoiler_tier": "none",
+  "summary": "반바지 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다.",
+  "title": "반바지"
+}

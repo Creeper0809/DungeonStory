@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "drug-dreamleaf-analgesic",
+    "spoiler_tier": "none",
+    "title": "몽엽 진통제"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-dreamleaf-analgesic",
+      "label": "생산·해금",
+      "to": "item/drug-dreamleaf-analgesic",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

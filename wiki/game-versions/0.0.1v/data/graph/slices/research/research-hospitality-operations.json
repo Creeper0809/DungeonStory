@@ -1,0 +1,120 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-hospitality-operations",
+    "spoiler_tier": "none",
+    "title": "환대 운영"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-hospitality-operations",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-quarters",
+      "target_spoiler_tier": "none",
+      "target_title": "기본 숙소",
+      "to": "research/research-authority-quarters",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-hospitality-operations",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-quarters",
+      "target_spoiler_tier": "none",
+      "target_title": "기본 숙소",
+      "to": "research/research-authority-quarters",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-hospitality-operations",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-quarters",
+      "target_spoiler_tier": "none",
+      "target_title": "기본 숙소",
+      "to": "research/research-authority-quarters",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-hospitality-operations",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-service-flow",
+      "target_spoiler_tier": "none",
+      "target_title": "서비스 동선",
+      "to": "research/research-service-flow",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-hospitality-operations",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-service-flow",
+      "target_spoiler_tier": "none",
+      "target_title": "서비스 동선",
+      "to": "research/research-service-flow",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-hospitality-operations",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-service-flow",
+      "target_spoiler_tier": "none",
+      "target_title": "서비스 동선",
+      "to": "research/research-service-flow",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-hospitality-operations",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1700",
+      "target_spoiler_tier": "none",
+      "target_title": "숙박 접수대",
+      "to": "facility/building-1700",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-hospitality-operations",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1709",
+      "target_spoiler_tier": "none",
+      "target_title": "객실 정리함",
+      "to": "facility/building-1709",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-service-automation",
+      "label": "선행 연구",
+      "to": "research/research-hospitality-operations",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-service-automation",
+      "label": "선행 연구",
+      "to": "research/research-hospitality-operations",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-service-automation",
+      "label": "선행 연구",
+      "to": "research/research-hospitality-operations",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

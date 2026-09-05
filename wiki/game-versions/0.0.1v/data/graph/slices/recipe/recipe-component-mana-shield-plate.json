@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-component-mana-shield-plate",
+    "spoiler_tier": "none",
+    "title": "마나 차폐판"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-mana-shield-plate",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-mana-shield-plate",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 차폐판",
+      "to": "item/component-mana-shield-plate",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-mana-shield-plate",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-lead-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "납괴",
+      "to": "item/material-lead-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-mana-shield-plate",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-mana-crystal",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 결정",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-mana-shield-plate",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-rune-dust",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 가루",
+      "to": "item/resource-rune-dust",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-mana-shield-plate",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-mining-mana",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 시추",
+      "to": "research/research-mining-mana",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "equipment-item-weapon-powered-striking-gauntlet",
+    "spoiler_tier": "none",
+    "title": "동력 타격장갑"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-powered-striking-gauntlet",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-plate-blank",
+      "target_spoiler_tier": "none",
+      "target_title": "판금 소재판",
+      "to": "item/material-plate-blank",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "combat/equipment-item-weapon-powered-striking-gauntlet",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-machine-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "기계 부품",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-powered-striking-gauntlet",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-powered-armor",
+      "target_spoiler_tier": "none",
+      "target_title": "동력 보조 갑주",
+      "to": "research/research-equipment-powered-armor",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

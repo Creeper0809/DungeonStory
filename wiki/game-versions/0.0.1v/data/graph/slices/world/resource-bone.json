@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "resource-bone",
+    "spoiler_tier": "none",
+    "title": "뼈·뿔"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/resource-bone",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-primitive",
+      "target_spoiler_tier": "none",
+      "target_title": "원시 단조",
+      "to": "research/research-metallurgy-primitive",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

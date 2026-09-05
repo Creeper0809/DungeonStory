@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "seasonal-spring-spore-rain",
+    "spoiler_tier": "warning",
+    "title": "포자비"
+  },
+  "edges": [
+    {
+      "amount": "8",
+      "from": "event/seasonal-spring-spore-rain",
+      "label": "연결",
+      "target_kind": "medical",
+      "target_slug": "disease-spore-lung",
+      "target_spoiler_tier": "none",
+      "target_title": "포자폐증",
+      "to": "medical/disease-spore-lung",
+      "type": "adds-disease-exposure"
+    }
+  ],
+  "schema_version": 1
+}

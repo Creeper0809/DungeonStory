@@ -389,9 +389,23 @@ public static class ApparelRejectedDismantleOutbox
                 expectedRecoveryCommitId,
                 StringComparison.Ordinal)
             && Canonical(order.rejectedRecoveryOutcomeFingerprint)
+            && order.rejectedRecoveryOutputCapability is { IsEmpty: false }
+            && string.Equals(
+                order.rejectedRecoveryOutputCapability.outputLineId,
+                ApparelPhysicalTransaction.RejectedRecoveryOutputLineId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                order.rejectedRecoveryOutputCapability.itemId,
+                order.rejectedRecoveryItemId,
+                StringComparison.Ordinal)
+            && Canonical(order.rejectedRecoveryOutputCapability.fingerprint)
+            && IsSha256(order.rejectedRecoveryMaximumMassProofDigest)
+            && order.rejectedRecoveryMaximumBatchMassGrams > 0L
             && Canonical(order.rejectedRecoveryCapacitySourceDigest)
             && order.rejectedRecoveryRequiredMinimumCapacityGrams > 0L
             && order.rejectedRecoveryOutputMassGrams > 0L
+            && order.rejectedRecoveryOutputMassGrams
+                <= order.rejectedRecoveryMaximumBatchMassGrams
             && order.rejectedRecoveryOutputMassGrams
                 <= order.rejectedDismantleInputMassGrams
             && (activeTokenShape || releasedTokenShape)
@@ -543,6 +557,10 @@ public static class ApparelRejectedDismantleOutbox
         order.rejectedRecoveryPublicationAttempt = 0;
         order.rejectedRecoveryOutcomeFingerprint = string.Empty;
         order.rejectedRecoveryAdmissionTokenId = string.Empty;
+        order.rejectedRecoveryOutputCapability =
+            new ProductionOutputCapabilitySaveData();
+        order.rejectedRecoveryMaximumMassProofDigest = string.Empty;
+        order.rejectedRecoveryMaximumBatchMassGrams = 0L;
         order.rejectedRecoveryCapacitySourceDigest = string.Empty;
         order.rejectedRecoveryRequiredMinimumCapacityGrams = 0L;
         order.rejectedRecoveryPlannedOutputFingerprint = string.Empty;
@@ -668,6 +686,11 @@ public static class ApparelRejectedDismantleOutbox
         order.rejectedRecoveryPublicationAttempt == 0
         && string.IsNullOrEmpty(order.rejectedRecoveryOutcomeFingerprint)
         && string.IsNullOrEmpty(order.rejectedRecoveryAdmissionTokenId)
+        && (order.rejectedRecoveryOutputCapability == null
+            || order.rejectedRecoveryOutputCapability.IsEmpty)
+        && string.IsNullOrEmpty(
+            order.rejectedRecoveryMaximumMassProofDigest)
+        && order.rejectedRecoveryMaximumBatchMassGrams == 0L
         && string.IsNullOrEmpty(order.rejectedRecoveryCapacitySourceDigest)
         && order.rejectedRecoveryRequiredMinimumCapacityGrams == 0L
         && string.IsNullOrEmpty(
@@ -693,6 +716,11 @@ public static class ApparelRejectedDismantleOutbox
         }
         return true;
     }
+
+    private static bool IsSha256(string value) => value != null
+        && value.Length == 64
+        && value.All(character => character is >= '0' and <= '9'
+            || character is >= 'a' and <= 'f');
 
     private static string FormatPublicationOperationId(
         string orderId,

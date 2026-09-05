@@ -1,0 +1,67 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-gold-ingot",
+    "spoiler_tier": "none",
+    "title": "금괴"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-precision-optics",
+      "label": "필요 조건",
+      "to": "item/material-gold-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-rune-bus-coupler",
+      "label": "필요 조건",
+      "to": "item/material-gold-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-rune-conductor",
+      "label": "필요 조건",
+      "to": "item/material-gold-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-craft-dreamweave-ritual-banner",
+      "label": "필요 조건",
+      "to": "item/material-gold-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-gold-ingot",
+      "label": "생산·해금",
+      "to": "item/material-gold-ingot",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-gold-ornament",
+      "label": "필요 조건",
+      "to": "item/material-gold-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-insulated-wiring",
+      "label": "필요 조건",
+      "to": "item/material-gold-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-mana-alloy",
+      "label": "필요 조건",
+      "to": "item/material-gold-ingot",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

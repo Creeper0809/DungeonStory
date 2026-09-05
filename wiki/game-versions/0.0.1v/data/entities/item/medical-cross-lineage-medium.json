@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "3.4kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "3개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "476"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "서로 다른 종족의 조직이 맞닿을 때 생기는 거부 반응을 낮추도록 조율한 안정화 배지다. 므네실라 치료사는 교차계통 안정화 배지를 쓴 뒤 환자가 다시 먹고 걷고 일할 때까지 약병을 치우지 않는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "medical-cross-lineage-medium",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 교차계통 안정화 배지.",
+  "title": "교차계통 안정화 배지"
+}

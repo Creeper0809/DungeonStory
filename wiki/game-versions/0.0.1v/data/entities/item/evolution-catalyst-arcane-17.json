@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.25kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "20개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "7864320"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "고등 개조에서 요구하는 균일한 결을 갖춘 청람 결정이다. 베르사디온의 조율사는 비전 촉매 진행 17 · 4등급을 마나 결을 조율하는 비전 계통의 4등급 개조에 쓴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "evolution-catalyst-arcane-17",
+  "spoiler_tier": "none",
+  "summary": "시설 개조와 장비 조율에 사용하는 진화 촉매.",
+  "title": "비전 촉매 진행 17 · 4등급"
+}

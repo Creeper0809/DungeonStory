@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Security.Cryptography;
 using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
@@ -31,7 +33,17 @@ public static class DungeonSpaceExpansionDebugScenarios
             rows,
             failures);
         Verify(
-            "EXPANSION_EVENT_27_49_65_81_EXACT",
+            "EXPANSION_NEW_RUN_TIER_ZERO_27_TO_29_RESTORE_PRESERVED",
+            VerifyNewRunTierZeroAndRestorePreservation,
+            rows,
+            failures);
+        Verify(
+            "EXPANSION_NEW_RUN_TIER_ZERO_REJECTS_NONCANONICAL_WIDTHS",
+            VerifyNewRunTierZeroRejectsNoncanonicalWidths,
+            rows,
+            failures);
+        Verify(
+            "EXPANSION_EVENT_29_51_71_87_EXACT",
             VerifyResearchEventExpansion,
             rows,
             failures);
@@ -56,16 +68,26 @@ public static class DungeonSpaceExpansionDebugScenarios
             rows,
             failures);
         Verify(
+            "EXPANSION_CAPTURE_AND_RESTORE_PREFLIGHT_EXACT",
+            VerifyExpansionPreflightContract,
+            rows,
+            failures);
+        Verify(
             "EXPANSION_E_KEY_DEVELOPER_ONLY",
             VerifyDeveloperKeyIsolation,
+            rows,
+            failures);
+        Verify(
+            "EXPANSION_GAMEPLAY_SCENE_SHA_UNCHANGED",
+            VerifyGameplaySceneShaUnchanged,
             rows,
             failures);
 
         rows.Insert(
             0,
             failures.Count == 0
-                ? "RESULT=PASS; failures=0; research=3; columns=27,49,65,81;"
-                : $"RESULT=FAIL; failures={failures.Count}; research=3; columns=27,49,65,81;");
+                ? "RESULT=PASS; failures=0; research=3; columns=29,51,71,87; sceneSeed=27;"
+                : $"RESULT=FAIL; failures={failures.Count}; research=3; columns=29,51,71,87; sceneSeed=27;");
         rows.AddRange(failures.Select(failure => "DETAIL\t" + failure));
         WriteReport(rows);
 
@@ -125,7 +147,8 @@ public static class DungeonSpaceExpansionDebugScenarios
             expectedFacilities: new[]
             {
                 ResearchFacilityCapabilityId.Basic,
-                ResearchFacilityCapabilityId.Design
+                ResearchFacilityCapabilityId.Design,
+                ResearchFacilityCapabilityId.Advanced
             });
 
         float totalWork = projects.Values.Sum(project => project.RequiredWork);
@@ -155,12 +178,22 @@ public static class DungeonSpaceExpansionDebugScenarios
                 "Unrelated research replaced the dungeon grid.");
             RequireLayout(authority.Grid, 27, 60, new Vector2Int(17, 0));
 
+            Require(runtime.TryReconcileNewRunTierZero(
+                    out DungeonSpaceExpansionResult tierZero,
+                    out string tierZeroFailure),
+                "New-run Tier-0 reconciliation failed: " + tierZeroFailure);
+            Require(tierZero.Changed
+                    && tierZero.PreviousInteriorColumns == 27
+                    && tierZero.CurrentInteriorColumns == 29,
+                "New-run Tier-0 reconciliation did not publish exact 27-to-29 columns.");
+            RequireLayout(authority.Grid, 29, 60, new Vector2Int(17, 0));
+
             Grid beforeQuarry = authority.Grid;
             Publish(
                 events,
                 projects[DungeonSpaceExpansionCatalog.QuarryResearchId]);
-            RequireLayout(authority.Grid, 49, 66, new Vector2Int(17, 0));
-            Require(beforeQuarry.GetGridCell(new Vector2Int(44, 0)).AreaType
+            RequireLayout(authority.Grid, 51, 68, new Vector2Int(17, 0));
+            Require(beforeQuarry.GetGridCell(new Vector2Int(46, 0)).AreaType
                     == GridCellAreaType.BlockedExterior,
                 "Quarry expansion mutated the previously published grid in place.");
 
@@ -176,24 +209,78 @@ public static class DungeonSpaceExpansionDebugScenarios
             Publish(
                 events,
                 projects[DungeonSpaceExpansionCatalog.StonecuttingResearchId]);
-            RequireLayout(authority.Grid, 65, 82, new Vector2Int(17, 0));
+            RequireLayout(authority.Grid, 71, 88, new Vector2Int(17, 0));
 
             Publish(
                 events,
                 projects[DungeonSpaceExpansionCatalog.DeepMiningResearchId]);
-            RequireLayout(authority.Grid, 81, 98, new Vector2Int(17, 0));
+            RequireLayout(authority.Grid, 87, 104, new Vector2Int(17, 0));
             Require(runtime.LastResult.Changed
                     && runtime.LastResult.AddedInteriorColumns == 16,
                 "Deep expansion result did not report the exact +16 columns.");
-            Require(authority.PublicationCount == 3,
-                $"Expected exactly 3 grid publications; found {authority.PublicationCount}.");
-            Require(authority.CompletionCount == 3,
-                $"Expected exactly 3 completed publications; found {authority.CompletionCount}.");
+            Require(authority.PublicationCount == 4,
+                $"Expected Tier-0 plus 3 research publications; found {authority.PublicationCount}.");
+            Require(authority.CompletionCount == 4,
+                $"Expected Tier-0 plus 3 completed publications; found {authority.CompletionCount}.");
         }
         finally
         {
             runtime.Dispose();
             events.Clear();
+        }
+
+        return true;
+    }
+
+    private static bool VerifyNewRunTierZeroAndRestorePreservation()
+    {
+        Grid restoredTierZero = CreateTierZeroGrid();
+        TestGridAuthority restoredAuthority = new(restoredTierZero);
+        GameEventBus restoredEvents = new();
+        DungeonSpaceExpansionRuntime restoredRuntime =
+            new(restoredEvents, restoredAuthority, restoredAuthority);
+        restoredRuntime.Start();
+        try
+        {
+            Require(ReferenceEquals(restoredAuthority.Grid, restoredTierZero)
+                    && restoredAuthority.PublicationCount == 0,
+                "Runtime startup mutated a current-format restored Tier-0 layout.");
+            RequireLayout(restoredAuthority.Grid, 29, 60, new Vector2Int(17, 0));
+        }
+        finally
+        {
+            restoredRuntime.Dispose();
+            restoredEvents.Clear();
+        }
+
+        Grid sceneSeed = CreateInitialGrid();
+        TestGridAuthority newRunAuthority = new(sceneSeed);
+        GameEventBus newRunEvents = new();
+        DungeonSpaceExpansionRuntime newRunRuntime =
+            new(newRunEvents, newRunAuthority, newRunAuthority);
+        try
+        {
+            Require(newRunRuntime.TryReconcileNewRunTierZero(
+                    out DungeonSpaceExpansionResult result,
+                    out string failureReason),
+                "Explicit new-run Tier-0 reconciliation failed: " + failureReason);
+            Require(result.Changed
+                    && result.AddedInteriorColumns == 2
+                    && newRunAuthority.PublicationCount == 1,
+                "Explicit new-run reconciliation did not publish exactly one +2 expansion.");
+            RequireLayout(newRunAuthority.Grid, 29, 60, new Vector2Int(17, 0));
+            Require(newRunRuntime.TryReconcileNewRunTierZero(
+                    out DungeonSpaceExpansionResult repeated,
+                    out failureReason)
+                    && !repeated.Changed
+                    && newRunAuthority.PublicationCount == 1,
+                "Repeated new-run Tier-0 reconciliation was not idempotent: "
+                + failureReason);
+        }
+        finally
+        {
+            newRunRuntime.Dispose();
+            newRunEvents.Clear();
         }
 
         return true;
@@ -210,13 +297,15 @@ public static class DungeonSpaceExpansionDebugScenarios
         runtime.Start();
         try
         {
+            Require(runtime.TryReconcileNewRunTierZero(out _, out string tierZeroFailure),
+                "Direct-deep fixture could not reconcile Tier 0: " + tierZeroFailure);
             Publish(
                 events,
                 projects[DungeonSpaceExpansionCatalog.DeepMiningResearchId]);
-            RequireLayout(authority.Grid, 81, 98, new Vector2Int(17, 0));
+            RequireLayout(authority.Grid, 87, 104, new Vector2Int(17, 0));
             Require(runtime.LastResult.Changed
-                    && runtime.LastResult.AddedInteriorColumns == 54,
-                "Direct deep-mining completion did not publish the exact 27-to-81 expansion.");
+                    && runtime.LastResult.AddedInteriorColumns == 58,
+                "Direct deep-mining completion did not publish the exact 29-to-87 expansion.");
 
             Grid deepGrid = authority.Grid;
             Publish(
@@ -231,9 +320,9 @@ public static class DungeonSpaceExpansionDebugScenarios
             Require(ReferenceEquals(authority.Grid, deepGrid)
                     && !runtime.LastResult.Changed,
                 "Late stonecutting completion changed an already-expanded deep layout.");
-            Require(authority.PublicationCount == 1
-                    && authority.CompletionCount == 1,
-                $"Direct deep expansion expected one publication; found {authority.PublicationCount}/{authority.CompletionCount}.");
+            Require(authority.PublicationCount == 2
+                    && authority.CompletionCount == 2,
+                $"Tier-0 plus direct deep expansion expected two publications; found {authority.PublicationCount}/{authority.CompletionCount}.");
         }
         finally
         {
@@ -246,7 +335,7 @@ public static class DungeonSpaceExpansionDebugScenarios
 
     private static bool VerifyDetachedExpansionCopy()
     {
-        Grid grid = CreateInitialGrid();
+        Grid grid = CreateTierZeroGrid();
         TestOccupant occupant = new TestOccupant(901);
         Vector2Int occupied = new Vector2Int(20, 0);
         Require(grid.RegisterOccupant(
@@ -275,7 +364,7 @@ public static class DungeonSpaceExpansionDebugScenarios
 
     private static bool VerifySaveLayoutRoundTrip()
     {
-        Grid grid = CreateInitialGrid();
+        Grid grid = CreateTierZeroGrid();
         foreach (DungeonSpaceExpansionDefinition definition in
                  DungeonSpaceExpansionCatalog.All)
         {
@@ -285,7 +374,7 @@ public static class DungeonSpaceExpansionDebugScenarios
             Require(expanded != null,
                 $"Could not allocate tier {definition.Tier} save fixture.");
             for (int x = 17 + (definition.Tier == 1
-                         ? 27
+                         ? DungeonSpaceExpansionCatalog.InitialInteriorColumns
                          : DungeonSpaceExpansionCatalog.All[definition.Tier - 2]
                              .TargetInteriorColumns);
                  x < targetEnd;
@@ -324,7 +413,7 @@ public static class DungeonSpaceExpansionDebugScenarios
                 out string failureReason),
             "Restored V5 layout is invalid: " + failureReason);
         Require(layout.StartX == 17
-                && layout.ColumnCount == 81
+                && layout.ColumnCount == 87
                 && layout.EntrancePosition == new Vector2Int(17, 0),
             $"Restored V5 layout mismatch: start={layout.StartX}; columns={layout.ColumnCount}; entrance={layout.EntrancePosition}.");
         return true;
@@ -350,24 +439,73 @@ public static class DungeonSpaceExpansionDebugScenarios
         return true;
     }
 
+    private static bool VerifyNewRunTierZeroRejectsNoncanonicalWidths()
+    {
+        foreach (int columns in new[] { 28, 30, 51 })
+        {
+            Grid original = CreateGridWithInteriorColumns(columns);
+            TestGridAuthority authority = new(original);
+            GameEventBus events = new();
+            DungeonSpaceExpansionRuntime runtime = new(events, authority, authority);
+            try
+            {
+                Require(!runtime.TryReconcileNewRunTierZero(
+                        out _,
+                        out string failureReason),
+                    $"New-run Tier-0 reconciliation accepted noncanonical {columns}-column input.");
+                Require(failureReason.Contains(
+                        $"found {columns}",
+                        StringComparison.Ordinal)
+                    && ReferenceEquals(authority.Grid, original)
+                    && authority.PublicationCount == 0
+                    && authority.CompletionCount == 0,
+                    $"Noncanonical {columns}-column input was not rejected atomically: {failureReason}");
+            }
+            finally
+            {
+                runtime.Dispose();
+                events.Clear();
+            }
+        }
+        return true;
+    }
+
+    private static bool VerifyGameplaySceneShaUnchanged()
+    {
+        const string expectedSha256 =
+            "B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8";
+        string projectRoot = Directory.GetParent(Application.dataPath)?.FullName
+            ?? throw new InvalidOperationException("Project root is unavailable.");
+        string scenePath = Path.Combine(
+            projectRoot,
+            "Assets/Scenes/GameplayScene.unity");
+        using SHA256 sha = SHA256.Create();
+        using FileStream stream = File.OpenRead(scenePath);
+        string actual = BitConverter.ToString(sha.ComputeHash(stream))
+            .Replace("-", string.Empty);
+        Require(string.Equals(actual, expectedSha256, StringComparison.Ordinal),
+            $"GameplayScene SHA drifted: expected={expectedSha256}; actual={actual}.");
+        return true;
+    }
+
     private static bool VerifySaveResearchLayoutAuthority()
     {
         Require(
             DungeonSpaceExpansionCatalog.ResolveExpectedInteriorColumns(
-                Array.Empty<string>()) == 27,
-            "A save with no expansion research did not resolve to 27 columns.");
+                Array.Empty<string>()) == 29,
+            "A save with no expansion research did not resolve to 29 columns.");
         Require(
             DungeonSpaceExpansionCatalog.ResolveExpectedInteriorColumns(
-                new[] { DungeonSpaceExpansionCatalog.QuarryResearchId }) == 49,
-            "A quarry-completed save did not resolve to 49 columns.");
+                new[] { DungeonSpaceExpansionCatalog.QuarryResearchId }) == 51,
+            "A quarry-completed save did not resolve to 51 columns.");
         Require(
             DungeonSpaceExpansionCatalog.ResolveExpectedInteriorColumns(
-                new[] { DungeonSpaceExpansionCatalog.StonecuttingResearchId }) == 65,
-            "A stonecutting-only restored set did not resolve to 65 columns.");
+                new[] { DungeonSpaceExpansionCatalog.StonecuttingResearchId }) == 71,
+            "A stonecutting-only restored set did not resolve to 71 columns.");
         Require(
             DungeonSpaceExpansionCatalog.ResolveExpectedInteriorColumns(
-                new[] { DungeonSpaceExpansionCatalog.DeepMiningResearchId }) == 81,
-            "A deep-mining-only restored set did not resolve to 81 columns.");
+                new[] { DungeonSpaceExpansionCatalog.DeepMiningResearchId }) == 87,
+            "A deep-mining-only restored set did not resolve to 87 columns.");
         Require(
             DungeonSpaceExpansionCatalog.ResolveExpectedInteriorColumns(
                 new[]
@@ -375,9 +513,94 @@ public static class DungeonSpaceExpansionDebugScenarios
                     DungeonSpaceExpansionCatalog.DeepMiningResearchId,
                     DungeonSpaceExpansionCatalog.QuarryResearchId,
                     DungeonSpaceExpansionCatalog.StonecuttingResearchId
-                }) == 81,
+                }) == 87,
             "The highest completed mining expansion was not authoritative.");
         return true;
+    }
+
+    private static bool VerifyExpansionPreflightContract()
+    {
+        Require(typeof(IDungeonCapturedSavePreflightValidator).IsAssignableFrom(
+                typeof(DungeonAggregateReferencePreflight)),
+            "Dungeon aggregate expansion validation is missing from the captured-save boundary.");
+
+        string projectRoot = Directory.GetParent(Application.dataPath)?.FullName
+            ?? throw new InvalidOperationException("Project root is unavailable.");
+        string registrationSource = File.ReadAllText(Path.Combine(
+            projectRoot,
+            "Assets/Scripts/Services/Infrastructure/Registration/DungeonSaveRegistration.cs"));
+        Require(registrationSource.Contains(
+                ".As<IDungeonCapturedSavePreflightValidator>();",
+                StringComparison.Ordinal),
+            "Dungeon aggregate preflight is not registered for captured saves.");
+
+        VerifyExpansionPreflight(
+            completedResearchIds: Array.Empty<string>(),
+            interiorColumns: 29,
+            expectedSuccess: true,
+            expectedErrorFragment: string.Empty);
+        VerifyExpansionPreflight(
+            completedResearchIds: Array.Empty<string>(),
+            interiorColumns: 27,
+            expectedSuccess: false,
+            expectedErrorFragment: "expects 29 interior columns, save contains 27");
+        VerifyExpansionPreflight(
+            completedResearchIds: new[]
+            {
+                DungeonSpaceExpansionCatalog.QuarryResearchId
+            },
+            interiorColumns: 29,
+            expectedSuccess: false,
+            expectedErrorFragment: "expects 51 interior columns, save contains 29");
+        VerifyExpansionPreflight(
+            completedResearchIds: Array.Empty<string>(),
+            interiorColumns: 51,
+            expectedSuccess: false,
+            expectedErrorFragment: "expects 29 interior columns, save contains 51");
+        return true;
+    }
+
+    private static void VerifyExpansionPreflight(
+        IReadOnlyList<string> completedResearchIds,
+        int interiorColumns,
+        bool expectedSuccess,
+        string expectedErrorFragment)
+    {
+        DungeonResearchSaveData research = new()
+        {
+            completedProjectIds = completedResearchIds.ToList()
+        };
+        Grid grid = CreateGridWithInteriorColumns(interiorColumns);
+        ModularFacilityWorldSaveData facilities = new()
+        {
+            version = ModularFacilityWorldSaveService.CurrentVersion,
+            gridWidth = grid.width,
+            gridHeight = grid.height,
+            gridCells = grid.GetCells()
+                .OrderBy(cell => cell.Position.y)
+                .ThenBy(cell => cell.Position.x)
+                .Select(ModularFacilityGridCellSaveData.From)
+                .ToList()
+        };
+        DungeonGameRestoreReport report = new();
+        MethodInfo validator = typeof(DungeonAggregateReferencePreflight)
+            .GetMethod(
+                "ValidateDungeonExpansionResearch",
+                BindingFlags.Static | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException(
+                "Dungeon expansion aggregate preflight entry point is unavailable.");
+        validator.Invoke(null, new object[] { research, facilities, report });
+        Require(report.Success == expectedSuccess,
+            $"Expansion preflight result mismatch for {interiorColumns} columns: "
+            + string.Join(" | ", report.Errors));
+        if (!expectedSuccess)
+        {
+            Require(report.Errors.Any(error => error.Contains(
+                    expectedErrorFragment,
+                    StringComparison.Ordinal)),
+                $"Expansion preflight did not report '{expectedErrorFragment}': "
+                + string.Join(" | ", report.Errors));
+        }
     }
 
     private static void VerifyProject(
@@ -428,12 +651,19 @@ public static class DungeonSpaceExpansionDebugScenarios
 
     private static Grid CreateInitialGrid()
     {
-        Grid grid = new Grid(60, DungeonSpaceExpansionCatalog.SupportedGridHeight);
+        return CreateGridWithInteriorColumns(
+            DungeonSpaceExpansionCatalog.SceneSeedInteriorColumns);
+    }
+
+    private static Grid CreateGridWithInteriorColumns(int interiorColumns)
+    {
+        int width = Mathf.Max(60, 17 + interiorColumns);
+        Grid grid = new Grid(width, DungeonSpaceExpansionCatalog.SupportedGridHeight);
         foreach (GridCell cell in grid.GetCells())
         {
             grid.SetAreaType(cell.Position, GridCellAreaType.BlockedExterior);
         }
-        for (int x = 17; x < 17 + DungeonSpaceExpansionCatalog.InitialInteriorColumns; x++)
+        for (int x = 17; x < 17 + interiorColumns; x++)
         {
             for (int y = 0; y < grid.height; y++)
             {
@@ -445,6 +675,25 @@ public static class DungeonSpaceExpansionDebugScenarios
             }
         }
         return grid;
+    }
+
+    private static Grid CreateTierZeroGrid()
+    {
+        Grid initial = CreateInitialGrid();
+        TestGridAuthority authority = new(initial);
+        GameEventBus events = new();
+        DungeonSpaceExpansionRuntime runtime = new(events, authority, authority);
+        try
+        {
+            Require(runtime.TryReconcileNewRunTierZero(out _, out string failureReason),
+                "Tier-0 fixture reconciliation failed: " + failureReason);
+            return authority.Grid;
+        }
+        finally
+        {
+            runtime.Dispose();
+            events.Clear();
+        }
     }
 
     private static void Publish(GameEventBus events, ResearchProjectSO project)

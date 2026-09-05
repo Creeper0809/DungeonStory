@@ -1,0 +1,76 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "84"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Surgery And Transplant"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-fungal",
+      "target_spoiler_tier": "none",
+      "target_title": "실내 균목림",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-fungal",
+      "target_spoiler_tier": "none",
+      "target_title": "실내 균목림",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-fungal",
+      "target_spoiler_tier": "none",
+      "target_title": "실내 균목림",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-anatomy",
+      "target_spoiler_tier": "none",
+      "target_title": "해부학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-anatomy",
+      "target_spoiler_tier": "none",
+      "target_title": "해부학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-anatomy",
+      "target_spoiler_tier": "none",
+      "target_title": "해부학",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-medical-mycelial-grafting",
+  "spoiler_tier": "none",
+  "summary": "균사 군체와 포자낭을 세정하고 재배양한다.",
+  "title": "균사 접목학"
+}

@@ -1,0 +1,226 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+EndingDefinitionSO|ending:arcane-ascension,ending:arcane-ascension,m_Name,ending_arcane-ascension,,,explicit-serialized
+EndingDefinitionSO|ending:arcane-ascension,ending:arcane-ascension,stableId,ending:arcane-ascension,,,explicit-serialized
+EndingDefinitionSO|ending:arcane-ascension,ending:arcane-ascension,displayName,비전 승천,,,explicit-serialized
+EndingDefinitionSO|ending:arcane-ascension,ending:arcane-ascension,description,룬 전력망과 비전 생산을 통합해 물질과 마력의 경계를 산업 체계로 바꾼다.,,,explicit-serialized
+EndingDefinitionSO|ending:arcane-ascension,ending:arcane-ascension,authoringRevision,1,,,explicit-serialized
+EndingDefinitionSO|ending:arcane-ascension,ending:arcane-ascension,sourceNote,V20 hand-authored non-terminal run milestone.,,,explicit-serialized
+EndingDefinitionSO|ending:arcane-ascension,ending:arcane-ascension,tier,1,RunMilestoneTier,Grand,explicit-serialized
+EndingDefinitionSO|ending:arcane-ascension,ending:arcane-ascension,completionRequirements.items,[],,,explicit-serialized
+EndingDefinitionSO|ending:arcane-ascension,ending:arcane-ascension,completionRequirements.facilities,[],,,explicit-serialized
+EndingDefinitionSO|ending:arcane-ascension,ending:arcane-ascension,completionRequirements.research.0.researchNumericId,7238,,,explicit-serialized
+EndingDefinitionSO|ending:arcane-ascension,ending:arcane-ascension,completionRequirements.characters,[],,,explicit-serialized
+EndingDefinitionSO|ending:arcane-ascension,ending:arcane-ascension,completionRequirements.factions,[],,,explicit-serialized
+EndingDefinitionSO|ending:arcane-ascension,ending:arcane-ascension,completionRequirements.worldMetrics.0.kind,6,V20WorldMetricKind,Rune Power,explicit-serialized
+EndingDefinitionSO|ending:arcane-ascension,ending:arcane-ascension,completionRequirements.worldMetrics.0.minimumValue,100,,,explicit-serialized
+EndingDefinitionSO|ending:arcane-ascension,ending:arcane-ascension,completionRequirements.requiredFlags.0,arcane:grid-integrated,,,explicit-serialized
+EndingDefinitionSO|ending:arcane-ascension,ending:arcane-ascension,completionRequirements.excludedFlags,[],,,explicit-serialized
+EndingDefinitionSO|ending:arcane-ascension,ending:arcane-ascension,landmarkBuildingId,building:landmark:arcane-spire,,,explicit-serialized
+EndingDefinitionSO|ending:arcane-ascension,ending:arcane-ascension,permanentRewards.0.kind,12,,,explicit-serialized
+EndingDefinitionSO|ending:arcane-ascension,ending:arcane-ascension,permanentRewards.0.targetId,reward:ending:arcane-ascension,,,explicit-serialized
+EndingDefinitionSO|ending:arcane-ascension,ending:arcane-ascension,permanentRewards.0.amount,1,,,explicit-serialized
+EndingDefinitionSO|ending:arcane-ascension,ending:arcane-ascension,permanentRewards.0.durationDays,0,,,explicit-serialized
+EndingDefinitionSO|ending:arcane-ascension,ending:arcane-ascension,counterPressures.0.kind,17,,,explicit-serialized
+EndingDefinitionSO|ending:arcane-ascension,ending:arcane-ascension,counterPressures.0.targetId,pressure:ending:arcane-ascension,,,explicit-serialized
+EndingDefinitionSO|ending:arcane-ascension,ending:arcane-ascension,counterPressures.0.amount,2,,,explicit-serialized
+EndingDefinitionSO|ending:arcane-ascension,ending:arcane-ascension,counterPressures.0.durationDays,0,,,explicit-serialized
+EndingDefinitionSO|ending:dungeon-sovereignty,ending:dungeon-sovereignty,m_Name,ending_dungeon-sovereignty,,,explicit-serialized
+EndingDefinitionSO|ending:dungeon-sovereignty,ending:dungeon-sovereignty,stableId,ending:dungeon-sovereignty,,,explicit-serialized
+EndingDefinitionSO|ending:dungeon-sovereignty,ending:dungeon-sovereignty,displayName,던전 주권국,,,explicit-serialized
+EndingDefinitionSO|ending:dungeon-sovereignty,ending:dungeon-sovereignty,description,인구·경제·생산·방어 체계를 갖춘 독립 국가로서 던전을 선포한다.,,,explicit-serialized
+EndingDefinitionSO|ending:dungeon-sovereignty,ending:dungeon-sovereignty,authoringRevision,1,,,explicit-serialized
+EndingDefinitionSO|ending:dungeon-sovereignty,ending:dungeon-sovereignty,sourceNote,V20 hand-authored non-terminal run milestone.,,,explicit-serialized
+EndingDefinitionSO|ending:dungeon-sovereignty,ending:dungeon-sovereignty,tier,0,RunMilestoneTier,Legacy,explicit-serialized
+EndingDefinitionSO|ending:dungeon-sovereignty,ending:dungeon-sovereignty,completionRequirements.items,[],,,explicit-serialized
+EndingDefinitionSO|ending:dungeon-sovereignty,ending:dungeon-sovereignty,completionRequirements.facilities,[],,,explicit-serialized
+EndingDefinitionSO|ending:dungeon-sovereignty,ending:dungeon-sovereignty,completionRequirements.research,[],,,explicit-serialized
+EndingDefinitionSO|ending:dungeon-sovereignty,ending:dungeon-sovereignty,completionRequirements.characters,[],,,explicit-serialized
+EndingDefinitionSO|ending:dungeon-sovereignty,ending:dungeon-sovereignty,completionRequirements.factions,[],,,explicit-serialized
+EndingDefinitionSO|ending:dungeon-sovereignty,ending:dungeon-sovereignty,completionRequirements.worldMetrics.0.kind,4,V20WorldMetricKind,Defense Readiness,explicit-serialized
+EndingDefinitionSO|ending:dungeon-sovereignty,ending:dungeon-sovereignty,completionRequirements.worldMetrics.0.minimumValue,80,,,explicit-serialized
+EndingDefinitionSO|ending:dungeon-sovereignty,ending:dungeon-sovereignty,completionRequirements.requiredFlags.0,economy:sovereign-ready,,,explicit-serialized
+EndingDefinitionSO|ending:dungeon-sovereignty,ending:dungeon-sovereignty,completionRequirements.excludedFlags,[],,,explicit-serialized
+EndingDefinitionSO|ending:dungeon-sovereignty,ending:dungeon-sovereignty,landmarkBuildingId,building:landmark:sovereign-citadel,,,explicit-serialized
+EndingDefinitionSO|ending:dungeon-sovereignty,ending:dungeon-sovereignty,permanentRewards.0.kind,12,,,explicit-serialized
+EndingDefinitionSO|ending:dungeon-sovereignty,ending:dungeon-sovereignty,permanentRewards.0.targetId,reward:ending:dungeon-sovereignty,,,explicit-serialized
+EndingDefinitionSO|ending:dungeon-sovereignty,ending:dungeon-sovereignty,permanentRewards.0.amount,1,,,explicit-serialized
+EndingDefinitionSO|ending:dungeon-sovereignty,ending:dungeon-sovereignty,permanentRewards.0.durationDays,0,,,explicit-serialized
+EndingDefinitionSO|ending:dungeon-sovereignty,ending:dungeon-sovereignty,counterPressures.0.kind,17,,,explicit-serialized
+EndingDefinitionSO|ending:dungeon-sovereignty,ending:dungeon-sovereignty,counterPressures.0.targetId,pressure:ending:dungeon-sovereignty,,,explicit-serialized
+EndingDefinitionSO|ending:dungeon-sovereignty,ending:dungeon-sovereignty,counterPressures.0.amount,1,,,explicit-serialized
+EndingDefinitionSO|ending:dungeon-sovereignty,ending:dungeon-sovereignty,counterPressures.0.durationDays,0,,,explicit-serialized
+EndingDefinitionSO|ending:eternal-lineage,ending:eternal-lineage,m_Name,ending_eternal-lineage,,,explicit-serialized
+EndingDefinitionSO|ending:eternal-lineage,ending:eternal-lineage,stableId,ending:eternal-lineage,,,explicit-serialized
+EndingDefinitionSO|ending:eternal-lineage,ending:eternal-lineage,displayName,영원한 계보,,,explicit-serialized
+EndingDefinitionSO|ending:eternal-lineage,ending:eternal-lineage,description,세 세대가 직업과 장비 계보를 이어 던전의 살아 있는 역사를 만든다.,,,explicit-serialized
+EndingDefinitionSO|ending:eternal-lineage,ending:eternal-lineage,authoringRevision,1,,,explicit-serialized
+EndingDefinitionSO|ending:eternal-lineage,ending:eternal-lineage,sourceNote,V20 hand-authored non-terminal run milestone.,,,explicit-serialized
+EndingDefinitionSO|ending:eternal-lineage,ending:eternal-lineage,tier,1,RunMilestoneTier,Grand,explicit-serialized
+EndingDefinitionSO|ending:eternal-lineage,ending:eternal-lineage,completionRequirements.items,[],,,explicit-serialized
+EndingDefinitionSO|ending:eternal-lineage,ending:eternal-lineage,completionRequirements.facilities,[],,,explicit-serialized
+EndingDefinitionSO|ending:eternal-lineage,ending:eternal-lineage,completionRequirements.research.0.researchNumericId,7240,,,explicit-serialized
+EndingDefinitionSO|ending:eternal-lineage,ending:eternal-lineage,completionRequirements.characters,[],,,explicit-serialized
+EndingDefinitionSO|ending:eternal-lineage,ending:eternal-lineage,completionRequirements.factions,[],,,explicit-serialized
+EndingDefinitionSO|ending:eternal-lineage,ending:eternal-lineage,completionRequirements.worldMetrics.0.kind,8,V20WorldMetricKind,Completed Generations,explicit-serialized
+EndingDefinitionSO|ending:eternal-lineage,ending:eternal-lineage,completionRequirements.worldMetrics.0.minimumValue,3,,,explicit-serialized
+EndingDefinitionSO|ending:eternal-lineage,ending:eternal-lineage,completionRequirements.requiredFlags.0,lineage:three-generations,,,explicit-serialized
+EndingDefinitionSO|ending:eternal-lineage,ending:eternal-lineage,completionRequirements.excludedFlags,[],,,explicit-serialized
+EndingDefinitionSO|ending:eternal-lineage,ending:eternal-lineage,landmarkBuildingId,building:landmark:lineage-vault,,,explicit-serialized
+EndingDefinitionSO|ending:eternal-lineage,ending:eternal-lineage,permanentRewards.0.kind,12,,,explicit-serialized
+EndingDefinitionSO|ending:eternal-lineage,ending:eternal-lineage,permanentRewards.0.targetId,reward:ending:eternal-lineage,,,explicit-serialized
+EndingDefinitionSO|ending:eternal-lineage,ending:eternal-lineage,permanentRewards.0.amount,1,,,explicit-serialized
+EndingDefinitionSO|ending:eternal-lineage,ending:eternal-lineage,permanentRewards.0.durationDays,0,,,explicit-serialized
+EndingDefinitionSO|ending:eternal-lineage,ending:eternal-lineage,counterPressures.0.kind,17,,,explicit-serialized
+EndingDefinitionSO|ending:eternal-lineage,ending:eternal-lineage,counterPressures.0.targetId,pressure:ending:eternal-lineage,,,explicit-serialized
+EndingDefinitionSO|ending:eternal-lineage,ending:eternal-lineage,counterPressures.0.amount,2,,,explicit-serialized
+EndingDefinitionSO|ending:eternal-lineage,ending:eternal-lineage,counterPressures.0.durationDays,0,,,explicit-serialized
+EndingDefinitionSO|ending:monster-accord,ending:monster-accord,m_Name,ending_monster-accord,,,explicit-serialized
+EndingDefinitionSO|ending:monster-accord,ending:monster-accord,stableId,ending:monster-accord,,,explicit-serialized
+EndingDefinitionSO|ending:monster-accord,ending:monster-accord,displayName,괴물 대협약,,,explicit-serialized
+EndingDefinitionSO|ending:monster-accord,ending:monster-accord,description,여섯 던전 세력의 이해관계를 조정해 상호 방위 협약을 성립시킨다.,,,explicit-serialized
+EndingDefinitionSO|ending:monster-accord,ending:monster-accord,authoringRevision,1,,,explicit-serialized
+EndingDefinitionSO|ending:monster-accord,ending:monster-accord,sourceNote,V20 hand-authored non-terminal run milestone.,,,explicit-serialized
+EndingDefinitionSO|ending:monster-accord,ending:monster-accord,tier,0,RunMilestoneTier,Legacy,explicit-serialized
+EndingDefinitionSO|ending:monster-accord,ending:monster-accord,completionRequirements.items,[],,,explicit-serialized
+EndingDefinitionSO|ending:monster-accord,ending:monster-accord,completionRequirements.facilities,[],,,explicit-serialized
+EndingDefinitionSO|ending:monster-accord,ending:monster-accord,completionRequirements.research,[],,,explicit-serialized
+EndingDefinitionSO|ending:monster-accord,ending:monster-accord,completionRequirements.characters,[],,,explicit-serialized
+EndingDefinitionSO|ending:monster-accord,ending:monster-accord,completionRequirements.factions,[],,,explicit-serialized
+EndingDefinitionSO|ending:monster-accord,ending:monster-accord,completionRequirements.worldMetrics.0.kind,1,V20WorldMetricKind,Population,explicit-serialized
+EndingDefinitionSO|ending:monster-accord,ending:monster-accord,completionRequirements.worldMetrics.0.minimumValue,40,,,explicit-serialized
+EndingDefinitionSO|ending:monster-accord,ending:monster-accord,completionRequirements.requiredFlags.0,faction:all-six-allied,,,explicit-serialized
+EndingDefinitionSO|ending:monster-accord,ending:monster-accord,completionRequirements.excludedFlags,[],,,explicit-serialized
+EndingDefinitionSO|ending:monster-accord,ending:monster-accord,landmarkBuildingId,building:landmark:accord-hall,,,explicit-serialized
+EndingDefinitionSO|ending:monster-accord,ending:monster-accord,permanentRewards.0.kind,12,,,explicit-serialized
+EndingDefinitionSO|ending:monster-accord,ending:monster-accord,permanentRewards.0.targetId,reward:ending:monster-accord,,,explicit-serialized
+EndingDefinitionSO|ending:monster-accord,ending:monster-accord,permanentRewards.0.amount,1,,,explicit-serialized
+EndingDefinitionSO|ending:monster-accord,ending:monster-accord,permanentRewards.0.durationDays,0,,,explicit-serialized
+EndingDefinitionSO|ending:monster-accord,ending:monster-accord,counterPressures.0.kind,17,,,explicit-serialized
+EndingDefinitionSO|ending:monster-accord,ending:monster-accord,counterPressures.0.targetId,pressure:ending:monster-accord,,,explicit-serialized
+EndingDefinitionSO|ending:monster-accord,ending:monster-accord,counterPressures.0.amount,1,,,explicit-serialized
+EndingDefinitionSO|ending:monster-accord,ending:monster-accord,counterPressures.0.durationDays,0,,,explicit-serialized
+EndingDefinitionSO|ending:sealed-paradise,ending:sealed-paradise,m_Name,ending_sealed-paradise,,,explicit-serialized
+EndingDefinitionSO|ending:sealed-paradise,ending:sealed-paradise,stableId,ending:sealed-paradise,,,explicit-serialized
+EndingDefinitionSO|ending:sealed-paradise,ending:sealed-paradise,displayName,봉인된 낙원,,,explicit-serialized
+EndingDefinitionSO|ending:sealed-paradise,ending:sealed-paradise,description,외부 조달 없이 주민과 생산 시설을 장기간 유지하는 폐쇄 생태계를 완성한다.,,,explicit-serialized
+EndingDefinitionSO|ending:sealed-paradise,ending:sealed-paradise,authoringRevision,1,,,explicit-serialized
+EndingDefinitionSO|ending:sealed-paradise,ending:sealed-paradise,sourceNote,V20 hand-authored non-terminal run milestone.,,,explicit-serialized
+EndingDefinitionSO|ending:sealed-paradise,ending:sealed-paradise,tier,0,RunMilestoneTier,Legacy,explicit-serialized
+EndingDefinitionSO|ending:sealed-paradise,ending:sealed-paradise,completionRequirements.items,[],,,explicit-serialized
+EndingDefinitionSO|ending:sealed-paradise,ending:sealed-paradise,completionRequirements.facilities,[],,,explicit-serialized
+EndingDefinitionSO|ending:sealed-paradise,ending:sealed-paradise,completionRequirements.research.0.researchNumericId,7255,,,explicit-serialized
+EndingDefinitionSO|ending:sealed-paradise,ending:sealed-paradise,completionRequirements.characters,[],,,explicit-serialized
+EndingDefinitionSO|ending:sealed-paradise,ending:sealed-paradise,completionRequirements.factions,[],,,explicit-serialized
+EndingDefinitionSO|ending:sealed-paradise,ending:sealed-paradise,completionRequirements.worldMetrics.0.kind,7,V20WorldMetricKind,Self Sufficiency Days,explicit-serialized
+EndingDefinitionSO|ending:sealed-paradise,ending:sealed-paradise,completionRequirements.worldMetrics.0.minimumValue,120,,,explicit-serialized
+EndingDefinitionSO|ending:sealed-paradise,ending:sealed-paradise,completionRequirements.requiredFlags.0,ecology:closed-cycle,,,explicit-serialized
+EndingDefinitionSO|ending:sealed-paradise,ending:sealed-paradise,completionRequirements.excludedFlags,[],,,explicit-serialized
+EndingDefinitionSO|ending:sealed-paradise,ending:sealed-paradise,landmarkBuildingId,building:landmark:sealed-garden,,,explicit-serialized
+EndingDefinitionSO|ending:sealed-paradise,ending:sealed-paradise,permanentRewards.0.kind,12,,,explicit-serialized
+EndingDefinitionSO|ending:sealed-paradise,ending:sealed-paradise,permanentRewards.0.targetId,reward:ending:sealed-paradise,,,explicit-serialized
+EndingDefinitionSO|ending:sealed-paradise,ending:sealed-paradise,permanentRewards.0.amount,1,,,explicit-serialized
+EndingDefinitionSO|ending:sealed-paradise,ending:sealed-paradise,permanentRewards.0.durationDays,0,,,explicit-serialized
+EndingDefinitionSO|ending:sealed-paradise,ending:sealed-paradise,counterPressures.0.kind,17,,,explicit-serialized
+EndingDefinitionSO|ending:sealed-paradise,ending:sealed-paradise,counterPressures.0.targetId,pressure:ending:sealed-paradise,,,explicit-serialized
+EndingDefinitionSO|ending:sealed-paradise,ending:sealed-paradise,counterPressures.0.amount,1,,,explicit-serialized
+EndingDefinitionSO|ending:sealed-paradise,ending:sealed-paradise,counterPressures.0.durationDays,0,,,explicit-serialized
+EndingDefinitionSO|ending:steel-apotheosis,ending:steel-apotheosis,m_Name,ending_steel-apotheosis,,,explicit-serialized
+EndingDefinitionSO|ending:steel-apotheosis,ending:steel-apotheosis,stableId,ending:steel-apotheosis,,,explicit-serialized
+EndingDefinitionSO|ending:steel-apotheosis,ending:steel-apotheosis,displayName,강철 신격화,,,explicit-serialized
+EndingDefinitionSO|ending:steel-apotheosis,ending:steel-apotheosis,description,자동 생산·자가 정비·통합 방어가 사람의 개입 없이 순환하는 산업 신체를 완성한다.,,,explicit-serialized
+EndingDefinitionSO|ending:steel-apotheosis,ending:steel-apotheosis,authoringRevision,1,,,explicit-serialized
+EndingDefinitionSO|ending:steel-apotheosis,ending:steel-apotheosis,sourceNote,V20 hand-authored non-terminal run milestone.,,,explicit-serialized
+EndingDefinitionSO|ending:steel-apotheosis,ending:steel-apotheosis,tier,1,RunMilestoneTier,Grand,explicit-serialized
+EndingDefinitionSO|ending:steel-apotheosis,ending:steel-apotheosis,completionRequirements.items,[],,,explicit-serialized
+EndingDefinitionSO|ending:steel-apotheosis,ending:steel-apotheosis,completionRequirements.facilities,[],,,explicit-serialized
+EndingDefinitionSO|ending:steel-apotheosis,ending:steel-apotheosis,completionRequirements.research.0.researchNumericId,7244,,,explicit-serialized
+EndingDefinitionSO|ending:steel-apotheosis,ending:steel-apotheosis,completionRequirements.characters,[],,,explicit-serialized
+EndingDefinitionSO|ending:steel-apotheosis,ending:steel-apotheosis,completionRequirements.factions,[],,,explicit-serialized
+EndingDefinitionSO|ending:steel-apotheosis,ending:steel-apotheosis,completionRequirements.worldMetrics.0.kind,5,V20WorldMetricKind,Production Automation,explicit-serialized
+EndingDefinitionSO|ending:steel-apotheosis,ending:steel-apotheosis,completionRequirements.worldMetrics.0.minimumValue,100,,,explicit-serialized
+EndingDefinitionSO|ending:steel-apotheosis,ending:steel-apotheosis,completionRequirements.requiredFlags.0,industry:self-maintaining,,,explicit-serialized
+EndingDefinitionSO|ending:steel-apotheosis,ending:steel-apotheosis,completionRequirements.excludedFlags,[],,,explicit-serialized
+EndingDefinitionSO|ending:steel-apotheosis,ending:steel-apotheosis,landmarkBuildingId,building:landmark:steel-colossus,,,explicit-serialized
+EndingDefinitionSO|ending:steel-apotheosis,ending:steel-apotheosis,permanentRewards.0.kind,12,,,explicit-serialized
+EndingDefinitionSO|ending:steel-apotheosis,ending:steel-apotheosis,permanentRewards.0.targetId,reward:ending:steel-apotheosis,,,explicit-serialized
+EndingDefinitionSO|ending:steel-apotheosis,ending:steel-apotheosis,permanentRewards.0.amount,1,,,explicit-serialized
+EndingDefinitionSO|ending:steel-apotheosis,ending:steel-apotheosis,permanentRewards.0.durationDays,0,,,explicit-serialized
+EndingDefinitionSO|ending:steel-apotheosis,ending:steel-apotheosis,counterPressures.0.kind,17,,,explicit-serialized
+EndingDefinitionSO|ending:steel-apotheosis,ending:steel-apotheosis,counterPressures.0.targetId,pressure:ending:steel-apotheosis,,,explicit-serialized
+EndingDefinitionSO|ending:steel-apotheosis,ending:steel-apotheosis,counterPressures.0.amount,2,,,explicit-serialized
+EndingDefinitionSO|ending:steel-apotheosis,ending:steel-apotheosis,counterPressures.0.durationDays,0,,,explicit-serialized
+EndingDefinitionSO|ending:surface-hegemony,ending:surface-hegemony,m_Name,ending_surface-hegemony,,,explicit-serialized
+EndingDefinitionSO|ending:surface-hegemony,ending:surface-hegemony,stableId,ending:surface-hegemony,,,explicit-serialized
+EndingDefinitionSO|ending:surface-hegemony,ending:surface-hegemony,displayName,지상 패권,,,explicit-serialized
+EndingDefinitionSO|ending:surface-hegemony,ending:surface-hegemony,description,인간 다섯 전쟁 계통의 핵심 전력을 무너뜨리고 지상 진입로를 장악한다.,,,explicit-serialized
+EndingDefinitionSO|ending:surface-hegemony,ending:surface-hegemony,authoringRevision,1,,,explicit-serialized
+EndingDefinitionSO|ending:surface-hegemony,ending:surface-hegemony,sourceNote,V20 hand-authored non-terminal run milestone.,,,explicit-serialized
+EndingDefinitionSO|ending:surface-hegemony,ending:surface-hegemony,tier,0,RunMilestoneTier,Legacy,explicit-serialized
+EndingDefinitionSO|ending:surface-hegemony,ending:surface-hegemony,completionRequirements.items,[],,,explicit-serialized
+EndingDefinitionSO|ending:surface-hegemony,ending:surface-hegemony,completionRequirements.facilities,[],,,explicit-serialized
+EndingDefinitionSO|ending:surface-hegemony,ending:surface-hegemony,completionRequirements.research,[],,,explicit-serialized
+EndingDefinitionSO|ending:surface-hegemony,ending:surface-hegemony,completionRequirements.characters,[],,,explicit-serialized
+EndingDefinitionSO|ending:surface-hegemony,ending:surface-hegemony,completionRequirements.factions,[],,,explicit-serialized
+EndingDefinitionSO|ending:surface-hegemony,ending:surface-hegemony,completionRequirements.worldMetrics.0.kind,9,V20WorldMetricKind,Defeated Human Branches,explicit-serialized
+EndingDefinitionSO|ending:surface-hegemony,ending:surface-hegemony,completionRequirements.worldMetrics.0.minimumValue,5,,,explicit-serialized
+EndingDefinitionSO|ending:surface-hegemony,ending:surface-hegemony,completionRequirements.requiredFlags.0,offense:surface-command-broken,,,explicit-serialized
+EndingDefinitionSO|ending:surface-hegemony,ending:surface-hegemony,completionRequirements.excludedFlags,[],,,explicit-serialized
+EndingDefinitionSO|ending:surface-hegemony,ending:surface-hegemony,landmarkBuildingId,building:landmark:surface-gate,,,explicit-serialized
+EndingDefinitionSO|ending:surface-hegemony,ending:surface-hegemony,permanentRewards.0.kind,12,,,explicit-serialized
+EndingDefinitionSO|ending:surface-hegemony,ending:surface-hegemony,permanentRewards.0.targetId,reward:ending:surface-hegemony,,,explicit-serialized
+EndingDefinitionSO|ending:surface-hegemony,ending:surface-hegemony,permanentRewards.0.amount,1,,,explicit-serialized
+EndingDefinitionSO|ending:surface-hegemony,ending:surface-hegemony,permanentRewards.0.durationDays,0,,,explicit-serialized
+EndingDefinitionSO|ending:surface-hegemony,ending:surface-hegemony,counterPressures.0.kind,17,,,explicit-serialized
+EndingDefinitionSO|ending:surface-hegemony,ending:surface-hegemony,counterPressures.0.targetId,pressure:ending:surface-hegemony,,,explicit-serialized
+EndingDefinitionSO|ending:surface-hegemony,ending:surface-hegemony,counterPressures.0.amount,1,,,explicit-serialized
+EndingDefinitionSO|ending:surface-hegemony,ending:surface-hegemony,counterPressures.0.durationDays,0,,,explicit-serialized
+EndingDefinitionSO|ending:timeless-sanctuary,ending:timeless-sanctuary,m_Name,ending_timeless-sanctuary,,,explicit-serialized
+EndingDefinitionSO|ending:timeless-sanctuary,ending:timeless-sanctuary,stableId,ending:timeless-sanctuary,,,explicit-serialized
+EndingDefinitionSO|ending:timeless-sanctuary,ending:timeless-sanctuary,displayName,시간 없는 성역,,,explicit-serialized
+EndingDefinitionSO|ending:timeless-sanctuary,ending:timeless-sanctuary,description,실제 인구가 거주하는 시간 고정망을 장기 가동해 노화 없는 구역을 유지한다.,,,explicit-serialized
+EndingDefinitionSO|ending:timeless-sanctuary,ending:timeless-sanctuary,authoringRevision,1,,,explicit-serialized
+EndingDefinitionSO|ending:timeless-sanctuary,ending:timeless-sanctuary,sourceNote,V20 hand-authored non-terminal run milestone.,,,explicit-serialized
+EndingDefinitionSO|ending:timeless-sanctuary,ending:timeless-sanctuary,tier,1,RunMilestoneTier,Grand,explicit-serialized
+EndingDefinitionSO|ending:timeless-sanctuary,ending:timeless-sanctuary,completionRequirements.items,[],,,explicit-serialized
+EndingDefinitionSO|ending:timeless-sanctuary,ending:timeless-sanctuary,completionRequirements.facilities,[],,,explicit-serialized
+EndingDefinitionSO|ending:timeless-sanctuary,ending:timeless-sanctuary,completionRequirements.research.0.researchNumericId,7271,,,explicit-serialized
+EndingDefinitionSO|ending:timeless-sanctuary,ending:timeless-sanctuary,completionRequirements.characters,[],,,explicit-serialized
+EndingDefinitionSO|ending:timeless-sanctuary,ending:timeless-sanctuary,completionRequirements.factions,[],,,explicit-serialized
+EndingDefinitionSO|ending:timeless-sanctuary,ending:timeless-sanctuary,completionRequirements.worldMetrics.0.kind,1,V20WorldMetricKind,Population,explicit-serialized
+EndingDefinitionSO|ending:timeless-sanctuary,ending:timeless-sanctuary,completionRequirements.worldMetrics.0.minimumValue,60,,,explicit-serialized
+EndingDefinitionSO|ending:timeless-sanctuary,ending:timeless-sanctuary,completionRequirements.requiredFlags.0,temporal:population-sustained,,,explicit-serialized
+EndingDefinitionSO|ending:timeless-sanctuary,ending:timeless-sanctuary,completionRequirements.excludedFlags,[],,,explicit-serialized
+EndingDefinitionSO|ending:timeless-sanctuary,ending:timeless-sanctuary,landmarkBuildingId,building:landmark:temporal-sanctum,,,explicit-serialized
+EndingDefinitionSO|ending:timeless-sanctuary,ending:timeless-sanctuary,permanentRewards.0.kind,12,,,explicit-serialized
+EndingDefinitionSO|ending:timeless-sanctuary,ending:timeless-sanctuary,permanentRewards.0.targetId,reward:ending:timeless-sanctuary,,,explicit-serialized
+EndingDefinitionSO|ending:timeless-sanctuary,ending:timeless-sanctuary,permanentRewards.0.amount,1,,,explicit-serialized
+EndingDefinitionSO|ending:timeless-sanctuary,ending:timeless-sanctuary,permanentRewards.0.durationDays,0,,,explicit-serialized
+EndingDefinitionSO|ending:timeless-sanctuary,ending:timeless-sanctuary,counterPressures.0.kind,17,,,explicit-serialized
+EndingDefinitionSO|ending:timeless-sanctuary,ending:timeless-sanctuary,counterPressures.0.targetId,pressure:ending:timeless-sanctuary,,,explicit-serialized
+EndingDefinitionSO|ending:timeless-sanctuary,ending:timeless-sanctuary,counterPressures.0.amount,2,,,explicit-serialized
+EndingDefinitionSO|ending:timeless-sanctuary,ending:timeless-sanctuary,counterPressures.0.durationDays,0,,,explicit-serialized
+EndingDefinitionSO|ending:truth-revealed,ending:truth-revealed,m_Name,ending_truth-revealed,,,explicit-serialized
+EndingDefinitionSO|ending:truth-revealed,ending:truth-revealed,stableId,ending:truth-revealed,,,explicit-serialized
+EndingDefinitionSO|ending:truth-revealed,ending:truth-revealed,displayName,진실의 폭로,,,explicit-serialized
+EndingDefinitionSO|ending:truth-revealed,ending:truth-revealed,description,진실 코어와 원정 기록을 결합해 던전의 기원을 세계에 증명한다.,,,explicit-serialized
+EndingDefinitionSO|ending:truth-revealed,ending:truth-revealed,authoringRevision,1,,,explicit-serialized
+EndingDefinitionSO|ending:truth-revealed,ending:truth-revealed,sourceNote,V20 hand-authored non-terminal run milestone.,,,explicit-serialized
+EndingDefinitionSO|ending:truth-revealed,ending:truth-revealed,tier,0,RunMilestoneTier,Legacy,explicit-serialized
+EndingDefinitionSO|ending:truth-revealed,ending:truth-revealed,completionRequirements.items,[],,,explicit-serialized
+EndingDefinitionSO|ending:truth-revealed,ending:truth-revealed,completionRequirements.facilities,[],,,explicit-serialized
+EndingDefinitionSO|ending:truth-revealed,ending:truth-revealed,completionRequirements.research,[],,,explicit-serialized
+EndingDefinitionSO|ending:truth-revealed,ending:truth-revealed,completionRequirements.characters,[],,,explicit-serialized
+EndingDefinitionSO|ending:truth-revealed,ending:truth-revealed,completionRequirements.factions,[],,,explicit-serialized
+EndingDefinitionSO|ending:truth-revealed,ending:truth-revealed,completionRequirements.worldMetrics.0.kind,9,V20WorldMetricKind,Defeated Human Branches,explicit-serialized
+EndingDefinitionSO|ending:truth-revealed,ending:truth-revealed,completionRequirements.worldMetrics.0.minimumValue,1,,,explicit-serialized
+EndingDefinitionSO|ending:truth-revealed,ending:truth-revealed,completionRequirements.requiredFlags.0,story:truth-core-secured,,,explicit-serialized
+EndingDefinitionSO|ending:truth-revealed,ending:truth-revealed,completionRequirements.excludedFlags,[],,,explicit-serialized
+EndingDefinitionSO|ending:truth-revealed,ending:truth-revealed,landmarkBuildingId,building:landmark:truth-observatory,,,explicit-serialized
+EndingDefinitionSO|ending:truth-revealed,ending:truth-revealed,permanentRewards.0.kind,12,,,explicit-serialized
+EndingDefinitionSO|ending:truth-revealed,ending:truth-revealed,permanentRewards.0.targetId,reward:ending:truth-revealed,,,explicit-serialized
+EndingDefinitionSO|ending:truth-revealed,ending:truth-revealed,permanentRewards.0.amount,1,,,explicit-serialized
+EndingDefinitionSO|ending:truth-revealed,ending:truth-revealed,permanentRewards.0.durationDays,0,,,explicit-serialized
+EndingDefinitionSO|ending:truth-revealed,ending:truth-revealed,counterPressures.0.kind,17,,,explicit-serialized
+EndingDefinitionSO|ending:truth-revealed,ending:truth-revealed,counterPressures.0.targetId,pressure:ending:truth-revealed,,,explicit-serialized
+EndingDefinitionSO|ending:truth-revealed,ending:truth-revealed,counterPressures.0.amount,1,,,explicit-serialized
+EndingDefinitionSO|ending:truth-revealed,ending:truth-revealed,counterPressures.0.durationDays,0,,,explicit-serialized

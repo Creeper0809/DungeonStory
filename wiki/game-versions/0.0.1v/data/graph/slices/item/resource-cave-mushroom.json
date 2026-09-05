@@ -1,0 +1,144 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-cave-mushroom",
+    "spoiler_tier": "none",
+    "title": "동굴버섯"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-antidote",
+      "label": "필요 조건",
+      "to": "item/resource-cave-mushroom",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-garden-meal",
+      "label": "필요 조건",
+      "to": "item/resource-cave-mushroom",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-solvent",
+      "label": "필요 조건",
+      "to": "item/resource-cave-mushroom",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-standard-medicine",
+      "label": "필요 조건",
+      "to": "item/resource-cave-mushroom",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-supply-inoculated-log",
+      "label": "필요 조건",
+      "to": "item/resource-cave-mushroom",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-supply-mushroom-substrate",
+      "label": "필요 조건",
+      "to": "item/resource-cave-mushroom",
+      "type": "requires"
+    },
+    {
+      "amount": "14",
+      "from": "character/festival-spore-bloom",
+      "label": "필요 조건",
+      "to": "item/resource-cave-mushroom",
+      "type": "requires"
+    },
+    {
+      "amount": "16",
+      "from": "event/faction-contract-myconid-supply",
+      "label": "필요 조건",
+      "to": "item/resource-cave-mushroom",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "event/faction-chapter-myconid-1",
+      "label": "필요 조건",
+      "to": "item/resource-cave-mushroom",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-cheese-mushroom",
+      "label": "필요 조건",
+      "to": "item/resource-cave-mushroom",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-hallucinogenic-distillate",
+      "label": "필요 조건",
+      "to": "item/resource-cave-mushroom",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-lavish-vegan",
+      "label": "필요 조건",
+      "to": "item/resource-cave-mushroom",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-medical-sterile-mycelium-graft",
+      "label": "필요 조건",
+      "to": "item/resource-cave-mushroom",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-mushroom-soup",
+      "label": "필요 조건",
+      "to": "item/resource-cave-mushroom",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-stuffed-mushroom",
+      "label": "필요 조건",
+      "to": "item/resource-cave-mushroom",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "event/faction-chapter-myconid-1",
+      "label": "필요 조건",
+      "to": "item/resource-cave-mushroom",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "event/faction-chapter-myconid-4",
+      "label": "필요 조건",
+      "to": "item/resource-cave-mushroom",
+      "type": "requires"
+    },
+    {
+      "amount": "7",
+      "from": "event/faction-chapter-myconid-4",
+      "label": "필요 조건",
+      "to": "item/resource-cave-mushroom",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-myconid-grove",
+      "label": "관련",
+      "to": "item/resource-cave-mushroom",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

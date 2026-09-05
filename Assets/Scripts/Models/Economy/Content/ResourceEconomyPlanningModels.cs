@@ -33,6 +33,12 @@ public sealed class ResourceStockPolicyData
     [Min(0)] public int maximumStock = 40;
     public StockSurplusDisposition surplusDisposition;
     public string lastStatus = string.Empty;
+    public string inputDestinationId = string.Empty;
+    public int inputDestinationX;
+    public int inputDestinationY;
+    public long inputCapacityGrams;
+    public long inputMassAuthorityRevision;
+    public string inputCapacityFingerprint = string.Empty;
 
     public ResourceStockPolicyData Clone()
     {
@@ -48,6 +54,8 @@ public sealed class ResourceStockPolicyData
         targetStock = Mathf.Max(minimumStock, targetStock);
         maximumStock = Mathf.Max(targetStock, maximumStock);
         lastStatus ??= string.Empty;
+        inputDestinationId ??= string.Empty;
+        inputCapacityFingerprint ??= string.Empty;
     }
 }
 
@@ -91,11 +99,72 @@ public interface IResourceStockPolicyRuntime
     void PublishRestoreCandidate(ResourceStockPolicyRestoreCandidate candidate);
 }
 
+public enum EconomyProjectInputOwnerAnchorKind
+{
+    ReservedTarget = 0,
+    LiveFacility = 1
+}
+
+public readonly struct EconomyProjectInputOwnerProjection
+{
+    public EconomyProjectInputOwnerProjection(
+        long capacityGrams,
+        long massAuthorityRevision,
+        string fingerprint)
+    {
+        CapacityGrams = capacityGrams;
+        MassAuthorityRevision = massAuthorityRevision;
+        Fingerprint = fingerprint ?? string.Empty;
+    }
+
+    public long CapacityGrams { get; }
+    public long MassAuthorityRevision { get; }
+    public string Fingerprint { get; }
+}
+
+public interface IEconomyProjectInputOwnerPort
+{
+    bool TryEnsure(
+        string ownerDomain,
+        string ownerOperationId,
+        string destinationId,
+        Vector2Int position,
+        EconomyProjectInputOwnerAnchorKind anchorKind,
+        string ownerFacilityId,
+        IReadOnlyDictionary<string, int> requirements,
+        long storedCapacityGrams,
+        long storedMassAuthorityRevision,
+        string storedCapacityFingerprint,
+        out EconomyProjectInputOwnerProjection projection,
+        out string failureReason);
+
+    bool TryValidate(
+        string ownerDomain,
+        string ownerOperationId,
+        string destinationId,
+        Vector2Int position,
+        EconomyProjectInputOwnerAnchorKind anchorKind,
+        string ownerFacilityId,
+        IReadOnlyDictionary<string, int> requirements,
+        long storedCapacityGrams,
+        long storedMassAuthorityRevision,
+        string storedCapacityFingerprint,
+        out string failureReason);
+
+    bool TryRetireDestination(
+        string ownerDomain,
+        string destinationId,
+        string reasonCode,
+        out string failureReason);
+}
+
 public sealed class ResourceStockPolicyAggregateState
 {
     public Dictionary<string, ResourceStockPolicyData> ByItemId { get; } =
         new(StringComparer.Ordinal);
     public Dictionary<string, ResourceStockPolicyPendingSale> PendingSalesByItemId
+        { get; } = new(StringComparer.Ordinal);
+    public Dictionary<string, QualityRejectedSalePending> PendingRejectedSalesByOperationId
         { get; } = new(StringComparer.Ordinal);
     public IReadOnlyList<ResourceStockPolicyData> PolicyView { get; set; } =
         Array.Empty<ResourceStockPolicyData>();
@@ -122,7 +191,7 @@ public sealed class ResourceStockPolicyRestoreCandidate
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonResourceStockPolicySaveData
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 4;
 
     public int version = CurrentVersion;
     public int nextSaleSequence = 1;
@@ -130,6 +199,113 @@ public sealed class DungeonResourceStockPolicySaveData
         new List<ResourceStockPolicyData>();
     public List<ResourceStockPolicyPendingSale> pendingSales =
         new List<ResourceStockPolicyPendingSale>();
+    public List<QualityRejectedSalePending> pendingRejectedSales =
+        new List<QualityRejectedSalePending>();
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum QualityRejectedSaleCommitPhase
+{
+    Prepared = 0,
+    PhysicalCommitted = 1,
+    IncomePublished = 2,
+    UniqueAuthorityReleased = 3
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class QualityRejectedSalePending
+{
+    public int sequence;
+    public string operationId = string.Empty;
+    public string reasonCode = string.Empty;
+    public string sourceStackId = string.Empty;
+    public string itemId = string.Empty;
+    public string itemInstanceId = string.Empty;
+    public string componentFingerprint = string.Empty;
+    public string destinationId = string.Empty;
+    public int destinationX;
+    public int destinationY;
+    public int quantity = 1;
+    public int proceeds;
+    public bool requiresCombatAuthority;
+    public QualityRejectedSaleCommitPhase phase;
+    public string commitId = string.Empty;
+    public long inputMassGrams;
+
+    public QualityRejectedSalePending Clone() =>
+        (QualityRejectedSalePending)MemberwiseClone();
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public static class QualityRejectedSaleContract
+{
+    public const string OperationPrefix = "quality-rejected-sale:";
+    public const string TransferReason = "quality-rejected-market-export";
+    private const int TransferDispositionKind = 1;
+
+    public static string FormatOperationId(int sequence, string sourceStackId) =>
+        $"{OperationPrefix}{sequence:D8}:{sourceStackId}";
+
+    public static bool HasCanonicalPending(QualityRejectedSalePending pending)
+    {
+        if (!HasCanonicalPrepared(pending))
+            return false;
+        if (pending.phase == QualityRejectedSaleCommitPhase.Prepared)
+        {
+            return string.IsNullOrEmpty(pending.commitId)
+                && pending.inputMassGrams == 0L;
+        }
+        return pending.phase is QualityRejectedSaleCommitPhase.PhysicalCommitted
+                or QualityRejectedSaleCommitPhase.IncomePublished
+                or QualityRejectedSaleCommitPhase.UniqueAuthorityReleased
+            && IsCanonicalRequired(pending.commitId)
+            && pending.inputMassGrams > 0L
+            && string.Equals(
+                pending.commitId,
+                $"physical-batch-disposition:{TransferDispositionKind}:"
+                    + $"{pending.operationId}:1:{pending.inputMassGrams}",
+                StringComparison.Ordinal);
+    }
+
+    public static bool HasCanonicalPrepared(QualityRejectedSalePending pending) =>
+        pending != null
+        && pending.sequence > 0
+        && IsCanonicalRequired(pending.sourceStackId)
+        && string.Equals(
+            pending.operationId,
+            FormatOperationId(pending.sequence, pending.sourceStackId),
+            StringComparison.Ordinal)
+        && string.Equals(pending.reasonCode, TransferReason, StringComparison.Ordinal)
+        && IsCanonicalRequired(pending.itemId)
+        && IsCanonicalRequired(pending.itemInstanceId)
+        && IsLowerSha256(pending.componentFingerprint)
+        && string.Equals(
+            pending.destinationId,
+            QualityRejectedOutputRules.MarketDestinationId,
+            StringComparison.Ordinal)
+        && pending.quantity == 1
+        && pending.proceeds > 0
+        && Enum.IsDefined(typeof(QualityRejectedSaleCommitPhase), pending.phase);
+
+    private static bool IsCanonicalRequired(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
+
+    private static bool IsLowerSha256(string value)
+    {
+        if (value?.Length != 64)
+            return false;
+        foreach (char character in value)
+        {
+            if (character is not (>= '0' and <= '9')
+                && character is not (>= 'a' and <= 'f'))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -258,6 +434,12 @@ public sealed class RegionalSupplyContractState
     public List<string> deliverySourceStackIds = new List<string>();
     public int deliveryQuantity;
     public long deliveryMassGrams;
+    public bool inputOwnerActive;
+    public int inputDestinationX;
+    public int inputDestinationY;
+    public long inputCapacityGrams;
+    public long inputMassAuthorityRevision;
+    public string inputCapacityFingerprint = string.Empty;
     public List<RegionalSupplyContractRequirement> requirements =
         new List<RegionalSupplyContractRequirement>();
 
@@ -278,7 +460,7 @@ public sealed class RegionalSupplyContractState
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonRegionalSupplyContractSaveData
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
     public int version = CurrentVersion;
     public int currentDay = 1;
@@ -459,6 +641,12 @@ public sealed class GrandProjectRuntimeState
     public string destinationId = string.Empty;
     public float completedWork;
     public string lastStatus = string.Empty;
+    public string inputOwnerFacilityId = string.Empty;
+    public int inputDestinationX;
+    public int inputDestinationY;
+    public long inputCapacityGrams;
+    public long inputMassAuthorityRevision;
+    public string inputCapacityFingerprint = string.Empty;
     public List<string> completedProjectIds = new List<string>();
     public GrandProjectPhysicalCommitSaveData pendingPhysicalCommit = new();
 }
@@ -467,7 +655,7 @@ public sealed class GrandProjectRuntimeState
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonGrandProjectSaveData
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
     public int version = CurrentVersion;
     public GrandProjectRuntimeState state = new GrandProjectRuntimeState();

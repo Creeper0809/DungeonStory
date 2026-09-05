@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "relic-faction-kobold-2",
+    "spoiler_tier": "none",
+    "title": "무결점 태엽"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "event/faction-arc-kobold",
+      "label": "관련",
+      "to": "item/relic-faction-kobold-2",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

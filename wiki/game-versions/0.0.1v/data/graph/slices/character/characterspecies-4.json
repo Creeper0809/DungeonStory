@@ -1,0 +1,51 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "characterspecies-4",
+    "spoiler_tier": "none",
+    "title": "수인"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/characterspecies-4",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "funeral-culture-beastkin",
+      "target_spoiler_tier": "none",
+      "target_title": "Funeral_Beastkin",
+      "to": "character/funeral-culture-beastkin",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/characterspecies-4",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "life-history-beastkin",
+      "target_spoiler_tier": "none",
+      "target_title": "Life_Beastkin",
+      "to": "character/life-history-beastkin",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/characterspecies-4",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "reproduction-beastkin",
+      "target_spoiler_tier": "none",
+      "target_title": "Reproduction_Beastkin",
+      "to": "character/reproduction-beastkin",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/character-archetype-9004",
+      "label": "관련",
+      "to": "character/characterspecies-4",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

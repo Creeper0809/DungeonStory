@@ -1,0 +1,85 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "546"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Agriculture"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-genetics-hereditary-records",
+      "target_spoiler_tier": "none",
+      "target_title": "유전 기록과 형질 분석",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-genetics-hereditary-records",
+      "target_spoiler_tier": "none",
+      "target_title": "유전 기록과 형질 분석",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-genetics-hereditary-records",
+      "target_spoiler_tier": "none",
+      "target_title": "유전 기록과 형질 분석",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-soil-cycles",
+      "target_spoiler_tier": "none",
+      "target_title": "토양 순환과 작물 보호",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-soil-cycles",
+      "target_spoiler_tier": "none",
+      "target_title": "토양 순환과 작물 보호",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-soil-cycles",
+      "target_spoiler_tier": "none",
+      "target_title": "토양 순환과 작물 보호",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8893",
+      "target_spoiler_tier": "none",
+      "target_title": "육종 온실",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-agriculture-cultivar-breeding",
+  "spoiler_tier": "none",
+  "summary": "작물 병리, 형질 분석과 선별 사육을 육종 온실에 적용한다.",
+  "title": "품종 개량"
+}

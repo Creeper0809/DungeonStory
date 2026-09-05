@@ -24,7 +24,7 @@ public static class DungeonStoryFinalAcceptanceRunner
         Run("V19 runtime authority", () => RuntimeAuthorityV18Validator.ValidateOrThrow(), steps);
         Run("Batch A architecture metrics", () => BatchAArchitectureMetricsValidator.ValidateOrThrow(), steps);
         Run("Runtime composition", () => Require(DungeonRuntimeCompositionDebugScenarios.RunAll(false)), steps);
-        Run("68 strict save sections", () => Require(DungeonSaveSectionDebugScenarios.RunAll(false)), steps);
+        Run("74 strict save sections", () => Require(DungeonSaveSectionDebugScenarios.RunAll(false)), steps);
         Run("Batch A content authority", () => Require(BatchAContentAuthorityDebugScenarios.RunAll(false)), steps);
         Run("Batch A core-session save", () => Require(BatchACoreSessionSaveDebugScenarios.RunAll(false)), steps);
         Run("Batch B character/survival authority", BatchBCharacterSurvivalAuthorityDebugScenarios.RunAll, steps);

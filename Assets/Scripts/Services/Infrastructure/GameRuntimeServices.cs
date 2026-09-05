@@ -39,6 +39,19 @@ public interface IGameMoneyAccount
     void SetBalance(int amount, EconomyTransactionContext context);
 }
 
+public interface IIdempotentGameMoneyAccount : IGameMoneyAccount
+{
+    bool TrySpendOnce(
+        int amount,
+        EconomyTransactionContext context,
+        out EconomyTransactionRecord receipt,
+        out string reason);
+    bool TryCreditOnce(
+        int amount,
+        EconomyTransactionContext context,
+        out string reason);
+}
+
 public interface IFloatingNumberFeedbackService
 {
     bool TryShow(NumberCondition condition, Vector3 worldPosition, float value);
@@ -142,7 +155,7 @@ public sealed class ScopedGameSessionStateStore :
     }
 }
 
-public sealed class GameMoneyAccount : IGameMoneyAccount
+public sealed class GameMoneyAccount : IIdempotentGameMoneyAccount
 {
     private readonly IGameSessionStateProvider gameDataProvider;
     private readonly IEconomyTransactionLedger transactionLedger;
@@ -239,6 +252,175 @@ public sealed class GameMoneyAccount : IGameMoneyAccount
                 balanceBefore,
                 money.Value);
         }
+    }
+
+    public bool TrySpendOnce(
+        int amount,
+        EconomyTransactionContext context,
+        out EconomyTransactionRecord receipt,
+        out string reason)
+    {
+        receipt = null;
+        if (amount <= 0)
+        {
+            reason = "지출액은 0보다 커야 합니다.";
+            return false;
+        }
+
+        if (transactionLedger.TryGetSuccessfulBySource(
+                context.kind,
+                context.sourceId,
+                out EconomyTransactionRecord existing))
+        {
+            if (existing.amount == -amount
+                && existing.balanceBefore >= amount
+                && existing.balanceAfter == existing.balanceBefore - amount
+                && string.Equals(
+                    existing.targetId,
+                    context.targetId,
+                    StringComparison.Ordinal))
+            {
+                receipt = existing.Clone();
+                reason = string.Empty;
+                return true;
+            }
+
+            reason = "동일 작업 ID에 다른 지출 기록이 존재합니다.";
+            return false;
+        }
+
+        if (!TryGetMoney(out Data<int> money))
+        {
+            reason = "골드 보유 정보를 찾을 수 없습니다.";
+            transactionLedger.RecordFailure(context, amount, reason, Balance);
+            return false;
+        }
+        if (money.Value < amount)
+        {
+            reason = "골드가 부족합니다.";
+            transactionLedger.RecordFailure(context, amount, reason, money.Value);
+            return false;
+        }
+
+        int balanceBefore = money.Value;
+        int balanceAfter = checked(balanceBefore - amount);
+        money.Value = balanceAfter;
+        try
+        {
+            transactionLedger.RecordSuccess(
+                context,
+                -amount,
+                balanceBefore,
+                balanceAfter);
+        }
+        catch
+        {
+            money.Value = balanceBefore;
+            throw;
+        }
+
+        if (!transactionLedger.TryGetSuccessfulBySource(
+                context.kind,
+                context.sourceId,
+                out EconomyTransactionRecord published)
+            || published.amount != -amount
+            || published.balanceBefore != balanceBefore
+            || published.balanceAfter != balanceAfter
+            || !string.Equals(
+                published.targetId,
+                context.targetId,
+                StringComparison.Ordinal))
+        {
+            money.Value = balanceBefore;
+            throw new InvalidOperationException(
+                "The money ledger did not preserve its successful debit contract.");
+        }
+
+        receipt = published.Clone();
+        reason = string.Empty;
+        return true;
+    }
+
+    public bool TryCreditOnce(
+        int amount,
+        EconomyTransactionContext context,
+        out string reason)
+    {
+        int gain = Mathf.Max(0, amount);
+        if (gain <= 0)
+        {
+            reason = "입금액은 0보다 커야 합니다.";
+            return false;
+        }
+        if (transactionLedger.TryGetSuccessfulBySource(
+                context.kind,
+                context.sourceId,
+                out EconomyTransactionRecord existing))
+        {
+            if (existing.amount == gain
+                && string.Equals(
+                    existing.targetId,
+                    context.targetId,
+                    StringComparison.Ordinal))
+            {
+                reason = string.Empty;
+                return true;
+            }
+            reason = "동일 작업 ID에 다른 입금 기록이 존재합니다.";
+            return false;
+        }
+        if (!TryGetMoney(out Data<int> money))
+        {
+            reason = "골드 보유 정보를 찾을 수 없습니다.";
+            return false;
+        }
+
+        int balanceBefore = money.Value;
+        int balanceAfter;
+        try
+        {
+            balanceAfter = checked(balanceBefore + gain);
+        }
+        catch (OverflowException)
+        {
+            reason = "골드 입금 결과가 정수 범위를 초과합니다.";
+            return false;
+        }
+
+        money.Value = balanceAfter;
+        try
+        {
+            transactionLedger.RecordSuccess(
+                context,
+                gain,
+                balanceBefore,
+                balanceAfter);
+        }
+        catch
+        {
+            money.Value = balanceBefore;
+            throw;
+        }
+
+        if (!transactionLedger.TryGetSuccessfulBySource(
+                context.kind,
+                context.sourceId,
+                out EconomyTransactionRecord published)
+            || published.amount != gain
+            || published.balanceBefore != balanceBefore
+            || published.balanceAfter != balanceAfter
+            || !string.Equals(
+                published.targetId,
+                context.targetId,
+                StringComparison.Ordinal))
+        {
+            money.Value = balanceBefore;
+            throw new InvalidOperationException(
+                "The money ledger did not preserve its successful credit contract.");
+        }
+
+        reason = string.Empty;
+        return true;
     }
 
     public void SetBalance(int amount, EconomyTransactionContext context)

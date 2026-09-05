@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1040",
+    "spoiler_tier": "none",
+    "title": "훈련허수아비"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9103",
+      "label": "필요 조건",
+      "to": "facility/building-1040",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9104",
+      "label": "관련",
+      "to": "facility/building-1040",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-tactical-command",
+      "label": "시설 해금",
+      "to": "facility/building-1040",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

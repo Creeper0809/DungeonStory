@@ -1,0 +1,47 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "service-incident-medicalcollapse",
+    "spoiler_tier": "warning",
+    "title": "의료 응급상황"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "event/service-incident-medicalcollapse",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-medicalcollapse",
+      "target_spoiler_tier": "warning",
+      "target_title": "의료 응급상황",
+      "to": "event/service-incident-medicalcollapse",
+      "type": "adds-work-delay"
+    },
+    {
+      "amount": "8",
+      "from": "event/service-incident-medicalcollapse",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-medicalcollapse",
+      "target_spoiler_tier": "warning",
+      "target_title": "의료 응급상황",
+      "to": "event/service-incident-medicalcollapse",
+      "type": "changes-health"
+    },
+    {
+      "amount": "1",
+      "from": "event/service-incident-medicalcollapse",
+      "label": "연결",
+      "to": "event/service-incident-medicalcollapse",
+      "type": "adds-work-delay"
+    },
+    {
+      "amount": "8",
+      "from": "event/service-incident-medicalcollapse",
+      "label": "연결",
+      "to": "event/service-incident-medicalcollapse",
+      "type": "changes-health"
+    }
+  ],
+  "schema_version": 1
+}

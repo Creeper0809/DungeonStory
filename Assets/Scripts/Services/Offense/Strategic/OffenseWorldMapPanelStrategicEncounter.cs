@@ -21,7 +21,9 @@ public partial class OffenseWorldMapPanel
         title.color = new Color(0.92f, 0.84f, 0.68f, 1f);
         CreateMapText(
             "DecisionSituation",
-            decision.situation,
+            strategicNarrativeText.GetRequired(
+                InGameNarrativeTextKind.ExpeditionCard,
+                decision.cardId),
             22f,
             TextAlignmentOptions.Center,
             new Vector2(0.14f, 0.4f),
@@ -60,7 +62,13 @@ public partial class OffenseWorldMapPanel
             + string.Join(
                 "\n\n",
                 choices.Select(choice =>
-                    $"{choice.Label}\n{choice.Description}\n"
+                    $"{choice.Label}\n"
+                    + strategicNarrativeText.GetRequired(
+                        InGameNarrativeTextKind.ExpeditionChoice,
+                        InGameNarrativeTextCatalogSO.ComposeExpeditionChoiceStableId(
+                            decision.cardId,
+                            choice.ChoiceId))
+                    + "\n"
                     + $"{choice.DirectionLabel}"))
             + BuildStatusText();
     }

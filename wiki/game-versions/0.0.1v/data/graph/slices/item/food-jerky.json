@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "food-jerky",
+    "spoiler_tier": "none",
+    "title": "육포"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-jerky",
+      "label": "생산·해금",
+      "to": "item/food-jerky",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

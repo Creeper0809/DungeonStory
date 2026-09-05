@@ -1,0 +1,5 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+ServiceProcessSO,content-type,,type-reference,models:rooms,content-loading,structural-type-consumer,Assets/Scripts/Models/Rooms/Core/ServiceProcessCatalog.cs
+ServiceProcessSO,content-type,,type-reference,services:items,content-loading,structural-type-consumer,Assets/Scripts/Services/Items/GameContentCatalog.cs
+ServiceProcessSO,content-type,,type-reference; save-restore-reference,services:servicerooms,persistence,structural-type-consumer,Assets/Scripts/Services/ServiceRooms/ServiceRoomsSaveSection.cs
+ServiceProcessSO,content-type,,type-reference; save-restore-reference,services:servicerooms,runtime,structural-type-consumer,Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs

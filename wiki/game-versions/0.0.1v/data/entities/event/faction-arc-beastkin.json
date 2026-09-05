@@ -1,0 +1,121 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-beastkin-4",
+      "target_spoiler_tier": "warning",
+      "target_title": "누구의 무리인가",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "relic-faction-beastkin-2",
+      "target_spoiler_tier": "none",
+      "target_title": "무리뼈 호각",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-contract-beastkin-crisis",
+      "target_spoiler_tier": "none",
+      "target_title": "붉은발톱 교역소 위기 대응 계약",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-contract-beastkin-strategic",
+      "target_spoiler_tier": "none",
+      "target_title": "붉은발톱 교역소 장기 전략 계약",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-contract-beastkin-supply",
+      "target_spoiler_tier": "none",
+      "target_title": "붉은발톱 교역소 정기 물자 계약",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "relic-faction-beastkin-3",
+      "target_spoiler_tier": "none",
+      "target_title": "붉은사냥 망토핀",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-beastkin-2",
+      "target_spoiler_tier": "warning",
+      "target_title": "비어 가는 사냥터",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-beastkin-6",
+      "target_spoiler_tier": "warning",
+      "target_title": "새로운 사냥 경계",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-beastkin-5",
+      "target_spoiler_tier": "warning",
+      "target_title": "우두머리의 실종",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-beastkin-3",
+      "target_spoiler_tier": "warning",
+      "target_title": "재의 계약 사냥꾼",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "relic-faction-beastkin-1",
+      "target_spoiler_tier": "none",
+      "target_title": "첫발톱 인장",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-beastkin-1",
+      "target_spoiler_tier": "warning",
+      "target_title": "피 묻은 사냥깃",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "faction-arc-beastkin",
+  "spoiler_tier": "warning",
+  "summary": "사냥터와 피난민 사이에서 무리의 생존 규칙을 다시 정하려 한다.",
+  "title": "붉은발톱 교역소"
+}

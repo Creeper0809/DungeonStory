@@ -1,0 +1,186 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-clean-water",
+    "spoiler_tier": "none",
+    "title": "깨끗한 물"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "event/practice-myconid-shared-mist",
+      "label": "필요 조건",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "event/practice-slime-clear-water",
+      "label": "필요 조건",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-material-niter",
+      "label": "필요 조건",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-material-paper",
+      "label": "필요 조건",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medicine-vaccine-blood-wasting",
+      "label": "필요 조건",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medicine-vaccine-cave-flu",
+      "label": "필요 조건",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medicine-vaccine-gut-rot",
+      "label": "필요 조건",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medicine-vaccine-mana-pox",
+      "label": "필요 조건",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medicine-vaccine-red-fever",
+      "label": "필요 조건",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medicine-vaccine-slime-blight",
+      "label": "필요 조건",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medicine-vaccine-spore-lung",
+      "label": "필요 조건",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-textile-sterile-cloth",
+      "label": "필요 조건",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "12",
+      "from": "event/guest-request-persecuted-family",
+      "label": "필요 조건",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-medical-regenerative-medium",
+      "label": "필요 조건",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "24",
+      "from": "character/festival-clear-confluence",
+      "label": "필요 조건",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-component-textile-hardener",
+      "label": "필요 조건",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-material-sterile-composite",
+      "label": "필요 조건",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-supply-fungicide",
+      "label": "필요 조건",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-supply-greenhouse-nutrient",
+      "label": "필요 조건",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-component-paper-paste",
+      "label": "필요 조건",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-supply-botanical-pesticide",
+      "label": "필요 조건",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "event/seasonal-summer-dry-well",
+      "label": "연결",
+      "to": "item/resource-clean-water",
+      "type": "consumes-item"
+    },
+    {
+      "amount": "8",
+      "from": "recipe/recipe-medical-whole-body-regeneration-medium",
+      "label": "필요 조건",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "from": "recipe/recipe-resource-clean-water",
+      "label": "생산·해금",
+      "to": "item/resource-clean-water",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-slime-confluence",
+      "label": "관련",
+      "to": "item/resource-clean-water",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

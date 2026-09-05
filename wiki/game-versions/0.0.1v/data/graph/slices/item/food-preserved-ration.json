@@ -1,0 +1,39 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "food-preserved-ration",
+    "spoiler_tier": "none",
+    "title": "보존 배급식"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "event/practice-adventurer-return-table",
+      "label": "필요 조건",
+      "to": "item/food-preserved-ration",
+      "type": "requires"
+    },
+    {
+      "amount": "20",
+      "from": "event/guest-request-flood-refuge",
+      "label": "필요 조건",
+      "to": "item/food-preserved-ration",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-preserved-ration",
+      "label": "생산·해금",
+      "to": "item/food-preserved-ration",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-adventurer-frontier",
+      "label": "관련",
+      "to": "item/food-preserved-ration",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

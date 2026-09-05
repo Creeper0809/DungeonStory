@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "apparel-tail-ribbon",
+    "spoiler_tier": "none",
+    "title": "꼬리 리본"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-tail-ribbon",
+      "label": "생산·해금",
+      "to": "item/apparel-tail-ribbon",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

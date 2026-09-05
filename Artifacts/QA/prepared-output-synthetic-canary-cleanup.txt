@@ -1,0 +1,7 @@
+Synthetic Prepared Output Canary Cleanup
+transaction=qa:v27-definition-only-canary
+itemCatalogSha256=03D5CEE8D288EB1AE44E655BE0A866D39BB5275E23CDC2E545C6C774512DCC22
+domainCatalogSha256=78E87C3239487CB4B4DED6309D549DE06320BBE1DB8362C0C25FE7ABDECD808E
+assetPathsRemaining=0
+exactByteRestore=PASS
+RESULT=PASS; failures=0

@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "enemy-inquisition-censor",
+    "spoiler_tier": "none",
+    "title": "성화 검열관"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/enemy-inquisition-censor",
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-arcane-null",
+      "target_spoiler_tier": "none",
+      "target_title": "마법 차단",
+      "to": "world/enemy-ability-arcane-null",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-inquisition-censor",
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-rune-ward",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 보호막",
+      "to": "world/enemy-ability-rune-ward",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-inquisition-censor",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "offense-unappraised-loot",
+      "target_spoiler_tier": "none",
+      "target_title": "미감정 전리품",
+      "to": "item/offense-unappraised-loot",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

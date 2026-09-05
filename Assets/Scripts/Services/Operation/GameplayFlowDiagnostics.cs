@@ -52,7 +52,7 @@ public sealed class GameplayFlowWarehouseSnapshot
     public string Name { get; set; } = string.Empty;
     public bool HasInventory { get; set; }
     public bool CanAcceptLooseStack { get; set; }
-    public int RemainingCapacity { get; set; }
+    public bool HasRemainingMassCapacity { get; set; }
 }
 
 public interface IGameplayFlowDiagnosticsQuery
@@ -155,7 +155,7 @@ public sealed class GameplayFlowDiagnosticsQuery : IGameplayFlowDiagnosticsQuery
                 : "창고",
             HasInventory = warehouse.HasWarehouseInventory && inventory != null,
             CanAcceptLooseStack = canAcceptLoose,
-            RemainingCapacity = inventory?.RemainingCapacity ?? 0
+            HasRemainingMassCapacity = inventory?.RemainingMassGrams > 0L
         };
     }
 }
@@ -280,7 +280,7 @@ public static class GameplayFlowDiagnosticsBuilder
 
         if (!warehouses.Any(warehouse =>
                 warehouse.HasInventory
-                && warehouse.RemainingCapacity > 0
+                && warehouse.HasRemainingMassCapacity
                 && warehouse.CanAcceptLooseStack))
         {
             return Critical(

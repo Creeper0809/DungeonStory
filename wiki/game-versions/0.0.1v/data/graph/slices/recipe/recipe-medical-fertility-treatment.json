@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-medical-fertility-treatment",
+    "spoiler_tier": "none",
+    "title": "생식 치료제"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-fertility-treatment",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "medical-fertility-treatment",
+      "target_spoiler_tier": "none",
+      "target_title": "생식 치료제",
+      "to": "item/medical-fertility-treatment",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-fertility-treatment",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-sterile-composite",
+      "target_spoiler_tier": "none",
+      "target_title": "무균 복합재",
+      "to": "item/material-sterile-composite",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-fertility-treatment",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-standard",
+      "target_spoiler_tier": "none",
+      "target_title": "표준 약품",
+      "to": "item/medicine-standard",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-medical-fertility-treatment",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-reproductive-medicine",
+      "target_spoiler_tier": "none",
+      "target_title": "생식 의학",
+      "to": "research/research-medical-reproductive-medicine",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

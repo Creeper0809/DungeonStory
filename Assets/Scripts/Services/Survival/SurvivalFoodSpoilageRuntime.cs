@@ -5,9 +5,12 @@ using UnityEngine;
 
 internal sealed class SurvivalFoodSpoilageRuntime
 {
-    internal const int FreshnessSchemaVersion = 2;
-    private const string RemainingSecondsKey = "remaining-seconds";
-    private const string PreservedKey = "preserved";
+    internal const int FreshnessSchemaVersion =
+        FoodFreshnessComponentCodec.SchemaVersion;
+    private const string RemainingSecondsKey =
+        FoodFreshnessComponentCodec.RemainingSecondsKey;
+    private const string PreservedKey =
+        FoodFreshnessComponentCodec.PreservedKey;
     private const float FreshnessWarningThresholdSeconds = 90f;
 
     private readonly IWorldItemStackRuntime itemStackRuntime;
@@ -185,14 +188,29 @@ internal sealed class SurvivalFoodSpoilageRuntime
                     out string wasteItemId,
                     out WasteOriginKind wasteOrigin);
                 float contamination = contaminated ? 90f : 50f;
-                itemStackRuntime.DeleteStack(stack.StackId);
-                itemStackRuntime.SpawnWasteAt(
-                    wasteItemId,
-                    Mathf.Max(1, stack.Quantity),
-                    stack.Position,
-                    wasteOrigin,
-                    contamination,
-                    out _);
+                if (itemStackRuntime.DeleteStack(stack.StackId))
+                {
+                    itemStackRuntime.SpawnWasteAt(
+                        wasteItemId,
+                        Mathf.Max(1, stack.Quantity),
+                        stack.Position,
+                        wasteOrigin,
+                        contamination,
+                        out _);
+                }
+                else if (FacilityOutputExactRouteCustodyCodec.HasAnyCustody(
+                             stack.Components))
+                {
+                    // Exact-route ownership cannot disappear or mint waste.
+                    // Persist terminal freshness and defer the one-for-one
+                    // food-to-waste transform until custody is released.
+                    WriteFreshness(stack.StackId, 0f, freshness.Preserved);
+                }
+                else
+                {
+                    throw new InvalidOperationException(
+                        $"Could not remove expired physical food stack '{stack.StackId}'.");
+                }
                 continue;
             }
 
@@ -308,32 +326,14 @@ internal sealed class SurvivalFoodSpoilageRuntime
         float remainingSeconds,
         bool preserved)
     {
-        if (!itemStackRuntime.TrySetInstanceComponent(
+        if (!itemStackRuntime.TrySetFoodFreshness(
                 stackId,
-                new ItemInstanceComponentSaveData
-                {
-                    componentTypeId = ItemInstanceComponentIds.Freshness,
-                    schemaVersion = FreshnessSchemaVersion,
-                    affectsStacking = true,
-                    values = new List<ItemStateValueSaveData>
-                    {
-                        new ItemStateValueSaveData
-                        {
-                            key = RemainingSecondsKey,
-                            kind = ItemStateValueKind.Decimal,
-                            decimalValue = Math.Max(0d, remainingSeconds)
-                        },
-                        new ItemStateValueSaveData
-                        {
-                            key = PreservedKey,
-                            kind = ItemStateValueKind.Boolean,
-                            booleanValue = preserved
-                        }
-                    }
-                }))
+                Math.Max(0d, remainingSeconds),
+                preserved,
+                out string failureReason))
         {
             throw new InvalidOperationException(
-                $"Could not persist freshness for physical stack '{stackId}'.");
+                $"Could not persist freshness for physical stack '{stackId}': {failureReason}");
         }
     }
 

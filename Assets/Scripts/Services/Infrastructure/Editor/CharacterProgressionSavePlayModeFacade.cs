@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using UnityEditor;
 using UnityEngine;
@@ -175,6 +176,10 @@ public static class CharacterProgressionSavePlayModeFacade
                         : state?.characterId,
                     StringComparer.Ordinal)
                 .ToList();
+            string expectedCanonicalBodyHealthIds = CanonicalizeBodyHealthIds(
+                bodyHealth,
+                LegacyStaffWorkRoundTripId,
+                CanonicalStaffWorkRoundTripId);
             DungeonSaveSectionPayload.Write(
                 captured,
                 CharacterBodyHealthSaveSection.Id,
@@ -346,9 +351,10 @@ public static class CharacterProgressionSavePlayModeFacade
                 return false;
             }
 
+            DungeonGameSaveData firstRecapture = saveService.Capture();
             DungeonCharacterSaveData recapturedStaff =
                 DungeonSaveSectionPayload.ReadOrNew<DungeonCharacterWorldSaveData>(
-                        saveService.Capture(),
+                        firstRecapture,
                         CharacterWorldSaveSection.Id)
                     .actors
                     .SingleOrDefault(actor => actor != null
@@ -372,24 +378,75 @@ public static class CharacterProgressionSavePlayModeFacade
 
             DungeonCharacterBodyHealthSaveData recapturedBodyHealth =
                 DungeonSaveSectionPayload.ReadOrNew<DungeonCharacterBodyHealthSaveData>(
-                    saveService.Capture(),
+                    firstRecapture,
                     CharacterBodyHealthSaveSection.Id);
-            if (!recapturedBodyHealth.characters.Any(state => state != null
-                    && string.Equals(
-                        state.characterId,
-                        CanonicalStaffWorkRoundTripId,
-                        StringComparison.Ordinal))
-                || recapturedBodyHealth.characters.Any(state => state != null
-                    && string.Equals(
-                        state.characterId,
-                        LegacyStaffWorkRoundTripId,
-                        StringComparison.Ordinal)))
+            string firstCanonicalBodyHealthIds = CanonicalizeBodyHealthIds(
+                recapturedBodyHealth);
+            if (!string.Equals(
+                    expectedCanonicalBodyHealthIds,
+                    firstCanonicalBodyHealthIds,
+                    StringComparison.Ordinal))
             {
-                message = "Legacy staff body-health state was not canonical after recapture.";
+                message = "Character body-health IDs were not exact after canonical restore: "
+                    + $"expected={expectedCanonicalBodyHealthIds}; "
+                    + $"actual={firstCanonicalBodyHealthIds}.";
                 return false;
             }
 
-            message = $"CHARACTER_WORLD_V18_CONTRACTS_PASSED Lv.{restored.Level} XP={restored.CurrentExperience} active={restored.ActiveSkills.Count} passive={restored.PassiveSkills.Count} staffWorkRoundTrip=true legacyNormalized=true inputUnchanged=true directRejected=true ownerlessRejected=true invalidCellRejected=true rollbackFreeLateFailure=true preV18Rejected=true warnings={report.Warnings.Count}";
+            if (!HasExactTransientSkillIdentity(
+                    ownerManager.CurrentOwnerActor,
+                    CharacterId.Owner)
+                || !HasExactTransientSkillIdentity(
+                    restoredStaff,
+                    (CharacterId)CanonicalStaffWorkRoundTripId))
+            {
+                message = "Restored owner/staff transient skill state retained a noncanonical CharacterId.";
+                return false;
+            }
+
+            string firstIdentityProjection = CanonicalizeIdentityProjection(
+                firstRecapture);
+            DungeonGameSaveData secondRestoreInput = saveService.FromJson(
+                saveService.ToJson(firstRecapture, prettyPrint: false));
+            if (!saveService.TryRestore(
+                    secondRestoreInput,
+                    out DungeonGameRestoreReport secondRestoreReport))
+            {
+                message = "Second canonical character restore failed: "
+                    + string.Join(" | ", secondRestoreReport.Errors);
+                return false;
+            }
+
+            DungeonGameSaveData secondRecapture = saveService.Capture();
+            string secondIdentityProjection = CanonicalizeIdentityProjection(
+                secondRecapture);
+            if (!string.Equals(
+                    firstIdentityProjection,
+                    secondIdentityProjection,
+                    StringComparison.Ordinal))
+            {
+                message = "Repeated canonical character restore changed actor/body identity state: "
+                    + $"first={firstIdentityProjection}; second={secondIdentityProjection}.";
+                return false;
+            }
+
+            if (!ownerProvider.TryGetManager(out ownerManager)
+                || ownerManager.CurrentOwnerActor == null
+                || !worldSave.TryGetRestoredActor(
+                    CanonicalStaffWorkRoundTripId,
+                    out CharacterActor secondRestoredStaff)
+                || !HasExactTransientSkillIdentity(
+                    ownerManager.CurrentOwnerActor,
+                    CharacterId.Owner)
+                || !HasExactTransientSkillIdentity(
+                    secondRestoredStaff,
+                    (CharacterId)CanonicalStaffWorkRoundTripId))
+            {
+                message = "Repeated restore did not preserve canonical owner/staff transient identities.";
+                return false;
+            }
+
+            message = $"CHARACTER_WORLD_V18_CONTRACTS_PASSED Lv.{restored.Level} XP={restored.CurrentExperience} active={restored.ActiveSkills.Count} passive={restored.PassiveSkills.Count} staffWorkRoundTrip=true legacyNormalized=true identityDoubleRestore=true transientIdentityCanonical=true inputUnchanged=true directRejected=true ownerlessRejected=true invalidCellRejected=true rollbackFreeLateFailure=true preV18Rejected=true warnings={report.Warnings.Count}";
             return true;
         }
         finally
@@ -441,6 +498,56 @@ public static class CharacterProgressionSavePlayModeFacade
                     + "; lifetime=" + liveActors);
             }
         }
+    }
+
+    private static string CanonicalizeBodyHealthIds(
+        DungeonCharacterBodyHealthSaveData bodyHealth,
+        string legacyId = null,
+        string canonicalId = null)
+    {
+        return string.Join(",", (bodyHealth?.characters
+                ?? new List<CharacterBodyHealthState>())
+            .Where(state => state != null)
+            .Select(state => string.Equals(
+                    state.characterId,
+                    legacyId,
+                    StringComparison.Ordinal)
+                ? canonicalId
+                : state.characterId)
+            .OrderBy(value => value, StringComparer.Ordinal));
+    }
+
+    private static string CanonicalizeIdentityProjection(DungeonGameSaveData save)
+    {
+        DungeonCharacterWorldSaveData characters =
+            DungeonSaveSectionPayload.ReadOrNew<DungeonCharacterWorldSaveData>(
+                save,
+                CharacterWorldSaveSection.Id);
+        DungeonCharacterBodyHealthSaveData bodyHealth =
+            DungeonSaveSectionPayload.ReadOrNew<DungeonCharacterBodyHealthSaveData>(
+                save,
+                CharacterBodyHealthSaveSection.Id);
+        string actorIds = string.Join(",", (characters.actors
+                ?? new List<DungeonCharacterSaveData>())
+            .Where(actor => actor != null)
+            .Select(actor => actor.persistentId)
+            .OrderBy(value => value, StringComparer.Ordinal));
+        return "actors=" + actorIds + ";body=" + CanonicalizeBodyHealthIds(bodyHealth);
+    }
+
+    private static bool HasExactTransientSkillIdentity(
+        CharacterActor actor,
+        CharacterId expectedId)
+    {
+        CharacterSkillTransientState transient = actor != null
+            ? actor.GetComponent<CharacterSkillTransientState>()
+            : null;
+        FieldInfo characterIdField = typeof(CharacterSkillTransientState)
+            .GetField("characterId", BindingFlags.Instance | BindingFlags.NonPublic);
+        return transient != null
+            && transient.IsConfigured
+            && characterIdField?.GetValue(transient) is CharacterId actualId
+            && actualId.Equals(expectedId);
     }
 
     private static string Canonicalize(DungeonGameSaveData save)

@@ -15,6 +15,204 @@ public static class V27BalanceEconomySimulationDebugScenarios
     public const string ReportPath =
         "Artifacts/QA/v27-balance-economy-256-seed.txt";
     private const int SeedCount = 256;
+    public const string OutputAllocationFocusedReportPath =
+        "Artifacts/QA/v27-output-cost-allocation-focused.txt";
+    public const string ConstructionRedistributionFocusedReportPath =
+        "Artifacts/QA/v27-construction-redistribution-focused.txt";
+
+    [MenuItem("DungeonStory/V27/Run Output Cost Allocation Focused")]
+    public static void RunOutputCostAllocationFocusedFromMenu()
+    {
+        string report = RunOutputCostAllocationFocused();
+        V27BalanceArtifactWriter.WriteIfDifferent(
+            OutputAllocationFocusedReportPath,
+            stream =>
+            {
+                byte[] bytes = new UTF8Encoding(false, true).GetBytes(report);
+                stream.Write(bytes, 0, bytes.Length);
+            });
+        AssetDatabase.Refresh();
+        Debug.Log(report);
+    }
+
+    public static string RunOutputCostAllocationFocused()
+    {
+        SimulationContentSource source = SimulationContentSource.Load();
+        ProductionRecipeSO[] recipes = source.GetAll<ProductionRecipeSO>().ToArray();
+        CropDefinitionSO[] crops = source.GetAll<CropDefinitionSO>().ToArray();
+        ItemDefinitionSO[] items = source.GetAll<ItemDefinitionSO>().ToArray();
+        CombatEquipmentDefinitionSO[] equipment =
+            source.GetAll<CombatEquipmentDefinitionSO>().ToArray();
+        CraftMaterialDefinitionSO[] materials =
+            source.GetAll<CraftMaterialDefinitionSO>().ToArray();
+        ResourceMaterialEconomicProfileCatalog profiles = new(source);
+        V23BalanceWorkCalculator work = new(profiles);
+        EmbeddedWorkValueSnapshot before = new V23EmbeddedWorkValueCalculator(
+            recipes, items, equipment, materials, work).Calculate();
+        V27EmbeddedWorkValueSnapshot canonical = Calculate(
+            recipes, crops, items, equipment, materials, before, work, profiles);
+        Require(canonical.IsComplete, "Focused V27 snapshot is incomplete.");
+
+        ProductionRecipeSO[] multiOutput = recipes.Where(recipe => recipe.Outputs
+                .Count(output => output != null
+                    && ProductionOutputRoleRules.IsPhysical(output.Role)
+                    && output.Probability > 0f) > 1)
+            .OrderBy(recipe => recipe.RecipeId, StringComparer.Ordinal)
+            .ToArray();
+        Require(multiOutput.Length == 3,
+            "Expected exactly three authored multi-output recipes.");
+        foreach (ProductionRecipeSO recipe in multiOutput)
+        {
+            Require(!recipe.OutputCostAllocation.IsEmpty,
+                recipe.RecipeId + " is missing output-cost authoring.");
+            V27RecipeValueBreakdown value = canonical.Recipes[recipe.RecipeId];
+            Require(value.OutputCosts.Sum(output => output.AllocatedDebit.MilliEwu)
+                    == value.TotalDebit.MilliEwu,
+                recipe.RecipeId + " did not allocate the exact batch debit.");
+            Require(value.OutputCosts.Count == recipe.Outputs.Count,
+                recipe.RecipeId + " lost an output allocation row.");
+        }
+
+        V27RecipeValueBreakdown quarry = canonical.Recipes["source:quarry"];
+        Dictionary<string, long> quarryCosts = quarry.OutputItemValues.ToDictionary(
+            value => value.ItemId,
+            value => value.PerUnitAcquisition.MilliEwu,
+            StringComparer.Ordinal);
+        Require(quarryCosts["resource:stone"] < quarryCosts["resource:coal"]
+            && quarryCosts["resource:coal"] < quarryCosts["resource:iron-ore"]
+            && quarryCosts["resource:iron-ore"] < quarryCosts["resource:gold-ore"]
+            && quarryCosts["resource:gold-ore"] < quarryCosts["resource:mana-crystal"],
+            "Quarry rarity ordering is not reflected in per-unit acquisition.");
+
+        ProductionOutputDefinition[] packagingOutputs =
+        {
+            new("output:test/000/main/item:filled", ProductionOutputRole.Main,
+                "item:filled", 1, 1f),
+            new("output:test/001/returned/container:empty",
+                ProductionOutputRole.ReturnedPackaging, "container:empty", 1, 1f)
+        };
+        string payload =
+            WeightedOutputShareProductionOutputCostAllocationCapability.BuildPayload(
+                packagingOutputs);
+        var authoring = new ProductionOutputCostAllocationAuthoringSnapshot(
+            WeightedOutputShareProductionOutputCostAllocationCapability.Id,
+            WeightedOutputShareProductionOutputCostAllocationCapability.Version,
+            payload);
+        IReadOnlyList<ProductionOutputCostAllocationWeight> weights =
+            ProductionOutputCostAllocationCapabilityRegistry.CreateDefault()
+                .ResolveWeights(authoring, packagingOutputs);
+        V27RecipeOutputCostBreakdown[] packagingCosts =
+            V27EmbeddedWorkValueCalculator.AllocateOutputCosts(
+                "recipe:test-packaging",
+                EwuAmount.FromMilliEwu(1001L),
+                packagingOutputs,
+                weights);
+        V27RecipeOutputCostBreakdown returned = packagingCosts.Single(
+            value => value.Role == ProductionOutputRole.ReturnedPackaging);
+        Require(returned.AllocatedDebit == EwuAmount.Zero
+            && !returned.IsAcquisitionCandidate,
+            "Returned packaging became a zero-cost acquisition candidate.");
+
+        V27EmbeddedWorkValueSnapshot reversed = Calculate(
+            recipes.Reverse(), crops.Reverse(), items.Reverse(),
+            equipment.Reverse(), materials.Reverse(), before, work, profiles);
+        Require(HashSnapshot(canonical) == HashSnapshot(reversed),
+            "Output allocation changed when input enumeration was reversed.");
+
+        return "RESULT=PASS; multiOutputRecipes=3; exactDebit=true; "
+            + "rarityOrdering=true; returnedPackagingPreserved=true; "
+            + "reverseOrderDeterministic=true\n"
+            + string.Join("\n", multiOutput.Select(recipe =>
+            {
+                V27RecipeValueBreakdown value = canonical.Recipes[recipe.RecipeId];
+                return recipe.RecipeId + "=" + string.Join(",", value.OutputItemValues
+                    .OrderBy(output => output.ItemId, StringComparer.Ordinal)
+                    .Select(output => output.ItemId + ":"
+                        + output.PerUnitAcquisition.MilliEwu.ToString(
+                            CultureInfo.InvariantCulture)));
+            })) + "\n";
+    }
+
+    [MenuItem("DungeonStory/V27/Run Construction Redistribution Focused")]
+    public static void RunConstructionRedistributionFocusedFromMenu()
+    {
+        string report = RunConstructionRedistributionFocused();
+        V27BalanceArtifactWriter.WriteIfDifferent(
+            ConstructionRedistributionFocusedReportPath,
+            stream =>
+            {
+                byte[] bytes = new UTF8Encoding(false, true).GetBytes(report);
+                stream.Write(bytes, 0, bytes.Length);
+            });
+        AssetDatabase.Refresh();
+        Debug.Log(report);
+    }
+
+    public static string RunConstructionRedistributionFocused()
+    {
+        SimulationContentSource source = SimulationContentSource.Load();
+        ProductionRecipeSO[] recipes = source.GetAll<ProductionRecipeSO>().ToArray();
+        CropDefinitionSO[] crops = source.GetAll<CropDefinitionSO>().ToArray();
+        ItemDefinitionSO[] items = source.GetAll<ItemDefinitionSO>().ToArray();
+        CombatEquipmentDefinitionSO[] equipment =
+            source.GetAll<CombatEquipmentDefinitionSO>().ToArray();
+        CraftMaterialDefinitionSO[] materials =
+            source.GetAll<CraftMaterialDefinitionSO>().ToArray();
+        ResourceMaterialEconomicProfileCatalog profiles = new(source);
+        V23BalanceWorkCalculator work = new(profiles);
+        EmbeddedWorkValueSnapshot before = new V23EmbeddedWorkValueCalculator(
+            recipes, items, equipment, materials, work).Calculate();
+        V27EmbeddedWorkValueSnapshot after = Calculate(
+            recipes, crops, items, equipment, materials, before, work, profiles);
+        BuildingSO dissectionTable = source.GetAll<BuildingSO>()
+            .Single(value => value != null && value.id == 9502);
+        ItemAmountDefinition[] historicalBom =
+        {
+            new("material:lumber", 6)
+        };
+        V27ConstructionRedistributionResult result =
+            V27ConstructionRedistributionPolicy.Select(
+                "building:9502",
+                dissectionTable,
+                372m,
+                100m,
+                historicalBom,
+                after.Items);
+
+        Require(result.Disposition
+                == V27ConstructionRedistributionDisposition.CriticalDensityUnresolved,
+            "The bounded-but-density-unresolved facility was not retained as a Critical review row: disposition="
+            + result.Disposition + "; afterWu="
+            + result.AfterWu.ToString(CultureInfo.InvariantCulture)
+            + "; afterBomMilliEwu="
+            + result.AfterBomMilliEwu.ToString(CultureInfo.InvariantCulture)
+            + "; densityRatio=" + result.DensityRatio.ToString(
+                "0.############################", CultureInfo.InvariantCulture) + ".");
+        Require(result.AfterWu >= decimal.Ceiling(372m * 1.5m)
+                && result.AfterWu <= decimal.Ceiling(372m * 2.25m),
+            "Critical construction candidate escaped the WU bounds.");
+        Require(result.AfterMaterials.Count == 1
+                && result.AfterMaterials[0].ItemId == "material:lumber"
+                && result.AfterMaterials[0].Amount >= 6
+                && result.AfterMaterials[0].Amount <= 9,
+            "Critical construction candidate escaped the existing-BOM 50% cap.");
+        Require(checked(result.InvestmentErrorMilliEwu * 1000L)
+                <= checked(result.TargetInvestmentMilliEwu * 20L),
+            "Critical construction candidate escaped the 2% investment envelope.");
+        Require(result.DensityRatio > 1.50m,
+            "The regression fixture no longer exercises the unresolved density band.");
+
+        return "RESULT=PASS; stableId=building:9502; disposition="
+            + result.Disposition + "; afterWu="
+            + result.AfterWu.ToString(CultureInfo.InvariantCulture)
+            + "; afterBom=" + string.Join(",", result.AfterMaterials.Select(value =>
+                value.ItemId + "x" + value.Amount.ToString(CultureInfo.InvariantCulture)))
+            + "; densityRatio=" + result.DensityRatio.ToString(
+                "0.############################", CultureInfo.InvariantCulture)
+            + "; investmentErrorMilliEwu="
+            + result.InvestmentErrorMilliEwu.ToString(CultureInfo.InvariantCulture)
+            + "; autoApproved=false\n";
+    }
 
     [MenuItem("DungeonStory/V27/Run 256-Seed Economy Simulation")]
     public static void RunFromMenu()
@@ -284,6 +482,20 @@ public static class V27BalanceEconomySimulationDebugScenarios
                 .Append(value.PerUnitAcquisition.MilliEwu).Append('|')
                 .Append(value.TotalOutputCredit.MilliEwu).Append('|')
                 .Append(value.TransformMarginMilliEwu).Append('\n');
+            foreach (V27RecipeOutputCostBreakdown output in value.OutputCosts
+                         .OrderBy(candidate => candidate.OutputLineId,
+                             StringComparer.Ordinal))
+            {
+                canonical.Append("RO|").Append(pair.Key).Append('|')
+                    .Append(output.OutputLineId).Append('|')
+                    .Append(output.ItemId).Append('|')
+                    .Append((int)output.Role).Append('|')
+                    .Append(output.AllocationWeight).Append('|')
+                    .Append(output.IsAcquisitionCandidate).Append('|')
+                    .Append(output.ExpectedOutputUnits.ToCanonicalToken()).Append('|')
+                    .Append(output.AllocatedDebit.MilliEwu).Append('|')
+                    .Append(output.PerUnitAcquisition.MilliEwu).Append('\n');
+            }
         }
         foreach (KeyValuePair<string, V27CropValueBreakdown> pair in
                  snapshot.Crops.OrderBy(value => value.Key,

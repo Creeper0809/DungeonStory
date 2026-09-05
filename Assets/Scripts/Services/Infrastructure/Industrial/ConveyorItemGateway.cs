@@ -61,12 +61,12 @@ internal sealed class ConveyorItemGateway
         Vector2Int position,
         string destinationId,
         out DomainFailure failure) =>
-        transfers.TryCompleteTransit(
+        transfers.TryCompleteTransitToFacilityBuffer(
             stackId,
             payloadId,
-            WorldItemStackState.FacilityBuffer,
             position,
             destinationId,
+            out _,
             out failure);
 
     public bool TryCompleteLoose(

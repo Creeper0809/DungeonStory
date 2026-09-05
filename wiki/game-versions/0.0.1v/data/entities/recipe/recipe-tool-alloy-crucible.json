@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "32"
+    },
+    {
+      "label": "필요 연구",
+      "value": "고급 단조"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "tool-alloy-crucible",
+      "target_spoiler_tier": "none",
+      "target_title": "합금 도가니",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-steel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "강철",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 단조",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-stone-block",
+      "target_spoiler_tier": "none",
+      "target_title": "석재 블록",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-tool-alloy-crucible",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 합금 도가니을(를) 생산한다.",
+  "title": "합금 도가니"
+}

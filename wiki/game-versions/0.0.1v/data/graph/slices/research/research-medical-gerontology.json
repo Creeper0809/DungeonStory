@@ -1,0 +1,291 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-medical-gerontology",
+    "spoiler_tier": "none",
+    "title": "노인학과 생물학적 연령 계측"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-material-testing",
+      "target_spoiler_tier": "none",
+      "target_title": "재료 시험학",
+      "to": "research/research-equipment-material-testing",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-material-testing",
+      "target_spoiler_tier": "none",
+      "target_title": "재료 시험학",
+      "to": "research/research-equipment-material-testing",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-material-testing",
+      "target_spoiler_tier": "none",
+      "target_title": "재료 시험학",
+      "to": "research/research-equipment-material-testing",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-anatomy",
+      "target_spoiler_tier": "none",
+      "target_title": "해부학",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-anatomy",
+      "target_spoiler_tier": "none",
+      "target_title": "해부학",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-anatomy",
+      "target_spoiler_tier": "none",
+      "target_title": "해부학",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 약리",
+      "to": "research/research-pharmacology-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 약리",
+      "to": "research/research-pharmacology-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 약리",
+      "to": "research/research-pharmacology-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-household-records",
+      "target_spoiler_tier": "none",
+      "target_title": "가구 기록과 영아 돌봄",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-household-records",
+      "target_spoiler_tier": "none",
+      "target_title": "가구 기록과 영아 돌봄",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-household-records",
+      "target_spoiler_tier": "none",
+      "target_title": "가구 기록과 영아 돌봄",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8863",
+      "target_spoiler_tier": "none",
+      "target_title": "노화 평가대",
+      "to": "facility/building-8863",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8864",
+      "target_spoiler_tier": "none",
+      "target_title": "연령 계측기",
+      "to": "facility/building-8864",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-hereditary-records",
+      "label": "선행 연구",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-hereditary-records",
+      "label": "선행 연구",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-hereditary-records",
+      "label": "선행 연구",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-pathogen-observation",
+      "label": "선행 연구",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-pathogen-observation",
+      "label": "선행 연구",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-pathogen-observation",
+      "label": "선행 연구",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-geriatric-medicine",
+      "label": "선행 연구",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-geriatric-medicine",
+      "label": "선행 연구",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-geriatric-medicine",
+      "label": "선행 연구",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-regenerative-culture",
+      "label": "선행 연구",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-regenerative-culture",
+      "label": "선행 연구",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-regenerative-culture",
+      "label": "선행 연구",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-rune-hibernation",
+      "label": "선행 연구",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-rune-hibernation",
+      "label": "선행 연구",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-rune-hibernation",
+      "label": "선행 연구",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-retirement",
+      "label": "선행 연구",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-retirement",
+      "label": "선행 연구",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-retirement",
+      "label": "선행 연구",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

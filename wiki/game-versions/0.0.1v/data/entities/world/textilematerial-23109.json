@@ -1,0 +1,27 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "재봉"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "world",
+  "relations": [
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "textilematerial-23109",
+  "spoiler_tier": "none",
+  "summary": "동굴 비단의 V22 주원단 정의. 등급과 상태 밴드만 물리 스택 병합 키에 사용한다.",
+  "title": "동굴 비단"
+}

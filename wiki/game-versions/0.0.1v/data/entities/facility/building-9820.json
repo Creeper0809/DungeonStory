@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "자원"
+    },
+    {
+      "label": "크기",
+      "value": "3×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-9820",
+  "spoiler_tier": "none",
+  "summary": "시설의 고유 역할은 폐수 처리이다. 건설에는 작업량 591, 재료 석재 블록×5, 철괴×6, 기계 부품×2이 필요하다.",
+  "title": "오수 침전조"
+}

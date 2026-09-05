@@ -53,7 +53,7 @@ public static class CanonicalProductionOutputResolverDebugScenarios
         Require(!declaredLoss.IsPhysical,
             "declared loss was projected as a physical output");
         Require(forward.Lines.Where(value =>
-                value.Role != ProductionOutputRole.DeclaredLoss)
+                ProductionOutputRoleRules.IsPhysical(value.Role))
             .All(value => value.IsPhysical),
             "a non-loss output was projected as non-physical");
     }

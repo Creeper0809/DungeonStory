@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.5kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "10개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "18"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "포로를 감방으로 호송할 때 쓰는 사슬과 결박구다. 오르데나 수호원의 구속구에는 죄목보다 수용 번호가 크게 새겨져 사람을 사건 기록과 떼어 놓는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "captivity-restraints",
+  "spoiler_tier": "none",
+  "summary": "포로를 감방으로 호송할 때 쓰는 사슬과 결박구이다.",
+  "title": "구속구"
+}

@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "proficiency-food-production",
+  "spoiler_tier": "none",
+  "summary": "농업, 사냥, 도축, 축산과 요리를 잇는 식량 생산 숙련이다.",
+  "title": "식량 생산"
+}

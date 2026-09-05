@@ -1,0 +1,74 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "46"
+    },
+    {
+      "label": "필요 연구",
+      "value": "사료·깔짚"
+    },
+    {
+      "label": "준비 작업",
+      "value": "3"
+    },
+    {
+      "label": "마무리 작업",
+      "value": "1"
+    },
+    {
+      "label": "사이클당 깨끗한 물",
+      "value": "0.2"
+    },
+    {
+      "label": "처리 시간",
+      "value": "12"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "3",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "feed-silage",
+      "target_spoiler_tier": "none",
+      "target_title": "사일리지",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-feed",
+      "target_spoiler_tier": "none",
+      "target_title": "사료·깔짚",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-grass-straw",
+      "target_spoiler_tier": "none",
+      "target_title": "풀·짚",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-twilight-grain",
+      "target_spoiler_tier": "none",
+      "target_title": "황혼곡",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-silage",
+  "spoiler_tier": "none",
+  "summary": "준비와 마감 사이에 게임 시간으로 처리되는 배치 공정.",
+  "title": "사일리지 발효"
+}

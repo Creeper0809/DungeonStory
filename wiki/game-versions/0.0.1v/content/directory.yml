@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "game_version": "0.0.1v",
+  "groups": [
+    {"group_id":"start","label":"시작·운영","sort_order":10,"entries":[
+      {"entry_id":"overview","label":"게임 개요","safe_label":"게임 개요","target_kind":"guide","target_id":"overview","icon_ref":"compass","visibility":"public","spoiler_tier":"none"},
+      {"entry_id":"getting-started","label":"처음 정착하기","safe_label":"처음 정착하기","target_kind":"guide","target_id":"getting-started","icon_ref":"camp","visibility":"public","spoiler_tier":"none"}
+    ]},
+    {"group_id":"setting","label":"세계관","sort_order":15,"entries":[
+      {"entry_id":"world","label":"세계와 정착","safe_label":"세계와 정착","target_kind":"guide","target_id":"world","icon_ref":"compass","visibility":"public","spoiler_tier":"none"},
+      {"entry_id":"world-dungeons","label":"하르나크의 여섯 도시","safe_label":"하르나크의 여섯 도시","target_kind":"guide","target_id":"world-dungeons","icon_ref":"grid","visibility":"public","spoiler_tier":"none"}
+    ]},
+    {"group_id":"economy","label":"경제·생산","sort_order":20,"entries":[
+      {"entry_id":"economy-trade","label":"경제와 거래","safe_label":"경제와 거래","target_kind":"guide","target_id":"economy-and-trade","icon_ref":"resource","visibility":"public","spoiler_tier":"none"},
+      {"entry_id":"production","label":"재고·생산·물류","safe_label":"재고·생산·물류","target_kind":"guide","target_id":"production","icon_ref":"flow","visibility":"public","spoiler_tier":"none"},
+      {"entry_id":"infrastructure","label":"시설과 환경","safe_label":"시설과 환경","target_kind":"guide","target_id":"infrastructure","icon_ref":"flow","visibility":"public","spoiler_tier":"none"},
+      {"entry_id":"spaces","label":"방과 동선","safe_label":"방과 동선","target_kind":"guide","target_id":"spaces","icon_ref":"grid","visibility":"public","spoiler_tier":"none"},
+      {"entry_id":"food-ecology","label":"식량·생태","safe_label":"식량·생태","target_kind":"guide","target_id":"food-and-ecology","icon_ref":"resource","visibility":"public","spoiler_tier":"none"}
+    ]},
+    {"group_id":"combat","label":"전투·대외 관계","sort_order":30,"entries":[
+      {"entry_id":"combat-rules","label":"전투와 장비","safe_label":"전투와 장비","target_kind":"guide","target_id":"combat-and-equipment","icon_ref":"sword","visibility":"public","spoiler_tier":"none"},
+      {"entry_id":"invasions","label":"침입과 방어","safe_label":"침입과 방어","target_kind":"guide","target_id":"invasions-and-defence","icon_ref":"sword","visibility":"public","spoiler_tier":"none"},
+      {"entry_id":"expeditions","label":"원정","safe_label":"원정","target_kind":"guide","target_id":"expeditions","icon_ref":"compass","visibility":"public","spoiler_tier":"warning"},
+      {"entry_id":"factions","label":"세력, 계약과 포로","safe_label":"세력, 계약과 포로","target_kind":"guide","target_id":"factions-contracts-and-prisoners","icon_ref":"people","visibility":"public","spoiler_tier":"warning"},
+      {"entry_id":"events","label":"사건을 처리하는 법","safe_label":"사건을 처리하는 법","target_kind":"guide","target_id":"events-and-choices","icon_ref":"signal","visibility":"public","spoiler_tier":"none"}
+    ]},
+    {"group_id":"society","label":"주민·사회","sort_order":40,"entries":[
+      {"entry_id":"residents-work","label":"주민과 노동","safe_label":"주민과 노동","target_kind":"guide","target_id":"residents-and-work","icon_ref":"people","visibility":"public","spoiler_tier":"none"},
+      {"entry_id":"public-health","label":"질병·격리·공중보건","safe_label":"질병·격리·공중보건","target_kind":"guide","target_id":"disease-and-public-health","icon_ref":"health","visibility":"public","spoiler_tier":"none"},
+      {"entry_id":"medical","label":"의료와 수술","safe_label":"의료와 수술","target_kind":"guide","target_id":"medical-care-and-surgery","icon_ref":"health","visibility":"public","spoiler_tier":"none"},
+      {"entry_id":"species","label":"종족·문화·생활","safe_label":"종족·문화·생활","target_kind":"guide","target_id":"species-culture-and-life","icon_ref":"people","visibility":"public","spoiler_tier":"none"},
+      {"entry_id":"family","label":"가족·교육·계승","safe_label":"가족·교육·계승","target_kind":"guide","target_id":"family-education-and-legacy","icon_ref":"people","visibility":"public","spoiler_tier":"warning"},
+      {"entry_id":"guests","label":"손님·서비스·공연","safe_label":"손님·서비스·공연","target_kind":"guide","target_id":"guests-services-and-performance","icon_ref":"people","visibility":"public","spoiler_tier":"none"}
+    ]},
+    {"group_id":"progress","label":"시간·진행","sort_order":50,"entries":[
+      {"entry_id":"weather","label":"날씨·계절·환경 위험","safe_label":"날씨·계절·환경 위험","target_kind":"guide","target_id":"weather-seasons-and-environment","icon_ref":"signal","visibility":"public","spoiler_tier":"none"},
+      {"entry_id":"research","label":"연구와 성장","safe_label":"연구와 성장","target_kind":"guide","target_id":"research","icon_ref":"research","visibility":"public","spoiler_tier":"none"},
+      {"entry_id":"updates","label":"업데이트 기록","safe_label":"업데이트 기록","target_kind":"updates","target_id":"all","icon_ref":"history","visibility":"public","spoiler_tier":"none"},
+      {"entry_id":"directory","label":"전체 둘러보기","safe_label":"전체 둘러보기","target_kind":"directory","target_id":"all","icon_ref":"grid","visibility":"public","spoiler_tier":"none"}
+    ]},
+    {"group_id":"catalogue","label":"도감","sort_order":60,"entries":[
+      {"entry_id":"catalogue-items","label":"아이템·자원","safe_label":"아이템·자원","target_kind":"category","target_id":"items","icon_ref":"crate","visibility":"public","spoiler_tier":"none"},
+      {"entry_id":"catalogue-facilities","label":"시설·방","safe_label":"시설·방","target_kind":"category","target_id":"facilities","icon_ref":"grid","visibility":"public","spoiler_tier":"none"},
+      {"entry_id":"catalogue-recipes","label":"제작식","safe_label":"제작식","target_kind":"category","target_id":"recipes","icon_ref":"flow","visibility":"public","spoiler_tier":"none"},
+      {"entry_id":"catalogue-research","label":"연구","safe_label":"연구","target_kind":"category","target_id":"research","icon_ref":"research","visibility":"public","spoiler_tier":"none"},
+      {"entry_id":"catalogue-characters","label":"주민·사회","safe_label":"주민·사회","target_kind":"category","target_id":"characters","icon_ref":"people","visibility":"public","spoiler_tier":"none"},
+      {"entry_id":"catalogue-equipment","label":"장비·전투","safe_label":"장비·전투","target_kind":"category","target_id":"equipment","icon_ref":"sword","visibility":"public","spoiler_tier":"none"},
+      {"entry_id":"catalogue-health","label":"의료·건강","safe_label":"의료·건강","target_kind":"category","target_id":"health","icon_ref":"health","visibility":"public","spoiler_tier":"none"},
+      {"entry_id":"catalogue-nature","label":"농업·생태","safe_label":"농업·생태","target_kind":"category","target_id":"nature","icon_ref":"resource","visibility":"public","spoiler_tier":"none"},
+      {"entry_id":"catalogue-events","label":"사건","safe_label":"사건","target_kind":"category","target_id":"events","icon_ref":"signal","visibility":"public","spoiler_tier":"warning"},
+      {"entry_id":"catalogue-world","label":"세계·원정","safe_label":"세계·원정","target_kind":"category","target_id":"world","icon_ref":"compass","visibility":"public","spoiler_tier":"warning"}
+    ]}
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "faction-chapter-beastkin-3",
+    "spoiler_tier": "warning",
+    "title": "재의 계약 사냥꾼"
+  },
+  "edges": [
+    {
+      "amount": "3",
+      "from": "event/faction-chapter-beastkin-3",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "equipment-item-shield-tower",
+      "target_spoiler_tier": "none",
+      "target_title": "대형 방패",
+      "to": "item/equipment-item-shield-tower",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "event/faction-chapter-beastkin-3",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "equipment-item-shield-tower",
+      "target_spoiler_tier": "none",
+      "target_title": "대형 방패",
+      "to": "item/equipment-item-shield-tower",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-beastkin",
+      "label": "관련",
+      "to": "event/faction-chapter-beastkin-3",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

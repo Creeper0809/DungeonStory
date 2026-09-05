@@ -1,18 +1,18 @@
 RESULT=PASS; phase=explicit-semantic-vertical-slice; assetMutations=0
-ledgerCanonicalItems=414; explicitUnitSemantics=363; missingUnitSemantics=51; materialProfiles=51; transformContracts=42
-authorityBackedEquipmentSemantics=61; authorityBackedApparelItemSemantics=56; authorityBackedApparelDefinitions=56; authorityBackedCommoditySemantics=54; authorityBackedResourceSemantics=22; authorityBackedToolProstheticSemantics=21; authorityBackedComponentSemantics=36; authorityBackedProcessedMaterialSemantics=48; authorityBackedUnpackagedMealProcessSemantics=6
+ledgerCanonicalItems=415; explicitUnitSemantics=415; missingUnitSemantics=0; materialProfiles=51; transformContracts=42
+authorityBackedEquipmentSemantics=61; authorityBackedApparelItemSemantics=56; authorityBackedApparelDefinitions=56; authorityBackedCommoditySemantics=55; authorityBackedResourceSemantics=22; authorityBackedToolProstheticSemantics=21; authorityBackedComponentSemantics=36; authorityBackedProcessedMaterialSemantics=48; authorityBackedUnpackagedMealProcessSemantics=6
 authoritySolidMedicalSemantics=6
 authorityIntegralSolidConsumables=2
 sliceItems=resource:clean-water|resource:twilight-grain|food:grain-porridge|resource:log|material:lumber|resource:cave-mushroom|food:mushroom-soup|resource:meat|food:roasted-meat|resource:ember-root|food:root-stew|resource:milk|resource:egg|material:flour|food:egg-pancake|resource:saltstone|material:curd|food:fresh-curd|material:cheese|food:cheese-mushroom|resource:night-grape|food:lavish-meat|material:malt|material:syrup|material:grape-juice|food:grape-syrup|material:fermented-liquor|food:malt-porridge|material:young-wine|food:twilight-beer|drug:night-wine|food:night-spirit|material:alcohol|material:washed-vegetable|material:brined-vegetable|craft:fermented-vinegar|food:fermented-pickle|food:preserved-vegetable|material:dough|material:seasoned-filling|food:vegetable-pie|food:stuffed-mushroom|resource:grass-straw|feed:hay|feed:silage|food:meat-pie|food:lavish-vegan|resource:dreamleaf|material:iron-ingot|container:medical-vial|medicine:anesthetic
-GRAIN_PORRIDGE_MASS_CONSERVATION=PASS; input=2100g; infrastructureWater=125g; output=2172g; wastewater=50g; evaporation=3g
-SAWMILL_MASS_CONSERVATION=PASS; input=3600g; output=3300g; cuttingWaste=300g
-MUSHROOM_SOUP_MASS_CONSERVATION=PASS; input=500g; infrastructureWater=125g; output=570g; wastewater=50g; evaporation=5g
-ROASTED_MEAT_MASS_CONSERVATION=PASS; input=1400g; output=1260g; evaporation=140g
-ROOT_STEW_MASS_CONSERVATION=PASS; input=900g; infrastructureWater=125g; output=960g; wastewater=50g; evaporation=15g
-MILLING_FLOUR_MASS_CONSERVATION=PASS; input=1050g; output=1000g; millingByproduct=50g
-EGG_PANCAKE_MASS_CONSERVATION=PASS; physicalInput=1800g; infrastructureWater=100g; output=1600g; wastewater=75g; evaporation=225g
+GRAIN_PORRIDGE_MASS_CONSERVATION=PASS; input=2100g; infrastructureWater=1700g; output=3600g; wastewater=100g; evaporation=100g
+SAWMILL_MASS_CONSERVATION=PASS; input=3600g; output=3600g; cuttingWaste=0g
+MUSHROOM_SOUP_MASS_CONSERVATION=PASS; input=500g; infrastructureWater=950g; output=1300g; wastewater=100g; evaporation=50g
+ROASTED_MEAT_MASS_CONSERVATION=PASS; input=1400g; infrastructureWater=150g; output=1500g; evaporation=50g
+ROOT_STEW_MASS_CONSERVATION=PASS; input=900g; infrastructureWater=650g; output=1400g; wastewater=100g; evaporation=50g
+MILLING_FLOUR_MASS_CONSERVATION=PASS; input=1050g; output=600g; millingByproduct=450g
+EGG_PANCAKE_MASS_CONSERVATION=PASS; physicalInput=1600g; infrastructureWater=100g; output=1300g; wastewater=75g; evaporation=325g
 ANIMAL_PRODUCT_SOURCE_CONTRACTS=PASS; milkBatch=3; eggBatch=3; externalBiomassExcluded=true
-CURD_WHEY_WASTEWATER_MASS_CONSERVATION=PASS; physicalInput=2900g; infrastructureWater=100g; curdOutput=900g; wheyWastewater=2100g; loss=0g
+CURD_WHEY_WASTEWATER_MASS_CONSERVATION=PASS; physicalInput=2900g; infrastructureWater=200g; curdOutput=900g; wheyWastewater=2100g; loss=100g
 FRESH_CURD_MASS_CONSERVATION=PASS; input=450g; output=450g; loss=0g
 CHEESE_AGING_MASS_CONSERVATION=PASS; input=900g; output=800g; agingMoistureLoss=100g
 CHEESE_MUSHROOM_MASS_CONSERVATION=PASS; input=900g; output=900g; loss=0g
@@ -29,11 +29,11 @@ NIGHT_WINE_MASS_CONSERVATION=PASS; input=700g; output=650g; agingEvaporation=50g
 NIGHT_SPIRIT_MASS_CONSERVATION=PASS; input=1050g; output=900g; agingEvaporation=150g
 ALCOHOL_MASS_CONSERVATION=PASS; input=1000g; output=1000g; loss=0g
 WASHED_VEGETABLE_MASS_CONSERVATION=PASS; input=900g; infrastructureWater=125g; output=900g; wastewater=125g
-BRINED_VEGETABLE_MASS_CONSERVATION=PASS; input=1400g; infrastructureWater=100g; output=1000g; brineWastewater=500g
+BRINED_VEGETABLE_MASS_CONSERVATION=PASS; input=1400g; infrastructureWater=700g; output=1000g; brineWastewater=1000g; preparationLoss=100g
 FERMENTED_VINEGAR_MASS_CONSERVATION=PASS; input=500g; infrastructureWater=350g; output=800g; fermentationGasLoss=50g
-FERMENTED_PICKLE_MASS_CONSERVATION=PASS; input=1400g; output=900g; brineWastewater=500g
+FERMENTED_PICKLE_MASS_CONSERVATION=PASS; input=1400g; infrastructureWater=600g; output=900g; brineWastewater=1000g; fermentationLoss=100g
 PRESERVED_VEGETABLE_MASS_CONSERVATION=PASS; input=1350g; output=1100g; cookingEvaporation=250g
-DOUGH_MASS_CONSERVATION=PASS; physicalInput=1250g; infrastructureWater=75g; output=1000g; wastewater=50g; preparationLoss=275g
+DOUGH_MASS_CONSERVATION=PASS; physicalInput=850g; infrastructureWater=300g; output=1000g; wastewater=100g; preparationLoss=50g
 SEASONED_FILLING_MASS_CONSERVATION=PASS; input=1850g; output=1300g; preparationWaste=550g
 VEGETABLE_PIE_MASS_CONSERVATION=PASS; input=950g; output=950g; loss=0g
 STUFFED_MUSHROOM_MASS_CONSERVATION=PASS; input=1150g; output=1150g; loss=0g
@@ -46,9 +46,9 @@ LAVISH_VEGAN_MASS_CONSERVATION=PASS; physicalInput=1900g; infrastructureWater=15
 MEDICAL_VIAL_MASS_CONSERVATION=PASS; input=900g; output=30x30g; loss=0g
 ANESTHETIC_PACKAGED_MASS_CONSERVATION=PASS; dreamleaf=160g; alcohol=500g; vial=30g; output=120g; extractionResidue=570g; returnedTare=30g
 HAUL_CLASS_CONTRACTS=PASS; ordinaryCommodityBand=6-11kg; individualEquipment=single-unit; heavyBand=11-20kg; oversizeThreshold=20kg
-packageTareContracts=1; packageTareDeferred=partial; medicineSemanticsDeferred=partial
+packageTareContracts=1; packagingReviewContracts=52; integralUnitNoDetachableTare=51; packagingUnresolved=0; authorityMedicalSupplySemantics=51
 deterministicRecapture=PASS; byteIdentical=true
-sourceDigest=bdc3e055041b23bf4424937e3de991a02ea76e53617d60e77b141cf99487a8ae
-inspectedAssetDigest=5fcd6596f3f7fce53f4671339ccd3666713b6d8fb9cf0b6e121fc42914430bae
-assignmentsAuthoritative=363; assetApplication=18; reviewStatus=focused-applied-plus-audit-only
-nextGate=MISSING_ITEM_UNIT_SEMANTIC; remaining=51; status=IN_PROGRESS
+sourceDigest=2e2a72e29866329d42a3886c83e9be8560937dceb9b847a8a6387f294b37b9f7
+inspectedAssetDigest=9c3d746680c77edb04f43579e95e0e1aec1fc766894d4c747b2487f8f47a5a4e
+assignmentsAuthoritative=415; assetApplication=18; reviewStatus=focused-applied-plus-audit-only
+nextGate=NONE; remaining=0; status=PASS

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.5kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "60개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "7"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "보존, 무두질과 소독에 쓰는 광물이다. 노르칸드라 채굴대는 소금석을 실은 자루에 광맥보다 먼저 돌아갈 갱도의 방향을 그린다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "resource-saltstone",
+  "spoiler_tier": "none",
+  "summary": "보존, 무두질과 소독에 쓰는 광물.",
+  "title": "소금석"
+}

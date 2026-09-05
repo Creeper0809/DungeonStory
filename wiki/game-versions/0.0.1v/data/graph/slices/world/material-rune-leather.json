@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "material-rune-leather",
+    "spoiler_tier": "none",
+    "title": "룬가죽"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/material-rune-leather",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-rune-leather",
+      "target_spoiler_tier": "none",
+      "target_title": "룬가죽",
+      "to": "research/research-textile-rune-leather",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

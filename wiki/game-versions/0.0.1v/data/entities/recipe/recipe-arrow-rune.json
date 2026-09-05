@@ -1,0 +1,67 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "154"
+    },
+    {
+      "label": "필요 연구",
+      "value": "비전 연구"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "8",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "ammo-arrow-rune",
+      "target_spoiler_tier": "none",
+      "target_title": "룬촉 화살",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-mana-crystal",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 결정",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-arcane-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 연구",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-horn",
+      "target_spoiler_tier": "none",
+      "target_title": "뿔",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-treated-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "처리 목재",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-arrow-rune",
+  "spoiler_tier": "none",
+  "summary": "룬촉 화살 생산 주문",
+  "title": "룬촉 화살"
+}

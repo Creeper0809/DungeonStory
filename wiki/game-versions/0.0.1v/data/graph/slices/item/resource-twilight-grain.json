@@ -1,0 +1,74 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-twilight-grain",
+    "spoiler_tier": "none",
+    "title": "황혼곡"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-dog-food",
+      "label": "필요 조건",
+      "to": "item/resource-twilight-grain",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-dog-food-fresh",
+      "label": "필요 조건",
+      "to": "item/resource-twilight-grain",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-garden-meal",
+      "label": "필요 조건",
+      "to": "item/resource-twilight-grain",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-hay-feed",
+      "label": "필요 조건",
+      "to": "item/resource-twilight-grain",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-silage",
+      "label": "필요 조건",
+      "to": "item/resource-twilight-grain",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-malt",
+      "label": "필요 조건",
+      "to": "item/resource-twilight-grain",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-starch",
+      "label": "필요 조건",
+      "to": "item/resource-twilight-grain",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-milling-flour",
+      "label": "필요 조건",
+      "to": "item/resource-twilight-grain",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "recipe/recipe-grain-porridge",
+      "label": "필요 조건",
+      "to": "item/resource-twilight-grain",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

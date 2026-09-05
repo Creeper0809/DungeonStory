@@ -27,10 +27,10 @@ MonoBehaviour:
   description: "V22 \uC758\uBCF5 \uC81C\uC791\uACFC \uC218\uC120 \uC791\uC5C5\uC5D0\uC11C
     \uC608\uC57D\xB7\uC6B4\uBC18\xB7\uC18C\uBE44\uD558\uB294 \uBB3C\uB9AC \uBB3C\uD488."
   stockCategory: 1
-  unitWeight: 0.05
+  unitWeight: 2
   maxStack: 1
   sprite: {fileID: 0}
-  unitPrice: 55
+  unitPrice: 140
   features:
   - rid: 7737212042831201149
   - rid: 1000
@@ -51,4 +51,4 @@ MonoBehaviour:
     - rid: 7737212042831201149
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5928
+        saleRate: 0.5982785

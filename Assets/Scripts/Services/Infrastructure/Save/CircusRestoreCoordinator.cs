@@ -368,7 +368,7 @@ internal sealed class CircusRestoreCoordinator : ICircusRestoreLifecycle
                     performerId,
                     out CaptiveState captive)
                 || captive == null
-                || !captive.IsActive
+                || !captive.IsInCustody
                 || !characters.TryGetValue(performerId, out CharacterActor actor)
                 || actor == null
                 || actor.IsDead)

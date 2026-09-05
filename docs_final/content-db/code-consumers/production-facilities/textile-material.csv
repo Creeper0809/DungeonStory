@@ -1,0 +1,13 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+TextileMaterialDefinitionSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ApparelDefinitionSO.cs
+TextileMaterialDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ApparelFacilityOutputCapacityContributor.cs
+TextileMaterialDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ApparelSpecialThroughputContributor.cs
+TextileMaterialDefinitionSO,content-type,,type-reference,services:economy,content-loading,structural-type-consumer,Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs
+TextileMaterialDefinitionSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/V23BalanceWorkCalculator.cs
+TextileMaterialDefinitionSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/V27BalanceWorkCalculator.cs
+TextileMaterialDefinitionSO,content-type,,type-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/ApparelAvailabilityIndex.cs
+TextileMaterialDefinitionSO,content-type,,type-reference,services:infrastructure,persistence,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/ApparelItemStateCodec.cs
+TextileMaterialDefinitionSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs
+TextileMaterialDefinitionSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearProductionOutputHandler.cs
+TextileMaterialDefinitionSO,content-type,,type-reference; save-restore-reference,services:infrastructure,persistence,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearProductionOutputRestoreCapabilityValidator.cs
+TextileMaterialDefinitionSO,content-type,,type-reference; save-restore-reference,services:infrastructure,persistence,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearProductionOutputRestoreCapabilityValidatorDebugScenarios.cs

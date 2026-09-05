@@ -1,8 +1,10 @@
 #if UNITY_EDITOR
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
 using VContainer;
@@ -11,6 +13,21 @@ public static class CropPlotDebugScenarios
 {
     private const string ReportPath =
         "docs/implementation-reports/crop-plot-runtime-latest.txt";
+    public const string RequestPath =
+        "Temp/v27-crop-plot-runtime.request";
+
+    [MenuItem("Tools/DungeonStory/Economy/Request Crop Plot Runtime Verification")]
+    public static void RequestRuntimeVerification()
+    {
+        Directory.CreateDirectory("Temp");
+        File.WriteAllText(RequestPath, "requested");
+        if (EditorApplication.isPlaying)
+        {
+            CropPlotDebugPlayModeRunner.StartPending();
+            return;
+        }
+        EditorApplication.EnterPlaymode();
+    }
 
     [MenuItem("Tools/DungeonStory/Economy/Verify Crop Plot Runtime")]
     public static void VerifyRuntimeFromMenu()
@@ -22,8 +39,11 @@ public static class CropPlotDebugScenarios
             $"playMode={Application.isPlaying}"
         };
         GameObject plotObject = null;
+        GameObject correlationConflictPlotObject = null;
         GameObject indoorPlotObject = null;
         GameObject fungalShelfObject = null;
+        Facility detachedRoundTripPlot = null;
+        Facility detachedRoundTripConflictPlot = null;
         try
         {
             Require(
@@ -100,6 +120,15 @@ public static class CropPlotDebugScenarios
             scope.Container.Inject(plot);
             plot.SetGrid(grid);
             plot.Initialization(outdoorPlot, new Vector2Int(4, 0));
+            correlationConflictPlotObject = new GameObject(
+                "CropPlot_CorrelationConflict_Verifier");
+            Facility correlationConflictPlot =
+                correlationConflictPlotObject.AddComponent<Facility>();
+            scope.Container.Inject(correlationConflictPlot);
+            correlationConflictPlot.SetGrid(grid);
+            correlationConflictPlot.Initialization(
+                outdoorPlot,
+                new Vector2Int(6, 0));
             runtime.Restore(runtime.BuildRestore(runtime.Capture()));
             Require(
                 runtime.TrySetCrop(
@@ -107,6 +136,33 @@ public static class CropPlotDebugScenarios
                     "crop:twilight-grain",
                     out string cropMessage),
                 cropMessage);
+            Require(
+                runtime.TrySetCrop(
+                    correlationConflictPlot,
+                    "crop:twilight-grain",
+                    out string correlationCropMessage),
+                correlationCropMessage);
+            const string CropExecutionActionId =
+                "qa:crop-plan-execution:outdoor-primary";
+            Require(
+                runtime.TryBindNextCycle(
+                    CropExecutionActionId,
+                    plot.RequirePersistentInstanceId().Value,
+                    crop.CropId,
+                    out string bindFailure),
+                "Could not bind Crop execution action: " + bindFailure);
+            Require(
+                !runtime.TryBindNextCycle(
+                    CropExecutionActionId,
+                    correlationConflictPlot.RequirePersistentInstanceId().Value,
+                    crop.CropId,
+                    out string duplicateBindFailure)
+                && string.Equals(
+                    duplicateBindFailure,
+                    "crop-cycle-correlation-global-conflict",
+                    StringComparison.Ordinal),
+                "Duplicate Crop action correlation was not rejected globally: "
+                + duplicateBindFailure);
             runtime.Tick();
 
             CropPlotSnapshot waiting = runtime.Plots.Single(entry =>
@@ -156,6 +212,18 @@ public static class CropPlotDebugScenarios
             Require(
                 growing.phase == CropPlotPhase.Growing,
                 $"crop did not enter growing phase: {growing.phase}");
+            Require(
+                growing.cycleExecutionReceipt.status
+                    == CropCycleExecutionReceiptStatus.Active
+                && growing.cycleExecutionReceipt.explicitCorrelation
+                && string.Equals(
+                    growing.cycleExecutionReceipt.correlationId,
+                    CropExecutionActionId,
+                    StringComparison.Ordinal)
+                && !runtime.TryCaptureExecutionReceipt(
+                    CropExecutionActionId,
+                    out _),
+                "Active Crop execution receipt was not durable or became observable before terminal completion.");
             growing.growthHours = crop.GrowthHours;
             runtime.Restore(runtime.BuildRestore(growingSave));
             runtime.Tick();
@@ -167,33 +235,84 @@ public static class CropPlotDebugScenarios
                     out CropPlotWorkSnapshot harvest)
                 && harvest.Available,
                 $"harvest work unavailable: {harvest.UnavailableReason}");
-            lines.Add(VerifyHarvestOutputContainmentAdmission(
+            lines.Add(VerifyHarvestOutputFacilityBufferWaitRestoreRetry(
                 runtime,
                 plot,
                 items,
+                scope.Container,
+                catalog,
                 crop,
-                harvest));
-            int stockBefore = CountItem(items, crop.HarvestItemId);
-            Require(
-                runtime.ApplyWork(
-                    plot,
-                    BuiltInWorkTypeIds.Harvest,
-                    harvest.RequiredWork,
-                    out bool harvested)
-                && harvested,
-                "harvest did not complete.");
-            int stockAfter = CountItem(items, crop.HarvestItemId);
-            Require(
-                stockAfter >= stockBefore + crop.Yield,
-                $"physical harvest missing: {stockBefore}->{stockAfter}");
+                harvest,
+                CropExecutionActionId,
+                out int stockBefore,
+                out int stockAfter));
 
             CropPlotSaveSection saveSection =
-                new CropPlotSaveSection(runtime);
+                scope.Container.Resolve<CropPlotSaveSection>();
+            string sectionPayload = saveSection.Capture();
             DungeonGameRestoreReport report = new DungeonGameRestoreReport();
-            saveSection.Restore(
-                saveSection.Capture(),
-                saveSection.SectionVersion,
-                report);
+            IRestoreWorldCandidateQuery candidateQuery =
+                scope.Container.Resolve<IRestoreWorldCandidateQuery>();
+            IRestoreWorldCandidatePublisher candidatePublisher =
+                scope.Container.Resolve<IRestoreWorldCandidatePublisher>();
+            Require(
+                !candidateQuery.TryGetBuildings(out _),
+                "Crop-plot focused restore started with an occupied detached-world slot.");
+            GameObject detachedRoundTripObject =
+                new GameObject("CropPlot_Detached_RoundTrip_Verifier");
+            detachedRoundTripPlot =
+                detachedRoundTripObject.AddComponent<Facility>();
+            detachedRoundTripPlot.PrepareForDetachedRestore();
+            scope.Container.Inject(detachedRoundTripPlot);
+            detachedRoundTripPlot.RestorePersistentIdentity(
+                plot.RequirePersistentInstanceId());
+            detachedRoundTripPlot.SetGrid(grid);
+            detachedRoundTripPlot.Initialization(
+                outdoorPlot,
+                plot.centerPos);
+            GameObject detachedConflictObject =
+                new GameObject("CropPlot_Detached_Conflict_RoundTrip_Verifier");
+            detachedRoundTripConflictPlot =
+                detachedConflictObject.AddComponent<Facility>();
+            detachedRoundTripConflictPlot.PrepareForDetachedRestore();
+            scope.Container.Inject(detachedRoundTripConflictPlot);
+            detachedRoundTripConflictPlot.RestorePersistentIdentity(
+                correlationConflictPlot.RequirePersistentInstanceId());
+            detachedRoundTripConflictPlot.SetGrid(grid);
+            detachedRoundTripConflictPlot.Initialization(
+                outdoorPlot,
+                correlationConflictPlot.centerPos);
+            bool candidatePublished = false;
+            try
+            {
+                candidatePublisher.SetFacilityCandidate(
+                    grid,
+                    new BuildableObject[]
+                    {
+                        detachedRoundTripPlot,
+                        detachedRoundTripConflictPlot
+                    });
+                candidatePublished = true;
+                saveSection.Restore(
+                    sectionPayload,
+                    saveSection.SectionVersion,
+                    report);
+            }
+            finally
+            {
+                if (candidatePublished)
+                    candidatePublisher.ClearFacilityCandidate();
+                if (detachedRoundTripPlot != null)
+                {
+                    detachedRoundTripPlot.DiscardDetachedRestore();
+                    detachedRoundTripPlot = null;
+                }
+                if (detachedRoundTripConflictPlot != null)
+                {
+                    detachedRoundTripConflictPlot.DiscardDetachedRestore();
+                    detachedRoundTripConflictPlot = null;
+                }
+            }
             Require(
                 report.Success,
                 string.Join(" / ", report.Errors));
@@ -406,6 +525,11 @@ public static class CropPlotDebugScenarios
                 UnityEngine.Object.Destroy(plotObject);
             }
 
+            if (correlationConflictPlotObject != null)
+            {
+                UnityEngine.Object.Destroy(correlationConflictPlotObject);
+            }
+
             if (indoorPlotObject != null)
             {
                 UnityEngine.Object.Destroy(indoorPlotObject);
@@ -414,6 +538,16 @@ public static class CropPlotDebugScenarios
             if (fungalShelfObject != null)
             {
                 UnityEngine.Object.Destroy(fungalShelfObject);
+            }
+
+            if (detachedRoundTripPlot != null)
+            {
+                detachedRoundTripPlot.DiscardDetachedRestore();
+            }
+
+            if (detachedRoundTripConflictPlot != null)
+            {
+                detachedRoundTripConflictPlot.DiscardDetachedRestore();
             }
         }
     }
@@ -490,103 +624,410 @@ public static class CropPlotDebugScenarios
                 out spawned);
     }
 
-    private static string VerifyHarvestOutputContainmentAdmission(
+    private static string VerifyHarvestOutputFacilityBufferWaitRestoreRetry(
         CropPlotRuntime runtime,
         Facility plot,
         IWorldItemStackRuntime items,
+        IObjectResolver services,
+        IResourceEconomyContentCatalog catalog,
         CropDefinitionSO crop,
-        CropPlotWorkSnapshot harvest)
+        CropPlotWorkSnapshot harvest,
+        string executionActionId,
+        out int stockBefore,
+        out int stockAfter)
     {
-        CropPlotSaveData before = runtime.Capture().plots.Single(entry =>
-            entry.buildingInstanceId == plot.RequirePersistentInstanceId().Value);
-        string[] outputItemIds = new[]
-            {
+        Require(services != null, "Runtime service resolver is missing.");
+        IFacilityBufferMassAdmissionService admission =
+            services.Resolve<IFacilityBufferMassAdmissionService>();
+        IFacilityBufferPlannedOutputPublicationService publication =
+            services.Resolve<IFacilityBufferPlannedOutputPublicationService>();
+        Require(admission != null, "Facility-buffer admission service is missing.");
+        Require(publication != null,
+            "Facility-buffer publication service is missing.");
+        BuildingInstanceId plotId = plot.RequirePersistentInstanceId();
+        string destinationId = ProductionOutputDestinationId
+            .FromFacility(plotId)
+            .Value;
+        Require(catalog.TryGetItem(
                 crop.HarvestItemId,
-                crop.SeedItemId
-            }
-            .Distinct(StringComparer.Ordinal)
-            .ToArray();
-        foreach (string outputItemId in outputItemIds)
-        {
-            HashSet<string> existingIds = items.GetAllStacks()
-                .Where(stack => stack != null)
-                .Select(stack => stack.StackId)
-                .ToHashSet(StringComparer.Ordinal);
-            WorldItemStackSnapshot fixture = null;
-            try
-            {
-                Require(
-                    items.SpawnItemAt(
-                        outputItemId,
-                        1,
-                        plot.centerPos,
-                        WorldItemStackState.Loose,
-                        string.Empty,
-                        out int spawned)
-                    && spawned == 1,
-                    $"Could not fill crop output containment for {outputItemId}.");
-                fixture = items.GetAllStacks().Single(stack => stack != null
-                    && !existingIds.Contains(stack.StackId)
-                    && stack.Quantity == 1
-                    && stack.State == WorldItemStackState.Loose
-                    && string.IsNullOrWhiteSpace(stack.DestinationId)
-                    && stack.Position == plot.centerPos
-                    && string.Equals(
-                        stack.ItemId,
-                        outputItemId,
-                        StringComparison.Ordinal));
-                int physicalBefore = CountItem(items, outputItemId);
-                Require(
-                    runtime.TryGetWork(
-                        plot,
-                        BuiltInWorkTypeIds.Harvest,
-                        out CropPlotWorkSnapshot blocked)
-                    && !blocked.Available
-                    && string.Equals(
-                        blocked.UnavailableReason,
-                        FailureCode.ProductionOutputSpaceUnavailable.ToString(),
-                        StringComparison.Ordinal),
-                    $"Crop harvest remained available while {outputItemId} containment was occupied.");
-                Require(
-                    !runtime.ApplyWork(
-                        plot,
-                        BuiltInWorkTypeIds.Harvest,
-                        harvest.RequiredWork,
-                        out bool completedWhileBlocked)
-                    && !completedWhileBlocked,
-                    $"Blocked crop harvest consumed work for {outputItemId}.");
-                CropPlotSaveData blockedSave = runtime.Capture().plots.Single(entry =>
-                    entry.buildingInstanceId == before.buildingInstanceId);
-                Require(
-                    blockedSave.phase == before.phase
-                    && Math.Abs(blockedSave.harvestWork - before.harvestWork) < 0.0001f,
-                    $"Output saturation mutated crop harvest state for {outputItemId}.");
-                Require(
-                    CountItem(items, outputItemId) == physicalBefore,
-                    $"Blocked crop harvest created or deleted {outputItemId}.");
-            }
-            finally
-            {
-                if (fixture != null && fixture.Quantity > 0)
-                    items.TryConsumeStackQuantity(
-                        fixture.StackId,
-                        fixture.Quantity,
-                        out _);
-            }
+                out ResourceItemDefinitionSO harvestDefinition),
+            "Crop harvest item definition is missing.");
+        long harvestUnitMassGrams = Mathf.RoundToInt(
+            harvestDefinition.UnitWeight * 1000f);
+        Require(harvestUnitMassGrams > 0L,
+            "Crop harvest item has no positive physical mass.");
 
+        IProductionFacilityHandleQuery facilityHandles =
+            services.Resolve<IProductionFacilityHandleQuery>();
+        IProductionOutputCapabilityRegistry capabilities =
+            services.Resolve<IProductionOutputCapabilityRegistry>();
+        IProductionOutputMaximumMassRegistry maximumMass =
+            services.Resolve<IProductionOutputMaximumMassRegistry>();
+        IProductionOutputBufferCapacityProjector capacityProjector =
+            services.Resolve<IProductionOutputBufferCapacityProjector>();
+        IProductionOutputDestinationAuthorityRuntime destinations =
+            services.Resolve<IProductionOutputDestinationAuthorityRuntime>();
+        ICharacterPerformanceDefinitionMaximumQuery performanceMaximum =
+            services.Resolve<ICharacterPerformanceDefinitionMaximumQuery>();
+        IGameplayEffectResultBoundsQuery effectBounds =
+            services.Resolve<IGameplayEffectResultBoundsQuery>();
+        ProductionFacilityHandle facility = facilityHandles.CaptureFacility(plot);
+        ProductionOutputCapabilityDescriptor harvestCapability =
+            capabilities.CaptureDeclaredDescriptor(
+                CropHarvestOutputMaximumAuthority.HarvestOutputLineId(crop.CropId),
+                crop.HarvestItemId,
+                ProductionOutputCapabilityIds.StandardDefinition);
+        ProductionOutputCapabilityDescriptor seedCapability =
+            capabilities.CaptureDeclaredDescriptor(
+                CropHarvestOutputMaximumAuthority.SeedOutputLineId(crop.CropId),
+                crop.SeedItemId,
+                ProductionOutputCapabilityIds.CropHarvestSeedLot);
+        ProductionOutputBatchMaximumMassProof maximumProof = new(new[]
+        {
+            maximumMass.CaptureDeclared(
+                harvestCapability,
+                CropHarvestOutputMaximumAuthority.ResolveMaximumHarvestQuantity(
+                    crop,
+                    indoor: false,
+                    performanceMaximum)),
+            maximumMass.CaptureDeclared(
+                seedCapability,
+                CropHarvestOutputMaximumAuthority
+                    .ResolveMaximumReturnedSeedQuantity(effectBounds))
+        });
+        ProductionOutputBufferCapacitySourceSnapshot capacitySource =
+            capacityProjector.CaptureSource(facility, maximumProof);
+        Require(destinations.TryEnsure(
+                facility,
+                capacitySource.RequiredMinimumCapacityGrams,
+                out FacilityBufferCapacityProfile authoredProfile,
+                out string capacityFailure),
+            "Could not publish crop output capacity authority: " + capacityFailure);
+        Require(admission.TryGetCapacity(
+                destinationId,
+                plot.centerPos,
+                out FacilityBufferMassCapacitySnapshot initialCapacity),
+            "Crop output FacilityBuffer capacity authority is missing.");
+        Require(initialCapacity.Profile.MaxMassGrams == authoredProfile.MaxMassGrams
+            && initialCapacity.Profile.MaxMassGrams
+                >= capacitySource.RequiredMinimumCapacityGrams,
+            "Crop output FacilityBuffer capacity drifted from its maximum proof.");
+        Require(initialCapacity.ReservedMassGrams == 0L,
+            "Crop output FacilityBuffer already has reserved mass before the fixture.");
+        Require(!items.GetAllStacks().Any(stack => stack != null
+                && stack.State is WorldItemStackState.FacilityBuffer
+                    or WorldItemStackState.FacilityOutputBuffer
+                && string.Equals(
+                    stack.DestinationId,
+                    destinationId,
+                    StringComparison.Ordinal)),
+            "Crop output FacilityBuffer already has physical occupancy before the fixture.");
+
+        long fillerQuantityLong = initialCapacity.Profile.MaxMassGrams
+            / harvestUnitMassGrams;
+        Require(fillerQuantityLong is > 0L and <= int.MaxValue,
+            "Crop output capacity cannot be saturated by the harvest item fixture.");
+        int fillerQuantity = checked((int)fillerQuantityLong);
+        FacilityBufferPlannedOutputRequest capacityFixture = new(
+            "qa:crop-output-capacity-wait:" + plotId.Value,
+            "production-output-batch:qa:crop-output-capacity-wait:"
+                + plotId.Value,
+            new string('a', 64),
+            destinationId,
+            plot.centerPos,
+            initialCapacity.Profile.OwnerDomain,
+            initialCapacity.Profile.OwnerOperationId,
+            initialCapacity.Profile.OwnerFacilityId,
+            initialCapacity.Profile.CapacityRevision,
+            new[]
+            {
+                new FacilityBufferPlannedOutputSlice(
+                    "qa:crop-output-capacity-fill:" + crop.CropId,
+                    PhysicalItemMassSubject.ForDefinition(
+                        (ItemDefinitionId)crop.HarvestItemId),
+                    fillerQuantity)
+            },
+            capacitySource.SourceDigest,
+            capacitySource.RequiredMinimumCapacityGrams);
+        FacilityBufferPlannedOutputToken capacityToken = default;
+        bool capacityReserved = false;
+        stockBefore = CountItem(items, crop.HarvestItemId);
+        stockAfter = stockBefore;
+        int seedStockBefore = CountItem(items, crop.SeedItemId);
+        try
+        {
             Require(
-                runtime.TryGetWork(
+                admission.TryReservePlannedOutput(
+                    capacityFixture,
+                    out capacityToken,
+                    out FacilityBufferMassAdmissionFailureCode reserveFailure,
+                    out string reserveReason),
+                "Could not reserve the competing crop-output capacity fixture: "
+                    + reserveFailure + ":" + reserveReason);
+            capacityReserved = true;
+            Require(admission.TryGetCapacity(
+                    destinationId,
+                    plot.centerPos,
+                    out FacilityBufferMassCapacitySnapshot saturated)
+                && saturated.ReservedMassGrams
+                    + harvestUnitMassGrams > saturated.Profile.MaxMassGrams,
+                "Competing reservation did not leave less than one harvest item of capacity.");
+
+            Require(runtime.ApplyWork(
                     plot,
                     BuiltInWorkTypeIds.Harvest,
-                    out CropPlotWorkSnapshot recovered)
-                && recovered.Available,
-                $"Crop harvest did not recover after clearing {outputItemId} containment.");
+                    harvest.RequiredWork,
+                    out bool completedWhileFull)
+                && !completedWhileFull,
+                "Capacity-blocked crop harvest did not retain its completed work for retry.");
+            DungeonCropPlotSaveData waitingCapture = runtime.Capture();
+            CropPlotSaveData waiting = waitingCapture.plots.Single(entry =>
+                entry.buildingInstanceId == plotId.Value);
+            Require(waiting.pendingHarvest.phase == CropHarvestOutputPhase.Frozen
+                && waiting.pendingHarvest.outputPublication.IsEmpty
+                && waiting.pendingHarvest.harvestQuantity > 0
+                && waiting.pendingHarvest.seedQuantity > 0
+                && Mathf.Approximately(waiting.harvestWork, harvest.RequiredWork),
+                "Capacity wait did not preserve one frozen crop-output vector "
+                + "before admission ownership was available.");
+            Require(CountItem(items, crop.HarvestItemId) == stockBefore
+                && CountItem(items, crop.SeedItemId) == seedStockBefore,
+                "Capacity wait published a partial crop-output vector.");
+
+            string frozenOperationId = waiting.pendingHarvest.operationId;
+            string frozenOutcomeFingerprint =
+                waiting.pendingHarvest.ecologyOutcomeFingerprint;
+            int expectedHarvestQuantity = waiting.pendingHarvest.harvestQuantity;
+            int expectedSeedQuantity = waiting.pendingHarvest.seedQuantity;
+            string expectedSeedCanonical = SeedLotItemStateCodec
+                .Encode(waiting.pendingHarvest.returnedSeedLot)
+                .ToCanonicalString();
+
+            runtime.Restore(runtime.BuildRestore(waitingCapture));
+            runtime.Tick();
+            CropPlotSaveData restoredWaiting = runtime.Capture().plots.Single(entry =>
+                entry.buildingInstanceId == plotId.Value);
+            Require(restoredWaiting.pendingHarvest.phase
+                    == CropHarvestOutputPhase.Frozen
+                && string.Equals(
+                    restoredWaiting.pendingHarvest.operationId,
+                    frozenOperationId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    restoredWaiting.pendingHarvest.ecologyOutcomeFingerprint,
+                    frozenOutcomeFingerprint,
+                    StringComparison.Ordinal)
+                && restoredWaiting.pendingHarvest.harvestQuantity
+                    == expectedHarvestQuantity
+                && restoredWaiting.pendingHarvest.seedQuantity
+                    == expectedSeedQuantity,
+                "Frozen crop-output vector changed across capture and restore.");
+
+            Require(admission.TryReleasePlannedOutput(
+                    capacityToken,
+                    FacilityBufferMassAdmissionReleaseReason.TransactionRollback,
+                    out FacilityBufferMassAdmissionFailureCode releaseFailure,
+                    out string releaseReason),
+                "Could not release competing crop-output capacity: "
+                    + releaseFailure + ":" + releaseReason);
+            capacityReserved = false;
+
+            Require(runtime.ApplyWork(
+                    plot,
+                    BuiltInWorkTypeIds.Harvest,
+                    harvest.RequiredWork,
+                    out bool completedOnRetry)
+                && completedOnRetry,
+                "Frozen crop output did not complete after capacity was released.");
+            stockAfter = CountItem(items, crop.HarvestItemId);
+            int seedStockAfter = CountItem(items, crop.SeedItemId);
+            Require(stockAfter == stockBefore + expectedHarvestQuantity
+                && seedStockAfter == seedStockBefore + expectedSeedQuantity,
+                "Crop retry did not publish the exact frozen harvest and seed quantities. "
+                + $"harvest={stockBefore}->{stockAfter} expectedDelta={expectedHarvestQuantity}, "
+                + $"seed={seedStockBefore}->{seedStockAfter} expectedDelta={expectedSeedQuantity}.");
+
+            WorldItemStackSnapshot[] published = items.GetAllStacks()
+                .Where(stack => stack != null
+                    && stack.State == WorldItemStackState.Loose
+                    && stack.Position == plot.centerPos
+                    && string.IsNullOrEmpty(stack.DestinationId))
+                .ToArray();
+            Require(published.Sum(stack => string.Equals(
+                        stack.ItemId,
+                        crop.HarvestItemId,
+                        StringComparison.Ordinal)
+                    ? stack.Quantity
+                    : 0) == expectedHarvestQuantity
+                && published.Sum(stack => string.Equals(
+                        stack.ItemId,
+                        crop.SeedItemId,
+                        StringComparison.Ordinal)
+                    ? stack.Quantity
+                    : 0) == expectedSeedQuantity
+                && published.Any(stack => string.Equals(
+                        stack.ItemId,
+                        crop.SeedItemId,
+                        StringComparison.Ordinal)
+                    && stack.Components.Count(component => component != null
+                        && string.Equals(
+                            component.componentTypeId,
+                            SeedLotItemStateCodec.ComponentTypeId,
+                            StringComparison.Ordinal)) == 1
+                    && string.Equals(
+                        stack.Components.Single(component => component != null
+                            && string.Equals(
+                                component.componentTypeId,
+                                SeedLotItemStateCodec.ComponentTypeId,
+                                StringComparison.Ordinal)).ToCanonicalString(),
+                        expectedSeedCanonical,
+                        StringComparison.Ordinal)),
+                "Released crop output lost its exact two-line quantity or seed-lot state.");
+
+            CropPlotSaveData completed = runtime.Capture().plots.Single(entry =>
+                entry.buildingInstanceId == plotId.Value);
+            Require(completed.pendingHarvest.phase == CropHarvestOutputPhase.None
+                && completed.nextHarvestOperationSequence
+                    == waiting.nextHarvestOperationSequence + 1,
+                "Completed crop retry did not retire exactly one frozen operation.");
+            Require(runtime.TryCaptureExecutionReceipt(
+                    executionActionId,
+                    out CropPlanExecutionReceipt executionReceipt)
+                && executionReceipt.Succeeded
+                && executionReceipt.ExplicitCorrelation
+                && string.Equals(
+                    executionReceipt.PlotId,
+                    plotId.Value,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    executionReceipt.HarvestOperationId,
+                    frozenOperationId,
+                    StringComparison.Ordinal)
+                && executionReceipt.Outputs.Count == 2
+                && executionReceipt.Outputs.Sum(output => output.Quantity)
+                    == expectedHarvestQuantity + expectedSeedQuantity
+                && executionReceipt.Outputs.Sum(output => output.MassGrams)
+                    == executionReceipt.OutputMassGrams,
+                "Completed Crop action did not expose its exact terminal receipt.");
+            Require(publication.TryCaptureBatch(
+                    executionReceipt.OutputBatchCommitId,
+                    allowAcknowledged: true,
+                    out FacilityBufferPlannedOutputRestoreBatchSnapshot batch,
+                    out bool batchAcknowledged,
+                    out FacilityBufferPlannedOutputPublicationFailureCode
+                        captureFailure,
+                    out string captureReason)
+                && batchAcknowledged
+                && batch != null
+                && batch.TotalMassGrams == executionReceipt.OutputMassGrams
+                && string.Equals(
+                    batch.OutcomeFingerprint,
+                    executionReceipt.OutputOutcomeFingerprint,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    batch.PlannedOutputFingerprint,
+                    executionReceipt.PlannedOutputFingerprint,
+                    StringComparison.Ordinal)
+                && executionReceipt.Outputs.All(output => batch.Stacks.Any(stack =>
+                    string.Equals(
+                        stack.OutputLineId,
+                        output.OutputLineId,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        stack.ItemId,
+                        output.ItemId,
+                        StringComparison.Ordinal)
+                    && stack.Quantity == output.Quantity
+                    && stack.MassGrams == output.MassGrams)),
+                "Crop receipt did not exact-join its acknowledged physical batch: "
+                + captureFailure + ":" + captureReason);
+
+            string terminalDigest = executionReceipt.RuntimeReceiptDigest;
+            runtime.Tick();
+            CropPlotSnapshot awaitingAck = runtime.Plots.Single(entry =>
+                entry.PlotId == plotId.Value);
+            Require(string.Equals(
+                    awaitingAck.BlockedReason,
+                    "crop-cycle-execution-receipt-awaiting-acknowledgement",
+                    StringComparison.Ordinal),
+                "Explicit terminal receipt did not block automatic overwrite.");
+            DungeonCropPlotSaveData terminalSave = runtime.Capture();
+            runtime.Restore(runtime.BuildRestore(terminalSave));
+            Require(runtime.TryCaptureExecutionReceipt(
+                    executionActionId,
+                    out CropPlanExecutionReceipt restoredReceipt)
+                && string.Equals(
+                    restoredReceipt.RuntimeReceiptDigest,
+                    terminalDigest,
+                    StringComparison.Ordinal),
+                "Crop terminal receipt drifted across save/restore.");
+            Require(!runtime.TryAcknowledgeExecutionReceipt(
+                    executionActionId,
+                    new string('0', 64),
+                    out string staleAcknowledgementFailure)
+                && string.Equals(
+                    staleAcknowledgementFailure,
+                    "crop-cycle-execution-receipt-digest-mismatch",
+                    StringComparison.Ordinal)
+                && runtime.TryCaptureExecutionReceipt(
+                    executionActionId,
+                    out CropPlanExecutionReceipt retainedAfterStaleAck)
+                && string.Equals(
+                    retainedAfterStaleAck.RuntimeReceiptDigest,
+                    terminalDigest,
+                    StringComparison.Ordinal),
+                "Stale Crop receipt acknowledgement removed or changed the live owner.");
+            Require(runtime.TryAcknowledgeExecutionReceipt(
+                    executionActionId,
+                    executionReceipt.RuntimeReceiptDigest,
+                    out string acknowledgementFailure),
+                "Crop terminal receipt acknowledgement failed: "
+                + acknowledgementFailure);
+            Require(!runtime.TryCaptureExecutionReceipt(
+                    executionActionId,
+                    out _),
+                "Acknowledged Crop terminal receipt remained observable.");
+            Require(!runtime.TryAcknowledgeExecutionReceipt(
+                    executionActionId,
+                    executionReceipt.RuntimeReceiptDigest,
+                    out string duplicateAcknowledgementFailure)
+                && string.Equals(
+                    duplicateAcknowledgementFailure,
+                    "crop-cycle-execution-receipt-not-found",
+                    StringComparison.Ordinal),
+                "Duplicate Crop receipt acknowledgement was not rejected.");
+            runtime.Tick();
+            CropPlotSaveData acknowledgedSave = runtime.Capture().plots.Single(entry =>
+                entry.buildingInstanceId == plotId.Value);
+            Require(acknowledgedSave.cycleExecutionReceipt.IsEmpty,
+                "Acknowledged Crop terminal receipt was not retired.");
+            Require(!runtime.ApplyWork(
+                    plot,
+                    BuiltInWorkTypeIds.Harvest,
+                    harvest.RequiredWork,
+                    out bool replayCompleted)
+                && !replayCompleted
+                && CountItem(items, crop.HarvestItemId) == stockAfter
+                && CountItem(items, crop.SeedItemId) == seedStockAfter,
+                "Completed crop operation replayed its physical output.");
+        }
+        finally
+        {
+            if (capacityReserved)
+            {
+                admission.TryReleasePlannedOutput(
+                    capacityToken,
+                    FacilityBufferMassAdmissionReleaseReason.TransactionRollback,
+                    out _,
+                    out _);
+            }
         }
 
-        return "PASS CROP_OUTPUT_CONTAINMENT_TYPED_BLOCK_RECOVERY "
-            + $"plot={before.buildingInstanceId};outputs="
-            + string.Join(",", outputItemIds)
-            + ";workConserved=true;quantityConserved=true";
+        return "PASS CROP_OUTPUT_FACILITY_BUFFER_WAIT_RESTORE_RETRY_EXACT_ONCE "
+            + $"plot={plotId.Value};harvest={stockBefore}->{stockAfter}"
+            + ";capacityWait=true;frozenRestore=true;replayDelta=0"
+            + ";executionReceipt=true;physicalBatchJoin=true"
+            + ";terminalRestore=true;ackRetention=true";
     }
 
     private static void VerifyStrictSaveIsolation(
@@ -633,6 +1074,62 @@ public static class CropPlotDebugScenarios
         string absolutePath = Path.GetFullPath(ReportPath);
         Directory.CreateDirectory(Path.GetDirectoryName(absolutePath) ?? ".");
         File.WriteAllLines(absolutePath, lines);
+    }
+}
+
+public sealed class CropPlotDebugPlayModeRunner : MonoBehaviour
+{
+    private const float ResolveTimeoutSeconds = 30f;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    private static void Bootstrap() => StartPending();
+
+    internal static void StartPending()
+    {
+        if (!File.Exists(CropPlotDebugScenarios.RequestPath))
+            return;
+        File.Delete(CropPlotDebugScenarios.RequestPath);
+        if (FindFirstObjectByType<CropPlotDebugPlayModeRunner>() != null)
+            return;
+        new GameObject(nameof(CropPlotDebugPlayModeRunner))
+            .AddComponent<CropPlotDebugPlayModeRunner>();
+    }
+
+    private IEnumerator Start()
+    {
+        float deadline = Time.realtimeSinceStartup + ResolveTimeoutSeconds;
+        while (Time.realtimeSinceStartup < deadline)
+        {
+            DungeonRuntimeLifetimeScope scope = FindFirstObjectByType<
+                DungeonRuntimeLifetimeScope>();
+            if (scope?.Container != null)
+                break;
+            yield return null;
+        }
+
+        try
+        {
+            CropPlotDebugScenarios.VerifyRuntimeFromMenu();
+            string reportPath = Path.GetFullPath(
+                "docs/implementation-reports/crop-plot-runtime-latest.txt");
+            string report = File.Exists(reportPath)
+                ? File.ReadAllText(reportPath)
+                : string.Empty;
+            if (!report.Contains("valid=true", StringComparison.Ordinal))
+            {
+                Debug.LogError(
+                    "CROP_PLOT_REQUESTED_PLAYMODE_VERIFICATION_FAILED");
+            }
+            else
+            {
+                Debug.Log("CROP_PLOT_REQUESTED_PLAYMODE_VERIFICATION_PASS");
+            }
+        }
+        finally
+        {
+            Destroy(gameObject);
+            EditorApplication.ExitPlaymode();
+        }
     }
 }
 #endif

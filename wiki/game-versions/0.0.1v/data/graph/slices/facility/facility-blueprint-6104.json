@@ -1,0 +1,29 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "facility-blueprint-6104",
+    "spoiler_tier": "none",
+    "title": "비전 연구 설계도"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/facility-blueprint-6104",
+      "label": "관련",
+      "target_kind": "research",
+      "target_slug": "research-arcane-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 연구",
+      "to": "research/research-arcane-advanced",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "research/research-arcane-advanced",
+      "label": "관련",
+      "to": "facility/facility-blueprint-6104",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

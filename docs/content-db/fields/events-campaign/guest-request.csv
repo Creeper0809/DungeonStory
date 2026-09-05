@@ -1,0 +1,461 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,m_Name,guest-request_allergen-banquet,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,stableId,guest-request:allergen-banquet,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,displayName,금기 없는 화합식,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,description,서로 음식 금기가 다른 두 사절단이 같은 식탁을 요청한다.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,authoringRevision,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,kind,0,GuestRequestKind,Luxury Meal,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,deadlineDays,4,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.items.0.itemDefinitionId,food:lavish-vegan,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.items.0.amount,8,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.items.0.consume,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.facilities.0.buildingDefinitionId,building:festival-common-hall,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.research,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.characters,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.factions,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.worldMetrics,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.requiredFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,successEffects.0.targetId,guest-service,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,successEffects.0.amount,267,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,successEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,successEffects.1.kind,6,GuestRequestKind,Armament,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,successEffects.1.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,successEffects.1.amount,4,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,successEffects.1.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,failureEffects.0.kind,7,GuestRequestKind,알 수 없음 (7),explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,failureEffects.0.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,failureEffects.0.amount,5,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,failureEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,m_Name,guest-request_bodyguard-kit,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,stableId,guest-request:bodyguard-kit,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,displayName,사절 호위 장비,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,description,위험 지역을 지날 사절단이 방폭 외투와 수리 키트를 요구한다.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,authoringRevision,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,kind,6,GuestRequestKind,Armament,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,deadlineDays,5,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.items.0.itemDefinitionId,tool:field-repair-kit,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.items.0.amount,6,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.items.0.consume,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.facilities.0.buildingDefinitionId,building:smith-workshop,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.research,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.characters,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.factions,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.worldMetrics,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.requiredFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,successEffects.0.targetId,guest-service,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,successEffects.0.amount,864,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,successEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,successEffects.1.kind,6,GuestRequestKind,Armament,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,successEffects.1.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,successEffects.1.amount,4,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,successEffects.1.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,failureEffects.0.kind,7,GuestRequestKind,알 수 없음 (7),explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,failureEffects.0.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,failureEffects.0.amount,5,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,failureEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,m_Name,guest-request_coronation-feast,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,stableId,guest-request:coronation-feast,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,displayName,몰락 귀족의 대관 만찬,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,description,망명 귀족이 지지자 앞에서 호화 만찬을 열 객실과 음식을 요구한다.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,authoringRevision,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,kind,0,GuestRequestKind,Luxury Meal,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,deadlineDays,5,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.items.0.itemDefinitionId,food:lavish-meat,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.items.0.amount,4,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.items.0.consume,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.facilities.0.buildingDefinitionId,building:luxury-dining-room,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.research,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.characters,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.factions,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.worldMetrics,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.requiredFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,successEffects.0.targetId,guest-service,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,successEffects.0.amount,144,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,successEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,successEffects.1.kind,6,GuestRequestKind,Armament,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,successEffects.1.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,successEffects.1.amount,4,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,successEffects.1.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,failureEffects.0.kind,7,GuestRequestKind,알 수 없음 (7),explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,failureEffects.0.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,failureEffects.0.amount,5,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,failureEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,m_Name,guest-request_disease-sample,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,stableId,guest-request:disease-sample,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,displayName,희귀 병원체 공동연구,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,description,외부 의사가 무균 시설과 항원 표본을 이용한 공동연구를 청한다.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,authoringRevision,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,kind,5,GuestRequestKind,Research,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,deadlineDays,6,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.items.0.itemDefinitionId,sample:antigen:cave-flu,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.items.0.amount,3,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.items.0.consume,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.facilities.0.buildingDefinitionId,building:vaccine-laboratory,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.research,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.characters,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.factions,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.worldMetrics,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.requiredFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,successEffects.0.targetId,guest-service,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,successEffects.0.amount,80,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,successEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,successEffects.1.kind,6,GuestRequestKind,Armament,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,successEffects.1.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,successEffects.1.amount,4,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,successEffects.1.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,failureEffects.0.kind,7,GuestRequestKind,알 수 없음 (7),explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,failureEffects.0.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,failureEffects.0.amount,5,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,failureEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,m_Name,guest-request_emergency-surgery,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,stableId,guest-request:emergency-surgery,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,displayName,사절의 응급 수술,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,description,중상 사절이 무균 수술실과 고급 약품을 즉시 요구한다.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,authoringRevision,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,kind,1,GuestRequestKind,Medical,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,deadlineDays,2,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.items.0.itemDefinitionId,medicine:advanced,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.items.0.amount,3,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.items.0.consume,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.facilities.0.buildingDefinitionId,building:surgery-room,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.research,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.characters,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.factions,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.worldMetrics,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.requiredFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,successEffects.0.targetId,guest-service,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,successEffects.0.amount,940,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,successEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,successEffects.1.kind,6,GuestRequestKind,Armament,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,successEffects.1.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,successEffects.1.amount,4,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,successEffects.1.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,failureEffects.0.kind,7,GuestRequestKind,알 수 없음 (7),explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,failureEffects.0.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,failureEffects.0.amount,5,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,failureEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,m_Name,guest-request_flood-refuge,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,stableId,guest-request:flood-refuge,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,displayName,범람 피난민,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,description,침수된 정착지 주민이 침대·물·보존식을 요청한다.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,authoringRevision,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,kind,4,GuestRequestKind,Refuge,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,deadlineDays,4,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.items.0.itemDefinitionId,food:preserved-ration,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.items.0.amount,20,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.items.0.consume,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.facilities.0.buildingDefinitionId,building:guest-dormitory,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.research,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.characters,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.factions,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.worldMetrics,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.requiredFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,successEffects.0.targetId,guest-service,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,successEffects.0.amount,400,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,successEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,successEffects.1.kind,6,GuestRequestKind,Armament,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,successEffects.1.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,successEffects.1.amount,4,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,successEffects.1.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,failureEffects.0.kind,7,GuestRequestKind,알 수 없음 (7),explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,failureEffects.0.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,failureEffects.0.amount,5,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,failureEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,m_Name,guest-request_memorial-performance,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,stableId,guest-request:memorial-performance,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,displayName,전사자 추모 공연,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,description,용병단이 사망자 이름을 부르는 공연과 추모 공간을 요청한다.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,authoringRevision,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,kind,3,GuestRequestKind,Spectacle,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,deadlineDays,5,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.items.0.itemDefinitionId,craft:candle,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.items.0.amount,10,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.items.0.consume,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.facilities.0.buildingDefinitionId,workstation:v19:memorial-room,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.research,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.characters,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.factions,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.worldMetrics,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.requiredFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,successEffects.0.targetId,guest-service,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,successEffects.0.amount,214,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,successEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,successEffects.1.kind,6,GuestRequestKind,Armament,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,successEffects.1.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,successEffects.1.amount,4,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,successEffects.1.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,failureEffects.0.kind,7,GuestRequestKind,알 수 없음 (7),explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,failureEffects.0.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,failureEffects.0.amount,5,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,failureEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,m_Name,guest-request_militia-arms,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,stableId,guest-request:militia-arms,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,displayName,민병대 긴급 무장,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,description,습격받는 정착지가 방패와 종이 탄약통을 긴급 요청한다.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,authoringRevision,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,kind,6,GuestRequestKind,Armament,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,deadlineDays,4,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.items.0.itemDefinitionId,ammo:paper-cartridge,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.items.0.amount,30,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.items.0.consume,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.facilities.0.buildingDefinitionId,building:armory,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.research,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.characters,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.factions,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.worldMetrics,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.requiredFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,successEffects.0.targetId,guest-service,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,successEffects.0.amount,440,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,successEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,successEffects.1.kind,6,GuestRequestKind,Armament,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,successEffects.1.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,successEffects.1.amount,4,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,successEffects.1.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,failureEffects.0.kind,7,GuestRequestKind,알 수 없음 (7),explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,failureEffects.0.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,failureEffects.0.amount,5,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,failureEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,m_Name,guest-request_monster-circus,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,stableId,guest-request:monster-circus,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,displayName,비전 생물 시연,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,description,학자 손님이 포획 생물의 안전한 공개 시연을 의뢰한다.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,authoringRevision,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,kind,3,GuestRequestKind,Spectacle,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,deadlineDays,6,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,serviceRequirements.items,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,serviceRequirements.facilities.0.buildingDefinitionId,building:circus-arena,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,serviceRequirements.research,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,serviceRequirements.characters,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,serviceRequirements.factions,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,serviceRequirements.worldMetrics,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,serviceRequirements.requiredFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,successEffects.0.targetId,guest-service,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,successEffects.0.amount,267,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,successEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,successEffects.1.kind,6,GuestRequestKind,Armament,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,successEffects.1.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,successEffects.1.amount,4,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,successEffects.1.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,failureEffects.0.kind,7,GuestRequestKind,알 수 없음 (7),explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,failureEffects.0.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,failureEffects.0.amount,5,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,failureEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,m_Name,guest-request_persecuted-family,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,stableId,guest-request:persecuted-family,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,displayName,추방 가족의 은신,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,description,추격받는 혼혈 가족이 격리되지 않은 가족실을 요청한다.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,authoringRevision,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,kind,4,GuestRequestKind,Refuge,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,deadlineDays,3,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.items.0.itemDefinitionId,resource:clean-water,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.items.0.amount,12,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.items.0.consume,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.facilities.0.buildingDefinitionId,building:family-quarters,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.research,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.characters,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.factions,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.worldMetrics,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.requiredFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,successEffects.0.targetId,guest-service,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,successEffects.0.amount,16,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,successEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,successEffects.1.kind,6,GuestRequestKind,Armament,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,successEffects.1.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,successEffects.1.amount,4,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,successEffects.1.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,failureEffects.0.kind,7,GuestRequestKind,알 수 없음 (7),explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,failureEffects.0.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,failureEffects.0.amount,5,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,failureEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,m_Name,guest-request_plague-screening,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,stableId,guest-request:plague-screening,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,displayName,대상단 검역,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,description,긴 대상행렬이 입장 전 전원 검사와 격리 공간을 요구한다.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,authoringRevision,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,kind,1,GuestRequestKind,Medical,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,deadlineDays,3,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.items.0.itemDefinitionId,medicine:antiseptic,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.items.0.amount,6,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.items.0.consume,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.facilities.0.buildingDefinitionId,building:isolation-ward,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.research,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.characters,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.factions,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.worldMetrics,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.requiredFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,successEffects.0.targetId,guest-service,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,successEffects.0.amount,120,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,successEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,successEffects.1.kind,6,GuestRequestKind,Armament,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,successEffects.1.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,successEffects.1.amount,4,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,successEffects.1.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,failureEffects.0.kind,7,GuestRequestKind,알 수 없음 (7),explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,failureEffects.0.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,failureEffects.0.amount,5,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,failureEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,m_Name,guest-request_precision-barter,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,stableId,guest-request:precision-barter,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,displayName,정밀 부품 교역회,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,description,상인이 정밀 부품과 룬 도체의 현물 교환을 제안한다.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,authoringRevision,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,kind,2,GuestRequestKind,Trade,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,deadlineDays,7,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.items.0.itemDefinitionId,component:precision-parts,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.items.0.amount,4,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.items.0.consume,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.facilities.0.buildingDefinitionId,building:trade-counter,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.research,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.characters,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.factions,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.worldMetrics,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.requiredFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,successEffects.0.targetId,guest-service,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,successEffects.0.amount,1547,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,successEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,successEffects.1.kind,6,GuestRequestKind,Armament,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,successEffects.1.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,successEffects.1.amount,4,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,successEffects.1.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,failureEffects.0.kind,7,GuestRequestKind,알 수 없음 (7),explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,failureEffects.0.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,failureEffects.0.amount,5,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,failureEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,m_Name,guest-request_sealed-archive,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,stableId,guest-request:sealed-archive,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,displayName,봉인 기록 판독,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,description,기록관이 안전한 연구실과 공학 도면을 대가로 봉인 문서를 맡긴다.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,authoringRevision,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,kind,5,GuestRequestKind,Research,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,deadlineDays,8,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.items.0.itemDefinitionId,component:engineering-drawing,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.items.0.amount,2,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.items.0.consume,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.facilities.0.buildingDefinitionId,building:prototype-laboratory,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.research,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.characters,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.factions,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.worldMetrics,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.requiredFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,successEffects.0.targetId,guest-service,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,successEffects.0.amount,59,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,successEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,successEffects.1.kind,6,GuestRequestKind,Armament,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,successEffects.1.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,successEffects.1.amount,4,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,successEffects.1.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,failureEffects.0.kind,7,GuestRequestKind,알 수 없음 (7),explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,failureEffects.0.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,failureEffects.0.amount,5,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,failureEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,m_Name,guest-request_winter-fuel-auction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,stableId,guest-request:winter-fuel-auction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,displayName,겨울 연료 경매,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,description,세 세력이 숯과 석탄을 놓고 공개 경매를 열 장소를 요청한다.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,authoringRevision,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,kind,2,GuestRequestKind,Trade,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,deadlineDays,5,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.items.0.itemDefinitionId,material:charcoal,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.items.0.amount,12,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.items.0.consume,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.facilities.0.buildingDefinitionId,building:faction-audience-hall,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.research,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.characters,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.factions,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.worldMetrics,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.requiredFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,successEffects.0.targetId,guest-service,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,successEffects.0.amount,112,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,successEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,successEffects.1.kind,6,GuestRequestKind,Armament,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,successEffects.1.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,successEffects.1.amount,4,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,successEffects.1.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,failureEffects.0.kind,7,GuestRequestKind,알 수 없음 (7),explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,failureEffects.0.targetId,requesting-faction,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,failureEffects.0.amount,5,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,failureEffects.0.durationDays,0,,,explicit-serialized

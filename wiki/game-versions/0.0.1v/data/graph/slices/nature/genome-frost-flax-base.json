@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "genome-frost-flax-base",
+    "spoiler_tier": "none",
+    "title": "genome_frost-flax_base"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/crop-frost-flax",
+      "label": "관련",
+      "to": "nature/genome-frost-flax-base",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

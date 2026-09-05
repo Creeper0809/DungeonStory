@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.55kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "8"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "불린 맥아를 부드럽게 끓여 단맛을 끌어낸 따뜻한 죽이다. 사르베니아 내해에서 맥아죽은 싹이 너무 길게 난 곡물도 버리지 않으려 만든 농가 음식이다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "food-malt-porridge",
+  "spoiler_tier": "none",
+  "summary": "작업실의 다음 공정으로 실제 운반되는 물리 중간재.",
+  "title": "맥아죽"
+}

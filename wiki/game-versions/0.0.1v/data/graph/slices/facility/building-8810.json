@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-8810",
+    "spoiler_tier": "none",
+    "title": "강화 구속구 선반"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-control-restraints",
+      "label": "시설 해금",
+      "to": "facility/building-8810",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

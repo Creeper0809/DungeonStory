@@ -97,7 +97,7 @@ MonoBehaviour:
         - itemId: material:stone-block
           amount: 18
         - itemId: material:steel-ingot
-          amount: 12
+          amount: 16
         - itemId: material:paper
           amount: 12
     - rid: 7737211808466862451

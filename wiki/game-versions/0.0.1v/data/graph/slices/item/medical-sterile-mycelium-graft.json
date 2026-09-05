@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "medical-sterile-mycelium-graft",
+    "spoiler_tier": "none",
+    "title": "무균 균사 이식편"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-sterile-mycelium-graft",
+      "label": "생산·해금",
+      "to": "item/medical-sterile-mycelium-graft",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-myconid-core-graft",
+      "label": "관련",
+      "to": "item/medical-sterile-mycelium-graft",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

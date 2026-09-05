@@ -11,6 +11,8 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
     [MenuItem("DungeonStory/Debug/Economy/Run Production Output Destination Lifecycle")]
     public static void RunAll()
     {
+        using EditorVerificationSceneFixtureScope fixtureScene = new(
+            "qa:production-output-destination-lifecycle");
         VerifyCanonicalDestinationIdentity();
         VerifyGenericBillBlocksMutation();
         VerifyEquipmentAndApparelBlockMutation();
@@ -24,10 +26,15 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
         VerifyEmptyFenceRejectsStaleCandidate();
         VerifyEmptyFenceRollbackRestoresExactAuthority();
         VerifyEmptyFenceCommitClosesWithoutRestore();
+        VerifyStockSensorFenceRollbackRestoresExactAuthority();
+        VerifyStockSensorActiveStateBlocksMutation();
+        VerifyStockSensorPostPrepareOccupancyBlocksCommit();
+        VerifyStockSensorRollbackWhenOutputRevokeFails();
         VerifyPlacementDemolitionUsesFenceInOrder();
         VerifyPlacementDemolitionRollsBackWhenGridRemovalFails();
         VerifyStructuralAndCoverLossUseTheSameFence();
         VerifyDestructiveLossBlockAndRollbackPreserveWorld();
+        VerifyWorldRemovalPortIsExactAndIdempotent();
         VerifyIdentityChangingMutationsRequireNoAuthority();
         Debug.Log("V27_PRODUCTION_OUTPUT_DESTINATION_LIFECYCLE=PASS");
     }
@@ -97,8 +104,8 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
             requiredWork = 6f
         };
         CombatEquipmentCraftLifecycleContributor equipment = new(
-            new FixedEquipmentQueue(equipmentOrder),
-            new FixedMaintenanceOrders(repairOrder));
+            () => new FixedEquipmentQueue(equipmentOrder),
+            () => new FixedMaintenanceOrders(repairOrder));
         ApparelWorkOrderSaveData apparelOrder = new()
         {
             orderId = "apparel-order:qa",
@@ -133,8 +140,8 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
         equipmentCommitChanged.materialTransferCommitId = "commit:equipment:qa";
         ProductionOutputDestinationLifecycleContribution changedEquipment =
             new CombatEquipmentCraftLifecycleContributor(
-                new FixedEquipmentQueue(equipmentCommitChanged),
-                new FixedMaintenanceOrders(repairOrder))
+                () => new FixedEquipmentQueue(equipmentCommitChanged),
+                () => new FixedMaintenanceOrders(repairOrder))
             .Capture(facility, destination);
         Require(
             equipmentSnapshot.DurableSemanticFingerprint
@@ -275,8 +282,8 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
             materialTransferCommitId = "commit:equipment:detached"
         };
         CombatEquipmentCraftLifecycleContributor equipment = new(
-            new FixedEquipmentQueue(equipmentOrder),
-            new FixedMaintenanceOrders());
+            () => new FixedEquipmentQueue(equipmentOrder),
+            () => new FixedMaintenanceOrders());
         string liveEquipment = equipment.Capture(
             facility,
             ProductionOutputDestinationId.FromFacility(facility))
@@ -467,6 +474,23 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
             outputLineId = "output:detached",
             itemId = "item:qa:routed",
             destinationId = destination,
+            componentFingerprint = new string('9', 64),
+            outputCapabilityId =
+                ProductionOutputCapabilityIds.StandardDefinition,
+            outputCapabilityVersion =
+                ProductionOutputCapabilityIds.StandardDefinitionVersion,
+            outputComponentCodecId =
+                ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+            outputComponentCodecVersion =
+                ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion,
+            outputCapabilityFingerprint =
+                ProductionOutputCapabilityDescriptorFingerprint.Capture(
+                    "output:detached",
+                    "item:qa:routed",
+                    ProductionOutputCapabilityIds.StandardDefinition,
+                    ProductionOutputCapabilityIds.StandardDefinitionVersion,
+                    ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+                    ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion),
             originalQuantity = 3,
             routedQuantity = 3,
             originalMassGrams = 1000L,
@@ -484,6 +508,10 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
             ownerRecipeId = "recipe:detached",
             ownerFacilityId = facility.Value,
             destinationId = destination,
+            capacitySourceDigest = new string('2', 64),
+            outputBufferCycleCapacity = 4,
+            projectedPortfolioCapacityGrams = 4_000L,
+            requiredMinimumCapacityGrams = 4_000L,
             lines = new List<ProductionPreparedOutputRoutingLineSaveData>
             {
                 routingLine
@@ -742,6 +770,108 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
             "Committed demolition restored or leaked authority/epoch state.");
     }
 
+    private static void VerifyStockSensorFenceRollbackRestoresExactAuthority()
+    {
+        using FenceFixture fixture = new(
+            "building:qa:fence-sensor-rollback",
+            5_500L,
+            stockSensorCapable: true);
+        Require(fixture.Fence.TryPrepareEmpty(
+                fixture.Building,
+                ProductionFacilityMutationKind.Demolition,
+                "mutation:qa:sensor-rollback",
+                out ProductionFacilityEmptyMutationCandidate candidate,
+                out string failure),
+            "Sensor rollback candidate did not prepare: " + failure);
+        Require(fixture.Fence.TryCommitAuthorityRevoke(candidate, out failure)
+            && candidate.AuthorityRevoked
+            && candidate.StockSensorAuthorityRevoked
+            && !fixture.Lifecycle.HasAuthority
+            && !fixture.SensorAuthority.HasAuthority,
+            "Sensor rollback candidate did not revoke both authorities: " + failure);
+        Require(fixture.Fence.TryAbort(candidate, out failure)
+            && fixture.Lifecycle.HasAuthority
+            && fixture.SensorAuthority.HasAuthority
+            && fixture.SensorAuthority.CapacityMassGrams == 1_150L
+            && !fixture.Epoch.IsFrozen(fixture.FacilityId),
+            "Sensor rollback did not restore both exact authorities: " + failure);
+    }
+
+    private static void VerifyStockSensorActiveStateBlocksMutation()
+    {
+        using FenceFixture fixture = new(
+            "building:qa:fence-sensor-state",
+            0L,
+            stockSensorCapable: true);
+        fixture.StockSensors.HasPhysicalState = true;
+        Require(!fixture.Fence.TryPrepareEmpty(
+                fixture.Building,
+                ProductionFacilityMutationKind.Demolition,
+                "mutation:qa:sensor-state",
+                out _,
+                out string prepareFailure)
+            && prepareFailure.Contains(
+                "stock-sensor-state-active",
+                StringComparison.Ordinal),
+            "Installed/pending sensor state did not block demolition.");
+        Require(!fixture.Fence.TryRequireNoAuthority(
+                fixture.Building,
+                ProductionFacilityMutationKind.Relocation,
+                out string relocationFailure)
+            && relocationFailure.Contains(
+                "stock-sensor-state-active",
+                StringComparison.Ordinal),
+            "Installed/pending sensor state did not block identity mutation.");
+    }
+
+    private static void VerifyStockSensorPostPrepareOccupancyBlocksCommit()
+    {
+        using FenceFixture fixture = new(
+            "building:qa:fence-sensor-race",
+            4_200L,
+            stockSensorCapable: true);
+        Require(fixture.Fence.TryPrepareEmpty(
+                fixture.Building,
+                ProductionFacilityMutationKind.Demolition,
+                "mutation:qa:sensor-race",
+                out ProductionFacilityEmptyMutationCandidate candidate,
+                out string failure),
+            "Sensor occupancy-race candidate did not prepare: " + failure);
+        fixture.SensorAuthority.IsEmpty = false;
+        Require(!fixture.Fence.TryCommitAuthorityRevoke(candidate, out failure)
+            && fixture.SensorAuthority.HasAuthority
+            && fixture.Lifecycle.HasAuthority,
+            "Post-prepare sensor occupancy partially revoked authority: " + failure);
+        fixture.SensorAuthority.IsEmpty = true;
+        Require(fixture.Fence.TryAbort(candidate, out failure),
+            "Post-prepare sensor occupancy candidate did not abort: " + failure);
+    }
+
+    private static void VerifyStockSensorRollbackWhenOutputRevokeFails()
+    {
+        using FenceFixture fixture = new(
+            "building:qa:fence-sensor-output-failure",
+            6_400L,
+            stockSensorCapable: true);
+        Require(fixture.Fence.TryPrepareEmpty(
+                fixture.Building,
+                ProductionFacilityMutationKind.Demolition,
+                "mutation:qa:sensor-output-failure",
+                out ProductionFacilityEmptyMutationCandidate candidate,
+                out string failure),
+            "Sensor/output rollback candidate did not prepare: " + failure);
+        fixture.Authority.FailRevoke = true;
+        Require(!fixture.Fence.TryCommitAuthorityRevoke(candidate, out failure)
+            && fixture.SensorAuthority.HasAuthority
+            && !candidate.StockSensorAuthorityRevoked
+            && fixture.Lifecycle.HasAuthority,
+            "Output revoke failure did not restore the exact sensor authority: "
+                + failure);
+        fixture.Authority.FailRevoke = false;
+        Require(fixture.Fence.TryAbort(candidate, out failure),
+            "Sensor/output failure candidate did not abort: " + failure);
+    }
+
     private static void VerifyPlacementDemolitionUsesFenceInOrder()
     {
         BuildingSO definition = CreateDemolitionDefinition(-9191);
@@ -751,25 +881,37 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
             definition,
             (BuildingInstanceId)"building:qa:placement-commit",
             new Vector2Int(1, 0));
-        RecordingMutationFence fence = new();
-        RecordingBuildingFactory factory = new();
-        GridBuildingPlacementService placement = new(
-            grid,
-            null,
-            id => id == definition.id ? definition : null,
-            factory,
-            new BuildingPlacementValidator(),
-            workOrderRuntime: null,
-            onConstructionSiteCreated: null,
-            warehouseLifecycle: null,
-            productionMutationFence: fence);
-        Require(placement.TryDestroyBuilding(building, out _, out string failure),
-            "Fenced placement demolition failed: " + failure);
-        Require(fence.Calls.SequenceEqual(new[] { "prepare", "commit", "complete" })
-            && factory.DeleteCount == 1
-            && grid.GetGridCell(new Vector2Int(1, 0)).GetOccupant(GridLayer.Building) == null,
-            "Placement demolition did not commit fence before physical deletion.");
-        UnityEngine.Object.DestroyImmediate(definition);
+        GameObject buildingRoot = building.gameObject;
+        try
+        {
+            RecordingDestructiveLossRuntime loss = new();
+            RecordingBuildingFactory factory = new();
+            GridBuildingPlacementService placement = new(
+                grid,
+                null,
+                id => id == definition.id ? definition : null,
+                factory,
+                new BuildingPlacementValidator(),
+                workOrderRuntime: null,
+                onConstructionSiteCreated: null,
+                warehouseLifecycle: null,
+                destructiveLoss: loss);
+            Require(placement.TryDestroyBuilding(building, out _, out string failure),
+                "Fenced placement demolition failed: " + failure);
+            Require(loss.Causes.SequenceEqual(new[]
+                {
+                    ProductionFacilityDestructiveDrainCause.ExplicitDemolition
+                })
+                && factory.DeleteCount == 0
+                && grid.GetGridCell(new Vector2Int(1, 0)).GetOccupant(GridLayer.Building) == null,
+                "Placement demolition did not use the typed durable drain facade.");
+        }
+        finally
+        {
+            if (buildingRoot != null)
+                UnityEngine.Object.DestroyImmediate(buildingRoot);
+            UnityEngine.Object.DestroyImmediate(definition);
+        }
     }
 
     private static void VerifyPlacementDemolitionRollsBackWhenGridRemovalFails()
@@ -782,31 +924,44 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
             definition,
             (BuildingInstanceId)"building:qa:placement-rollback",
             position);
-        MutableBuildPositions(building).Clear();
-        RecordingMutationFence fence = new();
-        RecordingBuildingFactory factory = new();
-        GridBuildingPlacementService placement = new(
-            grid,
-            null,
-            id => id == definition.id ? definition : null,
-            factory,
-            new BuildingPlacementValidator(),
-            workOrderRuntime: null,
-            onConstructionSiteCreated: null,
-            warehouseLifecycle: null,
-            productionMutationFence: fence);
-        Require(!placement.TryDestroyBuilding(building, out _, out string failure)
-            && failure.StartsWith("건물 점유를 제거하지 못해", StringComparison.Ordinal),
-            "Grid-removal failure did not fail the demolition transaction.");
-        Require(fence.Calls.SequenceEqual(new[] { "prepare", "commit", "abort" })
-            && factory.DeleteCount == 0
-            && !building.isDestroy
-            && ReferenceEquals(
-                grid.GetGridCell(position).GetOccupant(GridLayer.Building),
-                building),
-            "Grid-removal failure destroyed the building or skipped authority rollback.");
-        UnityEngine.Object.DestroyImmediate(building.gameObject);
-        UnityEngine.Object.DestroyImmediate(definition);
+        try
+        {
+            RecordingDestructiveLossRuntime loss = new()
+            {
+                Disposition = BuildingDestructiveLossDisposition.DeferredAccepted,
+                FailureReason = "recording-world-removal-deferred"
+            };
+            RecordingBuildingFactory factory = new();
+            GridBuildingPlacementService placement = new(
+                grid,
+                null,
+                id => id == definition.id ? definition : null,
+                factory,
+                new BuildingPlacementValidator(),
+                workOrderRuntime: null,
+                onConstructionSiteCreated: null,
+                warehouseLifecycle: null,
+                destructiveLoss: loss);
+            Require(!placement.TryDestroyBuilding(building, out _, out string failure)
+                && failure.StartsWith("철거 회수·정리 작업이 진행 중", StringComparison.Ordinal),
+                "Grid-removal failure did not fail the demolition transaction.");
+            Require(loss.Causes.SequenceEqual(new[]
+                {
+                    ProductionFacilityDestructiveDrainCause.ExplicitDemolition
+                })
+                && factory.DeleteCount == 0
+                && !building.isDestroy
+                && ReferenceEquals(
+                    grid.GetGridCell(position).GetOccupant(GridLayer.Building),
+                    building),
+                "Grid-removal failure destroyed the building or skipped authority rollback.");
+        }
+        finally
+        {
+            if (building != null)
+                UnityEngine.Object.DestroyImmediate(building.gameObject);
+            UnityEngine.Object.DestroyImmediate(definition);
+        }
     }
 
     private static void VerifyIdentityChangingMutationsRequireNoAuthority()
@@ -843,16 +998,26 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
     {
         GameObject textureObject = new("DestructiveLossTexture");
         GridTexture texture = textureObject.AddComponent<GridTexture>();
+        BuildingSO structuralDefinition = null;
+        BuildableObject structuralBuilding = null;
+        GameObject structuralRoot = null;
+        BuildingSO coverDefinition = null;
+        BuildableObject coverBuilding = null;
+        GameObject coverRoot = null;
+        BuildingSO zeroCoverDefinition = null;
+        BuildableObject zeroCoverBuilding = null;
+        GameObject zeroCoverRoot = null;
         try
         {
-            BuildingSO structuralDefinition = CreateDemolitionDefinition(-9193);
+            structuralDefinition = CreateDemolitionDefinition(-9193);
             Grid structuralGrid = new(4, 1);
             Vector2Int structuralPosition = new(1, 0);
-            BuildableObject structuralBuilding = CreateRegisteredBuilding(
+            structuralBuilding = CreateRegisteredBuilding(
                 structuralGrid,
                 structuralDefinition,
                 (BuildingInstanceId)"building:qa:structural-loss",
                 structuralPosition);
+            structuralRoot = structuralBuilding.gameObject;
             BuildingStructuralIntegrity.Ensure(
                 structuralBuilding,
                 new BuildingStructuralIntegrityAbility
@@ -862,34 +1027,30 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
                     repairHitPointsPerWork = 1f,
                     breachable = true
                 });
-            RecordingMutationFence structuralFence = new();
-            BuildingDestructiveLossRuntime structuralLoss = new(
-                structuralFence,
-                new FixedGridTextureProvider(texture));
+            RecordingDestructiveLossRuntime structuralLoss = new();
             BuildingStructuralDamageResult structuralResult =
                 new BuildingStructuralIntegrityRuntime(structuralLoss)
                     .ApplyDamage(structuralBuilding, 100f);
             Require(structuralResult.Applied
                 && structuralResult.Destroyed
-                && structuralFence.Calls.SequenceEqual(
-                    new[] { "prepare", "commit", "complete" })
+                && structuralLoss.Causes.SequenceEqual(new[]
+                    {
+                        ProductionFacilityDestructiveDrainCause
+                            .StructuralIntegrity
+                    })
                 && structuralGrid.GetGridCell(structuralPosition)
                     .GetOccupant(GridLayer.Building) == null,
                 "Structural lethal loss bypassed the common empty mutation fence.");
-            UnityEngine.Object.DestroyImmediate(structuralDefinition);
-
-            BuildingSO coverDefinition = CreateDemolitionDefinition(-9194);
+            coverDefinition = CreateDemolitionDefinition(-9194);
             Grid coverGrid = new(4, 1);
             Vector2Int coverPosition = new(2, 0);
-            BuildableObject coverBuilding = CreateRegisteredBuilding(
+            coverBuilding = CreateRegisteredBuilding(
                 coverGrid,
                 coverDefinition,
                 (BuildingInstanceId)"building:qa:cover-loss",
                 coverPosition);
-            RecordingMutationFence coverFence = new();
-            BuildingDestructiveLossRuntime coverLoss = new(
-                coverFence,
-                new FixedGridTextureProvider(texture));
+            coverRoot = coverBuilding.gameObject;
+            RecordingDestructiveLossRuntime coverLoss = new();
             CombatCoverDurabilityRegistry coverRegistry = new(coverLoss);
             CombatCoverDurability durability = CombatCoverDurability.Ensure(
                 coverBuilding,
@@ -899,24 +1060,22 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
                 },
                 coverRegistry);
             Require(coverRegistry.TryApplyDamage(durability.SourceId, 80f)
-                && coverFence.Calls.SequenceEqual(
-                    new[] { "prepare", "commit", "complete" })
+                && coverLoss.Causes.SequenceEqual(new[]
+                    {
+                        ProductionFacilityDestructiveDrainCause.CombatCover
+                    })
                 && coverGrid.GetGridCell(coverPosition)
                     .GetOccupant(GridLayer.Building) == null,
                 "Cover lethal loss bypassed the common empty mutation fence.");
-            UnityEngine.Object.DestroyImmediate(coverDefinition);
-
-            BuildingSO zeroCoverDefinition = CreateDemolitionDefinition(-9196);
+            zeroCoverDefinition = CreateDemolitionDefinition(-9196);
             Grid zeroCoverGrid = new(4, 1);
-            BuildableObject zeroCoverBuilding = CreateRegisteredBuilding(
+            zeroCoverBuilding = CreateRegisteredBuilding(
                 zeroCoverGrid,
                 zeroCoverDefinition,
                 (BuildingInstanceId)"building:qa:zero-cover-restore",
                 new Vector2Int(3, 0));
-            RecordingMutationFence zeroCoverFence = new();
-            BuildingDestructiveLossRuntime zeroCoverLoss = new(
-                zeroCoverFence,
-                new FixedGridTextureProvider(texture));
+            zeroCoverRoot = zeroCoverBuilding.gameObject;
+            RecordingDestructiveLossRuntime zeroCoverLoss = new();
             CombatCoverDurabilityRegistry zeroCoverRegistry = new(zeroCoverLoss);
             CombatCoverDurability zeroCover = CombatCoverDurability.Ensure(
                 zeroCoverBuilding,
@@ -931,13 +1090,20 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
             zeroCoverBuilding.gameObject.SetActive(false);
             zeroCoverBuilding.gameObject.SetActive(true);
             Require(!zeroCoverRegistry.TryApplyDamage(zeroCoverId, 1f)
-                && zeroCoverFence.Calls.Count == 0,
+                && zeroCoverLoss.Causes.Count == 0,
                 "A restored zero-HP cover re-registered as a live combat target.");
-            UnityEngine.Object.DestroyImmediate(zeroCoverBuilding.gameObject);
-            UnityEngine.Object.DestroyImmediate(zeroCoverDefinition);
         }
         finally
         {
+            if (zeroCoverRoot != null)
+                UnityEngine.Object.DestroyImmediate(zeroCoverRoot);
+            UnityEngine.Object.DestroyImmediate(zeroCoverDefinition);
+            if (coverRoot != null)
+                UnityEngine.Object.DestroyImmediate(coverRoot);
+            UnityEngine.Object.DestroyImmediate(coverDefinition);
+            if (structuralRoot != null)
+                UnityEngine.Object.DestroyImmediate(structuralRoot);
+            UnityEngine.Object.DestroyImmediate(structuralDefinition);
             UnityEngine.Object.DestroyImmediate(textureObject);
         }
     }
@@ -965,13 +1131,11 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
             });
         try
         {
-            RecordingMutationFence blockedFence = new()
+            RecordingDestructiveLossRuntime blockedLoss = new()
             {
-                AllowPrepare = false
+                Disposition = BuildingDestructiveLossDisposition.Conflict,
+                FailureReason = "recording-destructive-loss-blocked"
             };
-            BuildingDestructiveLossRuntime blockedLoss = new(
-                blockedFence,
-                new FixedGridTextureProvider(texture));
             BuildingStructuralDamageResult blocked =
                 new BuildingStructuralIntegrityRuntime(blockedLoss)
                     .ApplyDamage(building, 100f);
@@ -983,22 +1147,21 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
                     building),
                 "Blocked destructive loss mutated HP or world authority.");
 
-            RecordingMutationFence rollbackFence = new();
-            BuildingDestructiveLossRuntime rollbackLoss = new(
-                rollbackFence,
-                new FixedGridTextureProvider(texture));
-            Require(rollbackLoss.TryPrepare(
-                    building,
-                    "production-mutation:destructive-loss:rollback-fixture",
-                    out BuildingDestructiveLossCandidate candidate,
-                    out string failure),
-                "Destructive rollback candidate did not prepare: " + failure);
-            MutableBuildPositions(building).Clear();
-            BuildingDestructiveLossResult rolledBack = rollbackLoss.TryCommit(candidate);
+            RecordingDestructiveLossRuntime rollbackLoss = new()
+            {
+                Disposition = BuildingDestructiveLossDisposition.DeferredAccepted,
+                FailureReason = "recording-world-removal-deferred"
+            };
+            BuildingDestructiveLossResult rolledBack = rollbackLoss.Apply(
+                building,
+                ProductionFacilityDestructiveDrainCause.StructuralIntegrity);
             Require(rolledBack.Disposition ==
-                    BuildingDestructiveLossDisposition.RolledBack
-                && rollbackFence.Calls.SequenceEqual(
-                    new[] { "prepare", "commit", "abort" })
+                    BuildingDestructiveLossDisposition.DeferredAccepted
+                && rollbackLoss.Causes.SequenceEqual(new[]
+                    {
+                        ProductionFacilityDestructiveDrainCause
+                            .StructuralIntegrity
+                    })
                 && !building.isDestroy
                 && ReferenceEquals(
                     grid.GetGridCell(position).GetOccupant(GridLayer.Building),
@@ -1008,6 +1171,49 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
         finally
         {
             UnityEngine.Object.DestroyImmediate(building.gameObject);
+            UnityEngine.Object.DestroyImmediate(definition);
+            UnityEngine.Object.DestroyImmediate(textureObject);
+        }
+    }
+
+    private static void VerifyWorldRemovalPortIsExactAndIdempotent()
+    {
+        GameObject textureObject = new("DestructiveWorldRemovalTexture");
+        GridTexture texture = textureObject.AddComponent<GridTexture>();
+        BuildingSO definition = CreateDemolitionDefinition(-9197);
+        Grid grid = new(4, 1);
+        Vector2Int position = new(1, 0);
+        BuildingInstanceId facilityId =
+            (BuildingInstanceId)"building:qa:world-removal-port";
+        BuildableObject building = CreateRegisteredBuilding(
+            grid,
+            definition,
+            facilityId,
+            position);
+        GameObject buildingRoot = building.gameObject;
+        TrackingBuildingWorld world = new(building);
+        ProductionFacilityDestructiveDrainWorldRemovalPort port = new(
+            world,
+            new FixedGridTextureProvider(texture));
+        try
+        {
+            ProductionFacilityWorldRemovalResult applied =
+                port.TryEnsureRemoved(facilityId);
+            Require(applied.Applied
+                && world.Buildings.Count == 0
+                && grid.GetGridCell(position)
+                    .GetOccupant(GridLayer.Building) == null,
+                "Exact world-removal port did not remove grid and registry authority.");
+            ProductionFacilityWorldRemovalResult replay =
+                port.TryEnsureRemoved(facilityId);
+            Require(replay.Disposition ==
+                    ProductionFacilityWorldRemovalDisposition.AlreadyApplied,
+                "Exact world-removal replay was not idempotent.");
+        }
+        finally
+        {
+            if (buildingRoot != null)
+                UnityEngine.Object.DestroyImmediate(buildingRoot);
             UnityEngine.Object.DestroyImmediate(definition);
             UnityEngine.Object.DestroyImmediate(textureObject);
         }
@@ -1037,34 +1243,42 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
         Vector2Int position)
     {
         GameObject root = new GameObject("LifecycleDemolitionFixture");
-        BuildableObject building = root.AddComponent<BuildableObject>();
-        building.ConstructDebugRules(AllowDamageRule.Instance);
-        typeof(BuildableObject).GetField(
-                "facilityCandidateCache",
-                BindingFlags.Instance | BindingFlags.NonPublic)
-            ?.SetValue(building, NoopFacilityStateChange.Instance);
-        building.RestorePersistentIdentity(facilityId);
-        building.SetGrid(grid);
-        typeof(BuildableObject).GetProperty(
-                nameof(BuildableObject.BuildingData),
-                BindingFlags.Instance | BindingFlags.Public)
-            ?.SetValue(building, definition);
-        typeof(BuildableObject).GetProperty(
-                nameof(BuildableObject.id),
-                BindingFlags.Instance | BindingFlags.Public)
-            ?.SetValue(building, definition.id);
-        typeof(BuildableObject).GetProperty(
-                nameof(BuildableObject.centerPos),
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-            ?.SetValue(building, position);
-        MutableBuildPositions(building).Add(position);
-        Require(grid.RegisterOccupant(
-                building,
-                GridLayer.Building,
-                new[] { position },
-                connectPositions: false),
-            "Could not register demolition fixture building.");
-        return building;
+        try
+        {
+            BuildableObject building = root.AddComponent<BuildableObject>();
+            building.ConstructDebugRules(AllowDamageRule.Instance);
+            typeof(BuildableObject).GetField(
+                    "facilityCandidateCache",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.SetValue(building, NoopFacilityStateChange.Instance);
+            building.RestorePersistentIdentity(facilityId);
+            building.SetGrid(grid);
+            typeof(BuildableObject).GetProperty(
+                    nameof(BuildableObject.BuildingData),
+                    BindingFlags.Instance | BindingFlags.Public)
+                ?.SetValue(building, definition);
+            typeof(BuildableObject).GetProperty(
+                    nameof(BuildableObject.id),
+                    BindingFlags.Instance | BindingFlags.Public)
+                ?.SetValue(building, definition.id);
+            typeof(BuildableObject).GetProperty(
+                    nameof(BuildableObject.centerPos),
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                ?.SetValue(building, position);
+            MutableBuildPositions(building).Add(position);
+            Require(grid.RegisterOccupant(
+                    building,
+                    GridLayer.Building,
+                    new[] { position },
+                    connectPositions: false),
+                "Could not register demolition fixture building.");
+            return building;
+        }
+        catch
+        {
+            UnityEngine.Object.DestroyImmediate(root);
+            throw;
+        }
     }
 
     private static List<Vector2Int> MutableBuildPositions(BuildableObject building) =>
@@ -1181,7 +1395,10 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
 
     private sealed class FenceFixture : IDisposable
     {
-        internal FenceFixture(string facilityId, long capacity)
+        internal FenceFixture(
+            string facilityId,
+            long capacity,
+            bool stockSensorCapable = false)
         {
             GameObject root = new GameObject("ProductionLifecycleFenceFixture");
             Building = root.AddComponent<BuildableObject>();
@@ -1192,19 +1409,30 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
                 FacilityId,
                 new Vector2Int(3, 4),
                 isDestroyed: false,
-                stockSensorInstallationItemId: string.Empty,
+                stockSensorInstallationItemId: stockSensorCapable
+                    ? ProductionBillRuntime.StockSensorItemId
+                    : string.Empty,
                 allowsOverflowDump: false,
                 overflowOffset: default,
                 definitionId: "building-definition:qa",
                 workstationTag: "workstation:qa",
-                outputBufferCycleCapacity: 4);
+                outputBufferCycleCapacity: 4,
+                workstationLaneProfile:
+                    ProductionFacilityWorkstationLaneCapacityProfile
+                        .SingleManualWithDetachedBatchProcessors);
             Lifecycle = new MutableLifecycleQuery(FacilityId, capacity);
             Authority = new FakeOutputAuthority(Handle, Lifecycle, capacity);
+            SensorAuthority = new FakeStockSensorAuthority(
+                Handle,
+                stockSensorCapable ? 1_150L : 0L);
+            StockSensors = new FakeStockSensorRuntime();
             Epoch = new ProductionFacilityMutationEpochRuntime();
             Fence = new ProductionFacilityMutationFence(
                 new FixedFacilityHandleQuery(Handle),
                 Lifecycle,
                 Authority,
+                SensorAuthority,
+                StockSensors,
                 Epoch);
         }
 
@@ -1213,6 +1441,8 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
         internal ProductionFacilityHandle Handle { get; }
         internal MutableLifecycleQuery Lifecycle { get; }
         internal FakeOutputAuthority Authority { get; }
+        internal FakeStockSensorAuthority SensorAuthority { get; }
+        internal FakeStockSensorRuntime StockSensors { get; }
         internal ProductionFacilityMutationEpochRuntime Epoch { get; }
         internal ProductionFacilityMutationFence Fence { get; }
 
@@ -1284,6 +1514,7 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
         internal int RevokeCount { get; private set; }
         internal int EnsureCount { get; private set; }
         internal long LastEnsuredCapacity { get; private set; }
+        internal bool FailRevoke { get; set; }
 
         public bool TryEnsure(
             ProductionFacilityHandle facility,
@@ -1332,6 +1563,11 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
         public bool TryRevoke(BuildingInstanceId facilityId, out string failureReason)
         {
             failureReason = string.Empty;
+            if (FailRevoke)
+            {
+                failureReason = "fake-output-revoke-failure";
+                return false;
+            }
             if (!facilityId.Equals(handle.InstanceId) || !lifecycle.HasAuthority)
             {
                 failureReason = "fake-revoke-invalid";
@@ -1358,6 +1594,21 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
         internal int DeleteCount { get; private set; }
         public BuildableObject Create(Grid grid, BuildingSO buildingData, Vector2Int selectPos) =>
             throw new InvalidOperationException("The demolition fixture does not create buildings.");
+        public BuildableObject CreateDetached(
+            Grid grid,
+            BuildingSO buildingData,
+            Vector2Int selectPos) =>
+            throw new InvalidOperationException(
+                "The demolition fixture does not create detached buildings.");
+        public void PublishDetached(
+            BuildableObject candidate,
+            BuildingSO buildingData,
+            Vector2Int selectPos) =>
+            throw new InvalidOperationException(
+                "The demolition fixture does not publish detached buildings.");
+        public void DiscardDetached(BuildableObject candidate) =>
+            throw new InvalidOperationException(
+                "The demolition fixture does not discard detached buildings.");
         public void DeleteVisual(BuildingSO buildingData, Vector2Int selectPos) =>
             DeleteCount++;
     }
@@ -1400,7 +1651,9 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
                 handle,
                 Fingerprint("placement-fence"),
                 hadOutputAuthority: true,
-                priorCapacityMassGrams: 1_000L);
+                priorCapacityMassGrams: 1_000L,
+                hadStockSensorAuthority: false,
+                priorStockSensorCapacityMassGrams: 0L);
             return true;
         }
 
@@ -1445,11 +1698,194 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
         }
     }
 
+    private sealed class RecordingDestructiveLossRuntime :
+        IBuildingDestructiveLossRuntime
+    {
+        internal List<ProductionFacilityDestructiveDrainCause> Causes { get; } =
+            new();
+        internal BuildingDestructiveLossDisposition Disposition { get; set; } =
+            BuildingDestructiveLossDisposition.RemovedAwaitingCheckpointGc;
+        internal string FailureReason { get; set; } = string.Empty;
+
+        public BuildingDestructiveLossResult Apply(
+            BuildableObject building,
+            ProductionFacilityDestructiveDrainCause cause)
+        {
+            Causes.Add(cause);
+            if (Disposition ==
+                    BuildingDestructiveLossDisposition
+                        .RemovedAwaitingCheckpointGc
+                || Disposition ==
+                    BuildingDestructiveLossDisposition
+                        .CommittedWithNotificationFailure)
+            {
+                GridLayer layer = building.BuildingData.Placement.Layer;
+                building.Grid.RemoveOccupant(
+                    building,
+                    layer,
+                    building.buildPoses,
+                    building.BuildingData.Placement.IsMovement);
+                building.DestroySelf();
+            }
+            return new BuildingDestructiveLossResult(
+                Disposition,
+                FailureReason);
+        }
+    }
+
+    private sealed class TrackingBuildingWorld : IBuildingWorldQuery
+    {
+        private readonly BuildableObject building;
+
+        internal TrackingBuildingWorld(BuildableObject building) =>
+            this.building = building;
+
+        public int BuildingVersion => building == null || building.isDestroy
+            ? 1
+            : 0;
+        public IReadOnlyList<BuildableObject> Buildings =>
+            building == null || building.isDestroy
+                ? Array.Empty<BuildableObject>()
+                : new[] { building };
+    }
+
     private sealed class FixedGridTextureProvider : IGridTextureProvider
     {
         internal FixedGridTextureProvider(GridTexture texture) =>
             Texture = texture ?? throw new ArgumentNullException(nameof(texture));
         public GridTexture Texture { get; }
+    }
+
+    private sealed class FakeStockSensorAuthority :
+        IProductionStockSensorDestinationAuthorityRuntime
+    {
+        private readonly ProductionFacilityHandle handle;
+
+        internal FakeStockSensorAuthority(
+            ProductionFacilityHandle handle,
+            long capacityMassGrams)
+        {
+            this.handle = handle;
+            CapacityMassGrams = capacityMassGrams;
+            HasAuthority = capacityMassGrams > 0L;
+        }
+
+        internal bool HasAuthority { get; private set; }
+        internal bool IsEmpty { get; set; } = true;
+        internal long CapacityMassGrams { get; private set; }
+        internal int RevokeCount { get; private set; }
+        internal int EnsureCount { get; private set; }
+
+        public bool TryEnsure(
+            ProductionFacilityHandle facility,
+            out long capacityMassGrams,
+            out string failureReason)
+        {
+            capacityMassGrams = CapacityMassGrams;
+            failureReason = string.Empty;
+            if (!ReferenceEquals(facility?.RuntimeObject, handle.RuntimeObject)
+                || CapacityMassGrams <= 0L)
+            {
+                failureReason = "fake-stock-sensor-ensure-invalid";
+                return false;
+            }
+            EnsureCount++;
+            HasAuthority = true;
+            return true;
+        }
+
+        public bool TryValidate(
+            ProductionFacilityHandle facility,
+            out long capacityMassGrams,
+            out string failureReason)
+        {
+            capacityMassGrams = CapacityMassGrams;
+            failureReason = string.Empty;
+            return HasAuthority
+                && ReferenceEquals(facility?.RuntimeObject, handle.RuntimeObject)
+                && CapacityMassGrams > 0L;
+        }
+
+        public bool TryReplaceProjected(
+            IReadOnlyList<ProductionFacilityHandle> facilities,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryRequireEmpty(
+            ProductionFacilityHandle facility,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            if (HasAuthority
+                && IsEmpty
+                && ReferenceEquals(facility?.RuntimeObject, handle.RuntimeObject))
+            {
+                return true;
+            }
+            failureReason = "fake-stock-sensor-not-empty-or-missing";
+            return false;
+        }
+
+        public bool TryRevoke(
+            BuildingInstanceId facilityId,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            if (!facilityId.Equals(handle.InstanceId)
+                || !HasAuthority
+                || !IsEmpty)
+            {
+                failureReason = "fake-stock-sensor-revoke-invalid";
+                return false;
+            }
+            RevokeCount++;
+            HasAuthority = false;
+            return true;
+        }
+    }
+
+    private sealed class FakeStockSensorRuntime : IProductionStockSensorRuntime
+    {
+        internal bool HasPhysicalState { get; set; }
+        public int Version => 0;
+        public IReadOnlyCollection<string> InstalledFacilityIds =>
+            Array.Empty<string>();
+        public IReadOnlyCollection<string> AcknowledgedFacilityIds =>
+            Array.Empty<string>();
+        public IReadOnlyCollection<ProductionStockSensorPhysicalCommitSaveData>
+            PendingInstallations =>
+            Array.Empty<ProductionStockSensorPhysicalCommitSaveData>();
+        public IReadOnlyCollection<ProductionInstalledStockSensorSaveData>
+            InstalledSensors =>
+            Array.Empty<ProductionInstalledStockSensorSaveData>();
+        public IReadOnlyCollection<ProductionStockSensorRemovalSaveData>
+            PendingRemovals =>
+            Array.Empty<ProductionStockSensorRemovalSaveData>();
+        public bool Has(ProductionFacilityHandle facility) => HasPhysicalState;
+        public bool HasOwnedPhysicalState(ProductionFacilityHandle facility) =>
+            HasPhysicalState;
+        public bool IsAcknowledged(ProductionFacilityHandle facility) => false;
+        public ProductionBillCommandResult RequestInstallation(
+            ProductionFacilityHandle facility) => Failed();
+        public ProductionBillCommandResult Remove(
+            ProductionFacilityHandle facility) => Failed();
+        public ProductionBillCommandResult Acknowledge(
+            ProductionFacilityHandle facility) => Failed();
+        public bool TryReconcileDestinationAuthorities(out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+        public void FinalizeDeliveredSensors()
+        {
+        }
+
+        private static ProductionBillCommandResult Failed() =>
+            ProductionBillCommandResult.Failed(
+                new DomainFailure(FailureCode.ProductionSupportUnavailable));
     }
 
     private sealed class AllowDamageRule : IBuildingDamageRulePort

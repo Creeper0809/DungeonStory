@@ -4,7 +4,8 @@ using System.Linq;
 
 public sealed class ProductionCapacityRoutingDestructiveDrainParticipant :
     IProductionFacilityDestructiveDrainParticipant,
-    IProductionFacilityDestructiveDrainDurablePrepareParticipant
+    IProductionFacilityDestructiveDrainDurablePrepareParticipant,
+    IProductionFacilityDestructiveDrainCheckpointGcParticipant
 {
     public const int CurrentContractVersion = 1;
 
@@ -25,6 +26,7 @@ public sealed class ProductionCapacityRoutingDestructiveDrainParticipant :
     private readonly IProductionCapacityRoutingDrainOutbox producer;
     private readonly IProductionCapacityRoutingHaulPlanFence haulFence;
     private readonly IProductionCapacityRoutingDrainExecutionCoordinator executor;
+    private CheckpointGcCandidate activeCheckpointGcCandidate;
 
     public ProductionCapacityRoutingDestructiveDrainParticipant(
         IProductionOutputDestinationLifecycleQuery lifecycle,
@@ -51,6 +53,8 @@ public sealed class ProductionCapacityRoutingDestructiveDrainParticipant :
 
     public string ParticipantId =>
         ProductionFacilityDestructiveDrainParticipantIds.CapacityRoutingOutbox;
+
+    public string CheckpointGcParticipantId => ParticipantId;
 
     public int ContractVersion => CurrentContractVersion;
 
@@ -164,6 +168,151 @@ public sealed class ProductionCapacityRoutingDestructiveDrainParticipant :
             context.Owner.stepOperationId,
             context.Owner.receiptFingerprint);
         return ToUpperStep(context.FacilityId, result);
+    }
+
+    public ProductionFacilityDestructiveDrainCheckpointGcResult
+        PrepareCheckpointGarbageCollection(
+            ProductionFacilityDestructiveDrainCheckpointGcContext context,
+            IReadOnlyList<ProductionFacilityDestructiveDrainEntrySaveData> entries,
+            out IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        candidate = null;
+        if (activeCheckpointGcCandidate != null)
+            return GcFailure(context, "capacity-routing-gc-already-prepared");
+        if (producer is not IProductionCapacityRoutingDrainCheckpointGcOutbox gc
+            || executor is not IProductionCapacityRoutingCheckpointGcAbsenceQuery
+                absence)
+        {
+            return GcFailure(
+                context,
+                "capacity-routing-gc-capability-missing",
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .MissingParticipant);
+        }
+
+        ProductionFacilityDestructiveDrainEntrySaveData[] source =
+            (entries ?? Array.Empty<ProductionFacilityDestructiveDrainEntrySaveData>())
+            .ToArray();
+        if (source.Any(entry => entry == null)
+            || source.Select(entry => entry.operationId)
+                .Distinct(StringComparer.Ordinal).Count() != source.Length)
+        {
+            return GcFailure(context, "capacity-routing-gc-entries-invalid");
+        }
+
+        List<ProductionCapacityRoutingDrainSaveData> rows = new();
+        foreach (ProductionFacilityDestructiveDrainEntrySaveData entry in source)
+        {
+            ProductionFacilityDestructiveDrainParticipantSaveData[] matches =
+                (entry.participants
+                    ?? new List<ProductionFacilityDestructiveDrainParticipantSaveData>())
+                .Where(value => value != null && string.Equals(
+                    value.participantId,
+                    ParticipantId,
+                    StringComparison.Ordinal))
+                .ToArray();
+            if (entry.phase != ProductionFacilityDestructiveDrainPhase
+                    .WorldRemovedAwaitingCheckpointGc
+                || matches.Length != 1)
+            {
+                return GcFailure(context, "capacity-routing-gc-journal-conflict");
+            }
+            foreach (ProductionFacilityDestructiveDrainOwnerSaveData owner in
+                     matches[0].owners
+                     ?? new List<ProductionFacilityDestructiveDrainOwnerSaveData>())
+            {
+                if (owner == null
+                    || owner.phase != ProductionFacilityDestructiveDrainStepPhase
+                        .OwnerAcknowledged
+                    || !producer.TryCapture(
+                        owner.stepOperationId,
+                        out ProductionCapacityRoutingDrainSaveData row)
+                    || row.phase != ProductionCapacityRoutingDrainPhase
+                        .OwnerAcknowledgedAwaitingCheckpointGc
+                    || !string.Equals(
+                        row.receiptFingerprint,
+                        owner.receiptFingerprint,
+                        StringComparison.Ordinal))
+                {
+                    return GcFailure(
+                        context,
+                        "capacity-routing-gc-row-conflict",
+                        ProductionFacilityDestructiveDrainCheckpointGcReason
+                            .LiveAuthorityChanged);
+                }
+                rows.Add(row);
+            }
+        }
+
+        if (!gc.TryPrepareCheckpointGarbageCollection(
+                rows,
+                out IProductionCapacityRoutingDrainCheckpointGcCandidate lower,
+                out string failureReason))
+        {
+            return GcFailure(context, failureReason);
+        }
+        activeCheckpointGcCandidate = new CheckpointGcCandidate(
+            context,
+            source.Select(entry => entry.operationId).ToArray(),
+            rows.Select(row => row.batchCommitId).ToArray(),
+            gc,
+            lower,
+            absence);
+        candidate = activeCheckpointGcCandidate;
+        return GcApplied(context, source.Length);
+    }
+
+    public ProductionFacilityDestructiveDrainCheckpointGcResult
+        PublishCheckpointGarbageCollection(
+            IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        foreach (string batchCommitId in exact.BatchCommitIds)
+        {
+            if (!exact.Absence.TryVerifyRoutingAuthorityAbsent(
+                    batchCommitId,
+                    out string absenceFailure))
+            {
+                return GcFailure(
+                    exact.Context,
+                    absenceFailure,
+                    ProductionFacilityDestructiveDrainCheckpointGcReason
+                        .LiveAuthorityChanged);
+            }
+        }
+        exact.PublishAttempted = true;
+        if (!exact.Port.TryPublishCheckpointGarbageCollection(
+                exact.LowerCandidate,
+                out string failureReason))
+        {
+            return GcFailure(
+                exact.Context,
+                failureReason,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .ParticipantPublishFailed);
+        }
+        exact.Published = true;
+        return GcApplied(exact.Context, exact.OperationIds.Count);
+    }
+
+    public void RollbackCheckpointGarbageCollection(
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        if (!exact.PublishAttempted)
+            return;
+        exact.Port.RollbackCheckpointGarbageCollection(exact.LowerCandidate);
+        exact.PublishAttempted = false;
+        exact.Published = false;
+    }
+
+    public void CompleteCheckpointGarbageCollection(
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        exact.Port.CompleteCheckpointGarbageCollection(exact.LowerCandidate);
+        exact.Completed = true;
+        activeCheckpointGcCandidate = null;
     }
 
     public ProductionFacilityDestructiveDrainRecoveryResult Recover(
@@ -315,6 +464,11 @@ public sealed class ProductionCapacityRoutingDestructiveDrainParticipant :
                 outputLineId = value.OutputLineId,
                 itemId = value.ItemId,
                 componentFingerprint = value.ComponentFingerprint,
+                outputCapabilityId = value.OutputCapabilityId,
+                outputCapabilityVersion = value.OutputCapabilityVersion,
+                outputComponentCodecId = value.OutputComponentCodecId,
+                outputComponentCodecVersion = value.OutputComponentCodecVersion,
+                outputCapabilityFingerprint = value.OutputCapabilityFingerprint,
                 originalQuantity = value.OriginalQuantity,
                 originalMassGrams = value.OriginalMassGrams,
                 remainingQuantity = value.RemainingQuantity,
@@ -594,4 +748,80 @@ public sealed class ProductionCapacityRoutingDestructiveDrainParticipant :
             string.Empty,
             string.Empty,
             current));
+
+    private CheckpointGcCandidate RequireCheckpointGcCandidate(
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        if (candidate is not CheckpointGcCandidate exact
+            || exact.Completed
+            || !ReferenceEquals(exact, activeCheckpointGcCandidate)
+            || !string.Equals(
+                exact.ParticipantId,
+                ParticipantId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "production-capacity-routing-checkpoint-gc-candidate-conflict");
+        }
+        return exact;
+    }
+
+    private static ProductionFacilityDestructiveDrainCheckpointGcResult GcApplied(
+        ProductionFacilityDestructiveDrainCheckpointGcContext context,
+        int operationCount) => new(
+        ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied,
+        ProductionFacilityDestructiveDrainCheckpointGcReason.None,
+        context.CheckpointSequence,
+        string.Empty,
+        operationCount);
+
+    private static ProductionFacilityDestructiveDrainCheckpointGcResult GcFailure(
+        ProductionFacilityDestructiveDrainCheckpointGcContext context,
+        string message,
+        ProductionFacilityDestructiveDrainCheckpointGcReason reason =
+            ProductionFacilityDestructiveDrainCheckpointGcReason
+                .ParticipantPrepareFailed) => new(
+        ProductionFacilityDestructiveDrainCheckpointGcStatus.Corruption,
+        reason,
+        context.CheckpointSequence,
+        message ?? string.Empty);
+
+    private sealed class CheckpointGcCandidate :
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate
+    {
+        internal CheckpointGcCandidate(
+            ProductionFacilityDestructiveDrainCheckpointGcContext context,
+            IReadOnlyList<string> operationIds,
+            IReadOnlyList<string> batchCommitIds,
+            IProductionCapacityRoutingDrainCheckpointGcOutbox port,
+            IProductionCapacityRoutingDrainCheckpointGcCandidate lowerCandidate,
+            IProductionCapacityRoutingCheckpointGcAbsenceQuery absence)
+        {
+            Context = context;
+            OperationIds = operationIds
+                ?? throw new ArgumentNullException(nameof(operationIds));
+            BatchCommitIds = batchCommitIds
+                ?? throw new ArgumentNullException(nameof(batchCommitIds));
+            Port = port ?? throw new ArgumentNullException(nameof(port));
+            LowerCandidate = lowerCandidate
+                ?? throw new ArgumentNullException(nameof(lowerCandidate));
+            Absence = absence ?? throw new ArgumentNullException(nameof(absence));
+        }
+
+        public string ParticipantId =>
+            ProductionFacilityDestructiveDrainParticipantIds.CapacityRoutingOutbox;
+        public long CheckpointSequence => Context.CheckpointSequence;
+        public string SerializedByteDigest => Context.SerializedByteDigest;
+        public IReadOnlyList<string> OperationIds { get; }
+        internal ProductionFacilityDestructiveDrainCheckpointGcContext Context
+        { get; }
+        internal IReadOnlyList<string> BatchCommitIds { get; }
+        internal IProductionCapacityRoutingDrainCheckpointGcOutbox Port { get; }
+        internal IProductionCapacityRoutingDrainCheckpointGcCandidate LowerCandidate
+        { get; }
+        internal IProductionCapacityRoutingCheckpointGcAbsenceQuery Absence { get; }
+        internal bool PublishAttempted { get; set; }
+        internal bool Published { get; set; }
+        internal bool Completed { get; set; }
+    }
 }

@@ -30,6 +30,7 @@ public static class ApparelRejectedDismantlePhysicalTransactionDebugScenarios
         VerifyCapacityFailurePreservesRejectedGarment();
         VerifyExactPendingPublicationAndAcknowledgements();
         VerifyOwnerRestoreReplayIsIdempotent();
+        VerifyMaximumMassProofDriftRejectsBeforeMutation();
         VerifyPartialPublicationRetryKeepsFrozenOutcome();
         VerifyNoRawSpawnOrDeleteRollback();
         Debug.Log(
@@ -92,6 +93,11 @@ public static class ApparelRejectedDismantlePhysicalTransactionDebugScenarios
             && fixture.RecoveryMassGrams == 1_500L,
             "Recovery full batch was not atomically split, counted, and weighed.");
         Require(
+            order.rejectedRecoveryMaximumMassProofDigest?.Length == 64
+            && order.rejectedRecoveryMaximumBatchMassGrams == 1_500L
+            && order.rejectedRecoveryRequiredMinimumCapacityGrams == 6_000L,
+            "Rejected recovery did not freeze the declared batch maximum and four-cycle capacity proof.");
+        Require(
             order.rejectedDismantleAcknowledged
             && fixture.Repository.GetEditorPendingBatchDispositionCount() == 0
             && order.rejectedRecoveryOutputAcknowledged,
@@ -128,8 +134,36 @@ public static class ApparelRejectedDismantlePhysicalTransactionDebugScenarios
             "Restore replay re-debited input or duplicated recovery output.");
         Require(
             restored.rejectedDismantleCommitId == live.rejectedDismantleCommitId
-            && restored.rejectedRecoveryCommitId == live.rejectedRecoveryCommitId,
+            && restored.rejectedRecoveryCommitId == live.rejectedRecoveryCommitId
+            && restored.rejectedRecoveryMaximumMassProofDigest
+                == live.rejectedRecoveryMaximumMassProofDigest
+            && restored.rejectedRecoveryMaximumBatchMassGrams
+                == live.rejectedRecoveryMaximumBatchMassGrams,
             "Restore replay changed frozen input/output commit identity.");
+    }
+
+    private static void VerifyMaximumMassProofDriftRejectsBeforeMutation()
+    {
+        using Fixture fixture = new("maximum-proof-drift");
+        ApparelWorkOrderSaveData order = fixture.CreateOrder();
+        ApparelPhysicalTransactionResult first = fixture.Execute(order);
+        Require(first.IsCompleted, "Rejected maximum-proof fixture did not complete.");
+        int quantityBefore = fixture.RecoveryQuantity;
+        long massBefore = fixture.RecoveryMassGrams;
+
+        order.rejectedRecoveryMaximumMassProofDigest = new string('0', 64);
+        ApparelPhysicalTransactionResult replay = fixture.Execute(order);
+
+        Require(
+            replay.Status == ApparelPhysicalTransactionStatus.Conflict
+            && replay.FailureReason.Contains(
+                "maximum-mass-proof-drift",
+                StringComparison.Ordinal),
+            "Rejected-recovery maximum-mass proof drift was not rejected.");
+        Require(
+            fixture.RecoveryQuantity == quantityBefore
+            && fixture.RecoveryMassGrams == massBefore,
+            "Rejected-recovery proof drift mutated physical output.");
     }
 
     private static void VerifyPartialPublicationRetryKeepsFrozenOutcome()
@@ -283,7 +317,20 @@ public static class ApparelRejectedDismantlePhysicalTransactionDebugScenarios
                 overflowOffset: default,
                 definitionId: FacilityDefinitionId,
                 workstationTag: WorkstationTag,
-                outputBufferCycleCapacity: 4);
+                outputBufferCycleCapacity: 4,
+                workstationLaneProfile:
+                    ProductionFacilityWorkstationLaneCapacityProfile
+                        .SingleManualWithDetachedBatchProcessors);
+            ApparelFixtureStandardOutputHandler standardCapability = new();
+            FixedApparelOutputCapability apparelCapability = new();
+            ProductionOutputMaximumMassRegistry maximumMassRegistry = new(
+                new IProductionOutputMaximumMassCapability[]
+                {
+                    standardCapability,
+                    apparelCapability
+                },
+                WorldItems.MassQuery);
+            MaximumMassRegistry = maximumMassRegistry;
             ProductionOutputBufferCapacityProjector capacity = new(
                 new EmptyEconomyCatalog(),
                 new ProductionMaximumOutputFactorCatalog(Array.Empty<BuildingSO>()),
@@ -293,7 +340,9 @@ public static class ApparelRejectedDismantlePhysicalTransactionDebugScenarios
                 (_, recipe) => string.Equals(
                     recipe?.WorkstationTag,
                     handle.WorkstationTag,
-                    StringComparison.Ordinal));
+                    StringComparison.Ordinal),
+                maximumMassRegistry.CaptureAutomatic,
+                maximumMassRegistry.CaptureDeclared);
             CapacityProjector = capacity;
             Destinations = destinations;
             Transaction = new ApparelPhysicalTransaction(
@@ -306,7 +355,13 @@ public static class ApparelRejectedDismantlePhysicalTransactionDebugScenarios
                 capacity,
                 admission,
                 Publication,
-                repository);
+                repository,
+                new ProductionOutputHandlerRegistry(new IProductionOutputCapability[]
+                {
+                    standardCapability,
+                    apparelCapability
+                }),
+                maximumMassRegistry);
         }
 
         internal FixedCatalog Catalog { get; }
@@ -317,6 +372,7 @@ public static class ApparelRejectedDismantlePhysicalTransactionDebugScenarios
         internal BuildableObject Facility { get; }
         internal ApparelPhysicalTransaction Transaction { get; }
         internal ProductionOutputBufferCapacityProjector CapacityProjector { get; }
+        internal ProductionOutputMaximumMassRegistry MaximumMassRegistry { get; }
         internal ProductionOutputDestinationAuthorityRuntime Destinations { get; }
         internal FacilityBufferPlannedOutputPublicationService Publication { get; }
         internal string DestinationId => ProductionBillRuntime.OutputDestinationPrefix
@@ -393,11 +449,16 @@ public static class ApparelRejectedDismantlePhysicalTransactionDebugScenarios
 
         internal void FillRecoveryCapacity()
         {
-            long batchMass = WorldItems.MassQuery.GetDefinitionUnitMass(
-                (ItemDefinitionId)RecoveryItemId)
-                .Multiply(ExpectedRecoveryQuantity).Value;
+            ProductionOutputBatchMaximumMassProof maximumMassProof = new(
+                new[]
+                {
+                    MaximumMassRegistry.CaptureAutomatic(
+                        "output:apparel-rejected-recovery",
+                        RecoveryItemId,
+                        ExpectedRecoveryQuantity)
+                });
             ProductionOutputBufferCapacitySourceSnapshot source =
-                CapacityProjector.CaptureSource(handle, batchMass);
+                CapacityProjector.CaptureSource(handle, maximumMassProof);
             Require(
                 Destinations.TryEnsure(
                     handle,
@@ -483,6 +544,35 @@ public static class ApparelRejectedDismantlePhysicalTransactionDebugScenarios
             string itemId,
             out DungeonItemDefinition definition) =>
             byId.TryGetValue(itemId ?? string.Empty, out definition);
+    }
+
+    private sealed class FixedApparelOutputCapability :
+        IProductionOutputCapability,
+        IProductionOutputMaximumMassCapability
+    {
+        public string CapabilityId =>
+            ProductionOutputCapabilityIds.ApparelWorkOrder;
+        public int ContractVersion =>
+            ProductionOutputCapabilityIds.ApparelWorkOrderVersion;
+        public string ComponentCodecId =>
+            ProductionOutputCapabilityIds.ApparelStateCodec;
+        public int ComponentCodecVersion =>
+            ProductionOutputCapabilityIds.ApparelStateCodecVersion;
+        public bool SupportsAutomaticSelection => false;
+        public bool CanHandle(string itemId) => string.Equals(
+            itemId,
+            SourceItemId,
+            StringComparison.Ordinal);
+
+        public ProductionOutputMaximumMassProjection CaptureDefinitionMaximum(
+            ProductionOutputCapabilityDescriptor descriptor,
+            int maximumQuantity,
+            IPhysicalItemMassQuery massQuery) =>
+            ProductionOutputDefinitionMaximumMassProjection.Capture(
+                this,
+                descriptor,
+                maximumQuantity,
+                massQuery);
     }
 
     private sealed class EmptyEconomyCatalog : IResourceEconomyContentCatalog

@@ -32,7 +32,8 @@ public sealed class GridFacilityEvolutionBuildingReplacerFactory : IFacilityEvol
                 gridTextureProvider.Texture,
                 InjectCreatedBuilding,
                 gridBuildingObjectFactory),
-            ResolveProductionFacilityMutationFence());
+            ResolveProductionFacilityMutationFence(),
+            ResolveProductionFacilityRetargetTransaction());
     }
 
     private void InjectCreatedBuilding(BuildableObject building)
@@ -55,5 +56,19 @@ public sealed class GridFacilityEvolutionBuildingReplacerFactory : IFacilityEvol
         throw new InvalidOperationException(
             $"{nameof(GridFacilityEvolutionBuildingReplacerFactory)} requires "
             + $"{nameof(IProductionFacilityMutationFence)}.");
+    }
+
+    private IProductionFacilityRetargetTransaction ResolveProductionFacilityRetargetTransaction()
+    {
+        if (objectResolver.TryResolve(
+                typeof(IProductionFacilityRetargetTransaction),
+                out object resolved)
+            && resolved is IProductionFacilityRetargetTransaction transaction)
+        {
+            return transaction;
+        }
+        throw new InvalidOperationException(
+            $"{nameof(GridFacilityEvolutionBuildingReplacerFactory)} requires "
+            + $"{nameof(IProductionFacilityRetargetTransaction)}.");
     }
 }

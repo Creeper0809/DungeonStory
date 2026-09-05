@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.05kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "200개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "5"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "의복을 새로 짓거나 터진 솔기를 꿰맬 때 쓰도록 굵기와 꼬임을 맞춘 재봉실이다. 밀로세아 가도의 재봉실은 실패마다 굵기와 남은 길이를 표시해 길 위에서도 맞는 실을 바로 고르게 한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-sewing-thread",
+  "spoiler_tier": "none",
+  "summary": "V22 의복 제작과 수선 작업에서 예약·운반·소비하는 물리 물품.",
+  "title": "재봉실"
+}

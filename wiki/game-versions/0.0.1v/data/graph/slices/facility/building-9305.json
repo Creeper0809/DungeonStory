@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-9305",
+    "spoiler_tier": "none",
+    "title": "동력 세탁·건조기"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-industry-automatic-sanitation",
+      "label": "시설 해금",
+      "to": "facility/building-9305",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

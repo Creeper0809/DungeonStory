@@ -1,0 +1,21 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+FacilityBlueprintSO,content-type,,type-reference,models:facilityshop,runtime,structural-type-consumer,Assets/Scripts/Models/FacilityShop/Core/BlueprintUnlock.cs
+FacilityBlueprintSO,content-type,,type-reference,models:research,runtime,structural-type-consumer,Assets/Scripts/Models/Research/Core/ResearchProjectSO.cs
+FacilityBlueprintSO,content-type,,type-reference,services:debugging,runtime,structural-type-consumer,Assets/Scripts/Services/Debugging/DungeonDebugCommandProviders.cs
+FacilityBlueprintSO,content-type,,type-reference,services:facilityshop,runtime,structural-type-consumer,Assets/Scripts/Services/FacilityShop/FacilityShopSystem.cs
+FacilityBlueprintSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/BlueprintResearchContracts.cs
+FacilityBlueprintSO,content-type,,type-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/BlueprintResearchProjectCoordinator.cs
+FacilityBlueprintSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/BlueprintResearchRuntime.cs
+FacilityBlueprintSO,content-type,,type-reference; save-restore-reference,services:infrastructure,persistence,structural-type-consumer,Assets/Scripts/Services/Infrastructure/BlueprintResearchSaveSection.cs
+FacilityBlueprintSO,content-type,,type-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/FacilityShopRuntimeProvider.cs
+FacilityBlueprintSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/ResearchBlueprintArchiveAdapter.cs
+FacilityBlueprintSO,content-type,,type-reference,services:infrastructure,content-loading,structural-type-consumer,Assets/Scripts/Services/Infrastructure/RunVariableCatalogServices.cs
+FacilityBlueprintSO,content-type,,type-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/RunVariableRuntimeProvider.cs
+FacilityBlueprintSO,content-type,,type-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/OffenseRewardContextResolver.cs
+FacilityBlueprintSO,content-type,,type-reference; save-restore-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/OffenseRewardModel.cs
+FacilityBlueprintSO,content-type,,type-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/OffenseRewardSystem.cs
+FacilityBlueprintSO,content-type,,type-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/OffenseRuntimeServices.cs
+FacilityBlueprintSO,content-type,,type-reference; save-restore-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/OffenseWorldMapModel.cs
+FacilityBlueprintSO,content-type,,type-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/RunStartVariableSelector.cs
+FacilityBlueprintSO,content-type,,type-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/RunVariableEffects.cs
+FacilityBlueprintSO,content-type,,type-reference; save-restore-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/RunVariableSystem.cs

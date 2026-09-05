@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "funeral-culture-orc",
+    "spoiler_tier": "none",
+    "title": "Funeral_Orc"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/characterspecies-2",
+      "label": "관련",
+      "to": "character/funeral-culture-orc",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

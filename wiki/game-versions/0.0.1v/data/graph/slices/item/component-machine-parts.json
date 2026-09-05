@@ -1,0 +1,284 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "component-machine-parts",
+    "spoiler_tier": "none",
+    "title": "기계 부품"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-arquebus",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-crossbow",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-handgonne",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-heavy-matchlock",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-matchlock-long-gun",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-matchlock-pistol",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-repeating-crossbow",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-shotgun",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-sniper-arquebus",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-windlass-crossbow",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-climate-control-manifold",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-growth-frame",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-machine-parts",
+      "label": "생산·해금",
+      "to": "item/component-machine-parts",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-powered-armor-joint",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-prototype-package",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-siege-counterweight",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-siege-reinforcement-kit",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-stock-sensor-panel",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-organ-preservation-canister",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-banquet-cart",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-deep-shaft-hoist",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-field-repair-kit",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-maintenance-kit",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-powered-tool-head",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-sewing-kit",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "character/festival-tool-clan-fair",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "combat/equipment-item-armor-powered-harness",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "combat/equipment-item-shield-powered",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "combat/equipment-item-weapon-powered-striking-gauntlet",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "event/faction-chapter-golem-1",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "event/faction-chapter-kobold-1",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "event/faction-contract-golem-supply",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "event/faction-contract-kobold-supply",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "event/faction-chapter-golem-1",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "event/faction-chapter-golem-4",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "event/faction-chapter-kobold-1",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "event/faction-chapter-kobold-4",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "7",
+      "from": "event/faction-chapter-golem-4",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "7",
+      "from": "event/faction-chapter-kobold-4",
+      "label": "필요 조건",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

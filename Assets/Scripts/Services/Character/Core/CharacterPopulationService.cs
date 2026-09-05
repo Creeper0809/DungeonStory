@@ -158,10 +158,12 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
             return;
         }
 
+        NormalizeStanding(profile);
         actor.EnsureRuntimeState();
         actor.Identity?.SetPersistentId(profile.persistentId);
         actors[actor] = profile;
-        profile.isVisiting = !profile.isStaff;
+        profile.isVisiting =
+            profile.settlementStanding == CharacterSettlementStanding.Visitor;
         ApplyStaffRuntimeState(profile, actor);
         CharacterProgression progression = actor.Progression;
         if (profile.growth != null && profile.growth.initialized)
@@ -231,11 +233,13 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
             actors[actor] = profile;
         }
 
-        bool wasStaff = profile.isStaff;
+        NormalizeStanding(profile);
+        bool wasFormalResident = profile.settlementStanding
+            == CharacterSettlementStanding.Resident;
         population.PromoteToStaff(profile);
         ApplyStaffRuntimeState(profile, actor);
         SynchronizeProfile(profile, actor);
-        if (!wasStaff && identityMoods != null)
+        if (!wasFormalResident && identityMoods != null)
         {
             identityMoods.Apply(
                 actor,
@@ -248,7 +252,8 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
                              && value != actor
                              && !value.IsDead
                              && TryGetProfile(value, out WorldCharacterProfile incumbentProfile)
-                             && incumbentProfile.isStaff)
+                             && GetStanding(incumbentProfile)
+                                == CharacterSettlementStanding.Resident)
                          .OrderBy(value => value.Identity?.PersistentId,
                              StringComparer.Ordinal))
             {
@@ -261,6 +266,183 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
             }
         }
         EnsurePreparedPool();
+    }
+
+    public void PromoteToMinion(CharacterActor actor)
+    {
+        SetSettlementStanding(actor, CharacterSettlementStanding.Minion);
+    }
+
+    public CharacterSettlementStanding SetSettlementStanding(
+        CharacterActor actor,
+        CharacterSettlementStanding standing)
+    {
+        if (actor == null)
+        {
+            throw new ArgumentNullException(nameof(actor));
+        }
+        if (standing is CharacterSettlementStanding.Unknown)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(standing),
+                "A concrete settlement standing is required.");
+        }
+
+        if (!TryGetProfile(actor, out WorldCharacterProfile profile))
+        {
+            profile = CreateExternalProfile(actor);
+            AddNewProfile(profile, actor.data);
+            actors[actor] = profile;
+        }
+
+        CharacterSettlementStanding previous = GetStanding(profile);
+        ApplyStanding(profile, standing);
+        ApplyStaffRuntimeState(profile, actor);
+        SynchronizeProfile(profile, actor);
+        EnsurePreparedPool();
+        return previous;
+    }
+
+    public CharacterSettlementStandingTransaction BeginSettlementStandingTransition(
+        CharacterActor actor,
+        CharacterSettlementStanding standing)
+    {
+        if (actor == null)
+        {
+            throw new ArgumentNullException(nameof(actor));
+        }
+
+        bool profileWasCreated = !TryGetProfile(
+            actor,
+            out WorldCharacterProfile profile);
+        CharacterSettlementStanding previous = profileWasCreated
+            ? GetStanding(actor)
+            : GetStanding(profile);
+        SetSettlementStanding(actor, standing);
+        if (!TryGetProfile(actor, out profile))
+        {
+            throw new InvalidOperationException(
+                "Settlement-standing transition did not produce a population profile.");
+        }
+
+        return new CharacterSettlementStandingTransaction(
+            actor,
+            profile,
+            previous,
+            profileWasCreated);
+    }
+
+    public void RollbackSettlementStandingTransition(
+        CharacterSettlementStandingTransaction transaction)
+    {
+        RequireActiveStandingTransaction(transaction);
+        if (transaction.ProfileWasCreated)
+        {
+            actors.Remove(transaction.Actor);
+            population.Remove(transaction.Profile);
+        }
+        else
+        {
+            RestoreSettlementStanding(
+                transaction.Actor,
+                transaction.PreviousStanding);
+        }
+        transaction.IsActive = false;
+        EnsurePreparedPool();
+    }
+
+    public void CompleteSettlementStandingTransition(
+        CharacterSettlementStandingTransaction transaction)
+    {
+        RequireActiveStandingTransaction(transaction);
+        transaction.IsActive = false;
+    }
+
+    public void RestoreSettlementStanding(
+        CharacterActor actor,
+        CharacterSettlementStanding standing)
+    {
+        if (actor == null)
+        {
+            throw new ArgumentNullException(nameof(actor));
+        }
+        if (!TryGetProfile(actor, out WorldCharacterProfile profile))
+        {
+            throw new InvalidOperationException(
+                "Settlement-standing rollback requires an existing population profile.");
+        }
+        ApplyStanding(
+            profile,
+            standing == CharacterSettlementStanding.Unknown
+                ? CharacterSettlementStanding.PreparedCandidate
+                : standing);
+        ApplyStaffRuntimeState(profile, actor);
+        SynchronizeProfile(profile, actor);
+    }
+
+    private static void RequireActiveStandingTransaction(
+        CharacterSettlementStandingTransaction transaction)
+    {
+        if (transaction?.IsActive != true)
+        {
+            throw new InvalidOperationException(
+                "Settlement-standing transaction is missing or already closed.");
+        }
+    }
+
+    public CharacterSettlementStanding GetStanding(CharacterActor actor)
+    {
+        if (actor == null)
+        {
+            return CharacterSettlementStanding.Unknown;
+        }
+        if (TryGetProfile(actor, out WorldCharacterProfile profile))
+        {
+            return GetStanding(profile);
+        }
+        if (actor.Identity?.IsOwner == true || actor.IsOwner)
+        {
+            return CharacterSettlementStanding.Resident;
+        }
+        if (actor.Identity?.CharacterType == CharacterType.NPC
+            || actor.characterType == CharacterType.NPC)
+        {
+            return CharacterSettlementStanding.Resident;
+        }
+        if (actor.Identity?.CharacterType == CharacterType.Customer
+            || actor.characterType == CharacterType.Customer)
+        {
+            return CharacterSettlementStanding.Visitor;
+        }
+        return CharacterSettlementStanding.PreparedCandidate;
+    }
+
+    public CharacterSettlementStanding GetStanding(string persistentCharacterId)
+    {
+        string normalized = persistentCharacterId?.Trim() ?? string.Empty;
+        return normalized.Length > 0 && population.TryGet(normalized, out WorldCharacterProfile profile)
+            ? GetStanding(profile)
+            : CharacterSettlementStanding.Unknown;
+    }
+
+    public CharacterSettlementPopulationSnapshot GetSettlementPopulation()
+    {
+        int residents = 0;
+        int minions = 0;
+        foreach (WorldCharacterProfile profile in population.Profiles.Where(value =>
+                     value != null && value.isAlive))
+        {
+            switch (GetStanding(profile))
+            {
+                case CharacterSettlementStanding.Resident:
+                    residents++;
+                    break;
+                case CharacterSettlementStanding.Minion:
+                    minions++;
+                    break;
+            }
+        }
+        return new CharacterSettlementPopulationSnapshot(residents, minions);
     }
 
     private static WorldCharacterProfile CreateExternalProfile(
@@ -300,6 +482,7 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
             displayName = growth.displayName,
             origin = growth.origin,
             isStaff = true,
+            settlementStanding = CharacterSettlementStanding.Resident,
             isAlive = !actor.IsDead,
             isVisiting = false,
             level = snapshot?.Level ?? 1,
@@ -705,6 +888,7 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
             characterDataId = data.id,
             displayName = growth.displayName,
             origin = growth.origin,
+            settlementStanding = CharacterSettlementStanding.PreparedCandidate,
             growth = growth,
             narrative = new CharacterNarrativeLedger()
         };
@@ -765,6 +949,43 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
         profile.socialMemory = actor.SocialMemory?.CaptureSnapshot()
             ?? new CharacterSocialMemorySnapshot();
         ApplyStaffRuntimeState(profile, actor);
+    }
+
+    private static CharacterSettlementStanding GetStanding(
+        WorldCharacterProfile profile)
+    {
+        NormalizeStanding(profile);
+        return profile?.settlementStanding
+            ?? CharacterSettlementStanding.Unknown;
+    }
+
+    private static void NormalizeStanding(WorldCharacterProfile profile)
+    {
+        if (profile == null)
+        {
+            return;
+        }
+        ApplyStanding(
+            profile,
+            CharacterSettlementStandingRules.NormalizeLegacy(
+                profile.settlementStanding,
+                profile.isStaff,
+                profile.isVisiting,
+                profile.isOwner));
+    }
+
+    private static void ApplyStanding(
+        WorldCharacterProfile profile,
+        CharacterSettlementStanding standing)
+    {
+        if (profile == null)
+        {
+            return;
+        }
+        profile.settlementStanding = standing;
+        profile.isStaff = CharacterSettlementStandingRules
+            .IsSettlementResident(standing);
+        profile.isVisiting = standing == CharacterSettlementStanding.Visitor;
     }
 
     private static void ApplyStaffRuntimeState(WorldCharacterProfile profile, CharacterActor actor)

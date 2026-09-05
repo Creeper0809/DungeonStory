@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-component-brigandine-padding",
+    "spoiler_tier": "none",
+    "title": "브리간딘 안감"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-brigandine-padding",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-brigandine-padding",
+      "target_spoiler_tier": "none",
+      "target_title": "브리간딘 안감",
+      "to": "item/component-brigandine-padding",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-brigandine-padding",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-leather",
+      "target_spoiler_tier": "none",
+      "target_title": "가죽",
+      "to": "item/material-leather",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-brigandine-padding",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "textile-quilted-liner",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 충전재",
+      "to": "item/textile-quilted-liner",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-brigandine-padding",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-armor-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "방어구 재단",
+      "to": "research/research-equipment-armor-tailoring",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

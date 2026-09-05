@@ -15,7 +15,12 @@ public sealed class FactionAggregateState
     public List<FactionRouteState> Routes { get; } = new();
     public int CurrentDay { get; set; } = 1;
     public int RouteSequence { get; set; }
+    public int RouteSettlementOperationSequence { get; set; }
     public int GoodwillOperationSequence { get; set; }
+    public long AllianceBenefitBalanceMilliEwu { get; set; }
+    public long AllianceBenefitRefillRemainder { get; set; }
+    public int AllianceBenefitLastRefillDay { get; set; } = 1;
+    public string AllianceBenefitAuthorityDigest { get; set; } = string.Empty;
 }
 
 public sealed class FactionRestoreCandidate

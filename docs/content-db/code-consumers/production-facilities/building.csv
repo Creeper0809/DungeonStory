@@ -1,0 +1,133 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+BuildingSO,content-type,,type-reference,controllers,runtime,structural-type-consumer,Assets/Scripts/Controllers/Grid/DungeonStory/Building/DungeonStoryGridBuildingController.cs
+BuildingSO,content-type,,type-reference,controllers,player-observation,structural-type-consumer,Assets/Scripts/Controllers/Grid/DungeonStory/UI/DungeonStoryGridGhostPresenter.cs
+BuildingSO,content-type,,type-reference,controllers,player-observation,structural-type-consumer,Assets/Scripts/Controllers/Grid/DungeonStory/UI/GridConstructButtonFactory.cs
+BuildingSO,content-type,,type-reference,controllers,player-observation,structural-type-consumer,Assets/Scripts/Controllers/Grid/DungeonStory/UI/GridConstructTab.cs
+BuildingSO,content-type,,type-reference,controllers,player-observation,structural-type-consumer,Assets/Scripts/Controllers/Grid/DungeonStory/UI/GridUIManager.cs
+BuildingSO,content-type,,type-reference,services:buildings,runtime,structural-type-consumer,Assets/Scripts/Services/Buildings/Abilities/BuildingAbilityAccessors.cs
+BuildingSO,content-type,,type-reference,services:buildings,runtime,structural-type-consumer,Assets/Scripts/Services/Buildings/BuildableObject.SpatialAndInteraction.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:buildings,runtime,structural-type-consumer,Assets/Scripts/Services/Buildings/BuildableObject.StateAndCapabilities.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:buildings,runtime,structural-type-consumer,Assets/Scripts/Services/Buildings/BuildableObject.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:buildings,runtime,structural-type-consumer,Assets/Scripts/Services/Buildings/BuildingStructuralIntegrityRuntime.cs
+BuildingSO,content-type,,type-reference,services:buildings,runtime,structural-type-consumer,Assets/Scripts/Services/Buildings/BuildingSummaryFormatter.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:buildings,runtime,structural-type-consumer,Assets/Scripts/Services/Buildings/Door.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:buildings,runtime,structural-type-consumer,Assets/Scripts/Services/Buildings/Facility.cs
+BuildingSO,content-type,,type-reference,services:buildings,runtime,structural-type-consumer,Assets/Scripts/Services/Buildings/FacilityOperationalData.cs
+BuildingSO,content-type,,type-reference,services:buildings,runtime,structural-type-consumer,Assets/Scripts/Services/Buildings/InteriorDoor.cs
+BuildingSO,content-type,,type-reference,services:buildings,runtime,structural-type-consumer,Assets/Scripts/Services/Buildings/ModularFacilityInitialPlacementMigrator.cs
+BuildingSO,content-type,,type-reference,services:buildings,content-loading,structural-type-consumer,Assets/Scripts/Services/Buildings/RuntimeBuildingArchetypeCatalog.cs
+BuildingSO,content-type,,type-reference,services:buildings,runtime,structural-type-consumer,Assets/Scripts/Services/Buildings/SO/BuildingDefinitionIdentity.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:buildings,runtime,structural-type-consumer,Assets/Scripts/Services/Buildings/Shop.cs
+BuildingSO,content-type,,type-reference,services:captivity,runtime,structural-type-consumer,Assets/Scripts/Services/Captivity/CircusProgramForecastProjectionAdapter.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:character,ai-decision,structural-type-consumer,Assets/Scripts/Services/Character/AI/FacilityCandidateScorer.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/PreparedStartPartyGameplayApplier.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/FuneralFestivalRuntime.cs
+BuildingSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/SO/CharacterSO.cs
+BuildingSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Work/CharacterWorkPerformanceContextResolver.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Work/WorkAmountSystem.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Work/WorkOrderContracts.cs
+BuildingSO,content-type,,type-reference,services:character,persistence,structural-type-consumer,Assets/Scripts/Services/Character/Work/WorkOrderSaveValidation.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Work/WorkTaskExecutor.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:codex,runtime,structural-type-consumer,Assets/Scripts/Services/Codex/CodexRuntimeApplicationAdapter.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:combat,content-loading,structural-type-consumer,Assets/Scripts/Services/Combat/CombatCraftDefinitionCatalog.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/EquipmentProgressionCraftOperationContributor.cs
+BuildingSO,content-type,,type-reference,services:debugging,runtime,structural-type-consumer,Assets/Scripts/Services/Debugging/DungeonDebugCommandProviders.cs
+BuildingSO,content-type,,type-reference,services:defense,runtime,structural-type-consumer,Assets/Scripts/Services/Defense/DefenseFacilitySystem.cs
+BuildingSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ApparelTailoringFacilityEligibility.cs
+BuildingSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/CertifiedSeedFacilityEligibility.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/CropHarvestOutputMaximumAuthority.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/CropHarvestSpecialThroughputContributor.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/Diagnostics/ProductionOutputDestinationLifecycleDebugScenarios.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionAssemblyBridgeAdapter.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionAuthoredThroughputFacilityScopeAuthority.cs
+BuildingSO,content-type,,type-reference,services:economy,persistence,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionFacilityDestructiveDrainCrossAggregateSaveValidation.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionFacilityEvolutionWorkRateMaximumContributor.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionFacilityOutputCensus.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:economy,content-loading,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionMaximumOutputFactorCatalog.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionOutputBufferCapacityProjector.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionOutputClearanceExecutableDescriptorRegistry.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionOutputClearanceMeasurementScopeAuthority.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionRecipeWorkRateMaximumContributors.cs
+BuildingSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionWorkshopAbilities.cs
+BuildingSO,content-type,,type-reference,services:economy,content-loading,structural-type-consumer,Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs
+BuildingSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/V23BalanceWorkCalculator.cs
+BuildingSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/V27BalanceWorkCalculator.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/V27PopulationCapacityModels.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:facilityevolution,runtime,structural-type-consumer,Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionPendingMaterialProjection.cs
+BuildingSO,content-type,,type-reference,services:facilityevolution,runtime,structural-type-consumer,Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecipeSO.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:facilityevolution,runtime,structural-type-consumer,Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRuntime.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:facilityevolution,runtime,structural-type-consumer,Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionService.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:facilityevolution,runtime,structural-type-consumer,Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionStateComponent.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:facilityevolution,runtime,structural-type-consumer,Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionWorkSpeedDefinitionMaximumQuery.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:facilityevolution,runtime,structural-type-consumer,Assets/Scripts/Services/FacilityEvolution/FacilityRelocationWorldService.cs
+BuildingSO,content-type,,type-reference,services:facilityevolution,runtime,structural-type-consumer,Assets/Scripts/Services/FacilityEvolution/RoomProfile.cs
+BuildingSO,content-type,,type-reference,services:facilityshop,runtime,structural-type-consumer,Assets/Scripts/Services/FacilityShop/FacilityShopSystem.cs
+BuildingSO,content-type,,type-reference,services:grid,runtime,structural-type-consumer,Assets/Scripts/Services/Grid/Building/ConstructionSafetyPlanner.cs
+BuildingSO,content-type,,type-reference,services:grid,runtime,structural-type-consumer,Assets/Scripts/Services/Grid/Building/ConstructionSite.cs
+BuildingSO,content-type,,type-reference,services:grid,runtime,structural-type-consumer,Assets/Scripts/Services/Grid/Building/GridBuildingObjectFactory.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:grid,runtime,structural-type-consumer,Assets/Scripts/Services/Grid/Building/GridBuildingRuntime.cs
+BuildingSO,content-type,,type-reference,services:grid,runtime,structural-type-consumer,Assets/Scripts/Services/Grid/Placement/GridPlacementValidator.cs
+BuildingSO,content-type,,type-reference,services:grid,runtime,structural-type-consumer,Assets/Scripts/Services/Grid/Rendering/GridTexture.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/BlueprintResearchContracts.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/BlueprintResearchRuntime.cs
+BuildingSO,content-type,,type-reference,services:infrastructure,content-loading,structural-type-consumer,Assets/Scripts/Services/Infrastructure/CodexReferenceCatalogServices.cs
+BuildingSO,content-type,,type-reference,services:infrastructure,content-loading,structural-type-consumer,Assets/Scripts/Services/Infrastructure/DataCatalogService.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Diagnostics/GameplayPerformanceWorldConfigurator.cs
+BuildingSO,content-type,,type-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Exterior/ExteriorZoneMarker.cs
+BuildingSO,content-type,,type-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/FacilityShopRuntimeProvider.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Industrial/ElectricalNetworkRuntime.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Industrial/FluidNetworkBatchDebugContract.cs
+BuildingSO,content-type,,type-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureTopology.cs
+BuildingSO,content-type,,type-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/MetaProgressionRuntimeProvider.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:infrastructure,persistence,structural-type-consumer,Assets/Scripts/Services/Infrastructure/ModularFacilityWorldSaveService.cs
+BuildingSO,content-type,,type-reference,services:infrastructure,content-loading,structural-type-consumer,Assets/Scripts/Services/Infrastructure/ResearchRewardCatalogAdapter.cs
+BuildingSO,content-type,,type-reference,services:infrastructure,content-loading,structural-type-consumer,Assets/Scripts/Services/Infrastructure/RunVariableCatalogServices.cs
+BuildingSO,content-type,,type-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/RunVariableRuntimeProvider.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:infrastructure,persistence,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Save/DungeonAggregateReferencePreflight.cs
+BuildingSO,content-type,,type-reference,services:invasion,runtime,structural-type-consumer,Assets/Scripts/Services/Invasion/InvasionCombatReportSystem.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:invasion,runtime,structural-type-consumer,Assets/Scripts/Services/Invasion/InvasionDefenseKitSupplyRuntime.cs
+BuildingSO,content-type,,type-reference,services:invasion,runtime,structural-type-consumer,Assets/Scripts/Services/Invasion/InvasionThreatWorldSampler.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:meta,runtime,structural-type-consumer,Assets/Scripts/Services/Meta/MetaRuntimeApplicationAdapter.cs
+BuildingSO,content-type,,type-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/OffenseRewardContextResolver.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/OffenseRewardModel.cs
+BuildingSO,content-type,,type-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/OffenseRewardSystem.cs
+BuildingSO,content-type,,type-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/OffenseRuntimeServices.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/OffenseWorldMapModel.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:operation,runtime,structural-type-consumer,Assets/Scripts/Services/Operation/OperatingDaySettlementApplicationAdapter.cs
+BuildingSO,content-type,,type-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/RunStartVariableSelector.cs
+BuildingSO,content-type,,type-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/RunVariableEffects.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/RunVariableSystem.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20ContentResolutionService.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:run,persistence,structural-type-consumer,Assets/Scripts/Services/Run/V20MilestoneWorldSnapshotProjector.cs
+BuildingSO,content-type,,type-reference,services:servicerooms,runtime,structural-type-consumer,Assets/Scripts/Services/ServiceRooms/ServiceRoomAbilities.cs
+BuildingSO,content-type,,type-reference,services:survival,runtime,structural-type-consumer,Assets/Scripts/Services/Survival/SurvivalFacilityUtility.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:survival,runtime,structural-type-consumer,Assets/Scripts/Services/Survival/WorldFilthRuntime.cs
+BuildingSO,content-type,,type-reference,services:synthesis,runtime,structural-type-consumer,Assets/Scripts/Services/Synthesis/FacilitySynthesisRecipeSO.cs
+BuildingSO,content-type,,type-reference; save-restore-reference,services:synthesis,runtime,structural-type-consumer,Assets/Scripts/Services/Synthesis/FacilitySynthesisRuntime.cs
+BuildingSO,content-type,,type-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/Buildings/UI/UIBuildingInfo.cs
+BuildingSO,content-type,,type-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/Buildings/UI/UIBuildingSelectButton.cs
+BuildingSO,content-type,,type-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/UI/IndustrialFeatureSurfacePresenter.cs
+BuildingSO,content-type,,type-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/UI/ResearchTreePresentationRules.cs
+BuildingSO,content-type,,type-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/UI/WorldInfoClickSelector.cs
+BuildingSO,stable-id,building:8813,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/ReproductionCommandRuntime.cs
+BuildingSO,stable-id,building:8847,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/ReproductionCommandRuntime.cs
+BuildingSO,stable-id,building:8851,stable-id-literal,services:infrastructure,runtime,exact-literal-consumer,Assets/Scripts/Services/Infrastructure/Environment/ClimateRuntime.cs
+BuildingSO,stable-id,building:8859,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/ReproductionCommandRuntime.cs
+BuildingSO,stable-id,building:8868,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/V20CampaignApplicationAdapter.cs
+BuildingSO,stable-id,building:8869,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/V20CampaignApplicationAdapter.cs
+BuildingSO,stable-id,building:8870,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/V20CampaignApplicationAdapter.cs
+BuildingSO,stable-id,building:8871,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/V20CampaignApplicationAdapter.cs
+BuildingSO,stable-id,building:8872,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/V20CampaignApplicationAdapter.cs
+BuildingSO,stable-id,building:8873,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/DiseaseFieldResponseRuntime.cs
+BuildingSO,stable-id,building:8873,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/V20CampaignApplicationAdapter.cs
+BuildingSO,stable-id,building:8874,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/DiseaseFieldResponseRuntime.cs
+BuildingSO,stable-id,building:8874,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/V20CampaignApplicationAdapter.cs
+BuildingSO,stable-id,building:8876,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/DiseaseFieldResponseRuntime.cs
+BuildingSO,stable-id,building:8876,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/V20CampaignApplicationAdapter.cs
+BuildingSO,stable-id,building:8879,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/CharacterNarrativeRuntime.cs
+BuildingSO,stable-id,building:8879,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/V20CampaignApplicationAdapter.cs
+BuildingSO,stable-id,building:8881,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/ReproductionCommandRuntime.cs
+BuildingSO,stable-id,building:8885,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/FuneralFestivalRuntime.cs
+BuildingSO,stable-id,building:8885,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/V20CampaignApplicationAdapter.cs
+BuildingSO,stable-id,building:runtime:world-filth-work-target,stable-id-literal,services:buildings,content-loading,exact-literal-consumer,Assets/Scripts/Services/Buildings/RuntimeBuildingArchetypeCatalog.cs
+BuildingSO,stable-id,building:runtime:world-resource-node,stable-id-literal,services:buildings,content-loading,exact-literal-consumer,Assets/Scripts/Services/Buildings/RuntimeBuildingArchetypeCatalog.cs

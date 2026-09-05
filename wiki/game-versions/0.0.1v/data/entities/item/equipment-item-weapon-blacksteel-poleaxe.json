@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "6.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "2581"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "흑강 날과 망치면을 한 자루에 단 장병기로, 갑옷 틈과 단단한 표면을 함께 노린다. 특히 제4주조도시산 흑강 폴액스에는 충격 시험 자국을 일부러 남긴다. 흠집이 없는 물건은 아직 검사를 마치지 못한 것이다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-weapon-blacksteel-poleaxe",
+  "spoiler_tier": "none",
+  "summary": "흑강 폴액스 전투 장비",
+  "title": "흑강 폴액스"
+}

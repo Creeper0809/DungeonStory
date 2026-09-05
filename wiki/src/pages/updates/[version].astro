@@ -1,0 +1,21 @@
+---
+import { readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import BaseLayout from '../../components/BaseLayout.astro';
+import { getCurrentVersion, getVersions } from '../../lib/wiki-data';
+
+const version = Astro.params.version ?? '';
+const release = getVersions().find((entry) => entry.game_version === version);
+if (!release) return new Response(null, { status: 404 });
+const status = release.status;
+const source = readFileSync(join(resolve(process.cwd()), 'game-versions', version, 'update.md'), 'utf8');
+const body = source.replace(/^---[\s\S]*?---\r?\n/, '').trim();
+const blocks: string[] = body.split(/\n\s*\n/).filter(Boolean);
+---
+
+<BaseLayout title={`${version} 업데이트`} version={version} historical={version !== getCurrentVersion()}>
+  <article class="guide-page" data-pagefind-body={version === getCurrentVersion() ? 'true' : undefined}>
+    <header class="page-header"><p class="eyebrow">{status}</p><h1>{version} 업데이트 기록</h1></header>
+    {blocks.map((block) => block.startsWith('# ') ? <p class="sr-only">{block.slice(2)}</p> : block.startsWith('## ') ? <section><h2>{block.slice(3)}</h2></section> : block.startsWith('- ') ? <ul>{block.split('\n').map((line) => <li>{line.slice(2)}</li>)}</ul> : <p>{block}</p>)}
+  </article>
+</BaseLayout>

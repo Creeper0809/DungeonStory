@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "life-history-kobold",
+    "spoiler_tier": "none",
+    "title": "Life_Kobold"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/characterspecies-6",
+      "label": "관련",
+      "to": "character/life-history-kobold",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

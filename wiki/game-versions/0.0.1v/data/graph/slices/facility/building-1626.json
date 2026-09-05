@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1626",
+    "spoiler_tier": "none",
+    "title": "대장 도구함"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-primitive",
+      "label": "시설 해금",
+      "to": "facility/building-1626",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

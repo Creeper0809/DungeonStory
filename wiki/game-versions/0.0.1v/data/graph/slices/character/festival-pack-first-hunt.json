@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "festival-pack-first-hunt",
+    "spoiler_tier": "none",
+    "title": "무리의 첫사냥"
+  },
+  "edges": [
+    {
+      "amount": "18",
+      "from": "character/festival-pack-first-hunt",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-meat",
+      "target_spoiler_tier": "none",
+      "target_title": "생고기",
+      "to": "item/resource-meat",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

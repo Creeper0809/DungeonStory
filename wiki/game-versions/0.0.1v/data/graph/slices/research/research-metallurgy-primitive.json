@@ -1,0 +1,82 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-metallurgy-primitive",
+    "spoiler_tier": "none",
+    "title": "원시 단조"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-primitive",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1093",
+      "target_spoiler_tier": "none",
+      "target_title": "대장간",
+      "to": "facility/building-1093",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-primitive",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1626",
+      "target_spoiler_tier": "none",
+      "target_title": "대장 도구함",
+      "to": "facility/building-1626",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-weapon-patterns",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-primitive",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-weapon-patterns",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-primitive",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-weapon-patterns",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-primitive",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-iron",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-primitive",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-iron",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-primitive",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-iron",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-primitive",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "world/resource-bone",
+      "label": "필요 조건",
+      "to": "research/research-metallurgy-primitive",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

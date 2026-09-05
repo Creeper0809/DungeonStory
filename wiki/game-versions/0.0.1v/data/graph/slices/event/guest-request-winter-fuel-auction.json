@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "guest-request-winter-fuel-auction",
+    "spoiler_tier": "none",
+    "title": "겨울 연료 경매"
+  },
+  "edges": [
+    {
+      "amount": "12",
+      "from": "event/guest-request-winter-fuel-auction",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯",
+      "to": "item/material-charcoal",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

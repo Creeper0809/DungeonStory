@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "13kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "1847"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "구동 장치가 방패면을 밀어 주어 큰 충격을 버티게 하는 동력 방패다. 특히 제4주조도시제 동력 방패의 작은 홈은 몸을 바꿀 때 맞추는 수리 눈금이다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-shield-powered",
+  "spoiler_tier": "none",
+  "summary": "동력 방패 전투 장비",
+  "title": "동력 방패"
+}

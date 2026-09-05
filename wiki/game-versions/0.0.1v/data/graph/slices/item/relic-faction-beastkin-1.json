@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "relic-faction-beastkin-1",
+    "spoiler_tier": "none",
+    "title": "첫발톱 인장"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "event/faction-arc-beastkin",
+      "label": "관련",
+      "to": "item/relic-faction-beastkin-1",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,31 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "4",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-culturalinsult",
+      "target_spoiler_tier": "warning",
+      "target_title": "문화적 모욕",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "5",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-culturalinsult",
+      "target_spoiler_tier": "warning",
+      "target_title": "문화적 모욕",
+      "type": "changes-relationship"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "service-incident-culturalinsult",
+  "spoiler_tier": "warning",
+  "summary": "사절이 다른 문화의 장례 관습을 공개적으로 조롱했다.",
+  "title": "문화적 모욕"
+}

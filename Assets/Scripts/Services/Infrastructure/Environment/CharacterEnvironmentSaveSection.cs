@@ -13,7 +13,8 @@ public sealed class CharacterEnvironmentSaveSection :
     {
         CharacterWorldSaveSection.Id,
         EnvironmentalFieldSaveSection.Id,
-        PhysicalItemsSaveSection.Id
+        PhysicalItemsSaveSection.Id,
+        ModularFacilityWorldSaveSection.Id
     };
 
     private readonly ICharacterEnvironmentPersistence persistence;
@@ -21,12 +22,16 @@ public sealed class CharacterEnvironmentSaveSection :
         lifecycleRestoreCandidates;
     private readonly ApparelRejectedDismantleRestoreGuard
         rejectedDismantleRestoreGuard;
+    private readonly IApparelOutputDetachedCapacityRestoreGuard
+        outputDetachedCapacityRestoreGuard;
 
     public CharacterEnvironmentSaveSection(
         ICharacterEnvironmentPersistence persistence,
         IProductionOutputLifecycleRestoreCandidatePublisher
             lifecycleRestoreCandidates,
-        ApparelRejectedDismantleRestoreGuard rejectedDismantleRestoreGuard)
+        ApparelRejectedDismantleRestoreGuard rejectedDismantleRestoreGuard,
+        IApparelOutputDetachedCapacityRestoreGuard
+            outputDetachedCapacityRestoreGuard)
     {
         this.persistence = persistence
             ?? throw new ArgumentNullException(nameof(persistence));
@@ -35,6 +40,10 @@ public sealed class CharacterEnvironmentSaveSection :
         this.rejectedDismantleRestoreGuard = rejectedDismantleRestoreGuard
             ?? throw new ArgumentNullException(
                 nameof(rejectedDismantleRestoreGuard));
+        this.outputDetachedCapacityRestoreGuard =
+            outputDetachedCapacityRestoreGuard
+            ?? throw new ArgumentNullException(
+                nameof(outputDetachedCapacityRestoreGuard));
     }
 
     public override string SectionId => Id;
@@ -58,7 +67,27 @@ public sealed class CharacterEnvironmentSaveSection :
         BuildRestoreCandidate(DungeonCharacterEnvironmentSaveData payload)
     {
         rejectedDismantleRestoreGuard.Validate(payload.apparelWorkOrders);
+        outputDetachedCapacityRestoreGuard.Validate(
+            payload.apparelWorkOrders,
+            payload.apparelWorkOrderTerminalStates);
         return persistence.BuildRestoreCandidate(payload);
+    }
+
+    /// <summary>
+    /// Section preflight owns only the character-environment payload shape.
+    /// Cross-aggregate apparel joins require the detached Physical Items and
+    /// facility-world candidates, which are published by dependency-ordered
+    /// staging and are deliberately unavailable during registry preflight.
+    /// </summary>
+    protected override void ValidateParsedPayload(
+        DungeonCharacterEnvironmentSaveData payload)
+    {
+        DungeonGameRestoreReport report = new();
+        CharacterEnvironmentSaveValidation.Validate(payload, report);
+        if (!report.Success)
+        {
+            throw new InvalidOperationException(string.Join(" | ", report.Errors));
+        }
     }
 
     protected override void PublishRestoreCandidate(

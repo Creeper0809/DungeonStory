@@ -1,0 +1,211 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,m_Name,service_bathing_wash,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,processId,service:bathing:wash,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,serviceCategory,3,ServiceCategory,Bathing,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,ownerHubTag,service:bathing,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.0.mode,0,ServiceOperationMode,Direct,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.0.activeStages,12,ServiceProcessStageMask,Service | Payment,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.0.receptionSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.0.waitingSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.0.serviceSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.0.paymentSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.0.cleanupSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.0.basePrice,5,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.0.satisfaction,44,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.0.requiredFeatureTags,[],,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.1.mode,1,ServiceOperationMode,Managed,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.1.activeStages,31,ServiceProcessStageMask,Reception | Waiting | Service | Payment | Cleanup,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.1.receptionSeconds,0.5,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.1.waitingSeconds,0.5,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.1.serviceSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.1.paymentSeconds,0.25,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.1.cleanupSeconds,0.5,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.1.basePrice,7,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.1.satisfaction,54,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.1.requiredFeatureTags,[],,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.2.mode,2,ServiceOperationMode,Automated,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.2.activeStages,30,ServiceProcessStageMask,Waiting | Service | Payment | Cleanup,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.2.receptionSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.2.waitingSeconds,0.25,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.2.serviceSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.2.paymentSeconds,0.1,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.2.cleanupSeconds,0.35,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.2.basePrice,8,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.2.satisfaction,52,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.2.requiredFeatureTags,[],,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,workTypeId,,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,cleanWater,0.45,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,wastewater,0.45,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,allowsManualWaterFallback,1,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,paymentPolicy,2,ServicePaymentPolicy,Internal Staff Free,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,requiresCleanup,1,,,explicit-serialized
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,activeStages,0,ServiceProcessStageMask,None,implicit-csharp-default
+ServiceProcessSO|service:bathing:wash,service:bathing:wash,mode,0,ServiceOperationMode,Direct,implicit-csharp-default
+ServiceProcessSO|service:dining:meal,service:dining:meal,m_Name,service_dining_meal,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,processId,service:dining:meal,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,serviceCategory,0,ServiceCategory,Dining,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,ownerHubTag,service:dining,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.0.mode,0,ServiceOperationMode,Direct,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.0.activeStages,12,ServiceProcessStageMask,Service | Payment,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.0.receptionSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.0.waitingSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.0.serviceSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.0.paymentSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.0.cleanupSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.0.basePrice,6,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.0.satisfaction,42,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.0.requiredFeatureTags,[],,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.1.mode,1,ServiceOperationMode,Managed,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.1.activeStages,31,ServiceProcessStageMask,Reception | Waiting | Service | Payment | Cleanup,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.1.receptionSeconds,0.5,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.1.waitingSeconds,0.5,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.1.serviceSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.1.paymentSeconds,0.25,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.1.cleanupSeconds,0.5,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.1.basePrice,8,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.1.satisfaction,52,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.1.requiredFeatureTags,[],,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.2.mode,2,ServiceOperationMode,Automated,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.2.activeStages,30,ServiceProcessStageMask,Waiting | Service | Payment | Cleanup,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.2.receptionSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.2.waitingSeconds,0.25,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.2.serviceSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.2.paymentSeconds,0.1,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.2.cleanupSeconds,0.35,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.2.basePrice,9,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.2.satisfaction,50,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.2.requiredFeatureTags,[],,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,workTypeId,,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,cleanWater,0,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,wastewater,0,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,allowsManualWaterFallback,0,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,paymentPolicy,2,ServicePaymentPolicy,Internal Staff Free,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,requiresCleanup,1,,,explicit-serialized
+ServiceProcessSO|service:dining:meal,service:dining:meal,activeStages,0,ServiceProcessStageMask,None,implicit-csharp-default
+ServiceProcessSO|service:dining:meal,service:dining:meal,mode,0,ServiceOperationMode,Direct,implicit-csharp-default
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,m_Name,service_lodging_rest,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,processId,service:lodging:rest,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,serviceCategory,2,ServiceCategory,Lodging,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,ownerHubTag,service:lodging,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.0.mode,0,ServiceOperationMode,Direct,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.0.activeStages,12,ServiceProcessStageMask,Service | Payment,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.0.receptionSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.0.waitingSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.0.serviceSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.0.paymentSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.0.cleanupSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.0.basePrice,8,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.0.satisfaction,46,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.0.requiredFeatureTags,[],,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.1.mode,1,ServiceOperationMode,Managed,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.1.activeStages,31,ServiceProcessStageMask,Reception | Waiting | Service | Payment | Cleanup,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.1.receptionSeconds,0.5,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.1.waitingSeconds,0.5,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.1.serviceSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.1.paymentSeconds,0.25,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.1.cleanupSeconds,0.5,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.1.basePrice,10,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.1.satisfaction,56,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.1.requiredFeatureTags,[],,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.2.mode,2,ServiceOperationMode,Automated,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.2.activeStages,30,ServiceProcessStageMask,Waiting | Service | Payment | Cleanup,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.2.receptionSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.2.waitingSeconds,0.25,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.2.serviceSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.2.paymentSeconds,0.1,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.2.cleanupSeconds,0.35,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.2.basePrice,11,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.2.satisfaction,54,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.2.requiredFeatureTags,[],,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,workTypeId,,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,cleanWater,0,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,wastewater,0,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,allowsManualWaterFallback,0,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,paymentPolicy,2,ServicePaymentPolicy,Internal Staff Free,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,requiresCleanup,1,,,explicit-serialized
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,activeStages,0,ServiceProcessStageMask,None,implicit-csharp-default
+ServiceProcessSO|service:lodging:rest,service:lodging:rest,mode,0,ServiceOperationMode,Direct,implicit-csharp-default
+ServiceProcessSO|service:medical:treat,service:medical:treat,m_Name,service_medical_treat,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,processId,service:medical:treat,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,serviceCategory,4,ServiceCategory,Medical,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,ownerHubTag,service:medical,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.0.mode,0,ServiceOperationMode,Direct,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.0.activeStages,12,ServiceProcessStageMask,Service | Payment,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.0.receptionSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.0.waitingSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.0.serviceSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.0.paymentSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.0.cleanupSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.0.basePrice,10,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.0.satisfaction,48,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.0.requiredFeatureTags,[],,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.1.mode,1,ServiceOperationMode,Managed,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.1.activeStages,31,ServiceProcessStageMask,Reception | Waiting | Service | Payment | Cleanup,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.1.receptionSeconds,0.5,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.1.waitingSeconds,0.5,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.1.serviceSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.1.paymentSeconds,0.25,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.1.cleanupSeconds,0.5,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.1.basePrice,12,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.1.satisfaction,58,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.1.requiredFeatureTags,[],,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.2.mode,2,ServiceOperationMode,Automated,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.2.activeStages,30,ServiceProcessStageMask,Waiting | Service | Payment | Cleanup,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.2.receptionSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.2.waitingSeconds,0.25,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.2.serviceSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.2.paymentSeconds,0.1,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.2.cleanupSeconds,0.35,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.2.basePrice,13,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.2.satisfaction,56,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.2.requiredFeatureTags,[],,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,workTypeId,work:treat,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,cleanWater,0,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,wastewater,0,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,allowsManualWaterFallback,0,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,paymentPolicy,2,ServicePaymentPolicy,Internal Staff Free,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,requiresCleanup,1,,,explicit-serialized
+ServiceProcessSO|service:medical:treat,service:medical:treat,activeStages,0,ServiceProcessStageMask,None,implicit-csharp-default
+ServiceProcessSO|service:medical:treat,service:medical:treat,mode,0,ServiceOperationMode,Direct,implicit-csharp-default
+ServiceProcessSO|service:retail:sale,service:retail:sale,m_Name,service_retail_sale,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,processId,service:retail:sale,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,serviceCategory,1,ServiceCategory,Retail,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,ownerHubTag,service:retail,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.0.mode,0,ServiceOperationMode,Direct,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.0.activeStages,12,ServiceProcessStageMask,Service | Payment,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.0.receptionSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.0.waitingSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.0.serviceSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.0.paymentSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.0.cleanupSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.0.basePrice,4,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.0.satisfaction,40,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.0.requiredFeatureTags,[],,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.1.mode,1,ServiceOperationMode,Managed,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.1.activeStages,31,ServiceProcessStageMask,Reception | Waiting | Service | Payment | Cleanup,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.1.receptionSeconds,0.5,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.1.waitingSeconds,0.5,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.1.serviceSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.1.paymentSeconds,0.25,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.1.cleanupSeconds,0.5,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.1.basePrice,6,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.1.satisfaction,50,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.1.requiredFeatureTags,[],,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.2.mode,2,ServiceOperationMode,Automated,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.2.activeStages,30,ServiceProcessStageMask,Waiting | Service | Payment | Cleanup,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.2.receptionSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.2.waitingSeconds,0.25,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.2.serviceSeconds,0,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.2.paymentSeconds,0.1,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.2.cleanupSeconds,0.35,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.2.basePrice,7,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.2.satisfaction,48,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.2.requiredFeatureTags,[],,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,workTypeId,,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,cleanWater,0,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,wastewater,0,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,allowsManualWaterFallback,0,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,paymentPolicy,2,ServicePaymentPolicy,Internal Staff Free,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,requiresCleanup,0,,,explicit-serialized
+ServiceProcessSO|service:retail:sale,service:retail:sale,activeStages,0,ServiceProcessStageMask,None,implicit-csharp-default
+ServiceProcessSO|service:retail:sale,service:retail:sale,mode,0,ServiceOperationMode,Direct,implicit-csharp-default

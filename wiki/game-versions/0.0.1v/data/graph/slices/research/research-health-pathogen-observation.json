@@ -1,0 +1,108 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-health-pathogen-observation",
+    "spoiler_tier": "none",
+    "title": "병원체 관찰과 면역 혈청학"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-health-pathogen-observation",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-gerontology",
+      "target_spoiler_tier": "none",
+      "target_title": "노인학과 생물학적 연령 계측",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-pathogen-observation",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-gerontology",
+      "target_spoiler_tier": "none",
+      "target_title": "노인학과 생물학적 연령 계측",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-pathogen-observation",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-gerontology",
+      "target_spoiler_tier": "none",
+      "target_title": "노인학과 생물학적 연령 계측",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-pathogen-observation",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8873",
+      "target_spoiler_tier": "none",
+      "target_title": "감염 진단대",
+      "to": "facility/building-8873",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-pathogen-observation",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8875",
+      "target_spoiler_tier": "none",
+      "target_title": "혈청 검사대",
+      "to": "facility/building-8875",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-soil-cycles",
+      "label": "선행 연구",
+      "to": "research/research-health-pathogen-observation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-soil-cycles",
+      "label": "선행 연구",
+      "to": "research/research-health-pathogen-observation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-soil-cycles",
+      "label": "선행 연구",
+      "to": "research/research-health-pathogen-observation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-isolation-medicine",
+      "label": "선행 연구",
+      "to": "research/research-health-pathogen-observation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-isolation-medicine",
+      "label": "선행 연구",
+      "to": "research/research-health-pathogen-observation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-isolation-medicine",
+      "label": "선행 연구",
+      "to": "research/research-health-pathogen-observation",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

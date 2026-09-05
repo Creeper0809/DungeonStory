@@ -1,0 +1,31 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "4",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-standard",
+      "target_spoiler_tier": "none",
+      "target_title": "표준 약품",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-standard",
+      "target_spoiler_tier": "none",
+      "target_title": "표준 약품",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "faction-chapter-beastkin-5",
+  "spoiler_tier": "warning",
+  "summary": "강경파가 우두머리의 실종을 던전의 배신으로 몰아간다.",
+  "title": "우두머리의 실종"
+}

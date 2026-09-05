@@ -1,0 +1,27 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "원시 단조"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "world",
+  "relations": [
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-primitive",
+      "target_spoiler_tier": "none",
+      "target_title": "원시 단조",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "resource-bone",
+  "spoiler_tier": "none",
+  "summary": "다른 콘텐츠 5개가 이 정의를 참조한다.",
+  "title": "뼈·뿔"
+}

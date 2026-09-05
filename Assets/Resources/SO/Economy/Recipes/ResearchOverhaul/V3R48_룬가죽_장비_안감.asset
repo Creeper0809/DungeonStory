@@ -54,10 +54,20 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=ExtractionResidue|reason=research-rune-tuning-and-catalyst-residue|physicalByproduct=false
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: material:rune-leather
-    amount: 1
+    amount: 2
   - itemId: material:cloth
+    amount: 2
+  - itemId: resource:mana-crystal
     amount: 1
   outputs:
   - outputLineId: output:recipe:component:rune-leather-lining/000/main/component:rune-leather-lining

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.3kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "22"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "슬라임 전용 초기 저온 작업복이다. 하르나크의 맑은물 합류 치료사는 보온 점액 패드가 슬라임의 핵 주위 온도와 기억 흐름을 바꾸지 않는지 살핀다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-slime-warming-pad",
+  "spoiler_tier": "none",
+  "summary": "슬라임 전용 초기 저온 작업복.",
+  "title": "보온 점액 패드"
+}

@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-night-spirit",
+    "spoiler_tier": "none",
+    "title": "밤 증류주 오크 숙성"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-night-spirit",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-syrup",
+      "target_spoiler_tier": "none",
+      "target_title": "밤포도 시럽",
+      "to": "item/material-syrup",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-night-spirit",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "food-night-spirit",
+      "target_spoiler_tier": "none",
+      "target_title": "밤 증류주",
+      "to": "item/food-night-spirit",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-night-spirit",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-young-wine",
+      "target_spoiler_tier": "none",
+      "target_title": "어린 포도주",
+      "to": "item/material-young-wine",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-night-spirit",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-distilling-aging",
+      "target_spoiler_tier": "none",
+      "target_title": "주류 증류·숙성",
+      "to": "research/research-cuisine-distilling-aging",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

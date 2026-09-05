@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-ration-mixture",
+    "spoiler_tier": "none",
+    "title": "배급식 혼합"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-ration-mixture",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-saltstone",
+      "target_spoiler_tier": "none",
+      "target_title": "소금석",
+      "to": "item/resource-saltstone",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-ration-mixture",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-ration-mixture",
+      "target_spoiler_tier": "none",
+      "target_title": "배급식 혼합물",
+      "to": "item/material-ration-mixture",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-ration-mixture",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-flour",
+      "target_spoiler_tier": "none",
+      "target_title": "밀가루",
+      "to": "item/material-flour",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-ration-mixture",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-lavish",
+      "target_spoiler_tier": "none",
+      "target_title": "호화·보존식",
+      "to": "research/research-cuisine-lavish",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

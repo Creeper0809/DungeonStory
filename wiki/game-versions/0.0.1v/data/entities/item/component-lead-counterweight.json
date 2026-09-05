@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "58"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "납 균형추로 무거운 장치의 하중을 맞춰 승강과 발사를 안정시킨다. 크릭 제7굴에서는 납 균형추의 치수와 맞물림 상태를 조립 전에 검사한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "component-lead-counterweight",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 납 균형추.",
+  "title": "납 균형추"
+}

@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "drug-night-wine",
+    "spoiler_tier": "none",
+    "title": "밤포도주"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-night-wine",
+      "label": "생산·해금",
+      "to": "item/drug-night-wine",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

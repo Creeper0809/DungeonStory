@@ -1,0 +1,143 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "faction-arc-harpy",
+    "spoiler_tier": "warning",
+    "title": "폭풍둥지"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "event/faction-arc-harpy",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-harpy-1",
+      "target_spoiler_tier": "warning",
+      "target_title": "끊어진 전령줄",
+      "to": "event/faction-chapter-harpy-1",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-harpy",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-harpy-2",
+      "target_spoiler_tier": "warning",
+      "target_title": "침묵한 합창단",
+      "to": "event/faction-chapter-harpy-2",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-harpy",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-harpy-3",
+      "target_spoiler_tier": "warning",
+      "target_title": "포자구름의 하늘길",
+      "to": "event/faction-chapter-harpy-3",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-harpy",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-harpy-4",
+      "target_spoiler_tier": "warning",
+      "target_title": "높이를 나누는 법",
+      "to": "event/faction-chapter-harpy-4",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-harpy",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-harpy-5",
+      "target_spoiler_tier": "warning",
+      "target_title": "폭풍여왕의 거짓 노래",
+      "to": "event/faction-chapter-harpy-5",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-harpy",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-harpy-6",
+      "target_spoiler_tier": "warning",
+      "target_title": "열린 바람의 맹세",
+      "to": "event/faction-chapter-harpy-6",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-harpy",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-contract-harpy-crisis",
+      "target_spoiler_tier": "none",
+      "target_title": "폭풍둥지 위기 대응 계약",
+      "to": "event/faction-contract-harpy-crisis",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-harpy",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-contract-harpy-strategic",
+      "target_spoiler_tier": "none",
+      "target_title": "폭풍둥지 장기 전략 계약",
+      "to": "event/faction-contract-harpy-strategic",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-harpy",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-contract-harpy-supply",
+      "target_spoiler_tier": "none",
+      "target_title": "폭풍둥지 정기 물자 계약",
+      "to": "event/faction-contract-harpy-supply",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-harpy",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "relic-faction-harpy-1",
+      "target_spoiler_tier": "none",
+      "target_title": "첫바람 깃인장",
+      "to": "item/relic-faction-harpy-1",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-harpy",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "relic-faction-harpy-2",
+      "target_spoiler_tier": "none",
+      "target_title": "폭풍음 쇳조각",
+      "to": "item/relic-faction-harpy-2",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-harpy",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "relic-faction-harpy-3",
+      "target_spoiler_tier": "none",
+      "target_title": "귀환노래 방울",
+      "to": "item/relic-faction-harpy-3",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

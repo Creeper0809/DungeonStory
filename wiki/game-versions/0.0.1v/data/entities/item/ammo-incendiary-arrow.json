@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "120개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "26"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "촉 뒤의 소이제를 충돌과 함께 터뜨려 불을 옮기는 화살이다. 아일라세라제 소이 화살에는 횡풍 쪽으로 한 치 비껴 잡는 손자국이 닳아 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ammo-incendiary-arrow",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 소이 화살.",
+  "title": "소이 화살"
+}

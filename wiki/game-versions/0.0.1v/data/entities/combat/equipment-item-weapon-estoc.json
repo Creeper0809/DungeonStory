@@ -1,0 +1,39 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "제강"
+    },
+    {
+      "label": "제작 작업",
+      "value": "64"
+    },
+    {
+      "label": "무게",
+      "value": "2.2kg"
+    },
+    {
+      "label": "최대 사거리",
+      "value": "1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "combat",
+  "relations": [
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "제강",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "equipment-item-weapon-estoc",
+  "spoiler_tier": "none",
+  "summary": "에스터크 전투 장비",
+  "title": "에스터크"
+}

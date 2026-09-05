@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "life-history-adventurer",
+  "spoiler_tier": "none",
+  "summary": "Adventurer의 성년 18세, 노년 55세, 무치료 기대수명 87.2년을 규정해 성장·노화·세대교체의 시간축을 제공한다.",
+  "title": "Life_Adventurer"
+}

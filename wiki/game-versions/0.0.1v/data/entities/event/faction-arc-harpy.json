@@ -1,0 +1,121 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "relic-faction-harpy-3",
+      "target_spoiler_tier": "none",
+      "target_title": "귀환노래 방울",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-harpy-1",
+      "target_spoiler_tier": "warning",
+      "target_title": "끊어진 전령줄",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-harpy-4",
+      "target_spoiler_tier": "warning",
+      "target_title": "높이를 나누는 법",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-harpy-6",
+      "target_spoiler_tier": "warning",
+      "target_title": "열린 바람의 맹세",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "relic-faction-harpy-1",
+      "target_spoiler_tier": "none",
+      "target_title": "첫바람 깃인장",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-harpy-2",
+      "target_spoiler_tier": "warning",
+      "target_title": "침묵한 합창단",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-harpy-3",
+      "target_spoiler_tier": "warning",
+      "target_title": "포자구름의 하늘길",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-contract-harpy-crisis",
+      "target_spoiler_tier": "none",
+      "target_title": "폭풍둥지 위기 대응 계약",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-contract-harpy-strategic",
+      "target_spoiler_tier": "none",
+      "target_title": "폭풍둥지 장기 전략 계약",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-contract-harpy-supply",
+      "target_spoiler_tier": "none",
+      "target_title": "폭풍둥지 정기 물자 계약",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-harpy-5",
+      "target_spoiler_tier": "warning",
+      "target_title": "폭풍여왕의 거짓 노래",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "relic-faction-harpy-2",
+      "target_spoiler_tier": "none",
+      "target_title": "폭풍음 쇳조각",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "faction-arc-harpy",
+  "spoiler_tier": "warning",
+  "summary": "하늘길과 노래 기록의 독점을 둘러싸고 둥지 내부가 갈라졌다.",
+  "title": "폭풍둥지"
+}

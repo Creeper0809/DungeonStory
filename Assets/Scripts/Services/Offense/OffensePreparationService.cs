@@ -356,6 +356,7 @@ public sealed class DungeonOffensePreparationService :
         "offense.expedition-supply";
     private const string RestoreParticipantId =
         "219.world.offense-supply-packages";
+    private const long InputBufferCapacitySchemaRevision = 1L;
     public const string CustodyTransferReasonCode =
         "offense-expedition-supply-custody-transfer";
     public const string ReturnSourceReasonCode =
@@ -375,7 +376,8 @@ public sealed class DungeonOffensePreparationService :
     private readonly IProductionItemGateway itemGateway;
     private readonly IExteriorZoneQuery exteriorZones;
     private readonly IFacilityBufferDestinationClaimQuery destinationClaims;
-    private readonly IFacilityBufferDestinationClaimCommand destinationClaimCommands;
+    private readonly IFacilityBufferMassCapacityQuery destinationCapacities;
+    private readonly IFacilityBufferDestinationLifecycleCommand destinationLifecycle;
     private readonly IOffenseSupplyPhysicalCustodyGateway physicalCustody;
     private Dictionary<string, ExpeditionSupplyPackage> packages =
         new Dictionary<string, ExpeditionSupplyPackage>(StringComparer.Ordinal);
@@ -391,7 +393,8 @@ public sealed class DungeonOffensePreparationService :
         IProductionItemGateway itemGateway,
         IExteriorZoneQuery exteriorZones,
         IFacilityBufferDestinationClaimQuery destinationClaims,
-        IFacilityBufferDestinationClaimCommand destinationClaimCommands,
+        IFacilityBufferMassCapacityQuery destinationCapacities,
+        IFacilityBufferDestinationLifecycleCommand destinationLifecycle,
         IOffenseSupplyPhysicalCustodyGateway physicalCustody)
     {
         this.inventoryQuery = inventoryQuery ?? throw new ArgumentNullException(nameof(inventoryQuery));
@@ -401,8 +404,10 @@ public sealed class DungeonOffensePreparationService :
             ?? throw new ArgumentNullException(nameof(exteriorZones));
         this.destinationClaims = destinationClaims
             ?? throw new ArgumentNullException(nameof(destinationClaims));
-        this.destinationClaimCommands = destinationClaimCommands
-            ?? throw new ArgumentNullException(nameof(destinationClaimCommands));
+        this.destinationCapacities = destinationCapacities
+            ?? throw new ArgumentNullException(nameof(destinationCapacities));
+        this.destinationLifecycle = destinationLifecycle
+            ?? throw new ArgumentNullException(nameof(destinationLifecycle));
         this.physicalCustody = physicalCustody
             ?? throw new ArgumentNullException(nameof(physicalCustody));
     }
@@ -497,47 +502,32 @@ public sealed class DungeonOffensePreparationService :
         }
 
         Dictionary<string, int> costs = BuildItemCosts(loadout);
+        long maxInputBufferMassGrams = CalculateExactCostMassGrams(costs);
         string destinationId = GetDestinationId(normalizedPackageId);
         ExpeditionSupplyPackage package = new ExpeditionSupplyPackage(
             normalizedPackageId,
             destinationId,
             stagingPosition,
-            costs);
-        FacilityBufferDestinationClaim claim = CreateDestinationClaim(package);
-        if (!destinationClaimCommands.TryClaim(
-                claim,
-                out FacilityBufferDestinationClaimFailureCode claimFailure,
-                out string claimReason))
+            costs,
+            maxInputBufferMassGrams);
+        packages.Add(normalizedPackageId, package);
+        if (!TryReplaceActiveDestinationAuthorities(
+                packages.Values,
+                out string authorityReason))
         {
-            message = string.IsNullOrWhiteSpace(claimReason)
-                ? $"원정 집결지 소유권을 만들 수 없습니다. ({claimFailure})"
-                : $"원정 집결지 소유권 실패: {claimReason}";
+            packages.Remove(normalizedPackageId);
+            message = string.IsNullOrWhiteSpace(authorityReason)
+                ? "원정 집결지 소유권과 질량 한도를 만들 수 없습니다."
+                : $"원정 집결지 소유권 실패: {authorityReason}";
             return false;
         }
 
-        foreach (KeyValuePair<string, int> pair in costs)
-        {
-            if (!itemGateway.RequestDelivery(
-                    pair.Key,
-                    pair.Value,
-                    stagingPosition,
-                    destinationId,
-                    out int requested,
-                    out string failureReason)
-                || requested < pair.Value)
-            {
-                itemGateway.ReleaseDestination(destinationId, stagingPosition);
-                RevokeDestinationClaimOrThrow(claim);
-                message = string.IsNullOrWhiteSpace(failureReason)
-                    ? "원정 보급품의 물리 운반 요청을 만들 수 없습니다."
-                    : $"원정 보급 요청 실패: {failureReason}";
-                return false;
-            }
-        }
-
-        packages.Add(normalizedPackageId, package);
-        itemGateway.PrioritizeDestination(destinationId);
-        message = $"보급 운반 중: 0/{loadout.TotalCount}";
+        bool allRequested = EnsurePackageReservation(package);
+        OffenseSupplyPackingSnapshot snapshot =
+            GetPackingSnapshot(normalizedPackageId);
+        message = allRequested
+            ? $"보급 운반 중: {snapshot.Delivered}/{snapshot.Required}"
+            : $"보급 대기 중: {snapshot.Delivered}/{snapshot.Required}";
         return true;
     }
 
@@ -563,12 +553,12 @@ public sealed class DungeonOffensePreparationService :
             {
                 return false;
             }
-            RevokeDestinationClaimIfPresent(package);
+            ReplaceActiveDestinationAuthoritiesOrThrow(packages.Values);
             message = $"보급 적재 완료: {package.Required}";
             return true;
         }
 
-        if (!HasExactDestinationClaim(package))
+        if (!HasExactDestinationAuthority(package))
         {
             message = "원정 집결지 소유권이 유실되었습니다.";
             return false;
@@ -604,7 +594,7 @@ public sealed class DungeonOffensePreparationService :
         {
             return false;
         }
-        RevokeDestinationClaimIfPresent(package);
+        ReplaceActiveDestinationAuthoritiesOrThrow(packages.Values);
         message = $"보급 적재 완료: {snapshot.Required}";
         return true;
     }
@@ -624,10 +614,18 @@ public sealed class DungeonOffensePreparationService :
 
         if (package.Phase == OffenseSupplyCustodyPhase.Staging)
         {
-            itemGateway.ReleaseDestination(
+            if (!itemGateway.TryReleaseDestinationAtomically(
                 package.DestinationId,
-                package.StagingPosition);
-            RevokeDestinationClaimOrThrow(CreateDestinationClaim(package));
+                package.StagingPosition,
+                out _,
+                out string releaseFailure))
+            {
+                throw new InvalidOperationException(
+                    $"Expedition supply package '{package.PackageId}' cancellation failed: {releaseFailure}");
+            }
+            ReplaceActiveDestinationAuthoritiesOrThrow(
+                packages.Values.Where(candidate =>
+                    !ReferenceEquals(candidate, package)));
             packages.Remove(normalized);
             return;
         }
@@ -662,10 +660,18 @@ public sealed class DungeonOffensePreparationService :
         }
         if (package.Phase == OffenseSupplyCustodyPhase.Staging)
         {
-            itemGateway.ReleaseDestination(
+            if (!itemGateway.TryReleaseDestinationAtomically(
                 package.DestinationId,
-                package.StagingPosition);
-            RevokeDestinationClaimIfPresent(package);
+                package.StagingPosition,
+                out _,
+                out string releaseFailure))
+            {
+                throw new InvalidOperationException(
+                    $"Expedition supply package '{package.PackageId}' return cancellation failed: {releaseFailure}");
+            }
+            ReplaceActiveDestinationAuthoritiesOrThrow(
+                packages.Values.Where(candidate =>
+                    !ReferenceEquals(candidate, package)));
             packages.Remove(normalized);
             return;
         }
@@ -827,6 +833,8 @@ public sealed class DungeonOffensePreparationService :
                 item => item.itemId,
                 item => item.amount,
                 StringComparer.Ordinal);
+            long expectedMaxInputBufferMassGrams =
+                CalculateExactCostMassGrams(costs);
 
             if (string.IsNullOrWhiteSpace(source.destinationId)
                 || !string.Equals(source.destinationId,
@@ -845,7 +853,8 @@ public sealed class DungeonOffensePreparationService :
                 packageId,
                 destinationId,
                 source.StagingPosition,
-                costs);
+                costs,
+                expectedMaxInputBufferMassGrams);
             package.RestoreCustody(source);
             candidate.Add(packageId, package);
         }
@@ -877,19 +886,12 @@ public sealed class DungeonOffensePreparationService :
                 "Offense supply package staging authority does not match the current world.");
         }
 
-        FacilityBufferDestinationClaim[] desiredClaims = unconsumed
-            .OrderBy(package => package.PackageId, StringComparer.Ordinal)
-            .Select(CreateDestinationClaim)
-            .ToArray();
-        if (!destinationClaimCommands.TryReplaceOwnedClaims(
-                ExpeditionSupplyOwnerDomain,
-                desiredClaims,
-                out FacilityBufferDestinationClaimFailureCode failureCode,
+        if (!TryReplaceActiveDestinationAuthorities(
+                unconsumed,
                 out string failureReason))
         {
             throw new InvalidOperationException(
-                "Offense supply destination restore failed: "
-                + $"{failureCode}: {failureReason}");
+                "Offense supply destination restore failed: " + failureReason);
         }
         if (restoreActive)
         {
@@ -1051,7 +1053,7 @@ public sealed class DungeonOffensePreparationService :
 
             string itemId = OffenseSupplyCatalog.GetPhysicalItemId(pair.Key);
             costs.TryGetValue(itemId, out int current);
-            costs[itemId] = current + amount;
+            costs[itemId] = checked(current + amount);
         }
 
         return costs;
@@ -1064,7 +1066,7 @@ public sealed class DungeonOffensePreparationService :
             return true;
         }
 
-        if (!HasExactDestinationClaim(package))
+        if (!HasExactDestinationAuthority(package))
         {
             throw new InvalidOperationException(
                 $"Expedition supply package '{package.PackageId}' lost its exact staging claim.");
@@ -1095,6 +1097,15 @@ public sealed class DungeonOffensePreparationService :
             }
         }
 
+        long pendingMassGrams = itemGateway.CountPendingMassGrams(
+            package.DestinationId);
+        if (pendingMassGrams < 0L
+            || pendingMassGrams > package.MaxInputBufferMassGrams)
+        {
+            throw new InvalidOperationException(
+                $"Expedition supply package '{package.PackageId}' exceeded its exact input-buffer mass authority.");
+        }
+
         itemGateway.PrioritizeDestination(package.DestinationId);
         return complete;
     }
@@ -1109,7 +1120,19 @@ public sealed class DungeonOffensePreparationService :
             ownerFacilityId: null,
             FacilityBufferDestinationAnchorKind.ReservedTarget);
 
-    private bool HasExactDestinationClaim(ExpeditionSupplyPackage package)
+    private static FacilityBufferCapacityProfile CreateCapacityProfile(
+        ExpeditionSupplyPackage package) =>
+        new FacilityBufferCapacityProfile(
+            package?.DestinationId ?? string.Empty,
+            package?.StagingPosition ?? default,
+            ExpeditionSupplyOwnerDomain,
+            package?.PackageId ?? string.Empty,
+            ownerFacilityId: null,
+            new PhysicalMassGrams(
+                package?.MaxInputBufferMassGrams ?? 0L),
+            InputBufferCapacitySchemaRevision);
+
+    private bool HasExactDestinationAuthority(ExpeditionSupplyPackage package)
     {
         if (package == null
             || !destinationClaims.TryGetClaim(
@@ -1130,38 +1153,73 @@ public sealed class DungeonOffensePreparationService :
                 StringComparison.Ordinal)
             && claim.OwnerFacilityId == null
             && claim.AnchorKind
-                == FacilityBufferDestinationAnchorKind.ReservedTarget;
-    }
-
-    private void RevokeDestinationClaimOrThrow(
-        FacilityBufferDestinationClaim claim)
-    {
-        if (!destinationClaimCommands.TryRevoke(
-                claim,
-                out FacilityBufferDestinationClaimFailureCode failureCode,
-                out string failureReason))
-        {
-            throw new InvalidOperationException(
-                $"Offense supply destination revoke failed: {failureCode}: {failureReason}");
-        }
-    }
-
-    private void RevokeDestinationClaimIfPresent(
-        ExpeditionSupplyPackage package)
-    {
-        if (!destinationClaims.TryGetClaim(
+                == FacilityBufferDestinationAnchorKind.ReservedTarget
+            && destinationCapacities.TryGetCapacity(
                 package.DestinationId,
                 package.StagingPosition,
-                out FacilityBufferDestinationClaim claim))
-        {
-            return;
-        }
-        if (!HasExactDestinationClaim(package))
+                out FacilityBufferMassCapacitySnapshot capacity)
+            && capacity.Profile != null
+            && capacity.Profile.MaxMassGrams
+                == package.MaxInputBufferMassGrams
+            && capacity.Profile.CapacityRevision
+                == InputBufferCapacitySchemaRevision
+            && capacity.ReservedMassGrams
+                <= package.MaxInputBufferMassGrams
+            && string.Equals(
+                capacity.Profile.OwnerDomain,
+                expected.OwnerDomain,
+                StringComparison.Ordinal)
+            && string.Equals(
+                capacity.Profile.OwnerOperationId,
+                expected.OwnerOperationId,
+                StringComparison.Ordinal)
+            && capacity.Profile.OwnerFacilityId == null;
+    }
+
+    private long CalculateExactCostMassGrams(
+        IReadOnlyDictionary<string, int> costs)
+    {
+        if (costs == null || costs.Count == 0)
         {
             throw new InvalidOperationException(
-                $"Expedition supply package '{package.PackageId}' return/custody found a foreign staging claim.");
+                "Expedition supply costs are required for mass authority.");
         }
-        RevokeDestinationClaimOrThrow(claim);
+        long total = 0L;
+        foreach (KeyValuePair<string, int> cost in costs
+                     .OrderBy(value => value.Key, StringComparer.Ordinal))
+        {
+            total = checked(total + itemGateway.GetDefinitionQuantityMassGrams(
+                cost.Key,
+                cost.Value));
+        }
+        if (total <= 0L)
+            throw new InvalidOperationException(
+                "Expedition supply input-buffer mass must be positive.");
+        return total;
+    }
+
+    private bool TryReplaceActiveDestinationAuthorities(
+        IEnumerable<ExpeditionSupplyPackage> source,
+        out string failureReason)
+    {
+        ExpeditionSupplyPackage[] active = (source
+                ?? Array.Empty<ExpeditionSupplyPackage>())
+            .Where(package => package != null && !package.Consumed)
+            .OrderBy(package => package.PackageId, StringComparer.Ordinal)
+            .ToArray();
+        return destinationLifecycle.TryReplaceOwnedAuthorities(
+            ExpeditionSupplyOwnerDomain,
+            active.Select(CreateDestinationClaim).ToArray(),
+            active.Select(CreateCapacityProfile).ToArray(),
+            out failureReason);
+    }
+
+    private void ReplaceActiveDestinationAuthoritiesOrThrow(
+        IEnumerable<ExpeditionSupplyPackage> source)
+    {
+        if (!TryReplaceActiveDestinationAuthorities(source, out string reason))
+            throw new InvalidOperationException(
+                "Offense supply destination lifecycle failed: " + reason);
     }
 
     private bool EnsureCustodyAcknowledged(
@@ -1235,7 +1293,8 @@ public sealed class DungeonOffensePreparationService :
             string packageId,
             string destinationId,
             Vector2Int stagingPosition,
-            IReadOnlyDictionary<string, int> costs)
+            IReadOnlyDictionary<string, int> costs,
+            long maxInputBufferMassGrams)
         {
             PackageId = packageId;
             DestinationId = destinationId;
@@ -1244,6 +1303,12 @@ public sealed class DungeonOffensePreparationService :
                 costs ?? new Dictionary<string, int>(),
                 StringComparer.Ordinal);
             Required = Costs.Values.Sum();
+            if (maxInputBufferMassGrams <= 0L)
+            {
+                throw new InvalidOperationException(
+                    $"Expedition supply package '{packageId}' has invalid mass capacity authority.");
+            }
+            MaxInputBufferMassGrams = maxInputBufferMassGrams;
         }
 
         public string PackageId { get; }
@@ -1251,6 +1316,7 @@ public sealed class DungeonOffensePreparationService :
         public Vector2Int StagingPosition { get; }
         public IReadOnlyDictionary<string, int> Costs { get; }
         public int Required { get; }
+        public long MaxInputBufferMassGrams { get; }
         public OffenseSupplyCustodyPhase Phase { get; private set; }
         public bool Consumed => Phase != OffenseSupplyCustodyPhase.Staging;
         public bool IsTerminal => Phase is OffenseSupplyCustodyPhase.Returned

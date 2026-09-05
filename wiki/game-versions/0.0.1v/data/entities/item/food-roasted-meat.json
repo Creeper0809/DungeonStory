@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.75kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "40개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "6"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "손질한 고기를 불에 바로 구워 빠르게 내는 단순한 육식 요리다. 하르나크의 큰솥의 몫을 치르는 날에는 고기구이를 굽던 불을 꺼뜨리기 전까지 누구도 혼자 먹지 않는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "food-roasted-meat",
+  "spoiler_tier": "none",
+  "summary": "간단히 구운 육식 단순식.",
+  "title": "고기구이"
+}

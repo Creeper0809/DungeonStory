@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "자원"
+    },
+    {
+      "label": "크기",
+      "value": "2×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-9825",
+  "spoiler_tier": "none",
+  "summary": "시설의 고유 역할은 전력 소비, 생산 공정이다. 건설에는 작업량 355, 재료 석재 블록×4, 철괴×5, 천×1이 필요하다.",
+  "title": "전기 제련 도가니"
+}

@@ -124,6 +124,8 @@ internal static class CharacterAiEditorTestDependencies
         new RoomFacilityPolicyService(RoomRegistry.EditorCache);
     private static readonly IStaffDiscontentRuntimeService StaffDiscontent =
         new NoopStaffDiscontentService();
+    internal static readonly ICharacterSettlementStandingQuery SettlementStandings =
+        new EditorResidentSettlementStandingQuery();
     private static readonly IMetaProgressionRuntimeReader MetaProgression =
         new DefaultMetaProgressionReader();
     private static readonly IFloatingIconFeedbackService FloatingIcons =
@@ -986,7 +988,8 @@ internal static class CharacterAiEditorTestDependencies
         runtime?.Construct(
             WorldRegistry,
             GameEvents,
-            new DungeonRuntimeAggregateRootStore());
+            new DungeonRuntimeAggregateRootStore(),
+            SettlementStandings);
     }
 
     public static void Inject(BlueprintResearchRuntime runtime)
@@ -1016,7 +1019,8 @@ internal static class CharacterAiEditorTestDependencies
         runtime?.Construct(
             WorldRegistry,
             GameEvents,
-            new DungeonRuntimeAggregateRootStore());
+            new DungeonRuntimeAggregateRootStore(),
+            SettlementStandings);
     }
 
     public static void Inject(BuildableObject building)

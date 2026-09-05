@@ -671,6 +671,11 @@ public interface IWorldItemStackRuntime : IEquipmentPhysicalItemGateway
     new bool TrySetInstanceComponent(
         string stackId,
         ItemInstanceComponentSaveData component);
+    bool TrySetFoodFreshness(
+        string stackId,
+        double remainingSeconds,
+        bool preserved,
+        out string failureReason);
     bool SetEmergencyButcheryAllowed(string stackId, bool allowed);
     int RemoveStacksByStateAndDestination(WorldItemStackState state, string destinationId);
     new int ReleaseStacksByDestination(string destinationId, Vector2Int releasePosition);

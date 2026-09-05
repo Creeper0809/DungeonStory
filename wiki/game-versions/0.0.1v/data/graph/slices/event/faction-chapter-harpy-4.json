@@ -1,0 +1,40 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "faction-chapter-harpy-4",
+    "spoiler_tier": "warning",
+    "title": "높이를 나누는 법"
+  },
+  "edges": [
+    {
+      "amount": "4",
+      "from": "event/faction-chapter-harpy-4",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-rope",
+      "target_spoiler_tier": "none",
+      "target_title": "밧줄",
+      "to": "item/material-rope",
+      "type": "requires"
+    },
+    {
+      "amount": "7",
+      "from": "event/faction-chapter-harpy-4",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-rope",
+      "target_spoiler_tier": "none",
+      "target_title": "밧줄",
+      "to": "item/material-rope",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-harpy",
+      "label": "관련",
+      "to": "event/faction-chapter-harpy-4",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

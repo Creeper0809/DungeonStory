@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "genome-moonflower-base",
+    "spoiler_tier": "none",
+    "title": "Genome_moonflower"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/crop-moonflower",
+      "label": "관련",
+      "to": "nature/genome-moonflower-base",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

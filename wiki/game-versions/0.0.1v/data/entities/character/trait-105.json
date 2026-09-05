@@ -1,0 +1,29 @@
+{
+  "facts": [
+    {
+      "label": "희귀도",
+      "value": "일반"
+    },
+    {
+      "label": "성향",
+      "value": "상충"
+    },
+    {
+      "label": "효과",
+      "value": "3개"
+    },
+    {
+      "label": "정체성 규칙",
+      "value": "4개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "trait-105",
+  "spoiler_tier": "none",
+  "summary": "전투와 혼잡을 싫어하지만 사고 위험은 낮다.",
+  "title": "소심함"
+}

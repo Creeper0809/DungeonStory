@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-8",
+    "spoiler_tier": "none",
+    "title": "내벽 문"
+  },
+  "edges": [],
+  "schema_version": 1
+}

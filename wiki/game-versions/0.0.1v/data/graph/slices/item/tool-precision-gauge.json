@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "tool-precision-gauge",
+    "spoiler_tier": "none",
+    "title": "정밀 게이지"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-precision-gauge",
+      "label": "생산·해금",
+      "to": "item/tool-precision-gauge",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,46 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "waste-animal-rot",
+    "spoiler_tier": "none",
+    "title": "동물성 부패물"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-dog-food",
+      "label": "필요 조건",
+      "to": "item/waste-animal-rot",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-incinerate-animal",
+      "label": "필요 조건",
+      "to": "item/waste-animal-rot",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/source-spoilage-animal",
+      "label": "생산·해금",
+      "to": "item/waste-animal-rot",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-compost-animal",
+      "label": "필요 조건",
+      "to": "item/waste-animal-rot",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-low-fuel-animal",
+      "label": "필요 조건",
+      "to": "item/waste-animal-rot",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

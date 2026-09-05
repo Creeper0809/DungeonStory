@@ -1,8 +1,9 @@
 PASS
 PASS RUNTIME_SCOPE: runtime scope resolved
 PASS RUNTIME_CONTAINER: runtime container built
-PASS START_COMMIT: committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Roma:-6150552:character:staff:1:01:active=True,Arin:-6150620:character:staff:1:02:active=True; diagnostics=prepared-1:name=Roma;go=-6150524;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-6150592;id=character:staff:1:02;active=False || scan:name=Roma;go=-6150524;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-6150592;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-6150524;id=character:staff:1:01;active=True || retained:name=Arin;go=-6150592;id=character:staff:1:02;active=True
+PASS START_COMMIT: committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; tierZero=changed=True;columns=27->29;startX=17;entrance=(17, 0); liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Arin:-8840630:character:staff:1:02:active=True,Roma:-8840562:character:staff:1:01:active=True; diagnostics=prepared-1:name=Roma;go=-8840534;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-8840602;id=character:staff:1:02;active=False || scan:name=Roma;go=-8840534;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-8840602;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-8840534;id=character:staff:1:01;active=True || retained:name=Arin;go=-8840602;id=character:staff:1:02;active=True
 PASS GAMEPLAY_RUNTIME_SCOPE: scene=GameplayScene; party=3
+PASS DIRECT_ENTRY_TIER_ZERO_READY: changed=False;columns=29->29;startX=17;entrance=(17, 0)
 PASS PARTY_SIZE: party=3
 start-environment=character:staff:1:01@(19, 0):species=Slime:temp=20:air=100:light=20:lethal=0..40 | character:staff:1:02@(20, 0):species=Slime:temp=20:air=100:light=20:lethal=0..40 | owner@(18, 0):species=Slime:temp=20:air=100:light=20:lethal=0..40
 PASS START_RATIONS: count=24
@@ -11,62 +12,68 @@ PASS START_LUMBER: count=15
 PASS START_CLOTH: count=9
 PASS NO_VINEGAR_AS_FOOD: count=0
 PASS NO_RESTRAINTS_AS_GENERAL: count=0
-PASS V27_POPULATION_STAGE_BASELINE_CAPTURED: sections=68
-PASS V27_POPULATION_STAGE_STORAGE_AUTHORITY: asset=L01_대형보관선반;capacity=60
-PASS V27_POPULATION_STAGE_RESEARCH_SPACE_1: columns=27;developerKeyUsed=False
+PASS V27_POPULATION_STAGE_BASELINE_CAPTURED: sections=75
+PASS V27_POPULATION_STAGE_STORAGE_AUTHORITY: asset=DefenseSupplyDepot;capacityGrams=25000
+PASS V27_POPULATION_STAGE_RESEARCH_SPACE_1: columns=29;developerKeyUsed=False
 PASS V27_POPULATION_STAGE_LIVE_COHORT_1: character:staff:1:01:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=대기
 PASS V27_POPULATION_STAGE_RESERVE_CELLS_1: cells=3
-PASS V27_POPULATION_STAGE_SEVEN_DAY_PHYSICAL_RESERVE_1: meal=6/6;grain=10/10;water=12/12;stacks=3
-PASS V27_POPULATION_STAGE_AUTHORED_STORAGE_1: asset=L01_대형보관선반;count=1;capacity=60;normal=467;fault=763;overflowCells=1
+PASS V27_POPULATION_STAGE_SEVEN_DAY_PHYSICAL_RESERVE_1: meal=6/6;grain=10/10;water=18/18;stacks=3
+PASS V27_POPULATION_STAGE_RESERVE_MASS_AUTHORITY_1: live=16100;static=16100
+PASS V27_POPULATION_STAGE_AUTHORED_STORAGE_1: asset=DefenseSupplyDepot;count=1;capacityGrams=25000;reserveMassGrams=16100;normal=644;fault=839;overflowMassGrams=30000;overflowCells=1
 PASS V27_POPULATION_STAGE_FIXED_WORLD_FEATURES_1: interiorNodes=0;reserved=0;cells=
 PASS V27_POPULATION_STAGE_RUNTIME_HEADROOM_1: outside=0;fixedWorldFeatures=0;headroomPermille=740;grid=60x3
-PASS V27_POPULATION_STAGE_CLOSED_LOOP_1: gross=2800;net=2660;recurring=363;growth=387;emergency=100;disposition=minimum-plot-warning
-population-stage=1;tier=0;actors=1;reserveUnits=28;storageCapacity=60;fixedWorldFeatures=0;runtimeHeadroomPermille=740
-PASS V27_POPULATION_STAGE_RESEARCH_SPACE_3: columns=27;developerKeyUsed=False
+PASS V27_POPULATION_STAGE_CLOSED_LOOP_1: gross=2800;net=2660;recurring=389;growth=361;emergency=100;disposition=minimum-plot-warning
+population-stage=1;tier=0;actors=1;reserveMassGrams=16100;storageCapacityGrams=25000;fixedWorldFeatures=0;runtimeHeadroomPermille=740
+PASS V27_POPULATION_STAGE_RESEARCH_SPACE_3: columns=29;developerKeyUsed=False
 PASS V27_POPULATION_STAGE_LIVE_COHORT_3: character:staff:1:01:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=대기 | character:staff:1:02:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=대기 | owner:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=대기
 PASS V27_POPULATION_STAGE_RESERVE_CELLS_3: cells=3
-PASS V27_POPULATION_STAGE_SEVEN_DAY_PHYSICAL_RESERVE_3: meal=6/6;grain=30/30;water=31/31;stacks=3
-PASS V27_POPULATION_STAGE_AUTHORED_STORAGE_3: asset=L01_대형보관선반;count=2;capacity=120;normal=559;fault=729;overflowCells=1
+PASS V27_POPULATION_STAGE_SEVEN_DAY_PHYSICAL_RESERVE_3: meal=6/6;grain=30/30;water=51/51;stacks=4
+PASS V27_POPULATION_STAGE_RESERVE_MASS_AUTHORITY_3: live=39600;static=39600
+PASS V27_POPULATION_STAGE_AUTHORED_STORAGE_3: asset=DefenseSupplyDepot;count=3;capacityGrams=75000;reserveMassGrams=39600;normal=528;fault=663;overflowMassGrams=30000;overflowCells=1
 PASS V27_POPULATION_STAGE_FIXED_WORLD_FEATURES_3: interiorNodes=0;reserved=0;cells=
-PASS V27_POPULATION_STAGE_RUNTIME_HEADROOM_3: outside=0;fixedWorldFeatures=0;headroomPermille=543;grid=60x3
-PASS V27_POPULATION_STAGE_CLOSED_LOOP_3: gross=1867;net=1774;recurring=315;growth=435;emergency=100;disposition=normal
-population-stage=3;tier=0;actors=3;reserveUnits=67;storageCapacity=120;fixedWorldFeatures=0;runtimeHeadroomPermille=543
-PASS V27_POPULATION_STAGE_RESEARCH_SPACE_6: columns=27;developerKeyUsed=False
+PASS V27_POPULATION_STAGE_RUNTIME_HEADROOM_3: outside=0;fixedWorldFeatures=0;headroomPermille=506;grid=60x3
+PASS V27_POPULATION_STAGE_CLOSED_LOOP_3: gross=1867;net=1774;recurring=341;growth=409;emergency=100;disposition=normal
+population-stage=3;tier=0;actors=3;reserveMassGrams=39600;storageCapacityGrams=75000;fixedWorldFeatures=0;runtimeHeadroomPermille=506
+PASS V27_POPULATION_STAGE_RESEARCH_SPACE_6: columns=29;developerKeyUsed=False
 PASS V27_POPULATION_STAGE_LIVE_COHORT_6: character:staff:1:01:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=대기 | character:staff:1:02:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=대기 | owner:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=대기 | character:plan-debug:v27-population-stage-6-4:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-6-5:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-6-6:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive
 PASS V27_POPULATION_STAGE_RESERVE_CELLS_6: cells=3
-PASS V27_POPULATION_STAGE_SEVEN_DAY_PHYSICAL_RESERVE_6: meal=12/12;grain=60/60;water=59/59;stacks=4
-PASS V27_POPULATION_STAGE_AUTHORED_STORAGE_6: asset=L01_대형보관선반;count=4;capacity=240;normal=546;fault=529;overflowCells=2
+PASS V27_POPULATION_STAGE_SEVEN_DAY_PHYSICAL_RESERVE_6: meal=12/12;grain=60/60;water=99/99;stacks=4
+PASS V27_POPULATION_STAGE_RESERVE_MASS_AUTHORITY_6: live=77700;static=77700
+PASS V27_POPULATION_STAGE_AUTHORED_STORAGE_6: asset=DefenseSupplyDepot;count=5;capacityGrams=125000;reserveMassGrams=77700;normal=622;fault=583;overflowMassGrams=60000;overflowCells=2
 PASS V27_POPULATION_STAGE_FIXED_WORLD_FEATURES_6: interiorNodes=0;reserved=0;cells=
-PASS V27_POPULATION_STAGE_RUNTIME_HEADROOM_6: outside=0;fixedWorldFeatures=0;headroomPermille=308;grid=60x3
-PASS V27_POPULATION_STAGE_CLOSED_LOOP_6: gross=1400;net=1330;recurring=291;growth=459;emergency=100;disposition=normal
-population-stage=6;tier=0;actors=6;reserveUnits=131;storageCapacity=240;fixedWorldFeatures=0;runtimeHeadroomPermille=308
-PASS V27_POPULATION_STAGE_RESEARCH_SPACE_12: columns=49;developerKeyUsed=False
+PASS V27_POPULATION_STAGE_RUNTIME_HEADROOM_6: outside=0;fixedWorldFeatures=0;headroomPermille=321;grid=60x3
+PASS V27_POPULATION_STAGE_CLOSED_LOOP_6: gross=1400;net=1330;recurring=317;growth=433;emergency=100;disposition=normal
+population-stage=6;tier=0;actors=6;reserveMassGrams=77700;storageCapacityGrams=125000;fixedWorldFeatures=0;runtimeHeadroomPermille=321
+PASS V27_POPULATION_STAGE_RESEARCH_SPACE_12: columns=51;developerKeyUsed=False
 PASS V27_POPULATION_STAGE_LIVE_COHORT_12: character:staff:1:01:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=대기 | character:staff:1:02:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=대기 | owner:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=대기 | character:plan-debug:v27-population-stage-12-4:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-12-5:hp=100:h=98.62:t=98.33:s=100:e=98.48:y=98.5:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-12-6:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-12-7:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-12-8:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-12-9:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-12-10:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-12-11:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-12-12:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive
 PASS V27_POPULATION_STAGE_RESERVE_CELLS_12: cells=3
-PASS V27_POPULATION_STAGE_SEVEN_DAY_PHYSICAL_RESERVE_12: meal=18/18;grain=120/120;water=118/118;stacks=6
-PASS V27_POPULATION_STAGE_AUTHORED_STORAGE_12: asset=L01_대형보관선반;count=7;capacity=420;normal=610;fault=460;overflowCells=4
+PASS V27_POPULATION_STAGE_SEVEN_DAY_PHYSICAL_RESERVE_12: meal=18/18;grain=120/120;water=197/197;stacks=7
+PASS V27_POPULATION_STAGE_RESERVE_MASS_AUTHORITY_12: live=151300;static=151300
+PASS V27_POPULATION_STAGE_AUTHORED_STORAGE_12: asset=DefenseSupplyDepot;count=9;capacityGrams=225000;reserveMassGrams=151300;normal=673;fault=526;overflowMassGrams=120000;overflowCells=4
 PASS V27_POPULATION_STAGE_FIXED_WORLD_FEATURES_12: interiorNodes=0;reserved=0;cells=
-PASS V27_POPULATION_STAGE_RUNTIME_HEADROOM_12: outside=0;fixedWorldFeatures=0;headroomPermille=312;grid=66x3
-PASS V27_POPULATION_STAGE_CLOSED_LOOP_12: gross=1400;net=1330;recurring=291;growth=459;emergency=100;disposition=normal
-population-stage=12;tier=1;actors=12;reserveUnits=256;storageCapacity=420;fixedWorldFeatures=0;runtimeHeadroomPermille=312
-PASS V27_POPULATION_STAGE_RESEARCH_SPACE_18: columns=65;developerKeyUsed=False
+PASS V27_POPULATION_STAGE_RUNTIME_HEADROOM_12: outside=0;fixedWorldFeatures=0;headroomPermille=300;grid=68x3
+PASS V27_POPULATION_STAGE_CLOSED_LOOP_12: gross=1400;net=1330;recurring=317;growth=433;emergency=100;disposition=normal
+population-stage=12;tier=1;actors=12;reserveMassGrams=151300;storageCapacityGrams=225000;fixedWorldFeatures=0;runtimeHeadroomPermille=300
+PASS V27_POPULATION_STAGE_RESEARCH_SPACE_18: columns=71;developerKeyUsed=False
 PASS V27_POPULATION_STAGE_LIVE_COHORT_18: character:staff:1:01:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=대기 | character:staff:1:02:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=대기 | owner:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=대기 | character:plan-debug:v27-population-stage-18-4:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-18-5:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-18-6:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-18-7:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-18-8:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-18-9:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-18-10:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-18-11:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-18-12:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-18-13:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-18-14:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-18-15:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-18-16:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-18-17:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-18-18:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive
 PASS V27_POPULATION_STAGE_RESERVE_CELLS_18: cells=3
-PASS V27_POPULATION_STAGE_SEVEN_DAY_PHYSICAL_RESERVE_18: meal=30/30;grain=180/180;water=177/177;stacks=8
-PASS V27_POPULATION_STAGE_AUTHORED_STORAGE_18: asset=L01_대형보관선반;count=10;capacity=600;normal=645;fault=474;overflowCells=5
+PASS V27_POPULATION_STAGE_SEVEN_DAY_PHYSICAL_RESERVE_18: meal=30/30;grain=180/180;water=295/295;stacks=10
+PASS V27_POPULATION_STAGE_RESERVE_MASS_AUTHORITY_18: live=228500;static=228500
+PASS V27_POPULATION_STAGE_AUTHORED_STORAGE_18: asset=DefenseSupplyDepot;count=14;capacityGrams=350000;reserveMassGrams=228500;normal=653;fault=517;overflowMassGrams=150000;overflowCells=5
 PASS V27_POPULATION_STAGE_FIXED_WORLD_FEATURES_18: interiorNodes=0;reserved=0;cells=
-PASS V27_POPULATION_STAGE_RUNTIME_HEADROOM_18: outside=0;fixedWorldFeatures=0;headroomPermille=307;grid=82x3
-PASS V27_POPULATION_STAGE_CLOSED_LOOP_18: gross=1400;net=1330;recurring=291;growth=459;emergency=100;disposition=normal
-population-stage=18;tier=2;actors=18;reserveUnits=387;storageCapacity=600;fixedWorldFeatures=0;runtimeHeadroomPermille=307
-PASS V27_POPULATION_STAGE_RESEARCH_SPACE_24: columns=81;developerKeyUsed=False
+PASS V27_POPULATION_STAGE_RUNTIME_HEADROOM_18: outside=0;fixedWorldFeatures=0;headroomPermille=309;grid=88x3
+PASS V27_POPULATION_STAGE_CLOSED_LOOP_18: gross=1400;net=1330;recurring=317;growth=433;emergency=100;disposition=normal
+population-stage=18;tier=2;actors=18;reserveMassGrams=228500;storageCapacityGrams=350000;fixedWorldFeatures=0;runtimeHeadroomPermille=309
+PASS V27_POPULATION_STAGE_RESEARCH_SPACE_24: columns=87;developerKeyUsed=False
 PASS V27_POPULATION_STAGE_LIVE_COHORT_24: character:staff:1:01:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=대기 | character:staff:1:02:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=대기 | owner:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=대기 | character:plan-debug:v27-population-stage-24-4:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-24-5:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-24-6:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-24-7:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-24-8:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-24-9:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-24-10:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-24-11:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-24-12:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-24-13:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-24-14:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-24-15:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-24-16:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-24-17:hp=100:h=98.62:t=98.33:s=100:e=98.48:y=98.5:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-24-18:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-24-19:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-24-20:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-24-21:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-24-22:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-24-23:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive | character:plan-debug:v27-population-stage-24-24:hp=100:h=100:t=100:s=100:e=100:y=100:lifecycle=Active:paused=True:action=Inactive
 PASS V27_POPULATION_STAGE_RESERVE_CELLS_24: cells=3
-PASS V27_POPULATION_STAGE_SEVEN_DAY_PHYSICAL_RESERVE_24: meal=36/36;grain=240/240;water=234/234;stacks=10
-PASS V27_POPULATION_STAGE_AUTHORED_STORAGE_24: asset=L01_대형보관선반;count=13;capacity=780;normal=654;fault=476;overflowCells=6
+PASS V27_POPULATION_STAGE_SEVEN_DAY_PHYSICAL_RESERVE_24: meal=36/36;grain=240/240;water=391/391;stacks=13
+PASS V27_POPULATION_STAGE_RESERVE_MASS_AUTHORITY_24: live=301100;static=301100
+PASS V27_POPULATION_STAGE_AUTHORED_STORAGE_24: asset=DefenseSupplyDepot;count=18;capacityGrams=450000;reserveMassGrams=301100;normal=670;fault=526;overflowMassGrams=180000;overflowCells=6
 PASS V27_POPULATION_STAGE_FIXED_WORLD_FEATURES_24: interiorNodes=0;reserved=0;cells=
-PASS V27_POPULATION_STAGE_RUNTIME_HEADROOM_24: outside=0;fixedWorldFeatures=0;headroomPermille=316;grid=98x3
-PASS V27_POPULATION_STAGE_CLOSED_LOOP_24: gross=1284;net=1220;recurring=285;growth=465;emergency=100;disposition=normal
-population-stage=24;tier=3;actors=24;reserveUnits=510;storageCapacity=780;fixedWorldFeatures=0;runtimeHeadroomPermille=316
+PASS V27_POPULATION_STAGE_RUNTIME_HEADROOM_24: outside=0;fixedWorldFeatures=0;headroomPermille=306;grid=104x3
+PASS V27_POPULATION_STAGE_CLOSED_LOOP_24: gross=1284;net=1220;recurring=311;growth=439;emergency=100;disposition=normal
+population-stage=24;tier=3;actors=24;reserveMassGrams=301100;storageCapacityGrams=450000;fixedWorldFeatures=0;runtimeHeadroomPermille=306
 PASS V27_POPULATION_STAGE_ALL_STAGES_EXACT: populations=1,3,6,12,18,24;physicalReserve=true;researchExpansion=true;developerE=false
 primitive-counts=
 physical-field-meals=0

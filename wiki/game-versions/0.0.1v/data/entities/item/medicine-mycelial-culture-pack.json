@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.5kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "10개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "24"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "손상된 균사 연결을 귀환 전까지 유지한다. 므네실라의 균사 배양 팩은 병을 닫은 뒤에도 천천히 자란다. 공동 정원은 절반 이상 채취하지 않는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "medicine-mycelial-culture-pack",
+  "spoiler_tier": "none",
+  "summary": "손상된 균사 연결을 귀환 전까지 유지한다.",
+  "title": "균사 배양 팩"
+}

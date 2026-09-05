@@ -54,13 +54,21 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=ExtractionResidue|reason=research-rune-tuning-and-catalyst-residue|physicalByproduct=false
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: material:steel-ingot
-    amount: 1
+    amount: 2
   - itemId: material:gold-ingot
-    amount: 1
+    amount: 2
   - itemId: resource:mana-crystal
-    amount: 1
+    amount: 2
   outputs:
   - outputLineId: output:recipe:material:mana-alloy/000/main/material:mana-alloy
     role: 0

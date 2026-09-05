@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-8847",
+    "spoiler_tier": "none",
+    "title": "구성체 핵 공학대"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-medical-construct-core-engineering",
+      "label": "시설 해금",
+      "to": "facility/building-8847",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,49 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "122"
+    },
+    {
+      "label": "필요 연구",
+      "value": "유물 부품 감정과 복원"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "10",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "offense-appraised-valuables",
+      "target_spoiler_tier": "none",
+      "target_title": "감정된 귀중품",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "10",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "offense-unappraised-loot",
+      "target_spoiler_tier": "none",
+      "target_title": "미감정 전리품",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-relic-appraisal",
+      "target_spoiler_tier": "none",
+      "target_title": "유물 부품 감정과 복원",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-loot-appraisal",
+  "spoiler_tier": "none",
+  "summary": "원정 전리품 감정 생산 주문",
+  "title": "원정 전리품 감정"
+}

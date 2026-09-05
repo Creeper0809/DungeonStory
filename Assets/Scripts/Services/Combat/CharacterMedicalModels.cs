@@ -13,7 +13,8 @@ public enum CharacterMedicalOrderState
     Treating = 5,
     Recovering = 6,
     Completed = 7,
-    Cancelled = 8
+    Cancelled = 8,
+    MaterialDestinationDraining = 9
 }
 
 public enum CharacterMedicalStatusCode
@@ -48,7 +49,8 @@ public enum CharacterMedicalStatusCode
     PatientPathUnavailable,
     TreatmentPathUnavailable,
     Restarted,
-    ManualRescueAssigned
+    ManualRescueAssigned,
+    MaterialDestinationDraining
 }
 
 public enum CharacterMedicalSupplyCommitPhase
@@ -56,6 +58,39 @@ public enum CharacterMedicalSupplyCommitPhase
     None = 0,
     IntentRecorded = 1,
     SupplyPublished = 2
+}
+
+public enum CharacterMedicalSupplyDestinationDrainPhase
+{
+    None = 0,
+    Prepared = 1,
+    EffectCommittedAwaitingOwnerAck = 2,
+    OwnerAcknowledgedAwaitingClosure = 3,
+    ClosedAwaitingCheckpointGc = 4
+}
+
+[Serializable]
+public sealed class CharacterMedicalSupplyDestinationDrainJoinData
+{
+    public int destinationSequence;
+    public CharacterMedicalSupplyDestinationDrainPhase phase;
+    public CharacterMedicalOrderState targetState;
+    public CharacterMedicalStatusCode targetStatusCode;
+    public List<string> targetStatusParameters = new();
+    public string parentOperationId = string.Empty;
+    public string stepOperationId = string.Empty;
+    public string ownerFacilityId = string.Empty;
+    public string sourceDestinationId = string.Empty;
+    public long sourceBufferCapacityGrams;
+    public long sourceMassAuthorityRevision;
+    public string sourceCapacityFingerprint = string.Empty;
+    public string requestFingerprint = string.Empty;
+    public string commitId = string.Empty;
+    public string receiptFingerprint = string.Empty;
+    public int inputQuantity;
+    public long inputMassGrams;
+    public int ownerX;
+    public int ownerY;
 }
 
 [Serializable]
@@ -80,6 +115,13 @@ public sealed class CharacterMedicalOrder
     public float treatmentInfectionReduction;
     public float treatmentPainReduction;
     public string treatmentMaterialDestinationId = string.Empty;
+    public int nextTreatmentMaterialDestinationSequence = 1;
+    public int treatmentDestinationSequence;
+    public long treatmentBufferCapacityGrams;
+    public long treatmentMassAuthorityRevision;
+    public string treatmentCapacityFingerprint = string.Empty;
+    public List<CharacterMedicalSupplyDestinationDrainJoinData>
+        treatmentDestinationDrainJoins = new();
     public int treatmentSupplyCommitPhase;
     public int treatmentSupplyOperationSequence = 1;
     public string treatmentSupplyOperationId = string.Empty;
@@ -159,7 +201,7 @@ public readonly struct CharacterMedicalBloodContactEvent
 [Serializable]
 public sealed class DungeonCharacterMedicalSaveData
 {
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 6;
 
     public int version = CurrentVersion;
     public List<CharacterMedicalOrder> orders = new List<CharacterMedicalOrder>();
@@ -213,6 +255,7 @@ public interface ICharacterMedicalCommand
 public interface ICharacterMedicalPersistence
 {
     DungeonCharacterMedicalSaveData Capture();
+    void ValidatePayload(DungeonCharacterMedicalSaveData saveData);
     CharacterMedicalRestoreCandidate PrepareRestore(
         DungeonCharacterMedicalSaveData saveData);
     void PublishRestore(CharacterMedicalRestoreCandidate candidate);

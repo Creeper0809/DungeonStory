@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-medical-trauma-care-kit",
+    "spoiler_tier": "none",
+    "title": "트라우마 치료 꾸러미"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-trauma-care-kit",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "medical-trauma-care-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "트라우마 치료 꾸러미",
+      "to": "item/medical-trauma-care-kit",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-trauma-care-kit",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-trauma-care-kit",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 약품",
+      "to": "item/medicine-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-medical-trauma-care-kit",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-trauma-medicine",
+      "target_spoiler_tier": "none",
+      "target_title": "트라우마 의학",
+      "to": "research/research-medical-trauma-medicine",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

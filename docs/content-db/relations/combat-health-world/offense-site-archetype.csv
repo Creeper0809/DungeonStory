@@ -1,0 +1,13 @@
+﻿source_type,source_id,source_record_key,kind,target_id,amount,duration,field_path,semantic_label,target_category,resolution_status,target_record_keys,source_path
+OffenseSiteArchetypeSO,archive,OffenseSiteArchetypeSO|archive,references,human,,,factionId,faction Id,faction-content,unresolved-runtime-domain-id,,Assets/Resources/SO/Offense/Sites/archive.asset
+OffenseSiteArchetypeSO,armory,OffenseSiteArchetypeSO|armory,references,human,,,factionId,faction Id,faction-content,unresolved-runtime-domain-id,,Assets/Resources/SO/Offense/Sites/armory.asset
+OffenseSiteArchetypeSO,caravan,OffenseSiteArchetypeSO|caravan,references,human,,,factionId,faction Id,faction-content,unresolved-runtime-domain-id,,Assets/Resources/SO/Offense/Sites/caravan.asset
+OffenseSiteArchetypeSO,farm,OffenseSiteArchetypeSO|farm,references,human,,,factionId,faction Id,faction-content,unresolved-runtime-domain-id,,Assets/Resources/SO/Offense/Sites/farm.asset
+OffenseSiteArchetypeSO,fixed:rival-dungeon,OffenseSiteArchetypeSO|fixed:rival-dungeon,references,human,,,factionId,faction Id,faction-content,unresolved-runtime-domain-id,,Assets/Resources/SO/Offense/Sites/fixed_rival-dungeon.asset
+OffenseSiteArchetypeSO,fixed:truth-core,OffenseSiteArchetypeSO|fixed:truth-core,references,human,,,factionId,faction Id,faction-content,unresolved-runtime-domain-id,,Assets/Resources/SO/Offense/Sites/fixed_truth-core.asset
+OffenseSiteArchetypeSO,patrol,OffenseSiteArchetypeSO|patrol,references,human,,,factionId,faction Id,faction-content,unresolved-runtime-domain-id,,Assets/Resources/SO/Offense/Sites/patrol.asset
+OffenseSiteArchetypeSO,prisoner_convoy,OffenseSiteArchetypeSO|prisoner_convoy,references,human,,,factionId,faction Id,faction-content,unresolved-runtime-domain-id,,Assets/Resources/SO/Offense/Sites/prisoner_convoy.asset
+OffenseSiteArchetypeSO,quarry,OffenseSiteArchetypeSO|quarry,references,human,,,factionId,faction Id,faction-content,unresolved-runtime-domain-id,,Assets/Resources/SO/Offense/Sites/quarry.asset
+OffenseSiteArchetypeSO,ritual_site,OffenseSiteArchetypeSO|ritual_site,references,sealed,,,factionId,faction Id,faction-content,unresolved-runtime-domain-id,,Assets/Resources/SO/Offense/Sites/ritual_site.asset
+OffenseSiteArchetypeSO,ruin,OffenseSiteArchetypeSO|ruin,references,sealed,,,factionId,faction Id,faction-content,unresolved-runtime-domain-id,,Assets/Resources/SO/Offense/Sites/ruin.asset
+OffenseSiteArchetypeSO,watchtower,OffenseSiteArchetypeSO|watchtower,references,human,,,factionId,faction Id,faction-content,unresolved-runtime-domain-id,,Assets/Resources/SO/Offense/Sites/watchtower.asset

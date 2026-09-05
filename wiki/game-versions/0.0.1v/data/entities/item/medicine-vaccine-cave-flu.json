@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.7kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "15개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "75"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "동굴 독감 백신은 특정 감염에 대비해 면역 반응을 준비시키는 의료 물자다. 므네실라산 동굴 독감 백신 병에는 접종 시기와 보관 온도를 나타내는 포자 고리가 둘러져 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "medicine-vaccine-cave-flu",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 동굴 독감 백신.",
+  "title": "동굴 독감 백신"
+}

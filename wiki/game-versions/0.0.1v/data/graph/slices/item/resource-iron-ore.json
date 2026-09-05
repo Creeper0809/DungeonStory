@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-iron-ore",
+    "spoiler_tier": "none",
+    "title": "철광석"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/source-quarry",
+      "label": "생산·해금",
+      "to": "item/resource-iron-ore",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-iron-ingot",
+      "label": "필요 조건",
+      "to": "item/resource-iron-ore",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-iron-slag-block",
+      "label": "필요 조건",
+      "to": "item/resource-iron-ore",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

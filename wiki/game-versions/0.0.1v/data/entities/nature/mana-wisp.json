@@ -1,0 +1,31 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "nature",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "rune-deer",
+      "target_spoiler_tier": "none",
+      "target_title": "룬사슴",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-mana-pox",
+      "target_spoiler_tier": "none",
+      "target_title": "마나두창",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "mana-wisp",
+  "spoiler_tier": "none",
+  "summary": "전력망 누출을 따라 모이며 다른 비전 생물을 끌어들인다.",
+  "title": "마나도깨비불"
+}

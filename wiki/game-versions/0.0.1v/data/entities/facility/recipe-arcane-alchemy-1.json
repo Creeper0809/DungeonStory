@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1032",
+      "target_spoiler_tier": "none",
+      "target_title": "연구용책장",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1030",
+      "target_spoiler_tier": "none",
+      "target_title": "연구책상",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1031",
+      "target_spoiler_tier": "none",
+      "target_title": "연금술작업대",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-arcane-alchemy-1",
+  "spoiler_tier": "none",
+  "summary": "연구책상과 연구용책장을 결합해 실험과 기록을 함께 처리하는 작업대로 개조한다.",
+  "title": "연금술작업대 개조"
+}

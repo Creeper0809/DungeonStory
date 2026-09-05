@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "heritable-rapid-repair",
+    "spoiler_tier": "none",
+    "title": "고속 면역 복구"
+  },
+  "edges": [],
+  "schema_version": 1
+}

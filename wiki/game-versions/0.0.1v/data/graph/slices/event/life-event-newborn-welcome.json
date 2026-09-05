@@ -1,0 +1,29 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "life-event-newborn-welcome",
+    "spoiler_tier": "warning",
+    "title": "새 생명의 환영"
+  },
+  "edges": [
+    {
+      "amount": "3",
+      "from": "event/life-event-newborn-welcome",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-newborn-welcome",
+      "target_spoiler_tier": "warning",
+      "target_title": "새 생명의 환영",
+      "to": "event/life-event-newborn-welcome",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "3",
+      "from": "event/life-event-newborn-welcome",
+      "label": "연결",
+      "to": "event/life-event-newborn-welcome",
+      "type": "changes-mood"
+    }
+  ],
+  "schema_version": 1
+}

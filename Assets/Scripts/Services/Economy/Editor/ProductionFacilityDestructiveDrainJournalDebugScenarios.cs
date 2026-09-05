@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -196,6 +197,62 @@ public static class ProductionFacilityDestructiveDrainJournalDebugScenarios
                 && restoredEntry.phase == draining.phase,
             "durable drain current-format save/restore was not byte-stable");
 
+        ProductionFacilityDestructiveDrainCheckpointGcContext checkpoint = new(
+            1L,
+            new string('a', 64),
+            "qa-journal-slot");
+        Require(
+            restored.PrepareCheckpointGarbageCollection(
+                    checkpoint,
+                    Array.Empty<string>(),
+                    out IProductionFacilityDestructiveDrainCheckpointGcJournalCandidate
+                        checkpointCandidate).Status ==
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied
+            && restored.PublishCheckpointGarbageCollection(checkpointCandidate)
+                .Status ==
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied,
+            "journal checkpoint marker did not publish for an empty selection");
+        restored.CompleteCheckpointGarbageCollection(checkpointCandidate);
+        DungeonProductionFacilityDestructiveDrainSaveData checkpointed =
+            restored.Capture();
+        Require(
+            checkpointed.lastConfirmedCheckpointSequence == 1L
+            && string.Equals(
+                checkpointed.lastConfirmedSerializedByteDigest,
+                new string('a', 64),
+                StringComparison.Ordinal)
+            && restored.PrepareCheckpointGarbageCollection(
+                    checkpoint,
+                    Array.Empty<string>(),
+                    out _).Status ==
+                ProductionFacilityDestructiveDrainCheckpointGcStatus
+                    .AlreadyApplied,
+            "journal checkpoint marker replay was not exact and idempotent");
+
+        ProductionFacilityDestructiveDrainCheckpointGcContext rollback = new(
+            2L,
+            new string('b', 64),
+            "qa-journal-slot");
+        Require(
+            restored.PrepareCheckpointGarbageCollection(
+                    rollback,
+                    Array.Empty<string>(),
+                    out IProductionFacilityDestructiveDrainCheckpointGcJournalCandidate
+                        rollbackCandidate).Status ==
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied
+            && restored.PublishCheckpointGarbageCollection(rollbackCandidate)
+                .Status ==
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied,
+            "journal rollback fixture did not publish");
+        restored.RollbackCheckpointGarbageCollection(rollbackCandidate);
+        restored.CompleteCheckpointGarbageCollection(rollbackCandidate);
+        Require(restored.LastConfirmedCheckpointSequence == 1L
+                && string.Equals(
+                    restored.LastConfirmedSerializedByteDigest,
+                    new string('a', 64),
+                    StringComparison.Ordinal),
+            "journal rollback did not restore the exact prior marker");
+
         DungeonProductionFacilityDestructiveDrainSaveData invalid =
             restored.Capture();
         invalid.entries[0].operationId =
@@ -203,7 +260,216 @@ public static class ProductionFacilityDestructiveDrainJournalDebugScenarios
         RequireThrows(
             () => restored.BuildRestore(invalid),
             "mismatched durable drain operation/facility join was accepted");
+        VerifyCheckpointMarkerSaveSectionRoundTrip(registry);
+        VerifyRowRemovalAndMarkerSaveSectionRoundTrip(restored, registry);
+        VerifyCheckpointMarkerShapeFailsLoud(restored);
         Debug.Log("Production facility destructive-drain journal contracts passed.");
+    }
+
+    private static void VerifyCheckpointMarkerSaveSectionRoundTrip(
+        ProductionFacilityDestructiveDrainParticipantRegistry registry)
+    {
+        ProductionFacilityDestructiveDrainJournal source = new(
+            new DungeonRuntimeAggregateRootStore(),
+            registry);
+        string digest = new('c', 64);
+        ProductionFacilityDestructiveDrainCheckpointGcContext context = new(
+            1L,
+            digest,
+            "qa-journal-marker-roundtrip");
+        Require(
+            source.PrepareCheckpointGarbageCollection(
+                    context,
+                    Array.Empty<string>(),
+                    out IProductionFacilityDestructiveDrainCheckpointGcJournalCandidate
+                        candidate).Status ==
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied
+            && source.PublishCheckpointGarbageCollection(candidate).Status ==
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied,
+            "V3 journal marker-only checkpoint could not publish.");
+        source.CompleteCheckpointGarbageCollection(candidate);
+
+        ProductionFacilityDestructiveDrainJournal restored = RoundTripSection(
+            source,
+            registry,
+            out string captured);
+        Require(
+            restored.CaptureOpen().Count == 0
+            && restored.LastConfirmedCheckpointSequence == 1L
+            && string.Equals(
+                restored.LastConfirmedSerializedByteDigest,
+                digest,
+                StringComparison.Ordinal)
+            && string.Equals(
+                captured,
+                new ProductionFacilityDestructiveDrainSaveSection(
+                    restored,
+                    ProductionOutputLifecycleRestoreCandidatePublisher
+                        .IsolatedSectionFixtureOnly).Capture(),
+                StringComparison.Ordinal),
+            "V3 journal marker sequence/digest did not round-trip byte-exactly.");
+    }
+
+    private static void VerifyRowRemovalAndMarkerSaveSectionRoundTrip(
+        ProductionFacilityDestructiveDrainJournal source,
+        ProductionFacilityDestructiveDrainParticipantRegistry registry)
+    {
+        DungeonProductionFacilityDestructiveDrainSaveData terminal =
+            source.Capture();
+        Require(terminal.entries.Count == 1,
+            "Combined checkpoint fixture requires one durable row.");
+        ProductionFacilityDestructiveDrainEntrySaveData entry =
+            terminal.entries[0];
+        entry.phase = ProductionFacilityDestructiveDrainPhase
+            .WorldRemovedAwaitingCheckpointGc;
+        int ownerIndex = 0;
+        foreach (ProductionFacilityDestructiveDrainOwnerSaveData owner in
+                 entry.participants.SelectMany(value => value.owners))
+        {
+            owner.phase = ProductionFacilityDestructiveDrainStepPhase
+                .OwnerAcknowledged;
+            owner.commitId = "qa-journal-terminal-commit:" + ownerIndex;
+            owner.receiptFingerprint = new string(
+                (char)('d' + ownerIndex % 3),
+                64);
+            ownerIndex++;
+        }
+
+        ProductionFacilityDestructiveDrainJournal combined = new(
+            new DungeonRuntimeAggregateRootStore(),
+            registry);
+        combined.Restore(combined.BuildRestore(terminal));
+        Require(
+            ProductionFacilityDestructiveDrainOperationId.TryParse(
+                entry.operationId,
+                out ProductionFacilityDestructiveDrainOperationId operation),
+            "Combined checkpoint fixture operation ID was invalid.");
+        string digest = new('f', 64);
+        ProductionFacilityDestructiveDrainCheckpointGcContext context = new(
+            checked(terminal.lastConfirmedCheckpointSequence + 1L),
+            digest,
+            "qa-journal-row-marker-roundtrip");
+        Require(
+            combined.PrepareCheckpointGarbageCollection(
+                    context,
+                    new[] { operation.Value },
+                    out IProductionFacilityDestructiveDrainCheckpointGcJournalCandidate
+                        candidate).Status ==
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied
+            && combined.PublishCheckpointGarbageCollection(candidate).Status ==
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied,
+            "V3 journal combined row-removal/marker checkpoint did not publish.");
+        combined.CompleteCheckpointGarbageCollection(candidate);
+
+        ProductionFacilityDestructiveDrainJournal restored = RoundTripSection(
+            combined,
+            registry,
+            out _);
+        Require(
+            restored.CaptureOpen().Count == 0
+            && !restored.TryGet(operation, out _)
+            && restored.LastConfirmedCheckpointSequence ==
+                context.CheckpointSequence
+            && string.Equals(
+                restored.LastConfirmedSerializedByteDigest,
+                digest,
+                StringComparison.Ordinal),
+            "V3 journal row removal and marker were not restored atomically.");
+    }
+
+    private static void VerifyCheckpointMarkerShapeFailsLoud(
+        ProductionFacilityDestructiveDrainJournal source)
+    {
+        ProductionFacilityDestructiveDrainSaveSection section = new(
+            source,
+            ProductionOutputLifecycleRestoreCandidatePublisher
+                .IsolatedSectionFixtureOnly);
+        DungeonProductionFacilityDestructiveDrainSaveData baseline =
+            source.Capture();
+        baseline.entries.Clear();
+
+        foreach ((long sequence, string digest, string id) invalid in new[]
+                 {
+                     (-1L, string.Empty, "negative-sequence"),
+                     (0L, new string('1', 64), "zero-with-digest"),
+                     (1L, string.Empty, "positive-without-digest"),
+                     (1L, "not-a-digest", "positive-with-invalid-digest")
+                 })
+        {
+            baseline.lastConfirmedCheckpointSequence = invalid.sequence;
+            baseline.lastConfirmedSerializedByteDigest = invalid.digest;
+            string json = JsonUtility.ToJson(baseline);
+            RequireThrows(
+                () => section.ValidatePayload(
+                    json,
+                    DungeonProductionFacilityDestructiveDrainSaveData
+                        .CurrentVersion,
+                    new DungeonGameRestoreReport()),
+                "V3 journal accepted illegal marker combination: "
+                + invalid.id);
+        }
+
+        baseline.lastConfirmedCheckpointSequence = 1L;
+        baseline.lastConfirmedSerializedByteDigest = new string('2', 64);
+        string valid = JsonUtility.ToJson(baseline);
+        string missingSequence = valid.Replace(
+            "\"lastConfirmedCheckpointSequence\":1,",
+            string.Empty);
+        string missingDigest = valid.Replace(
+            "\"lastConfirmedSerializedByteDigest\":\""
+            + baseline.lastConfirmedSerializedByteDigest + "\",",
+            string.Empty);
+        Require(!string.Equals(valid, missingSequence, StringComparison.Ordinal)
+                && !string.Equals(valid, missingDigest, StringComparison.Ordinal),
+            "V3 journal missing-field fixtures did not remove their scalars.");
+        RequireThrows(
+            () => section.ValidatePayload(
+                missingSequence,
+                DungeonProductionFacilityDestructiveDrainSaveData.CurrentVersion,
+                new DungeonGameRestoreReport()),
+            "V3 journal accepted a missing checkpoint sequence field.");
+        RequireThrows(
+            () => section.ValidatePayload(
+                missingDigest,
+                DungeonProductionFacilityDestructiveDrainSaveData.CurrentVersion,
+                new DungeonGameRestoreReport()),
+            "V3 journal accepted a missing checkpoint digest field.");
+
+        DungeonProductionFacilityDestructiveDrainSaveData v2 = source.Capture();
+        v2.version = 2;
+        RequireThrows(
+            () => section.ValidatePayload(
+                JsonUtility.ToJson(v2),
+                DungeonProductionFacilityDestructiveDrainSaveData.CurrentVersion,
+                new DungeonGameRestoreReport()),
+            "Legacy V2 journal payload was accepted by the V3-only boundary.");
+    }
+
+    private static ProductionFacilityDestructiveDrainJournal RoundTripSection(
+        ProductionFacilityDestructiveDrainJournal source,
+        ProductionFacilityDestructiveDrainParticipantRegistry registry,
+        out string captured)
+    {
+        ProductionFacilityDestructiveDrainSaveSection sourceSection = new(
+            source,
+            ProductionOutputLifecycleRestoreCandidatePublisher
+                .IsolatedSectionFixtureOnly);
+        captured = sourceSection.Capture();
+        ProductionFacilityDestructiveDrainJournal restored = new(
+            new DungeonRuntimeAggregateRootStore(),
+            registry);
+        ProductionFacilityDestructiveDrainSaveSection restoredSection = new(
+            restored,
+            ProductionOutputLifecycleRestoreCandidatePublisher
+                .IsolatedSectionFixtureOnly);
+        DungeonGameRestoreReport report = new();
+        IDungeonSaveRestoreStage stage = restoredSection.StageRestore(
+            captured,
+            DungeonProductionFacilityDestructiveDrainSaveData.CurrentVersion,
+            report);
+        stage.Commit(report);
+        Require(report.Success, "V3 journal save-section round-trip failed.");
+        return restored;
     }
 
     private static List<ProductionFacilityDestructiveDrainParticipantSaveData>

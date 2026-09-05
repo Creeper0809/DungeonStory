@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-component-rune-tuning-shield",
+    "spoiler_tier": "none",
+    "title": "룬 조율 차폐판"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-rune-tuning-shield",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-rune-tuning-shield",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 조율 차폐판",
+      "to": "item/component-rune-tuning-shield",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-rune-tuning-shield",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-mana-shield-plate",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 차폐판",
+      "to": "item/component-mana-shield-plate",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-rune-tuning-shield",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-rune-conductor",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 도체",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-rune-tuning-shield",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-rune-module-tuning",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 부품 조율",
+      "to": "research/research-equipment-rune-module-tuning",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

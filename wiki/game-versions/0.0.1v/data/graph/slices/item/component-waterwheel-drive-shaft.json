@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "component-waterwheel-drive-shaft",
+    "spoiler_tier": "none",
+    "title": "수차 구동축"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-waterwheel-drive-shaft",
+      "label": "생산·해금",
+      "to": "item/component-waterwheel-drive-shaft",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,46 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "ammo-mana-disruptor-bolt",
+    "spoiler_tier": "none",
+    "title": "마나 차단 볼트"
+  },
+  "edges": [
+    {
+      "amount": "6",
+      "from": "recipe/recipe-ammo-mana-disruptor-bolt",
+      "label": "생산·해금",
+      "to": "item/ammo-mana-disruptor-bolt",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-crossbow",
+      "label": "관련",
+      "to": "item/ammo-mana-disruptor-bolt",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-repeating-crossbow",
+      "label": "관련",
+      "to": "item/ammo-mana-disruptor-bolt",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-siege-arbalest",
+      "label": "관련",
+      "to": "item/ammo-mana-disruptor-bolt",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-windlass-crossbow",
+      "label": "관련",
+      "to": "item/ammo-mana-disruptor-bolt",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

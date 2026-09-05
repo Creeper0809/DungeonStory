@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.65kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "19"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "진흙과 거친 바닥을 밟을 때 발목까지 감싸는 장화다. 하르나크에서 만든 장화는 발끝과 발목 둘레를 덧대기 쉽도록 여유 천을 남긴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "apparel-boots",
+  "spoiler_tier": "none",
+  "summary": "장화 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다.",
+  "title": "장화"
+}

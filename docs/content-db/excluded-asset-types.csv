@@ -1,0 +1,66 @@
+﻿content_type,asset_count,exclusion_reason
+AIDrink,1,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+AIEatAdapter,1,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+AIExitDungeonAdapter,1,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+AIFacilityRoleAction,3,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+AIHaul,1,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+AIHunt,1,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+AILookAroundAdapter,1,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+AIPrimitiveBucketWash,1,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+AIPrimitiveFieldMeal,1,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+AIPrimitiveFloorRest,1,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+AIPrimitiveLatrine,1,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+AIRescue,1,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+AIRest,1,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+AIShoppingAdapter,1,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+AISubstanceUse,1,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+AIWaitAdapter,1,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+AIWork,1,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+BehaviorDesigner.Runtime.ExternalBehaviorTree,1,기술·현지화·Addressables·표현 설정: 플레이 규칙 콘텐츠에서 제외
+CharacterAiNaturalnessSettingsSO,1,전역 시스템 규칙·밸런스 설정: 개별 콘텐츠 항목이 아닌 시스템 권위
+CharacterAiPerfSettingsSO,1,전역 시스템 규칙·밸런스 설정: 개별 콘텐츠 항목이 아닌 시스템 권위
+CharacterSkillSystemSettingsSO,1,전역 시스템 규칙·밸런스 설정: 개별 콘텐츠 항목이 아닌 시스템 권위
+ConsiderationCanLookAround,1,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+ConsiderationFacilityNeed,6,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+ConsiderationIsVisitableAdapter,1,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+ConsiderationRandomAdapter,2,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+ConsiderationShoppingCountAdapter,1,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+ConsiderationShouldExitDungeonAdapter,1,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+ConsiderationStatAdapter,4,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+ConsiderationWorkNeed,1,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+DNPPreset,66,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+DungeonAudioLibrarySO,1,기술 또는 표현 설정: 플레이 규칙 콘텐츠에서 제외
+DungeonStory.Content.CoreSession.CoreSessionRulesSO,1,전역 시스템 규칙·밸런스 설정: 개별 콘텐츠 항목이 아닌 시스템 권위
+FacilityCrimeSettingsSO,1,전역 시스템 규칙·밸런스 설정: 개별 콘텐츠 항목이 아닌 시스템 권위
+FactionAllianceBenefitBudgetSO,1,미분류 MonoBehaviour 자산: 콘텐츠 포함 여부 수동 검토
+GameContentCatalogSO,1,카탈로그·등록 인프라: 개별 콘텐츠가 아니라 다른 자산의 집합 권위
+GameData,1,전역 시스템 규칙·밸런스 설정: 개별 콘텐츠 항목이 아닌 시스템 권위
+GameDomainContentCatalogSO,1,카탈로그·등록 인프라: 개별 콘텐츠가 아니라 다른 자산의 집합 권위
+GameMediaCatalogSO,1,카탈로그·등록 인프라: 개별 콘텐츠가 아니라 다른 자산의 집합 권위
+InGameNarrativeTextCatalogSO,1,카탈로그·등록 인프라: 개별 콘텐츠가 아니라 다른 자산의 집합 권위
+ItemDefinitionCatalogSO,1,카탈로그·등록 인프라: 개별 콘텐츠가 아니라 다른 자산의 집합 권위
+ItemHaulingSettingsSO,1,전역 시스템 규칙·밸런스 설정: 개별 콘텐츠 항목이 아닌 시스템 권위
+OffenseCampaignCatalogSO,1,카탈로그·등록 인프라: 개별 콘텐츠가 아니라 다른 자산의 집합 권위
+RoomEnvironmentSettingsSO,1,전역 시스템 규칙·밸런스 설정: 개별 콘텐츠 항목이 아닌 시스템 권위
+StatChange,1,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+SurvivalBalanceSettingsSO,1,전역 시스템 규칙·밸런스 설정: 개별 콘텐츠 항목이 아닌 시스템 권위
+TmpKoreanFontSettingsSO,1,전역 시스템 규칙·밸런스 설정: 개별 콘텐츠 항목이 아닌 시스템 권위
+UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject,1,기술·현지화·Addressables·표현 설정: 플레이 규칙 콘텐츠에서 제외
+UnityEditor.AddressableAssets.Build.DataBuilders.BuildScriptFastMode,1,기술·현지화·Addressables·표현 설정: 플레이 규칙 콘텐츠에서 제외
+UnityEditor.AddressableAssets.Build.DataBuilders.BuildScriptPackedMode,1,기술·현지화·Addressables·표현 설정: 플레이 규칙 콘텐츠에서 제외
+UnityEditor.AddressableAssets.Build.DataBuilders.BuildScriptPackedPlayMode,1,기술·현지화·Addressables·표현 설정: 플레이 규칙 콘텐츠에서 제외
+UnityEditor.AddressableAssets.Settings.AddressableAssetGroup,5,기술·현지화·Addressables·표현 설정: 플레이 규칙 콘텐츠에서 제외
+UnityEditor.AddressableAssets.Settings.AddressableAssetGroupTemplate,1,기술·현지화·Addressables·표현 설정: 플레이 규칙 콘텐츠에서 제외
+UnityEditor.AddressableAssets.Settings.AddressableAssetSettings,1,기술·현지화·Addressables·표현 설정: 플레이 규칙 콘텐츠에서 제외
+UnityEditor.AddressableAssets.Settings.GroupSchemas.BundledAssetGroupSchema,6,기술·현지화·Addressables·표현 설정: 플레이 규칙 콘텐츠에서 제외
+UnityEditor.AddressableAssets.Settings.GroupSchemas.ContentUpdateGroupSchema,6,기술·현지화·Addressables·표현 설정: 플레이 규칙 콘텐츠에서 제외
+UnityEditor.AddressableAssets.Settings.ProfileDataSourceSettings,1,기술·현지화·Addressables·표현 설정: 플레이 규칙 콘텐츠에서 제외
+UnityEditor.Localization.StringTableCollection,9,기술·현지화·Addressables·표현 설정: 플레이 규칙 콘텐츠에서 제외
+UnityEngine.Localization.Locale,2,기술·현지화·Addressables·표현 설정: 플레이 규칙 콘텐츠에서 제외
+UnityEngine.Localization.Settings.LocalizationSettings,1,기술·현지화·Addressables·표현 설정: 플레이 규칙 콘텐츠에서 제외
+UnityEngine.Localization.Tables.SharedTableData,9,기술·현지화·Addressables·표현 설정: 플레이 규칙 콘텐츠에서 제외
+UnityEngine.Localization.Tables.StringTable,18,기술·현지화·Addressables·표현 설정: 플레이 규칙 콘텐츠에서 제외
+UnityEngine.Rendering.VolumeProfile,1,기술·현지화·Addressables·표현 설정: 플레이 규칙 콘텐츠에서 제외
+WasteProcessingRulesSO,1,전역 시스템 규칙·밸런스 설정: 개별 콘텐츠 항목이 아닌 시스템 권위
+WildlifeHabitatDecorationPaletteSO,1,기술 또는 표현 설정: 플레이 규칙 콘텐츠에서 제외
+WorldInteractionPresentationCatalogSO,1,카탈로그·등록 인프라: 개별 콘텐츠가 아니라 다른 자산의 집합 권위

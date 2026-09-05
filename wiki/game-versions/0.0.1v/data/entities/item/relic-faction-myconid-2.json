@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "0"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "병든 균사만 공명으로 구분해 자르는 칼이다. 므네실라의 균맥 절단칼에는 병든 균사만 끊었다는 치료사의 표식과 사람을 해쳤다는 오르데나 압수표가 함께 붙어 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "relic-faction-myconid-2",
+  "spoiler_tier": "none",
+  "summary": "병든 균사만 공명으로 구분해 자르는 칼.",
+  "title": "균맥 절단칼"
+}

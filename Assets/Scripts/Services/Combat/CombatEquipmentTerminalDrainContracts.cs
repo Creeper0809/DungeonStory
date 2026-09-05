@@ -475,6 +475,42 @@ public interface ICombatEquipmentTerminalSourceAuthority
         string removalReceiptFingerprint);
 }
 
+internal sealed class CombatEquipmentTerminalReceiptGcRow
+{
+    internal CombatEquipmentTerminalReceiptGcRow(
+        CombatEquipmentTerminalFrozenSubject source,
+        string wipReceiptFingerprint,
+        string removalReceiptFingerprint)
+    {
+        Source = source ?? throw new ArgumentNullException(nameof(source));
+        WipReceiptFingerprint = wipReceiptFingerprint ?? string.Empty;
+        RemovalReceiptFingerprint = removalReceiptFingerprint ?? string.Empty;
+    }
+
+    internal CombatEquipmentTerminalFrozenSubject Source { get; }
+    internal string WipReceiptFingerprint { get; }
+    internal string RemovalReceiptFingerprint { get; }
+}
+
+internal interface ICombatEquipmentTerminalSourceCheckpointGcCandidate
+{
+}
+
+internal interface ICombatEquipmentTerminalSourceCheckpointGcAuthority
+{
+    bool TryPrepareCheckpointGarbageCollection(
+        IReadOnlyList<CombatEquipmentTerminalReceiptGcRow> rows,
+        out ICombatEquipmentTerminalSourceCheckpointGcCandidate candidate,
+        out string failureReason);
+
+    CombatEquipmentTerminalEffectResult PublishCheckpointGarbageCollection(
+        ICombatEquipmentTerminalSourceCheckpointGcCandidate candidate);
+    void RollbackCheckpointGarbageCollection(
+        ICombatEquipmentTerminalSourceCheckpointGcCandidate candidate);
+    void CompleteCheckpointGarbageCollection(
+        ICombatEquipmentTerminalSourceCheckpointGcCandidate candidate);
+}
+
 public interface ICombatEquipmentTerminalDrainQuery
 {
     bool TryCaptureLiveSourceForPreparation(
@@ -511,6 +547,28 @@ public interface ICombatEquipmentTerminalDrainCommand
         IEnumerable<CombatEquipmentTerminalDrainSaveData> records,
         IEnumerable<ProductionInputDestinationCustodyDrainSaveData> childRecords,
         out string failureReason);
+}
+
+internal interface ICombatEquipmentTerminalDrainCheckpointGcCandidate
+{
+}
+
+internal interface ICombatEquipmentTerminalDrainCheckpointGcAuthority
+{
+    ICombatEquipmentTerminalSourceCheckpointGcAuthority
+        SourceCheckpointGcAuthority { get; }
+
+    bool TryPrepareCheckpointGarbageCollection(
+        IReadOnlyList<CombatEquipmentTerminalDrainSaveData> rows,
+        out ICombatEquipmentTerminalDrainCheckpointGcCandidate candidate,
+        out string failureReason);
+
+    CombatEquipmentTerminalDrainResult PublishCheckpointGarbageCollection(
+        ICombatEquipmentTerminalDrainCheckpointGcCandidate candidate);
+    void RollbackCheckpointGarbageCollection(
+        ICombatEquipmentTerminalDrainCheckpointGcCandidate candidate);
+    void CompleteCheckpointGarbageCollection(
+        ICombatEquipmentTerminalDrainCheckpointGcCandidate candidate);
 }
 
 [Serializable]

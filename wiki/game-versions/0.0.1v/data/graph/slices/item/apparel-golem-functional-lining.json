@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "apparel-golem-functional-lining",
+    "spoiler_tier": "none",
+    "title": "골렘 기능성 내피"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-golem-functional-lining",
+      "label": "생산·해금",
+      "to": "item/apparel-golem-functional-lining",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

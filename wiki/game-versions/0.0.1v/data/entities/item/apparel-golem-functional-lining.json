@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.7kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "19"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "골렘의 관절 틈과 핵 주변을 감싸도록 잘라 낸 교체용 내피다. 제4주조도시의 골렘 기능성 내피는 그을음을 완전히 씻지 않는다. 골렘들은 그 자국을 몸이 바뀌어도 남는 근무 흔적으로 여긴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "apparel-golem-functional-lining",
+  "spoiler_tier": "none",
+  "summary": "골렘 기능성 내피 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다.",
+  "title": "골렘 기능성 내피"
+}

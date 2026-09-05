@@ -1,0 +1,46 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "component-mana-shield-plate",
+    "spoiler_tier": "none",
+    "title": "마나 차폐판"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "event/practice-slime-core-ring",
+      "label": "필요 조건",
+      "to": "item/component-mana-shield-plate",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-mana-shield-plate",
+      "label": "생산·해금",
+      "to": "item/component-mana-shield-plate",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-rune-tuning-shield",
+      "label": "필요 조건",
+      "to": "item/component-mana-shield-plate",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-temporal-stasis-seal",
+      "label": "필요 조건",
+      "to": "item/component-mana-shield-plate",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-mana-probe",
+      "label": "필요 조건",
+      "to": "item/component-mana-shield-plate",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

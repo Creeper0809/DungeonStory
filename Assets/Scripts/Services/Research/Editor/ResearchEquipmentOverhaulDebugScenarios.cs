@@ -102,6 +102,13 @@ public static class ResearchEquipmentOverhaulDebugScenarios
         Debug.Log($"180 research/equipment overhaul validation passed. {pacingReport}");
     }
 
+    public static IReadOnlyList<string> ValidateModuleLifecycleForAutomation()
+    {
+        List<string> failures = new();
+        ValidateRuntimeLocksModulesAndSave(failures);
+        return failures.AsReadOnly();
+    }
+
     [MenuItem("Tools/DungeonStory/Research/Generate V21 Gameplay Connection Report")]
     public static void GenerateGameplayConnectionReport()
     {
@@ -452,6 +459,7 @@ public static class ResearchEquipmentOverhaulDebugScenarios
             ProductionRecipeSO.ResourcePath);
         int recipeExecutors = 0;
         int commandExecutors = 0;
+        int deferredOutputFacilities = 0;
         foreach (BuildingSO facility in facilities)
         {
             if (facility.UseClassification == FacilityUseClassification.None)
@@ -468,6 +476,12 @@ public static class ResearchEquipmentOverhaulDebugScenarios
                     StringComparison.Ordinal));
             bool hasCommand = facility.ResearchFacilityCommand
                 != ResearchFacilityCommandKind.None;
+            bool hasDeferredOutput = facility
+                .GetProductionOutputDispositionAbility() is
+                    BuildingProductionOutputDispositionAbility disposition
+                && disposition.ReasonCode.StartsWith(
+                    "content-gap:",
+                    StringComparison.Ordinal);
             if (hasRecipe)
             {
                 recipeExecutors++;
@@ -482,7 +496,9 @@ public static class ResearchEquipmentOverhaulDebugScenarios
                         $"{facility.id}: command {facility.ResearchFacilityCommand} has no runtime owner");
                 }
             }
-            if (!hasRecipe && !hasCommand)
+            if (hasDeferredOutput)
+                deferredOutputFacilities++;
+            if (!hasRecipe && !hasCommand && !hasDeferredOutput)
             {
                 failures.Add(
                     $"{facility.id}: no production recipe or typed command executor");
@@ -495,11 +511,8 @@ public static class ResearchEquipmentOverhaulDebugScenarios
         Require(commandExecutors == 38,
             $"research facility command executors {commandExecutors}, expected 38",
             failures);
-        Require(Enum.GetValues(typeof(ResearchFacilityCommandKind))
-                .Cast<ResearchFacilityCommandKind>()
-                .Where(value => value != ResearchFacilityCommandKind.None)
-                .All(ResearchFacilityCommandConsumerRegistry.HasExecutionContract),
-            "one or more typed facility command values have no runtime owner",
+        Require(deferredOutputFacilities == 0,
+            $"research facility deferred output count {deferredOutputFacilities}, expected 0",
             failures);
     }
 

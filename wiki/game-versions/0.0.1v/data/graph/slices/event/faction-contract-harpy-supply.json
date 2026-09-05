@@ -1,0 +1,29 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "faction-contract-harpy-supply",
+    "spoiler_tier": "none",
+    "title": "폭풍둥지 정기 물자 계약"
+  },
+  "edges": [
+    {
+      "amount": "8",
+      "from": "event/faction-contract-harpy-supply",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-rope",
+      "target_spoiler_tier": "none",
+      "target_title": "밧줄",
+      "to": "item/material-rope",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-harpy",
+      "label": "관련",
+      "to": "event/faction-contract-harpy-supply",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

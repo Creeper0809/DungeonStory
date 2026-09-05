@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "medicine-field-emergency-kit",
+    "spoiler_tier": "none",
+    "title": "야전 응급 키트"
+  },
+  "edges": [],
+  "schema_version": 1
+}

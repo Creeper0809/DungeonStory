@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public enum PhysicalItemDispositionKind
@@ -136,6 +137,8 @@ public sealed class EmptyPhysicalItemRestoreCandidateOutputQuery :
 
 public sealed class FacilityBufferPlannedOutputRestoreStackSnapshot
 {
+    private readonly IReadOnlyList<ItemInstanceComponentSaveData> components;
+
     public FacilityBufferPlannedOutputRestoreStackSnapshot(
         string batchCommitId,
         string outcomeFingerprint,
@@ -149,7 +152,10 @@ public sealed class FacilityBufferPlannedOutputRestoreStackSnapshot
         string componentSignature,
         WorldItemStackState state,
         Vector2Int position,
-        string destinationId)
+        string destinationId,
+        string itemInstanceId = "",
+        IReadOnlyList<ItemInstanceComponentSaveData> components = null,
+        string preparedComponentFingerprint = "")
     {
         BatchCommitId = batchCommitId ?? string.Empty;
         OutcomeFingerprint = outcomeFingerprint ?? string.Empty;
@@ -164,6 +170,16 @@ public sealed class FacilityBufferPlannedOutputRestoreStackSnapshot
         State = state;
         Position = position;
         DestinationId = destinationId ?? string.Empty;
+        ItemInstanceId = itemInstanceId ?? string.Empty;
+        this.components = Array.AsReadOnly((components
+                ?? Array.Empty<ItemInstanceComponentSaveData>())
+            .Select(value => value?.Clone()
+                ?? throw new ArgumentException(
+                    "Restore stack components cannot contain null.",
+                    nameof(components)))
+            .ToArray());
+        PreparedComponentFingerprint = preparedComponentFingerprint
+            ?? string.Empty;
     }
 
     public string BatchCommitId { get; }
@@ -179,6 +195,10 @@ public sealed class FacilityBufferPlannedOutputRestoreStackSnapshot
     public WorldItemStackState State { get; }
     public Vector2Int Position { get; }
     public string DestinationId { get; }
+    public string ItemInstanceId { get; }
+    public IReadOnlyList<ItemInstanceComponentSaveData> Components =>
+        components ?? Array.Empty<ItemInstanceComponentSaveData>();
+    public string PreparedComponentFingerprint { get; }
 }
 
 public sealed class FacilityBufferPlannedOutputRestoreBatchSnapshot
@@ -223,6 +243,15 @@ public interface IFacilityBufferPlannedOutputRestoreCandidateQuery
         out FacilityBufferPlannedOutputRestoreBatchSnapshot batch);
 }
 
+public interface IFacilityBufferAcknowledgedOutputRestoreCandidateQuery
+{
+    bool IsCandidateAvailable { get; }
+    IReadOnlyList<FacilityBufferPlannedOutputRestoreBatchSnapshot> Batches { get; }
+    bool TryGetBatch(
+        string batchCommitId,
+        out FacilityBufferPlannedOutputRestoreBatchSnapshot batch);
+}
+
 public sealed class EmptyFacilityBufferPlannedOutputRestoreCandidateQuery :
     IFacilityBufferPlannedOutputRestoreCandidateQuery
 {
@@ -236,6 +265,30 @@ public sealed class EmptyFacilityBufferPlannedOutputRestoreCandidateQuery :
     public bool IsCandidateAvailable => true;
     public IReadOnlyList<FacilityBufferPlannedOutputRestoreBatchSnapshot> Batches =>
         Array.Empty<FacilityBufferPlannedOutputRestoreBatchSnapshot>();
+    public bool TryGetBatch(
+        string batchCommitId,
+        out FacilityBufferPlannedOutputRestoreBatchSnapshot batch)
+    {
+        batch = null;
+        return false;
+    }
+}
+
+public sealed class EmptyFacilityBufferAcknowledgedOutputRestoreCandidateQuery :
+    IFacilityBufferAcknowledgedOutputRestoreCandidateQuery
+{
+    public static readonly
+        EmptyFacilityBufferAcknowledgedOutputRestoreCandidateQuery Instance =
+            new();
+
+    private EmptyFacilityBufferAcknowledgedOutputRestoreCandidateQuery()
+    {
+    }
+
+    public bool IsCandidateAvailable => true;
+    public IReadOnlyList<FacilityBufferPlannedOutputRestoreBatchSnapshot> Batches =>
+        Array.Empty<FacilityBufferPlannedOutputRestoreBatchSnapshot>();
+
     public bool TryGetBatch(
         string batchCommitId,
         out FacilityBufferPlannedOutputRestoreBatchSnapshot batch)

@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-sabotage",
+      "target_spoiler_tier": "warning",
+      "target_title": "내부 파괴 공작",
+      "type": "adds-work-delay"
+    },
+    {
+      "amount": "3",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-sabotage",
+      "target_spoiler_tier": "warning",
+      "target_title": "내부 파괴 공작",
+      "type": "changes-threat"
+    },
+    {
+      "amount": "1",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-sabotage",
+      "target_spoiler_tier": "warning",
+      "target_title": "내부 파괴 공작",
+      "type": "sets-world-flag"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "service-incident-sabotage",
+  "spoiler_tier": "warning",
+  "summary": "손님 구역에서 생산 시설로 이어진 고의 파손 흔적이 발견됐다.",
+  "title": "내부 파괴 공작"
+}

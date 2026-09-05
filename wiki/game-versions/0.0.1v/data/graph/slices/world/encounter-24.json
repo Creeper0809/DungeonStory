@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "encounter-24",
+    "spoiler_tier": "warning",
+    "title": "자유개척 약초사 생포"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/encounter-24",
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "battlefield-collapsing-ceiling",
+      "target_spoiler_tier": "none",
+      "target_title": "붕괴 천장",
+      "to": "world/battlefield-collapsing-ceiling",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-24",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "offense-unappraised-loot",
+      "target_spoiler_tier": "none",
+      "target_title": "미감정 전리품",
+      "to": "item/offense-unappraised-loot",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "6.5kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "3229"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "방패면에 수호 룬을 새겨 마나가 흐르는 공격까지 받아 내는 방패다. 특히 베르사디온산 룬 방패에는 마나가 새면 먼저 끊어지는 세 번째 봉인실이 감겨 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-shield-rune",
+  "spoiler_tier": "none",
+  "summary": "룬 방패 전투 장비",
+  "title": "룬 방패"
+}

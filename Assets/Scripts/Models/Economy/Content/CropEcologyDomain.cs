@@ -58,6 +58,49 @@ public readonly struct CropGenomePhenotype
     public int SeedYieldBonus { get; }
 }
 
+/// <summary>
+/// Single phenotype projection shared by the live ecology runtime and the
+/// reachable-maximum capacity witness. A capacity proof may only claim the
+/// factors produced from an actual registered genome payload.
+/// </summary>
+public static class CropGenomePhenotypeAuthority
+{
+    public static CropGenomePhenotype Create(CultivarGenomeSaveData genome)
+    {
+        if (genome?.loci == null
+            || genome.loci.Count != Enum.GetValues(typeof(CropGenomeLocus)).Length
+            || genome.loci.Select(value => value.locus).Distinct().Count()
+                != genome.loci.Count)
+        {
+            throw new InvalidOperationException(
+                "A complete, distinct crop genome is required.");
+        }
+
+        float cold = GetLocusMean(genome, CropGenomeLocus.ColdTolerance);
+        float heat = GetLocusMean(genome, CropGenomeLocus.HeatTolerance);
+        float growth = GetLocusMean(genome, CropGenomeLocus.GrowthSpeed);
+        float yield = GetLocusMean(genome, CropGenomeLocus.Yield);
+        float disease = GetLocusMean(genome, CropGenomeLocus.DiseaseResistance);
+        float seeds = GetLocusMean(genome, CropGenomeLocus.SeedYield);
+        return new CropGenomePhenotype(
+            cold * 2.5f,
+            heat * 2.5f,
+            1f + growth * 0.08f,
+            1f + yield * 0.05f,
+            1f - disease * 0.12f,
+            Mathf.RoundToInt(seeds * 0.5f));
+    }
+
+    private static float GetLocusMean(
+        CultivarGenomeSaveData genome,
+        CropGenomeLocus locus)
+    {
+        DiploidLocusSaveData value = genome.loci.Single(entry =>
+            entry.locus == locus);
+        return (value.alleleA + value.alleleB) * 0.5f;
+    }
+}
+
 [Serializable]
 public sealed class DiploidLocusSaveData
 {
@@ -192,12 +235,13 @@ public sealed class CropEcologyPlotSaveData
 [Serializable]
 public sealed class CropEcologyWorldSaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 3;
     public int version = CurrentVersion;
     public bool initialSeedGrantIssued;
     public List<CropEcologyPlotSaveData> plots = new();
     public List<CultivarGenomeSaveData> activeCultivars = new();
     public List<CultivarGenomeSaveData> frozenCultivars = new();
+    public List<CropEcologyPreparedHarvestSaveData> preparedHarvests = new();
 }
 
 public readonly struct CropHarvestEcologyResult
@@ -213,6 +257,93 @@ public readonly struct CropHarvestEcologyResult
     public SeedLotState ReturnedSeedLot { get; }
 }
 
+[Serializable]
+public sealed class CropEcologyPreparedHarvestSaveData
+{
+    public string operationId = string.Empty;
+    public string plotId = string.Empty;
+    public CropEcologyPlotSaveData plotBefore;
+    public string plotBeforeFingerprint = string.Empty;
+    public float yieldMultiplier;
+    public int returnedSeedCount;
+    public SeedLotState returnedSeedLot;
+    public CultivarGenomeSaveData generatedGenome;
+    public CropEcologyPlotSaveData plotAfter;
+    public string outcomeFingerprint = string.Empty;
+    public bool committed;
+
+    public CropEcologyPreparedHarvestSaveData Clone() => new()
+    {
+        operationId = operationId ?? string.Empty,
+        plotId = plotId ?? string.Empty,
+        plotBefore = ClonePlot(plotBefore),
+        plotBeforeFingerprint = plotBeforeFingerprint ?? string.Empty,
+        yieldMultiplier = yieldMultiplier,
+        returnedSeedCount = returnedSeedCount,
+        returnedSeedLot = returnedSeedLot?.Clone(),
+        generatedGenome = CloneGenome(generatedGenome),
+        plotAfter = ClonePlot(plotAfter),
+        outcomeFingerprint = outcomeFingerprint ?? string.Empty,
+        committed = committed
+    };
+
+    private static CultivarGenomeSaveData CloneGenome(
+        CultivarGenomeSaveData value) => value == null ? null : new()
+    {
+        genomeId = value.genomeId,
+        cropId = value.cropId,
+        generation = value.generation,
+        loci = (value.loci ?? new List<DiploidLocusSaveData>())
+            .Select(locus => new DiploidLocusSaveData
+            {
+                locus = locus.locus,
+                alleleA = locus.alleleA,
+                alleleB = locus.alleleB
+            })
+            .ToList()
+    };
+
+    private static CropEcologyPlotSaveData ClonePlot(
+        CropEcologyPlotSaveData value) => value == null ? null : new()
+    {
+        plotId = value.plotId,
+        cropId = value.cropId,
+        cultivarGenomeId = value.cultivarGenomeId,
+        currentGroup = value.currentGroup,
+        previousGroup = value.previousGroup,
+        hasPreviousGroup = value.hasPreviousGroup,
+        fertility = value.fertility,
+        pestPressure = value.pestPressure,
+        diseasePressure = value.diseasePressure,
+        disease = value.disease,
+        consecutiveLethalTemperatureDays = value.consecutiveLethalTemperatureDays,
+        cropDead = value.cropDead
+    };
+}
+
+public readonly struct CropEcologyPreparedHarvestSnapshot
+{
+    public CropEcologyPreparedHarvestSnapshot(
+        string operationId,
+        string plotId,
+        string outcomeFingerprint,
+        bool committed,
+        CropHarvestEcologyResult result)
+    {
+        OperationId = operationId ?? string.Empty;
+        PlotId = plotId ?? string.Empty;
+        OutcomeFingerprint = outcomeFingerprint ?? string.Empty;
+        Committed = committed;
+        Result = result;
+    }
+
+    public string OperationId { get; }
+    public string PlotId { get; }
+    public string OutcomeFingerprint { get; }
+    public bool Committed { get; }
+    public CropHarvestEcologyResult Result { get; }
+}
+
 public sealed class CropEcologyAggregateState
 {
     public const int MaximumActiveCultivarsPerCrop = 12;
@@ -220,6 +351,8 @@ public sealed class CropEcologyAggregateState
     private readonly Dictionary<string, CropEcologyPlotSaveData> plots = new(StringComparer.Ordinal);
     private readonly Dictionary<string, CultivarGenomeSaveData> active = new(StringComparer.Ordinal);
     private readonly Dictionary<string, CultivarGenomeSaveData> frozen = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, CropEcologyPreparedHarvestSaveData>
+        preparedHarvests = new(StringComparer.Ordinal);
     private bool initialSeedGrantIssued;
 
     public IReadOnlyList<CropEcologyPlotSaveData> Plots => plots.Values
@@ -344,15 +477,7 @@ public sealed class CropEcologyAggregateState
         CropEcologyPlotSaveData plot = RequirePlot(plotId);
         if (plot.cropDead) throw new InvalidOperationException("A dead crop cannot be harvested.");
         CultivarGenomeSaveData parent = RequireGenome(plot.cultivarGenomeId);
-        float pestMultiplier = plot.pestPressure >= 60f ? 0.70f
-            : plot.pestPressure >= 30f ? 0.90f : 1f;
-        float rotationMultiplier = plot.hasPreviousGroup && plot.previousGroup == plot.currentGroup
-            ? 0.85f : 1f;
-        float fertilityMultiplier = Mathf.Lerp(0.55f, 1f, plot.fertility / 100f);
-        CropGenomePhenotype parentPhenotype = CreatePhenotype(parent);
-        float diseaseMultiplier = 1f - Mathf.Clamp(plot.diseasePressure, 0f, 100f) * 0.003f;
-        float yieldMultiplier = pestMultiplier * rotationMultiplier * fertilityMultiplier
-            * parentPhenotype.YieldMultiplier * diseaseMultiplier;
+        float yieldMultiplier = ComputeYieldMultiplier(plot, parent);
 
         CultivarGenomeSaveData child = Mutate(parent, nextUnitRandom);
         AddGeneratedGenome(child, externallyReferencedGenomeIds);
@@ -376,6 +501,141 @@ public sealed class CropEcologyAggregateState
         return new CropHarvestEcologyResult(yieldMultiplier, returnedSeeds, seedLot);
     }
 
+    public CropEcologyPreparedHarvestSnapshot PrepareHarvest(
+        string operationId,
+        string plotId,
+        Func<double> nextUnitRandom)
+    {
+        string operation = RequireCanonical(operationId, nameof(operationId));
+        string plotKey = RequireCanonical(plotId, nameof(plotId));
+        if (preparedHarvests.TryGetValue(
+                operation,
+                out CropEcologyPreparedHarvestSaveData existing))
+        {
+            if (!string.Equals(existing.plotId, plotKey, StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    "Crop ecology harvest operation was reused for another plot.");
+            return Snapshot(existing);
+        }
+        if (preparedHarvests.Values.Any(value =>
+                string.Equals(value.plotId, plotKey, StringComparison.Ordinal)))
+            throw new InvalidOperationException(
+                "Crop ecology plot already has a prepared harvest.");
+
+        CropEcologyPlotSaveData plot = RequirePlot(plotKey);
+        if (plot.cropDead)
+            throw new InvalidOperationException("A dead crop cannot be harvested.");
+        CultivarGenomeSaveData parent = RequireGenome(plot.cultivarGenomeId);
+        Func<double> random = nextUnitRandom
+            ?? throw new ArgumentNullException(nameof(nextUnitRandom));
+        float yieldMultiplier = ComputeYieldMultiplier(plot, parent);
+        CultivarGenomeSaveData child = Mutate(parent, random);
+        int seedBonus = CreatePhenotype(child).SeedYieldBonus;
+        int returnedSeeds = Mathf.Clamp(
+            2 + (int)Math.Floor(ClampUnit(random()) * 3d) + seedBonus,
+            2,
+            4);
+        SeedLotState seedLot = new()
+        {
+            cropId = plot.cropId,
+            cultivarGenomeId = child.genomeId,
+            generation = child.generation,
+            pathogenLoad = Mathf.Clamp(plot.diseasePressure * 0.5f, 0f, 100f)
+        };
+        CropEcologyPlotSaveData after = ClonePlot(plot);
+        after.fertility = Mathf.Max(0f, after.fertility - 15f);
+        after.previousGroup = after.currentGroup;
+        after.hasPreviousGroup = true;
+        after.cropId = string.Empty;
+        after.cultivarGenomeId = string.Empty;
+        after.disease = CropDiseaseKind.None;
+        after.consecutiveLethalTemperatureDays = 0;
+        CropEcologyPreparedHarvestSaveData receipt = new()
+        {
+            operationId = operation,
+            plotId = plotKey,
+            plotBefore = ClonePlot(plot),
+            plotBeforeFingerprint = CapturePlotFingerprint(plot),
+            yieldMultiplier = yieldMultiplier,
+            returnedSeedCount = returnedSeeds,
+            returnedSeedLot = seedLot.Clone(),
+            generatedGenome = CloneGenome(child),
+            plotAfter = after,
+            committed = false
+        };
+        receipt.outcomeFingerprint = CapturePreparedHarvestFingerprint(receipt);
+        preparedHarvests.Add(operation, receipt);
+        return Snapshot(receipt);
+    }
+
+    public CropEcologyPreparedHarvestSnapshot CommitPreparedHarvest(
+        string operationId,
+        IReadOnlyCollection<string> externallyReferencedGenomeIds = null)
+    {
+        string operation = RequireCanonical(operationId, nameof(operationId));
+        if (!preparedHarvests.TryGetValue(
+                operation,
+                out CropEcologyPreparedHarvestSaveData receipt))
+            throw new KeyNotFoundException(
+                "Unknown prepared crop ecology harvest '" + operation + "'.");
+        if (receipt.committed)
+            return Snapshot(receipt);
+        CropEcologyPlotSaveData plot = RequirePlot(receipt.plotId);
+        if (!string.Equals(
+                CapturePlotFingerprint(plot),
+                receipt.plotBeforeFingerprint,
+                StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "Prepared crop ecology harvest plot state drifted before commit.");
+        AddGeneratedGenome(
+            CloneGenome(receipt.generatedGenome),
+            externallyReferencedGenomeIds);
+        CopyPlot(receipt.plotAfter, plot);
+        receipt.committed = true;
+        return Snapshot(receipt);
+    }
+
+    public bool AcknowledgePreparedHarvest(string operationId)
+    {
+        string operation = RequireCanonical(operationId, nameof(operationId));
+        return preparedHarvests.TryGetValue(
+                operation,
+                out CropEcologyPreparedHarvestSaveData receipt)
+            && receipt.committed
+            && preparedHarvests.Remove(operation);
+    }
+
+    public bool AbortPreparedHarvest(string operationId)
+    {
+        string operation = RequireCanonical(operationId, nameof(operationId));
+        return preparedHarvests.TryGetValue(
+                operation,
+                out CropEcologyPreparedHarvestSaveData receipt)
+            && !receipt.committed
+            && preparedHarvests.Remove(operation);
+    }
+
+    public bool TryGetPreparedHarvest(
+        string operationId,
+        out CropEcologyPreparedHarvestSnapshot snapshot)
+    {
+        if (preparedHarvests.TryGetValue(
+                operationId ?? string.Empty,
+                out CropEcologyPreparedHarvestSaveData receipt))
+        {
+            snapshot = Snapshot(receipt);
+            return true;
+        }
+        snapshot = default;
+        return false;
+    }
+
+    public IReadOnlyList<CropEcologyPreparedHarvestSnapshot>
+        CapturePreparedHarvests() => preparedHarvests.Values
+            .OrderBy(value => value.operationId, StringComparer.Ordinal)
+            .Select(Snapshot)
+            .ToArray();
+
     public void ApplyCompost(string plotId) =>
         RequirePlot(plotId).fertility = Mathf.Min(100f, RequirePlot(plotId).fertility + 25f);
     public void ApplyPestControl(string plotId, float amount) =>
@@ -394,6 +654,12 @@ public sealed class CropEcologyAggregateState
             throw new ArgumentException(
                 "A canonical crop plot ID is required.",
                 nameof(plotId));
+        if (preparedHarvests.Values.Any(value => string.Equals(
+                value.plotId,
+                plotId,
+                StringComparison.Ordinal)))
+            throw new InvalidOperationException(
+                "A crop plot with a prepared harvest cannot be abandoned.");
         return plots.Remove(plotId);
     }
 
@@ -402,7 +668,11 @@ public sealed class CropEcologyAggregateState
         initialSeedGrantIssued = initialSeedGrantIssued,
         plots = plots.Values.OrderBy(value => value.plotId, StringComparer.Ordinal).Select(ClonePlot).ToList(),
         activeCultivars = active.Values.OrderBy(value => value.genomeId, StringComparer.Ordinal).Select(CloneGenome).ToList(),
-        frozenCultivars = frozen.Values.OrderBy(value => value.genomeId, StringComparer.Ordinal).Select(CloneGenome).ToList()
+        frozenCultivars = frozen.Values.OrderBy(value => value.genomeId, StringComparer.Ordinal).Select(CloneGenome).ToList(),
+        preparedHarvests = preparedHarvests.Values
+            .OrderBy(value => value.operationId, StringComparer.Ordinal)
+            .Select(value => value.Clone())
+            .ToList()
     };
 
     public static CropEcologyAggregateState Restore(CropEcologyWorldSaveData data)
@@ -430,6 +700,18 @@ public sealed class CropEcologyAggregateState
             if (!state.plots.TryAdd(plot.plotId, ClonePlot(plot)))
                 throw new InvalidOperationException("Crop-ecology plot IDs are duplicated.");
         }
+        HashSet<string> preparedPlotIds = new(StringComparer.Ordinal);
+        foreach (CropEcologyPreparedHarvestSaveData receipt in
+                 data.preparedHarvests ?? new())
+        {
+            ValidatePreparedHarvest(receipt, state);
+            if (!state.preparedHarvests.TryAdd(
+                    receipt.operationId,
+                    receipt.Clone())
+                || !preparedPlotIds.Add(receipt.plotId))
+                throw new InvalidOperationException(
+                    "Prepared crop ecology harvest operation or plot IDs are duplicated.");
+        }
         return state;
     }
 
@@ -437,7 +719,26 @@ public sealed class CropEcologyAggregateState
         CultivarGenomeSaveData genome,
         IReadOnlyCollection<string> externallyReferencedGenomeIds)
     {
-        if (!active.ContainsKey(genome.genomeId)) active.Add(genome.genomeId, CloneGenome(genome));
+        if (active.TryGetValue(
+                genome.genomeId,
+                out CultivarGenomeSaveData existing))
+        {
+            if (!GenomeEquals(existing, genome))
+                throw new InvalidOperationException(
+                    "Generated cultivar genome identity was reused with another payload.");
+        }
+        else if (frozen.TryGetValue(genome.genomeId, out existing))
+        {
+            if (!GenomeEquals(existing, genome))
+                throw new InvalidOperationException(
+                    "Frozen cultivar genome identity was reused with another payload.");
+            frozen.Remove(genome.genomeId);
+            active.Add(genome.genomeId, CloneGenome(genome));
+        }
+        else
+        {
+            active.Add(genome.genomeId, CloneGenome(genome));
+        }
         EnforceCultivarCaps(genome.cropId, genome.genomeId, externallyReferencedGenomeIds);
     }
 
@@ -495,10 +796,45 @@ public sealed class CropEcologyAggregateState
             if (mutated == current) mutated = Mathf.Clamp(current - direction, -2, 2);
             if (mutateA) locus.alleleA = mutated; else locus.alleleB = mutated;
         }
-        string signature = string.Join(".", child.loci.OrderBy(value => value.locus)
-            .Select(value => $"{value.alleleA + 2}{value.alleleB + 2}"));
-        child.genomeId = $"genome:{parent.cropId.Replace("crop:", string.Empty)}:g{child.generation}:{signature}";
+        child.genomeId = CreateGeneratedGenomeId(child);
         return child;
+    }
+
+    private static string CreateGeneratedGenomeId(CultivarGenomeSaveData genome)
+    {
+        string signature = string.Join(".", genome.loci
+            .OrderBy(value => value.locus)
+            .Select(value => $"{value.alleleA + 2}{value.alleleB + 2}"));
+        string cropSuffix = genome.cropId.StartsWith(
+                "crop:",
+                StringComparison.Ordinal)
+            ? genome.cropId.Substring("crop:".Length)
+            : genome.cropId;
+        return $"genome:{cropSuffix}:g{genome.generation}:{signature}";
+    }
+
+    private static float ComputeYieldMultiplier(
+        CropEcologyPlotSaveData plot,
+        CultivarGenomeSaveData parent)
+    {
+        float pestMultiplier = plot.pestPressure >= 60f ? 0.70f
+            : plot.pestPressure >= 30f ? 0.90f : 1f;
+        float rotationMultiplier = plot.hasPreviousGroup
+                && plot.previousGroup == plot.currentGroup
+            ? 0.85f
+            : 1f;
+        float fertilityMultiplier = Mathf.Lerp(
+            0.55f,
+            1f,
+            plot.fertility / 100f);
+        CropGenomePhenotype parentPhenotype = CreatePhenotype(parent);
+        float diseaseMultiplier = 1f
+            - Mathf.Clamp(plot.diseasePressure, 0f, 100f) * 0.003f;
+        return pestMultiplier
+            * rotationMultiplier
+            * fertilityMultiplier
+            * parentPhenotype.YieldMultiplier
+            * diseaseMultiplier;
     }
 
     private static float GetLocusMean(CultivarGenomeSaveData genome, CropGenomeLocus locus)
@@ -508,21 +844,7 @@ public sealed class CropEcologyAggregateState
     }
 
     private static CropGenomePhenotype CreatePhenotype(CultivarGenomeSaveData genome)
-    {
-        float cold = GetLocusMean(genome, CropGenomeLocus.ColdTolerance);
-        float heat = GetLocusMean(genome, CropGenomeLocus.HeatTolerance);
-        float growth = GetLocusMean(genome, CropGenomeLocus.GrowthSpeed);
-        float yield = GetLocusMean(genome, CropGenomeLocus.Yield);
-        float disease = GetLocusMean(genome, CropGenomeLocus.DiseaseResistance);
-        float seeds = GetLocusMean(genome, CropGenomeLocus.SeedYield);
-        return new CropGenomePhenotype(
-            cold * 2.5f,
-            heat * 2.5f,
-            1f + growth * 0.08f,
-            1f + yield * 0.05f,
-            1f - disease * 0.12f,
-            Mathf.RoundToInt(seeds * 0.5f));
-    }
+        => CropGenomePhenotypeAuthority.Create(genome);
 
     private static CropDiseaseKind DiseaseFor(CropFamilyGroup group) => group switch
     {
@@ -535,18 +857,34 @@ public sealed class CropEcologyAggregateState
 
     private static void ValidateGenome(CultivarGenomeSaveData genome)
     {
-        if (genome == null || string.IsNullOrWhiteSpace(genome.genomeId)
-            || string.IsNullOrWhiteSpace(genome.cropId) || genome.generation < 0
+        CropGenomeLocus[] expectedLoci = Enum.GetValues(typeof(CropGenomeLocus))
+            .Cast<CropGenomeLocus>()
+            .OrderBy(value => value)
+            .ToArray();
+        if (genome == null || !Canonical(genome.genomeId)
+            || !Canonical(genome.cropId) || genome.generation < 0
             || genome.loci == null || genome.loci.Count != 6
-            || genome.loci.Select(value => value.locus).Distinct().Count() != 6
+            || !genome.loci.Select(value => value.locus)
+                .OrderBy(value => value)
+                .SequenceEqual(expectedLoci)
             || genome.loci.Any(value => value.alleleA is < -2 or > 2 || value.alleleB is < -2 or > 2))
             throw new InvalidOperationException("Cultivar genome is invalid.");
     }
     private static void ValidatePlot(CropEcologyPlotSaveData plot, CropEcologyAggregateState state)
     {
-        if (plot == null || string.IsNullOrWhiteSpace(plot.plotId)
-            || plot.fertility is < 0f or > 100f || plot.pestPressure is < 0f or > 100f
-            || plot.diseasePressure is < 0f or > 100f || plot.consecutiveLethalTemperatureDays < 0)
+        if (plot == null || !Canonical(plot.plotId)
+            || !Enum.IsDefined(typeof(CropFamilyGroup), plot.currentGroup)
+            || !Enum.IsDefined(typeof(CropFamilyGroup), plot.previousGroup)
+            || !Enum.IsDefined(typeof(CropDiseaseKind), plot.disease)
+            || !FiniteRange(plot.fertility, 0f, 100f)
+            || !FiniteRange(plot.pestPressure, 0f, 100f)
+            || !FiniteRange(plot.diseasePressure, 0f, 100f)
+            || plot.consecutiveLethalTemperatureDays < 0
+            || string.IsNullOrEmpty(plot.cropId)
+                != string.IsNullOrEmpty(plot.cultivarGenomeId)
+            || !string.IsNullOrEmpty(plot.cropId) && !Canonical(plot.cropId)
+            || !string.IsNullOrEmpty(plot.cultivarGenomeId)
+                && !Canonical(plot.cultivarGenomeId))
             throw new InvalidOperationException("Crop-ecology plot state is invalid.");
         if (!string.IsNullOrWhiteSpace(plot.cultivarGenomeId))
         {
@@ -574,6 +912,277 @@ public sealed class CropEcologyAggregateState
         disease = value.disease, consecutiveLethalTemperatureDays = value.consecutiveLethalTemperatureDays,
         cropDead = value.cropDead
     };
+    private static void CopyPlot(
+        CropEcologyPlotSaveData source,
+        CropEcologyPlotSaveData destination)
+    {
+        CropEcologyPlotSaveData clone = ClonePlot(source);
+        destination.plotId = clone.plotId;
+        destination.cropId = clone.cropId;
+        destination.cultivarGenomeId = clone.cultivarGenomeId;
+        destination.currentGroup = clone.currentGroup;
+        destination.previousGroup = clone.previousGroup;
+        destination.hasPreviousGroup = clone.hasPreviousGroup;
+        destination.fertility = clone.fertility;
+        destination.pestPressure = clone.pestPressure;
+        destination.diseasePressure = clone.diseasePressure;
+        destination.disease = clone.disease;
+        destination.consecutiveLethalTemperatureDays =
+            clone.consecutiveLethalTemperatureDays;
+        destination.cropDead = clone.cropDead;
+    }
+
+    private static CropEcologyPreparedHarvestSnapshot Snapshot(
+        CropEcologyPreparedHarvestSaveData receipt) => new(
+        receipt.operationId,
+        receipt.plotId,
+        receipt.outcomeFingerprint,
+        receipt.committed,
+        new CropHarvestEcologyResult(
+            receipt.yieldMultiplier,
+            receipt.returnedSeedCount,
+            receipt.returnedSeedLot?.Clone()));
+
+    private static string CapturePlotFingerprint(CropEcologyPlotSaveData plot)
+    {
+        CanonicalSemanticDigestBuilder digest = new();
+        digest.Append("crop-ecology-plot@1");
+        digest.Append(plot?.plotId ?? string.Empty);
+        digest.Append(plot?.cropId ?? string.Empty);
+        digest.Append(plot?.cultivarGenomeId ?? string.Empty);
+        digest.Append((int)(plot?.currentGroup ?? default));
+        digest.Append((int)(plot?.previousGroup ?? default));
+        digest.Append(plot?.hasPreviousGroup ?? false);
+        digest.Append((plot?.fertility ?? 0f).ToString(
+            "R",
+            System.Globalization.CultureInfo.InvariantCulture));
+        digest.Append((plot?.pestPressure ?? 0f).ToString(
+            "R",
+            System.Globalization.CultureInfo.InvariantCulture));
+        digest.Append((plot?.diseasePressure ?? 0f).ToString(
+            "R",
+            System.Globalization.CultureInfo.InvariantCulture));
+        digest.Append((int)(plot?.disease ?? default));
+        digest.Append(plot?.consecutiveLethalTemperatureDays ?? 0);
+        digest.Append(plot?.cropDead ?? false);
+        return digest.ComputeSha256();
+    }
+
+    private static string CapturePreparedHarvestFingerprint(
+        CropEcologyPreparedHarvestSaveData receipt)
+    {
+        CanonicalSemanticDigestBuilder digest = new();
+        digest.Append("crop-ecology-prepared-harvest@2");
+        digest.Append(receipt.operationId);
+        digest.Append(receipt.plotId);
+        digest.Append(CapturePlotFingerprint(receipt.plotBefore));
+        digest.Append(receipt.plotBeforeFingerprint);
+        digest.Append(receipt.yieldMultiplier.ToString(
+            "R",
+            System.Globalization.CultureInfo.InvariantCulture));
+        digest.Append(receipt.returnedSeedCount);
+        digest.Append(SeedLotItemStateCodec.Encode(receipt.returnedSeedLot)
+            .ToCanonicalString());
+        digest.Append(receipt.generatedGenome?.genomeId ?? string.Empty);
+        digest.Append(receipt.generatedGenome?.cropId ?? string.Empty);
+        digest.Append(receipt.generatedGenome?.generation ?? 0);
+        foreach (DiploidLocusSaveData locus in
+                 (receipt.generatedGenome?.loci
+                     ?? new List<DiploidLocusSaveData>())
+                 .OrderBy(value => value.locus))
+        {
+            digest.Append((int)locus.locus);
+            digest.Append(locus.alleleA);
+            digest.Append(locus.alleleB);
+        }
+        digest.Append(CapturePlotFingerprint(receipt.plotAfter));
+        return digest.ComputeSha256();
+    }
+
+    private static void ValidatePreparedHarvest(
+        CropEcologyPreparedHarvestSaveData receipt,
+        CropEcologyAggregateState state)
+    {
+        if (receipt == null
+            || !Canonical(receipt.operationId)
+            || !Canonical(receipt.plotId)
+            || receipt.plotBefore == null
+            || receipt.returnedSeedLot == null
+            || receipt.generatedGenome == null
+            || receipt.plotAfter == null
+            || receipt.returnedSeedCount is < 2 or > 4
+            || float.IsNaN(receipt.yieldMultiplier)
+            || float.IsInfinity(receipt.yieldMultiplier)
+            || receipt.yieldMultiplier <= 0f
+            || !string.Equals(
+                receipt.outcomeFingerprint,
+                CapturePreparedHarvestFingerprint(receipt),
+                StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "Prepared crop ecology harvest is invalid.");
+        ValidateGenome(receipt.generatedGenome);
+        ValidatePlot(receipt.plotBefore, state);
+        SeedLotItemStateCodec.Encode(receipt.returnedSeedLot);
+        if (!string.Equals(
+                receipt.plotBefore.plotId,
+                receipt.plotId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                receipt.plotBeforeFingerprint,
+                CapturePlotFingerprint(receipt.plotBefore),
+                StringComparison.Ordinal)
+            || receipt.plotBefore.cropDead
+            || string.IsNullOrWhiteSpace(receipt.plotBefore.cropId)
+            || string.IsNullOrWhiteSpace(receipt.plotBefore.cultivarGenomeId)
+            || !string.Equals(
+                receipt.plotBefore.cropId,
+                receipt.returnedSeedLot.cropId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                receipt.plotAfter.plotId,
+                receipt.plotId,
+                StringComparison.Ordinal)
+            || !string.IsNullOrEmpty(receipt.plotAfter.cropId)
+            || !string.IsNullOrEmpty(receipt.plotAfter.cultivarGenomeId)
+            || !string.Equals(
+                receipt.returnedSeedLot.cropId,
+                receipt.generatedGenome.cropId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                receipt.returnedSeedLot.cultivarGenomeId,
+                receipt.generatedGenome.genomeId,
+                StringComparison.Ordinal)
+            || receipt.returnedSeedLot.generation
+                != receipt.generatedGenome.generation)
+            throw new InvalidOperationException(
+                "Prepared crop ecology harvest result is internally inconsistent.");
+        CultivarGenomeSaveData parent = state.RequireGenome(
+            receipt.plotBefore.cultivarGenomeId);
+        ValidateGeneratedGenomeTransition(parent, receipt.generatedGenome);
+        if (receipt.yieldMultiplier > 3f
+            || receipt.yieldMultiplier != ComputeYieldMultiplier(
+                receipt.plotBefore,
+                parent))
+            throw new InvalidOperationException(
+                "Prepared crop ecology harvest yield contradicts its source state.");
+        float expectedPathogenLoad = Mathf.Clamp(
+            receipt.plotBefore.diseasePressure * 0.5f,
+            0f,
+            100f);
+        if (receipt.returnedSeedLot.pathogenLoad != expectedPathogenLoad)
+            throw new InvalidOperationException(
+                "Prepared crop ecology seed pathogen load is invalid.");
+        int seedBonus = CreatePhenotype(receipt.generatedGenome).SeedYieldBonus;
+        bool possibleSeedCount = Enumerable.Range(0, 3).Any(roll =>
+            Mathf.Clamp(2 + roll + seedBonus, 2, 4)
+                == receipt.returnedSeedCount);
+        if (!possibleSeedCount)
+            throw new InvalidOperationException(
+                "Prepared crop ecology returned seed count is impossible.");
+        ValidatePreparedHarvestTransition(
+            receipt.plotBefore,
+            receipt.plotAfter);
+        if (!state.plots.TryGetValue(
+                receipt.plotId,
+                out CropEcologyPlotSaveData livePlot))
+            throw new InvalidOperationException(
+                "Prepared crop ecology harvest references an unknown plot.");
+        if (!receipt.committed
+            && !string.Equals(
+                livePlot.cropId,
+                receipt.returnedSeedLot.cropId,
+                StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "Prepared crop ecology harvest seed crop contradicts its live plot.");
+        bool generatedGenomeExists = state.active.TryGetValue(
+                receipt.generatedGenome.genomeId,
+                out CultivarGenomeSaveData activeGenome)
+            || state.frozen.TryGetValue(
+                receipt.generatedGenome.genomeId,
+                out activeGenome);
+        if (receipt.committed && !generatedGenomeExists)
+            throw new InvalidOperationException(
+                "Prepared crop ecology harvest genome publication contradicts its phase.");
+        if (generatedGenomeExists
+            && (!string.Equals(
+                    activeGenome.genomeId,
+                    receipt.generatedGenome.genomeId,
+                    StringComparison.Ordinal)
+                || !GenomeEquals(activeGenome, receipt.generatedGenome)))
+            throw new InvalidOperationException(
+                "Prepared crop ecology harvest genome payload drifted after commit.");
+        string expectedPlotFingerprint = receipt.committed
+            ? CapturePlotFingerprint(receipt.plotAfter)
+            : receipt.plotBeforeFingerprint;
+        if (!string.Equals(
+                CapturePlotFingerprint(livePlot),
+                expectedPlotFingerprint,
+                StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "Prepared crop ecology harvest contradicts its plot state.");
+    }
+
+    private static void ValidatePreparedHarvestTransition(
+        CropEcologyPlotSaveData before,
+        CropEcologyPlotSaveData after)
+    {
+        if (!string.Equals(before.plotId, after.plotId, StringComparison.Ordinal)
+            || before.currentGroup != after.currentGroup
+            || after.previousGroup != before.currentGroup
+            || !after.hasPreviousGroup
+            || after.fertility != Mathf.Max(0f, before.fertility - 15f)
+            || after.pestPressure != before.pestPressure
+            || after.diseasePressure != before.diseasePressure
+            || after.disease != CropDiseaseKind.None
+            || after.consecutiveLethalTemperatureDays != 0
+            || after.cropDead != before.cropDead)
+            throw new InvalidOperationException(
+                "Prepared crop ecology harvest transition is invalid.");
+    }
+
+    private static void ValidateGeneratedGenomeTransition(
+        CultivarGenomeSaveData parent,
+        CultivarGenomeSaveData child)
+    {
+        if (!string.Equals(parent.cropId, child.cropId, StringComparison.Ordinal)
+            || child.generation != checked(parent.generation + 1)
+            || !string.Equals(
+                child.genomeId,
+                CreateGeneratedGenomeId(child),
+                StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "Prepared crop ecology generated genome identity is invalid.");
+        Dictionary<CropGenomeLocus, DiploidLocusSaveData> parentLoci =
+            parent.loci.ToDictionary(value => value.locus);
+        foreach (DiploidLocusSaveData childLocus in child.loci)
+        {
+            DiploidLocusSaveData parentLocus = parentLoci[childLocus.locus];
+            int deltaA = Math.Abs(childLocus.alleleA - parentLocus.alleleA);
+            int deltaB = Math.Abs(childLocus.alleleB - parentLocus.alleleB);
+            if (deltaA > 1 || deltaB > 1 || deltaA > 0 && deltaB > 0)
+                throw new InvalidOperationException(
+                    "Prepared crop ecology generated genome mutation is invalid.");
+        }
+    }
+
+    private static bool FiniteRange(float value, float minimum, float maximum) =>
+        !float.IsNaN(value)
+        && !float.IsInfinity(value)
+        && value >= minimum
+        && value <= maximum;
+
+    private static bool Canonical(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
+
+    private static string RequireCanonical(string value, string parameterName)
+    {
+        if (!Canonical(value))
+            throw new ArgumentException(
+                "A canonical crop ecology operation identifier is required.",
+                parameterName);
+        return value;
+    }
     private static double ClampUnit(double value) => Math.Max(0d, Math.Min(0.999999999999d, value));
 }
 
@@ -589,6 +1198,22 @@ public interface ICropEcologyService
     void ApplyFungicide(string plotId, float amount);
     bool AbandonPlot(string plotId);
     IReadOnlyList<CropEcologyPlotSaveData> Plots { get; }
+}
+
+public interface ICropEcologyHarvestTransactionService
+{
+    CropEcologyPreparedHarvestSnapshot PrepareHarvest(
+        string operationId,
+        string plotId);
+    CropEcologyPreparedHarvestSnapshot CommitPreparedHarvest(
+        string operationId);
+    bool AcknowledgePreparedHarvest(string operationId);
+    bool AbortPreparedHarvest(string operationId);
+    bool TryGetPreparedHarvest(
+        string operationId,
+        out CropEcologyPreparedHarvestSnapshot snapshot);
+    IReadOnlyList<CropEcologyPreparedHarvestSnapshot>
+        CapturePreparedHarvests();
 }
 
 public interface ICropEcologyPersistence

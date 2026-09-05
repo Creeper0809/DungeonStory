@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "fiber-cave-silk",
+    "spoiler_tier": "none",
+    "title": "동굴 비단 원섬유"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "nature/silk-spider",
+      "label": "관련",
+      "to": "item/fiber-cave-silk",
+      "type": "references"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-spin-cave-silk",
+      "label": "필요 조건",
+      "to": "item/fiber-cave-silk",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-spin-powered-cave-silk",
+      "label": "필요 조건",
+      "to": "item/fiber-cave-silk",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.75kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "40개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "12"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "곡물과 뿌리, 버섯을 함께 조리해 육류 없이도 한 끼를 채우는 정원 요리다. 므네실라에서는 같은 정원에서 거둔 재료를 한 그릇에 담아 그날 정원의 맛을 확인한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "food-garden-meal",
+  "spoiler_tier": "none",
+  "summary": "곡물과 뿌리, 버섯을 섞은 비건 고급식.",
+  "title": "정원 요리"
+}

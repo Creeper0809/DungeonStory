@@ -100,6 +100,9 @@ MonoBehaviour:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:sawmill
         stockSensorInstallationItemId: component:stock-sensor-panel
+        lanePolicy: 2
+        manualWorkLaneCount: 1
+        automaticWorkLaneCount: 1
     - rid: 1007
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
@@ -166,7 +169,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 384
+        constructionWorkRequired: 555
         repairWorkRequired: 44
         cleanWorkRequired: 6
         researchWorkRequired: 6

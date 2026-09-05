@@ -13,7 +13,8 @@ using UnityEngine;
 /// destination effect so a crash can resume without reapplying earlier work.
 /// </summary>
 public sealed class ProductionPhysicalCustodyDrainService :
-    IProductionPhysicalCustodyDrainPort
+    IProductionPhysicalCustodyDrainPort,
+    IProductionPhysicalCustodyDrainCheckpointGcPort
 {
     private const string PhysicalContributorId =
         "physical-custody-carry-recovery";
@@ -411,6 +412,61 @@ public sealed class ProductionPhysicalCustodyDrainService :
         string receiptFingerprint) => outbox.TryGarbageCollect(
             stepOperationId,
             receiptFingerprint);
+
+    public bool TryPrepareCheckpointGarbageCollection(
+        IReadOnlyList<ProductionPhysicalCustodyDrainSaveData> records,
+        out IProductionPhysicalCustodyDrainCheckpointGcCandidate candidate,
+        out string failureReason)
+    {
+        if (outbox is not IProductionPhysicalCustodyDrainCheckpointGcPort gc)
+        {
+            candidate = null;
+            failureReason =
+                "production-physical-custody-checkpoint-gc-port-missing";
+            return false;
+        }
+        return gc.TryPrepareCheckpointGarbageCollection(
+            records,
+            out candidate,
+            out failureReason);
+    }
+
+    public bool TryPublishCheckpointGarbageCollection(
+        IProductionPhysicalCustodyDrainCheckpointGcCandidate candidate,
+        out string failureReason)
+    {
+        if (outbox is not IProductionPhysicalCustodyDrainCheckpointGcPort gc)
+        {
+            failureReason =
+                "production-physical-custody-checkpoint-gc-port-missing";
+            return false;
+        }
+        return gc.TryPublishCheckpointGarbageCollection(
+            candidate,
+            out failureReason);
+    }
+
+    public void RollbackCheckpointGarbageCollection(
+        IProductionPhysicalCustodyDrainCheckpointGcCandidate candidate)
+    {
+        if (outbox is not IProductionPhysicalCustodyDrainCheckpointGcPort gc)
+        {
+            throw new InvalidOperationException(
+                "production-physical-custody-checkpoint-gc-port-missing");
+        }
+        gc.RollbackCheckpointGarbageCollection(candidate);
+    }
+
+    public void CompleteCheckpointGarbageCollection(
+        IProductionPhysicalCustodyDrainCheckpointGcCandidate candidate)
+    {
+        if (outbox is not IProductionPhysicalCustodyDrainCheckpointGcPort gc)
+        {
+            throw new InvalidOperationException(
+                "production-physical-custody-checkpoint-gc-port-missing");
+        }
+        gc.CompleteCheckpointGarbageCollection(candidate);
+    }
 
     public bool TryCapture(
         string stepOperationId,

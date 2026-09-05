@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "tool-sewing-kit",
+    "spoiler_tier": "none",
+    "title": "재봉 도구"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-sewing-kit",
+      "label": "생산·해금",
+      "to": "item/tool-sewing-kit",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

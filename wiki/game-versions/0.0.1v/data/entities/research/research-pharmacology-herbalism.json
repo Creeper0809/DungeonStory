@@ -1,0 +1,31 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "17"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Pharmacology"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1033",
+      "target_spoiler_tier": "none",
+      "target_title": "시약선반",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-pharmacology-herbalism",
+  "spoiler_tier": "none",
+  "summary": "약용 식물의 효능과 독성을 분류한다.",
+  "title": "약초학"
+}

@@ -1,0 +1,84 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "룬 부품 조율"
+    },
+    {
+      "label": "제작 작업",
+      "value": "312"
+    },
+    {
+      "label": "무게",
+      "value": "6.5kg"
+    },
+    {
+      "label": "전면 방어 확률",
+      "value": "48%"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "combat",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-rune-conductor",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 도체",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-rune-module-tuning",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 부품 조율",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-rune-control-panel",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 제어반",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-rune-tuning-shield",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 조율 차폐판",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-rune-leather-strap",
+      "target_spoiler_tier": "none",
+      "target_title": "룬가죽 조율 끈",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-growth-frame",
+      "target_spoiler_tier": "none",
+      "target_title": "성장형 장비 골격",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "equipment-item-shield-rune",
+  "spoiler_tier": "none",
+  "summary": "룬 방패 전투 장비",
+  "title": "룬 방패"
+}

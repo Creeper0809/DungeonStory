@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ending-steel-apotheosis",
+  "spoiler_tier": "warning",
+  "summary": "자동 생산·자가 정비·통합 방어가 사람의 개입 없이 순환하는 산업 신체를 완성한다.",
+  "title": "강철 신격화"
+}

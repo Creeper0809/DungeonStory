@@ -1,0 +1,12 @@
+---
+import BaseLayout from '../../../../components/BaseLayout.astro';
+import HealthCommunityContent from '../../../../components/HealthCommunityContent.astro';
+import { hasGameVersion } from '../../../../lib/wiki-data';
+
+const version = Astro.params.version ?? '';
+if (!hasGameVersion(version)) return new Response(null, { status: 404 });
+---
+
+<BaseLayout title="건강·공동체" version={version} historical currentHref="/health-community/">
+  <HealthCommunityContent version={version} historical />
+</BaseLayout>

@@ -1,0 +1,49 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "nature",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "shadow-wolf",
+      "target_spoiler_tier": "none",
+      "target_title": "그림자늑대",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-hound",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴사냥개",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-deep-parasitosis",
+      "target_spoiler_tier": "none",
+      "target_title": "심층 기생충증",
+      "type": "references"
+    },
+    {
+      "amount": "2",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "fiber-deep-goat-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "심층 염소모직 원섬유",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "deep-goat",
+  "spoiler_tier": "none",
+  "summary": "절벽 이끼를 먹고 길들일 수 있어 털과 운반 노동을 제공한다.",
+  "title": "심층염소"
+}

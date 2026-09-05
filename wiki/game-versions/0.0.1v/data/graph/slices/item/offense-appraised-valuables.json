@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "offense-appraised-valuables",
+    "spoiler_tier": "none",
+    "title": "감정된 귀중품"
+  },
+  "edges": [
+    {
+      "amount": "10",
+      "from": "recipe/recipe-loot-appraisal",
+      "label": "생산·해금",
+      "to": "item/offense-appraised-valuables",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

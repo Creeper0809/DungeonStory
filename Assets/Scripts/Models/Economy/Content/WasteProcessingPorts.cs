@@ -28,6 +28,14 @@ public sealed class WasteProcessingStackSnapshot
 /// </summary>
 public interface IWasteProcessingInventoryPort
 {
+    bool HasExactWildlifeCareDestinationAuthority(
+        string destinationId,
+        Vector2Int destinationPosition);
+
+    bool TryGetExactWildlifeCareDestinationPosition(
+        string destinationId,
+        out Vector2Int destinationPosition);
+
     IReadOnlyList<WasteProcessingStackSnapshot> GetAllStacks();
 
     bool TryRequestStackDelivery(

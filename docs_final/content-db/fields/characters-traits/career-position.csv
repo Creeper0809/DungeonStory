@@ -1,0 +1,43 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+CareerPositionDefinitionSO|career-position:chief-physician,career-position:chief-physician,m_Name,career-position_chief-physician,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:chief-physician,career-position:chief-physician,definitionId,career-position:chief-physician,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:chief-physician,career-position:chief-physician,displayName,수석 의사,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:chief-physician,career-position:chief-physician,position,3,CareerPositionKind,Chief Physician,explicit-serialized
+CareerPositionDefinitionSO|career-position:chief-physician,career-position:chief-physician,scope,0,CareerPositionScopeKind,Global,explicit-serialized
+CareerPositionDefinitionSO|career-position:chief-physician,career-position:chief-physician,maximumOccupants,1,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:chief-physician,career-position:chief-physician,requiredFacilityTag,,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:chief-researcher,career-position:chief-researcher,m_Name,career-position_chief-researcher,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:chief-researcher,career-position:chief-researcher,definitionId,career-position:chief-researcher,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:chief-researcher,career-position:chief-researcher,displayName,수석 연구원,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:chief-researcher,career-position:chief-researcher,position,2,CareerPositionKind,Chief Researcher,explicit-serialized
+CareerPositionDefinitionSO|career-position:chief-researcher,career-position:chief-researcher,scope,0,CareerPositionScopeKind,Global,explicit-serialized
+CareerPositionDefinitionSO|career-position:chief-researcher,career-position:chief-researcher,maximumOccupants,1,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:chief-researcher,career-position:chief-researcher,requiredFacilityTag,,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:foreman,career-position:foreman,m_Name,career-position_foreman,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:foreman,career-position:foreman,definitionId,career-position:foreman,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:foreman,career-position:foreman,displayName,작업반장,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:foreman,career-position:foreman,position,5,CareerPositionKind,Foreman,explicit-serialized
+CareerPositionDefinitionSO|career-position:foreman,career-position:foreman,scope,1,CareerPositionScopeKind,Facility,explicit-serialized
+CareerPositionDefinitionSO|career-position:foreman,career-position:foreman,maximumOccupants,1,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:foreman,career-position:foreman,requiredFacilityTag,research-overhaul,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:guard-captain,career-position:guard-captain,m_Name,career-position_guard-captain,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:guard-captain,career-position:guard-captain,definitionId,career-position:guard-captain,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:guard-captain,career-position:guard-captain,displayName,경비대장,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:guard-captain,career-position:guard-captain,position,4,CareerPositionKind,Guard Captain,explicit-serialized
+CareerPositionDefinitionSO|career-position:guard-captain,career-position:guard-captain,scope,0,CareerPositionScopeKind,Global,explicit-serialized
+CareerPositionDefinitionSO|career-position:guard-captain,career-position:guard-captain,maximumOccupants,1,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:guard-captain,career-position:guard-captain,requiredFacilityTag,,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:mentor,career-position:mentor,m_Name,career-position_mentor,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:mentor,career-position:mentor,definitionId,career-position:mentor,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:mentor,career-position:mentor,displayName,멘토,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:mentor,career-position:mentor,position,6,CareerPositionKind,Mentor,explicit-serialized
+CareerPositionDefinitionSO|career-position:mentor,career-position:mentor,scope,1,CareerPositionScopeKind,Facility,explicit-serialized
+CareerPositionDefinitionSO|career-position:mentor,career-position:mentor,maximumOccupants,1,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:mentor,career-position:mentor,requiredFacilityTag,workstation:v19:mentor-academy,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:steward,career-position:steward,m_Name,career-position_steward,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:steward,career-position:steward,definitionId,career-position:steward,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:steward,career-position:steward,displayName,관리인,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:steward,career-position:steward,position,1,CareerPositionKind,Steward,explicit-serialized
+CareerPositionDefinitionSO|career-position:steward,career-position:steward,scope,0,CareerPositionScopeKind,Global,explicit-serialized
+CareerPositionDefinitionSO|career-position:steward,career-position:steward,maximumOccupants,1,,,explicit-serialized
+CareerPositionDefinitionSO|career-position:steward,career-position:steward,requiredFacilityTag,,,,explicit-serialized

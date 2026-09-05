@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.9kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "9"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "종이는 기록, 탄약과 도면 제작에 필요한 얇은 가공 재료다. 밀로세아 가도를 건넌 종이는 눅눅해졌는지 확인할 수 있도록 꾸러미 한가운데에 마른 색실을 끼워 둔다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-paper",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 종이.",
+  "title": "종이"
+}

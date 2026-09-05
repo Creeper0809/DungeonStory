@@ -1,0 +1,67 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "34"
+    },
+    {
+      "label": "필요 연구",
+      "value": "라인 균형과 방어 보급"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "supply-defense-mixed-ammo-box",
+      "target_spoiler_tier": "none",
+      "target_title": "방어시설용 혼합 탄약 상자",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-granulated-powder",
+      "target_spoiler_tier": "none",
+      "target_title": "과립 화약",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-lead-shot",
+      "target_spoiler_tier": "none",
+      "target_title": "납탄",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-industry-line-balancing",
+      "target_spoiler_tier": "none",
+      "target_title": "라인 균형과 방어 보급",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cartridge-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "탄약지",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-supply-defense-mixed-ammo-box",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 방어시설용 혼합 탄약 상자을(를) 생산한다.",
+  "title": "방어시설용 혼합 탄약 상자"
+}

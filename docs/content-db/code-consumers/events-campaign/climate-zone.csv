@@ -1,0 +1,3 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+ClimateZoneDefinitionSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/ClimateRuntime.cs
+ClimateZoneDefinitionSO,stable-id,climate:temperate-cave,stable-id-literal,services:infrastructure,runtime,exact-literal-consumer,Assets/Scripts/Services/Infrastructure/Environment/ClimateRuntime.cs

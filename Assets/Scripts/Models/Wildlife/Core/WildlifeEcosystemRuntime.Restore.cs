@@ -28,9 +28,9 @@ public sealed partial class WildlifeEcosystemRuntime
                 "Wildlife ecosystem restore candidate is not canonical.");
         }
 
-        float now = gameClock.Time;
-        Dictionary<string, float> candidateRespawns =
-            new Dictionary<string, float>(StringComparer.Ordinal);
+        double now = gameClock.Time;
+        Dictionary<string, double> candidateRespawns =
+            new Dictionary<string, double>(StringComparer.Ordinal);
         foreach (WildlifeSpeciesRespawnSaveData entry in saveData.speciesRespawns)
         {
             if (entry == null
@@ -86,8 +86,8 @@ public sealed partial class WildlifeEcosystemRuntime
 
         float previousRecentHuntPressure = recentHuntPressure;
         float previousRecentPredationPressure = recentPredationPressure;
-        float previousNextGlobalRespawnAt = nextGlobalRespawnAt;
-        Dictionary<string, float> previousSpeciesRespawnAt = speciesRespawnAt;
+        double previousNextGlobalRespawnAt = nextGlobalRespawnAt;
+        Dictionary<string, double> previousSpeciesRespawnAt = speciesRespawnAt;
         List<WildlifeHabitatPatch> previousPatches = patches;
         bool previousInitialized = initialized;
         IWildlifeGridPort previousInitializedGrid = initializedGrid;

@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "trait-107",
+    "spoiler_tier": "none",
+    "title": "깔끔함"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/character-archetype-1001",
+      "label": "관련",
+      "to": "character/trait-107",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

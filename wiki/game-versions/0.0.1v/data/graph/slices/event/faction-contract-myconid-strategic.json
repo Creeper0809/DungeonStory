@@ -1,0 +1,29 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "faction-contract-myconid-strategic",
+    "spoiler_tier": "none",
+    "title": "균사정원 장기 전략 계약"
+  },
+  "edges": [
+    {
+      "amount": "6",
+      "from": "event/faction-contract-myconid-strategic",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "tool-weather-observation-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "기상 관측 도구함",
+      "to": "item/tool-weather-observation-kit",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-myconid",
+      "label": "관련",
+      "to": "event/faction-contract-myconid-strategic",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

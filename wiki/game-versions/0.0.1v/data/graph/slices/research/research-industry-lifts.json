@@ -1,0 +1,110 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-industry-lifts",
+    "spoiler_tier": "none",
+    "title": "승강·오버플로·고속 운송"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-industry-lifts",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-junctions",
+      "target_spoiler_tier": "none",
+      "target_title": "분기·필터·우선순위 제어",
+      "to": "research/research-industry-junctions",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-lifts",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-junctions",
+      "target_spoiler_tier": "none",
+      "target_title": "분기·필터·우선순위 제어",
+      "to": "research/research-industry-junctions",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-lifts",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-junctions",
+      "target_spoiler_tier": "none",
+      "target_title": "분기·필터·우선순위 제어",
+      "to": "research/research-industry-junctions",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-lifts",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "제강",
+      "to": "research/research-metallurgy-steel",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-lifts",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "제강",
+      "to": "research/research-metallurgy-steel",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-lifts",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "제강",
+      "to": "research/research-metallurgy-steel",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-lifts",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9850",
+      "target_spoiler_tier": "none",
+      "target_title": "층간 물류 리프트",
+      "to": "facility/building-9850",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-lifts",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9851",
+      "target_spoiler_tier": "none",
+      "target_title": "오버플로 배출 게이트",
+      "to": "facility/building-9851",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-lifts",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9852",
+      "target_spoiler_tier": "none",
+      "target_title": "고속 컨베이어",
+      "to": "facility/building-9852",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

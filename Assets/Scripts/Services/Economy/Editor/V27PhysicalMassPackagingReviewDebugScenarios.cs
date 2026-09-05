@@ -16,66 +16,6 @@ public static class V27PhysicalMassPackagingReviewDebugScenarios
     public const string ReportPath =
         "Artifacts/QA/v27-physical-mass-packaging-review.txt";
 
-    private const int ExpectedLedgerItems = 414;
-    private const int ExpectedRecipes = 355;
-    private const int ExpectedSemantics = 363;
-    private const int ExpectedMissing = 51;
-    private const int ExpectedRuntimeConsumerRows = 28;
-    private const int ExpectedRuntimeConsumerLinks = 31;
-    private static readonly string[] ExpectedPackagingReviewItemIds =
-    {
-        "craft:fang-poison",
-        "craft:resin-balm",
-        "craft:ritual-reagent",
-        "craft:toxic-trap-coating",
-        "drug:blood-stimulant",
-        "drug:dreamleaf-analgesic",
-        "drug:hallucinogenic-distillate",
-        "drug:mana-awakener",
-        "drug:moonflower-tea",
-        "drug:vitality-tonic",
-        "food:expedition-ration-pack",
-        "food:preserved-ration",
-        "medical:cross-lineage-medium",
-        "medical:fertility-treatment",
-        "medical:isolation-care-kit",
-        "medical:organ-preservation-canister",
-        "medical:regenerative-medium",
-        "medical:rejuvenation-serum",
-        "medical:trait-analysis-kit",
-        "medical:trauma-care-kit",
-        "medical:whole-body-regeneration-medium",
-        "medicine:advanced",
-        "medicine:antidote",
-        "medicine:antiseptic",
-        "medicine:mycelial-culture-pack",
-        "medicine:standard",
-        "medicine:vaccine:blood-wasting",
-        "medicine:vaccine:cave-flu",
-        "medicine:vaccine:gut-rot",
-        "medicine:vaccine:mana-pox",
-        "medicine:vaccine:red-fever",
-        "medicine:vaccine:slime-blight",
-        "medicine:vaccine:spore-lung",
-        "sample:antigen:blood-wasting",
-        "sample:antigen:cave-flu",
-        "sample:antigen:gut-rot",
-        "sample:antigen:mana-pox",
-        "sample:antigen:red-fever",
-        "sample:antigen:slime-blight",
-        "sample:antigen:spore-lung",
-        "supply:alliance-signal-kit",
-        "supply:botanical-pesticide",
-        "supply:certified-seed-kit",
-        "supply:defense-mixed-ammo-box",
-        "supply:funeral-preparation-kit",
-        "supply:fungicide",
-        "supply:greenhouse-nutrient",
-        "supply:mushroom-substrate",
-        "supply:nitrate-fertilizer",
-        "supply:performance-prop-box",
-        "supply:pest-lure"
-    };
     private const string SelfPath =
         "Assets/Scripts/Services/Economy/Editor/V27PhysicalMassPackagingReviewDebugScenarios.cs";
     private const string SemanticPath =
@@ -113,7 +53,7 @@ public static class V27PhysicalMassPackagingReviewDebugScenarios
     private const string SerializationPath =
         "Assets/Scripts/Services/Economy/Editor/V27BalanceSerialization.cs";
 
-    [MenuItem("DungeonStory/V27/Physical Mass/Capture Remaining Packaging Review")]
+    [MenuItem("DungeonStory/V27/Physical Mass/Capture Packaging Contract Review")]
     public static void RunFromMenu()
     {
         CaptureResult first = Capture();
@@ -128,8 +68,8 @@ public static class V27PhysicalMassPackagingReviewDebugScenarios
             stream.Write(first.Report, 0, first.Report.Length));
         Debug.Log(
             "V27 physical-mass packaging review captured: "
-            + $"missing={first.MissingCount}; authoredPackages="
-            + $"{first.AuthoredPackageCount}; status=IN_PROGRESS.");
+            + $"reviewed={first.ReviewedCount}; authoredPackages="
+            + $"{first.AuthoredPackageCount}; status=PASS.");
     }
 
     private static CaptureResult Capture()
@@ -147,9 +87,8 @@ public static class V27PhysicalMassPackagingReviewDebugScenarios
             .CaptureCanonicalLedgerItemIds()
             .OrderBy(value => value, StringComparer.Ordinal)
             .ToArray();
-        Require(ledgerItemIds.Length == ExpectedLedgerItems,
-            $"Expected {ExpectedLedgerItems} canonical ledger items, "
-            + $"found {ledgerItemIds.Length}.");
+        Require(ledgerItemIds.Length > 0,
+            "Dynamic canonical ledger scope is empty.");
         Require(ledgerItemIds.Distinct(StringComparer.Ordinal).Count()
                 == ledgerItemIds.Length,
             "Canonical ledger item IDs contain duplicates.");
@@ -161,9 +100,8 @@ public static class V27PhysicalMassPackagingReviewDebugScenarios
                 && ledgerItems.Contains(value.ItemId)),
             value => value.ItemId,
             "item");
-        Require(items.Count == ExpectedLedgerItems,
-            $"Expected {ExpectedLedgerItems} scoped ledger items, "
-            + $"found {items.Count}.");
+        Require(items.Count == ledgerItemIds.Length,
+            "Scoped item definitions are not an exact ledger bijection.");
         Require(ledgerItemIds.All(items.ContainsKey),
             "A canonical ledger item is absent from the live item catalog.");
         HashSet<string> allCatalogItemIds = itemCatalog.Definitions
@@ -177,30 +115,25 @@ public static class V27PhysicalMassPackagingReviewDebugScenarios
                 .CaptureCanonicalUnitSemanticsForAudit(),
             value => value.ItemId,
             "unit semantic");
-        Require(semantics.Count == ExpectedSemantics,
-            $"Expected {ExpectedSemantics} compiled semantics, "
-            + $"found {semantics.Count}.");
-        Require(semantics.Keys.All(ledgerItems.Contains),
-            "A compiled semantic is outside the canonical 414-item ledger.");
+        Require(semantics.Keys.OrderBy(value => value, StringComparer.Ordinal)
+                .SequenceEqual(ledgerItemIds, StringComparer.Ordinal),
+            "Compiled semantics are not an exact canonical-ledger bijection.");
         ProductionRecipeSO[] recipes = domain.GetAll<ProductionRecipeSO>()
             .Where(value => value != null)
             .OrderBy(value => value.RecipeId, StringComparer.Ordinal)
             .ToArray();
-        Require(recipes.Length == ExpectedRecipes,
-            $"Expected {ExpectedRecipes} recipes, found {recipes.Length}.");
+        Require(recipes.Length > 0
+                && recipes.Select(value => value.RecipeId)
+                    .Distinct(StringComparer.Ordinal).Count() == recipes.Length,
+            "Dynamic recipe scope is empty or contains duplicate IDs.");
 
         ItemDefinitionSO[] missing = items.Values
             .Where(value => !semantics.ContainsKey(value.ItemId))
             .OrderBy(value => value.ItemId, StringComparer.Ordinal)
             .ToArray();
-        Require(ExpectedPackagingReviewItemIds.Length == ExpectedMissing,
-            "Packaging-review identity authority count is stale.");
-        Require(missing.Length == ExpectedMissing,
-            $"Expected {ExpectedMissing} packaging-review items, "
-            + $"found {missing.Length}.");
-        Require(missing.Select(value => value.ItemId)
-                .SequenceEqual(ExpectedPackagingReviewItemIds),
-            "Packaging-review item identity set drifted despite matching row count.");
+        Require(missing.Length == 0,
+            "Canonical semantics must cover the full dynamic ledger before coupling: "
+            + string.Join(",", missing.Select(value => value.ItemId)) + ".");
 
         string projectRoot = Directory.GetParent(Application.dataPath)?.FullName
             ?? throw new InvalidOperationException("Project root is unavailable.");
@@ -233,8 +166,21 @@ public static class V27PhysicalMassPackagingReviewDebugScenarios
             .ToArray();
         string beforeDigest = ComputeAggregateDigest(projectRoot, inspectedPaths);
 
-        PackagingRow[] rows = missing
-            .Select(item => CaptureRow(item, recipes, runtimeConsumers))
+        CanonicalItemUnitSemantic[] packagingCandidates = semantics.Values
+            .Where(value => value.PackagingReviewDisposition
+                != PackagingReviewDisposition.Unspecified)
+            .OrderBy(value => value.ItemId, StringComparer.Ordinal)
+            .ToArray();
+        Require(packagingCandidates.Length == 52,
+            "Expected 51 reviewed integral units and one detachable packaged lot, "
+            + $"found {packagingCandidates.Length} packaging candidates.");
+
+        PackagingRow[] rows = packagingCandidates
+            .Select(semantic => CaptureRow(
+                items[semantic.ItemId],
+                semantic,
+                recipes,
+                runtimeConsumers))
             .OrderBy(value => value.ItemId, StringComparer.Ordinal)
             .ToArray();
 
@@ -242,6 +188,10 @@ public static class V27PhysicalMassPackagingReviewDebugScenarios
         Require(string.Equals(beforeDigest, afterDigest, StringComparison.Ordinal),
             "AuditOnly packaging review mutated an inspected asset.");
         int authoredPackageCount = rows.Count(value => value.HasPackagedLotFeature);
+        int integralCount = rows.Count(value => value.PackagingReviewDisposition
+            == PackagingReviewDisposition.IntegralUnitNoDetachableTare.ToString());
+        int detachableCount = rows.Count(value => value.PackagingReviewDisposition
+            == PackagingReviewDisposition.DetachableTare.ToString());
         int reusableCount = rows.Count(value => value.TareDisposition
             == PackageTareDisposition.ReusableContainerReturn.ToString());
         int disposableCount = rows.Count(value => value.TareDisposition
@@ -265,19 +215,25 @@ public static class V27PhysicalMassPackagingReviewDebugScenarios
             == "execution-orphan");
         int runtimeConsumerRows = rows.Count(value => value.RuntimeConsumerCount > 0);
         int runtimeConsumerLinks = rows.Sum(value => value.RuntimeConsumerCount);
-        Require(runtimeConsumerRows == ExpectedRuntimeConsumerRows,
-            $"Expected {ExpectedRuntimeConsumerRows} remaining items with runtime "
-            + $"consumer owners, found {runtimeConsumerRows}.");
-        Require(runtimeConsumerLinks == ExpectedRuntimeConsumerLinks,
-            $"Expected {ExpectedRuntimeConsumerLinks} remaining runtime consumer "
-            + $"links, found {runtimeConsumerLinks}.");
+        int unresolvedCount = rows.Count(value => value.Status != "integral-unit-reviewed"
+            && value.Status != "detachable-tare-authored");
+        Require(integralCount == 51,
+            $"Expected 51 integral-unit packaging decisions, found {integralCount}.");
+        Require(detachableCount == 1 && authoredPackageCount == 1,
+            "The one detachable packaging decision must match one authored packaged lot.");
+        Require(unresolvedCount == 0,
+            $"Packaging review contains {unresolvedCount} unresolved rows.");
+        Require(executionOrphanCount == 0,
+            "A packaging-review row has no execution lifecycle.");
 
         byte[] csv = BuildCsv(rows);
         string report =
-            "RESULT=IN_PROGRESS; phase=remaining-packaging-review; assetMutations=0\n"
-            + $"items={items.Count}; semantics={semantics.Count}; missing={rows.Length}; "
+            "RESULT=PASS; phase=packaging-contract-review; assetMutations=0\n"
+            + $"items={items.Count}; semantics={semantics.Count}; reviewed={rows.Length}; "
             + $"recipes={recipes.Length}\n"
             + $"authoredPackagedLotFeatures={authoredPackageCount}; "
+            + $"integralUnitNoDetachableTare={integralCount}; "
+            + $"detachableTare={detachableCount}; unresolved={unresolvedCount}; "
             + $"reusable={reusableCount}; disposable={disposableCount}; "
             + $"destroyedDuringUse={destroyCount}\n"
             + $"bulkInfrastructureCandidates={bulkCandidateCount}; "
@@ -297,8 +253,7 @@ public static class V27PhysicalMassPackagingReviewDebugScenarios
             + "deterministicRecapture=PASS; byteIdentical=true\n"
             + $"ledgerScopeDigest={ledgerScopeDigest}\n"
             + $"sourceDigest={beforeDigest}\n"
-            + "nextGate=AUTHOR_CONTAINER_RETURN_WASTE_TRANSFER_OR_EXPLICIT_SINK; "
-            + "status=IN_PROGRESS\n";
+            + "nextGate=NONE; status=PASS\n";
         return new CaptureResult(
             csv,
             Encoding.UTF8.GetBytes(report),
@@ -308,10 +263,13 @@ public static class V27PhysicalMassPackagingReviewDebugScenarios
 
     private static PackagingRow CaptureRow(
         ItemDefinitionSO item,
+        CanonicalItemUnitSemantic semantic,
         IReadOnlyList<ProductionRecipeSO> recipes,
         IReadOnlyDictionary<string, string[]> runtimeConsumers)
     {
         Require(item != null, "Packaging review item is null.");
+        Require(string.Equals(item.ItemId, semantic.ItemId, StringComparison.Ordinal),
+            "Packaging semantic was joined to the wrong item authority.");
         string[] producers = recipes
             .Where(recipe => recipe.Outputs.Any(output => string.Equals(
                 output.ItemId,
@@ -347,11 +305,25 @@ public static class V27PhysicalMassPackagingReviewDebugScenarios
             checked(consumers.Length + runtimeConsumerOwners.Length));
         string requiredDispositionProof = RequiredDispositionProof(reviewRoute);
         string runtimeGatewayEvidence = RuntimeGatewayEvidence(reviewRoute);
-        string status = hasPackage
-            ? executionLifecycle == "execution-orphan"
-                ? "authored-package-orphan-requires-live-route"
-                : "authored-package-requires-runtime-route-proof"
-            : "package-contract-required";
+        bool semanticPackageMatches = hasPackage
+            && semantic.PackageTareGrams == tareGrams
+            && semantic.PackageTareDisposition == disposition
+            && string.Equals(
+                semantic.PackageContainerItemId,
+                containerId,
+                StringComparison.Ordinal);
+        string status = semantic.PackagingReviewDisposition switch
+        {
+            PackagingReviewDisposition.IntegralUnitNoDetachableTare
+                when !hasPackage
+                     && semantic.PackageTareGrams == 0
+                     && semantic.PackageTareDisposition == PackageTareDisposition.None
+                     && string.IsNullOrEmpty(semantic.PackageContainerItemId) =>
+                "integral-unit-reviewed",
+            PackagingReviewDisposition.DetachableTare
+                when semanticPackageMatches => "detachable-tare-authored",
+            _ => "packaging-contract-mismatch"
+        };
         return new PackagingRow(
             item.ItemId,
             PhysicalMassGrams.FromCanonicalKilograms(item.UnitWeight).Value,
@@ -360,6 +332,7 @@ public static class V27PhysicalMassPackagingReviewDebugScenarios
             hasPackage,
             tareGrams,
             disposition.ToString(),
+            semantic.PackagingReviewDisposition.ToString(),
             containerId,
             producers.Length,
             string.Join("|", producers),
@@ -496,7 +469,7 @@ public static class V27PhysicalMassPackagingReviewDebugScenarios
         {
             "schemaVersion", "itemId", "currentUnitMassGrams", "maxStack",
             "stockCategory", "hasPackagedLotFeature", "packageTareGrams",
-            "tareDisposition", "containerItemId", "producerCount", "producerRecipeIds",
+            "tareDisposition", "packagingReviewDisposition", "containerItemId", "producerCount", "producerRecipeIds",
             "recipeConsumerCount", "consumerRecipeIds", "runtimeConsumerCount",
             "runtimeConsumerOwnerIds", "totalConsumerCount", "reviewRoute", "status",
             "executionLifecycle", "requiredDispositionProof",
@@ -514,6 +487,7 @@ public static class V27PhysicalMassPackagingReviewDebugScenarios
                 row.HasPackagedLotFeature ? "true" : "false",
                 row.PackageTareGrams.ToString(CultureInfo.InvariantCulture),
                 row.TareDisposition,
+                row.PackagingReviewDisposition,
                 row.ContainerItemId,
                 row.ProducerCount.ToString(CultureInfo.InvariantCulture),
                 row.ProducerRecipeIds,
@@ -620,6 +594,7 @@ public static class V27PhysicalMassPackagingReviewDebugScenarios
             bool hasPackagedLotFeature,
             int packageTareGrams,
             string tareDisposition,
+            string packagingReviewDisposition,
             string containerItemId,
             int producerCount,
             string producerRecipeIds,
@@ -641,6 +616,7 @@ public static class V27PhysicalMassPackagingReviewDebugScenarios
             HasPackagedLotFeature = hasPackagedLotFeature;
             PackageTareGrams = packageTareGrams;
             TareDisposition = tareDisposition;
+            PackagingReviewDisposition = packagingReviewDisposition;
             ContainerItemId = containerItemId;
             ProducerCount = producerCount;
             ProducerRecipeIds = producerRecipeIds;
@@ -663,6 +639,7 @@ public static class V27PhysicalMassPackagingReviewDebugScenarios
         public bool HasPackagedLotFeature { get; }
         public int PackageTareGrams { get; }
         public string TareDisposition { get; }
+        public string PackagingReviewDisposition { get; }
         public string ContainerItemId { get; }
         public int ProducerCount { get; }
         public string ProducerRecipeIds { get; }
@@ -683,18 +660,18 @@ public static class V27PhysicalMassPackagingReviewDebugScenarios
         public CaptureResult(
             byte[] csv,
             byte[] report,
-            int missingCount,
+            int reviewedCount,
             int authoredPackageCount)
         {
             Csv = csv;
             Report = report;
-            MissingCount = missingCount;
+            ReviewedCount = reviewedCount;
             AuthoredPackageCount = authoredPackageCount;
         }
 
         public byte[] Csv { get; }
         public byte[] Report { get; }
-        public int MissingCount { get; }
+        public int ReviewedCount { get; }
         public int AuthoredPackageCount { get; }
     }
 }

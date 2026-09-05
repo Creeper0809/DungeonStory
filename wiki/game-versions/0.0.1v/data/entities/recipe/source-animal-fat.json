@@ -1,0 +1,40 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "6"
+    },
+    {
+      "label": "필요 연구",
+      "value": "야생 포획"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "resource-fat",
+      "target_spoiler_tier": "none",
+      "target_title": "지방",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-capture",
+      "target_spoiler_tier": "none",
+      "target_title": "야생 포획",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "source-animal-fat",
+  "spoiler_tier": "none",
+  "summary": "도축 지방 자원 산출",
+  "title": "도축 지방"
+}

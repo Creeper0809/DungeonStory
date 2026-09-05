@@ -291,6 +291,33 @@ public static class ProficiencyProgressionRules
             MidpointRounding.AwayFromZero)));
     }
 
+    public static long ResolveDecayGraceHours(CharacterProficiencyRank rank) =>
+        rank switch
+        {
+            CharacterProficiencyRank.Master =>
+                5L * GameCalendarRules.HoursPerDay,
+            CharacterProficiencyRank.Expert =>
+                15L * GameCalendarRules.HoursPerDay,
+            _ => 0L
+        };
+
+    public static long CalculateHoursUntilDemotion(
+        long currentMilliExperience)
+    {
+        long current = Math.Clamp(
+            currentMilliExperience,
+            0L,
+            MasterCurrentCap);
+        CharacterProficiencyRank rank = ResolveRank(current);
+        if (rank < CharacterProficiencyRank.Expert) return 0L;
+
+        long ratePerHour = ResolveDecayRateMilliPerHour(rank);
+        long rankFloor = ResolveDecayDemotionFloorMilli(rank);
+        return Math.Max(
+            1L,
+            (current - rankFloor + ratePerHour - 1L) / ratePerHour);
+    }
+
     public static long SettleDecay(
         long currentMilliExperience,
         long lastPracticeAbsoluteHour,
@@ -306,9 +333,7 @@ public static class ProficiencyProgressionRules
         while (settlement < now && current >= ExpertThreshold)
         {
             CharacterProficiencyRank rank = ResolveRank(current);
-            long graceHours = rank == CharacterProficiencyRank.Master
-                ? 5L * GameCalendarRules.HoursPerDay
-                : 15L * GameCalendarRules.HoursPerDay;
+            long graceHours = ResolveDecayGraceHours(rank);
             long decayStart = Math.Max(
                 settlement,
                 Math.Max(0L, lastPracticeAbsoluteHour) + graceHours);
@@ -317,15 +342,9 @@ public static class ProficiencyProgressionRules
                 break;
             }
 
-            long ratePerHour = rank == CharacterProficiencyRank.Master
-                ? 100L
-                : 250L;
-            long rankFloor = rank == CharacterProficiencyRank.Master
-                ? MasterThreshold - 1L
-                : ExpertThreshold - 1L;
-            long hoursUntilDemotion = Math.Max(
-                1L,
-                (current - rankFloor + ratePerHour - 1L) / ratePerHour);
+            long ratePerHour = ResolveDecayRateMilliPerHour(rank);
+            long rankFloor = ResolveDecayDemotionFloorMilli(rank);
+            long hoursUntilDemotion = CalculateHoursUntilDemotion(current);
             long elapsed = Math.Min(now - decayStart, hoursUntilDemotion);
             current = Math.Max(rankFloor, current - elapsed * ratePerHour);
             settlement = decayStart + elapsed;
@@ -337,6 +356,22 @@ public static class ProficiencyProgressionRules
 
         return current;
     }
+
+    private static long ResolveDecayRateMilliPerHour(
+        CharacterProficiencyRank rank) => rank switch
+        {
+            CharacterProficiencyRank.Master => 100L,
+            CharacterProficiencyRank.Expert => 250L,
+            _ => 0L
+        };
+
+    private static long ResolveDecayDemotionFloorMilli(
+        CharacterProficiencyRank rank) => rank switch
+        {
+            CharacterProficiencyRank.Master => MasterThreshold - 1L,
+            CharacterProficiencyRank.Expert => ExpertThreshold - 1L,
+            _ => 0L
+        };
 
     private static float Lerp(
         float from,

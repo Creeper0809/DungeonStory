@@ -1,0 +1,78 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+FacilityBlueprintSO|facility-blueprint:6101,facility-blueprint:6101,m_Name,BP_CommercialBasics,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6101,facility-blueprint:6101,id,6101,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6101,facility-blueprint:6101,blueprintName,상업 확장 설계도,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6101,facility-blueprint:6101,description,연회 식당과 전문 제작을 위한 2단계 상업 파츠를 즉시 해금한다.,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6101,facility-blueprint:6101,rarity,0,FacilityShopRarity,Common,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6101,facility-blueprint:6101,defaultCost,120,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6101,facility-blueprint:6101,researchWorkRequired,18,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6101,facility-blueprint:6101,targetResearchProjectId,research:commerce:expansion,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6101,facility-blueprint:6101,unlocks.items,[],,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6101,facility-blueprint:6101,references.version,2,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6101,facility-blueprint:6101,references.RefIds,[],,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6102,facility-blueprint:6102,m_Name,BP_DefenseBasics,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6102,facility-blueprint:6102,id,6102,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6102,facility-blueprint:6102,blueprintName,요새화 설계도,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6102,facility-blueprint:6102,description,경비 동선과 병영을 강화하는 전술·보안 파츠를 즉시 해금한다.,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6102,facility-blueprint:6102,rarity,0,FacilityShopRarity,Common,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6102,facility-blueprint:6102,defaultCost,140,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6102,facility-blueprint:6102,researchWorkRequired,22,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6102,facility-blueprint:6102,targetResearchProjectId,research:defense:fortification,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6102,facility-blueprint:6102,unlocks.items,[],,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6102,facility-blueprint:6102,references.version,2,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6102,facility-blueprint:6102,references.RefIds,[],,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6103,facility-blueprint:6103,m_Name,BP_SupportBasics,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6103,facility-blueprint:6103,id,6103,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6103,facility-blueprint:6103,blueprintName,생활 지원 설계도,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6103,facility-blueprint:6103,description,숙소·위생·식재료 물류를 개선하는 2단계 생활 파츠를 즉시 해금한다.,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6103,facility-blueprint:6103,rarity,0,FacilityShopRarity,Common,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6103,facility-blueprint:6103,defaultCost,130,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6103,facility-blueprint:6103,researchWorkRequired,20,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6103,facility-blueprint:6103,targetResearchProjectId,research:survival:support,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6103,facility-blueprint:6103,unlocks.items,[],,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6103,facility-blueprint:6103,references.version,2,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6103,facility-blueprint:6103,references.RefIds,[],,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6104,facility-blueprint:6104,m_Name,BP_ArcaneBasics,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6104,facility-blueprint:6104,id,6104,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6104,facility-blueprint:6104,blueprintName,비전 연구 설계도,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6104,facility-blueprint:6104,description,전문 연구와 의식·마력 물류를 위한 2단계 비전 파츠를 즉시 해금한다.,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6104,facility-blueprint:6104,rarity,0,FacilityShopRarity,Common,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6104,facility-blueprint:6104,defaultCost,130,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6104,facility-blueprint:6104,researchWorkRequired,24,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6104,facility-blueprint:6104,targetResearchProjectId,research:arcane:advanced,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6104,facility-blueprint:6104,unlocks.items,[],,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6104,facility-blueprint:6104,references.version,2,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6104,facility-blueprint:6104,references.RefIds,[],,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6191,facility-blueprint:6191,m_Name,BP_BattleDining,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6191,facility-blueprint:6191,id,6191,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6191,facility-blueprint:6191,blueprintName,상권 통합 설계도,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6191,facility-blueprint:6191,description,진열과 보관 부품을 결합해 잠금진열장으로 개조하는 희귀 조합식이다.,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6191,facility-blueprint:6191,rarity,1,FacilityShopRarity,Rare,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6191,facility-blueprint:6191,defaultCost,260,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6191,facility-blueprint:6191,researchWorkRequired,45,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6191,facility-blueprint:6191,targetResearchProjectId,research:commerce:secure-trade,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6191,facility-blueprint:6191,unlocks.items,[],,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6191,facility-blueprint:6191,references.version,2,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6191,facility-blueprint:6191,references.RefIds,[],,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6192,facility-blueprint:6192,m_Name,BP_TrapChain,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6192,facility-blueprint:6192,id,6192,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6192,facility-blueprint:6192,blueprintName,전술 지휘 설계도,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6192,facility-blueprint:6192,description,순찰 체계와 세력 표식을 결합해 전투깃발을 만드는 희귀 조합식이다.,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6192,facility-blueprint:6192,rarity,1,FacilityShopRarity,Rare,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6192,facility-blueprint:6192,defaultCost,280,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6192,facility-blueprint:6192,researchWorkRequired,50,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6192,facility-blueprint:6192,targetResearchProjectId,research:defense:tactical-command,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6192,facility-blueprint:6192,unlocks.items,[],,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6192,facility-blueprint:6192,references.version,2,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6192,facility-blueprint:6192,references.RefIds,[],,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6193,facility-blueprint:6193,m_Name,BP_StormFireTrap,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6193,facility-blueprint:6193,id,6193,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6193,facility-blueprint:6193,blueprintName,비전 공명 설계도,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6193,facility-blueprint:6193,description,룬 안정과 의식 조명을 결합해 의식초점석을 조율하는 희귀 조합식이다.,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6193,facility-blueprint:6193,rarity,1,FacilityShopRarity,Rare,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6193,facility-blueprint:6193,defaultCost,340,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6193,facility-blueprint:6193,researchWorkRequired,60,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6193,facility-blueprint:6193,targetResearchProjectId,research:arcane:resonance,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6193,facility-blueprint:6193,unlocks.items,[],,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6193,facility-blueprint:6193,references.version,2,,,explicit-serialized
+FacilityBlueprintSO|facility-blueprint:6193,facility-blueprint:6193,references.RefIds,[],,,explicit-serialized

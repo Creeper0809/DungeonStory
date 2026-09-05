@@ -1,0 +1,40 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "faction-chapter-demon-6",
+    "spoiler_tier": "warning",
+    "title": "재 위의 새 인장"
+  },
+  "edges": [
+    {
+      "amount": "5",
+      "from": "event/faction-chapter-demon-6",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "tool-administrative-seal",
+      "target_spoiler_tier": "none",
+      "target_title": "행정 인장",
+      "to": "item/tool-administrative-seal",
+      "type": "requires"
+    },
+    {
+      "amount": "9",
+      "from": "event/faction-chapter-demon-6",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "tool-administrative-seal",
+      "target_spoiler_tier": "none",
+      "target_title": "행정 인장",
+      "to": "item/tool-administrative-seal",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-demon",
+      "label": "관련",
+      "to": "event/faction-chapter-demon-6",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

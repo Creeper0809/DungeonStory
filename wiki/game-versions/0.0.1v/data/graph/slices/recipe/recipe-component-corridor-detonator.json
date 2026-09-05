@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-component-corridor-detonator",
+    "spoiler_tier": "none",
+    "title": "복도식 기폭 장치"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-corridor-detonator",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-corridor-detonator",
+      "target_spoiler_tier": "none",
+      "target_title": "복도식 기폭 장치",
+      "to": "item/component-corridor-detonator",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-corridor-detonator",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-granulated-powder",
+      "target_spoiler_tier": "none",
+      "target_title": "과립 화약",
+      "to": "item/material-granulated-powder",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-corridor-detonator",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-spring-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "용수철강",
+      "to": "item/material-spring-steel",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-corridor-detonator",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-defense-corridor-mechanisms",
+      "target_spoiler_tier": "none",
+      "target_title": "복도 기구학",
+      "to": "research/research-defense-corridor-mechanisms",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

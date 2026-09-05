@@ -71,6 +71,8 @@ public static class CharacterMedicalSaveValidation
                 || order.treatmentFacilityId == null
                 || order.treatmentItemId == null
                 || order.treatmentMaterialDestinationId == null
+                || order.treatmentCapacityFingerprint == null
+                || order.treatmentDestinationDrainJoins == null
                 || order.treatmentSupplyOperationId == null
                 || order.treatmentSupplyReasonCode == null
                 || order.treatmentPhysicalItemId == null
@@ -115,6 +117,38 @@ public static class CharacterMedicalSaveValidation
                     $"Medical order '{orderId}' has an invalid treatment facility ID.");
             }
 
+            bool hasMaterialDestination =
+                order.treatmentMaterialDestinationId.Length > 0;
+            bool hasMaterialProjection =
+                order.treatmentBufferCapacityGrams > 0L
+                && order.treatmentMassAuthorityRevision > 0L
+                && IsLowerHexSha256(order.treatmentCapacityFingerprint);
+            if (order.nextTreatmentMaterialDestinationSequence <= 0
+                || order.treatmentDestinationSequence < 0
+                || order.nextTreatmentMaterialDestinationSequence
+                    <= order.treatmentDestinationSequence
+                || hasMaterialDestination != hasMaterialProjection
+                || !hasMaterialDestination
+                && (order.treatmentBufferCapacityGrams != 0L
+                    || order.treatmentMassAuthorityRevision != 0L
+                    || order.treatmentCapacityFingerprint.Length != 0)
+                || hasMaterialDestination
+                && (!string.Equals(
+                        order.treatmentMaterialDestinationId,
+                        CharacterMedicalSupplyDestinationAuthority
+                            .FormatDestinationId(
+                                order.orderId,
+                                order.treatmentDestinationSequence),
+                        StringComparison.Ordinal)
+                    || order.treatmentDestinationSequence <= 0
+                    || order.treatmentFacilityId.Length == 0)
+                || !hasMaterialDestination
+                    && order.treatmentDestinationSequence != 0)
+            {
+                report.AddError(
+                    $"Medical order '{orderId}' has invalid treatment destination mass authority.");
+            }
+
             if (!IsFiniteAtLeast(order.requiredStabilizationWork, 0f)
                 || !IsFiniteInRange(
                     order.completedStabilizationWork,
@@ -155,6 +189,9 @@ public static class CharacterMedicalSaveValidation
                     $"Medical order '{orderId}' references unknown treatment item '{order.treatmentItemId}'.");
             }
             ValidatePhysicalSupplyCommit(order, itemDefinitions, report);
+            CharacterMedicalSupplyDestinationDrainValidation.ValidateLocal(
+                order,
+                report);
         }
 
         if (payload.orderSequence < highestSequence)
@@ -257,6 +294,12 @@ public static class CharacterMedicalSaveValidation
     private static bool IsCanonicalRequired(string value) =>
         !string.IsNullOrWhiteSpace(value)
         && string.Equals(value, value.Trim(), StringComparison.Ordinal);
+
+    private static bool IsLowerHexSha256(string value) =>
+        value != null
+        && value.Length == 64
+        && value.All(character => character is >= '0' and <= '9'
+            or >= 'a' and <= 'f');
 
     internal static CharacterMedicalAggregateState CreateState(
         DungeonCharacterMedicalSaveData payload)

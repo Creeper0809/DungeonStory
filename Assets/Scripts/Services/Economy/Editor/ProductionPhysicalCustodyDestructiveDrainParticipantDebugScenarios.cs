@@ -15,6 +15,7 @@ public static class
         OperationId = ProductionFacilityDestructiveDrainOperationId
             .FromFacility(FacilityId);
     private static readonly string ContributionFingerprint = Digest('a');
+    private static readonly string PostEffectContributionFingerprint = Digest('9');
     private static readonly string ResultFingerprint = Digest('b');
     private static readonly string ReceiptFingerprint = Digest('c');
     private const string CommitId = "commit:qa-physical-participant";
@@ -29,8 +30,78 @@ public static class
         VerifyCommitAndAcknowledgeStatusMapping();
         VerifyTerminalFieldGuardFailsClosed();
         VerifyRecoveryRequiresExactProducerReceipt();
+        VerifyDefaultEmptyHaulProjectionIsAbsent();
         Debug.Log(
             "Physical-custody destructive-drain participant contracts passed.");
+    }
+
+    private static void VerifyDefaultEmptyHaulProjectionIsAbsent()
+    {
+        DungeonPhysicalItemSaveData items = new DungeonPhysicalItemSaveData
+        {
+            stacks = new List<WorldItemStackSaveData>()
+        };
+        DungeonCharacterWorldSaveData withoutIntent =
+            new DungeonCharacterWorldSaveData
+            {
+                actors = new List<DungeonCharacterSaveData>()
+            };
+        DungeonCharacterWorldSaveData nullIntentSource =
+            new DungeonCharacterWorldSaveData
+            {
+                actors = new List<DungeonCharacterSaveData>
+                {
+                    new DungeonCharacterSaveData
+                    {
+                        persistentId = "character:qa-empty-haul"
+                    }
+                }
+            };
+        DungeonCharacterWorldSaveData defaultProjectedIntent =
+            JsonUtility.FromJson<DungeonCharacterWorldSaveData>(
+                JsonUtility.ToJson(nullIntentSource));
+
+        string absentFingerprint =
+            ProductionOutputDestinationDurableSaveProjector
+                .ProjectPhysicalCustody(FacilityId, items, withoutIntent);
+        string defaultFingerprint =
+            ProductionOutputDestinationDurableSaveProjector
+                .ProjectPhysicalCustody(
+                    FacilityId,
+                    items,
+                    defaultProjectedIntent);
+        Require(
+            defaultProjectedIntent?.actors?.Count == 1
+            && defaultProjectedIntent.actors[0].haulDeliveryIntent != null
+            && defaultProjectedIntent.actors[0].haulDeliveryIntent
+                .IsDefaultEmptyProjection
+            && string.Equals(
+                absentFingerprint,
+                defaultFingerprint,
+                StringComparison.Ordinal),
+            "A default JSON haul projection was treated as live physical custody.");
+
+        defaultProjectedIntent.actors[0].haulDeliveryIntent
+            .warehouseAdmissions.Add(new WarehouseHaulAdmissionSaveData
+            {
+                tokenId = "admission:qa-malformed-empty-haul"
+            });
+        bool malformedRejected = false;
+        try
+        {
+            ProductionOutputDestinationDurableSaveProjector
+                .ProjectPhysicalCustody(
+                    FacilityId,
+                    items,
+                    defaultProjectedIntent);
+        }
+        catch (InvalidOperationException)
+        {
+            malformedRejected = true;
+        }
+        Require(
+            malformedRejected,
+            "A partially populated haul projection was silently treated as absent.");
     }
 
     private static void VerifyEmptyContributionProducesNoOwner()
@@ -194,10 +265,12 @@ public static class
                 StringComparison.Ordinal),
             "Terminal lower Applied did not preserve exact terminal fields.");
 
+        fixture.Lifecycle.CurrentFingerprint =
+            PostEffectContributionFingerprint;
         ProductionFacilityDestructiveDrainStepContext awaitingAck =
             CreateStepContext(
                 plan.Owners[0],
-                plan.DurableContributionFingerprint,
+                PostEffectContributionFingerprint,
                 ProductionFacilityDestructiveDrainStepPhase
                     .EffectCommittedAwaitingOwnerAck,
                 CommitId,
@@ -273,10 +346,12 @@ public static class
                 .EffectCommittedAwaitingOwnerAck,
             CommitId,
             ReceiptFingerprint);
+        fixture.Lifecycle.CurrentFingerprint =
+            PostEffectContributionFingerprint;
         ProductionFacilityDestructiveDrainStepContext exact =
             CreateStepContext(
                 plan.Owners[0],
-                plan.DurableContributionFingerprint,
+                PostEffectContributionFingerprint,
                 ProductionFacilityDestructiveDrainStepPhase
                     .EffectCommittedAwaitingOwnerAck,
                 CommitId,
@@ -294,7 +369,7 @@ public static class
         ProductionFacilityDestructiveDrainStepContext mismatched =
             CreateStepContext(
                 plan.Owners[0],
-                plan.DurableContributionFingerprint,
+                PostEffectContributionFingerprint,
                 ProductionFacilityDestructiveDrainStepPhase
                     .EffectCommittedAwaitingOwnerAck,
                 CommitId,
@@ -304,6 +379,15 @@ public static class
                 ProductionFacilityDestructiveDrainRecoveryAction.Conflict,
             "A journal/producer receipt mismatch did not fail recovery closed.");
 
+        string preparedSourceFingerprint =
+            fixture.Port.State.sourceOwnershipFingerprint;
+        fixture.Port.State.sourceOwnershipFingerprint = Digest('8');
+        Require(
+            fixture.Participant.Recover(exact).Action ==
+                ProductionFacilityDestructiveDrainRecoveryAction.Conflict,
+            "A mutated immutable source fingerprint survived request validation.");
+        fixture.Port.State.sourceOwnershipFingerprint =
+            preparedSourceFingerprint;
         fixture.Port.State.inputMassGrams++;
         Require(
             fixture.Participant.Recover(exact).Action ==
@@ -376,15 +460,18 @@ public static class
     {
         private Fixture(
             ProductionPhysicalCustodyDestructiveDrainParticipant participant,
-            FakePhysicalPort port)
+            FakePhysicalPort port,
+            FakeLifecycleQuery lifecycle)
         {
             Participant = participant;
             Port = port;
+            Lifecycle = lifecycle;
         }
 
         internal ProductionPhysicalCustodyDestructiveDrainParticipant
             Participant { get; }
         internal FakePhysicalPort Port { get; }
+        internal FakeLifecycleQuery Lifecycle { get; }
 
         internal static Fixture Create(bool hasAuthority = true)
         {
@@ -401,12 +488,14 @@ public static class
                 2);
             IProductionAssemblyBridge bridge = new FakeBridge(handle);
             FakePhysicalPort port = new();
+            FakeLifecycleQuery lifecycle = new(hasAuthority);
             return new Fixture(
                 new ProductionPhysicalCustodyDestructiveDrainParticipant(
-                    new FakeLifecycleQuery(hasAuthority),
+                    lifecycle,
                     port,
                     bridge),
-                port);
+                port,
+                lifecycle);
         }
     }
 
@@ -417,6 +506,9 @@ public static class
 
         internal FakeLifecycleQuery(bool hasAuthority) =>
             this.hasAuthority = hasAuthority;
+
+        internal string CurrentFingerprint { get; set; } =
+            ContributionFingerprint;
 
         public ProductionOutputDestinationLifecycleSnapshot Capture(
             BuildingInstanceId facilityId)
@@ -429,8 +521,8 @@ public static class
                 hasAuthority ? 1 : 0,
                 hasAuthority ? 1000L : 0L,
                 Array.Empty<ProductionOutputLifecycleBlock>(),
-                ContributionFingerprint,
-                ContributionFingerprint);
+                CurrentFingerprint,
+                CurrentFingerprint);
             return new ProductionOutputDestinationLifecycleSnapshot(
                 facilityId,
                 ProductionOutputDestinationId.FromFacility(facilityId),
@@ -620,25 +712,39 @@ public static class
             ProductionSupportModifierKind kind,
             float defaultValue,
             bool multiply) => throw Unsupported();
+        public ProductionOutputCapabilityDescriptor CaptureOutputCapability(
+            string outputLineId,
+            string itemId) => throw Unsupported();
+        public bool TryValidateOutputCapability(
+            ProductionOutputCapabilityDescriptor capability,
+            out DomainFailure failure) => throw Unsupported();
         public bool TryHandleOutput(
             ProductionRecipeSO recipe,
             ProductionFacilityHandle facility,
             ProductionWorkerHandle worker,
-            string itemId,
+            ProductionOutputCapabilityDescriptor capability,
             int amount,
+            string outputDestinationId,
             float qualityModifier,
             float workerQuality,
             string commitId,
             out bool handled,
             out DomainFailure failure) => throw Unsupported();
         public bool AcknowledgeHandledOutput(
-            string itemId,
+            ProductionOutputCapabilityDescriptor capability,
             string commitId,
             out DomainFailure failure) => throw Unsupported();
-        public bool TryGetCommittedOutputMassGrams(
-            string itemId,
+        public bool TryCaptureCommittedOutput(
+            ProductionRecipeSO recipe,
+            ProductionFacilityHandle facility,
+            ProductionWorkerHandle worker,
+            ProductionOutputCapabilityDescriptor capability,
+            int amount,
+            string outputDestinationId,
+            float qualityModifier,
+            float workerQuality,
             string commitId,
-            out long massGrams,
+            out ProductionCommittedOutputSnapshot snapshot,
             out DomainFailure failure) => throw Unsupported();
         public bool MatchesWorkstation(
             ProductionFacilityHandle facility,
@@ -647,9 +753,7 @@ public static class
             ProductionFacilityHandle facility,
             IReadOnlyList<string> requiredFeatureTags,
             out string failureReason) => throw Unsupported();
-        public bool HasCompatibleWarehouse(
-            string itemId,
-            StockCategory category) => throw Unsupported();
+        public bool HasCompatibleWarehouse(string itemId) => throw Unsupported();
         public void RequestWorkReplan(WorkTypeId workTypeId) =>
             throw Unsupported();
         public void RequestOneHaulerToReplan(bool forceInterrupt) =>

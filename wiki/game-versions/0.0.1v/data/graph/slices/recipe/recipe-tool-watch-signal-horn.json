@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-tool-watch-signal-horn",
+    "spoiler_tier": "none",
+    "title": "경계 신호 나팔"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-watch-signal-horn",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "tool-watch-signal-horn",
+      "target_spoiler_tier": "none",
+      "target_title": "경계 신호 나팔",
+      "to": "item/tool-watch-signal-horn",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-watch-signal-horn",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-leather",
+      "target_spoiler_tier": "none",
+      "target_title": "가죽",
+      "to": "item/material-leather",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-tool-watch-signal-horn",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-iron-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "철괴",
+      "to": "item/material-iron-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-tool-watch-signal-horn",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-rune-dust",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 가루",
+      "to": "item/resource-rune-dust",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-tool-watch-signal-horn",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-defense-watch",
+      "target_spoiler_tier": "none",
+      "target_title": "경계 근무",
+      "to": "research/research-defense-watch",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-cheese",
+    "spoiler_tier": "none",
+    "title": "치즈 숙성"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-cheese",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-cheese",
+      "target_spoiler_tier": "none",
+      "target_title": "치즈",
+      "to": "item/material-cheese",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-cheese",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-curd",
+      "target_spoiler_tier": "none",
+      "target_title": "응유",
+      "to": "item/material-curd",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-cheese",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-livestock",
+      "target_spoiler_tier": "none",
+      "target_title": "축산 조리",
+      "to": "research/research-cuisine-livestock",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

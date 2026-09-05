@@ -1,0 +1,94 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "60"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Agriculture"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-irrigation",
+      "target_spoiler_tier": "none",
+      "target_title": "관개",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-irrigation",
+      "target_spoiler_tier": "none",
+      "target_title": "관개",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-irrigation",
+      "target_spoiler_tier": "none",
+      "target_title": "관개",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-support",
+      "target_spoiler_tier": "none",
+      "target_title": "생활 지원",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-support",
+      "target_spoiler_tier": "none",
+      "target_title": "생활 지원",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-support",
+      "target_spoiler_tier": "none",
+      "target_title": "생활 지원",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1627",
+      "target_spoiler_tier": "none",
+      "target_title": "실내 생장 제어기",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1096",
+      "target_spoiler_tier": "none",
+      "target_title": "실내 재배조",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-agriculture-indoor",
+  "spoiler_tier": "none",
+  "summary": "물, 퇴비와 연료를 써서 실내에서 작물을 기른다.",
+  "title": "실내 재배"
+}

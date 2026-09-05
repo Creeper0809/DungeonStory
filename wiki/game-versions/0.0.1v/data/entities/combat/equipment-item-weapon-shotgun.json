@@ -1,0 +1,93 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "내압 화기와 방폭"
+    },
+    {
+      "label": "제작 작업",
+      "value": "224"
+    },
+    {
+      "label": "무게",
+      "value": "6.1kg"
+    },
+    {
+      "label": "최대 사거리",
+      "value": "12"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "combat",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-scatter-cartridge",
+      "target_spoiler_tier": "none",
+      "target_title": "산탄 탄약",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-smoke-cartridge",
+      "target_spoiler_tier": "none",
+      "target_title": "연막 탄약",
+      "type": "references"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-engineering-drawing",
+      "target_spoiler_tier": "none",
+      "target_title": "공학 도면",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-machine-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "기계 부품",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-pressure-barrels",
+      "target_spoiler_tier": "none",
+      "target_title": "내압 화기와 방폭",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-precision-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-barrel-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "총열강",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "equipment-item-weapon-shotgun",
+  "spoiler_tier": "none",
+  "summary": "산탄총 전투 장비",
+  "title": "산탄총"
+}

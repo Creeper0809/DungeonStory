@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "tool-hauling-harness",
+    "spoiler_tier": "none",
+    "title": "운반 멜빵"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-hauling-harness",
+      "label": "생산·해금",
+      "to": "item/tool-hauling-harness",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-hauling-harness",
+      "label": "생산·해금",
+      "to": "item/tool-hauling-harness",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "combat/workwear-hauling-harness",
+      "label": "관련",
+      "to": "item/tool-hauling-harness",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

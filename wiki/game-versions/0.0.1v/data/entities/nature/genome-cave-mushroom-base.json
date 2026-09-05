@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "nature",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "genome-cave-mushroom-base",
+  "spoiler_tier": "none",
+  "summary": "기본 환경에 적응한 표준 품종.",
+  "title": "Genome_cave-mushroom"
+}

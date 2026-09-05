@@ -59,6 +59,7 @@ public class OffenseExpeditionRuntime :
     private IOffenseFieldMedicalRuntime fieldMedical;
     private IOffenseFieldMobilityService fieldMobility;
     private ICharacterPerformanceQuery performance;
+    private ICharacterSettlementStandingQuery settlementStandings;
     private BlueprintResearchRuntime expeditionResearchRuntime;
     private BlueprintResearchState expeditionResearchState;
     private bool enforceExpeditionAccess;
@@ -144,7 +145,8 @@ public class OffenseExpeditionRuntime :
         ICombatEquipmentPickupRuntime equipmentPickupRuntime,
         IOffenseFieldMedicalRuntime fieldMedical,
         IOffenseFieldMobilityService fieldMobility,
-        ICharacterPerformanceQuery performance = null)
+        ICharacterPerformanceQuery performance = null,
+        ICharacterSettlementStandingQuery settlementStandings = null)
     {
         Construct(
             memberQuery,
@@ -166,6 +168,8 @@ public class OffenseExpeditionRuntime :
             ?? throw new ArgumentNullException(nameof(fieldMobility));
         this.performance = performance
             ?? throw new ArgumentNullException(nameof(performance));
+        this.settlementStandings = settlementStandings
+            ?? throw new ArgumentNullException(nameof(settlementStandings));
         this.strategicDecisionEffects = strategicDecisionEffects
             ?? throw new ArgumentNullException(nameof(strategicDecisionEffects));
         this.strategicTargets = strategicTargets
@@ -249,7 +253,8 @@ public class OffenseExpeditionRuntime :
             .Where(instance => instance != null
                 && instance.worldState is not (
                     CombatEquipmentWorldState.Lost
-                    or CombatEquipmentWorldState.RetailStock))
+                    or CombatEquipmentWorldState.RetailStock
+                    or CombatEquipmentWorldState.MarketSalePending))
             .GroupBy(instance => instance.definitionId, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal)
             ?? new Dictionary<string, int>(StringComparer.Ordinal);
@@ -402,7 +407,8 @@ public class OffenseExpeditionRuntime :
                 battleRuntime,
                 preparationService,
                 equipmentRuntime,
-                performance),
+                performance,
+                settlementStandings),
             new OffenseExpeditionLaunchInfrastructure(
                 gameMoney,
                 strategicTravel,

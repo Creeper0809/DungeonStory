@@ -75,12 +75,15 @@ public static class IndustrialInfrastructureDebugScenarios
         VerifyIndustrialBuildings();
         VerifySanitationAndProcessFluids();
         VerifyFluidNetworkBatchAtomicity();
+        FluidFacilityInputOwnerDebugContract.Verify();
         VerifyWorkRegistration();
         VerifyUtilityLayerCoexistence();
         VerifyConveyorStateEvaluation();
         VerifyAutomationPowerDemand();
+        VerifyProductionWorkstationExecutionModeGate();
         VerifyFuelOutboxTransaction();
         VerifySaveRoundTrip();
+        VerifyConveyorPhysicalCustody();
         VerifyItemDefinitions();
         VerifyIndustryTab();
         Debug.Log(
@@ -95,8 +98,10 @@ public static class IndustrialInfrastructureDebugScenarios
         VerifyUtilityLayerCoexistence();
         VerifyConveyorStateEvaluation();
         VerifyAutomationPowerDemand();
+        VerifyProductionWorkstationExecutionModeGate();
         VerifyFuelOutboxTransaction();
         VerifySaveRoundTrip();
+        VerifyConveyorPhysicalCustody();
         VerifyItemDefinitions();
         VerifyIndustryTab();
         const string report =
@@ -112,6 +117,16 @@ public static class IndustrialInfrastructureDebugScenarios
         VerifyFuelOutboxTransaction();
         return "fuel-debit=1; outcome=1; ack-recovery=1; second-debit=0; "
             + "capacity-revision=stable; terminal-close=1";
+    }
+
+    public static string RunProductionWorkstationExecutionModeGateFocused()
+    {
+        VerifyProductionWorkstationExecutionModeGate();
+        return "PRODUCTION_EXECUTION_MODE_GATE=PASS; manual=allow; "
+            + "powered-assist-manual=allow; automatic-manual=reject; "
+            + "automatic-executor=allow; manual-only-automatic=reject; "
+            + "legacy-manual=allow; legacy-automatic=reject; "
+            + "allocated-worker-transition=reject; restore-mode=exact";
     }
 
     [MenuItem(
@@ -417,6 +432,129 @@ public static class IndustrialInfrastructureDebugScenarios
             "Automatic demand did not use its configured value.");
     }
 
+    private static void VerifyProductionWorkstationExecutionModeGate()
+    {
+        BuildingInstanceId facilityId = new(
+            "building:qa:production-mode-exclusion");
+        DungeonRuntimeAggregateRootStore root = new();
+        AutomationStateSession state = new(root);
+        AutomationPowerDemandRegistry query = new(root);
+        ProductionFacilityWorkstationLaneCapacityProfile manualOnly =
+            ProductionFacilityWorkstationLaneCapacityProfile
+                .SingleManualWithDetachedBatchProcessors;
+        ProductionFacilityWorkstationLaneCapacityProfile modeExclusive = new(
+            ProductionWorkstationLanePolicy
+                .ModeExclusiveManualOrAutomaticWithDetachedBatchProcessors,
+            1,
+            1);
+
+        Require(query.GetMode(facilityId) == AutomationMode.Manual,
+            "Missing automation state did not resolve to Manual mode.");
+        Require(ProductionWorkstationExecutionModeRules.TryAuthorize(
+                manualOnly,
+                AutomationMode.Manual,
+                ProductionWorkstationExecutionAuthority.ManualActor,
+                out _),
+            "Manual-only facility rejected its manual actor.");
+        Require(!ProductionWorkstationExecutionModeRules.RequiresLaneAuthorization(
+                isProductionWorkstation: false,
+                mode: AutomationMode.Manual,
+                authority: ProductionWorkstationExecutionAuthority.ManualActor),
+            "Legacy manual facility was incorrectly forced through production lane authoring.");
+        Require(ProductionWorkstationExecutionModeRules.RequiresLaneAuthorization(
+                isProductionWorkstation: false,
+                mode: AutomationMode.Automatic,
+                authority: ProductionWorkstationExecutionAuthority.ManualActor),
+            "Automatic mode did not close the legacy manual facility path.");
+        Require(ProductionWorkstationExecutionModeRules.RequiresLaneAuthorization(
+                isProductionWorkstation: false,
+                mode: AutomationMode.Manual,
+                authority: ProductionWorkstationExecutionAuthority.AutomaticExecutor),
+            "Automatic execution bypassed production lane authoring on a legacy facility.");
+        Require(!ProductionWorkstationExecutionModeRules.TryAuthorize(
+                null,
+                AutomationMode.Automatic,
+                ProductionWorkstationExecutionAuthority.ManualActor,
+                out string legacyAutomaticFailure)
+            && legacyAutomaticFailure == ProductionWorkstationExecutionModeRules
+                .ManualDisabledByAutomaticMode,
+            "Legacy automatic mode did not return the non-fallbackable manual exclusion reason.");
+        Require(!ProductionWorkstationExecutionModeRules.TryAuthorize(
+                manualOnly,
+                AutomationMode.Automatic,
+                ProductionWorkstationExecutionAuthority.AutomaticExecutor,
+                out string manualOnlyAutomaticFailure)
+            && manualOnlyAutomaticFailure
+                == "production-automatic-lane-unavailable",
+            "Manual-only facility admitted an automatic executor.");
+        Require(ProductionWorkstationExecutionModeRules.TryAuthorize(
+                modeExclusive,
+                AutomationMode.PoweredAssist,
+                ProductionWorkstationExecutionAuthority.ManualActor,
+                out _),
+            "Powered-assist mode rejected its manual actor.");
+        Require(!ProductionWorkstationExecutionModeRules.TryAuthorize(
+                modeExclusive,
+                AutomationMode.Automatic,
+                ProductionWorkstationExecutionAuthority.ManualActor,
+                out string automaticManualFailure)
+            && automaticManualFailure
+                == "production-manual-disabled-by-automatic-mode",
+            "Automatic mode admitted a manual actor.");
+        Require(ProductionWorkstationExecutionModeRules.TryAuthorize(
+                modeExclusive,
+                AutomationMode.Automatic,
+                ProductionWorkstationExecutionAuthority.AutomaticExecutor,
+                out _),
+            "Automatic mode rejected its authored automatic executor.");
+        Require(!ProductionWorkstationExecutionModeRules.TryAuthorize(
+                modeExclusive,
+                AutomationMode.Manual,
+                ProductionWorkstationExecutionAuthority.AutomaticExecutor,
+                out string manualAutomaticFailure)
+            && manualAutomaticFailure == "production-automatic-mode-required",
+            "Manual mode admitted an automatic executor.");
+        Require(ProductionWorkerHandle.AutomaticExecutor.AuthorityKind
+                == ProductionWorkerAuthorityKind.AutomaticExecutor
+            && ProductionWorkerHandle.PassiveProcessor.AuthorityKind
+                == ProductionWorkerAuthorityKind.PassiveProcessor
+            && string.IsNullOrEmpty(
+                ProductionWorkerHandle.AutomaticExecutor.PersistentId)
+            && string.IsNullOrEmpty(
+                ProductionWorkerHandle.PassiveProcessor.PersistentId),
+            "System production executors lost their explicit authority kind.");
+        Require(!AutomationModeTransitionRules.TryAuthorize(
+                AutomationMode.Automatic,
+                hasActiveManualWorker: true,
+                out string activeWorkerFailure)
+            && activeWorkerFailure == "automatic-mode-manual-worker-active",
+            "Automatic mode transition admitted an active manual worker.");
+        Require(AutomationModeTransitionRules.HasActiveManualExecution(
+                hasFacilityReservation: false,
+                hasAllocatedWorker: true,
+                hasBillReservation: false),
+            "Allocated worker ownership was omitted from mode-transition admission.");
+        Require(AutomationModeTransitionRules.TryAuthorize(
+                AutomationMode.Manual,
+                hasActiveManualWorker: true,
+                out _),
+            "Manual mode transition rejected an existing manual worker.");
+
+        state.GetOrCreate(facilityId.Value).SetMode(AutomationMode.Automatic);
+        state.IncrementVersion();
+        Require(query.GetMode(facilityId) == AutomationMode.Automatic,
+            "Root-backed execution mode query did not observe Automatic mode.");
+
+        DungeonAutomationSaveData saved = state.Capture();
+        DungeonRuntimeAggregateRootStore restoredRoot = new();
+        AutomationStateSession restoredState = new(restoredRoot);
+        restoredState.Restore(
+            AutomationStateSession.CreateRestoreCandidate(saved.facilities));
+        AutomationPowerDemandRegistry restoredQuery = new(restoredRoot);
+        Require(restoredQuery.GetMode(facilityId) == AutomationMode.Automatic,
+            "Restored execution mode query changed Automatic mode.");
+    }
+
     private static void VerifyFuelOutboxTransaction()
     {
         const string NodeId = "building:qa:power-fuel-outbox";
@@ -451,6 +589,15 @@ public static class IndustrialInfrastructureDebugScenarios
             typeof(BuildableObject).GetProperty(nameof(BuildableObject.centerPos))
                 ?.SetValue(building, new Vector2Int(7, 3));
             building.RestorePersistentIdentity(new BuildingInstanceId(NodeId));
+            Grid fixtureGrid = new Grid(16, 8);
+            building.SetGrid(fixtureGrid);
+            building.SetRuntimeGridPosition(new Vector2Int(7, 3));
+            Require(fixtureGrid.RegisterOccupant(
+                    building,
+                    data.Placement.Layer,
+                    building.buildPoses,
+                    building.IsGridMovement),
+                "Power fuel probe fixture was not registered on its live Grid authority.");
             IDungeonItemCatalogProvider catalog = EditorItemCatalogFactory.Create();
             items = PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture(
                 catalog,
@@ -625,6 +772,37 @@ public static class IndustrialInfrastructureDebugScenarios
                 && restored.payloads[0].segmentBuildingInstanceId
                     == "building:loop",
             "Conveyor payload did not preserve its physical stack reference.");
+        RequireInvalidConveyorCandidate(
+            source,
+            candidate => candidate.payloads[0].payloadId =
+                " payload:unique",
+            "non-canonical payload ID");
+        RequireInvalidConveyorCandidate(
+            source,
+            candidate => candidate.payloads[0].itemStackId =
+                "stack:corpse ",
+            "non-canonical stack ID");
+        RequireInvalidConveyorCandidate(
+            source,
+            candidate => candidate.payloads[0].segmentBuildingInstanceId =
+                " building:loop",
+            "non-canonical segment ID");
+        RequireInvalidConveyorCandidate(
+            source,
+            candidate => candidate.payloads[0].destinationId =
+                "warehouse:reserve ",
+            "non-canonical destination ID");
+        RequireInvalidConveyorCandidate(
+            source,
+            candidate =>
+            {
+                ConveyorPayloadSaveData duplicate =
+                    JsonUtility.FromJson<ConveyorPayloadSaveData>(
+                        JsonUtility.ToJson(candidate.payloads[0]));
+                duplicate.payloadId = "payload:duplicate-stack-owner";
+                candidate.payloads.Add(duplicate);
+            },
+            "duplicate physical stack owner");
 
         ProductionBillSaveData bill = new ProductionBillSaveData
         {
@@ -799,6 +977,164 @@ public static class IndustrialInfrastructureDebugScenarios
             .ToArray();
     }
 
+    private static void VerifyConveyorPhysicalCustody()
+    {
+        const string PayloadId = "conveyor-payload:00000001";
+        const string StackId = "stack:conveyor:lumber";
+        const string SegmentId = "building:conveyor:segment";
+        DungeonPhysicalItemSaveData physical = new()
+        {
+            stacks =
+            {
+                new WorldItemStackSaveData
+                {
+                    stackId = StackId,
+                    itemId = "material:lumber",
+                    quantity = 3,
+                    state = WorldItemStackState.InTransit,
+                    destinationId = PayloadId
+                }
+            }
+        };
+        DungeonConveyorInfrastructureSaveData conveyor = new()
+        {
+            payloads =
+            {
+                new ConveyorPayloadSaveData
+                {
+                    payloadId = PayloadId,
+                    itemStackId = StackId,
+                    segmentBuildingInstanceId = SegmentId,
+                    previousBuildingInstanceId =
+                        "building:conveyor:removed-previous",
+                    destinationId = "qa:destination"
+                }
+            }
+        };
+        ModularFacilityWorldSaveData facilities = new()
+        {
+            buildings =
+            {
+                new ModularFacilityBuildingSaveData
+                {
+                    persistentInstanceId = SegmentId
+                }
+            }
+        };
+
+        ConveyorPhysicalCustodySaveValidation.ValidateCore(
+            physical,
+            conveyor,
+            facilities);
+        VerifyConveyorEnvelopeVersionBoundary(
+            physical,
+            conveyor,
+            facilities);
+        RequireConveyorCustodyRejected(
+            physical,
+            conveyor,
+            facilities,
+            (items, _, _) => items.stacks.Clear(),
+            "payload without physical stack");
+        RequireConveyorCustodyRejected(
+            physical,
+            conveyor,
+            facilities,
+            (items, _, _) => items.stacks.Add(new WorldItemStackSaveData
+            {
+                stackId = "stack:conveyor:orphan",
+                itemId = "material:lumber",
+                quantity = 1,
+                state = WorldItemStackState.InTransit,
+                destinationId = "conveyor-payload:orphan"
+            }),
+            "orphan InTransit stack");
+        RequireConveyorCustodyRejected(
+            physical,
+            conveyor,
+            facilities,
+            (items, _, _) => items.stacks[0].destinationId =
+                "conveyor-payload:wrong-owner",
+            "mismatched InTransit owner");
+        RequireConveyorCustodyRejected(
+            physical,
+            conveyor,
+            facilities,
+            (_, state, _) => state.payloads.Add(new ConveyorPayloadSaveData
+            {
+                payloadId = "conveyor-payload:00000002",
+                itemStackId = StackId,
+                segmentBuildingInstanceId = SegmentId
+            }),
+            "duplicate payload stack ownership");
+        RequireConveyorCustodyRejected(
+            physical,
+            conveyor,
+            facilities,
+            (_, _, world) => world.buildings.Clear(),
+            "missing current conveyor segment");
+    }
+
+    private static void VerifyConveyorEnvelopeVersionBoundary(
+        DungeonPhysicalItemSaveData physical,
+        DungeonConveyorInfrastructureSaveData conveyor,
+        ModularFacilityWorldSaveData facilities)
+    {
+        Dictionary<string, DungeonSaveSectionEnvelope> envelopes = new(
+            StringComparer.Ordinal)
+        {
+            [PhysicalItemsSaveSection.Id] = new DungeonSaveSectionEnvelope
+            {
+                sectionId = PhysicalItemsSaveSection.Id,
+                sectionVersion = DungeonPhysicalItemSaveData.CurrentVersion,
+                payloadJson = JsonUtility.ToJson(physical)
+            },
+            [ConveyorInfrastructureSaveSection.Id] =
+                new DungeonSaveSectionEnvelope
+                {
+                    sectionId = ConveyorInfrastructureSaveSection.Id,
+                    sectionVersion =
+                        DungeonConveyorInfrastructureSaveData.CurrentVersion,
+                    payloadJson = JsonUtility.ToJson(conveyor)
+                },
+            [ModularFacilityWorldSaveSection.Id] =
+                new DungeonSaveSectionEnvelope
+                {
+                    sectionId = ModularFacilityWorldSaveSection.Id,
+                    sectionVersion =
+                        ModularFacilityWorldSaveSection.CurrentSectionVersion,
+                    payloadJson = JsonUtility.ToJson(facilities)
+                }
+        };
+
+        ConveyorPhysicalCustodySaveValidation validator = new();
+        DungeonGameRestoreReport registryReport = new();
+        validator.Validate(envelopes, registryReport);
+        Require(registryReport.Success,
+            "Conveyor custody rejected world envelope v1 with payload v5: "
+            + string.Join(" | ", registryReport.Errors));
+
+        DungeonGameRestoreReport saveReport = new();
+        validator.Validate(
+            new DungeonGameSaveData
+            {
+                sections = envelopes.Values
+                    .OrderBy(value => value.sectionId, StringComparer.Ordinal)
+                    .ToList()
+            },
+            saveReport);
+        Require(saveReport.Success,
+            "Conveyor save preflight rejected world envelope v1 with payload v5: "
+            + string.Join(" | ", saveReport.Errors));
+
+        envelopes[ModularFacilityWorldSaveSection.Id].sectionVersion =
+            ModularFacilityWorldSaveService.CurrentVersion;
+        DungeonGameRestoreReport wrongLayerReport = new();
+        validator.Validate(envelopes, wrongLayerReport);
+        Require(!wrongLayerReport.Success,
+            "Conveyor custody accepted payload schema v5 as the world envelope version.");
+    }
+
     private sealed class FailFirstFuelAcknowledgement :
         IPhysicalFacilityItemSinkGateway
     {
@@ -855,6 +1191,65 @@ public static class IndustrialInfrastructureDebugScenarios
         {
             throw new InvalidOperationException(message);
         }
+    }
+
+    private static void RequireInvalidConveyorCandidate(
+        DungeonConveyorInfrastructureSaveData source,
+        Action<DungeonConveyorInfrastructureSaveData> mutate,
+        string label)
+    {
+        DungeonConveyorInfrastructureSaveData candidate =
+            JsonUtility.FromJson<DungeonConveyorInfrastructureSaveData>(
+                JsonUtility.ToJson(source));
+        mutate(candidate);
+        bool rejected = false;
+        try
+        {
+            IndustrialInfrastructureSaveValidation.RequireValid(candidate);
+        }
+        catch (InvalidOperationException)
+        {
+            rejected = true;
+        }
+
+        Require(rejected,
+            $"Conveyor restore accepted {label}.");
+    }
+
+    private static void RequireConveyorCustodyRejected(
+        DungeonPhysicalItemSaveData physical,
+        DungeonConveyorInfrastructureSaveData conveyor,
+        ModularFacilityWorldSaveData facilities,
+        Action<
+            DungeonPhysicalItemSaveData,
+            DungeonConveyorInfrastructureSaveData,
+            ModularFacilityWorldSaveData> mutate,
+        string label)
+    {
+        DungeonPhysicalItemSaveData itemCandidate =
+            JsonUtility.FromJson<DungeonPhysicalItemSaveData>(
+                JsonUtility.ToJson(physical));
+        DungeonConveyorInfrastructureSaveData conveyorCandidate =
+            JsonUtility.FromJson<DungeonConveyorInfrastructureSaveData>(
+                JsonUtility.ToJson(conveyor));
+        ModularFacilityWorldSaveData facilityCandidate =
+            JsonUtility.FromJson<ModularFacilityWorldSaveData>(
+                JsonUtility.ToJson(facilities));
+        mutate(itemCandidate, conveyorCandidate, facilityCandidate);
+        bool rejected = false;
+        try
+        {
+            ConveyorPhysicalCustodySaveValidation.ValidateCore(
+                itemCandidate,
+                conveyorCandidate,
+                facilityCandidate);
+        }
+        catch (InvalidOperationException)
+        {
+            rejected = true;
+        }
+        Require(rejected,
+            $"Conveyor custody accepted {label}.");
     }
 }
 #endif

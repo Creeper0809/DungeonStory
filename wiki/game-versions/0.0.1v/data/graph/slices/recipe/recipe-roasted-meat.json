@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-roasted-meat",
+    "spoiler_tier": "none",
+    "title": "고기구이"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-roasted-meat",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "food-roasted-meat",
+      "target_spoiler_tier": "none",
+      "target_title": "고기구이",
+      "to": "item/food-roasted-meat",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-roasted-meat",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-meat",
+      "target_spoiler_tier": "none",
+      "target_title": "생고기",
+      "to": "item/resource-meat",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-roasted-meat",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-livestock",
+      "target_spoiler_tier": "none",
+      "target_title": "축산 조리",
+      "to": "research/research-cuisine-livestock",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

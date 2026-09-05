@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-component-lead-counterweight",
+    "spoiler_tier": "none",
+    "title": "납 균형추"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-lead-counterweight",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-lead-counterweight",
+      "target_spoiler_tier": "none",
+      "target_title": "납 균형추",
+      "to": "item/component-lead-counterweight",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-lead-counterweight",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-lead-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "납괴",
+      "to": "item/material-lead-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-lead-counterweight",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-mining-deep",
+      "target_spoiler_tier": "none",
+      "target_title": "심부 채굴",
+      "to": "research/research-mining-deep",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

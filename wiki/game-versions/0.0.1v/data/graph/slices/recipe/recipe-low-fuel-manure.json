@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-low-fuel-manure",
+    "spoiler_tier": "none",
+    "title": "분뇨 연료"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-low-fuel-manure",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-low-fuel",
+      "target_spoiler_tier": "none",
+      "target_title": "저급 연료",
+      "to": "item/material-low-fuel",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-low-fuel-manure",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-grass-straw",
+      "target_spoiler_tier": "none",
+      "target_title": "풀·짚",
+      "to": "item/resource-grass-straw",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-low-fuel-manure",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-manure",
+      "target_spoiler_tier": "none",
+      "target_title": "분뇨",
+      "to": "item/resource-manure",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-low-fuel-manure",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-feed",
+      "target_spoiler_tier": "none",
+      "target_title": "사료·깔짚",
+      "to": "research/research-husbandry-feed",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

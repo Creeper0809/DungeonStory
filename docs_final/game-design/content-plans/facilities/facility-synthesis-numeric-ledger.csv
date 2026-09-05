@@ -1,0 +1,10 @@
+synthesis_recipe_id,material_building_count,public_by_default,required_research_recipe_id,level_inheritance_ratio,source_path
+recipe_arcane_alchemy_1,2,1,,0.75,Assets/Resources/SO/Synthesis/P1/RS_AlchemyBench.asset
+recipe_fortress_banner_2,2,0,recipe_fortress_banner_2,0.8,Assets/Resources/SO/Synthesis/P1/RS_BattleBanner.asset
+recipe_commercial_grill_1,2,1,,0.75,Assets/Resources/SO/Synthesis/P1/RS_CommercialGrill.asset
+recipe_logistics_shelf_1,2,1,,0.75,Assets/Resources/SO/Synthesis/P1/RS_LogisticsShelf.asset
+recipe_arcane_reservoir_1,2,1,,0.75,Assets/Resources/SO/Synthesis/P1/RS_ManaReservoir.asset
+recipe_fortress_patrol_1,2,1,,0.75,Assets/Resources/SO/Synthesis/P1/RS_PatrolBoard.asset
+recipe_arcane_ritual_2,2,0,recipe_arcane_ritual_2,0.8,Assets/Resources/SO/Synthesis/P1/RS_RitualFocus.asset
+recipe_commerce_secure_display_2,2,0,recipe_commerce_secure_display_2,0.8,Assets/Resources/SO/Synthesis/P1/RS_SecureDisplay.asset
+recipe_fortress_tactical_1,2,1,,0.75,Assets/Resources/SO/Synthesis/P1/RS_TacticalTable.asset

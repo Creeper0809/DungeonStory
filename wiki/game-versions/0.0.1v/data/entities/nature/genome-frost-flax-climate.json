@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "nature",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "genome-frost-flax-climate",
+  "spoiler_tier": "none",
+  "summary": "수확량 고점 대신 온도와 병 저항을 높인 고급 섬유용 품종.",
+  "title": "genome_frost-flax_climate"
+}

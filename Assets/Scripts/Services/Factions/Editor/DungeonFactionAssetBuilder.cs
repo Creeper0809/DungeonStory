@@ -35,6 +35,14 @@ public static class DungeonFactionAssetBuilder
             asset.reinforcementRole = spec.ReinforcementRole;
             asset.tradeCargo = Cargo(spec.TradeCargo);
             asset.supplyCargo = Cargo(spec.SupplyCargo);
+            asset.tradeEconomicPolicy =
+                FactionRouteEconomicPolicyDescriptor.Create(
+                    FactionRouteEconomicPolicyIds.PaidMarketPurchase,
+                    1);
+            asset.supplyEconomicPolicy =
+                FactionRouteEconomicPolicyDescriptor.Create(
+                    FactionRouteEconomicPolicyIds.AllianceBenefit,
+                    1);
             asset.tradeCooldownDays = TradeCooldownDays(spec.Id);
             asset.supplyCooldownDays = SupplyCooldownDays(spec.Id);
             asset.reinforcementCooldownDays = 10;

@@ -1,0 +1,132 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-defense-ranged-positions",
+    "spoiler_tier": "none",
+    "title": "사격 방책"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-defense-ranged-positions",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-fortification",
+      "target_spoiler_tier": "none",
+      "target_title": "요새화",
+      "to": "research/research-defense-fortification",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-ranged-positions",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-fortification",
+      "target_spoiler_tier": "none",
+      "target_title": "요새화",
+      "to": "research/research-defense-fortification",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-ranged-positions",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-fortification",
+      "target_spoiler_tier": "none",
+      "target_title": "요새화",
+      "to": "research/research-defense-fortification",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-ranged-positions",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1041",
+      "target_spoiler_tier": "none",
+      "target_title": "사격과녁",
+      "to": "facility/building-1041",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-arrow-bone",
+      "label": "필요 조건",
+      "to": "research/research-defense-ranged-positions",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-bolt-bone",
+      "label": "필요 조건",
+      "to": "research/research-defense-ranged-positions",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-siege-fortification",
+      "label": "선행 연구",
+      "to": "research/research-defense-ranged-positions",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-siege-fortification",
+      "label": "선행 연구",
+      "to": "research/research-defense-ranged-positions",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-siege-fortification",
+      "label": "선행 연구",
+      "to": "research/research-defense-ranged-positions",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-tactical-command",
+      "label": "선행 연구",
+      "to": "research/research-defense-ranged-positions",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-tactical-command",
+      "label": "선행 연구",
+      "to": "research/research-defense-ranged-positions",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-tactical-command",
+      "label": "선행 연구",
+      "to": "research/research-defense-ranged-positions",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-ballistics",
+      "label": "선행 연구",
+      "to": "research/research-defense-ranged-positions",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-ballistics",
+      "label": "선행 연구",
+      "to": "research/research-defense-ranged-positions",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-ballistics",
+      "label": "선행 연구",
+      "to": "research/research-defense-ranged-positions",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-8900",
+    "spoiler_tier": "none",
+    "title": "탄도 시험장"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-equipment-ballistics",
+      "label": "시설 해금",
+      "to": "facility/building-8900",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

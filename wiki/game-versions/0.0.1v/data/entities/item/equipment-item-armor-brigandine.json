@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "6.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "428"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "천이나 가죽 안쪽에 작은 금속판을 촘촘히 박아 유연함을 남긴 갑옷이다. 하르나크의 무기 철야를 지낸 브리간딘에는 살아 돌아온 싸움마다 얕은 흠집이 하나씩 더해진다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-armor-brigandine",
+  "spoiler_tier": "none",
+  "summary": "브리간딘 전투 장비",
+  "title": "브리간딘"
+}

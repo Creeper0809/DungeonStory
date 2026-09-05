@@ -54,11 +54,19 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=CuttingWaste|reason=research-machining-forming-and-assembly-offcut|physicalByproduct=false
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: material:spring-steel
     amount: 1
   - itemId: material:steel-ingot
-    amount: 2
+    amount: 3
   outputs:
   - outputLineId: output:recipe:material:barrel-steel/000/main/material:barrel-steel
     role: 0

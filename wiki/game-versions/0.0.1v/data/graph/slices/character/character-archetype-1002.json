@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "character-archetype-1002",
+    "spoiler_tier": "none",
+    "title": "오크 사장"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/character-archetype-1002",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "characterspecies-2",
+      "target_spoiler_tier": "none",
+      "target_title": "오크",
+      "to": "character/characterspecies-2",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/character-archetype-1002",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "trait-106",
+      "target_spoiler_tier": "none",
+      "target_title": "싸움꾼",
+      "to": "character/trait-106",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

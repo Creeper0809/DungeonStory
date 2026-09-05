@@ -1,0 +1,154 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "equipment-item-weapon-crossbow",
+    "spoiler_tier": "none",
+    "title": "석궁"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-crossbow",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-machine-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "기계 부품",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-crossbow",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-bowstring",
+      "target_spoiler_tier": "none",
+      "target_title": "활시위",
+      "to": "item/material-bowstring",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-crossbow",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-laminated-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "적층 목재",
+      "to": "item/material-laminated-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-crossbow",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-blacksteel-bolt",
+      "target_spoiler_tier": "none",
+      "target_title": "흑강 볼트",
+      "to": "item/ammo-blacksteel-bolt",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-crossbow",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-bolt",
+      "target_spoiler_tier": "none",
+      "target_title": "볼트",
+      "to": "item/ammo-bolt",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-crossbow",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-bolt-bone",
+      "target_spoiler_tier": "none",
+      "target_title": "뼈촉 볼트",
+      "to": "item/ammo-bolt-bone",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-crossbow",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-bolt-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철촉 볼트",
+      "to": "item/ammo-bolt-iron",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-crossbow",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-bolt-rune",
+      "target_spoiler_tier": "none",
+      "target_title": "룬촉 볼트",
+      "to": "item/ammo-bolt-rune",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-crossbow",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-bolt-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "강철촉 볼트",
+      "to": "item/ammo-bolt-steel",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-crossbow",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-incendiary-bolt",
+      "target_spoiler_tier": "none",
+      "target_title": "소이 볼트",
+      "to": "item/ammo-incendiary-bolt",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-crossbow",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-mana-disruptor-bolt",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 차단 볼트",
+      "to": "item/ammo-mana-disruptor-bolt",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-crossbow",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-tranquilizer-dart",
+      "target_spoiler_tier": "none",
+      "target_title": "진정 다트",
+      "to": "item/ammo-tranquilizer-dart",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-crossbow",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-mechanical-projectiles",
+      "target_spoiler_tier": "none",
+      "target_title": "기계식 투사",
+      "to": "research/research-equipment-mechanical-projectiles",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

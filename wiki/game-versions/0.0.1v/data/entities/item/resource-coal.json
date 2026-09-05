@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "9"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "제강, 증류와 고열 시설에 쓰는 연료이다. 노르칸드라 산맥에서 캔 석탄에는 귀환 갱도를 뜻하는 흰 쐐기 자국이 남아 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "resource-coal",
+  "spoiler_tier": "none",
+  "summary": "제강, 증류와 고열 시설에 쓰는 연료.",
+  "title": "석탄"
+}

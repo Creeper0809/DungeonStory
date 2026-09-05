@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "festival-ash-oath",
+    "spoiler_tier": "none",
+    "title": "재의 맹세일"
+  },
+  "edges": [
+    {
+      "amount": "12",
+      "from": "character/festival-ash-oath",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "to": "item/material-paper",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

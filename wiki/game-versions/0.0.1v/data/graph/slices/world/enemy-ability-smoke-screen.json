@@ -1,0 +1,39 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "enemy-ability-smoke-screen",
+    "spoiler_tier": "none",
+    "title": "연막 전개"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/enemy-legion-arquebus",
+      "label": "관련",
+      "to": "world/enemy-ability-smoke-screen",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-legion-surgeon",
+      "label": "관련",
+      "to": "world/enemy-ability-smoke-screen",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-merchant-alchemist",
+      "label": "관련",
+      "to": "world/enemy-ability-smoke-screen",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-neutral-smoke-sapper",
+      "label": "관련",
+      "to": "world/enemy-ability-smoke-screen",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,10 @@
+---
+import BaseLayout from '../components/BaseLayout.astro';
+import DirectoryBoard from '../components/DirectoryBoard.astro';
+import { getCurrentVersion } from '../lib/wiki-data';
+const version = getCurrentVersion();
+---
+
+<BaseLayout title="전체 둘러보기" version={version}>
+  <DirectoryBoard version={version} />
+</BaseLayout>

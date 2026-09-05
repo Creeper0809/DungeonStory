@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.3kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "6"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "빵, 파이와 고급식의 기초 중간재이다. 특히 사르베니아 내해산 밀가루는 밀로세아 가도를 오래 지나도 상하지 않도록 작은 포대로 나뉜다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-flour",
+  "spoiler_tier": "none",
+  "summary": "빵, 파이와 고급식의 기초 중간재.",
+  "title": "밀가루"
+}

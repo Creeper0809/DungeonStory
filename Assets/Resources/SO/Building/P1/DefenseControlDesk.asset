@@ -159,7 +159,7 @@ MonoBehaviour:
           excludedTraitIds: []
         constructionMaterials:
         - itemId: material:treated-lumber
-          amount: 11
+          amount: 16
         - itemId: material:stone-block
           amount: 5
         - itemId: material:iron-ingot

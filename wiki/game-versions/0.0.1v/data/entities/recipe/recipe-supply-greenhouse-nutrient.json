@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "68"
+    },
+    {
+      "label": "필요 연구",
+      "value": "온실 원예"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "4",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "supply-greenhouse-nutrient",
+      "target_spoiler_tier": "none",
+      "target_title": "온실 영양액",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "3",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-clean-water",
+      "target_spoiler_tier": "none",
+      "target_title": "깨끗한 물",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-greenhouse-horticulture",
+      "target_spoiler_tier": "none",
+      "target_title": "온실 원예",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "supply-nitrate-fertilizer",
+      "target_spoiler_tier": "none",
+      "target_title": "질산 비료",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-supply-greenhouse-nutrient",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 온실 영양액을(를) 생산한다.",
+  "title": "온실 영양액"
+}

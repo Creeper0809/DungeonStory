@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "46"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "방폭 외투의 겉감과 내피 사이에서 폭발 파편을 받아 내는 보호층이다. 크릭 제7굴에서는 방폭 외투 내피의 치수와 맞물림 상태를 조립 전에 검사한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "component-blast-coat-shell",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 방폭 외투 내피.",
+  "title": "방폭 외투 내피"
+}

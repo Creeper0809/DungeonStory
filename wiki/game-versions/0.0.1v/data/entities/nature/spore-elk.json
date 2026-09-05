@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "nature",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "shadow-wolf",
+      "target_spoiler_tier": "none",
+      "target_title": "그림자늑대",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-white-spore",
+      "target_spoiler_tier": "none",
+      "target_title": "백색포자병",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "mire-leech",
+      "target_spoiler_tier": "none",
+      "target_title": "진흙거머리",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "spore-elk",
+  "spoiler_tier": "none",
+  "summary": "균사 정원의 포자를 멀리 퍼뜨리는 대형 초식동물.",
+  "title": "포자큰사슴"
+}

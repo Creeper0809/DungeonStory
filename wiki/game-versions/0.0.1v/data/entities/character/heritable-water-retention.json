@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Metabolism"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "heritable-water-retention",
+  "spoiler_tier": "none",
+  "summary": "건조 환경에서 탈수 진행이 늦다.",
+  "title": "수분 보존 조직"
+}

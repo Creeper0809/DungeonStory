@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.28kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "40개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "15"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "감염 위험을 낮추는 외용 약품이다. 므네실라의 외용 소독제는 피부에 닿으면 옅은 초록빛이 돈다. 빛이 검어지면 곧바로 씻어 낸다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "medicine-antiseptic",
+  "spoiler_tier": "none",
+  "summary": "감염 위험을 낮추는 외용 약품.",
+  "title": "소독제"
+}

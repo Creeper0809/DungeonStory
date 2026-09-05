@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.05kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "200개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "7"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "의복의 작은 구멍과 닳은 가장자리를 덧대기 좋게 크기를 맞춘 수선용 천 조각이다. 밀로세아 가도의 수선 조각 꾸러미는 천 종류보다 크기와 늘어나는 방향을 먼저 맞춰 묶는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-mending-scrap",
+  "spoiler_tier": "none",
+  "summary": "V22 의복 제작과 수선 작업에서 예약·운반·소비하는 물리 물품.",
+  "title": "범용 수선 조각"
+}

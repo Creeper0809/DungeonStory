@@ -6,9 +6,22 @@ using UnityEngine.Scripting.APIUpdating;
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public enum CaptivityStatus
 {
-    None, AwaitingCapture, Stabilizing, AwaitingEscort, Escorting, Confined,
-    Labor, Interaction, Performer, EscapeAttempt, Ransom, Recruited, Minion,
-    Released, Escaped, Dead
+    None = 0,
+    AwaitingCapture = 1,
+    Stabilizing = 2,
+    AwaitingEscort = 3,
+    Escorting = 4,
+    Confined = 5,
+    Labor = 6,
+    Interaction = 7,
+    Performer = 8,
+    EscapeAttempt = 9,
+    Ransom = 10,
+    Recruited = 11,
+    Minion = 12,
+    Released = 13,
+    Escaped = 14,
+    Dead = 15
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -140,11 +153,32 @@ public sealed class CaptiveState
     public float nextSecurityCheckAt;
     [Range(0f, 100f)] public float retaliationPressure;
     public string betrayalTrigger = string.Empty;
+    [Min(0)] public int capturedAbsoluteDay;
+    [Min(0)] public int rehabilitationDays;
+    public int lastRehabilitationAbsoluteDay = -1;
+    [Min(0f)] public float completedRehabilitationWork;
+    public bool rehabilitationInProgress;
+    public string rehabilitationFacilityBuildingId = string.Empty;
+    public Vector2Int rehabilitationPosition;
+    public int lastMinionSocialAbsoluteDay = -1;
 
-    public bool IsActive => status is not CaptivityStatus.Recruited
-        and not CaptivityStatus.Released
-        and not CaptivityStatus.Escaped
-        and not CaptivityStatus.Dead;
+    public bool IsInCustody => status is CaptivityStatus.AwaitingCapture
+        or CaptivityStatus.Stabilizing
+        or CaptivityStatus.AwaitingEscort
+        or CaptivityStatus.Escorting
+        or CaptivityStatus.Confined
+        or CaptivityStatus.Labor
+        or CaptivityStatus.Interaction
+        or CaptivityStatus.Performer
+        or CaptivityStatus.EscapeAttempt;
+    public bool IsMinion => status == CaptivityStatus.Minion;
+    public bool IsTerminal => status is CaptivityStatus.Ransom
+        or CaptivityStatus.Recruited
+        or CaptivityStatus.Released
+        or CaptivityStatus.Escaped
+        or CaptivityStatus.Dead;
+    [Obsolete("Use IsInCustody, IsMinion, or IsTerminal explicitly.")]
+    public bool IsActive => IsInCustody;
     public bool CanLabor => compliance >= 50f && health >= 40f
         && status is CaptivityStatus.Confined or CaptivityStatus.Labor;
     public bool CanRecruit => trust >= 70f && grudge <= 30f && corruption < 60f;
@@ -157,6 +191,93 @@ public sealed class CaptiveState
             + performerFame * 1.5f
             + (100f - will) * 0.25f));
     public CaptiveState Clone() => (CaptiveState)MemberwiseClone();
+}
+
+public static class CaptivityStateTransitionRules
+{
+    public const float RehabilitationRequiredWork = 18f;
+
+    public static string CaptureStateSnapshot(CaptiveState state)
+    {
+        if (state == null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
+        return JsonUtility.ToJson(state);
+    }
+
+    public static void RestoreStateSnapshot(
+        string snapshotJson,
+        CaptiveState state)
+    {
+        if (state == null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
+        if (string.IsNullOrWhiteSpace(snapshotJson))
+        {
+            throw new ArgumentException(
+                "A captivity-state snapshot is required.",
+                nameof(snapshotJson));
+        }
+        JsonUtility.FromJsonOverwrite(snapshotJson, state);
+    }
+
+    public static void ClearCaptiveOnlyState(CaptiveState state)
+    {
+        if (state == null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
+
+        state.reservedCarrierId = string.Empty;
+        if (!state.IsMinion || !state.rehabilitationInProgress)
+        {
+            state.reservedWardenId = string.Empty;
+        }
+        state.housingBuildingId = string.Empty;
+        state.restraintStackId = string.Empty;
+        state.restraintItemId = string.Empty;
+        state.restraintQuantity = 0;
+        state.assignedRestraintItemId = string.Empty;
+        state.assignedRestraintInstanceId = string.Empty;
+        state.assignedRestraintDurability = 0f;
+        state.assignedRestraintMaximumDurability = 0f;
+        state.restrained = false;
+        state.laborPermissions = CaptiveLaborPermission.None;
+        state.pendingLaborPermissions = CaptiveLaborPermission.None;
+        state.laborToolDestinationId = string.Empty;
+        state.assignedLaborToolItemId = string.Empty;
+        state.assignedLaborToolInstanceId = string.Empty;
+        state.assignedLaborToolDurability = 0f;
+        state.assignedLaborToolMaximumDurability = 0f;
+        state.laborToolAssignmentOperationId = string.Empty;
+        state.laborToolAssignmentCommitId = string.Empty;
+        state.laborToolAssignmentSourceStackId = string.Empty;
+        state.laborToolAssignmentCompleted = false;
+        state.nextLaborToolWearAt = 0f;
+        state.currentInteractionId = string.Empty;
+        state.interactionMaterialDestinationId = string.Empty;
+        state.interactionMaterialsConsumed = false;
+        state.completedInteractionWork = 0f;
+        state.requiredInteractionWork = 0f;
+        state.carePriorityUnlocked = false;
+        state.nextCareSupplyAt = 0f;
+    }
+
+    public static void ClearRehabilitationState(CaptiveState state)
+    {
+        if (state == null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
+
+        state.rehabilitationInProgress = false;
+        state.rehabilitationFacilityBuildingId = string.Empty;
+        state.rehabilitationPosition = default;
+        state.completedRehabilitationWork = 0f;
+        state.reservedWardenId = string.Empty;
+    }
 }
 
 public static class CaptivityLaborToolAssignmentIdentity

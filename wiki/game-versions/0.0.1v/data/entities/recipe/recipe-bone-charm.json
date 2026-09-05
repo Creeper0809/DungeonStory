@@ -1,0 +1,67 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "32"
+    },
+    {
+      "label": "필요 연구",
+      "value": "장식과 위신"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "craft-bone-charm",
+      "target_spoiler_tier": "none",
+      "target_title": "뼈뿔 장신구",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-bone",
+      "target_spoiler_tier": "none",
+      "target_title": "뼈",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-horn",
+      "target_spoiler_tier": "none",
+      "target_title": "뿔",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-fang",
+      "target_spoiler_tier": "none",
+      "target_title": "송곳니",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-authority-prestige",
+      "target_spoiler_tier": "none",
+      "target_title": "장식과 위신",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-bone-charm",
+  "spoiler_tier": "none",
+  "summary": "뼈뿔 장신구 생산 주문",
+  "title": "뼈뿔 장신구"
+}

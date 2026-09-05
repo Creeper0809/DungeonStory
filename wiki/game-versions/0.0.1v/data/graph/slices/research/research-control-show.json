@@ -1,0 +1,116 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-control-show",
+    "spoiler_tier": "none",
+    "title": "흥행 운영"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-control-show",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-retail",
+      "target_spoiler_tier": "none",
+      "target_title": "상업 진열",
+      "to": "research/research-commerce-retail",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-control-show",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-retail",
+      "target_spoiler_tier": "none",
+      "target_title": "상업 진열",
+      "to": "research/research-commerce-retail",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-control-show",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-retail",
+      "target_spoiler_tier": "none",
+      "target_title": "상업 진열",
+      "to": "research/research-commerce-retail",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-control-show",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-control-labor",
+      "target_spoiler_tier": "none",
+      "target_title": "노역 감독",
+      "to": "research/research-control-labor",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-control-show",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-control-labor",
+      "target_spoiler_tier": "none",
+      "target_title": "노역 감독",
+      "to": "research/research-control-labor",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-control-show",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-control-labor",
+      "target_spoiler_tier": "none",
+      "target_title": "노역 감독",
+      "to": "research/research-control-labor",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-control-show",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8811",
+      "target_spoiler_tier": "none",
+      "target_title": "공연 소품 보관대",
+      "to": "facility/building-8811",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-supply-performance-prop-box",
+      "label": "필요 조건",
+      "to": "research/research-control-show",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-control-blood-show",
+      "label": "선행 연구",
+      "to": "research/research-control-show",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-control-blood-show",
+      "label": "선행 연구",
+      "to": "research/research-control-show",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-control-blood-show",
+      "label": "선행 연구",
+      "to": "research/research-control-show",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

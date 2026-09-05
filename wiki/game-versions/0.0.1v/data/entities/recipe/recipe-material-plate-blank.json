@@ -1,0 +1,49 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "28"
+    },
+    {
+      "label": "필요 연구",
+      "value": "관절식 판금"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-plate-blank",
+      "target_spoiler_tier": "none",
+      "target_title": "판금 소재판",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "5",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-steel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "강철",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-articulated-plate",
+      "target_spoiler_tier": "none",
+      "target_title": "관절식 판금",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-material-plate-blank",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 판금 소재판을(를) 생산한다.",
+  "title": "판금 소재판"
+}

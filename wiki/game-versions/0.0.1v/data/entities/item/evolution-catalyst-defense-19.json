@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.25kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "20개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "31457280"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "결정 전체가 하나의 흐름으로 반응하도록 묶은 층상 광물이다. 제4주조도시의 조율사는 수호 촉매 진행 19 · 5등급을 충격을 여러 겹으로 흘리는 수호 계통의 5등급 개조에 쓴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "evolution-catalyst-defense-19",
+  "spoiler_tier": "none",
+  "summary": "시설 개조와 장비 조율에 사용하는 진화 촉매.",
+  "title": "수호 촉매 진행 19 · 5등급"
+}

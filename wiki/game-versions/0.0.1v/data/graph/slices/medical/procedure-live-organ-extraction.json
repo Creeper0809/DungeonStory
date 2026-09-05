@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "medical",
+    "slug": "procedure-live-organ-extraction",
+    "spoiler_tier": "none",
+    "title": "생체 장기 적출"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "medical/procedure-live-organ-extraction",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "medicine-standard",
+      "target_spoiler_tier": "none",
+      "target_title": "표준 약품",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-live-organ-extraction",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "resource-blood",
+      "target_spoiler_tier": "none",
+      "target_title": "피",
+      "to": "item/resource-blood",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-live-organ-extraction",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-surgery",
+      "target_spoiler_tier": "none",
+      "target_title": "외과술",
+      "to": "research/research-medical-surgery",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

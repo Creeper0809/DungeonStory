@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 /// <summary>
-/// Unregistered current-format section for apparel order terminal producers.
+/// Current-format section for apparel order terminal producers.
 /// The base-eight aggregate restore is complete before its exact producer
 /// records are validated and published.
 /// </summary>

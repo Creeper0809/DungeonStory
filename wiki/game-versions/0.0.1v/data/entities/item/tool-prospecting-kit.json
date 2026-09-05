@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.35kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "35"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "탐광 키트에는 암석층을 깨고 표본을 담아 광맥의 방향을 찾는 도구가 들어 있다. 크릭 제7굴의 첫 도구 이름짓기를 마친 탐광 키트에는 첫 측정값과 도제의 별명이 나란히 새겨진다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "tool-prospecting-kit",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 탐광 키트.",
+  "title": "탐광 키트"
+}

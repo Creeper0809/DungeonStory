@@ -1,0 +1,132 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-society-retirement",
+    "spoiler_tier": "none",
+    "title": "은퇴와 멘토 제도"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-society-retirement",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-gerontology",
+      "target_spoiler_tier": "none",
+      "target_title": "노인학과 생물학적 연령 계측",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-retirement",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-gerontology",
+      "target_spoiler_tier": "none",
+      "target_title": "노인학과 생물학적 연령 계측",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-retirement",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-gerontology",
+      "target_spoiler_tier": "none",
+      "target_title": "노인학과 생물학적 연령 계측",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-retirement",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-career-records",
+      "target_spoiler_tier": "none",
+      "target_title": "경력 기록",
+      "to": "research/research-society-career-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-retirement",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-career-records",
+      "target_spoiler_tier": "none",
+      "target_title": "경력 기록",
+      "to": "research/research-society-career-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-retirement",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-career-records",
+      "target_spoiler_tier": "none",
+      "target_title": "경력 기록",
+      "to": "research/research-society-career-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-retirement",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-generation-management",
+      "target_spoiler_tier": "none",
+      "target_title": "세대 관리와 보호자 승계",
+      "to": "research/research-society-generation-management",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-retirement",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-generation-management",
+      "target_spoiler_tier": "none",
+      "target_title": "세대 관리와 보호자 승계",
+      "to": "research/research-society-generation-management",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-retirement",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-generation-management",
+      "target_spoiler_tier": "none",
+      "target_title": "세대 관리와 보호자 승계",
+      "to": "research/research-society-generation-management",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-retirement",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8895",
+      "target_spoiler_tier": "none",
+      "target_title": "은퇴자 휴게실",
+      "to": "facility/building-8895",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-retirement",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8896",
+      "target_spoiler_tier": "none",
+      "target_title": "멘토 학원",
+      "to": "facility/building-8896",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

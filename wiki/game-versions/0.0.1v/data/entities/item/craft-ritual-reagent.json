@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "10개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "31"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "피와 독소를 안정화한 금기 의식 재료이다. 베르사디온의 혈액 의식재는 동의의 잔 앞에서 봉인한 작은 유리병에 나눠 담아 출처가 다른 피가 섞이지 않게 한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "craft-ritual-reagent",
+  "spoiler_tier": "none",
+  "summary": "피와 독소를 안정화한 금기 의식 재료.",
+  "title": "혈액 의식재"
+}

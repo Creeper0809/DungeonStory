@@ -1,0 +1,550 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-textile-layered",
+    "spoiler_tier": "none",
+    "title": "층상 방어구"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉",
+      "to": "research/research-textile-tailoring",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉",
+      "to": "research/research-textile-tailoring",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉",
+      "to": "research/research-textile-tailoring",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9312",
+      "target_spoiler_tier": "none",
+      "target_title": "축융·마감대",
+      "to": "facility/building-9312",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-golem-functional-lining",
+      "target_spoiler_tier": "none",
+      "target_title": "골렘 기능성 내피 재단",
+      "to": "recipe/recipe-v22-apparel-golem-functional-lining",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-heat-work-suit",
+      "target_spoiler_tier": "none",
+      "target_title": "내열 작업복 재단",
+      "to": "recipe/recipe-v22-apparel-heat-work-suit",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-miner-workwear",
+      "target_spoiler_tier": "none",
+      "target_title": "광부 작업복 재단",
+      "to": "recipe/recipe-v22-apparel-miner-workwear",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-raincoat",
+      "target_spoiler_tier": "none",
+      "target_title": "우비 재단",
+      "to": "recipe/recipe-v22-apparel-raincoat",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-smith-apron",
+      "target_spoiler_tier": "none",
+      "target_title": "대장장이 앞치마 재단",
+      "to": "recipe/recipe-v22-apparel-smith-apron",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-smoke-protection-hood",
+      "target_spoiler_tier": "none",
+      "target_title": "연기 방호 두건 재단",
+      "to": "recipe/recipe-v22-apparel-smoke-protection-hood",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-spore-protection-hood",
+      "target_spoiler_tier": "none",
+      "target_title": "포자 방호 두건 재단",
+      "to": "recipe/recipe-v22-apparel-spore-protection-hood",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-tail-guard",
+      "target_spoiler_tier": "none",
+      "target_title": "꼬리 보호대 재단",
+      "to": "recipe/recipe-v22-apparel-tail-guard",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-waterproof-work-suit",
+      "target_spoiler_tier": "none",
+      "target_title": "방수 작업복 재단",
+      "to": "recipe/recipe-v22-apparel-waterproof-work-suit",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-deep-goat-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "심층 염소모직 방적",
+      "to": "recipe/recipe-v22-spin-deep-goat-wool",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-frost-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "서리 양모직 방적",
+      "to": "recipe/recipe-v22-spin-frost-wool",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-mire-canvas",
+      "target_spoiler_tier": "none",
+      "target_title": "습지 캔버스 방적",
+      "to": "recipe/recipe-v22-spin-mire-canvas",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-spore-hemp",
+      "target_spoiler_tier": "none",
+      "target_title": "포자 삼베 방적",
+      "to": "recipe/recipe-v22-spin-spore-hemp",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-weave-deep-goat-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "심층 염소모직 직조",
+      "to": "recipe/recipe-v22-weave-deep-goat-wool",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-weave-frost-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "서리 양모직 직조",
+      "to": "recipe/recipe-v22-weave-frost-wool",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-weave-mire-canvas",
+      "target_spoiler_tier": "none",
+      "target_title": "습지 캔버스 직조",
+      "to": "recipe/recipe-v22-weave-mire-canvas",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-weave-spore-hemp",
+      "target_spoiler_tier": "none",
+      "target_title": "포자 삼베 직조",
+      "to": "recipe/recipe-v22-weave-spore-hemp",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23010",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23022",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23027",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23028",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23029",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23030",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23033",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23034",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23053",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-textile-hardener",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-textile-quilted-liner",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-golem-functional-lining",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-heat-work-suit",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-miner-workwear",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-raincoat",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-smith-apron",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-smoke-protection-hood",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-spore-protection-hood",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-tail-guard",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-waterproof-work-suit",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-spin-deep-goat-wool",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-spin-frost-wool",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-spin-mire-canvas",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-spin-spore-hemp",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-weave-deep-goat-wool",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-weave-frost-wool",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-weave-mire-canvas",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-weave-spore-hemp",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-mail-weaving",
+      "label": "선행 연구",
+      "to": "research/research-textile-layered",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-mail-weaving",
+      "label": "선행 연구",
+      "to": "research/research-textile-layered",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-mail-weaving",
+      "label": "선행 연구",
+      "to": "research/research-textile-layered",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-pressure-barrels",
+      "label": "선행 연구",
+      "to": "research/research-textile-layered",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-pressure-barrels",
+      "label": "선행 연구",
+      "to": "research/research-textile-layered",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-pressure-barrels",
+      "label": "선행 연구",
+      "to": "research/research-textile-layered",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-avian-prosthetics",
+      "label": "선행 연구",
+      "to": "research/research-textile-layered",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-avian-prosthetics",
+      "label": "선행 연구",
+      "to": "research/research-textile-layered",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-avian-prosthetics",
+      "label": "선행 연구",
+      "to": "research/research-textile-layered",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-dreamweave",
+      "label": "선행 연구",
+      "to": "research/research-textile-layered",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-dreamweave",
+      "label": "선행 연구",
+      "to": "research/research-textile-layered",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-dreamweave",
+      "label": "선행 연구",
+      "to": "research/research-textile-layered",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "world/textilematerial-23104",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "world/textilematerial-23105",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "world/textilematerial-23107",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "world/textilematerial-23108",
+      "label": "필요 조건",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

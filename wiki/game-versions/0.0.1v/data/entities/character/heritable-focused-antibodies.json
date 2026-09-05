@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Immunity Longevity"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "heritable-focused-antibodies",
+  "spoiler_tier": "none",
+  "summary": "한 번 겪은 질병의 면역 유지가 길어진다.",
+  "title": "집중 항체"
+}

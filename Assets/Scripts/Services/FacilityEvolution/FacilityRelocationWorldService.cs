@@ -30,6 +30,8 @@ public sealed class FacilityRelocationWorldService :
     private readonly IObjectResolver objectResolver;
     private readonly GridPlacementValidator placementValidator =
         new GridPlacementValidator();
+    private readonly IProductionFacilityHandleQuery productionFacilityHandles =
+        new ProductionFacilityHandleQueryAdapter();
     private Sprite markerSprite;
 
     public FacilityRelocationWorldService(
@@ -61,7 +63,7 @@ public sealed class FacilityRelocationWorldService :
         }
 
         if (source is IWarehouseFacility warehouse
-            && warehouse.Inventory?.HasMassCapacityAuthority == true)
+            && warehouse.HasWarehouseInventory)
         {
             IWarehouseLifecycleOccupancyQuery lifecycle =
                 ResolveWarehouseLifecycleOccupancy();
@@ -84,16 +86,6 @@ public sealed class FacilityRelocationWorldService :
                     .ActiveRestockOperationCount > 0))
         {
             failureReason = "재고·고객·직원·보충 중 화물이 남은 상점은 이전할 수 없습니다.";
-            return false;
-        }
-
-        if (!ResolveProductionFacilityMutationFence().TryRequireNoAuthority(
-                source,
-                ProductionFacilityMutationKind.Relocation,
-                out string productionFailure))
-        {
-            failureReason = "생산 주문·재공품·출력 권위가 남은 시설은 이전할 수 없습니다. "
-                + productionFailure;
             return false;
         }
 
@@ -168,6 +160,20 @@ public sealed class FacilityRelocationWorldService :
             + $"{nameof(IProductionFacilityMutationFence)}.");
     }
 
+    private IProductionFacilityRetargetTransaction ResolveProductionFacilityRetargetTransaction()
+    {
+        if (objectResolver.TryResolve(
+                typeof(IProductionFacilityRetargetTransaction),
+                out object resolved)
+            && resolved is IProductionFacilityRetargetTransaction transaction)
+        {
+            return transaction;
+        }
+        throw new InvalidOperationException(
+            $"{nameof(FacilityRelocationWorldService)} requires "
+            + $"{nameof(IProductionFacilityRetargetTransaction)}.");
+    }
+
     public bool TryPackAtDestination(
         BuildableObject source,
         Vector2Int destination,
@@ -238,40 +244,69 @@ public sealed class FacilityRelocationWorldService :
         Grid grid = packedSource.Grid;
         BuildingSO building = packedSource.BuildingData;
         Vector2Int destination = packedSource.centerPos;
+        BuildingInstanceId survivorId = packedSource.RequirePersistentInstanceId();
         List<BuildingStateModuleSaveData> stateModules =
             BuildingStateModulePersistence.Capture(packedSource);
+        GridBuildingFactory factory = CreateFactory();
+        IProductionFacilityRetargetTransaction retarget =
+            ResolveProductionFacilityRetargetTransaction();
+        ProductionFacilityRetargetRequest retargetRequest = new(
+            productionFacilityHandles.CaptureFacility(packedSource),
+            ProductionFacilityMutationKind.Relocation);
+        if (!retarget.TryBegin(
+                new[] { retargetRequest },
+                "relocation:" + survivorId.Value,
+                out ProductionFacilityRetargetTransactionState retargetState,
+                out string retargetBeginFailure))
+        {
+            failureReason = "생산 권위 이전 사전 검증 실패: "
+                + retargetBeginFailure;
+            return false;
+        }
+        BuildableObject created = null;
+        try
+        {
+            created = factory.CreateDetached(grid, building, destination);
+            if (created == null)
+            {
+                RollbackRetargetOrThrow(retarget, retargetState, "candidate-creation");
+                failureReason = "이전한 시설 후보를 생성하지 못했습니다.";
+                return false;
+            }
+            created.RestorePersistentIdentity(survivorId);
+            created.SetGrid(grid);
+            created.Initialization(building, destination);
+        }
+        catch (Exception exception)
+        {
+            DiscardRelocationCandidate(factory, created, building, destination);
+            RollbackRetargetOrThrow(retarget, retargetState, "candidate-initialization");
+            failureReason = "이전한 시설 후보를 초기화하지 못했습니다. "
+                + exception.Message;
+            return false;
+        }
+
         if (!grid.RemoveOccupant(
                 packedSource,
                 GridLayer.Construction,
                 packedSource.buildPoses,
                 false))
         {
+            DiscardRelocationCandidate(factory, created, building, destination);
+            RollbackRetargetOrThrow(retarget, retargetState, "reservation-removal");
             failureReason = "재설치 현장 점유를 해제하지 못했습니다.";
             return false;
         }
 
-        GridBuildingFactory factory = CreateFactory();
-        BuildableObject created = factory.Create(grid, building, destination);
-        if (created == null)
-        {
-            RestorePackedReservation(grid, packedSource);
-            failureReason = "이전한 시설을 생성하지 못했습니다.";
-            return false;
-        }
-
-        created.SetGrid(grid);
-        created.Initialization(building, destination);
         if (!grid.RegisterOccupant(
                 created,
                 building.Placement.Layer,
                 created.buildPoses,
                 building.Placement.IsMovement))
         {
-            factory.DeleteVisual(building, destination);
-            created.SetGrid(null);
-            created.isDestroy = true;
-            UnityEngine.Object.Destroy(created.gameObject);
+            DiscardRelocationCandidate(factory, created, building, destination);
             RestorePackedReservation(grid, packedSource);
+            RollbackRetargetOrThrow(retarget, retargetState, "candidate-registration");
             failureReason = "이전한 시설을 그리드에 등록하지 못했습니다.";
             return false;
         }
@@ -285,20 +320,158 @@ public sealed class FacilityRelocationWorldService :
                 building.Placement.Layer,
                 created.buildPoses,
                 building.Placement.IsMovement);
-            factory.DeleteVisual(building, destination);
-            created.SetGrid(null);
-            created.isDestroy = true;
-            UnityEngine.Object.Destroy(created.gameObject);
+            DiscardRelocationCandidate(factory, created, building, destination);
             RestorePackedReservation(grid, packedSource);
+            RollbackRetargetOrThrow(retarget, retargetState, "state-restore");
             failureReason = string.Join(" / ", restore.errors);
             return false;
         }
 
+        IBuildingWorldRegistryPort worldRegistry = packedSource.WorldRegistry;
+        string registryFailure = worldRegistry == null
+            ? "building-world-registry-unavailable"
+            : string.Empty;
+        if (worldRegistry == null
+            || !worldRegistry.TryReplaceBuilding(
+                packedSource,
+                created,
+                out registryFailure))
+        {
+            grid.RemoveOccupant(
+                created,
+                building.Placement.Layer,
+                created.buildPoses,
+                building.Placement.IsMovement);
+            DiscardRelocationCandidate(factory, created, building, destination);
+            RestorePackedReservation(grid, packedSource);
+            RollbackRetargetOrThrow(retarget, retargetState, "world-registry-handoff");
+            failureReason = "이전 시설의 월드 권위를 교체하지 못했습니다. "
+                + registryFailure;
+            return false;
+        }
+
+        bool authorityCommitted;
+        string retargetCommitFailure;
+        try
+        {
+            ProductionFacilityHandle targetFacility =
+                productionFacilityHandles.CaptureFacility(created);
+            authorityCommitted = retarget.TryCommit(
+                retargetState,
+                new[]
+                {
+                    new ProductionFacilityRetargetBinding(
+                        survivorId,
+                        targetFacility)
+                },
+                out retargetCommitFailure);
+        }
+        catch (Exception exception)
+        {
+            authorityCommitted = false;
+            retargetCommitFailure = "target-capture-or-commit-exception:"
+                + exception.GetType().Name + ":" + exception.Message;
+        }
+        if (!authorityCommitted)
+        {
+            RollbackRetargetOrThrow(retarget, retargetState, "authority-commit");
+            if (!worldRegistry.TryRollbackBuildingReplacement(
+                    created,
+                    packedSource,
+                    out string rollbackFailure))
+            {
+                throw new InvalidOperationException(
+                    "Relocation authority commit failed and world rollback failed: "
+                    + rollbackFailure);
+            }
+            grid.RemoveOccupant(
+                created,
+                building.Placement.Layer,
+                created.buildPoses,
+                building.Placement.IsMovement);
+            DiscardRelocationCandidate(factory, created, building, destination);
+            RestorePackedReservation(grid, packedSource);
+            failureReason = "생산 권위 이전 반영 실패로 포장 상태를 복구했습니다. "
+                + retargetCommitFailure;
+            return false;
+        }
+
+        try
+        {
+            factory.PublishDetached(created, building, destination);
+        }
+        catch (Exception exception)
+        {
+            RollbackRetargetOrThrow(retarget, retargetState, "publication");
+            if (!worldRegistry.TryRollbackBuildingReplacement(
+                    created,
+                    packedSource,
+                    out string rollbackFailure))
+            {
+                throw new InvalidOperationException(
+                    "Relocation publication failed and world authority rollback also failed: "
+                    + rollbackFailure,
+                    exception);
+            }
+            grid.RemoveOccupant(
+                created,
+                building.Placement.Layer,
+                created.buildPoses,
+                building.Placement.IsMovement);
+            DiscardRelocationCandidate(factory, created, building, destination);
+            RestorePackedReservation(grid, packedSource);
+            failureReason = "이전 시설 게시에 실패해 원본을 복구했습니다. "
+                + exception.Message;
+            return false;
+        }
+
+        if (!retarget.TryComplete(retargetState, out string retargetCompleteFailure))
+        {
+            RollbackRetargetOrThrow(retarget, retargetState, "completion");
+            if (!worldRegistry.TryRollbackBuildingReplacement(
+                    created,
+                    packedSource,
+                    out string rollbackFailure))
+            {
+                throw new InvalidOperationException(
+                    "Relocation authority completion failed and world rollback failed: "
+                    + rollbackFailure);
+            }
+            grid.RemoveOccupant(
+                created,
+                building.Placement.Layer,
+                created.buildPoses,
+                building.Placement.IsMovement);
+            DiscardRelocationCandidate(factory, created, building, destination);
+            RestorePackedReservation(grid, packedSource);
+            failureReason = "생산 권위 이전 완료 검증 실패로 포장 상태를 복구했습니다. "
+                + retargetCompleteFailure;
+            return false;
+        }
+
         packedSource.SetGrid(null);
-        packedSource.isDestroy = true;
-        UnityEngine.Object.Destroy(packedSource.gameObject);
+        packedSource.RetireForWorldReplacement();
         relocated = created;
         return true;
+    }
+
+    private static void RollbackRetargetOrThrow(
+        IProductionFacilityRetargetTransaction retarget,
+        ProductionFacilityRetargetTransactionState state,
+        string phase)
+    {
+        if (state == null
+            || state.Phase is ProductionFacilityRetargetTransactionPhase
+                .RolledBack or ProductionFacilityRetargetTransactionPhase.Completed)
+        {
+            return;
+        }
+        if (!retarget.TryRollback(state, out string failureReason))
+        {
+            throw new InvalidOperationException(
+                "Facility relocation retarget rollback failed during " + phase
+                + ":" + failureReason);
+        }
     }
 
     public void RestorePackedPresentation(BuildableObject packedSource)
@@ -336,6 +509,25 @@ public sealed class FacilityRelocationWorldService :
             packedSource.buildPoses,
             false);
         EnsureMarker(packedSource);
+    }
+
+    private static void DiscardRelocationCandidate(
+        GridBuildingFactory factory,
+        BuildableObject candidate,
+        BuildingSO building,
+        Vector2Int destination)
+    {
+        if (candidate == null)
+        {
+            return;
+        }
+
+        factory.DeleteVisual(building, destination);
+        candidate.SetGrid(null);
+        if (candidate.IsDetachedRestoreCandidate)
+            factory.DiscardDetached(candidate);
+        else
+            candidate.RetireForWorldReplacement();
     }
 
     private void EnsureMarker(BuildableObject source)

@@ -1,0 +1,51 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-v22-weave-mire-canvas",
+    "spoiler_tier": "none",
+    "title": "습지 캔버스 직조"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-weave-mire-canvas",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-mire-canvas",
+      "target_spoiler_tier": "none",
+      "target_title": "습지 캔버스",
+      "to": "item/material-mire-canvas",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "7",
+      "from": "recipe/recipe-v22-weave-mire-canvas",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "yarn-mire-canvas",
+      "target_spoiler_tier": "none",
+      "target_title": "습지 캔버스 원사",
+      "to": "item/yarn-mire-canvas",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-weave-mire-canvas",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "제작식 해금",
+      "to": "recipe/recipe-v22-weave-mire-canvas",
+      "type": "unlocks-recipe"
+    }
+  ],
+  "schema_version": 1
+}

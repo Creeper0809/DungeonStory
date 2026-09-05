@@ -176,7 +176,10 @@ public static class CraftsmanshipQualityRules
         CraftsmanshipQualityTier.Masterwork => 1.26f,
         CraftsmanshipQualityTier.Legendary => 1.40f,
         CraftsmanshipQualityTier.Mythic => 1.60f,
-        _ => 1f
+        _ => throw new ArgumentOutOfRangeException(
+            nameof(tier),
+            tier,
+            "Craftsmanship quality has no authored projection multiplier.")
     };
 }
 

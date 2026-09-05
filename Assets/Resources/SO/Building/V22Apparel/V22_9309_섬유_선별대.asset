@@ -36,7 +36,7 @@ MonoBehaviour:
   sourceNote: 
   deprecatedCompatibilityAsset: 0
   useClassification: 3
-  researchFacilityCommand: 47
+  researchFacilityCommand: 0
   constructionProficiency:
     primaryProficiencyId: proficiency:construction-engineering
     secondaryProficiencyId: 
@@ -58,6 +58,7 @@ MonoBehaviour:
     - rid: 1001
     - rid: 1002
     - rid: 1003
+    - rid: 1004
   width: 1
   height: 1
   layer: 1
@@ -92,6 +93,9 @@ MonoBehaviour:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v22:fiber-sorting
         stockSensorInstallationItemId: component:stock-sensor-panel
+        lanePolicy: 1
+        manualWorkLaneCount: 1
+        automaticWorkLaneCount: 0
     - rid: 1003
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
@@ -101,12 +105,19 @@ MonoBehaviour:
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
+    - rid: 1004
+      type: {class: BuildingProductionOutputDispositionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionOutputDispositionAbility
+        dispositionKind: 1
+        ownerCapabilityId: apparel-textile:deferred-facility-output
+        reasonCode: content-gap:missing-fiber-sorting-runtime
     - rid: 7737211905660420540
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 249
+        constructionWorkRequired: 333
         repairWorkRequired: 12
         cleanWorkRequired: 8
         researchWorkRequired: 6

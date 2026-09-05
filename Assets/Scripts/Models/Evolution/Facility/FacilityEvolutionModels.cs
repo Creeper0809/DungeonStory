@@ -167,6 +167,9 @@ public sealed class FacilityModificationOrder
     public string destinationId = string.Empty;
     public int destinationX;
     public int destinationY;
+    public long inputCapacityGrams;
+    public long inputMassAuthorityRevision;
+    public string inputCapacityFingerprint = string.Empty;
     public bool materialsConsumed;
     public string materialTransferOperationId = string.Empty;
     public string materialTransferCommitId = string.Empty;
@@ -200,6 +203,9 @@ public sealed class FacilityModificationOrder
             destinationId = destinationId ?? string.Empty,
             destinationX = destinationX,
             destinationY = destinationY,
+            inputCapacityGrams = inputCapacityGrams,
+            inputMassAuthorityRevision = inputMassAuthorityRevision,
+            inputCapacityFingerprint = inputCapacityFingerprint ?? string.Empty,
             materialsConsumed = materialsConsumed,
             materialTransferOperationId =
                 materialTransferOperationId ?? string.Empty,
@@ -231,6 +237,9 @@ public sealed class FacilityRelocationOrder
     public int sourceY;
     public int destinationX;
     public int destinationY;
+    public long inputCapacityGrams;
+    public long inputMassAuthorityRevision;
+    public string inputCapacityFingerprint = string.Empty;
     public float dismantleRequiredWork;
     public float dismantleCompletedWork;
     public float reinstallRequiredWork;
@@ -269,6 +278,9 @@ public sealed class FacilityRelocationOrder
             sourceY = sourceY,
             destinationX = destinationX,
             destinationY = destinationY,
+            inputCapacityGrams = inputCapacityGrams,
+            inputMassAuthorityRevision = inputMassAuthorityRevision,
+            inputCapacityFingerprint = inputCapacityFingerprint ?? string.Empty,
             dismantleRequiredWork = Mathf.Max(0.1f, dismantleRequiredWork),
             dismantleCompletedWork = Mathf.Clamp(
                 dismantleCompletedWork,

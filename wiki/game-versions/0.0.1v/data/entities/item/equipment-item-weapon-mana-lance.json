@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "4.9kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "759"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "마나 도체를 창날까지 이어 찌르는 순간 힘을 모으는 장창이다. 베르사디온에서는 마나 랜스의 마나가 마를 때까지 계약자의 그림자가 날에서 떨어지지 않는다고 말한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-weapon-mana-lance",
+  "spoiler_tier": "none",
+  "summary": "마나 랜스 전투 장비",
+  "title": "마나 랜스"
+}

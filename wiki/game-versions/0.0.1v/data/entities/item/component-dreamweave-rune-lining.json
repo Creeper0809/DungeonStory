@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.35kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "378"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "몽직물 룬 안감을 장비 안쪽에 덧대 충격과 마찰이 착용자에게 바로 닿지 않게 한다. 베르사디온에서는 몽직물 룬 안감의 빛이 계약자의 그림자보다 먼저 꺼져야 안전한 부품으로 친다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "component-dreamweave-rune-lining",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 몽직물 룬 안감.",
+  "title": "몽직물 룬 안감"
+}

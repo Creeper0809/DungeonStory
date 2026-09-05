@@ -1,0 +1,5 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+CombatShieldSO,content-type,,type-reference; save-restore-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/CombatEquipmentLoadoutRuntime.cs
+CombatShieldSO,content-type,,type-reference; save-restore-reference,services:combat,persistence,structural-type-consumer,Assets/Scripts/Services/Combat/CombatEquipmentRestoreBuilder.cs
+CombatShieldSO,content-type,,type-reference; save-restore-reference,services:infrastructure,persistence,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Save/DungeonAggregateReferencePreflight.cs
+CombatShieldSO,content-type,,type-reference; save-restore-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/EnemyIndividualRuntime.cs

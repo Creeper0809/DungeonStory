@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "life-history-slime",
+    "spoiler_tier": "none",
+    "title": "Life_Slime"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/characterspecies-1",
+      "label": "관련",
+      "to": "character/life-history-slime",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "festival-tool-clan-fair",
+    "spoiler_tier": "none",
+    "title": "도구씨족 품평회"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "character/festival-tool-clan-fair",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-machine-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "기계 부품",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

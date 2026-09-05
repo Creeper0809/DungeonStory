@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.35kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "143"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "합금 도가니는 서로 다른 금속을 높은 열에서 녹이고 섞을 때 쓰는 내열 용기다. 제4주조도시의 골렘은 합금 도가니를 잡으면 열과 진동만으로 이전 몸에서 쓰던 공구인지 알아본다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "tool-alloy-crucible",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 합금 도가니.",
+  "title": "합금 도가니"
+}

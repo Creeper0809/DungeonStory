@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1622",
+    "spoiler_tier": "none",
+    "title": "마나 안정기"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-blacksteel",
+      "label": "시설 해금",
+      "to": "facility/building-1622",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,51 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "ash-crawler",
+    "spoiler_tier": "none",
+    "title": "재먼지 기는벌레"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/ash-crawler",
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-ash-lung",
+      "target_spoiler_tier": "none",
+      "target_title": "재먼지폐",
+      "to": "medical/disease-ash-lung",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/ash-crawler",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-hound",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴사냥개",
+      "to": "nature/cave-hound",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/ash-crawler",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "ember-lizard",
+      "target_spoiler_tier": "none",
+      "target_title": "잿불도마뱀",
+      "to": "nature/ember-lizard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/ember-lizard",
+      "label": "관련",
+      "to": "nature/ash-crawler",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

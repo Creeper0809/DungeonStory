@@ -1,0 +1,83 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-equipment-prototype-engineering",
+    "spoiler_tier": "none",
+    "title": "시제품 공학"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-equipment-prototype-engineering",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-material-testing",
+      "target_spoiler_tier": "none",
+      "target_title": "재료 시험학",
+      "to": "research/research-equipment-material-testing",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-prototype-engineering",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-material-testing",
+      "target_spoiler_tier": "none",
+      "target_title": "재료 시험학",
+      "to": "research/research-equipment-material-testing",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-prototype-engineering",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-material-testing",
+      "target_spoiler_tier": "none",
+      "target_title": "재료 시험학",
+      "to": "research/research-equipment-material-testing",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-prototype-engineering",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8825",
+      "target_spoiler_tier": "none",
+      "target_title": "시제품 연구실",
+      "to": "facility/building-8825",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-prototype-package",
+      "label": "필요 조건",
+      "to": "research/research-equipment-prototype-engineering",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-industrial-metrology",
+      "label": "선행 연구",
+      "to": "research/research-equipment-prototype-engineering",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-industrial-metrology",
+      "label": "선행 연구",
+      "to": "research/research-equipment-prototype-engineering",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-industrial-metrology",
+      "label": "선행 연구",
+      "to": "research/research-equipment-prototype-engineering",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

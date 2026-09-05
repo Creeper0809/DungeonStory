@@ -1,0 +1,134 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-pharmacology-antiseptic",
+    "spoiler_tier": "none",
+    "title": "소독·붕대"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-antiseptic",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-herbalism",
+      "target_spoiler_tier": "none",
+      "target_title": "약초학",
+      "to": "research/research-pharmacology-herbalism",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-antiseptic",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-herbalism",
+      "target_spoiler_tier": "none",
+      "target_title": "약초학",
+      "to": "research/research-pharmacology-herbalism",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-antiseptic",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-herbalism",
+      "target_spoiler_tier": "none",
+      "target_title": "약초학",
+      "to": "research/research-pharmacology-herbalism",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-antiseptic",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-fiber",
+      "target_spoiler_tier": "none",
+      "target_title": "섬유 가공",
+      "to": "research/research-textile-fiber",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-antiseptic",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-fiber",
+      "target_spoiler_tier": "none",
+      "target_title": "섬유 가공",
+      "to": "research/research-textile-fiber",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-antiseptic",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-fiber",
+      "target_spoiler_tier": "none",
+      "target_title": "섬유 가공",
+      "to": "research/research-textile-fiber",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-antiseptic",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1090",
+      "target_spoiler_tier": "none",
+      "target_title": "약제대",
+      "to": "facility/building-1090",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-antiseptic",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1624",
+      "target_spoiler_tier": "none",
+      "target_title": "무균 약품 보관함",
+      "to": "facility/building-1624",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-antiseptic",
+      "label": "필요 조건",
+      "to": "research/research-pharmacology-antiseptic",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-resin-balm",
+      "label": "필요 조건",
+      "to": "research/research-pharmacology-antiseptic",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-distillation",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-antiseptic",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-distillation",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-antiseptic",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-distillation",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-antiseptic",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.05kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "40개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "3"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "혈엽 종자의 품종과 품질, 병원체 검사 기록을 함께 보존한 파종용 종자 묶음이다. 므네실라에서 보관한 혈엽 종자에는 채취한 정원의 향과 다음 파종자의 색점만 남긴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "seed-lot-bloodleaf",
+  "spoiler_tier": "none",
+  "summary": "혈엽 재배에 사용하는 물리 종자 로트.",
+  "title": "혈엽 종자"
+}

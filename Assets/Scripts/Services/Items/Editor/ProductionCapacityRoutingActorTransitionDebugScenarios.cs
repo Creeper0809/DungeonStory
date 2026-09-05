@@ -45,6 +45,12 @@ public static class ProductionCapacityRoutingActorTransitionDebugScenarios
             new Vector2Int(3, 1),
             originalStackOrdinal: 1,
             sourceOffsetQuantity: 1);
+        fixture.MoveActorWithCarriedRepositoryPositionLag(
+            actorA,
+            new Vector2Int(2, 1));
+        fixture.MoveActorWithCarriedRepositoryPositionLag(
+            actorB,
+            new Vector2Int(4, 1));
         ProductionCapacityRoutingDrainRequest request =
             fixture.PrepareDrain(actorA, actorB);
 
@@ -67,7 +73,16 @@ public static class ProductionCapacityRoutingActorTransitionDebugScenarios
             && interruptedDrain.phase ==
                 ProductionCapacityRoutingDrainPhase
                     .ReleasingOperationAuthority,
-            "Interrupted actor transition did not remain in its non-saveable phase.");
+            "Interrupted actor transition did not remain in its non-saveable phase: "
+            + (interruptedDrain == null
+                ? "missing"
+                : interruptedDrain.phase.ToString())
+            + "; result=" + interrupted.Status
+            + "; reason=" + interrupted.FailureReason
+            + "; receipts="
+            + (interruptedDrain?.actorQuiesceReceipts?.Count ?? -1)
+            + "; actorA=" + actorA.ActorId + "/" + actorA.CarriedStack.StackId
+            + "; actorB=" + actorB.ActorId + "/" + actorB.CarriedStack.StackId);
         Require(interruptedDrain.actorQuiesceReceipts.Count == 2,
             "Actor-set physical quiescence did not publish both receipts.");
         Require(interruptedDrain.actorAuthorityReleases.Count == 2,
@@ -175,7 +190,7 @@ public static class ProductionCapacityRoutingActorTransitionDebugScenarios
     private sealed class Fixture : IDisposable
     {
         private readonly List<GameObject> actorObjects = new();
-        private readonly TestWarehouseFacility warehouse;
+        private readonly TestWarehouseBuilding warehouse;
         private readonly CharacterCarryInventoryRegistry carryRegistry;
         private readonly ItemQuantityReservationService reservations;
         private readonly WarehouseMassAdmissionService admissions;
@@ -193,7 +208,7 @@ public static class ProductionCapacityRoutingActorTransitionDebugScenarios
             ProductionCapacityRoutingDrainOutbox outbox,
             ProductionCapacityRoutingOperationAuthorityReleaseCoordinator
                 coordinator,
-            TestWarehouseFacility warehouse,
+            TestWarehouseBuilding warehouse,
             CharacterCarryInventoryRegistry carryRegistry,
             Grid grid,
             TestGridProvider gridProvider)
@@ -219,10 +234,15 @@ public static class ProductionCapacityRoutingActorTransitionDebugScenarios
         {
             WorldItemStackRuntime runtime = null;
             CharacterCarryInventoryRegistry carryRegistry = null;
+            GameObject warehouseObject = null;
+            TestWarehouseBuilding warehouse = null;
             try
             {
+                Grid grid = CreateWalkableGrid();
+                TestGridProvider gridProvider = new(grid);
                 runtime = PhysicalItemDebugScenarios
                     .CreateRuntimeForCrossDomainFixture(
+                        gridProvider,
                         out WorldItemRepository repository,
                         out _,
                         out ItemQuantityReservationService reservations,
@@ -230,8 +250,6 @@ public static class ProductionCapacityRoutingActorTransitionDebugScenarios
                 ItemTransferService transfer = reservedTransfer as ItemTransferService
                     ?? throw new InvalidOperationException(
                         "Cross-domain fixture did not expose ItemTransferService.");
-                Grid grid = CreateWalkableGrid();
-                TestGridProvider gridProvider = new(grid);
                 PhysicalStockQuery stock = new(
                     repository,
                     runtime.CatalogProvider,
@@ -240,7 +258,6 @@ public static class ProductionCapacityRoutingActorTransitionDebugScenarios
                     (BuildingInstanceId)
                     "building:qa:capacity-routing-actor-transition-warehouse";
                 WarehouseInventory inventory = new(
-                    200,
                     100_000L,
                     StockCategory.General,
                     restrictCategory: false);
@@ -248,7 +265,21 @@ public static class ProductionCapacityRoutingActorTransitionDebugScenarios
                     stock,
                     warehouseId,
                     CharacterAiEditorTestDependencies.AuthoredGameplay);
-                TestWarehouseFacility warehouse = new(warehouseId, inventory);
+                Vector2Int warehouseAnchor = new(7, 1);
+                grid.SetAreaType(
+                    warehouseAnchor,
+                    GridCellAreaType.BlockedExterior);
+                warehouseObject = new GameObject(
+                    "Capacity Routing Warehouse");
+                warehouse = warehouseObject
+                    .AddComponent<TestWarehouseBuilding>();
+                warehouse.Configure(
+                    warehouseId,
+                    inventory,
+                    grid,
+                    warehouseAnchor);
+                CharacterAiEditorTestDependencies.WorldRegistry
+                    .RegisterWarehouse(warehouse);
                 WarehouseMassAdmissionService admissions = new(
                     runtime.CatalogProvider,
                     runtime.MassQuery,
@@ -267,7 +298,7 @@ public static class ProductionCapacityRoutingActorTransitionDebugScenarios
                         admissions,
                         transfer,
                         reservations);
-                return new Fixture(
+                Fixture fixture = new(
                     runtime,
                     repository,
                     reservations,
@@ -278,9 +309,18 @@ public static class ProductionCapacityRoutingActorTransitionDebugScenarios
                     carryRegistry,
                     grid,
                     gridProvider);
+                fixture.actorObjects.Add(warehouseObject);
+                return fixture;
             }
             catch
             {
+                if (warehouse != null)
+                {
+                    CharacterAiEditorTestDependencies.WorldRegistry
+                        .UnregisterWarehouse(warehouse);
+                }
+                if (warehouseObject != null)
+                    UnityEngine.Object.DestroyImmediate(warehouseObject);
                 carryRegistry?.Dispose();
                 runtime?.Dispose();
                 throw;
@@ -299,7 +339,15 @@ public static class ProductionCapacityRoutingActorTransitionDebugScenarios
                 .AllocateEditorTestHaulDeliveryOperationId(actorId);
             string destinationId =
                 WarehouseStorageIdentity.RequireDestinationId(warehouse);
-            Vector2Int targetCell = new(7, 1);
+            Vector2Int authorityAnchor = warehouse.centerPos;
+            Require(grid.TryFindNearbyWalkablePositionOnSameFloor(
+                    authorityAnchor,
+                    out Vector2Int targetCell,
+                    maxDistance: 2),
+                "Fixture warehouse destination access cell is missing.");
+            Require(targetCell != authorityAnchor,
+                "Fixture must keep warehouse authority anchor distinct from "
+                + "its reachable haul access cell.");
             string sourceStackId = repository.AddEditorTestStack(
                 ItemId,
                 1,
@@ -357,17 +405,6 @@ public static class ProductionCapacityRoutingActorTransitionDebugScenarios
                 catalogRevision = admissionToken.CatalogRevision,
                 sourceRevision = admissionToken.SourceRevision
             };
-            Require(Runtime.TryRegisterHaulDeliveryPlanForEditorTest(
-                    operationId,
-                    actorId,
-                    WorldItemHaulDestinationKind.Warehouse,
-                    destinationId,
-                    targetCell,
-                    targetCell,
-                    new[] { admissionProjection },
-                    out string intentFailure),
-                "Fixture haul intent failed: " + intentFailure);
-
             WorldItemReservedStackQuantity reservation = new(
                 sourceStackId,
                 ItemId,
@@ -409,9 +446,10 @@ public static class ProductionCapacityRoutingActorTransitionDebugScenarios
                     picked.sourceStackId,
                     sourceOffsetQuantity,
                     destinationId,
-                    targetCell,
+                    authorityAnchor,
                     1,
-                    unitMassGrams),
+                    unitMassGrams,
+                    out string businessComponentFingerprint),
                 "Fixture exact-route custody authoring failed.");
             WorldItemStackSnapshot carriedStack = Runtime.GetAllStacks().Single(
                 value => string.Equals(
@@ -437,14 +475,52 @@ public static class ProductionCapacityRoutingActorTransitionDebugScenarios
                     }
                 }
             });
+            Require(reservations.Release(
+                    lease.leaseId,
+                    ItemReservationReleaseReason.Replanned),
+                "Fixture could not retire its pre-custody pickup lease.");
+            string routedSignature = ItemReservationSignature.Create(
+                carriedStack.ItemId,
+                carriedStack.Components);
+            Require(reservations.TryReserve(
+                    operationId,
+                    actorId,
+                    ItemReservationPurpose.Hauling,
+                    $"haul:{WorldItemHaulDestinationKind.Warehouse}:{destinationId}",
+                    new ItemQuantityReservationRequest(
+                        new ItemStackId(carriedStack.StackId),
+                        1,
+                        routedSignature),
+                    out ItemQuantityLease routedLease,
+                    out DomainFailure routedLeaseFailure),
+                "Fixture routed-custody lease failed: " + routedLeaseFailure);
+            Require(Runtime.TryRegisterHaulDeliveryPlanForEditorTest(
+                    operationId,
+                    actorId,
+                    WorldItemHaulDestinationKind.Warehouse,
+                    destinationId,
+                    targetCell,
+                    targetCell,
+                    new[] { admissionProjection },
+                    out string intentFailure),
+                "Fixture haul intent failed: " + intentFailure);
             Require(Runtime.TryCommitHaulPickup(
                     operationId,
                     actor.Inventory,
                     out string commitFailure),
                 "Fixture pickup commit failed: " + commitFailure);
 
+            WorldItemReservedStackQuantity routedReservation = new(
+                carriedStack.StackId,
+                ItemId,
+                1,
+                actorCell,
+                WorldItemHaulDestinationKind.Warehouse,
+                destinationId,
+                routedLease.leaseId,
+                operationId);
             WorldItemHaulPlanLeg deliveryLeg = new(
-                reservation,
+                routedReservation,
                 actorCell,
                 warehouse,
                 targetCell,
@@ -452,7 +528,7 @@ public static class ProductionCapacityRoutingActorTransitionDebugScenarios
             WorldItemHaulPlan deliveryPlan = new(
                 Array.Empty<WorldItemHaulPlanLeg>(),
                 new[] { deliveryLeg },
-                new[] { reservation },
+                new[] { routedReservation },
                 unitMassGrams / 1000f,
                 expectedDetourCost: 0,
                 WorldItemHaulDestinationKind.Warehouse,
@@ -461,7 +537,7 @@ public static class ProductionCapacityRoutingActorTransitionDebugScenarios
             Require(actor.Ability.TryBindCapacityRoutingEditorFixture(
                     Runtime,
                     deliveryPlan,
-                    new[] { lease.leaseId },
+                    new[] { routedLease.leaseId },
                     out string bindFailure),
                 "Fixture AbilityHaul bind failed: " + bindFailure);
             return new CargoContext(
@@ -470,12 +546,13 @@ public static class ProductionCapacityRoutingActorTransitionDebugScenarios
                 routeOperationId,
                 sourceStackId,
                 carriedStack,
-                lease.leaseId,
+                routedLease.leaseId,
                 admissionToken.TokenId,
                 unitMassGrams,
                 sourceOffsetQuantity,
-                targetCell,
-                destinationId);
+                authorityAnchor,
+                destinationId,
+                businessComponentFingerprint);
         }
 
         internal ProductionCapacityRoutingDrainRequest PrepareDrain(
@@ -485,12 +562,13 @@ public static class ProductionCapacityRoutingActorTransitionDebugScenarios
                 .OrderBy(value => value.RouteOperationId, StringComparer.Ordinal)
                 .ToArray();
             long totalMass = ordered.Sum(value => value.MassGrams);
-            string componentFingerprint =
-                ProductionCapacityRoutingDrainFingerprint
-                    .CreateActorCarryStackSignature(
-                        ItemId,
-                        string.Empty,
-                        ordered[0].CarriedStack.Components);
+            string[] componentFingerprints = ordered
+                .Select(value => value.BusinessComponentFingerprint)
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            Require(componentFingerprints.Length == 1,
+                "Fixture mixed business component fingerprints in one output line.");
+            string componentFingerprint = componentFingerprints[0];
             ProductionCapacityRoutingDrainLineSaveData[] lines =
             {
                 new()
@@ -499,6 +577,22 @@ public static class ProductionCapacityRoutingActorTransitionDebugScenarios
                     outputLineId = OutputLineId,
                     itemId = ItemId,
                     componentFingerprint = componentFingerprint,
+                    outputCapabilityId =
+                        ProductionOutputCapabilityIds.StandardDefinition,
+                    outputCapabilityVersion =
+                        ProductionOutputCapabilityIds.StandardDefinitionVersion,
+                    outputComponentCodecId =
+                        ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+                    outputComponentCodecVersion =
+                        ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion,
+                    outputCapabilityFingerprint =
+                        ProductionOutputCapabilityDescriptorFingerprint.Capture(
+                            OutputLineId,
+                            ItemId,
+                            ProductionOutputCapabilityIds.StandardDefinition,
+                            ProductionOutputCapabilityIds.StandardDefinitionVersion,
+                            ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+                            ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion),
                     originalQuantity = ordered.Length,
                     originalMassGrams = totalMass,
                     routedQuantity = ordered.Length,
@@ -609,6 +703,28 @@ public static class ProductionCapacityRoutingActorTransitionDebugScenarios
             return request;
         }
 
+        internal void MoveActorWithCarriedRepositoryPositionLag(
+            CargoContext cargo,
+            Vector2Int destination)
+        {
+            Require(cargo != null && cargo.Actor != null,
+                "Moved-carry fixture actor is missing.");
+            Vector2Int previous = cargo.ActorCell;
+            cargo.Actor.transform.position = grid.GetWorldPos(destination);
+            cargo.ActorCell = destination;
+            Require(cargo.Actor.GetNowXY() == destination,
+                "Moved-carry fixture did not publish the actor cell.");
+            WorldItemStackSnapshot durableCarry = Runtime.GetAllStacks().Single(
+                value => string.Equals(
+                    value.StackId,
+                    cargo.CarriedStack.StackId,
+                    StringComparison.Ordinal));
+            Require(durableCarry.Position == previous
+                    && durableCarry.DestinationPosition == previous,
+                "Moved-carry fixture unexpectedly rewrote the durable carry row; "
+                + "the regression requires real actor/repository position lag.");
+        }
+
         internal void RequireQuiescedPhysical(CargoContext cargo)
         {
             Require(cargo.Inventory.Items.Count == 0,
@@ -697,6 +813,14 @@ public static class ProductionCapacityRoutingActorTransitionDebugScenarios
             actor.Initialization(
                 CharacterAiEditorTestDependencies
                     .RequireAuthoredCharacterDefinition("Adventurer"));
+            actorObject.transform.position = grid.GetWorldPos(position);
+            Require(actor.GetNowXY() == position,
+                "Fixture actor position authority mismatch: actor="
+                + actorId
+                + "; expected=" + position
+                + "; actual=" + actor.GetNowXY()
+                + "; transformCell="
+                + grid.GetXY(actorObject.transform.position));
             inventory.Configure(
                 Runtime.CatalogProvider,
                 Runtime.MassQuery,
@@ -710,6 +834,8 @@ public static class ProductionCapacityRoutingActorTransitionDebugScenarios
             if (disposed)
                 return;
             disposed = true;
+            CharacterAiEditorTestDependencies.WorldRegistry
+                .UnregisterWarehouse(warehouse);
             foreach (GameObject actorObject in actorObjects)
             {
                 if (actorObject != null)
@@ -768,7 +894,8 @@ public static class ProductionCapacityRoutingActorTransitionDebugScenarios
             long massGrams,
             int sourceOffsetQuantity,
             Vector2Int targetCell,
-            string destinationId)
+            string destinationId,
+            string businessComponentFingerprint)
         {
             Actor = actor.Actor;
             Inventory = actor.Inventory;
@@ -785,12 +912,13 @@ public static class ProductionCapacityRoutingActorTransitionDebugScenarios
             SourceOffsetQuantity = sourceOffsetQuantity;
             TargetCell = targetCell;
             DestinationId = destinationId;
+            BusinessComponentFingerprint = businessComponentFingerprint;
         }
 
         internal CharacterActor Actor { get; }
         internal CharacterCarryInventory Inventory { get; }
         internal AbilityHaul Ability { get; }
-        internal Vector2Int ActorCell { get; }
+        internal Vector2Int ActorCell { get; set; }
         internal string ActorId { get; }
         internal string OperationId { get; }
         internal string RouteOperationId { get; }
@@ -802,20 +930,43 @@ public static class ProductionCapacityRoutingActorTransitionDebugScenarios
         internal int SourceOffsetQuantity { get; }
         internal Vector2Int TargetCell { get; }
         internal string DestinationId { get; }
+        internal string BusinessComponentFingerprint { get; }
     }
 
-    private sealed class TestWarehouseFacility : IWarehouseFacility
+    private sealed class TestWarehouseBuilding : BuildableObject,
+        IWarehouseFacility
     {
-        internal TestWarehouseFacility(
+        private WarehouseInventory inventory;
+
+        internal void Configure(
             BuildingInstanceId id,
-            WarehouseInventory inventory)
+            WarehouseInventory inventory,
+            Grid grid,
+            Vector2Int anchor)
         {
-            PersistentInstanceId = id;
-            Inventory = inventory;
+            RestorePersistentIdentity(id);
+            this.inventory = inventory
+                ?? throw new ArgumentNullException(nameof(inventory));
+            ConstructBuildableObject(
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IBuildingResearchWorkPort>(),
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IBuildingFacilityStateChangePort>(),
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IBuildingRoomPolicyPort>(),
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IBuildingEquipmentCraftingRuntimePort>(),
+                worldRegistry: null,
+                worldItemStackRuntime: null,
+                abilityRuntimeDispatcher: null,
+                gameClock: new UnityGameClock(),
+                paidFacilityContracts: null,
+                evolutionState: new FacilityEvolutionStateComponentFactory());
+            SetGrid(grid ?? throw new ArgumentNullException(nameof(grid)));
+            SetRuntimeGridPosition(anchor);
         }
 
-        public BuildingInstanceId PersistentInstanceId { get; }
-        public WarehouseInventory Inventory { get; }
+        public WarehouseInventory Inventory => inventory;
         public bool HasWarehouseInventory => true;
     }
 

@@ -1,0 +1,31 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "4",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "supply-fungicide",
+      "target_spoiler_tier": "none",
+      "target_title": "살균제",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "supply-fungicide",
+      "target_spoiler_tier": "none",
+      "target_title": "살균제",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "faction-chapter-myconid-5",
+  "spoiler_tier": "warning",
+  "summary": "고대 조상균이 개화해 생존자의 판단을 대신하려 한다.",
+  "title": "조상균의 개화"
+}

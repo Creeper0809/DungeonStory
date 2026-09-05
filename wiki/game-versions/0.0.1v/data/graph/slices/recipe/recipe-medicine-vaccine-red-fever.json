@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-medicine-vaccine-red-fever",
+    "spoiler_tier": "none",
+    "title": "적열병 백신"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medicine-vaccine-red-fever",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 약품",
+      "to": "item/medicine-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medicine-vaccine-red-fever",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-clean-water",
+      "target_spoiler_tier": "none",
+      "target_title": "깨끗한 물",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medicine-vaccine-red-fever",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "sample-antigen-red-fever",
+      "target_spoiler_tier": "none",
+      "target_title": "적열병 항원 표본",
+      "to": "item/sample-antigen-red-fever",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-medicine-vaccine-red-fever",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "medicine-vaccine-red-fever",
+      "target_spoiler_tier": "none",
+      "target_title": "적열병 백신",
+      "to": "item/medicine-vaccine-red-fever",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-medicine-vaccine-red-fever",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-health-vaccination",
+      "target_spoiler_tier": "none",
+      "target_title": "예방접종과 유행병 통제",
+      "to": "research/research-health-vaccination",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

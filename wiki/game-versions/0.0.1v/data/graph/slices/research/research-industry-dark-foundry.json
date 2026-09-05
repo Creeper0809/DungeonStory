@@ -1,0 +1,116 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-industry-dark-foundry",
+    "spoiler_tier": "none",
+    "title": "심연 공장"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-industry-dark-foundry",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-rune-automation",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 자동화",
+      "to": "research/research-industry-rune-automation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-dark-foundry",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-rune-automation",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 자동화",
+      "to": "research/research-industry-rune-automation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-dark-foundry",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-rune-automation",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 자동화",
+      "to": "research/research-industry-rune-automation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-dark-foundry",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-aberrant-augmentation",
+      "target_spoiler_tier": "none",
+      "target_title": "이형 개조",
+      "to": "research/research-medical-aberrant-augmentation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-dark-foundry",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-aberrant-augmentation",
+      "target_spoiler_tier": "none",
+      "target_title": "이형 개조",
+      "to": "research/research-medical-aberrant-augmentation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-dark-foundry",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-aberrant-augmentation",
+      "target_spoiler_tier": "none",
+      "target_title": "이형 개조",
+      "to": "research/research-medical-aberrant-augmentation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-dark-foundry",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8901",
+      "target_spoiler_tier": "none",
+      "target_title": "흑강 주조 보조로",
+      "to": "facility/building-8901",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-armor-blacksteel-carapace",
+      "label": "필요 조건",
+      "to": "research/research-industry-dark-foundry",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-shield-blacksteel",
+      "label": "필요 조건",
+      "to": "research/research-industry-dark-foundry",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-blacksteel-poleaxe",
+      "label": "필요 조건",
+      "to": "research/research-industry-dark-foundry",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-ammo-blacksteel-bolt",
+      "label": "필요 조건",
+      "to": "research/research-industry-dark-foundry",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

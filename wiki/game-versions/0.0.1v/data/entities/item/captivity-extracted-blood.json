@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.5kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "20개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "22"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "의식과 연금 작업에 쓰이는 위험한 부산물이다. 동의의 잔 장부가 없는 추출 혈액은 하르나크 밤궁정에서도 압수하고 제공자를 먼저 찾는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "captivity-extracted-blood",
+  "spoiler_tier": "none",
+  "summary": "의식과 연금 작업에 쓰이는 위험한 부산물이다.",
+  "title": "추출 혈액"
+}

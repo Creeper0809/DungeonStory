@@ -105,6 +105,8 @@ public static class ProductionFacilityDestructiveDrainParticipantIds
         "capacity-routing-outbox";
     public const string PhysicalCustodyCarryRecovery =
         "physical-custody-carry-recovery";
+    public const string StockSensorEmbeddedSalvage =
+        "stock-sensor-embedded-salvage";
 }
 
 public static class ProductionFacilityDestructiveDrainOwnerStableIds
@@ -126,6 +128,9 @@ public static class ProductionFacilityDestructiveDrainOwnerStableIds
 
     public static string PhysicalDestination(string destinationId) =>
         Build("physical-destination", destinationId);
+
+    public static string StockSensor(string facilityId) =>
+        Build("stock-sensor", facilityId);
 
     private static string Build(string kind, string sourceId)
     {
@@ -492,10 +497,12 @@ public sealed class ProductionFacilityDestructiveDrainEntrySaveData
 [Serializable]
 public sealed class DungeonProductionFacilityDestructiveDrainSaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 3;
 
     public int version = CurrentVersion;
     public string registryFingerprint = string.Empty;
+    public long lastConfirmedCheckpointSequence;
+    public string lastConfirmedSerializedByteDigest = string.Empty;
     public List<ProductionFacilityDestructiveDrainEntrySaveData> entries = new();
 }
 
@@ -593,6 +600,79 @@ public interface IProductionFacilityDestructiveDrainJournalCommand
         out string failureReason);
 
     bool TryRemoveCheckpointed(
+        ProductionFacilityDestructiveDrainOperationId operationId,
+        long expectedRevision,
+        out string failureReason);
+}
+
+public enum ProductionFacilityDestructiveDrainDriveStatus
+{
+    Deferred = 0,
+    Conflict = 1,
+    AwaitingAuthorityRevoke = 2,
+    AwaitingWorldRemoval = 3,
+    WorldRemovedAwaitingCheckpointGc = 4,
+    CheckpointGcComplete = 5
+}
+
+public readonly struct ProductionFacilityDestructiveDrainDriveResult
+{
+    public ProductionFacilityDestructiveDrainDriveResult(
+        ProductionFacilityDestructiveDrainDriveStatus status,
+        ProductionFacilityDestructiveDrainOperationId operationId,
+        ProductionFacilityDestructiveDrainPhase phase,
+        long revision,
+        string failureReason)
+    {
+        if (!Enum.IsDefined(
+                typeof(ProductionFacilityDestructiveDrainDriveStatus),
+                status)
+            || !operationId.IsValid
+            || !Enum.IsDefined(
+                typeof(ProductionFacilityDestructiveDrainPhase),
+                phase)
+            || phase == ProductionFacilityDestructiveDrainPhase.None
+            || revision <= 0L
+            || (status == ProductionFacilityDestructiveDrainDriveStatus.Conflict
+                    || status == ProductionFacilityDestructiveDrainDriveStatus.Deferred)
+                != !string.IsNullOrEmpty(failureReason))
+        {
+            throw new ArgumentException(
+                "A destructive-drain drive result is invalid.");
+        }
+
+        Status = status;
+        OperationId = operationId;
+        Phase = phase;
+        Revision = revision;
+        FailureReason = failureReason ?? string.Empty;
+    }
+
+    public ProductionFacilityDestructiveDrainDriveStatus Status { get; }
+    public ProductionFacilityDestructiveDrainOperationId OperationId { get; }
+    public ProductionFacilityDestructiveDrainPhase Phase { get; }
+    public long Revision { get; }
+    public string FailureReason { get; }
+}
+
+/// <summary>
+/// Single production owner for the durable participant journal. It advances
+/// participant effects only to the authority-revoke boundary; world mutation
+/// remains an explicit caller-owned phase and is acknowledged separately.
+/// </summary>
+public interface IProductionFacilityDestructiveDrainCoordinator
+{
+    ProductionFacilityDestructiveDrainDriveResult DriveToAuthorityRevoke(
+        ProductionFacilityDestructiveDrainCause cause,
+        BuildingInstanceId facilityId);
+
+    ProductionFacilityDestructiveDrainDriveResult RecordAuthorityRevoked(
+        ProductionFacilityDestructiveDrainOperationId operationId);
+
+    ProductionFacilityDestructiveDrainDriveResult RecordWorldRemoved(
+        ProductionFacilityDestructiveDrainOperationId operationId);
+
+    bool TryCollectCheckpointed(
         ProductionFacilityDestructiveDrainOperationId operationId,
         long expectedRevision,
         out string failureReason);

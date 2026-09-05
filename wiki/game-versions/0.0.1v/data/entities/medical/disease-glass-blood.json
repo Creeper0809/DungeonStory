@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "medical",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "disease-glass-blood",
+  "spoiler_tier": "none",
+  "summary": "마나 결정 미립자가 혈액에 결정화되어 출혈과 비전 폭주를 일으킨다.",
+  "title": "유리혈증"
+}

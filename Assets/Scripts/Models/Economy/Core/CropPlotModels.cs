@@ -123,15 +123,248 @@ public sealed class CropPlotSaveData
     public float growthHours;
     public float harvestWork;
     public bool materialsConsumed;
+    public int frozenSowInputOperationSequence = -1;
+    public string frozenSowInputSourceDigest = string.Empty;
+    public string frozenSowInputVectorDigest = string.Empty;
+    public SurvivalWeatherType frozenSowInputWeather;
+    public float frozenSowInputConsumptionMultiplier;
+    public string frozenSowInputSelectedFuelItemId = string.Empty;
+    public List<CropCycleInputRequirementSaveData> frozenSowInputs = new();
     public string goldenHarvestHarvesterId = string.Empty;
     public int goldenHarvestAttemptSequence;
     public int nextSowOperationSequence;
     public CropPhysicalCommitSaveData pendingSow = new();
+    public string pendingCycleCorrelationId = string.Empty;
+    public CropCycleExecutionReceiptSaveData cycleExecutionReceipt = new();
     public int nextTreatmentOperationSequence;
     public int pestLureNextAllowedDay;
     public int botanicalPesticideNextAllowedDay;
     public int fungicideNextAllowedDay;
     public CropTreatmentOrderSaveData treatment = new();
+    public int nextHarvestOperationSequence;
+    public CropHarvestOutputSaveData pendingHarvest = new();
+}
+
+[Serializable]
+public sealed class CropCycleInputRequirementSaveData
+{
+    public string itemId = string.Empty;
+    public int quantity;
+
+    public CropCycleInputRequirementSaveData DeepClone() => new()
+    {
+        itemId = itemId ?? string.Empty,
+        quantity = quantity
+    };
+}
+
+[Serializable]
+public enum CropCycleExecutionReceiptStatus
+{
+    None = 0,
+    Active = 1,
+    Completed = 2,
+    FailedCropDeath = 3,
+    FailedPlotDestroyed = 4
+}
+
+[Serializable]
+public sealed class CropCycleExecutionReceiptSaveData
+{
+    public const int CurrentSchemaVersion = 2;
+
+    public int schemaVersion = CurrentSchemaVersion;
+    public string plotId = string.Empty;
+    public string cropId = string.Empty;
+    public string correlationId = string.Empty;
+    public bool explicitCorrelation;
+    public CropCycleExecutionReceiptStatus status;
+    public string terminalReasonCode = string.Empty;
+    public bool indoor;
+    public int sowOperationSequence;
+    public string sowOperationId = string.Empty;
+    public string sowCommitId = string.Empty;
+    public string sowRequestFingerprint = string.Empty;
+    public int inputQuantity;
+    public long inputMassGrams;
+    public string inputVectorDigest = string.Empty;
+    public SeedLotState inputSeedLot;
+    public List<CropPhysicalInputSaveData> inputs = new();
+    public int harvestOperationSequence;
+    public string harvestOperationId = string.Empty;
+    public string outputBatchCommitId = string.Empty;
+    public string outputOutcomeFingerprint = string.Empty;
+    public string plannedOutputFingerprint = string.Empty;
+    public ProductionOutputCapabilitySaveData harvestCapability = new();
+    public ProductionOutputCapabilitySaveData seedCapability = new();
+    public long outputMassGrams;
+    public string outputVectorDigest = string.Empty;
+    public SeedLotState returnedSeedLot;
+    public List<ProductionDomainPublishedStackSaveData> outputs = new();
+    public bool completed;
+    public string sourceDigest = string.Empty;
+
+    public bool IsEmpty => string.IsNullOrEmpty(plotId)
+        && string.IsNullOrEmpty(cropId)
+        && string.IsNullOrEmpty(correlationId)
+        && !explicitCorrelation
+        && status == CropCycleExecutionReceiptStatus.None
+        && string.IsNullOrEmpty(terminalReasonCode)
+        && !indoor
+        && sowOperationSequence == 0
+        && string.IsNullOrEmpty(sowOperationId)
+        && string.IsNullOrEmpty(sowCommitId)
+        && string.IsNullOrEmpty(sowRequestFingerprint)
+        && inputQuantity == 0
+        && inputMassGrams == 0L
+        && string.IsNullOrEmpty(inputVectorDigest)
+        && IsSemanticEmptySeedLot(inputSeedLot)
+        && string.IsNullOrEmpty(sourceDigest)
+        && (inputs == null || inputs.Count == 0)
+        && harvestOperationSequence == 0
+        && string.IsNullOrEmpty(harvestOperationId)
+        && string.IsNullOrEmpty(outputBatchCommitId)
+        && string.IsNullOrEmpty(outputOutcomeFingerprint)
+        && string.IsNullOrEmpty(plannedOutputFingerprint)
+        && (harvestCapability == null || harvestCapability.IsEmpty)
+        && (seedCapability == null || seedCapability.IsEmpty)
+        && outputMassGrams == 0L
+        && string.IsNullOrEmpty(outputVectorDigest)
+        && IsSemanticEmptySeedLot(returnedSeedLot)
+        && (outputs == null || outputs.Count == 0)
+        && !completed;
+
+    public CropCycleExecutionReceiptSaveData DeepClone() => new()
+    {
+        schemaVersion = schemaVersion,
+        plotId = plotId ?? string.Empty,
+        cropId = cropId ?? string.Empty,
+        correlationId = correlationId ?? string.Empty,
+        explicitCorrelation = explicitCorrelation,
+        status = status,
+        terminalReasonCode = terminalReasonCode ?? string.Empty,
+        indoor = indoor,
+        sowOperationSequence = sowOperationSequence,
+        sowOperationId = sowOperationId ?? string.Empty,
+        sowCommitId = sowCommitId ?? string.Empty,
+        sowRequestFingerprint = sowRequestFingerprint ?? string.Empty,
+        inputQuantity = inputQuantity,
+        inputMassGrams = inputMassGrams,
+        inputVectorDigest = inputVectorDigest ?? string.Empty,
+        inputSeedLot = inputSeedLot?.Clone(),
+        inputs = (inputs ?? new List<CropPhysicalInputSaveData>())
+            .ConvertAll(value => value?.DeepClone()),
+        harvestOperationSequence = harvestOperationSequence,
+        harvestOperationId = harvestOperationId ?? string.Empty,
+        outputBatchCommitId = outputBatchCommitId ?? string.Empty,
+        outputOutcomeFingerprint = outputOutcomeFingerprint ?? string.Empty,
+        plannedOutputFingerprint = plannedOutputFingerprint ?? string.Empty,
+        harvestCapability = harvestCapability?.Clone()
+            ?? new ProductionOutputCapabilitySaveData(),
+        seedCapability = seedCapability?.Clone()
+            ?? new ProductionOutputCapabilitySaveData(),
+        outputMassGrams = outputMassGrams,
+        outputVectorDigest = outputVectorDigest ?? string.Empty,
+        returnedSeedLot = returnedSeedLot?.Clone(),
+        outputs = (outputs ?? new List<ProductionDomainPublishedStackSaveData>())
+            .ConvertAll(value => value?.Clone()),
+        completed = completed,
+        sourceDigest = sourceDigest ?? string.Empty
+    };
+
+    public static bool IsSemanticEmptySeedLot(SeedLotState value) =>
+        value == null
+        || string.IsNullOrEmpty(value.cropId)
+            && string.IsNullOrEmpty(value.cultivarGenomeId)
+            && value.generation == 0
+            && Mathf.Approximately(value.pathogenLoad, 0f);
+}
+
+public enum CropHarvestOutputPhase
+{
+    None = 0,
+    Frozen = 1,
+    OutputCommitted = 2,
+    OutputRestoredAwaitingFinalization = 3
+}
+
+[Serializable]
+public sealed class CropHarvestOutputSaveData
+{
+    public CropHarvestOutputPhase phase;
+    public int operationSequence;
+    public string operationId = string.Empty;
+    public string cropId = string.Empty;
+    public bool indoor;
+    public string harvesterId = string.Empty;
+    public string outcomeId = string.Empty;
+    public string ecologyOutcomeFingerprint = string.Empty;
+    public bool ecologyCommitted;
+    public bool ecologyAcknowledged;
+    public bool goldenPrepared;
+    public string goldenTraitDefinitionId = string.Empty;
+    public string goldenOutcomeFingerprint = string.Empty;
+    public ExtremeRiskOutcome goldenOutcome;
+    public float goldenPrimaryMultiplier;
+    public float goldenSecondaryMultiplier;
+    public ulong goldenRollHash;
+    public bool goldenCommitted;
+    public bool goldenAcknowledged;
+    public bool completionEventPublished;
+    public string completionDeliveryId = string.Empty;
+    public string completionDeliveryFingerprint = string.Empty;
+    public int completionAbsoluteDay;
+    public string harvestItemId = string.Empty;
+    public int harvestQuantity;
+    public string seedItemId = string.Empty;
+    public int seedQuantity;
+    public SeedLotState returnedSeedLot;
+    public int maximumHarvestQuantity;
+    public int maximumSeedQuantity;
+    public ProductionOutputCapabilitySaveData harvestCapability = new();
+    public ProductionOutputCapabilitySaveData seedCapability = new();
+    public ProductionDomainOutputPublicationSaveData outputPublication = new();
+
+    public CropHarvestOutputSaveData DeepClone() => new()
+    {
+        phase = phase,
+        operationSequence = operationSequence,
+        operationId = operationId ?? string.Empty,
+        cropId = cropId ?? string.Empty,
+        indoor = indoor,
+        harvesterId = harvesterId ?? string.Empty,
+        outcomeId = outcomeId ?? string.Empty,
+        ecologyOutcomeFingerprint = ecologyOutcomeFingerprint ?? string.Empty,
+        ecologyCommitted = ecologyCommitted,
+        ecologyAcknowledged = ecologyAcknowledged,
+        goldenPrepared = goldenPrepared,
+        goldenTraitDefinitionId = goldenTraitDefinitionId ?? string.Empty,
+        goldenOutcomeFingerprint = goldenOutcomeFingerprint ?? string.Empty,
+        goldenOutcome = goldenOutcome,
+        goldenPrimaryMultiplier = goldenPrimaryMultiplier,
+        goldenSecondaryMultiplier = goldenSecondaryMultiplier,
+        goldenRollHash = goldenRollHash,
+        goldenCommitted = goldenCommitted,
+        goldenAcknowledged = goldenAcknowledged,
+        completionEventPublished = completionEventPublished,
+        completionDeliveryId = completionDeliveryId ?? string.Empty,
+        completionDeliveryFingerprint = completionDeliveryFingerprint
+            ?? string.Empty,
+        completionAbsoluteDay = completionAbsoluteDay,
+        harvestItemId = harvestItemId ?? string.Empty,
+        harvestQuantity = harvestQuantity,
+        seedItemId = seedItemId ?? string.Empty,
+        seedQuantity = seedQuantity,
+        returnedSeedLot = returnedSeedLot?.Clone(),
+        maximumHarvestQuantity = maximumHarvestQuantity,
+        maximumSeedQuantity = maximumSeedQuantity,
+        harvestCapability = harvestCapability?.Clone()
+            ?? new ProductionOutputCapabilitySaveData(),
+        seedCapability = seedCapability?.Clone()
+            ?? new ProductionOutputCapabilitySaveData(),
+        outputPublication = outputPublication?.Clone()
+            ?? new ProductionDomainOutputPublicationSaveData()
+    };
 }
 
 public enum CropTreatmentOrderPhase
@@ -222,13 +455,15 @@ public enum CropPhysicalCommitPhase
     None = 0,
     InputCommitted = 1,
     OutcomePublished = 2,
-    PlotDestroyedLossPending = 3
+    PlotDestroyedLossPending = 3,
+    FacilityDestroyedLossPending = 4
 }
 
 public enum CropWipTerminalDisposition
 {
     None = 0,
-    DestroyedWithPlotLoss = 1
+    DestroyedWithPlotLoss = 1,
+    DestroyedWithFacilityLoss = 2
 }
 
 [Serializable]
@@ -305,7 +540,7 @@ public sealed class CropPhysicalCommitSaveData
 [Serializable]
 public sealed class DungeonCropPlotSaveData
 {
-    public const int CurrentVersion = 7;
+    public const int CurrentVersion = 11;
 
     public int version = CurrentVersion;
     public List<CropPlotSaveData> plots = new List<CropPlotSaveData>();
@@ -362,12 +597,19 @@ public interface ICropPlotRuntime
 
 public sealed class CropPlotRestoreCandidate
 {
-    internal CropPlotRestoreCandidate(CropPlotAggregateState state)
+    internal CropPlotRestoreCandidate(
+        CropPlotAggregateState state,
+        IReadOnlyList<ProductionDomainOutputRestoreAcknowledgement>
+            outputAcknowledgements = null)
     {
         State = state ?? throw new ArgumentNullException(nameof(state));
+        OutputAcknowledgements = outputAcknowledgements
+            ?? Array.Empty<ProductionDomainOutputRestoreAcknowledgement>();
     }
 
     internal CropPlotAggregateState State { get; }
+    internal IReadOnlyList<ProductionDomainOutputRestoreAcknowledgement>
+        OutputAcknowledgements { get; }
 }
 
 public interface ICropPlotPersistence

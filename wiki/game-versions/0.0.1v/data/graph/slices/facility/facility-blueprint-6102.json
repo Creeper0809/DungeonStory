@@ -1,0 +1,29 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "facility-blueprint-6102",
+    "spoiler_tier": "none",
+    "title": "요새화 설계도"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/facility-blueprint-6102",
+      "label": "관련",
+      "target_kind": "research",
+      "target_slug": "research-defense-fortification",
+      "target_spoiler_tier": "none",
+      "target_title": "요새화",
+      "to": "research/research-defense-fortification",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-fortification",
+      "label": "관련",
+      "to": "facility/facility-blueprint-6102",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

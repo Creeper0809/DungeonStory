@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-seasoned-filling",
+    "spoiler_tier": "none",
+    "title": "양념 속재료"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-seasoned-filling",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-washed-vegetable",
+      "target_spoiler_tier": "none",
+      "target_title": "세척 채소",
+      "to": "item/material-washed-vegetable",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-seasoned-filling",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-seasoned-filling",
+      "target_spoiler_tier": "none",
+      "target_title": "양념 속재료",
+      "to": "item/material-seasoned-filling",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-seasoned-filling",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-meat",
+      "target_spoiler_tier": "none",
+      "target_title": "생고기",
+      "to": "item/resource-meat",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-seasoned-filling",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-kitchen-hygiene",
+      "target_spoiler_tier": "none",
+      "target_title": "주방 위생",
+      "to": "research/research-cuisine-kitchen-hygiene",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

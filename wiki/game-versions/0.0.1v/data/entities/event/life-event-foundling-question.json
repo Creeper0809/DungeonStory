@@ -1,0 +1,36 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Childhood"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "6",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-foundling-question",
+      "target_spoiler_tier": "warning",
+      "target_title": "나는 어디서 왔어?",
+      "type": "changes-relationship"
+    },
+    {
+      "amount": "3",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-foundling-question",
+      "target_spoiler_tier": "warning",
+      "target_title": "나는 어디서 왔어?",
+      "type": "changes-trauma"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "life-event-foundling-question",
+  "spoiler_tier": "warning",
+  "summary": "입양된 아이가 자신의 친부모 기록을 보여 달라고 요청한다.",
+  "title": "나는 어디서 왔어?"
+}

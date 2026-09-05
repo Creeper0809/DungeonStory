@@ -1,0 +1,62 @@
+---
+import { anatomyHref, anatomyProfileCardTitle, getAnatomyProfileGroups, needHref, type AnatomyReference } from '../lib/wiki-data';
+
+interface Props {
+  references: AnatomyReference[];
+  version: string;
+  historical?: boolean;
+}
+
+const { references, version, historical = false } = Astro.props;
+const archiveVersion = historical ? version : undefined;
+const directoryHref = historical ? `/game-versions/${version}/` : '/directory/';
+const baselineGroups = [...new Set(references.filter((reference) => reference.group !== '특수 부위').map((reference) => reference.group))];
+const bodyPartGroups = baselineGroups.filter((group) => group !== '상태');
+const injuryStateReferences = references.filter((reference) => reference.group === '상태');
+const specialGroups = getAnatomyProfileGroups(version);
+const baselineCount = references.filter((reference) => reference.group !== '특수 부위').length;
+const specialCount = references.filter((reference) => reference.group === '특수 부위').length;
+---
+
+<article class="anatomy-index-page" data-pagefind-body={historical ? undefined : 'true'}>
+  <nav class="breadcrumbs" aria-label="현재 위치"><a href={directoryHref}>둘러보기</a><span>/</span><a href={needHref('health', archiveVersion)}>건강</a><span>/</span><span aria-current="page">신체 구조</span></nav>
+  <header class="page-header">
+    <p class="eyebrow">건강 세부 문서</p>
+    <h1>신체 구조</h1>
+    <p>신체 구조 문서는 부위·장기·출혈·감염·결손 상태를 함께 다룬다. 인간형 기본 구조와 종족별 특수 부위를 각각 확인한다. 종족마다 부위와 최대 체력, 연결 기능이 다르다.</p>
+  </header>
+
+  <div class="anatomy-index-page__layout">
+    <div class="anatomy-index-page__main">
+      {bodyPartGroups.map((group) => <section aria-labelledby={`anatomy-group-${group}`}>
+        <h2 id={`anatomy-group-${group}`}>{group}</h2>
+        <div class="anatomy-index-grid">
+          {references.filter((reference) => reference.group === group).map((reference) => <a href={anatomyHref(reference.id, archiveVersion)}><strong>{reference.title}</strong><span>{reference.summary}</span><small>세부 문서 보기</small></a>)}
+        </div>
+      </section>)}
+      {injuryStateReferences.length > 0 && <section aria-labelledby="anatomy-group-injury-state">
+        <h2 id="anatomy-group-injury-state">부상 상태와 처치</h2>
+        <p>출혈, 감염, 결손과 치료는 모든 신체 부위에 공통으로 기록된다.</p>
+        <div class="anatomy-index-grid">
+          {injuryStateReferences.map((reference) => <a href={anatomyHref(reference.id, archiveVersion)}><strong>{reference.title}</strong><span>{reference.summary}</span><small>세부 문서 보기</small></a>)}
+        </div>
+      </section>}
+      <section aria-labelledby="anatomy-group-special">
+        <h2 id="anatomy-group-special">특수 부위</h2>
+        <p>종족마다 고유한 부위와 장기가 있다. 아래에서 종족을 골라 확인한다.</p>
+        <div class="anatomy-profile-groups anatomy-profile-groups--index">
+          {specialGroups.map((group) => <section class="anatomy-profile-group" aria-labelledby={`anatomy-profile-${group.id}`}>
+            <header><h3 id={`anatomy-profile-${group.id}`}>{group.label}</h3><p>{group.description}</p></header>
+            <div class="anatomy-index-grid">
+              {group.reference_ids.map((id) => references.find((reference) => reference.id === id)).filter(Boolean).map((reference) => <a href={anatomyHref(reference!.id, archiveVersion)}><strong>{anatomyProfileCardTitle(reference!.title, group.label)}</strong><span>{reference!.summary}</span><small>세부 문서 보기</small></a>)}
+            </div>
+          </section>)}
+        </div>
+      </section>
+    </div>
+    <aside class="anatomy-index-page__rail">
+      <section class="fact-box"><h2>문서 범위</h2><dl><div><dt>기본 구조</dt><dd>{baselineCount}개</dd></div><div><dt>특수 부위</dt><dd>{specialCount}개</dd></div><div><dt>사망 기준</dt><dd>생명 기관 · 출혈 · 전체 체력</dd></div></dl></section>
+      <section class="version-card"><h2>먼저 볼 문서</h2><p><a href={needHref('health', archiveVersion)}>건강 수치와 위기 상태</a></p></section>
+    </aside>
+  </div>
+</article>

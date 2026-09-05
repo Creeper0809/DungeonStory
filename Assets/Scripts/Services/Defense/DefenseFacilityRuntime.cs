@@ -45,12 +45,9 @@ public interface IDefenseFacilityRuntime
 
 public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
 {
-    private const string MixedDefenseAmmunitionBoxItemId =
-        "supply:defense-mixed-ammo-box";
-    private const int MixedDefenseAmmunitionUnitsPerBox = 8;
-
     private readonly IWorldItemStackRuntime items;
     private readonly IDefenseFacilityPhysicalItemGateway physicalItems;
+    private readonly IDefenseFacilityInputOwnerRuntime inputOwners;
     private readonly IPowerInfrastructureQuery power;
     private readonly IGameClock clock;
     private readonly IGameEventBus events;
@@ -71,6 +68,7 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
     public DefenseFacilityRuntime(
         IWorldItemStackRuntime items,
         IDefenseFacilityPhysicalItemGateway physicalItems,
+        IDefenseFacilityInputOwnerRuntime inputOwners,
         IGameClock clock,
         IGameEventBus events,
         IPowerInfrastructureQuery power,
@@ -81,6 +79,8 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.physicalItems = physicalItems
             ?? throw new ArgumentNullException(nameof(physicalItems));
+        this.inputOwners = inputOwners
+            ?? throw new ArgumentNullException(nameof(inputOwners));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
         this.power = power ?? throw new ArgumentNullException(nameof(power));
@@ -306,6 +306,9 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
             return false;
         }
 
+        if (!TryEnsureInputAuthority(facility, out failure))
+            return false;
+
         DefenseFacilityState state = GetOrCreate(facility);
         int capacity = Mathf.Max(
             1,
@@ -364,6 +367,8 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         if (state.pendingMaintenance.phase
             != DefenseFacilityPhysicalCommitPhase.None)
         {
+            if (!TryEnsureInputAuthority(facility, out failure))
+                return false;
             if (TryRecoverMaintenanceCommit(facility, state, out bool completed)
                 && completed)
             {
@@ -380,6 +385,8 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
             return false;
         }
 
+        if (!TryEnsureInputAuthority(facility, out failure))
+            return false;
         string destinationId = BuildMaintenanceDestinationId(facility);
         bool consumed = DefenseFacilityPhysicalTransactionOutbox.TryCommitOrResume(
             state.pendingMaintenance,
@@ -504,6 +511,9 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
             return true;
         }
 
+        if (!TryEnsureInputAuthority(facility, out failure))
+            return false;
+
         if (state.pendingSupply.phase != DefenseFacilityPhysicalCommitPhase.None
             && !TryRecoverSupplyCommit(facility, state, out _))
         {
@@ -538,16 +548,20 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
                     wanted);
             if (!consumed
                 && data.supplyCategory == StockCategory.Ammunition
-                && wanted >= MixedDefenseAmmunitionUnitsPerBox)
+                && wanted >= DefenseFacilityInputOwnerAuthority
+                    .MixedDefenseAmmunitionUnitsPerBox)
             {
-                int boxes = wanted / MixedDefenseAmmunitionUnitsPerBox;
+                int boxes = wanted / DefenseFacilityInputOwnerAuthority
+                    .MixedDefenseAmmunitionUnitsPerBox;
                 consumed = boxes > 0 && TryBeginSupplyCommit(
                     facility,
                     state,
                     destinationId,
-                    MixedDefenseAmmunitionBoxItemId,
+                    DefenseFacilityInputOwnerAuthority
+                        .MixedDefenseAmmunitionBoxItemId,
                     boxes,
-                    boxes * MixedDefenseAmmunitionUnitsPerBox);
+                    boxes * DefenseFacilityInputOwnerAuthority
+                        .MixedDefenseAmmunitionUnitsPerBox);
             }
             if (consumed
                 && !TryRecoverSupplyCommit(facility, state, out _))
@@ -754,6 +768,24 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
                 StringComparison.Ordinal));
     }
 
+    private bool TryEnsureInputAuthority(
+        DefenseFacility facility,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        if (inputOwners.TryEnsureAuthority(
+                facility,
+                out string failureReason))
+        {
+            return true;
+        }
+
+        failure = new DomainFailure(
+            FailureCode.DefenseSupplyUnavailable,
+            "input-owner:" + failureReason);
+        return false;
+    }
+
     private void RefreshPassiveState(
         DefenseFacility facility,
         DefenseFacilityState state)
@@ -893,19 +925,13 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
     }
 
     private static string BuildSupplyDestinationId(DefenseFacility facility)
-    {
-        return WorldItemStackRuntime.FacilityInputDestinationPrefix
-            + "defense:"
-            + ResolvePersistentId(facility);
-    }
+        => DefenseFacilityInputOwnerAuthority.BuildSupplyDestinationId(
+            ResolvePersistentId(facility));
 
     private static string BuildMaintenanceDestinationId(
         DefenseFacility facility)
-    {
-        return WorldItemStackRuntime.FacilityInputDestinationPrefix
-            + "defense-maintenance:"
-            + ResolvePersistentId(facility);
-    }
+        => DefenseFacilityInputOwnerAuthority.BuildMaintenanceDestinationId(
+            ResolvePersistentId(facility));
 
     private static string ResolvePersistentId(DefenseFacility facility)
     {

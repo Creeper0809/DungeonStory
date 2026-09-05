@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "ammo-blasting-charge",
+    "spoiler_tier": "none",
+    "title": "발파 장약"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-ammo-blasting-charge",
+      "label": "생산·해금",
+      "to": "item/ammo-blasting-charge",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

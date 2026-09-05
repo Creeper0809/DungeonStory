@@ -1,0 +1,39 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-low-fuel",
+    "spoiler_tier": "none",
+    "title": "저급 연료"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-low-fuel-animal",
+      "label": "생산·해금",
+      "to": "item/material-low-fuel",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-low-fuel-manure",
+      "label": "생산·해금",
+      "to": "item/material-low-fuel",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-low-fuel-plant",
+      "label": "생산·해금",
+      "to": "item/material-low-fuel",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-low-fuel-rot",
+      "label": "생산·해금",
+      "to": "item/material-low-fuel",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

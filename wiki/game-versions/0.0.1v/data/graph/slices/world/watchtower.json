@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "watchtower",
+    "spoiler_tier": "none",
+    "title": "감시탑"
+  },
+  "edges": [],
+  "schema_version": 1
+}

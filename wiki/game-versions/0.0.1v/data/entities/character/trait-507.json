@@ -1,0 +1,25 @@
+{
+  "facts": [
+    {
+      "label": "희귀도",
+      "value": "일반"
+    },
+    {
+      "label": "성향",
+      "value": "불리"
+    },
+    {
+      "label": "효과",
+      "value": "1개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "trait-507",
+  "spoiler_tier": "none",
+  "summary": "근접 전투 숙련의 출발이 느리다.",
+  "title": "몸싸움 서툼"
+}

@@ -1,0 +1,47 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "life-event-guardian-oath",
+    "spoiler_tier": "warning",
+    "title": "보호자의 맹세"
+  },
+  "edges": [
+    {
+      "amount": "4",
+      "from": "event/life-event-guardian-oath",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-guardian-oath",
+      "target_spoiler_tier": "warning",
+      "target_title": "보호자의 맹세",
+      "to": "event/life-event-guardian-oath",
+      "type": "changes-health"
+    },
+    {
+      "amount": "6",
+      "from": "event/life-event-guardian-oath",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-guardian-oath",
+      "target_spoiler_tier": "warning",
+      "target_title": "보호자의 맹세",
+      "to": "event/life-event-guardian-oath",
+      "type": "changes-relationship"
+    },
+    {
+      "amount": "4",
+      "from": "event/life-event-guardian-oath",
+      "label": "연결",
+      "to": "event/life-event-guardian-oath",
+      "type": "changes-health"
+    },
+    {
+      "amount": "6",
+      "from": "event/life-event-guardian-oath",
+      "label": "연결",
+      "to": "event/life-event-guardian-oath",
+      "type": "changes-relationship"
+    }
+  ],
+  "schema_version": 1
+}

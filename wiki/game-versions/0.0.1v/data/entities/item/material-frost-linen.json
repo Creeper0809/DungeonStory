@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.164kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "100개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "16"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "서리 린넨은 의복과 안감, 생활용 천을 재단하는 직물 재료다. 노르칸드라의 겨울 직조장은 서리 린넨 한 필마다 짠 날의 습도와 얼었다 녹은 횟수를 적는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-frost-linen",
+  "spoiler_tier": "none",
+  "summary": "서리 린넨 물리 원단. 품질 등급과 Ready/Wet/Contaminated 상태로 병합된다.",
+  "title": "서리 린넨"
+}

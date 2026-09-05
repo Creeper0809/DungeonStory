@@ -1077,10 +1077,16 @@ internal sealed class CharacterVitalsAuthority
                 || !IsFiniteInRange(node.currentHealth, 0f, node.maxHealth)
                 || !IsFiniteInRange(node.bleedingPerSecond, 0f, float.MaxValue)
                 || !IsFiniteInRange(node.infection, 0f, 100f)
-                || !IsFiniteInRange(node.installedPartEfficiency, 0f, 1.75f)
+                || !IsFiniteInRange(
+                    node.installedPartEfficiency,
+                    0f,
+                    CharacterAnatomyStateBounds.MaximumInstalledPartEfficiency)
                 || !IsFiniteInRange(node.rejectionBurden, 0f, 100f)
                 || !IsFiniteInRange(node.mutationBurden, 0f, 100f)
-                || !IsFiniteInRange(node.moduleBonus, -100f, 100f)
+                || !IsFiniteInRange(
+                    node.moduleBonus,
+                    CharacterAnatomyStateBounds.MinimumModuleBonus,
+                    CharacterAnatomyStateBounds.MaximumModuleBonus)
                 || node.missing && node.currentHealth > 0f)
             {
                 report.AddError($"Character body-health '{state.characterId}' has a null, "

@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "nature",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-hound",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴사냥개",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-ash-lung",
+      "target_spoiler_tier": "none",
+      "target_title": "재먼지폐",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "ember-lizard",
+      "target_spoiler_tier": "none",
+      "target_title": "잿불도마뱀",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "ash-crawler",
+  "spoiler_tier": "none",
+  "summary": "재 더미를 먹고 환기구에 군집해 재먼지폐를 퍼뜨린다.",
+  "title": "재먼지 기는벌레"
+}

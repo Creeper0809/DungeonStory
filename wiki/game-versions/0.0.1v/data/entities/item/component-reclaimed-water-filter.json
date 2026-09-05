@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "20"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "재생수 필터 카트리지는 물과 마나 흐름에 섞인 오염을 걸러 다음 공정으로 보낸다. 크릭 제7굴의 재생수 필터 카트리지에는 교체 날짜와 밀봉 상태를 확인하는 일곱 칸 표시가 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "component-reclaimed-water-filter",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 재생수 필터 카트리지.",
+  "title": "재생수 필터 카트리지"
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.55kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "6"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "바로 먹을 수 있는 식량이다. 포만감과 기분 회복에 좋다. 하르나크 공동 부엌의 조리 식량은 종족 이름보다 먹을 수 없는 재료와 필요한 배식 시간을 먼저 표시한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "survival-cooked-meal",
+  "spoiler_tier": "none",
+  "summary": "바로 먹을 수 있는 식량이다. 포만감과 기분 회복에 좋다.",
+  "title": "조리 식량"
+}

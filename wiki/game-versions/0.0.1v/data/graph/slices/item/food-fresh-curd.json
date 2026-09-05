@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "food-fresh-curd",
+    "spoiler_tier": "none",
+    "title": "신선 응유식"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-fresh-curd",
+      "label": "생산·해금",
+      "to": "item/food-fresh-curd",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

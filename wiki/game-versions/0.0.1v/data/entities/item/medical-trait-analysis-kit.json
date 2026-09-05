@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.95kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "6개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "132"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "형질 검사 키트로 환자의 신체 계통과 이식 적합성을 검사한다. 므네실라산 형질 검사 키트에는 재료를 기른 정원의 흙이 작은 유리칸에 함께 봉해져 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "medical-trait-analysis-kit",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 형질 검사 키트.",
+  "title": "형질 검사 키트"
+}

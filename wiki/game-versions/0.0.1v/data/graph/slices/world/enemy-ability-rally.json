@@ -1,0 +1,74 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "enemy-ability-rally",
+    "spoiler_tier": "none",
+    "title": "전열 재정비"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/enemy-crown-chaplain",
+      "label": "관련",
+      "to": "world/enemy-ability-rally",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-crown-marshal",
+      "label": "관련",
+      "to": "world/enemy-ability-rally",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-crown-marshal",
+      "label": "관련",
+      "to": "world/enemy-ability-rally",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-inquisition-high-judge",
+      "label": "관련",
+      "to": "world/enemy-ability-rally",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-inquisition-high-judge",
+      "label": "관련",
+      "to": "world/enemy-ability-rally",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-legion-captain",
+      "label": "관련",
+      "to": "world/enemy-ability-rally",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-settler-ranger-chief",
+      "label": "관련",
+      "to": "world/enemy-ability-rally",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-settler-ranger-chief",
+      "label": "관련",
+      "to": "world/enemy-ability-rally",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-truth-archivist",
+      "label": "관련",
+      "to": "world/enemy-ability-rally",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

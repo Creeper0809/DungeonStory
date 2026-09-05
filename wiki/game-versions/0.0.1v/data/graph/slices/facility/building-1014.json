@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1014",
+    "spoiler_tier": "none",
+    "title": "잠금진열장"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9102",
+      "label": "관련",
+      "to": "facility/building-1014",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/recipe-commerce-secure-display-2",
+      "label": "관련",
+      "to": "facility/building-1014",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "funeral-culture-harpy",
+    "spoiler_tier": "none",
+    "title": "Funeral_Harpy"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/characterspecies-8",
+      "label": "관련",
+      "to": "character/funeral-culture-harpy",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,8 +1,11 @@
 RESULT=IN_PROGRESS; phase=mass-family-proposal; assetMutations=0
-rows=414; recipes=355; canonicalSemantics=363
-proposedChanges=7; ready=7; unchanged=356; critical=51; warning=0
+schema=v27.mass.family-proposal.3; scope=ledger-items-only
+rows=414; recipes=355; canonicalSemantics=414
+runtimeConsumerLinks=61; ledgerRuntimeConsumerLinks=53; skippedNonLedgerLinks=8; skippedNonLedgerDistinctItems=8; skippedNonLedgerItemDigest=d30ad3f15cc472981cc64c8bab9716b4fc269a66c9622721bf84dfbb2db192f1
+proposedChanges=7; ready=0; blocked=7; unchanged=404; critical=0; warning=0
 proposalMode=AuditOnly; appliesScriptableObjects=false; missingSemanticPolicy=fail-visible-no-guess
+warehouseAndBufferAuthority=OPEN:not-captured; ewuAndPriceAuthority=OPEN:not-captured
 sort=stableId:ordinal; csv=rfc4180-crlf; deterministicRecapture=PASS; byteIdentical=true
-sourceDigest=340780e57803bc3af3fe07a77cf6f6e6decc6d00c82caed4ed2d7d770a4c8f1d
-inspectedAssetDigest=3a1d5bdfca32ad2a7a1f62fcbfdc24c865aa7413c251f40dc85e36b34caa1b9d
+sourceDigest=a0a68e901fd7ed8430375aa2e1cdea88011e48fab2c55ed4c5a0581ac8c323dc
+inspectedAssetDigest=008c4d506b1728eb1c12761ca7ce59ceeb22d535c13693d4bd4498acd93be93a
 nextGate=REVIEW_ANOMALIES_THEN_APPLY_APPROVED_ONLY

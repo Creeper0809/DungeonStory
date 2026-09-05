@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.75kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "10개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "62"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "불안정한 마핵을 봉인해 귀환 중 폭주를 억제한다. 제4주조도시의 기억판 안치에서는 마핵 구속구를 손보기 전에 기억판부터 떼어 낸다. 몸보다 사람이 먼저라는 오래된 순서다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "medicine-mana-core-restraint",
+  "spoiler_tier": "none",
+  "summary": "불안정한 마핵을 봉인해 귀환 중 폭주를 억제한다.",
+  "title": "마핵 구속구"
+}

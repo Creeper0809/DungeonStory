@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "world",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "battlefield-broken-pillars",
+  "spoiler_tier": "none",
+  "summary": "엄폐는 많지만 직선 사격과 빠른 이동이 어렵다.",
+  "title": "무너진 기둥숲"
+}

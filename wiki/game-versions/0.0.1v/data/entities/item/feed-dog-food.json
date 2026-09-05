@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.525kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "6"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "곡물에 동물성 부산물을 섞어 육식과 잡식 동물이 함께 먹도록 만든 사료다. 라카쉬 세갈래길의 운송대는 남은 개밥으로 다음 야영지까지 갈 수 있는 거리를 가늠한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "feed-dog-food",
+  "spoiler_tier": "none",
+  "summary": "곡물과 동물성 부산물을 섞은 육식·잡식 사료.",
+  "title": "개밥"
+}

@@ -1,0 +1,46 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-washed-vegetable",
+    "spoiler_tier": "none",
+    "title": "세척 채소"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-preserved-vegetable",
+      "label": "필요 조건",
+      "to": "item/material-washed-vegetable",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-seasoned-filling",
+      "label": "필요 조건",
+      "to": "item/material-washed-vegetable",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-vegetable-pie",
+      "label": "필요 조건",
+      "to": "item/material-washed-vegetable",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-brined-vegetable",
+      "label": "필요 조건",
+      "to": "item/material-washed-vegetable",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-washed-vegetable",
+      "label": "생산·해금",
+      "to": "item/material-washed-vegetable",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

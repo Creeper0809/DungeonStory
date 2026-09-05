@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-blood-stimulant",
+    "spoiler_tier": "none",
+    "title": "혈화 촉진제"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-blood-stimulant",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "drug-blood-stimulant",
+      "target_spoiler_tier": "none",
+      "target_title": "혈화 촉진제",
+      "to": "item/drug-blood-stimulant",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-blood-stimulant",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-alchemical-solvent",
+      "target_spoiler_tier": "none",
+      "target_title": "연금 용매",
+      "to": "item/material-alchemical-solvent",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-blood-stimulant",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-blood",
+      "target_spoiler_tier": "none",
+      "target_title": "피",
+      "to": "item/resource-blood",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-blood-stimulant",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-bloodleaf",
+      "target_spoiler_tier": "none",
+      "target_title": "혈엽",
+      "to": "item/resource-bloodleaf",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-blood-stimulant",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-stimulants",
+      "target_spoiler_tier": "none",
+      "target_title": "각성제",
+      "to": "research/research-pharmacology-stimulants",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

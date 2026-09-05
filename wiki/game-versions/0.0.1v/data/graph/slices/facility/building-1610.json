@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1610",
+    "spoiler_tier": "none",
+    "title": "세척·전처리 싱크"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-cuisine-kitchen-hygiene",
+      "label": "시설 해금",
+      "to": "facility/building-1610",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

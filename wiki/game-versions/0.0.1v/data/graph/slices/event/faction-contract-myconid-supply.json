@@ -1,0 +1,29 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "faction-contract-myconid-supply",
+    "spoiler_tier": "none",
+    "title": "균사정원 정기 물자 계약"
+  },
+  "edges": [
+    {
+      "amount": "16",
+      "from": "event/faction-contract-myconid-supply",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-cave-mushroom",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴버섯",
+      "to": "item/resource-cave-mushroom",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-myconid",
+      "label": "관련",
+      "to": "event/faction-contract-myconid-supply",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

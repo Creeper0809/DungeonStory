@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-material-plate-blank",
+    "spoiler_tier": "none",
+    "title": "판금 소재판"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-plate-blank",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-plate-blank",
+      "target_spoiler_tier": "none",
+      "target_title": "판금 소재판",
+      "to": "item/material-plate-blank",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "5",
+      "from": "recipe/recipe-material-plate-blank",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-steel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "강철",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-material-plate-blank",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-articulated-plate",
+      "target_spoiler_tier": "none",
+      "target_title": "관절식 판금",
+      "to": "research/research-equipment-articulated-plate",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

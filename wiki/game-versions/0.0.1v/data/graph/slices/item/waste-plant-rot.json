@@ -1,0 +1,39 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "waste-plant-rot",
+    "spoiler_tier": "none",
+    "title": "식물성 부패물"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-incinerate-plant",
+      "label": "필요 조건",
+      "to": "item/waste-plant-rot",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/source-spoilage-plant",
+      "label": "생산·해금",
+      "to": "item/waste-plant-rot",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-compost-plant",
+      "label": "필요 조건",
+      "to": "item/waste-plant-rot",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-low-fuel-plant",
+      "label": "필요 조건",
+      "to": "item/waste-plant-rot",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

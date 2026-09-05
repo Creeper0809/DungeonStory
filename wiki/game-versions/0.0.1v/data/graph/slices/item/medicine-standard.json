@@ -1,0 +1,242 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "medicine-standard",
+    "spoiler_tier": "none",
+    "title": "표준 약품"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-advanced-medicine",
+      "label": "필요 조건",
+      "to": "item/medicine-standard",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-ammo-tranquilizer-dart",
+      "label": "필요 조건",
+      "to": "item/medicine-standard",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-fertility-treatment",
+      "label": "필요 조건",
+      "to": "item/medicine-standard",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-medical-rejuvenation-serum",
+      "label": "필요 조건",
+      "to": "item/medicine-standard",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-standard-medicine",
+      "label": "생산·해금",
+      "to": "item/medicine-standard",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "3",
+      "from": "event/faction-chapter-beastkin-2",
+      "label": "필요 조건",
+      "to": "item/medicine-standard",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "event/faction-contract-beastkin-crisis",
+      "label": "필요 조건",
+      "to": "item/medicine-standard",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "event/faction-chapter-beastkin-5",
+      "label": "필요 조건",
+      "to": "item/medicine-standard",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "from": "event/faction-chapter-beastkin-2",
+      "label": "필요 조건",
+      "to": "item/medicine-standard",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "from": "event/faction-chapter-beastkin-5",
+      "label": "필요 조건",
+      "to": "item/medicine-standard",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-amputation",
+      "label": "관련",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-arcane-modification",
+      "label": "관련",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-beastkin-sprint-joint",
+      "label": "관련",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-beastkin-tail-reconstruction",
+      "label": "관련",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-demon-heat-sac",
+      "label": "관련",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-emergency-suture",
+      "label": "관련",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-harpy-air-sac-suture",
+      "label": "관련",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-human-neural-assist",
+      "label": "관련",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-human-precision-prosthetic",
+      "label": "관련",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-implant-installation",
+      "label": "관련",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-kobold-precision-hand",
+      "label": "관련",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-kobold-tail-balance",
+      "label": "관련",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-live-organ-extraction",
+      "label": "관련",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-myconid-spore-cleaning",
+      "label": "관련",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-natural-organ-transplant",
+      "label": "관련",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-orc-combat-heart",
+      "label": "관련",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-orc-skeletal-reinforcement",
+      "label": "관련",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-organ-repair",
+      "label": "관련",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-rehabilitation",
+      "label": "관련",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-slime-replenishment",
+      "label": "관련",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-vampire-blood-sac",
+      "label": "관련",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-vampire-night-eye",
+      "label": "관련",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-xenograft",
+      "label": "관련",
+      "to": "item/medicine-standard",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

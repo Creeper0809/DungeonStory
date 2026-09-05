@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.35kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "30개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "135"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "권위 시설, 장식과 고가 장비의 재료이다. 특히 제4주조도시산 금괴의 옆면에는 주조 순서와 식힌 시간가 얕은 홈으로 새겨져 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-gold-ingot",
+  "spoiler_tier": "none",
+  "summary": "권위 시설, 장식과 고가 장비의 재료.",
+  "title": "금괴"
+}

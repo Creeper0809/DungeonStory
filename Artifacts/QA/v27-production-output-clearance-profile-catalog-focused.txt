@@ -1,0 +1,47 @@
+schema=v27-production-output-clearance-profile-catalog-focused@1
+evidenceStatus=SUPERSEDED_HISTORICAL_BINARY_SCHEMA
+supersededBy=production-output-clearance-requirement@3,production-output-clearance-capacity-gate@2
+result=STRUCTURAL-PARTIAL-PASS
+capturedAt=deterministic-no-timestamp
+
+[implemented]
+- immutable profile key = facility definition ID + workstation tag
+- deterministic observation ordering independent of input enumeration
+- raw micro-hour nearest-rank p95 with one final conservative Ceil to milli-hours
+- default minimum 32 distinct deterministic seeds
+- duplicate sample/profile/throughput rejection
+- missing or orphan throughput envelope rejection
+- immutable catalog lookup independent of facility instance ID and position
+- measurement and authored-reachable throughput provenance bound into lowercase SHA-256 source digest
+- fractional required buffer cycles publish only whole cycles
+- exact 2.001 cycles -> 3 published cycles
+- exact 4.001 cycles -> typed Critical with 4 published cycles
+- authored capacity below required whole cycles -> typed Critical
+- authored capacity above measured requirement remains unchanged
+
+[focused-evidence]
+Assembly-CSharp direct compile exit=0
+Assembly-CSharp-Editor plus focused scenario direct compile exit=0
+harness=PASS nearest-rank-p95 immutable-catalog shuffle missing duplicate seed-gate digest-drift 2.001-to-3 4.001-critical-to-4 authored-undersize preserve-larger
+
+[source-sha256]
+9D533AD5D29F9DA9A81FA64EFE5F347C4EF8126F1EE098C197C3FDF5B5615C4E  Assets/Scripts/Services/Economy/ProductionOutputClearanceRequirementProjector.cs
+AC8761D8C3DEFB483C8AC76BB5C24497EDA57A2B669CF7462DA11FF52BBD46BD  Assets/Scripts/Services/Economy/ProductionOutputClearanceProfileCatalog.cs
+C8AAF16525EA313E044B0D4322AAD81F643F81A4E28D920B579C47AAB3A38527  Assets/Scripts/Services/Economy/Editor/ProductionOutputClearanceRequirementDebugScenarios.cs
+29A3FAC783CD370F207F44C3E3D25369D88F6B815DC2AC8E4EA17AFCDFF22470  Assets/Scripts/Services/Economy/Editor/ProductionOutputClearanceProfileCatalogDebugScenarios.cs
+
+[scene-integrity]
+B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8  Assets/Scenes/GameplayScene.unity
+
+[open-do-not-close-parent-checkpoint]
+- natural AIBrain -> AIHaul 32-seed clean PlayMode measurement
+- frozen capture-start facility ID -> profile/support-envelope attribution
+- deterministic raw/profile/report CSV generation and second-run byte identity
+- authored reachable maximum throughput envelope for every producer-capable definition/tag
+- production profile row provider and DI registration
+- capacity projector source digest/schema integration and authored-cycle undersize Critical
+- support attach/detach atomic topology/profile/capacity publication
+- destination-scoped capacity generation so unrelated tokens remain valid
+- current-format restore drift and full-path 4.000/4.001 PlayMode
+
+verdict=Pure p95 aggregation, immutable catalog lookup, and whole-cycle arithmetic are implemented and focused-verified. No actual p95 value or production capacity profile is certified; the Batch B support/p95 checkpoint remains OPEN.

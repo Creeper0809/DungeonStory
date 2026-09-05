@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1703",
+    "spoiler_tier": "none",
+    "title": "순번판"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-service-flow",
+      "label": "시설 해금",
+      "to": "facility/building-1703",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

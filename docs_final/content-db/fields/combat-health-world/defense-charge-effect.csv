@@ -1,0 +1,22 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+DefenseChargeEffectSO|asset:P1_AlarmCoil_2_Charge,asset:P1_AlarmCoil_2_Charge,m_Name,P1_AlarmCoil_2_Charge,,,explicit-serialized
+DefenseChargeEffectSO|asset:P1_AlarmCoil_2_Charge,asset:P1_AlarmCoil_2_Charge,amount,14,,,explicit-serialized
+DefenseChargeEffectSO|asset:P1_AlarmCoil_2_Charge,asset:P1_AlarmCoil_2_Charge,duration,10,,,explicit-serialized
+DefenseChargeEffectSO|asset:P1_AlarmCoil_2_Charge,asset:P1_AlarmCoil_2_Charge,stacks,1,,,explicit-serialized
+DefenseChargeEffectSO|asset:P1_AlarmCoil_2_Charge,asset:P1_AlarmCoil_2_Charge,logTag,축전,,,explicit-serialized
+DefenseChargeEffectSO|asset:P1_AlarmCoil_2_Charge,asset:P1_AlarmCoil_2_Charge,dischargeThreshold,3,,,explicit-serialized
+DefenseChargeEffectSO|asset:P1_AlarmCoil_2_Charge,asset:P1_AlarmCoil_2_Charge,dischargeReason,축전 방전,,,explicit-serialized
+DefenseChargeEffectSO|asset:P1_LightningPillar_2_Charge,asset:P1_LightningPillar_2_Charge,m_Name,P1_LightningPillar_2_Charge,,,explicit-serialized
+DefenseChargeEffectSO|asset:P1_LightningPillar_2_Charge,asset:P1_LightningPillar_2_Charge,amount,10,,,explicit-serialized
+DefenseChargeEffectSO|asset:P1_LightningPillar_2_Charge,asset:P1_LightningPillar_2_Charge,duration,10,,,explicit-serialized
+DefenseChargeEffectSO|asset:P1_LightningPillar_2_Charge,asset:P1_LightningPillar_2_Charge,stacks,1,,,explicit-serialized
+DefenseChargeEffectSO|asset:P1_LightningPillar_2_Charge,asset:P1_LightningPillar_2_Charge,logTag,축전,,,explicit-serialized
+DefenseChargeEffectSO|asset:P1_LightningPillar_2_Charge,asset:P1_LightningPillar_2_Charge,dischargeThreshold,3,,,explicit-serialized
+DefenseChargeEffectSO|asset:P1_LightningPillar_2_Charge,asset:P1_LightningPillar_2_Charge,dischargeReason,축전 방전,,,explicit-serialized
+DefenseChargeEffectSO|asset:P1_StormFireTrap_3_Charge,asset:P1_StormFireTrap_3_Charge,m_Name,P1_StormFireTrap_3_Charge,,,explicit-serialized
+DefenseChargeEffectSO|asset:P1_StormFireTrap_3_Charge,asset:P1_StormFireTrap_3_Charge,amount,18,,,explicit-serialized
+DefenseChargeEffectSO|asset:P1_StormFireTrap_3_Charge,asset:P1_StormFireTrap_3_Charge,duration,10,,,explicit-serialized
+DefenseChargeEffectSO|asset:P1_StormFireTrap_3_Charge,asset:P1_StormFireTrap_3_Charge,stacks,1,,,explicit-serialized
+DefenseChargeEffectSO|asset:P1_StormFireTrap_3_Charge,asset:P1_StormFireTrap_3_Charge,logTag,축전,,,explicit-serialized
+DefenseChargeEffectSO|asset:P1_StormFireTrap_3_Charge,asset:P1_StormFireTrap_3_Charge,dischargeThreshold,3,,,explicit-serialized
+DefenseChargeEffectSO|asset:P1_StormFireTrap_3_Charge,asset:P1_StormFireTrap_3_Charge,dischargeReason,축전 방전,,,explicit-serialized

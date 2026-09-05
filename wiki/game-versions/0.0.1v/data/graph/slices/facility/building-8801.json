@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-8801",
+    "spoiler_tier": "none",
+    "title": "채집 바구니 작업대"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-agriculture-gathering",
+      "label": "시설 해금",
+      "to": "facility/building-8801",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

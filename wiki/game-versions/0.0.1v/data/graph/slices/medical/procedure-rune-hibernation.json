@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "medical",
+    "slug": "procedure-rune-hibernation",
+    "spoiler_tier": "none",
+    "title": "룬 동면"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "medical/procedure-rune-hibernation",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "medical-rune-hibernation-catalyst",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 동면 촉매",
+      "to": "item/medical-rune-hibernation-catalyst",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-rune-hibernation",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-rune-hibernation",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 동면",
+      "to": "research/research-medical-rune-hibernation",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

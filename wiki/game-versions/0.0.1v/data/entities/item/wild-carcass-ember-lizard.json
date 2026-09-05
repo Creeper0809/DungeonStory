@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "4kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "4"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "뜨거운 배관 주변 해충을 먹지만 잿불열을 매개한다. 죽은 잿불도마뱀의 사체는 도축 시설로 옮겨 식량과 부산물로 나눈다. 베르사디온의 화구 사냥꾼이 거둔 잿불도마뱀 사체에는 계약 몫을 뜻하는 검은 밀랍이 한 방울 떨어져 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "wild-carcass-ember-lizard",
+  "spoiler_tier": "none",
+  "summary": "도축 시설로 옮기면 식량과 부산물을 얻는다.",
+  "title": "잿불도마뱀 사체"
+}

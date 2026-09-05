@@ -153,6 +153,58 @@ internal static class PhysicalItemSaveValidation
             snapshot.uniqueItems,
             snapshot.pendingBatchDispositions,
             report);
+        ValidateQualityRejectedMarketCustodyJoins(
+            snapshot.uniqueItems,
+            snapshot.pendingBatchDispositions,
+            report);
+    }
+
+    private static void ValidateQualityRejectedMarketCustodyJoins(
+        IReadOnlyList<UniqueItemInstanceSaveData> uniqueItems,
+        IReadOnlyList<PhysicalItemBatchDispositionSaveData> dispositions,
+        DungeonGameRestoreReport report)
+    {
+        Dictionary<string, PhysicalItemBatchDispositionSaveData> byOperation =
+            (dispositions ?? Array.Empty<PhysicalItemBatchDispositionSaveData>())
+            .Where(value => value != null)
+            .ToDictionary(value => value.operationId, StringComparer.Ordinal);
+        foreach (UniqueItemInstanceSaveData unique in
+                 uniqueItems ?? Array.Empty<UniqueItemInstanceSaveData>())
+        {
+            ItemInstanceComponentSaveData component = unique?.components?
+                .FirstOrDefault(value => value != null
+                    && string.Equals(
+                        value.componentTypeId,
+                        ItemInstanceComponentIds.Equipment,
+                        StringComparison.Ordinal));
+            if (!EquipmentItemStateCodec.TryDecode(
+                    component,
+                    out CombatEquipmentInstance equipment,
+                    out _)
+                || equipment.worldState
+                    != CombatEquipmentWorldState.MarketSalePending)
+            {
+                continue;
+            }
+            string operation = equipment.sourceStackId ?? string.Empty;
+            if (!operation.StartsWith(
+                    QualityRejectedSaleOutbox.OperationPrefix,
+                    StringComparison.Ordinal)
+                || !byOperation.TryGetValue(
+                    operation,
+                    out PhysicalItemBatchDispositionSaveData receipt)
+                || receipt.kind != (int)PhysicalItemDispositionKind.Transfer
+                || !string.Equals(
+                    receipt.reasonCode,
+                    QualityRejectedSaleOutbox.TransferReason,
+                    StringComparison.Ordinal)
+                || receipt.quantity != 1
+                || receipt.inputMassGrams <= 0L)
+            {
+                report.AddError(
+                    $"Market-sale-pending equipment '{equipment.instanceId}' has no exact physical Transfer receipt.");
+            }
+        }
     }
 
     private static void ValidatePendingProductionInputDestinationDrains(
@@ -330,14 +382,22 @@ internal static class PhysicalItemSaveValidation
                     operations,
                     batches,
                     ownedRoutes,
-                    ownedCarryStacks)
-                || !ValidateStableCapacityRoutingExternalState(
-                    value,
-                    snapshot))
+                    ownedCarryStacks))
             {
                 report.AddError(
-                    "Invalid pending production capacity-routing drain '"
+                    "Invalid pending production capacity-routing drain contract '"
                     + operation + "'.");
+                continue;
+            }
+            if (!ValidateStableCapacityRoutingExternalState(
+                    value,
+                    snapshot,
+                    out string externalFailureReason))
+            {
+                report.AddError(
+                    "Pending production capacity-routing drain has unstable "
+                    + "physical state '" + operation + "': "
+                    + externalFailureReason + ".");
                 continue;
             }
             if (previousOperation.Length > 0
@@ -352,13 +412,23 @@ internal static class PhysicalItemSaveValidation
 
     private static bool ValidateStableCapacityRoutingExternalState(
         ProductionCapacityRoutingDrainSaveData drain,
-        DungeonPhysicalItemSaveData snapshot)
+        DungeonPhysicalItemSaveData snapshot,
+        out string failureReason)
     {
+        failureReason = string.Empty;
         if (drain == null
             || drain.phase < ProductionCapacityRoutingDrainPhase
                 .AwaitingStablePhysicalState)
         {
             return true;
+        }
+        if (drain.phase == ProductionCapacityRoutingDrainPhase
+                .OwnerAcknowledgedAwaitingCheckpointGc)
+        {
+            return ValidateTerminalCapacityRoutingPhysicalSuccessor(
+                drain,
+                snapshot,
+                out failureReason);
         }
 
         string[] releasedOperations = (drain.actorAuthorityReleases
@@ -376,6 +446,7 @@ internal static class PhysicalItemSaveValidation
                     intent.ownerOperationId,
                     StringComparer.Ordinal)))
         {
+            failureReason = "released-operation-reservation-remains";
             return false;
         }
 
@@ -427,6 +498,8 @@ internal static class PhysicalItemSaveValidation
                         out WorldItemStackSaveData[] matchingStacks)
                     || matchingStacks.Length != 1)
                 {
+                    failureReason =
+                        "actor-carry-physical-stack-or-slice-cardinality";
                     return false;
                 }
                 ProductionCapacityRoutingDrainSliceSaveData slice =
@@ -483,6 +556,7 @@ internal static class PhysicalItemSaveValidation
                         slice.componentFingerprint,
                         StringComparison.Ordinal))
                 {
+                    failureReason = "actor-carry-physical-state-mismatch";
                     return false;
                 }
                 string target = !string.IsNullOrEmpty(
@@ -500,6 +574,7 @@ internal static class PhysicalItemSaveValidation
                         || stack.destinationGridY !=
                             custody.CurrentTargetPosition.y))
                 {
+                    failureReason = "actor-carry-target-mismatch";
                     return false;
                 }
                 physicalRows.Add(stack);
@@ -510,8 +585,196 @@ internal static class PhysicalItemSaveValidation
                     receipt.postPhysicalFingerprint,
                     StringComparison.Ordinal))
             {
+                failureReason = "actor-carry-post-physical-fingerprint-mismatch";
                 return false;
             }
+        }
+        return true;
+    }
+
+    private static bool ValidateTerminalCapacityRoutingPhysicalSuccessor(
+        ProductionCapacityRoutingDrainSaveData drain,
+        DungeonPhysicalItemSaveData snapshot,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        ProductionPhysicalCustodyDrainSaveData[] successors =
+            (snapshot.pendingProductionCustodyDrains
+                    ?? new List<ProductionPhysicalCustodyDrainSaveData>())
+                .Where(value => value != null
+                    && string.Equals(
+                        value.sourceDestinationId,
+                        drain.sourceDestinationId,
+                        StringComparison.Ordinal)
+                    && value.phase is ProductionPhysicalCustodyDrainPhase
+                            .EffectCommittedAwaitingOwnerAck
+                        or ProductionPhysicalCustodyDrainPhase
+                            .OwnerAcknowledgedAwaitingCheckpointGc)
+                .ToArray();
+        if (successors.Length != 1)
+        {
+            failureReason = "terminal-physical-successor-cardinality";
+            return false;
+        }
+
+        ProductionPhysicalCustodyDrainSaveData successor = successors[0];
+        HashSet<string> successorSourceStacks = (successor.sourceStackIds
+                ?? new List<string>()).ToHashSet(StringComparer.Ordinal);
+        HashSet<string> successorReleasedStacks = (successor.releasedStackIds
+                ?? new List<string>()).ToHashSet(StringComparer.Ordinal);
+        HashSet<string> successorSourceActors = (successor.sourceActorIds
+                ?? new List<string>()).ToHashSet(StringComparer.Ordinal);
+        HashSet<string> successorCompletedActors = (successor.completedActorIds
+                ?? new List<string>()).ToHashSet(StringComparer.Ordinal);
+        HashSet<string> successorSourceIntents =
+            (successor.sourceHaulIntentOperationIds ?? new List<string>())
+                .ToHashSet(StringComparer.Ordinal);
+        HashSet<string> successorReleasedIntents =
+            (successor.releasedHaulIntentOperationIds ?? new List<string>())
+                .ToHashSet(StringComparer.Ordinal);
+        string[] preserved = (drain.preservedStackIds ?? new List<string>())
+            .ToArray();
+        HashSet<string> preservedSet = preserved.ToHashSet(
+            StringComparer.Ordinal);
+        string[] actors = (drain.sourceActorCarries
+                ?? new List<ProductionCapacityRoutingDrainActorCarrySaveData>())
+            .Where(value => value != null)
+            .Select(value => value.actorPersistentId)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        HashSet<string> actorSet = actors.ToHashSet(StringComparer.Ordinal);
+        string[] intents = (drain.sourceActorCarries
+                ?? new List<ProductionCapacityRoutingDrainActorCarrySaveData>())
+            .Where(value => value != null)
+            .Select(value => value.haulIntentOperationId)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        HashSet<string> intentSet = intents.ToHashSet(StringComparer.Ordinal);
+        if (!successorSourceStacks.SetEquals(preservedSet)
+            || !successorReleasedStacks.SetEquals(preservedSet)
+            || !successorSourceActors.SetEquals(actorSet)
+            || !successorCompletedActors.SetEquals(actorSet)
+            || !successorSourceIntents.SetEquals(intentSet)
+            || !successorReleasedIntents.SetEquals(intentSet)
+            || successor.releasedQuantity != drain.preservedQuantity
+            || successor.releasedMassGrams != drain.preservedMassGrams)
+        {
+            failureReason = "terminal-physical-successor-vector-mismatch";
+            return false;
+        }
+
+        int currentQuantity = 0;
+        foreach (string stackId in preserved)
+        {
+            WorldItemStackSaveData[] stacks = (snapshot.stacks
+                    ?? new List<WorldItemStackSaveData>())
+                .Where(value => value != null && string.Equals(
+                    value.stackId,
+                    stackId,
+                    StringComparison.Ordinal))
+                .ToArray();
+            ProductionCapacityRoutingDrainSliceSaveData[] slices =
+                (drain.sourceSlices
+                        ?? new List<ProductionCapacityRoutingDrainSliceSaveData>())
+                    .Where(value => value != null && string.Equals(
+                        value.routedStackId,
+                        stackId,
+                        StringComparison.Ordinal))
+                    .ToArray();
+            if (stacks.Length != 1)
+            {
+                failureReason =
+                    "terminal-physical-successor-stack-or-slice-cardinality";
+                return false;
+            }
+
+            WorldItemStackSaveData stack = stacks[0];
+            try
+            {
+                currentQuantity = checked(currentQuantity + stack.quantity);
+            }
+            catch (OverflowException)
+            {
+                failureReason = "terminal-physical-successor-quantity-overflow";
+                return false;
+            }
+
+            if (slices.Length > 0)
+            {
+                int expectedQuantity;
+                try
+                {
+                    expectedQuantity = slices.Sum(
+                        value => value.routedQuantity);
+                }
+                catch (OverflowException)
+                {
+                    failureReason =
+                        "terminal-physical-successor-slice-quantity-overflow";
+                    return false;
+                }
+                if (slices.Select(value => value.itemId)
+                        .Distinct(StringComparer.Ordinal).Count() != 1
+                    || stack.quantity != expectedQuantity
+                    || !string.Equals(
+                        stack.itemId,
+                        slices[0].itemId,
+                        StringComparison.Ordinal))
+                {
+                    failureReason =
+                        "terminal-physical-successor-slice-mismatch";
+                    return false;
+                }
+            }
+
+            bool retainsDestroyedOriginCustody =
+                FacilityOutputExactRouteCustodyCodec.TryRead(
+                    stack.components,
+                    out FacilityOutputExactRouteCustodyMetadata custody)
+                && string.Equals(
+                    custody.OriginDestinationId,
+                    drain.sourceDestinationId,
+                    StringComparison.Ordinal);
+            if (stack.quantity <= 0
+                || stack.state is WorldItemStackState.Carried
+                    or WorldItemStackState.InTransit
+                || string.Equals(
+                    stack.destinationId,
+                    drain.sourceDestinationId,
+                    StringComparison.Ordinal)
+                || string.Equals(
+                    stack.sourceStorageDestinationId,
+                    drain.sourceDestinationId,
+                    StringComparison.Ordinal)
+                || retainsDestroyedOriginCustody)
+            {
+                failureReason = "terminal-physical-successor-stack-mismatch";
+                return false;
+            }
+
+            ProductionCapacityRoutingDrainActorCarrySaveData[] carries =
+                (drain.sourceActorCarries
+                        ?? new List<
+                            ProductionCapacityRoutingDrainActorCarrySaveData>())
+                    .Where(value => value != null && string.Equals(
+                        value.carriedStackId,
+                        stackId,
+                        StringComparison.Ordinal))
+                    .ToArray();
+            if (carries.Length > 1
+                || carries.Length == 1
+                && carries[0].quantity != stack.quantity)
+            {
+                failureReason =
+                    "terminal-physical-successor-actor-carry-mismatch";
+                return false;
+            }
+        }
+        if (currentQuantity != drain.preservedQuantity)
+        {
+            failureReason =
+                "terminal-physical-successor-current-quantity-mismatch";
+            return false;
         }
         return true;
     }
@@ -604,6 +867,21 @@ internal static class PhysicalItemSaveValidation
                     || !IsCanonicalNonEmpty(line.outputLineId)
                     || !IsCanonicalNonEmpty(line.itemId)
                     || !IsLowerSha256(line.componentFingerprint)
+                    || !IsCanonicalNonEmpty(line.outputCapabilityId)
+                    || line.outputCapabilityVersion <= 0
+                    || !IsCanonicalNonEmpty(line.outputComponentCodecId)
+                    || line.outputComponentCodecVersion <= 0
+                    || !IsLowerSha256(line.outputCapabilityFingerprint)
+                    || !string.Equals(
+                        line.outputCapabilityFingerprint,
+                        ProductionOutputCapabilityDescriptorFingerprint.Capture(
+                            line.outputLineId,
+                            line.itemId,
+                            line.outputCapabilityId,
+                            line.outputCapabilityVersion,
+                            line.outputComponentCodecId,
+                            line.outputComponentCodecVersion),
+                        StringComparison.Ordinal)
                     || line.originalQuantity <= 0
                     || line.originalMassGrams <= 0L
                     || line.remainingQuantity < 0
@@ -1989,3 +2267,19 @@ internal static class PhysicalItemSaveValidation
         return true;
     }
 }
+
+#if UNITY_EDITOR
+public static class PhysicalItemSaveValidationDiagnostics
+{
+    public static bool IsValidRecoveryDrop(
+        WorldItemStackSaveData stack,
+        string stackId,
+        out string errors)
+    {
+        DungeonGameRestoreReport report = new();
+        PhysicalItemSaveValidation.ValidateRecoveryDrop(stack, stackId, report);
+        errors = string.Join(" | ", report.Errors);
+        return report.Success;
+    }
+}
+#endif

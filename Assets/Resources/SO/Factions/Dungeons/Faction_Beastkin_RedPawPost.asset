@@ -42,6 +42,12 @@ MonoBehaviour:
     amount: 8
   - itemId: feed:hay
     amount: 10
+  tradeEconomicPolicy:
+    capabilityId: faction-economy:paid-market-purchase
+    capabilityVersion: 1
+  supplyEconomicPolicy:
+    capabilityId: faction-economy:alliance-benefit
+    capabilityVersion: 1
   tradeCooldownDays: 7
   supplyCooldownDays: 20
   reinforcementCooldownDays: 10

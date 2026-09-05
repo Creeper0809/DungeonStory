@@ -54,8 +54,8 @@ public sealed class ProductionBillSnapshotProjector :
         IReadOnlyList<ProductionBillRecord> allBills)
     {
         ProductionRecipeSO recipe = ResolveRecipe(record);
-        bool usesPreparedOutput =
-            ProductionPreparedOutputMigrationScope.Contains(recipe?.RecipeId);
+        bool usesPreparedOutput = ProductionPreparedOutputCapabilitySelection
+            .UsesPreparedOutputMaterializer(recipe, items);
         bool preparedCapacityAvailable = true;
         DomainFailure preparedCapacityFailure = DomainFailure.None;
         if (usesPreparedOutput)

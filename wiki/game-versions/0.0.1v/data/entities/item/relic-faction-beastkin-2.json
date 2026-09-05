@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "0"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "흩어진 사냥대를 한 번만 되돌려 부르는 호각이다. 라카쉬 세갈래길의 무리뼈 호각은 피난 행렬에서 가장 느린 사람의 속도에 맞춰 울렸다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "relic-faction-beastkin-2",
+  "spoiler_tier": "none",
+  "summary": "흩어진 사냥대를 한 번만 되돌려 부르는 호각.",
+  "title": "무리뼈 호각"
+}

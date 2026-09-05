@@ -1,0 +1,60 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-ember-root",
+    "spoiler_tier": "none",
+    "title": "잿불뿌리"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-boar-stew",
+      "label": "필요 조건",
+      "to": "item/resource-ember-root",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-garden-meal",
+      "label": "필요 조건",
+      "to": "item/resource-ember-root",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-lavish-vegan",
+      "label": "필요 조건",
+      "to": "item/resource-ember-root",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-salted-meat-stew",
+      "label": "필요 조건",
+      "to": "item/resource-ember-root",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-vitality-tonic",
+      "label": "필요 조건",
+      "to": "item/resource-ember-root",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-root-stew",
+      "label": "필요 조건",
+      "to": "item/resource-ember-root",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-washed-vegetable",
+      "label": "필요 조건",
+      "to": "item/resource-ember-root",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

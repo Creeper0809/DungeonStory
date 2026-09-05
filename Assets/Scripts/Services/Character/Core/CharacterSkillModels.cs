@@ -518,6 +518,7 @@ public sealed class WorldCharacterProfile : ICharacterPopulationProfileState
     public bool isStaff;
     public bool isAlive = true;
     public bool isVisiting;
+    public CharacterSettlementStanding settlementStanding;
     public int visitCount;
     public CharacterSocialMemorySnapshot socialMemory = new CharacterSocialMemorySnapshot();
     public int level = 1;
@@ -541,12 +542,46 @@ public sealed class WorldCharacterProfile : ICharacterPopulationProfileState
     bool ICharacterPopulationProfileState.IsStaff
     {
         get => isStaff;
-        set => isStaff = value;
+        set
+        {
+            isStaff = value;
+            if (value && settlementStanding is
+                CharacterSettlementStanding.Unknown or
+                CharacterSettlementStanding.PreparedCandidate or
+                CharacterSettlementStanding.Visitor)
+            {
+                settlementStanding = CharacterSettlementStanding.Resident;
+            }
+            else if (!value && CharacterSettlementStandingRules
+                         .IsSettlementResident(settlementStanding))
+            {
+                settlementStanding = isVisiting
+                    ? CharacterSettlementStanding.Visitor
+                    : CharacterSettlementStanding.PreparedCandidate;
+            }
+        }
     }
     bool ICharacterPopulationProfileState.IsVisiting
     {
         get => isVisiting;
-        set => isVisiting = value;
+        set
+        {
+            isVisiting = value;
+            if (value)
+            {
+                settlementStanding = CharacterSettlementStanding.Visitor;
+                isStaff = false;
+            }
+            else if (settlementStanding == CharacterSettlementStanding.Visitor)
+            {
+                settlementStanding = CharacterSettlementStanding.PreparedCandidate;
+            }
+        }
+    }
+    CharacterSettlementStanding ICharacterPopulationProfileState.SettlementStanding
+    {
+        get => settlementStanding;
+        set => settlementStanding = value;
     }
     int ICharacterPopulationProfileState.VisitCount
     {
@@ -566,6 +601,7 @@ public sealed class WorldCharacterProfile : ICharacterPopulationProfileState
             isStaff = isStaff,
             isAlive = isAlive,
             isVisiting = isVisiting,
+            settlementStanding = settlementStanding,
             visitCount = visitCount,
             socialMemory = socialMemory?.Clone() ?? new CharacterSocialMemorySnapshot(),
             level = level,

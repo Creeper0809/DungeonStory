@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "120"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "수술로 적출한 왼쪽 신장이다. 기증자 정보와 신선도가 남아 있어 이식 전까지 보존해야 한다. 므네실라의 적출 왼쪽 신장에는 여과관 방향을 나타내는 색실이 묶여 있어 좌우 장기를 바꾸어 놓지 않게 한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "surgery-organ-kidney-left",
+  "spoiler_tier": "none",
+  "summary": "기증자와 신선도가 보존되는 고유 수술 장기",
+  "title": "적출 왼쪽 신장"
+}

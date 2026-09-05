@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "13kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "1563"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "겹친 판금을 관절마다 이어 몸통과 팔의 움직임을 함께 살린 중갑이다. 특히 제4주조도시산 관절식 판금갑에는 충격 시험 자국을 일부러 남긴다. 흠집이 없는 물건은 아직 검사를 마치지 못한 것이다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-armor-articulated-plate",
+  "spoiler_tier": "none",
+  "summary": "관절식 판금갑 전투 장비",
+  "title": "관절식 판금갑"
+}

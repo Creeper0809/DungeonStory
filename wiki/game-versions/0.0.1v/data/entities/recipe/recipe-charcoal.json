@@ -1,0 +1,49 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "16"
+    },
+    {
+      "label": "필요 연구",
+      "value": "숯가마"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-forestry-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯가마",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-log",
+      "target_spoiler_tier": "none",
+      "target_title": "원목",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-charcoal",
+  "spoiler_tier": "none",
+  "summary": "숯 굽기 생산 주문",
+  "title": "숯 굽기"
+}

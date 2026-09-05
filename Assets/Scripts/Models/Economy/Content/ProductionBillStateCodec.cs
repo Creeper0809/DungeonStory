@@ -40,12 +40,26 @@ public sealed class ProductionAggregateStateStore
     internal bool AddWipTerminalReceipt(
         ProductionWipTerminalReceiptSaveData receipt) =>
         session.AddWipTerminalReceipt(receipt);
+    internal bool TryRemoveWipTerminalReceiptExact(
+        ProductionWipTerminalReceiptSaveData receipt) =>
+        session.TryRemoveWipTerminalReceiptExact(receipt);
     internal void MoveBill(
         ProductionBillRecord bill,
         ProductionBillRecord anchor,
         bool insertAfter) => session.MoveBill(bill, anchor, insertAfter);
     internal void IncrementBillVersion() => session.IncrementBillVersion();
     internal void IncrementStockSensorVersion() => session.IncrementStockSensorVersion();
+    internal bool TryRestoreBillVersionForCheckpointGc(
+        int expectedCurrentVersion,
+        int restoredVersion) => session.TryRestoreBillVersionForCheckpointGc(
+        expectedCurrentVersion,
+        restoredVersion);
+    internal bool TryRestoreStockSensorVersionForCheckpointGc(
+        int expectedCurrentVersion,
+        int restoredVersion) => session
+        .TryRestoreStockSensorVersionForCheckpointGc(
+            expectedCurrentVersion,
+            restoredVersion);
     internal bool HasInstalledSensor(string id) => session.HasInstalledSensor(id);
     internal bool HasAcknowledgedSensor(string id) => session.HasAcknowledgedSensor(id);
     internal bool AddInstalledSensor(string id) => session.AddInstalledSensor(id);
@@ -186,6 +200,9 @@ internal static class ProductionBillStateCodec
         HashSet<string> installed = new(
             snapshot.installedStockSensorFacilityIds,
             StringComparer.Ordinal);
+        HashSet<string> acknowledged = new(
+            snapshot.acknowledgedStockSensorFacilityIds,
+            StringComparer.Ordinal);
         if (snapshot.acknowledgedStockSensorFacilityIds.Any(
                 id => !installed.Contains(id)))
         {
@@ -201,7 +218,8 @@ internal static class ProductionBillStateCodec
         ValidatePendingStockSensorRemovals(
             snapshot.pendingStockSensorRemovals,
             snapshot.installedStockSensors,
-            installed);
+            installed,
+            acknowledged);
         ValidateStockSensorOwnershipCrossLinks(
             snapshot.pendingStockSensorInstalls,
             snapshot.installedStockSensors,
@@ -233,10 +251,6 @@ internal static class ProductionBillStateCodec
                     && !installed.Contains(owner.facilityId)
                     || owner.phase == ProductionStockSensorCommitPhase.OutcomePublished
                     && installed.Contains(owner.facilityId));
-            string expectedOperation = owner == null
-                ? string.Empty
-                : ProductionStockSensorRuntime.BuildPhysicalOperationId(
-                    owner.facilityId);
             string expectedDestination = owner == null
                 ? string.Empty
                 : ProductionStockSensorRuntime.BuildDestinationId(
@@ -254,7 +268,9 @@ internal static class ProductionBillStateCodec
                 || !IsCanonical(owner.facilityId)
                 || !IsCanonical(owner.itemId)
                 || !string.Equals(owner.destinationId, expectedDestination, StringComparison.Ordinal)
-                || !string.Equals(owner.operationId, expectedOperation, StringComparison.Ordinal)
+                || !ProductionStockSensorRuntime.IsPhysicalOperationIdForFacility(
+                    owner.operationId,
+                    owner.facilityId)
                 || !string.Equals(
                     owner.reasonCode,
                     ProductionStockSensorRuntime.PhysicalReasonCode,
@@ -286,11 +302,9 @@ internal static class ProductionBillStateCodec
             if (record == null
                 || !IsCanonical(record.facilityId)
                 || !IsCanonical(record.itemId)
-                || !string.Equals(
+                || !ProductionStockSensorRuntime.IsPhysicalOperationIdForFacility(
                     record.inputOperationId,
-                    ProductionStockSensorRuntime.BuildPhysicalOperationId(
-                        record.facilityId),
-                    StringComparison.Ordinal)
+                    record.facilityId)
                 || !IsCanonical(record.inputCommitId)
                 || !IsCanonical(record.inputSourceStackId)
                 || !string.Equals(
@@ -366,7 +380,8 @@ internal static class ProductionBillStateCodec
     private static void ValidatePendingStockSensorRemovals(
         IReadOnlyList<ProductionStockSensorRemovalSaveData> owners,
         IReadOnlyList<ProductionInstalledStockSensorSaveData> installedRecords,
-        ISet<string> installed)
+        ISet<string> installed,
+        ISet<string> acknowledged)
     {
         Dictionary<string, ProductionInstalledStockSensorSaveData> records =
             installedRecords.ToDictionary(
@@ -375,35 +390,65 @@ internal static class ProductionBillStateCodec
         string previousFacilityId = string.Empty;
         foreach (ProductionStockSensorRemovalSaveData owner in owners)
         {
-            bool prepared = owner?.phase ==
+            if (owner == null
+                || !Enum.IsDefined(
+                    typeof(ProductionStockSensorRemovalPhase),
+                    owner.phase))
+            {
+                throw new InvalidOperationException(
+                    "Pending stock-sensor removal has an invalid phase.");
+            }
+
+            bool prepared = owner.phase ==
                 ProductionStockSensorRemovalPhase.Prepared;
-            bool published = owner?.phase ==
-                ProductionStockSensorRemovalPhase.OutputPublished;
-            bool canonicalCommits = owner?.outputCommitIds != null
+            bool terminal = owner.phase == ProductionStockSensorRemovalPhase
+                .OwnerAcknowledgedAwaitingCheckpointGc;
+            bool canonicalCommits = owner.outputCommitIds != null
                 && (prepared
                     ? owner.outputCommitIds.Count == 0
                     : owner.outputCommitIds.Count == 1
                         && owner.outputCommitIds.All(IsCanonical)
                         && owner.outputCommitIds.Distinct(
                             StringComparer.Ordinal).Count() == 1);
-            if (owner == null
-                || !Enum.IsDefined(
-                    typeof(ProductionStockSensorRemovalPhase),
-                    owner.phase)
-                || !IsCanonical(owner.facilityId)
+            bool sourceStateValid;
+            if (terminal)
+            {
+                sourceStateValid = !installed.Contains(owner.facilityId)
+                    && !acknowledged.Contains(owner.facilityId)
+                    && !records.ContainsKey(owner.facilityId);
+            }
+            else
+            {
+                sourceStateValid = installed.Contains(owner.facilityId)
+                    && records.TryGetValue(
+                        owner.facilityId,
+                        out ProductionInstalledStockSensorSaveData installedRecord)
+                    && string.Equals(
+                        owner.itemId,
+                        installedRecord.itemId,
+                        StringComparison.Ordinal)
+                    && owner.expectedOutputMassGrams
+                        == installedRecord.embeddedMassGrams
+                    && string.Equals(
+                        owner.installationSourceStackId,
+                        installedRecord.inputSourceStackId,
+                        StringComparison.Ordinal);
+            }
+
+            bool outputStateValid = prepared
+                ? owner.outputQuantity == 0 && owner.outputMassGrams == 0L
+                : owner.outputCommitIds != null
+                    && owner.outputCommitIds.Count == 1
+                    && owner.outputQuantity == 1
+                    && owner.outputMassGrams == owner.expectedOutputMassGrams
+                    && string.Equals(
+                        owner.outputCommitIds[0],
+                        ProductionStockSensorRuntime.BuildRemovalOutputCommitId(
+                            owner),
+                        StringComparison.Ordinal);
+            if (!IsCanonical(owner.facilityId)
                 || !IsCanonical(owner.itemId)
-                || !installed.Contains(owner.facilityId)
-                || !records.TryGetValue(owner.facilityId, out var installedRecord)
-                || !string.Equals(
-                    owner.itemId,
-                    installedRecord.itemId,
-                    StringComparison.Ordinal)
-                || owner.expectedOutputMassGrams
-                    != installedRecord.embeddedMassGrams
-                || !string.Equals(
-                    owner.installationSourceStackId,
-                    installedRecord.inputSourceStackId,
-                    StringComparison.Ordinal)
+                || !sourceStateValid
                 || !string.Equals(
                     owner.operationId,
                     ProductionStockSensorRuntime.BuildRemovalOperationId(
@@ -415,16 +460,7 @@ internal static class ProductionBillStateCodec
                     ProductionStockSensorRuntime.RemovalReasonCode,
                     StringComparison.Ordinal)
                 || !canonicalCommits
-                || (prepared
-                    ? owner.outputQuantity != 0 || owner.outputMassGrams != 0L
-                    : owner.outputQuantity != 1
-                        || owner.outputMassGrams
-                            != owner.expectedOutputMassGrams
-                        || !string.Equals(
-                            owner.outputCommitIds[0],
-                            ProductionStockSensorRuntime.BuildRemovalOutputCommitId(
-                                owner),
-                            StringComparison.Ordinal))
+                || !outputStateValid
                 || previousFacilityId.Length > 0
                     && string.CompareOrdinal(
                         previousFacilityId,
@@ -606,7 +642,7 @@ internal static class ProductionBillStateCodec
             wipInputMassGrams = record.wipInputMassGrams,
             outputOutcomeResolved = record.outputOutcomeResolved,
             resolvedOutputs = record.resolvedOutputs
-                .OrderBy(output => output.itemId, StringComparer.Ordinal)
+                .OrderBy(output => output.outputLineId, StringComparer.Ordinal)
                 .Select(output => output.Clone())
                 .ToList(),
             preparedOutput = record.preparedOutput?.Clone()
@@ -868,8 +904,15 @@ internal static class ProductionBillStateCodec
         foreach (ProductionResolvedOutputSaveData output in saved.resolvedOutputs)
         {
             if (output == null
+                || !ProductionOutputDefinition.IsCanonicalOutputLineId(
+                    output.outputLineId)
                 || !IsCanonical(output.itemId)
                 || !authored.Contains(output.itemId)
+                || !IsCanonical(output.outputCapabilityId)
+                || output.outputCapabilityVersion <= 0
+                || !IsCanonical(output.outputComponentCodecId)
+                || output.outputComponentCodecVersion <= 0
+                || !IsLowercaseSha256(output.outputCapabilityFingerprint)
                 || output.amount <= 0
                 || output.committedAmount < 0
                 || output.committedAmount > output.amount
@@ -880,12 +923,12 @@ internal static class ProductionBillStateCodec
                 || !IsFiniteNonNegative(output.qualityModifier)
                 || !IsFiniteInRange(output.workerQuality, 0.7f, 1.25f)
                 || (previous.Length > 0
-                    && string.CompareOrdinal(previous, output.itemId) >= 0))
+                    && string.CompareOrdinal(previous, output.outputLineId) >= 0))
             {
                 throw new InvalidOperationException(
                     $"Production bill '{billId}' has an invalid resolved output.");
             }
-            previous = output.itemId;
+            previous = output.outputLineId;
         }
     }
 
@@ -906,12 +949,14 @@ internal static class ProductionBillStateCodec
             saved.recipeId,
             saved.cycleSequence,
             saved.outputDestinationId);
-        if (ProductionPreparedOutputMigrationScope.Contains(saved.recipeId))
+        if (saved.preparedOutput.phase !=
+            ProductionPreparedOutputPhase.Unresolved)
         {
             ProductionPreparedOutputMigrationScope
-                .ValidateExactProfileOrThrow(recipe);
+                .ValidateCanonicalProfileOrThrow(recipe);
             ProductionPreparedOutputMigrationScope.ValidateSavedProfileDigest(
                 saved.preparedOutput,
+                recipe,
                 $"Production bill '{billId}'");
             if (ProductionPreparedOutputMigrationScope
                 .HasLegacyOutputAuthority(saved))
@@ -936,23 +981,12 @@ internal static class ProductionBillStateCodec
 
         ProductionPreparedOutputLineSaveData[] physicalLines =
             saved.preparedOutput.lines
-                .Where(line => line.role != ProductionOutputRole.DeclaredLoss)
+                .Where(line => ProductionOutputRoleRules.IsPhysical(line.role))
                 .ToArray();
         if (physicalLines.Any(line => !catalog.TryGetItem(line.itemId, out _)))
         {
             throw new InvalidOperationException(
                 $"Production bill '{billId}' prepared output references an unknown item.");
-        }
-        foreach (ProductionPreparedOutputLineSaveData line in physicalLines)
-        {
-            catalog.TryGetItem(
-                line.itemId,
-                out ResourceItemDefinitionSO definition);
-            ProductionPreparedOutputComponentProfileDigest.Validate(
-                definition,
-                line.componentPayload,
-                line.componentFingerprint,
-                $"Production bill '{billId}'");
         }
         Dictionary<string, ProductionOutputDefinition> authoredLines;
         try
@@ -1012,9 +1046,12 @@ internal static class ProductionBillStateCodec
         ProductionResolvedOutputSaveData output)
     {
         string pending = output.pendingCommitId ?? string.Empty;
+        ProductionExactOutputPublicationSaveData publication =
+            output.pendingOutputPublication;
         if (pending.Length == 0)
         {
-            return !output.pendingCommitApplied;
+            return !output.pendingCommitApplied
+                && IsEmptyExactOutputPublication(publication);
         }
         if (!IsCanonical(pending)
             || output.committedAmount >= output.amount && !output.pendingCommitApplied)
@@ -1028,14 +1065,160 @@ internal static class ProductionBillStateCodec
         {
             return false;
         }
-        return string.Equals(
+        if (!string.Equals(
             pending,
             ProductionOutputCommitIdentity.Format(
                 billId,
                 saved.cycleSequence,
+                output.outputLineId,
                 output.itemId,
                 ordinal),
-            StringComparison.Ordinal);
+            StringComparison.Ordinal))
+        {
+            return false;
+        }
+        return output.pendingCommitApplied
+            ? IsValidExactOutputPublication(
+                saved,
+                billId,
+                output,
+                publication)
+            : IsEmptyExactOutputPublication(publication);
+    }
+
+    private static bool IsEmptyExactOutputPublication(
+        ProductionExactOutputPublicationSaveData publication) =>
+        publication != null
+        && publication.phase == ProductionExactOutputPublicationPhase.None
+        && string.IsNullOrEmpty(publication.ownerStableId)
+        && string.IsNullOrEmpty(publication.commitId)
+        && string.IsNullOrEmpty(publication.facilityInstanceId)
+        && string.IsNullOrEmpty(publication.outputCapabilityId)
+        && publication.outputCapabilityVersion == 0
+        && string.IsNullOrEmpty(publication.outputComponentCodecId)
+        && publication.outputComponentCodecVersion == 0
+        && string.IsNullOrEmpty(publication.maximumProofDigest)
+        && publication.maximumMassGrams == 0L
+        && string.IsNullOrEmpty(publication.capacitySourceDigest)
+        && publication.requiredMinimumCapacityGrams == 0L
+        && publication.exactMassGrams == 0L
+        && string.IsNullOrEmpty(publication.outcomeFingerprint)
+        && string.IsNullOrEmpty(publication.plannedOutputFingerprint)
+        && string.IsNullOrEmpty(publication.destinationId)
+        && publication.dropPositionX == 0
+        && publication.dropPositionY == 0
+        && string.IsNullOrEmpty(publication.ownerDomain)
+        && string.IsNullOrEmpty(publication.ownerOperationId)
+        && string.IsNullOrEmpty(publication.ownerFacilityId)
+        && publication.capacityRevision == 0L
+        && !publication.acknowledgedAtCapture
+        && publication.stacks != null
+        && publication.stacks.Count == 0;
+
+    private static bool IsValidExactOutputPublication(
+        ProductionBillSaveData saved,
+        ProductionBillId billId,
+        ProductionResolvedOutputSaveData output,
+        ProductionExactOutputPublicationSaveData publication)
+    {
+        if (publication == null
+            || publication.phase
+                != ProductionExactOutputPublicationPhase.Published
+            || !string.Equals(
+                publication.ownerStableId,
+                billId.Value,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                publication.commitId,
+                output.pendingCommitId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                publication.facilityInstanceId,
+                saved.buildingInstanceId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                publication.outputCapabilityId,
+                output.outputCapabilityId,
+                StringComparison.Ordinal)
+            || publication.outputCapabilityVersion
+                != output.outputCapabilityVersion
+            || !string.Equals(
+                publication.outputComponentCodecId,
+                output.outputComponentCodecId,
+                StringComparison.Ordinal)
+            || publication.outputComponentCodecVersion
+                != output.outputComponentCodecVersion
+            || !IsLowercaseSha256(publication.maximumProofDigest)
+            || publication.maximumMassGrams <= 0L
+            || !IsLowercaseSha256(publication.capacitySourceDigest)
+            || publication.requiredMinimumCapacityGrams <= 0L
+            || publication.exactMassGrams <= 0L
+            || publication.exactMassGrams > publication.maximumMassGrams
+            || !IsLowercaseSha256(publication.outcomeFingerprint)
+            || !IsLowercaseSha256(publication.plannedOutputFingerprint)
+            || !string.Equals(
+                publication.destinationId,
+                saved.outputDestinationId,
+                StringComparison.Ordinal)
+            || !IsCanonical(publication.ownerDomain)
+            || !IsCanonical(publication.ownerOperationId)
+            || !string.Equals(
+                publication.ownerFacilityId,
+                saved.buildingInstanceId,
+                StringComparison.Ordinal)
+            || publication.capacityRevision < 0L
+            || publication.stacks == null
+            || publication.stacks.Count == 0)
+        {
+            return false;
+        }
+
+        long totalMass = 0L;
+        string previousLine = string.Empty;
+        string previousStack = string.Empty;
+        try
+        {
+            for (int index = 0; index < publication.stacks.Count; index++)
+            {
+                ProductionExactOutputPublicationStackSaveData stack =
+                    publication.stacks[index];
+                if (stack == null
+                    || stack.stackOrdinal != index
+                    || !ProductionOutputDefinition.IsCanonicalOutputLineId(
+                        stack.outputLineId)
+                    || !IsCanonical(stack.stackId)
+                    || !string.Equals(
+                        stack.itemId,
+                        output.itemId,
+                        StringComparison.Ordinal)
+                    || stack.quantity <= 0
+                    || stack.massGrams <= 0L
+                    || stack.componentSignature == null
+                    || stack.itemInstanceId == null
+                    || (previousLine.Length > 0
+                        && (string.CompareOrdinal(
+                                previousLine,
+                                stack.outputLineId) > 0
+                            || string.Equals(
+                                previousLine,
+                                stack.outputLineId,
+                                StringComparison.Ordinal)
+                            && string.CompareOrdinal(
+                                previousStack,
+                                stack.stackId) >= 0)))
+                {
+                    return false;
+                }
+                previousLine = stack.outputLineId;
+                previousStack = stack.stackId;
+                totalMass = checked(totalMass + stack.massGrams);
+            }
+        }
+        catch (OverflowException)
+        {
+            return false;
+        }
+        return totalMass == publication.exactMassGrams;
     }
 
     private static void ValidateWorkerPolicy(
@@ -1311,6 +1494,21 @@ internal static class ProductionBillStateCodec
     private static bool IsCanonical(string value) =>
         !string.IsNullOrWhiteSpace(value)
         && string.Equals(value, value.Trim(), StringComparison.Ordinal);
+
+    private static bool IsLowercaseSha256(string value)
+    {
+        if (value == null || value.Length != 64)
+            return false;
+        foreach (char character in value)
+        {
+            if (!(character is >= '0' and <= '9')
+                && !(character is >= 'a' and <= 'f'))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
 
     private static bool IsFiniteNonNegative(float value) =>
         !float.IsNaN(value) && !float.IsInfinity(value) && value >= 0f;

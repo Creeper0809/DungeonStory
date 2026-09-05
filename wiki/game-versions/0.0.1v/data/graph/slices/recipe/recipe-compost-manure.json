@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-compost-manure",
+    "spoiler_tier": "none",
+    "title": "분뇨 퇴비"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-compost-manure",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-compost",
+      "target_spoiler_tier": "none",
+      "target_title": "퇴비",
+      "to": "item/material-compost",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-compost-manure",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-grass-straw",
+      "target_spoiler_tier": "none",
+      "target_title": "풀·짚",
+      "to": "item/resource-grass-straw",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-compost-manure",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-manure",
+      "target_spoiler_tier": "none",
+      "target_title": "분뇨",
+      "to": "item/resource-manure",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-compost-manure",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-compost",
+      "target_spoiler_tier": "none",
+      "target_title": "퇴비·윤작",
+      "to": "research/research-agriculture-compost",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

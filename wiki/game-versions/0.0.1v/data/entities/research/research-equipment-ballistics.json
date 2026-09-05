@@ -1,0 +1,85 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "255"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Defense And Tactics"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-ranged-positions",
+      "target_spoiler_tier": "none",
+      "target_title": "사격 방책",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-ranged-positions",
+      "target_spoiler_tier": "none",
+      "target_title": "사격 방책",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-ranged-positions",
+      "target_spoiler_tier": "none",
+      "target_title": "사격 방책",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-ignition-mechanisms",
+      "target_spoiler_tier": "none",
+      "target_title": "점화 기구학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-ignition-mechanisms",
+      "target_spoiler_tier": "none",
+      "target_title": "점화 기구학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-ignition-mechanisms",
+      "target_spoiler_tier": "none",
+      "target_title": "점화 기구학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8900",
+      "target_spoiler_tier": "none",
+      "target_title": "탄도 시험장",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-equipment-ballistics",
+  "spoiler_tier": "none",
+  "summary": "점화 압력과 사격 진지의 관측 기록으로 탄도 편차를 계산한다.",
+  "title": "탄도학"
+}

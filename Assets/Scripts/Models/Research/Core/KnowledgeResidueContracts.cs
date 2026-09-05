@@ -11,6 +11,14 @@ public enum KnowledgeResidueUse
     RegionReconnaissance = 1
 }
 
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum KnowledgeResidueDispositionPhase
+{
+    AwaitingInput = 0,
+    InputCommitted = 1,
+    OutcomePublished = 2
+}
+
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class KnowledgeResidueTaskSaveData
@@ -23,7 +31,21 @@ public sealed class KnowledgeResidueTaskSaveData
     public int facilityId;
     public int facilityX;
     public int facilityY;
+    public int assignmentSequence;
     public string destinationId = string.Empty;
+    public string facilityInstanceId = string.Empty;
+    public long inputCapacityGrams;
+    public long massAuthorityRevision;
+    public string inputCapacityFingerprint = string.Empty;
+    public KnowledgeResidueDispositionPhase dispositionPhase;
+    public string sinkOperationId = string.Empty;
+    public string sinkReasonCode = string.Empty;
+    public string sinkRequestFingerprint = string.Empty;
+    public List<string> sinkSourceStackIds = new List<string>();
+    public long sinkInputMassGrams;
+    public string sinkCommitId = string.Empty;
+    public string codexCluePayload = string.Empty;
+    public float appliedReconnaissanceAmount;
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -44,6 +66,10 @@ public readonly struct KnowledgeResidueTaskSnapshot
             source?.facilityX ?? 0,
             source?.facilityY ?? 0);
         DestinationId = source?.destinationId ?? string.Empty;
+        FacilityInstanceId = source?.facilityInstanceId ?? string.Empty;
+        InputCapacityGrams = source?.inputCapacityGrams ?? 0L;
+        DispositionPhase = source?.dispositionPhase
+            ?? KnowledgeResidueDispositionPhase.AwaitingInput;
     }
 
     public string TaskId { get; }
@@ -55,6 +81,9 @@ public readonly struct KnowledgeResidueTaskSnapshot
     public int FacilityId { get; }
     public Vector2Int FacilityPosition { get; }
     public string DestinationId { get; }
+    public string FacilityInstanceId { get; }
+    public long InputCapacityGrams { get; }
+    public KnowledgeResidueDispositionPhase DispositionPhase { get; }
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -151,7 +180,26 @@ public sealed class KnowledgeResidueAggregateState
             facilityId = source?.facilityId ?? 0,
             facilityX = source?.facilityX ?? 0,
             facilityY = source?.facilityY ?? 0,
-            destinationId = source?.destinationId ?? string.Empty
+            assignmentSequence = source?.assignmentSequence ?? 0,
+            destinationId = source?.destinationId ?? string.Empty,
+            facilityInstanceId = source?.facilityInstanceId ?? string.Empty,
+            inputCapacityGrams = source?.inputCapacityGrams ?? 0L,
+            massAuthorityRevision = source?.massAuthorityRevision ?? 0L,
+            inputCapacityFingerprint = source?.inputCapacityFingerprint
+                ?? string.Empty,
+            dispositionPhase = source?.dispositionPhase
+                ?? KnowledgeResidueDispositionPhase.AwaitingInput,
+            sinkOperationId = source?.sinkOperationId ?? string.Empty,
+            sinkReasonCode = source?.sinkReasonCode ?? string.Empty,
+            sinkRequestFingerprint = source?.sinkRequestFingerprint
+                ?? string.Empty,
+            sinkSourceStackIds = new List<string>(
+                source?.sinkSourceStackIds ?? new List<string>()),
+            sinkInputMassGrams = source?.sinkInputMassGrams ?? 0L,
+            sinkCommitId = source?.sinkCommitId ?? string.Empty,
+            codexCluePayload = source?.codexCluePayload ?? string.Empty,
+            appliedReconnaissanceAmount =
+                source?.appliedReconnaissanceAmount ?? 0f
         };
     }
 }
@@ -166,6 +214,9 @@ public sealed class KnowledgeResidueRestoreCandidate
     }
 
     private KnowledgeResidueAggregateState State { get; }
+
+    public IReadOnlyList<KnowledgeResidueTaskSaveData> CaptureTasks() =>
+        State.DeepClone().Tasks;
 
     public KnowledgeResidueAggregateState TakeStateForRestore() => State;
 }

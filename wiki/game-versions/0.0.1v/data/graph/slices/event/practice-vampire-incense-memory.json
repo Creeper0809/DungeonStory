@@ -1,0 +1,54 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "practice-vampire-incense-memory",
+    "spoiler_tier": "none",
+    "title": "혈향 촛불"
+  },
+  "edges": [
+    {
+      "amount": "-2",
+      "from": "event/practice-vampire-incense-memory",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "practice-vampire-incense-memory",
+      "target_spoiler_tier": "none",
+      "target_title": "혈향 촛불",
+      "to": "event/practice-vampire-incense-memory",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "-4",
+      "from": "event/practice-vampire-incense-memory",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "practice-vampire-incense-memory",
+      "target_spoiler_tier": "none",
+      "target_title": "혈향 촛불",
+      "to": "event/practice-vampire-incense-memory",
+      "type": "changes-trauma"
+    },
+    {
+      "amount": "-2",
+      "from": "event/practice-vampire-incense-memory",
+      "label": "연결",
+      "to": "event/practice-vampire-incense-memory",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "-4",
+      "from": "event/practice-vampire-incense-memory",
+      "label": "연결",
+      "to": "event/practice-vampire-incense-memory",
+      "type": "changes-trauma"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-vampire-nightcourt",
+      "label": "관련",
+      "to": "event/practice-vampire-incense-memory",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

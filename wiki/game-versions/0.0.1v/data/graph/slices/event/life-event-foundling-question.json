@@ -1,0 +1,47 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "life-event-foundling-question",
+    "spoiler_tier": "warning",
+    "title": "나는 어디서 왔어?"
+  },
+  "edges": [
+    {
+      "amount": "3",
+      "from": "event/life-event-foundling-question",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-foundling-question",
+      "target_spoiler_tier": "warning",
+      "target_title": "나는 어디서 왔어?",
+      "to": "event/life-event-foundling-question",
+      "type": "changes-trauma"
+    },
+    {
+      "amount": "6",
+      "from": "event/life-event-foundling-question",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-foundling-question",
+      "target_spoiler_tier": "warning",
+      "target_title": "나는 어디서 왔어?",
+      "to": "event/life-event-foundling-question",
+      "type": "changes-relationship"
+    },
+    {
+      "amount": "3",
+      "from": "event/life-event-foundling-question",
+      "label": "연결",
+      "to": "event/life-event-foundling-question",
+      "type": "changes-trauma"
+    },
+    {
+      "amount": "6",
+      "from": "event/life-event-foundling-question",
+      "label": "연결",
+      "to": "event/life-event-foundling-question",
+      "type": "changes-relationship"
+    }
+  ],
+  "schema_version": 1
+}

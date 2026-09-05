@@ -8,6 +8,7 @@ public sealed class ModularFacilityWorldSaveSection :
     IDungeonRollbackFreeSaveSection
 {
     public const string Id = "world.facilities";
+    public const int CurrentSectionVersion = 1;
 
     private readonly IModularFacilityWorldSaveService worldSaveService;
     private readonly IGridSystemProvider gridSystemProvider;
@@ -29,7 +30,7 @@ public sealed class ModularFacilityWorldSaveSection :
     }
 
     public override string SectionId => Id;
-    public override int SectionVersion => 1;
+    public override int SectionVersion => CurrentSectionVersion;
     public override DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.World;
     public override IReadOnlyList<string> DependsOn => new[]

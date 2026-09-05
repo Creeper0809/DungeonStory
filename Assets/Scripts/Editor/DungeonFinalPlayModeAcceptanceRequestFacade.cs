@@ -79,9 +79,9 @@ public static class DungeonFinalPlayModeAcceptanceRequestFacade
             DungeonFullWorldRoundTripPlayModeFacade.CleanupTransientArtifacts,
             new[]
             {
-                "registeredSections=68",
-                "capturedSections=68",
-                "postRoundTripSections=68",
+                "registeredSections=74",
+                "capturedSections=74",
+                "postRoundTripSections=74",
                 "baselineRestored=True",
                 "canonicalBaselineMatched=True"
             }),

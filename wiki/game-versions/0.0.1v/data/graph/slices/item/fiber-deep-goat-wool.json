@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "fiber-deep-goat-wool",
+    "spoiler_tier": "none",
+    "title": "심층 염소모직 원섬유"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "nature/deep-goat",
+      "label": "관련",
+      "to": "item/fiber-deep-goat-wool",
+      "type": "references"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-spin-deep-goat-wool",
+      "label": "필요 조건",
+      "to": "item/fiber-deep-goat-wool",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-spin-powered-deep-goat-wool",
+      "label": "필요 조건",
+      "to": "item/fiber-deep-goat-wool",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "무기상점에서 상품을 보여 주고 손님과 값을 치를 수 있게 꾸린 설치 부품이다. 라카쉬 세갈래길식 무기상점 주변은 짐수레 두 대와 피난 행렬이 엇갈릴 만큼 넓게 비워 둔다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "facility-kit-5",
+  "spoiler_tier": "none",
+  "summary": "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.",
+  "title": "무기상점 설치 키트"
+}

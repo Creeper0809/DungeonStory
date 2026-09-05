@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.575kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "40개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "19"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "다진 고기와 육즙을 밀가루 반죽 안에 봉해 구운 든든한 파이다. 사르베니아 내해의 고기 파이는 내해 곡물과 하르나크에서 온 염장육이 만나는 가도 음식이다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "food-meat-pie",
+  "spoiler_tier": "none",
+  "summary": "고기와 밀가루를 쓴 혼합 고급식.",
+  "title": "고기 파이"
+}

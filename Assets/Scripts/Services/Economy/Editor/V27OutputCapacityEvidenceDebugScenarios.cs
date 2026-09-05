@@ -58,30 +58,31 @@ public static class V27OutputCapacityEvidenceDebugScenarios
         string worldMarker = RequireFreshMarker(
             WorldResourceReportPath,
             LatestSourceWriteTime(WorldResourceSourcePaths),
-            "PASS OUTPUT_CONTAINMENT_TYPED_BLOCK_RECOVERY ");
+            "PASS WORLD_RESOURCE_EXACT_SOURCE_ATOMIC_PUBLICATION ");
         string cropMarker = RequireFreshMarker(
             CropPlotReportPath,
             LatestSourceWriteTime(CropPlotSourcePaths),
-            "PASS CROP_OUTPUT_CONTAINMENT_TYPED_BLOCK_RECOVERY ");
+            "PASS CROP_OUTPUT_FACILITY_BUFFER_WAIT_RESTORE_RETRY_EXACT_ONCE ");
         if (!worldMarker.Contains("conserved=true", StringComparison.Ordinal)
-            || !cropMarker.Contains(
-                "outputs=resource:twilight-grain,seed-lot:twilight-grain",
-                StringComparison.Ordinal)
-            || !cropMarker.Contains("workConserved=true", StringComparison.Ordinal)
-            || !cropMarker.Contains("quantityConserved=true", StringComparison.Ordinal))
+            || !cropMarker.Contains("capacityWait=true", StringComparison.Ordinal)
+            || !cropMarker.Contains("frozenRestore=true", StringComparison.Ordinal)
+            || !cropMarker.Contains("replayDelta=0", StringComparison.Ordinal)
+            || !cropMarker.Contains("executionReceipt=true", StringComparison.Ordinal)
+            || !cropMarker.Contains("physicalBatchJoin=true", StringComparison.Ordinal)
+            || !cropMarker.Contains("terminalRestore=true", StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
                 "Output-capacity PlayMode evidence lacks exact conservation markers.");
         }
         return "RESULT=PASS; checks=2; failures=0\n"
             + "sourceDigest=" + ComputeEvidenceSourceDigest() + "\n"
-            + "PASS OUTPUT_CONTAINMENT_TYPED_BLOCK_RECOVERY "
-            + "typedReason=ProductionOutputSpaceUnavailable;"
-            + "workConserved=true;resourceCycleConserved=true;recovered=true\n"
-            + "PASS CROP_OUTPUT_CONTAINMENT_TYPED_BLOCK_RECOVERY "
-            + "harvestItem=true;seedLot=true;"
-            + "typedReason=ProductionOutputSpaceUnavailable;"
-            + "workConserved=true;quantityConserved=true;recovered=true\n";
+            + "PASS WORLD_RESOURCE_EXACT_SOURCE_ATOMIC_PUBLICATION "
+            + "exactSource=true;sourceDebitExact=true;"
+            + "frozenOutcome=true;conserved=true\n"
+            + "PASS CROP_OUTPUT_FACILITY_BUFFER_WAIT_RESTORE_RETRY_EXACT_ONCE "
+            + "capacityWait=true;frozenRestore=true;replayDelta=0;"
+            + "executionReceipt=true;physicalBatchJoin=true;"
+            + "terminalRestore=true;ackRetention=true\n";
     }
 
     public static string ComputeEvidenceSourceDigest()

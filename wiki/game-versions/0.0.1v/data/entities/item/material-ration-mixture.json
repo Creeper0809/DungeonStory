@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.55kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "16"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "배급식 혼합물은 오래 보관하거나 다음 조리를 빠르게 시작하도록 미리 손질한 식재료다. 특히 하르나크 장터의 배급식 혼합물 값은 사르베니아 내해의 수위와 밀로세아 가도의 통행세에 따라 먼저 움직인다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-ration-mixture",
+  "spoiler_tier": "none",
+  "summary": "작업실의 다음 공정으로 실제 운반되는 물리 중간재.",
+  "title": "배급식 혼합물"
+}

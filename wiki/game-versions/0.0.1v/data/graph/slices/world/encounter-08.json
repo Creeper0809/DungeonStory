@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "encounter-08",
+    "spoiler_tier": "warning",
+    "title": "도시연맹 화약 일제"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/encounter-08",
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "battlefield-hostage-chain",
+      "target_spoiler_tier": "none",
+      "target_title": "인질 구속줄",
+      "to": "world/battlefield-hostage-chain",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-08",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "offense-unappraised-loot",
+      "target_spoiler_tier": "none",
+      "target_title": "미감정 전리품",
+      "to": "item/offense-unappraised-loot",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

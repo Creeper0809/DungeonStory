@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "59"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "공장 설치 도면에 부품 치수와 조립 순서를 적어 제작자들이 같은 규격을 맞추게 한다. 크릭 제7굴의 공장 설치 도면에는 도제가 그린 치수와 대장이 고친 치수를 다른 색으로 남긴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "component-factory-installation-plan",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 공장 설치 도면.",
+  "title": "공장 설치 도면"
+}

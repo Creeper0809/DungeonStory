@@ -1,0 +1,39 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "enemy-ability-armor-break",
+    "spoiler_tier": "none",
+    "title": "갑주 파쇄"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/enemy-crown-marshal",
+      "label": "관련",
+      "to": "world/enemy-ability-armor-break",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-crown-marshal",
+      "label": "관련",
+      "to": "world/enemy-ability-armor-break",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-inquisition-purifier",
+      "label": "관련",
+      "to": "world/enemy-ability-armor-break",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-rival-siege-frame",
+      "label": "관련",
+      "to": "world/enemy-ability-armor-break",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

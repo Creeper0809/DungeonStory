@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "특수"
+    },
+    {
+      "label": "크기",
+      "value": "1×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-runtime-exterior-zone-3-5",
+  "spoiler_tier": "none",
+  "summary": "Generated immutable runtime building archetype authority.",
+  "title": "경비 초소"
+}

@@ -1,0 +1,22 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "tool-maintenance-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "정비 키트",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "festival-core-resonance",
+  "spoiler_tier": "none",
+  "summary": "골렘들이 정비된 핵의 주파수를 맞추고 기억판을 교환한다.",
+  "title": "핵 공명일"
+}

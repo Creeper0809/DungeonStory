@@ -1,0 +1,3031 @@
+{
+  "status": "partial-system-audit; full objective incomplete",
+  "scope": "현재 기후5·날씨6·계절사건28 작성 자산/카탈로그/도감 전수와 공통 규칙·실제 코드 소비처의 정적 대조. 감사 파일만 변경.",
+  "population": {
+    "zones": 5,
+    "weather": 6,
+    "seasonal": 28,
+    "catalogReferenced": 39,
+    "numericFactsCompared": 131,
+    "fieldErrors": [],
+    "weatherWeightTotals": [
+      100,
+      100,
+      100,
+      100
+    ],
+    "seasonalBySeason": [
+      7,
+      7,
+      7,
+      7
+    ],
+    "effectsByKind": {
+      "6": 2,
+      "7": 2,
+      "9": 2,
+      "11": 2,
+      "12": 29,
+      "13": 3,
+      "14": 11,
+      "15": 5
+    },
+    "seasonalMaxSeverity": 8,
+    "emptyRelations": 21,
+    "climateAmplitudeTerminologyErrors": 5
+  },
+  "freshness": {
+    "query": "ClimateRuntime ClimateZone WeatherFront",
+    "areas": [
+      "code",
+      "content",
+      "authority"
+    ],
+    "limit": 8,
+    "session": 35989,
+    "status": "stale",
+    "failures": 4,
+    "returnedRows": 0,
+    "contentSourceDigest": "139a0a989275ecdd5a4a26c10ceb6a1931041c7c928ed0421628faea5cd928c6",
+    "knowledgeBaseSourceDigest": "ceef8dc8f25f4d327205b15e12346aee0ebc5d6a84aa7eeb1f08af5ce14db0dd",
+    "generatedIndexesUsed": false,
+    "regenerated": false
+  },
+  "climatesAndWeather": [
+    {
+      "source": "Assets/Resources/SO/World/Climate/ClimateZone_ember-wastes.asset",
+      "id": "climate:ember-wastes",
+      "authored": {
+        "stableId": "climate:ember-wastes",
+        "displayName": "잿불 황무지",
+        "meanTemperatureC": "27",
+        "annualAmplitudeC": "8",
+        "localHourOffset": "0"
+      },
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/nature/climate-ember-wastes.json",
+      "title": "잿불 황무지",
+      "summary": "평균 기온 27℃, 연교차 8℃, 현지 시각 보정 0시간을 제공해 지역별 장기 환경 기준을 만든다.",
+      "facts": [
+        {
+          "label": "평균 기온",
+          "value": "27°C"
+        }
+      ],
+      "relations": []
+    },
+    {
+      "source": "Assets/Resources/SO/World/Climate/ClimateZone_mycelial-depths.asset",
+      "id": "climate:mycelial-depths",
+      "authored": {
+        "stableId": "climate:mycelial-depths",
+        "displayName": "균사 심층",
+        "meanTemperatureC": "16",
+        "annualAmplitudeC": "5",
+        "localHourOffset": "0"
+      },
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/nature/climate-mycelial-depths.json",
+      "title": "균사 심층",
+      "summary": "평균 기온 16℃, 연교차 5℃, 현지 시각 보정 0시간을 제공해 지역별 장기 환경 기준을 만든다.",
+      "facts": [
+        {
+          "label": "평균 기온",
+          "value": "16°C"
+        }
+      ],
+      "relations": []
+    },
+    {
+      "source": "Assets/Resources/SO/World/Climate/ClimateZone_mana-stormlands.asset",
+      "id": "climate:mana-stormlands",
+      "authored": {
+        "stableId": "climate:mana-stormlands",
+        "displayName": "마나 폭풍지",
+        "meanTemperatureC": "12",
+        "annualAmplitudeC": "16",
+        "localHourOffset": "0"
+      },
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/nature/climate-mana-stormlands.json",
+      "title": "마나 폭풍지",
+      "summary": "평균 기온 12℃, 연교차 16℃, 현지 시각 보정 0시간을 제공해 지역별 장기 환경 기준을 만든다.",
+      "facts": [
+        {
+          "label": "평균 기온",
+          "value": "12°C"
+        }
+      ],
+      "relations": []
+    },
+    {
+      "source": "Assets/Resources/SO/World/Climate/WeatherFront_clear.asset",
+      "id": "weather:clear",
+      "authored": {
+        "stableId": "weather:clear",
+        "displayName": "맑음",
+        "kind": "0",
+        "minimumDurationDays": "1",
+        "maximumDurationDays": "3",
+        "temperatureModifierC": "0",
+        "springWeight": "35",
+        "summerWeight": "45",
+        "autumnWeight": "30",
+        "winterWeight": "35"
+      },
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/nature/weather-clear.json",
+      "title": "맑음",
+      "summary": "1~3일 동안 기온을 0℃ 조정하고 계절별 출현 가중치를 달리해 생산·생존 환경의 단기 변동을 만든다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "1일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "3일"
+        },
+        {
+          "label": "기온 변화",
+          "value": "0°C"
+        },
+        {
+          "label": "봄 가중치",
+          "value": "35"
+        },
+        {
+          "label": "여름 가중치",
+          "value": "45"
+        },
+        {
+          "label": "가을 가중치",
+          "value": "30"
+        },
+        {
+          "label": "겨울 가중치",
+          "value": "35"
+        }
+      ],
+      "relations": []
+    },
+    {
+      "source": "Assets/Resources/SO/World/Climate/ClimateZone_frost-rift.asset",
+      "id": "climate:frost-rift",
+      "authored": {
+        "stableId": "climate:frost-rift",
+        "displayName": "서리 균열",
+        "meanTemperatureC": "0",
+        "annualAmplitudeC": "12",
+        "localHourOffset": "0"
+      },
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/nature/climate-frost-rift.json",
+      "title": "서리 균열",
+      "summary": "평균 기온 0℃, 연교차 12℃, 현지 시각 보정 0시간을 제공해 지역별 장기 환경 기준을 만든다.",
+      "facts": [
+        {
+          "label": "평균 기온",
+          "value": "0°C"
+        }
+      ],
+      "relations": []
+    },
+    {
+      "source": "Assets/Resources/SO/World/Climate/ClimateZone_temperate-cave.asset",
+      "id": "climate:temperate-cave",
+      "authored": {
+        "stableId": "climate:temperate-cave",
+        "displayName": "온대 동굴",
+        "meanTemperatureC": "14",
+        "annualAmplitudeC": "14",
+        "localHourOffset": "0"
+      },
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/nature/climate-temperate-cave.json",
+      "title": "온대 동굴",
+      "summary": "평균 기온 14℃, 연교차 14℃, 현지 시각 보정 0시간을 제공해 지역별 장기 환경 기준을 만든다.",
+      "facts": [
+        {
+          "label": "평균 기온",
+          "value": "14°C"
+        }
+      ],
+      "relations": []
+    },
+    {
+      "source": "Assets/Resources/SO/World/Climate/WeatherFront_cold-snap.asset",
+      "id": "weather:cold-snap",
+      "authored": {
+        "stableId": "weather:cold-snap",
+        "displayName": "한파",
+        "kind": "4",
+        "minimumDurationDays": "2",
+        "maximumDurationDays": "5",
+        "temperatureModifierC": "-12",
+        "springWeight": "8",
+        "summerWeight": "1",
+        "autumnWeight": "8",
+        "winterWeight": "30"
+      },
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/nature/weather-cold-snap.json",
+      "title": "한파",
+      "summary": "2~5일 동안 기온을 -12℃ 조정하고 계절별 출현 가중치를 달리해 생산·생존 환경의 단기 변동을 만든다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "2일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "5일"
+        },
+        {
+          "label": "기온 변화",
+          "value": "-12°C"
+        },
+        {
+          "label": "봄 가중치",
+          "value": "8"
+        },
+        {
+          "label": "여름 가중치",
+          "value": "1"
+        },
+        {
+          "label": "가을 가중치",
+          "value": "8"
+        },
+        {
+          "label": "겨울 가중치",
+          "value": "30"
+        }
+      ],
+      "relations": []
+    },
+    {
+      "source": "Assets/Resources/SO/World/Climate/WeatherFront_fog.asset",
+      "id": "weather:fog",
+      "authored": {
+        "stableId": "weather:fog",
+        "displayName": "안개",
+        "kind": "2",
+        "minimumDurationDays": "1",
+        "maximumDurationDays": "3",
+        "temperatureModifierC": "-2",
+        "springWeight": "15",
+        "summerWeight": "8",
+        "autumnWeight": "20",
+        "winterWeight": "18"
+      },
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/nature/weather-fog.json",
+      "title": "안개",
+      "summary": "1~3일 동안 기온을 -2℃ 조정하고 계절별 출현 가중치를 달리해 생산·생존 환경의 단기 변동을 만든다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "1일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "3일"
+        },
+        {
+          "label": "기온 변화",
+          "value": "-2°C"
+        },
+        {
+          "label": "봄 가중치",
+          "value": "15"
+        },
+        {
+          "label": "여름 가중치",
+          "value": "8"
+        },
+        {
+          "label": "가을 가중치",
+          "value": "20"
+        },
+        {
+          "label": "겨울 가중치",
+          "value": "18"
+        }
+      ],
+      "relations": []
+    },
+    {
+      "source": "Assets/Resources/SO/World/Climate/WeatherFront_storm.asset",
+      "id": "weather:storm",
+      "authored": {
+        "stableId": "weather:storm",
+        "displayName": "폭풍",
+        "kind": "5",
+        "minimumDurationDays": "1",
+        "maximumDurationDays": "2",
+        "temperatureModifierC": "-6",
+        "springWeight": "10",
+        "summerWeight": "13",
+        "autumnWeight": "15",
+        "winterWeight": "9"
+      },
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/nature/weather-storm.json",
+      "title": "폭풍",
+      "summary": "1~2일 동안 기온을 -6℃ 조정하고 계절별 출현 가중치를 달리해 생산·생존 환경의 단기 변동을 만든다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "1일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "2일"
+        },
+        {
+          "label": "기온 변화",
+          "value": "-6°C"
+        },
+        {
+          "label": "봄 가중치",
+          "value": "10"
+        },
+        {
+          "label": "여름 가중치",
+          "value": "13"
+        },
+        {
+          "label": "가을 가중치",
+          "value": "15"
+        },
+        {
+          "label": "겨울 가중치",
+          "value": "9"
+        }
+      ],
+      "relations": []
+    },
+    {
+      "source": "Assets/Resources/SO/World/Climate/WeatherFront_rain.asset",
+      "id": "weather:rain",
+      "authored": {
+        "stableId": "weather:rain",
+        "displayName": "비",
+        "kind": "1",
+        "minimumDurationDays": "2",
+        "maximumDurationDays": "4",
+        "temperatureModifierC": "-3",
+        "springWeight": "30",
+        "summerWeight": "15",
+        "autumnWeight": "25",
+        "winterWeight": "8"
+      },
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/nature/weather-rain.json",
+      "title": "비",
+      "summary": "2~4일 동안 기온을 -3℃ 조정하고 계절별 출현 가중치를 달리해 생산·생존 환경의 단기 변동을 만든다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "2일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "4일"
+        },
+        {
+          "label": "기온 변화",
+          "value": "-3°C"
+        },
+        {
+          "label": "봄 가중치",
+          "value": "30"
+        },
+        {
+          "label": "여름 가중치",
+          "value": "15"
+        },
+        {
+          "label": "가을 가중치",
+          "value": "25"
+        },
+        {
+          "label": "겨울 가중치",
+          "value": "8"
+        }
+      ],
+      "relations": []
+    },
+    {
+      "source": "Assets/Resources/SO/World/Climate/WeatherFront_heatwave.asset",
+      "id": "weather:heatwave",
+      "authored": {
+        "stableId": "weather:heatwave",
+        "displayName": "폭염",
+        "kind": "3",
+        "minimumDurationDays": "2",
+        "maximumDurationDays": "5",
+        "temperatureModifierC": "10",
+        "springWeight": "2",
+        "summerWeight": "18",
+        "autumnWeight": "2",
+        "winterWeight": "0"
+      },
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/nature/weather-heatwave.json",
+      "title": "폭염",
+      "summary": "2~5일 동안 기온을 10℃ 조정하고 계절별 출현 가중치를 달리해 생산·생존 환경의 단기 변동을 만든다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "2일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "5일"
+        },
+        {
+          "label": "기온 변화",
+          "value": "10°C"
+        },
+        {
+          "label": "봄 가중치",
+          "value": "2"
+        },
+        {
+          "label": "여름 가중치",
+          "value": "18"
+        },
+        {
+          "label": "가을 가중치",
+          "value": "2"
+        },
+        {
+          "label": "겨울 가중치",
+          "value": "0"
+        }
+      ],
+      "relations": []
+    }
+  ],
+  "seasonalEvents": [
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-fever-camp.asset",
+      "id": "seasonal:spring-fever-camp",
+      "authored": {
+        "stableId": "seasonal:spring-fever-camp",
+        "displayName": "봄열 피난민",
+        "season": "0",
+        "minimumDurationDays": "2",
+        "maximumDurationDays": "4"
+      },
+      "domains": [
+        "disease",
+        "service"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 15,
+          "target": "disease:red-fever",
+          "amount": 10,
+          "duration": 4
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:spring-fever-camp",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-spring-fever-camp.json",
+      "title": "봄열 피난민",
+      "summary": "열병이 도는 피난 행렬이 치료와 격리 공간을 요청한다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "2일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "4일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [
+        {
+          "amount": "10",
+          "label": "연결",
+          "target_kind": "medical",
+          "target_slug": "disease-red-fever",
+          "target_spoiler_tier": "none",
+          "target_title": "적열병",
+          "type": "adds-disease-exposure"
+        }
+      ],
+      "authoredNormalizedSeverity": 5
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-migrant-herd.asset",
+      "id": "seasonal:spring-migrant-herd",
+      "authored": {
+        "stableId": "seasonal:spring-migrant-herd",
+        "displayName": "이동 초식군",
+        "season": "0",
+        "minimumDurationDays": "2",
+        "maximumDurationDays": "4"
+      },
+      "domains": [
+        "wildlife",
+        "agriculture"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 14,
+          "target": "herd",
+          "amount": 3,
+          "duration": 4
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:spring-migrant-herd",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-spring-migrant-herd.json",
+      "title": "이동 초식군",
+      "summary": "번식지로 향하는 초식동물이 밭을 지나며 포식자도 끌어들인다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "2일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "4일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [],
+      "authoredNormalizedSeverity": 3
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-nesting-season.asset",
+      "id": "seasonal:spring-nesting-season",
+      "authored": {
+        "stableId": "seasonal:spring-nesting-season",
+        "displayName": "둥지철",
+        "season": "0",
+        "minimumDurationDays": "3",
+        "maximumDurationDays": "5"
+      },
+      "domains": [
+        "wildlife",
+        "facility"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 14,
+          "target": "nests",
+          "amount": 2,
+          "duration": 5
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:spring-nesting-season",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-spring-nesting-season.json",
+      "title": "둥지철",
+      "summary": "야생동물이 시설 틈에 둥지를 틀어 생산과 포획 기회를 함께 만든다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "3일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "5일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [],
+      "authoredNormalizedSeverity": 2
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-seed-exchange.asset",
+      "id": "seasonal:spring-seed-exchange",
+      "authored": {
+        "stableId": "seasonal:spring-seed-exchange",
+        "displayName": "떠돌이 종자상",
+        "season": "0",
+        "minimumDurationDays": "2",
+        "maximumDurationDays": "2"
+      },
+      "domains": [
+        "faction",
+        "agriculture"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 6,
+          "target": "faction:dungeon:myconid",
+          "amount": 4,
+          "duration": 2
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:spring-seed-exchange",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-spring-seed-exchange.json",
+      "title": "떠돌이 종자상",
+      "summary": "균사 연합 상인이 희귀 종자와 의약품을 생산품 교환으로 제안한다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "2일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "2일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [],
+      "authoredNormalizedSeverity": 3
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-spore-rain.asset",
+      "id": "seasonal:spring-spore-rain",
+      "authored": {
+        "stableId": "seasonal:spring-spore-rain",
+        "displayName": "포자비",
+        "season": "0",
+        "minimumDurationDays": "2",
+        "maximumDurationDays": "4"
+      },
+      "domains": [
+        "agriculture",
+        "disease"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 15,
+          "target": "disease:spore-lung",
+          "amount": 8,
+          "duration": 4
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:spring-spore-rain",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-spring-spore-rain.json",
+      "title": "포자비",
+      "summary": "습한 포자가 버섯 생산을 돕지만 호흡기 노출을 높인다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "2일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "4일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [
+        {
+          "amount": "8",
+          "label": "연결",
+          "target_kind": "medical",
+          "target_slug": "disease-spore-lung",
+          "target_spoiler_tier": "none",
+          "target_title": "포자폐증",
+          "type": "adds-disease-exposure"
+        }
+      ],
+      "authoredNormalizedSeverity": 4
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-thaw-flood.asset",
+      "id": "seasonal:spring-thaw-flood",
+      "authored": {
+        "stableId": "seasonal:spring-thaw-flood",
+        "displayName": "해빙수 범람",
+        "season": "0",
+        "minimumDurationDays": "2",
+        "maximumDurationDays": "3"
+      },
+      "domains": [
+        "agriculture",
+        "logistics"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 13,
+          "target": "flood",
+          "amount": 1,
+          "duration": 3
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:spring-thaw-flood",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-spring-thaw-flood.json",
+      "title": "해빙수 범람",
+      "summary": "녹은 물이 낮은 농지와 운반 통로를 동시에 덮친다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "2일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "3일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [],
+      "authoredNormalizedSeverity": 2
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-washed-road.asset",
+      "id": "seasonal:spring-washed-road",
+      "authored": {
+        "stableId": "seasonal:spring-washed-road",
+        "displayName": "씻겨나간 길",
+        "season": "0",
+        "minimumDurationDays": "1",
+        "maximumDurationDays": "3"
+      },
+      "domains": [
+        "expedition",
+        "logistics"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 13,
+          "target": "road",
+          "amount": 2,
+          "duration": 3
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:spring-washed-road",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-spring-washed-road.json",
+      "title": "씻겨나간 길",
+      "summary": "폭우가 원정로와 외부 물자 도착 시간을 흔든다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "1일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "3일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [],
+      "authoredNormalizedSeverity": 4
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-dry-well.asset",
+      "id": "seasonal:summer-dry-well",
+      "authored": {
+        "stableId": "seasonal:summer-dry-well",
+        "displayName": "마르는 수원",
+        "season": "1",
+        "minimumDurationDays": "3",
+        "maximumDurationDays": "5"
+      },
+      "domains": [
+        "agriculture",
+        "service"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 11,
+          "target": "resource:clean-water",
+          "amount": 6,
+          "duration": 5
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:summer-dry-well",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-summer-dry-well.json",
+      "title": "마르는 수원",
+      "summary": "깨끗한 물 생산 저하가 농업과 손님 서비스를 동시에 압박한다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "3일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "5일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [
+        {
+          "amount": "6",
+          "label": "연결",
+          "target_kind": "item",
+          "target_slug": "resource-clean-water",
+          "target_spoiler_tier": "none",
+          "target_title": "깨끗한 물",
+          "type": "consumes-item"
+        }
+      ],
+      "authoredNormalizedSeverity": 6
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-festival-scarcity.asset",
+      "id": "seasonal:summer-festival-scarcity",
+      "authored": {
+        "stableId": "seasonal:summer-festival-scarcity",
+        "displayName": "축제 식재료 경쟁",
+        "season": "1",
+        "minimumDurationDays": "2",
+        "maximumDurationDays": "3"
+      },
+      "domains": [
+        "service",
+        "faction"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 9,
+          "target": "market",
+          "amount": -120,
+          "duration": 3
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:summer-festival-scarcity",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-summer-festival-scarcity.json",
+      "title": "축제 식재료 경쟁",
+      "summary": "주변 정착지의 축제가 고급 식품 가격과 손님 요구를 끌어올린다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "2일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "3일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [],
+      "authoredNormalizedSeverity": 2.4
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-heat-grid.asset",
+      "id": "seasonal:summer-heat-grid",
+      "authored": {
+        "stableId": "seasonal:summer-heat-grid",
+        "displayName": "폭염 전력부하",
+        "season": "1",
+        "minimumDurationDays": "2",
+        "maximumDurationDays": "5"
+      },
+      "domains": [
+        "facility",
+        "health"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 14,
+          "target": "power-grid",
+          "amount": 4,
+          "duration": 5
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:summer-heat-grid",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-summer-heat-grid.json",
+      "title": "폭염 전력부하",
+      "summary": "냉각과 의료 시설의 동시 가동이 전력망을 압박한다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "2일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "5일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [],
+      "authoredNormalizedSeverity": 4
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-mana-lightning.asset",
+      "id": "seasonal:summer-mana-lightning",
+      "authored": {
+        "stableId": "seasonal:summer-mana-lightning",
+        "displayName": "마나 번개",
+        "season": "1",
+        "minimumDurationDays": "1",
+        "maximumDurationDays": "3"
+      },
+      "domains": [
+        "facility",
+        "expedition"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 14,
+          "target": "mana-surge",
+          "amount": 5,
+          "duration": 3
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:summer-mana-lightning",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-summer-mana-lightning.json",
+      "title": "마나 번개",
+      "summary": "비전 장치가 과충전되고 원정지에는 희귀 결정이 노출된다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "1일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "3일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [],
+      "authoredNormalizedSeverity": 5
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-smoke-valley.asset",
+      "id": "seasonal:summer-smoke-valley",
+      "authored": {
+        "stableId": "seasonal:summer-smoke-valley",
+        "displayName": "연무 계곡",
+        "season": "1",
+        "minimumDurationDays": "2",
+        "maximumDurationDays": "4"
+      },
+      "domains": [
+        "disease",
+        "combat"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 15,
+          "target": "disease:ash-lung",
+          "amount": 7,
+          "duration": 4
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:summer-smoke-valley",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-summer-smoke-valley.json",
+      "title": "연무 계곡",
+      "summary": "산불 연기가 환기와 원거리 전투 시야를 악화시킨다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "2일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "4일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [
+        {
+          "amount": "7",
+          "label": "연결",
+          "target_kind": "medical",
+          "target_slug": "disease-ash-lung",
+          "target_spoiler_tier": "none",
+          "target_title": "재먼지폐",
+          "type": "adds-disease-exposure"
+        }
+      ],
+      "authoredNormalizedSeverity": 3.5
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-vermin-bloom.asset",
+      "id": "seasonal:summer-vermin-bloom",
+      "authored": {
+        "stableId": "seasonal:summer-vermin-bloom",
+        "displayName": "해충 대발생",
+        "season": "1",
+        "minimumDurationDays": "3",
+        "maximumDurationDays": "5"
+      },
+      "domains": [
+        "agriculture",
+        "logistics"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 14,
+          "target": "crop-pests",
+          "amount": 5,
+          "duration": 5
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:summer-vermin-bloom",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-summer-vermin-bloom.json",
+      "title": "해충 대발생",
+      "summary": "고온에 늘어난 해충이 밭과 식량 창고를 오간다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "3일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "5일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [],
+      "authoredNormalizedSeverity": 5
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-wounded-mercenaries.asset",
+      "id": "seasonal:summer-wounded-mercenaries",
+      "authored": {
+        "stableId": "seasonal:summer-wounded-mercenaries",
+        "displayName": "부상 용병대",
+        "season": "1",
+        "minimumDurationDays": "2",
+        "maximumDurationDays": "3"
+      },
+      "domains": [
+        "service",
+        "faction"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 7,
+          "target": "faction:dungeon:beastkin",
+          "amount": 5,
+          "duration": 3
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:summer-wounded-mercenaries",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-summer-wounded-mercenaries.json",
+      "title": "부상 용병대",
+      "summary": "수인 연합 용병들이 치료와 탄약을 요구하며 추격자를 끌고 온다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "2일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "3일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [],
+      "authoredNormalizedSeverity": 3.75
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-caravan-rush.asset",
+      "id": "seasonal:autumn-caravan-rush",
+      "authored": {
+        "stableId": "seasonal:autumn-caravan-rush",
+        "displayName": "겨울 전 대상행렬",
+        "season": "2",
+        "minimumDurationDays": "2",
+        "maximumDurationDays": "4"
+      },
+      "domains": [
+        "faction",
+        "production"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 9,
+          "target": "contract",
+          "amount": 180,
+          "duration": 4
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:autumn-caravan-rush",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-autumn-caravan-rush.json",
+      "title": "겨울 전 대상행렬",
+      "summary": "대상단이 대량 계약을 제안해 생산과 객실을 동시에 점유한다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "2일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "4일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [],
+      "authoredNormalizedSeverity": 3.6
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-early-frost.asset",
+      "id": "seasonal:autumn-early-frost",
+      "authored": {
+        "stableId": "seasonal:autumn-early-frost",
+        "displayName": "이른 서리",
+        "season": "2",
+        "minimumDurationDays": "2",
+        "maximumDurationDays": "4"
+      },
+      "domains": [
+        "agriculture",
+        "expedition"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 14,
+          "target": "early-frost",
+          "amount": 4,
+          "duration": 4
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:autumn-early-frost",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-autumn-early-frost.json",
+      "title": "이른 서리",
+      "summary": "서리가 수확 직전 작물과 야외 원정 보급을 동시에 위협한다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "2일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "4일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [],
+      "authoredNormalizedSeverity": 4
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-harvest-dispute.asset",
+      "id": "seasonal:autumn-harvest-dispute",
+      "authored": {
+        "stableId": "seasonal:autumn-harvest-dispute",
+        "displayName": "수확 몫 분쟁",
+        "season": "2",
+        "minimumDurationDays": "2",
+        "maximumDurationDays": "3"
+      },
+      "domains": [
+        "faction",
+        "agriculture"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 7,
+          "target": "faction:dungeon:kobold",
+          "amount": 5,
+          "duration": 3
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:autumn-harvest-dispute",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-autumn-harvest-dispute.json",
+      "title": "수확 몫 분쟁",
+      "summary": "코볼트 연합이 공동 경작지의 수확 몫을 다시 요구한다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "2일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "3일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [],
+      "authoredNormalizedSeverity": 3.75
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-migration-window.asset",
+      "id": "seasonal:autumn-migration-window",
+      "authored": {
+        "stableId": "seasonal:autumn-migration-window",
+        "displayName": "짧은 이동창",
+        "season": "2",
+        "minimumDurationDays": "2",
+        "maximumDurationDays": "3"
+      },
+      "domains": [
+        "expedition",
+        "wildlife"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 12,
+          "target": "migration-window",
+          "amount": 1,
+          "duration": 3
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:autumn-migration-window",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-autumn-migration-window.json",
+      "title": "짧은 이동창",
+      "summary": "안정된 날씨가 원정과 야생동물 포획에 모두 좋은 기회를 연다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "2일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "3일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [],
+      "authoredNormalizedSeverity": 0
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-predator-descent.asset",
+      "id": "seasonal:autumn-predator-descent",
+      "authored": {
+        "stableId": "seasonal:autumn-predator-descent",
+        "displayName": "포식자 하산",
+        "season": "2",
+        "minimumDurationDays": "3",
+        "maximumDurationDays": "5"
+      },
+      "domains": [
+        "wildlife",
+        "defense"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 14,
+          "target": "predators",
+          "amount": 5,
+          "duration": 5
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:autumn-predator-descent",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-autumn-predator-descent.json",
+      "title": "포식자 하산",
+      "summary": "먹이를 쫓는 포식자가 축사와 외곽 운반로를 노린다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "3일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "5일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [],
+      "authoredNormalizedSeverity": 5
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-rot-cart.asset",
+      "id": "seasonal:autumn-rot-cart",
+      "authored": {
+        "stableId": "seasonal:autumn-rot-cart",
+        "displayName": "썩은 수레",
+        "season": "2",
+        "minimumDurationDays": "1",
+        "maximumDurationDays": "2"
+      },
+      "domains": [
+        "logistics",
+        "disease"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 15,
+          "target": "disease:gut-rot",
+          "amount": 9,
+          "duration": 2
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:autumn-rot-cart",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-autumn-rot-cart.json",
+      "title": "썩은 수레",
+      "summary": "오염된 교역 식품이 창고와 식당으로 들어올 위험이 생긴다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "1일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "2일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [
+        {
+          "amount": "9",
+          "label": "연결",
+          "target_kind": "medical",
+          "target_slug": "disease-gut-rot",
+          "target_spoiler_tier": "none",
+          "target_title": "장부패증",
+          "type": "adds-disease-exposure"
+        }
+      ],
+      "authoredNormalizedSeverity": 4.5
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-spoiled-silage.asset",
+      "id": "seasonal:autumn-spoiled-silage",
+      "authored": {
+        "stableId": "seasonal:autumn-spoiled-silage",
+        "displayName": "사일리지 발열",
+        "season": "2",
+        "minimumDurationDays": "1",
+        "maximumDurationDays": "3"
+      },
+      "domains": [
+        "husbandry",
+        "facility"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 14,
+          "target": "silage-fire",
+          "amount": 4,
+          "duration": 3
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:autumn-spoiled-silage",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-autumn-spoiled-silage.json",
+      "title": "사일리지 발열",
+      "summary": "잘못 쌓인 사료가 발열해 축산과 화재 대응을 압박한다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "1일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "3일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [],
+      "authoredNormalizedSeverity": 4
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-cave-flu-wave.asset",
+      "id": "seasonal:winter-cave-flu-wave",
+      "authored": {
+        "stableId": "seasonal:winter-cave-flu-wave",
+        "displayName": "동굴 독감 유행",
+        "season": "3",
+        "minimumDurationDays": "3",
+        "maximumDurationDays": "6"
+      },
+      "domains": [
+        "disease",
+        "service"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 15,
+          "target": "disease:cave-flu",
+          "amount": 12,
+          "duration": 6
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:winter-cave-flu-wave",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-winter-cave-flu-wave.json",
+      "title": "동굴 독감 유행",
+      "summary": "밀폐 생활이 직원과 피난 손님 사이의 공기 감염을 키운다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "3일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "6일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [
+        {
+          "amount": "12",
+          "label": "연결",
+          "target_kind": "medical",
+          "target_slug": "disease-cave-flu",
+          "target_spoiler_tier": "none",
+          "target_title": "동굴 독감",
+          "type": "adds-disease-exposure"
+        }
+      ],
+      "authoredNormalizedSeverity": 6
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-deep-echo.asset",
+      "id": "seasonal:winter-deep-echo",
+      "authored": {
+        "stableId": "seasonal:winter-deep-echo",
+        "displayName": "심층의 메아리",
+        "season": "3",
+        "minimumDurationDays": "1",
+        "maximumDurationDays": "2"
+      },
+      "domains": [
+        "expedition",
+        "wildlife"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 14,
+          "target": "truth-guardian",
+          "amount": 5,
+          "duration": 2
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:winter-deep-echo",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-winter-deep-echo.json",
+      "title": "심층의 메아리",
+      "summary": "조용해진 동굴에서 진실 수호자의 이동과 희귀 야생동물의 흔적이 함께 드러난다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "1일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "2일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [],
+      "authoredNormalizedSeverity": 5
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-frozen-pipes.asset",
+      "id": "seasonal:winter-frozen-pipes",
+      "authored": {
+        "stableId": "seasonal:winter-frozen-pipes",
+        "displayName": "동결 배관",
+        "season": "3",
+        "minimumDurationDays": "2",
+        "maximumDurationDays": "4"
+      },
+      "domains": [
+        "facility",
+        "health"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 14,
+          "target": "frozen-pipes",
+          "amount": 4,
+          "duration": 4
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:winter-frozen-pipes",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-winter-frozen-pipes.json",
+      "title": "동결 배관",
+      "summary": "동결이 물 공급과 의료실 운영을 함께 위협한다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "2일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "4일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [],
+      "authoredNormalizedSeverity": 4
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-fuel-demand.asset",
+      "id": "seasonal:winter-fuel-demand",
+      "authored": {
+        "stableId": "seasonal:winter-fuel-demand",
+        "displayName": "연료 쟁탈",
+        "season": "3",
+        "minimumDurationDays": "2",
+        "maximumDurationDays": "4"
+      },
+      "domains": [
+        "faction",
+        "facility"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 11,
+          "target": "material:charcoal",
+          "amount": 8,
+          "duration": 4
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:winter-fuel-demand",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-winter-fuel-demand.json",
+      "title": "연료 쟁탈",
+      "summary": "주변 세력이 연료 계약을 요구해 난방과 외교가 충돌한다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "2일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "4일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [
+        {
+          "amount": "8",
+          "label": "연결",
+          "target_kind": "item",
+          "target_slug": "material-charcoal",
+          "target_spoiler_tier": "none",
+          "target_title": "숯",
+          "type": "consumes-item"
+        }
+      ],
+      "authoredNormalizedSeverity": 8
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-hungry-pack.asset",
+      "id": "seasonal:winter-hungry-pack",
+      "authored": {
+        "stableId": "seasonal:winter-hungry-pack",
+        "displayName": "굶주린 무리",
+        "season": "3",
+        "minimumDurationDays": "3",
+        "maximumDurationDays": "5"
+      },
+      "domains": [
+        "wildlife",
+        "defense"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 14,
+          "target": "hungry-pack",
+          "amount": 6,
+          "duration": 5
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:winter-hungry-pack",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-winter-hungry-pack.json",
+      "title": "굶주린 무리",
+      "summary": "먹이를 잃은 야생 무리가 가축과 쓰레기장을 습격한다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "3일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "5일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [],
+      "authoredNormalizedSeverity": 6
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-memorial-envoys.asset",
+      "id": "seasonal:winter-memorial-envoys",
+      "authored": {
+        "stableId": "seasonal:winter-memorial-envoys",
+        "displayName": "추모 사절단",
+        "season": "3",
+        "minimumDurationDays": "1",
+        "maximumDurationDays": "2"
+      },
+      "domains": [
+        "faction",
+        "psychosocial"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 6,
+          "target": "faction:dungeon:golem",
+          "amount": 5,
+          "duration": 2
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:winter-memorial-envoys",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-winter-memorial-envoys.json",
+      "title": "추모 사절단",
+      "summary": "골렘 연합 사절들이 공동 추모에 참여하며 오래된 원한의 처리를 요구한다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "1일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "2일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [],
+      "authoredNormalizedSeverity": 3.75
+    },
+    {
+      "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-whiteout.asset",
+      "id": "seasonal:winter-whiteout",
+      "authored": {
+        "stableId": "seasonal:winter-whiteout",
+        "displayName": "백색 암흑",
+        "season": "3",
+        "minimumDurationDays": "1",
+        "maximumDurationDays": "3"
+      },
+      "domains": [
+        "expedition",
+        "logistics"
+      ],
+      "requirementsRaw": "items: []\n    facilities: []\n    research: []\n    characters: []\n    factions: []\n    worldMetrics: []\n    requiredFlags: []\n    excludedFlags: []",
+      "effects": [
+        {
+          "phase": "startEffects",
+          "kind": 13,
+          "target": "whiteout",
+          "amount": 3,
+          "duration": 3
+        },
+        {
+          "phase": "endEffects",
+          "kind": 12,
+          "target": "resolved:seasonal:winter-whiteout",
+          "amount": 1,
+          "duration": 0
+        }
+      ],
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-winter-whiteout.json",
+      "title": "백색 암흑",
+      "summary": "눈보라가 원정 시야와 외부 물류를 거의 끊는다.",
+      "facts": [
+        {
+          "label": "최소 지속 기간",
+          "value": "1일"
+        },
+        {
+          "label": "최대 지속 기간",
+          "value": "3일"
+        },
+        {
+          "label": "종료 효과",
+          "value": "1개"
+        }
+      ],
+      "relations": [],
+      "authoredNormalizedSeverity": 6
+    }
+  ],
+  "catalog": {
+    "domainLinked": true,
+    "rows": [
+      {
+        "source": "Assets/Resources/SO/World/Climate/WeatherFront_storm.asset",
+        "guid": "d763d1cf81b16194f8ed2394bf6ce0d3",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/World/Climate/WeatherFront_rain.asset",
+        "guid": "1b627da40f66e1b4ea9b6ffa9430a7a2",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/World/Climate/WeatherFront_heatwave.asset",
+        "guid": "115e71035e26e1c4cb47c9c3643e0f20",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/World/Climate/WeatherFront_fog.asset",
+        "guid": "8ce9a617736afbf4aa483d731f084201",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/World/Climate/WeatherFront_cold-snap.asset",
+        "guid": "e91e9bd74472f5c4fb0bf10793da0d66",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/World/Climate/WeatherFront_clear.asset",
+        "guid": "ec9dbdc3c6bafa5499d7d6c2228c7197",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/World/Climate/ClimateZone_temperate-cave.asset",
+        "guid": "bf394596b89933247982365c18b2a9aa",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/World/Climate/ClimateZone_mycelial-depths.asset",
+        "guid": "73b08531f736b3a488c6f2f159b57147",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/World/Climate/ClimateZone_mana-stormlands.asset",
+        "guid": "638d387e598c1fb4cb311ebd8ac9a90d",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/World/Climate/ClimateZone_frost-rift.asset",
+        "guid": "5084e57eec7868747a2ee165415fd1f1",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/World/Climate/ClimateZone_ember-wastes.asset",
+        "guid": "cce50e196448c0f4087763ea5e5904b8",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-whiteout.asset",
+        "guid": "6e1ab8253025ddc459c3b18e847b2aaa",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-memorial-envoys.asset",
+        "guid": "a55b9bec20a7481479e217132ca7e4ce",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-hungry-pack.asset",
+        "guid": "7b8eba5beb4c13340abed549af4ffa12",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-fuel-demand.asset",
+        "guid": "5c7ab675fb84f604aa0ef431065996a7",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-frozen-pipes.asset",
+        "guid": "35b24a03c407a6947a8569744e2dcbab",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-deep-echo.asset",
+        "guid": "cc4e337cc207efc438cc57a4a3e12cd8",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-cave-flu-wave.asset",
+        "guid": "8e5bb37a7e3593049b98b6b86587bd4e",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-wounded-mercenaries.asset",
+        "guid": "61344f88bfc01d24ab9411b0f99f98e5",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-vermin-bloom.asset",
+        "guid": "12d303f51f2e6b04db1bd5bea05e50e9",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-smoke-valley.asset",
+        "guid": "7ab756e0e36362348bcea4c851d21728",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-mana-lightning.asset",
+        "guid": "22e23bd796e79a142bf9599571b10e27",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-heat-grid.asset",
+        "guid": "2032af6c6b57f2946a7af081b91aa0bc",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-festival-scarcity.asset",
+        "guid": "5d7313711cc15c54992bb68872b7b685",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-dry-well.asset",
+        "guid": "c7e9a3018f4bb5c4d82f17d65b0aead8",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-washed-road.asset",
+        "guid": "dc1eae18ce4706749b9ebd1a643a659f",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-thaw-flood.asset",
+        "guid": "efe3649c0c1567440823508547c8ed36",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-spore-rain.asset",
+        "guid": "a3d2cf33fa28c6f4dbf0cd2c5f2d528f",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-seed-exchange.asset",
+        "guid": "c043d93829614d240aa97c532942bf60",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-nesting-season.asset",
+        "guid": "385092e614d35554286a7dfed714683d",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-migrant-herd.asset",
+        "guid": "5059058fe490d9a428fdef37b91a793b",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-fever-camp.asset",
+        "guid": "632a8cec9bb76194b945e3ff0fc11096",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-spoiled-silage.asset",
+        "guid": "d02b0b1eb0fd1fe4faf6b35aee70a94e",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-rot-cart.asset",
+        "guid": "9b55046fd52516a4aa39e7be80924066",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-predator-descent.asset",
+        "guid": "2495d6d4a8765cd409646c242f06ec7c",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-migration-window.asset",
+        "guid": "3584adfb5e280fa4281d1ab08f1791c8",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-harvest-dispute.asset",
+        "guid": "d1382184e7033bb43830df88e3b0c63b",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-early-frost.asset",
+        "guid": "cf278514b890f3e40967dc9c83edadf2",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      },
+      {
+        "source": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-caravan-rush.asset",
+        "guid": "1843d1c41cf60bd4a9f1d870e756320d",
+        "inRoot": false,
+        "inDomain": true,
+        "reachable": true
+      }
+    ]
+  },
+  "gaps": [
+    "GAP-087",
+    "GAP-088",
+    "GAP-089",
+    "GAP-090",
+    "GAP-091",
+    "GAP-092",
+    "GAP-093"
+  ],
+  "implementationQuestions": [
+    {
+      "id": "CLIMATE-U01",
+      "title": "기후 선택과 시차 적용 경로",
+      "evidence": "ClimateRuntime은 신규 상태를 온대 동굴로 생성한다. LocalHourOffset은 정의·카탈로그 밖에서 비Editor 직접 소비를 찾지 못했다. 다른 기후를 실제 선택/이동하는 UI와 저장 설정 경로는 미확인이다.",
+      "classification": "implementation-link-unverified"
+    },
+    {
+      "id": "CLIMATE-U02",
+      "title": "관측탑 하나만 선택하고 갱신 시점 제한",
+      "evidence": "ID순 첫 가동 시설만 TryMaintain/IsOperational에서 확인한다. 그 시설이 장비 미공급일 때 다음 관측탑을 조회하지 않는다. 유지 호출은 Start와 하루 종료이므로 건설·도구 공급 직후의 예보 갱신은 실제 화면 확인이 필요하다.",
+      "classification": "behavior-needs-focused-verification"
+    },
+    {
+      "id": "CLIMATE-U03",
+      "title": "예보와 현재 날씨 잔여일수의 구분",
+      "evidence": "ForecastHorizonDays는 현재 날씨 잔여일수 상한3이다. HUD는 일수만 표시한다. 다음 전선 종류·다음날 온도 목록을 생성하거나 노출하는 기능으로 검증하지 않았다.",
+      "classification": "limited-feature-not-multi-day-weather-prediction"
+    },
+    {
+      "id": "CLIMATE-U04",
+      "title": "계절 사건의 종료일·연말 경계",
+      "evidence": "deadline=start+duration 및 today>deadline 만료이면 시작일10/기간2 사건은10~12일 활성,13일 만료다. 주기 absoluteDay/120은120일에 바뀌지만 달력 연도는121일에 바뀐다. 현재 코드를 정적으로 확인한 것이며 경계 실행 테스트는 미실행이다.",
+      "classification": "implementation-design-boundary-conflict"
+    },
+    {
+      "id": "CLIMATE-U05",
+      "title": "Threat11개와 이동창 flag의 개별 결과 소비 미확인",
+      "evidence": "Threat는 amount/duration 대신 targetId를 activePressureIds에 중복 없이 추가한다. 비Editor HasPressure 소비자는 ending:* 계통뿐이며 계절 target11개, migration-window와 resolved:seasonal:*의 별도 소비는 전체 Assets/Scripts 역검색에서 확인되지 않았다. 따라서 배관 동결·야생동물 생성·시설 손상·추가 이동 효과를 완료로 세지 않는다. affectedDomainIds의2개는 작성 메타데이터다.",
+      "classification": "orphan-effect-candidate-not-proven-gameplay"
+    },
+    {
+      "id": "CLIMATE-U06",
+      "title": "비용 부족 시 하루 사건 평가 전체 거부와 실패 알림",
+      "evidence": "DailyEvaluation 후보는 비용 선검사를 통과한 후에만 live 상태를 publish한다. 물6·숯8·금액120이 부족하면 false이며 OnDayStarted는 failure를 버린다. 계절·사회 평가가 같은 명령에 묶인 데 따른 부작용/재시도/시계 진행은 별도 실행 확인이 필요하다.",
+      "classification": "transaction-and-observation-unverified"
+    },
+    {
+      "id": "CLIMATE-U07",
+      "title": "저장·장비 교체·질병의 실제 실행",
+      "evidence": "기후 Capture/Restore와 계절 Prepare/Publish를 읽었으나 난수 스트림과의 교차 복원, 공통 장비 전달/마모/교체, 질병 노출 이후 감염, 사건 결과 UI 입력은 실행하지 않았다. 최대 마모 횟수는 단순 산술로만 표시한다.",
+      "classification": "execution-evidence-pending"
+    },
+    {
+      "id": "CLIMATE-U08",
+      "title": "계절 사건 영향 영역과 강도 상한은 작성 감사",
+      "evidence": "StrategicContentBalanceCalibrationScenario는 영역 이름2개·기간1~6·정규화강도≤12를 검사한다. 실제 두 도메인 소비를 검증하거나 런타임 피해를12로 자르는 코드가 아니다. 현재28개를 같은 산식으로 계산하면0~8이며 이는 C# 감사 실행 결과가 아니다.",
+      "classification": "authoring-check-not-live-effect-proof"
+    }
+  ],
+  "independentArithmeticChecks": [
+    {
+      "case": "온대 맑음·잡음0 1일",
+      "actual": 20,
+      "expected": 20,
+      "passed": true
+    },
+    {
+      "case": "온대 맑음·잡음0 5일",
+      "actual": 20,
+      "expected": 20,
+      "passed": true
+    },
+    {
+      "case": "온대 맑음·잡음0 30일",
+      "actual": 14,
+      "expected": 14,
+      "passed": true
+    },
+    {
+      "case": "온대 맑음·잡음0 60일",
+      "actual": 28,
+      "expected": 28,
+      "passed": true
+    },
+    {
+      "case": "온대 맑음·잡음0 90일",
+      "actual": 14.000000000000007,
+      "expected": 14,
+      "passed": true
+    },
+    {
+      "case": "온대 맑음·잡음0 120일",
+      "actual": 0,
+      "expected": 0,
+      "passed": true
+    },
+    {
+      "case": "60일 폭염 +10",
+      "actual": 38,
+      "expected": 38,
+      "passed": true
+    },
+    {
+      "case": "120일 한파 -12",
+      "actual": -12,
+      "expected": -12,
+      "passed": true
+    },
+    {
+      "case": "연감 최대 마모 횟수(단순 나눗셈)",
+      "actual": 720,
+      "expected": 720,
+      "passed": true
+    },
+    {
+      "case": "관측키트 최대 마모 횟수(단순 나눗셈)",
+      "actual": 120,
+      "expected": 120,
+      "passed": true
+    },
+    {
+      "case": "적용되는 지연 범위 0",
+      "actual": 1,
+      "expected": 1,
+      "passed": true
+    },
+    {
+      "case": "적용되는 지연 범위 1",
+      "actual": 0.8,
+      "expected": 0.8,
+      "passed": true
+    },
+    {
+      "case": "적용되는 지연 범위 2",
+      "actual": 0.6400000000000001,
+      "expected": 0.64,
+      "passed": true
+    },
+    {
+      "case": "적용되는 지연 범위 3",
+      "actual": 0.5120000000000001,
+      "expected": 0.512,
+      "passed": true
+    },
+    {
+      "case": "적용되는 지연 범위 4",
+      "actual": 0.5,
+      "expected": 0.5,
+      "passed": true
+    }
+  ],
+  "readScope": {
+    "fullFiles": [
+      "ClimateZoneDefinitionSO.cs",
+      "WeatherFrontDefinitionSO.cs",
+      "SeasonalWorldEventDefinitionSO.cs",
+      "ClimateDomain.cs",
+      "ClimateRuntime.cs",
+      "ClimateDurableEquipmentRuntime.cs",
+      "ClimateDurableEquipmentPolicySource.cs",
+      "ClimateDurableEquipmentLifecycleRuntime.cs"
+    ],
+    "partialFiles": {
+      "CoreSessionContracts.cs": "1-120",
+      "V20CampaignRuntime.cs": "141-210,472-489,689-716,746-783,1011-1275,1477-1591,1575-1609,1648-1720,1845-1892",
+      "V20ContentResolutionService.cs": "886-1018,1276-1432,1491-1666",
+      "V20CampaignApplicationAdapter.cs": "101-222",
+      "ItemPrimitives.cs": "368-430",
+      "UIManager.cs": "91-135",
+      "CharacterStatsProjectionService.cs": "208-228",
+      "MilestonePressureApplicationAdapter.cs": "146-210",
+      "StrategicContentBalanceCalibrationScenario.cs": "183-231,336-360",
+      "generate_wiki_model.py": "579-623",
+      "DungeonCoreInfrastructureRegistration.cs": "68-85"
+    },
+    "note": "메타파일은 GUID 참조만 검사했다. 전체 파일 hash는 동일 원본 식별용이며 부분 읽기를 완독으로 바꾸지 않는다."
+  },
+  "sourceEvidence": [
+    {
+      "path": "Assets/Resources/SO/Content/GameDomainContentCatalog.asset",
+      "sha256": "78e87c3239487cb4b4ded6309d549de06320bbe1db8362c0c25fe7abdecd808e"
+    },
+    {
+      "path": "Assets/Resources/SO/Content/GameDomainContentCatalog.asset.meta",
+      "sha256": "c1c65d35728aaeb0466c5586c1a26559b39e0991bb49db4614dc4508bdf7e05a"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I88_기상_관측_도구함.asset",
+      "sha256": "f0f2e26a54b226626f7b3cc18e1e136159172fa8b7f7560ec846ed7028210afa"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I89_계절력_책자.asset",
+      "sha256": "d212424d5dee64b62951e22ef8e99c27aed2abd3e9fb449e4452ada2d4c0701c"
+    },
+    {
+      "path": "Assets/Resources/SO/GameContentCatalog.asset",
+      "sha256": "8b3fe3d0265e1c18a3a25c54e4c0d011c64e4f75eb264aee22d4466700861645"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-caravan-rush.asset",
+      "sha256": "c94cd2cae1f2ff67842c834f21957df01ff6a526dbcf6cbd7b89b09813c5182f"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-caravan-rush.asset.meta",
+      "sha256": "fbeac775e9f6ff2348aa7221c2873b174b458195767444522af8f6cde9167301"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-early-frost.asset",
+      "sha256": "3a8b8afe326ec1162327fcfd8540cc472991b94f57854243a28622501850bd8a"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-early-frost.asset.meta",
+      "sha256": "270b135d5ed9f21d0a9bbb6a05ca9def34f383b5992f82f6297536651ea35c36"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-harvest-dispute.asset",
+      "sha256": "536b841b6676cc0f0f836a3c4ebe19da2d5a72a735bcdcfb8c9189db83927f65"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-harvest-dispute.asset.meta",
+      "sha256": "529950abeb0b2c3ea8f44598cbebd4d941291733d8eda15edfcc9a48d719fa24"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-migration-window.asset",
+      "sha256": "521344cd40993d19a8b366b9cd7666d6aec84591190a2f8f6203b57e7e9e34a9"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-migration-window.asset.meta",
+      "sha256": "432107b4bc76b7c8ef16ca0e57a15932b61fea03a41fce9fb7ada77246b47cf0"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-predator-descent.asset",
+      "sha256": "251d681005b941348a216f69f628e1d30d6340838258257175f15fc6edfc9f01"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-predator-descent.asset.meta",
+      "sha256": "047860b9401b2002df88f1d378f6708452eced318bb79f2fc21ad4d6cff4d5b2"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-rot-cart.asset",
+      "sha256": "193b1085c195be520ee45b85dbfd4b1a732d96e0ecb563fa05a153450338415a"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-rot-cart.asset.meta",
+      "sha256": "9e44a0c3c90c7a27821d71cee1ffdb12453f934216e85360430556a8c954709e"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-spoiled-silage.asset",
+      "sha256": "acccbd90fe738235dcd3de101eba7a697dafeb50da225a9a01fcdb872981d6f0"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-spoiled-silage.asset.meta",
+      "sha256": "e6698b0ad3064046c548f4fdc1110d188f5944e200b4c9185a32d18c5b59ea81"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-fever-camp.asset",
+      "sha256": "17c017b7b8eb201384ed6c3a7fd850211bd5ffc1176a3a5a928de854c3be9854"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-fever-camp.asset.meta",
+      "sha256": "9364ac42773fedc53cbaf91e23b47a0cd1b46e5d46ddc66c80011c2420795d58"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-migrant-herd.asset",
+      "sha256": "b72852a7c50f84d718d935d31d4e196d4731057c348cb48333dbfa80a0aad951"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-migrant-herd.asset.meta",
+      "sha256": "cd5fbaa1878a9ea912c77258283f75467b576fd70df27241d303ca782754fa04"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-nesting-season.asset",
+      "sha256": "494265a826500ea749d8ec00329ac68c09ae0ce43de7b73b791d699cdc9d6897"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-nesting-season.asset.meta",
+      "sha256": "00991eb15eb1113b4cf3277579738dc2192e8b804a5b7812c00436d713a16a13"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-seed-exchange.asset",
+      "sha256": "5fd04023f6625db6d75d89e23dec15dc0577436361296716f1c695de3e1a3874"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-seed-exchange.asset.meta",
+      "sha256": "fb3e8d8f3244c4a4602a4101f25a61c858388a88a9c66b879500358375f64146"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-spore-rain.asset",
+      "sha256": "eb577c1eaed86e9e9a33e621b2a34546ad4871aa6a15ea9c91ab875196337c26"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-spore-rain.asset.meta",
+      "sha256": "d669572328d5f90dcbc5c6cbceb7c5152e2d4ab3793e322165b66fe5b3dd7596"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-thaw-flood.asset",
+      "sha256": "7e8cd99b14df0e05934d349e2bc537067ffb3e8bb3f697983499db167da62125"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-thaw-flood.asset.meta",
+      "sha256": "6e43ce9d2fedf347c48a47d5d825fd6c4c4deb9e0756ba61926e7b2ad1969955"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-washed-road.asset",
+      "sha256": "a84407101dd1c294fd7363248d44696df7d4ca6b34ae56bd2805bb0accda06bc"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-washed-road.asset.meta",
+      "sha256": "9394869ea0a88a315977c48c5de78f5bc0c6acec90c48c3135f716af9d071fd4"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-dry-well.asset",
+      "sha256": "e46c9506eb961f6f1301b936c28bb7b9a80ba21144ebe7d162ebc0df9c91bb36"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-dry-well.asset.meta",
+      "sha256": "d067a2f83b193c93ff6fd311ef6444382b729e8dc29787a465b5a726cf7eca8a"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-festival-scarcity.asset",
+      "sha256": "aba2923d3cbf61573daa6feaf732d51df0ffae8a4ed351a8361705d3820bc906"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-festival-scarcity.asset.meta",
+      "sha256": "c1efb591b126b360da48f586b6f56f20852f2b4ad37c95ec55db64023743e7d0"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-heat-grid.asset",
+      "sha256": "e8700802280f3d250bd189b2b0efb526f9bcdaa13b375c77b9be7be84c309499"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-heat-grid.asset.meta",
+      "sha256": "f7c67684a5d577deceab0cc348410f5d3daed1e226f14a69b21c4063a6d4da4f"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-mana-lightning.asset",
+      "sha256": "3423123b5aac92286a046fd36efa55888963bbd7c59ca340af85cc1b42173ac6"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-mana-lightning.asset.meta",
+      "sha256": "14d486b728296d7a5f73ca223c46b77be4a02376f16ef28f965e66176bb6169f"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-smoke-valley.asset",
+      "sha256": "0aacee6a4e4da7b595dda0066541080ac587b4b2c6891fe027cbc252fd914acf"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-smoke-valley.asset.meta",
+      "sha256": "9afe9ad524954c865860b207d65bc3cab196022c1fb0c982269f7656834776c4"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-vermin-bloom.asset",
+      "sha256": "40d1f95f24e0b826cc672cefc121c2e1d32fec4176fa252faa013a34ffcb7adc"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-vermin-bloom.asset.meta",
+      "sha256": "4dd98d54fe5acdcd4595087789ec9a7ca5098f87850a96b8807d1bc27c281dc9"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-wounded-mercenaries.asset",
+      "sha256": "e753ae534314846ad0ffc587dacaa7a83e26bf07334a0a6b89863c85904740ba"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-wounded-mercenaries.asset.meta",
+      "sha256": "cfc4133dfe1b823cb4c05c4a0ba8574bc2f8ced5435e636998ad9ba5afd448fa"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-cave-flu-wave.asset",
+      "sha256": "2b16c81b0333ef255347f54178c968b4f2b88e019e56ef6b7c6dba07d82002c4"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-cave-flu-wave.asset.meta",
+      "sha256": "f228327f72b31819d43c892f4e56f481a73bc2695873351e9666a13cd26ca986"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-deep-echo.asset",
+      "sha256": "1dff7b98df1a579e9656fcc1e4402562955842dfca2a5149279b9b5b3b30552f"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-deep-echo.asset.meta",
+      "sha256": "6990bbb995fe260668f5cede6d62bb0f1351b37b924a75e217e1eb87f3573ea2"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-frozen-pipes.asset",
+      "sha256": "c763a1a4a5bf0144e02455e01e9b22a1ef902f0e1001abda011072fd4c185cc8"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-frozen-pipes.asset.meta",
+      "sha256": "a6db29387c0ca2dc244cad66f630fd2e1b83f60ccc462172b0d8efa4921e44e7"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-fuel-demand.asset",
+      "sha256": "9935866d3456d95a979de4e0386be82d9085182a8a52f978737628655a02a12b"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-fuel-demand.asset.meta",
+      "sha256": "9af7f94a1011dcec38f622f814eec2847ee55d62d8265f59e4012776f9514934"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-hungry-pack.asset",
+      "sha256": "2c4bdbfc06d40dc361c4c4b2d595c0e105bef0ba5a33a9bcc46c18282977cce8"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-hungry-pack.asset.meta",
+      "sha256": "c634ee321b60a9feea4afc4466e32fe112c1a4a4239d0f54c85b687c6fa93c69"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-memorial-envoys.asset",
+      "sha256": "8b65a9c4eeca16685180de10a7a3cdc2acb04ef1d20e691ff53c4fc7eca6f163"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-memorial-envoys.asset.meta",
+      "sha256": "4e7c6574585541d905e5a8185d3d27ba297b16ef4fa67cdcad4b8699ed53ad9d"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-whiteout.asset",
+      "sha256": "4c72a1d01271bb87f0802ee784c6ce4946d52f41cc7bde2293d91962ebf12a56"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_winter-whiteout.asset.meta",
+      "sha256": "9a09dac5744b99d83451f7b39d8474e8a5e6566246c2e625be014e1ee921bbd8"
+    },
+    {
+      "path": "Assets/Resources/SO/World/Climate/ClimateZone_ember-wastes.asset",
+      "sha256": "093d53d1da38d01140358495d23b9e73b19b3700a7df3e768299529ce87512f0"
+    },
+    {
+      "path": "Assets/Resources/SO/World/Climate/ClimateZone_ember-wastes.asset.meta",
+      "sha256": "0e160d06f508deb52355c4f84f1580926da7de28c583f51072d1d5e5fdc836c7"
+    },
+    {
+      "path": "Assets/Resources/SO/World/Climate/ClimateZone_frost-rift.asset",
+      "sha256": "8071ee1362376b67976db4ff12a3f1a884350005a61759612bfe576c7825ecf2"
+    },
+    {
+      "path": "Assets/Resources/SO/World/Climate/ClimateZone_frost-rift.asset.meta",
+      "sha256": "324b0b7c569845b6dc035a980972c27d75aca10094af66a19d202473152b5bb9"
+    },
+    {
+      "path": "Assets/Resources/SO/World/Climate/ClimateZone_mana-stormlands.asset",
+      "sha256": "d2f00bdff8494d4af5f1e181c6f808ccff531b3818b4b546cbd5e413395a8200"
+    },
+    {
+      "path": "Assets/Resources/SO/World/Climate/ClimateZone_mana-stormlands.asset.meta",
+      "sha256": "adbd7b0dc509c11ea0569e76cac4552d8d879ad7e189fb9994acaf1ac6f1a0d8"
+    },
+    {
+      "path": "Assets/Resources/SO/World/Climate/ClimateZone_mycelial-depths.asset",
+      "sha256": "1fb54c92a35c35b7414a32535f3026717b441c6ac1447f13750b52002f05183e"
+    },
+    {
+      "path": "Assets/Resources/SO/World/Climate/ClimateZone_mycelial-depths.asset.meta",
+      "sha256": "af29e2b9ae313dd66d730a811f9cb63cc391afa4324e57c59d19dbb4f555d93f"
+    },
+    {
+      "path": "Assets/Resources/SO/World/Climate/ClimateZone_temperate-cave.asset",
+      "sha256": "63b9b5947279ec95bdb6d81b7659dd9ed538c906d20dc9cae8317a70d81e070d"
+    },
+    {
+      "path": "Assets/Resources/SO/World/Climate/ClimateZone_temperate-cave.asset.meta",
+      "sha256": "f8c5f4a4615d5ab6edbe1dcfabfe2cc50a0caed2db02d0001a5fca059a904aab"
+    },
+    {
+      "path": "Assets/Resources/SO/World/Climate/WeatherFront_clear.asset",
+      "sha256": "70de5f75fbccd9092e5957cb4491ef1d7ea17314f96ad60d80c5d0bb8277c254"
+    },
+    {
+      "path": "Assets/Resources/SO/World/Climate/WeatherFront_clear.asset.meta",
+      "sha256": "e8780c9d3d2acf0d1264280cc4b526031edd7a04db9946a29bf734e063da58eb"
+    },
+    {
+      "path": "Assets/Resources/SO/World/Climate/WeatherFront_cold-snap.asset",
+      "sha256": "ba8d8a647cf192dea956ea8d4864505f3a3538ddcd89dc7e5084d36ffe15b4c6"
+    },
+    {
+      "path": "Assets/Resources/SO/World/Climate/WeatherFront_cold-snap.asset.meta",
+      "sha256": "28ae36ab2ecdea475eedd8d6e49e1c673c64f2ddd36b36b612011a1980c3a15e"
+    },
+    {
+      "path": "Assets/Resources/SO/World/Climate/WeatherFront_fog.asset",
+      "sha256": "0b3b844fa5203cd3790479931cd65f92ccf7d73dbf8b872800526fc24e4f3d3c"
+    },
+    {
+      "path": "Assets/Resources/SO/World/Climate/WeatherFront_fog.asset.meta",
+      "sha256": "1976729d6d7ec6799d1ccc486117b82fdd93f100ffd825ef3bf8832607a8c537"
+    },
+    {
+      "path": "Assets/Resources/SO/World/Climate/WeatherFront_heatwave.asset",
+      "sha256": "d2e9c63c1c9b1333562e323b3fff600b577351ee2d6e79ddd2757f0a3b4742e8"
+    },
+    {
+      "path": "Assets/Resources/SO/World/Climate/WeatherFront_heatwave.asset.meta",
+      "sha256": "bfb10ac12ef5a868e063e3e94743795b72208e0b9c591b7cb0d9c0bfd60e2145"
+    },
+    {
+      "path": "Assets/Resources/SO/World/Climate/WeatherFront_rain.asset",
+      "sha256": "71e33c30795a8f875b186d7fd29671f5634d31acf4937701b7acb524ba584f01"
+    },
+    {
+      "path": "Assets/Resources/SO/World/Climate/WeatherFront_rain.asset.meta",
+      "sha256": "12f2d4cc84c1bca9af55e5c8b0c2fd9d3ba42d16366586bb000d1caf94f7dd0a"
+    },
+    {
+      "path": "Assets/Resources/SO/World/Climate/WeatherFront_storm.asset",
+      "sha256": "2d494e0e4da6fa321e8a9a9acb043ac55f4bf6bb55acaa2d4875a517a407cd04"
+    },
+    {
+      "path": "Assets/Resources/SO/World/Climate/WeatherFront_storm.asset.meta",
+      "sha256": "a6e6dfd531f6736caafd0daccf9d2c9960685ea8df8231d4d29a9d92d9f3da6d"
+    },
+    {
+      "path": "Assets/Scripts/Content/ClimateZoneDefinitionSO.cs",
+      "sha256": "45674dc35c377b0777cbb52007c342e30325025faa2ea132191c4871f1ce651e"
+    },
+    {
+      "path": "Assets/Scripts/Content/SeasonalWorldEventDefinitionSO.cs",
+      "sha256": "492e046eb13653f6889e30d99b5658dbff2abe36cc995388586d3531fe28200a"
+    },
+    {
+      "path": "Assets/Scripts/Content/V20AuthoredContentContracts.cs",
+      "sha256": "4323ecde25aa0a307621e46472849aaeef83cc0d7f54bed7c8f50e3a1d07452a"
+    },
+    {
+      "path": "Assets/Scripts/Content/WeatherFrontDefinitionSO.cs",
+      "sha256": "06c39c747bd86328e23dc48eefce3b7067d207502381ebc6cee585fff45759c3"
+    },
+    {
+      "path": "Assets/Scripts/Models/CoreSession/ClimateDomain.cs",
+      "sha256": "48ab2f6479dfae0884ccdc254908bcf7df059bca6a3a2729f0050bb198965a66"
+    },
+    {
+      "path": "Assets/Scripts/Models/CoreSession/CoreSessionContracts.cs",
+      "sha256": "9b6a4a8f44e7ee052d2f47b0c2d265fc91a3bcf525209938c2735bba28fb1cef"
+    },
+    {
+      "path": "Assets/Scripts/Models/Items/Core/ItemPrimitives.cs",
+      "sha256": "5d96e3115193b4ac532a8182011d914cc24c207725b333968a7875db8b806380"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Core/CharacterStatsProjectionService.cs",
+      "sha256": "a066c2812971965596e15516ca7e71f7ce8227aef42a1d53e92bfa3651bcd616"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/ClimateDurableEquipmentLifecycleRuntime.cs",
+      "sha256": "440358061fe081d2e4b7867f4f2400c987ef16f202e6c5b7df61f1fcaa0626fb"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/ClimateDurableEquipmentPolicySource.cs",
+      "sha256": "213d886037d318e63363bb45ee7638ac050f998ad04cabf7512d5ded49b48de3"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/ClimateDurableEquipmentRuntime.cs",
+      "sha256": "7ac1c6fbeb898db8888743e39f1565d70b72361790137117e043e105fa945be0"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/ClimateRuntime.cs",
+      "sha256": "450851f0938ba71166d54b5661c558e2c0e59906bdf44ecebf65d0de516a190d"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonCoreInfrastructureRegistration.cs",
+      "sha256": "823f3aefc3bcb98b8882d1a1a85d277d6878ff488949e83c4a71dff27b1a273b"
+    },
+    {
+      "path": "Assets/Scripts/Services/Run/Editor/StrategicContentBalanceCalibrationScenario.cs",
+      "sha256": "590aa3bf1c1448ef9b76ec4effbb8a066a6115895567a3211132ebf9561d5205"
+    },
+    {
+      "path": "Assets/Scripts/Services/Run/MilestonePressureApplicationAdapter.cs",
+      "sha256": "0ae96ee775bbdb0877986fec914721a54b625568dc19c825f8d0e1f7175fd019"
+    },
+    {
+      "path": "Assets/Scripts/Services/Run/V20CampaignApplicationAdapter.cs",
+      "sha256": "51bd1be0f08336e117a2e359871868374f796ff15b91351a0e9b270cc254b4ce"
+    },
+    {
+      "path": "Assets/Scripts/Services/Run/V20CampaignRuntime.cs",
+      "sha256": "23c7a72ac6cb2018ed78cf3177035066b4859d708b9e1f014ff0e0617eba6fdf"
+    },
+    {
+      "path": "Assets/Scripts/Services/Run/V20ContentResolutionService.cs",
+      "sha256": "59bc6266603b711c88799093ae38e8506d150cc3df4bb9fd59f067574ded3959"
+    },
+    {
+      "path": "Assets/Scripts/Views/UI/UIManager.cs",
+      "sha256": "922f98c178277b513d60f50c236c7af7fd2b696ae03cd9978ec4b8e4cd805202"
+    },
+    {
+      "path": "Tools/Wiki/generate_wiki_model.py",
+      "sha256": "aae683f921aff02c9e54f1d2aaee61a2a5302ca3c186ba6244e1ae0979ca5173"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/events-and-choices.md",
+      "sha256": "d644a761006fd4b4558b3383b15d020666468d23fd4cee9f6cf2bf5ac11a3487"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/residents-and-work.md",
+      "sha256": "b9a07ed1aeee6715beb3bfb50c25b3445844e5feb9da8a48b783ebc44b1480a8"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/weather-seasons-and-environment.md",
+      "sha256": "e2e4371f61725319f30e74da29c0a31742cdcf48f746ba7fcb785fe97a665ad6"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-autumn-caravan-rush.json",
+      "sha256": "e0fbac0c1d1c8b7df8f970fd3e6ef7583bbce68de3860fdb0a680459273ccba2"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-autumn-early-frost.json",
+      "sha256": "3246b83d0a580d730703122ba8d002c6cbaec99a92c8966bf472bdeefb5c6dc6"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-autumn-harvest-dispute.json",
+      "sha256": "6538b6b0ba91ec7bdf1c48c9a7a13861ac40125d21607a385d1965a93a562696"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-autumn-migration-window.json",
+      "sha256": "c3bff1239c2d25a0d7887b6ee2e879da9f9911a1911787745ce75e045260a60b"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-autumn-predator-descent.json",
+      "sha256": "31ef53a66d21fd507f7fbc56f41cbe4511b3cb9ec72fdd938d2ff1e78b15ec2c"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-autumn-rot-cart.json",
+      "sha256": "1cf7b3232da5f444cfa66c11c364639f7394f75e9ac0a7af63ab139236fbdac5"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-autumn-spoiled-silage.json",
+      "sha256": "bd93cae09c1798b0ee9afcb6a01b5bd3e2b230b64ecdd82536bf33228a2a6b20"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-spring-fever-camp.json",
+      "sha256": "b77131f610c4bb8aa60e087ee656b8edb5eb3838672a900d72ec15ed1e903081"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-spring-migrant-herd.json",
+      "sha256": "eaa66426149118c41005e66f5c69d4315130d69241241083f62877526ddf8062"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-spring-nesting-season.json",
+      "sha256": "03bd6637f3d774ab3fa7fc66b5b0f204952159be72d8637ae8905a822b80ef70"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-spring-seed-exchange.json",
+      "sha256": "03bbf772cf40042379a43ff857821504ddce188ab8ff8fbb4e0bbd8c709833ff"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-spring-spore-rain.json",
+      "sha256": "55fc8cb7a67de178e66de4ad88a71cff91e0ff40180dc98a11297505abd700fe"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-spring-thaw-flood.json",
+      "sha256": "1126a01ac3098ccb5598429dcb25dd855e134cf0e7cbe30c55a44469f78fb80d"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-spring-washed-road.json",
+      "sha256": "24d660c5a7337c7438eeae24beda5a9b9b1833bd178cde032f58007d5fd9ff27"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-summer-dry-well.json",
+      "sha256": "38d815eb320588a7cc2cafd8dc4f3cd9cfaa32591fcb7c3222f07a638175bdef"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-summer-festival-scarcity.json",
+      "sha256": "361eef1ce1c1645437c40b4350cae178af172e7554823d3cd282db674d3f7ca5"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-summer-heat-grid.json",
+      "sha256": "ad666b0382258dc6d0304638b79b262653a962aa11b3f9167a7f6defab7550a3"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-summer-mana-lightning.json",
+      "sha256": "9b7fa2348bcaec1a61ca790688bd2947d576ffa2baf51fa24a1a311f7eb2b56d"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-summer-smoke-valley.json",
+      "sha256": "76166337ed3c22deea06266a66842083ff4bff770d9f1c874ebc72def9075165"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-summer-vermin-bloom.json",
+      "sha256": "f9f1dfe3befae4098dc8cc0fdd5185471ba3bd759f690ae86995a42d56297522"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-summer-wounded-mercenaries.json",
+      "sha256": "da70f450a317f130a1e535674ce29dd74f698acce9a16cbe57323ef678504750"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-winter-cave-flu-wave.json",
+      "sha256": "422cd6daeb551527ca00a62c086fb8051eebc47382b12589cf5939185ec02d90"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-winter-deep-echo.json",
+      "sha256": "6bd15df2a533977d47f7df74b53df1ec2e68ae15cbe4a89cd92d69cb28c2406e"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-winter-frozen-pipes.json",
+      "sha256": "71ab49d35737bd1e9b6a3a28885c6852d76fd79b51acf3ac067c4e8c58dbd44e"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-winter-fuel-demand.json",
+      "sha256": "88034a47e3246b2c8fe917106b0e2d28a68289e98bddeb04f8137c2cc9db6943"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-winter-hungry-pack.json",
+      "sha256": "4b83e7b2b354186785e7f3a94951a88659f794d67c92741b03f8dc98950eb697"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-winter-memorial-envoys.json",
+      "sha256": "72b18b8b2904bd85e6c560608b44b3c08d7e9c7dfe1a1f1869fc7f97b31f8556"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/seasonal-winter-whiteout.json",
+      "sha256": "2e0743b8bbf248c165e30fd16c460498802b46d1c9198552b86825be9219a66b"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-8851.json",
+      "sha256": "189c9c59923bd85e1b9c2eb3436e2a1ee41b885611282935b73b8c7f2693818b"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/book-seasonal-almanac.json",
+      "sha256": "e72a65906728afc40a78387fe783f62cfd3860d3bc2e5adee8a0f4d4f567550a"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/tool-weather-observation-kit.json",
+      "sha256": "00334498f4e1aadc9573d37b116e1d0dd96cb55154c904ea2280f4a8e1e30681"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/nature/climate-ember-wastes.json",
+      "sha256": "de7190cfbdca1e92b420acc21842b6804e1261524b0fbb3687b742dc3ac68143"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/nature/climate-frost-rift.json",
+      "sha256": "a5f797b0cf103b26214c5d13638773a8df4197323e1cb71bb0e942205761972c"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/nature/climate-mana-stormlands.json",
+      "sha256": "9bba012e34192cf540e0019d500d22638f1be035191fbf4ea7e6359caf9b4797"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/nature/climate-mycelial-depths.json",
+      "sha256": "ac0dd3227e09ed6d2f9eebf2f3a48e9c4d762fb9ce817351c376f3c55a26cdb9"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/nature/climate-temperate-cave.json",
+      "sha256": "9e7b075343822c80ef796726e2eb05072b3b48435595ad518a68cf40791b74ce"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/nature/weather-clear.json",
+      "sha256": "4fac8071e2dc1d35b0b8f018a59d5056f2887a13a2e5b7567dc963cd461914f6"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/nature/weather-cold-snap.json",
+      "sha256": "31267f6b89f9c2f9362e96450d28488ef2e99d05c2f03bfb2fe5bf59fcd1e067"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/nature/weather-fog.json",
+      "sha256": "28ff4f436d1bfa12f84b07b76651c1c9efdcb8c68dbdbc7f83433f1112359275"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/nature/weather-heatwave.json",
+      "sha256": "26b3b295eaeed57d9a685e264d2dbb29cc30eb9c4461b7f692f09f208775f92b"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/nature/weather-rain.json",
+      "sha256": "3bf3da2bb561b6f678d7ac61c6edcebcc5347658d02d9ab888070380aea9a899"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/nature/weather-storm.json",
+      "sha256": "2d4de07414ee10afa368736d68ceb2ca62e4dfa8eb31a127514989c711787440"
+    }
+  ],
+  "validation": {
+    "definitionAndPublicNumericComparisons": 131,
+    "comparisonErrors": 0,
+    "catalogReferences": 39,
+    "missingCatalogReferences": 0,
+    "arithmeticChecks": 15,
+    "arithmeticErrors": 0,
+    "actualUI": "not-run",
+    "unityCompile": "not-run",
+    "saveRoundtrip": "not-run",
+    "scriptsAssetsPublicWikiModified": false,
+    "balance": "밸런스 영향 없음: 읽기 전용 대조와 감사 기록뿐이며 게임 수치·비용·진행·저장 권위는 변경하지 않음"
+  },
+  "remaining": [
+    "종족·의복 온도 보호 전수",
+    "날씨의 작물·축산·원정 등 개별 도메인 보정",
+    "계절 Threat/flag 소비처 연결 및 실제 UI·저장 실행",
+    "시설 일반 장비 보급·수리·교체 수명주기",
+    "식품 전체 부패·보존·오염 수명주기",
+    "31업무별 지연 범위 및 나머지 전체 시스템·문서 의미 대조"
+  ]
+}

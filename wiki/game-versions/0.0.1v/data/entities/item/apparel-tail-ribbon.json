@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.08kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "19"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "꼬리 끝이나 중간에 묶어 소속과 기분을 드러내는 가벼운 장식끈이다. 라카쉬 세갈래길에서는 꼬리 리본의 묶는 위치와 색으로 무리와 기분을 드러낸다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "apparel-tail-ribbon",
+  "spoiler_tier": "none",
+  "summary": "꼬리 리본 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다.",
+  "title": "꼬리 리본"
+}

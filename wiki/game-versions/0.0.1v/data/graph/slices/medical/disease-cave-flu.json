@@ -1,0 +1,60 @@
+{
+  "center": {
+    "kind": "medical",
+    "slug": "disease-cave-flu",
+    "spoiler_tier": "none",
+    "title": "동굴 독감"
+  },
+  "edges": [
+    {
+      "amount": "12",
+      "from": "event/seasonal-winter-cave-flu-wave",
+      "label": "연결",
+      "to": "medical/disease-cave-flu",
+      "type": "adds-disease-exposure"
+    },
+    {
+      "amount": null,
+      "from": "nature/cave-rat",
+      "label": "관련",
+      "to": "medical/disease-cave-flu",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/frost-ram",
+      "label": "관련",
+      "to": "medical/disease-cave-flu",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/moss-boar",
+      "label": "관련",
+      "to": "medical/disease-cave-flu",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/rune-deer",
+      "label": "관련",
+      "to": "medical/disease-cave-flu",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/shadow-hare",
+      "label": "관련",
+      "to": "medical/disease-cave-flu",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/shadow-wolf",
+      "label": "관련",
+      "to": "medical/disease-cave-flu",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,963 @@
+{
+  "status": "partial-system-audit",
+  "scope": "Resources의 BuildingAutomationAbility 작성 27개와 대응 도감 27개를 전수 대조하고 자동화 실행·정비·저장 관련 경로를 정적으로 확인했다. 전체 게임 감사 완료를 뜻하지 않는다.",
+  "counts": {
+    "authoredAssets": 27,
+    "catalogReferenced": 27,
+    "publicEntries": 27,
+    "fieldsPerAsset": 7,
+    "comparedFields": 189,
+    "fieldsMissingFromEntry": 189,
+    "runtimeQualityCapConsumersFound": 0,
+    "actualUnityExecutions": 0
+  },
+  "qualityCapCaveat": "0.50~0.90은 Editor 허용 범위, 현재 작성값은 전부0.75. 실제 적용은 확인되지 않았다.",
+  "mechanics": {
+    "initial": {
+      "mode": "Manual",
+      "maintenance": 100,
+      "fault": 0
+    },
+    "condition": "C = clamp((M>=60 ? 1 : 0.45+0.55*M/60)*(1-0.65*F/100),0.1,1)",
+    "assisted": "전원 공급 및 F<100일 때 작성 배율*C, 그 외 자동화 배율1",
+    "automaticSubmittedWu": "작성 WU/시뮬레이션초*C*deltaTime; 실제 승인량과 별개",
+    "maintenanceDrain": "작성 시간당 소모*clamp(이정표 정비 배율,0.1,1)*deltaTime/7.5",
+    "faultIncrease": "감소 후 M<=25일 때 (25-M)*0.006*deltaTime, F는0~100",
+    "idle": "비수동·전원 공급 상태면 주문/재료/출력 확인보다 앞서 정비 소모",
+    "repairEligibility": "mode!=Manual && (M<85 || F>0.01)",
+    "repairRemainingWu": "max(max(0,85-M),max(0,2*F))",
+    "repairPerWu": {
+      "maintenance": 1,
+      "fault": -0.5
+    },
+    "repairMaterialCost": "자동화 정비 분기에서는 자재 소비 없음. 다른 수리 유형으로 확대하지 않음.",
+    "save": "모드/M/F 저장, 복원 값 검증; 실제 저장왕복 미실행"
+  },
+  "examples": [
+    {
+      "maintenance": 30,
+      "fault": 20,
+      "condition": 0.63075,
+      "assisted": 0.8515125000000001,
+      "automaticSubmittedWuPerSecond": 0.63075
+    },
+    {
+      "maintenance": 40,
+      "fault": 10,
+      "remainingRepairWu": 45,
+      "concurrentWearExcluded": true
+    }
+  ],
+  "rows": [
+    {
+      "buildingId": "1019",
+      "title": "대장작업대",
+      "source": "Assets/Resources/SO/Building/Modular/S08_대장작업대.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/S08_대장작업대.asset.meta",
+      "sourceGuid": "4855b21b913ffca48865ee15b4c8b085",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1019.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 장비 제작, 전력 소비, 생산 작업대이다. 건설에는 작업량 312, 재료 처리 목재×9, 철괴×4, 석재 블록×2이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    },
+    {
+      "buildingId": "1097",
+      "title": "폐기 소각로",
+      "source": "Assets/Resources/SO/Building/Modular/P25_폐기소각로.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/P25_폐기소각로.asset.meta",
+      "sourceGuid": "8ca9f7e8179c00f42a8e63259476cda6",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1097.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비이다. 건설에는 작업량 895, 재료 석재 블록×8, 철괴×8, 기계 부품×2이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    },
+    {
+      "buildingId": "1093",
+      "title": "대장간",
+      "source": "Assets/Resources/SO/Building/Modular/P21_대장간.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/P21_대장간.asset.meta",
+      "sourceGuid": "a57f84910d4c1f84d88aa775d246580a",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1093.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 576, 재료 처리 목재×7, 철괴×5, 석재 블록×2, 기계 부품×1, 외 1개이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    },
+    {
+      "buildingId": "1092",
+      "title": "몽직기",
+      "source": "Assets/Resources/SO/Building/Modular/P20_몽직기.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/P20_몽직기.asset.meta",
+      "sourceGuid": "f2af542cf18ec7c44b9c551177c79cd5",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1092.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 495, 재료 석재 블록×6, 룬 도체×3, 철괴×2, 기계 부품×2, 외 2개이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    },
+    {
+      "buildingId": "1091",
+      "title": "연금대",
+      "source": "Assets/Resources/SO/Building/Modular/P19_연금대.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/P19_연금대.asset.meta",
+      "sourceGuid": "194499078f7ec2241a80ef3d16f17ee4",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1091.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대, 연구 수용력이다. 건설에는 작업량 486, 재료 석재 블록×6, 룬 도체×3, 철괴×2, 기계 부품×2, 외 1개이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    },
+    {
+      "buildingId": "1090",
+      "title": "약제대",
+      "source": "Assets/Resources/SO/Building/Modular/P18_약제대.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/P18_약제대.asset.meta",
+      "sourceGuid": "e26788c79dadc164790842343bafe90a",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1090.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 312, 재료 처리 목재×4, 철괴×3, 기계 부품×3이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    },
+    {
+      "buildingId": "1089",
+      "title": "사료 배합대",
+      "source": "Assets/Resources/SO/Building/Modular/P17_사료배합대.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/P17_사료배합대.asset.meta",
+      "sourceGuid": "8a0d5b4b710535d4b87363381049fed4",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1089.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 312, 재료 처리 목재×6, 철괴×4, 석재 블록×2, 기계 부품×2이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    },
+    {
+      "buildingId": "1088",
+      "title": "훈연대",
+      "source": "Assets/Resources/SO/Building/Modular/P16_훈연대.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/P16_훈연대.asset.meta",
+      "sourceGuid": "a016cdff6b3518f42a706704c3f30a6c",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1088.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 318, 재료 석재 블록×6, 철괴×4, 기계 부품×3이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    },
+    {
+      "buildingId": "1087",
+      "title": "조리대",
+      "source": "Assets/Resources/SO/Building/Modular/P15_조리대.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/P15_조리대.asset.meta",
+      "sourceGuid": "fe27cd7abb7b9bd42933a9af145759e9",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1087.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 312, 재료 처리 목재×6, 철괴×4, 석재 블록×2, 기계 부품×2이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    },
+    {
+      "buildingId": "1086",
+      "title": "증류기",
+      "source": "Assets/Resources/SO/Building/Modular/P14_증류기.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/P14_증류기.asset.meta",
+      "sourceGuid": "e5a6d1f80a6554b45b57374a5b44d8c2",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1086.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 486, 재료 석재 블록×6, 룬 도체×2, 철괴×2, 기계 부품×2이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    },
+    {
+      "buildingId": "1085",
+      "title": "퇴비장",
+      "source": "Assets/Resources/SO/Building/Modular/P13_퇴비장.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/P13_퇴비장.asset.meta",
+      "sourceGuid": "7a13250c177d3704eaa644333bcb48ad",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1085.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 312, 재료 목재×4, 철괴×3, 기계 부품×2, 석재 블록×2이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    },
+    {
+      "buildingId": "1084",
+      "title": "무두질대",
+      "source": "Assets/Resources/SO/Building/Modular/P12_무두질대.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/P12_무두질대.asset.meta",
+      "sourceGuid": "a4c8f12d2e082a444adeddfe45929e75",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1084.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 312, 재료 처리 목재×6, 철괴×4, 석재 블록×2, 기계 부품×2이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    },
+    {
+      "buildingId": "1083",
+      "title": "직조기",
+      "source": "Assets/Resources/SO/Building/Modular/P11_직조기.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/P11_직조기.asset.meta",
+      "sourceGuid": "36abd70965231444b990c1bac6a3c14e",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1083.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 312, 재료 처리 목재×6, 철괴×4, 석재 블록×2, 기계 부품×2이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    },
+    {
+      "buildingId": "1082",
+      "title": "비전 단조대",
+      "source": "Assets/Resources/SO/Building/Modular/P10_비전단조대.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/P10_비전단조대.asset.meta",
+      "sourceGuid": "13c617c5cf01b774e82b9f3f08513ab2",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1082.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 603, 재료 석재 블록×6, 룬 도체×3, 철괴×2, 기계 부품×2, 외 3개이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    },
+    {
+      "buildingId": "1081",
+      "title": "귀금 세공대",
+      "source": "Assets/Resources/SO/Building/Modular/P09_귀금세공대.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/P09_귀금세공대.asset.meta",
+      "sourceGuid": "5b6a37c22ef4f2343ba9e3b7d9d2f33f",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1081.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 468, 재료 처리 목재×6, 철괴×4, 석재 블록×2, 기계 부품×2, 외 1개이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    },
+    {
+      "buildingId": "1080",
+      "title": "제강로",
+      "source": "Assets/Resources/SO/Building/Modular/P08_제강로.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/P08_제강로.asset.meta",
+      "sourceGuid": "7f8ec8cae97fabd4a83a53dcefc11cef",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1080.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 585, 재료 석재 블록×6, 철괴×4, 기계 부품×2, 합금 도가니×1이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    },
+    {
+      "buildingId": "1079",
+      "title": "용광로",
+      "source": "Assets/Resources/SO/Building/Modular/P07_용광로.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/P07_용광로.asset.meta",
+      "sourceGuid": "57ae3681b5764a140a5fda2a20398661",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1079.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 318, 재료 석재 블록×6, 철괴×4, 기계 부품×3이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    },
+    {
+      "buildingId": "1078",
+      "title": "광석 선별대",
+      "source": "Assets/Resources/SO/Building/Modular/P06_광석선별대.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/P06_광석선별대.asset.meta",
+      "sourceGuid": "00c828de5c6618d4ea62ac931a6e98de",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1078.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 312, 재료 목재×6, 철괴×2, 기계 부품×3이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    },
+    {
+      "buildingId": "1077",
+      "title": "석재 절단대",
+      "source": "Assets/Resources/SO/Building/Modular/P05_석재절단대.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/P05_석재절단대.asset.meta",
+      "sourceGuid": "690af4ee567b7f44788a62298e384ee8",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1077.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 312, 재료 처리 목재×6, 철괴×4, 석재 블록×2, 기계 부품×2이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    },
+    {
+      "buildingId": "1076",
+      "title": "숯가마",
+      "source": "Assets/Resources/SO/Building/Modular/P04_숯가마.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/P04_숯가마.asset.meta",
+      "sourceGuid": "b01d667718df1224f9de2103339fa77a",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1076.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 318, 재료 석재 블록×6, 철괴×4, 기계 부품×3이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    },
+    {
+      "buildingId": "1075",
+      "title": "제재소",
+      "source": "Assets/Resources/SO/Building/Modular/P03_제재소.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/P03_제재소.asset.meta",
+      "sourceGuid": "43e0cfe3a3ec1b6479fbd6f60a8eaacb",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1075.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 384, 재료 처리 목재×10, 철괴×6, 석재 블록×2, 기계 부품×1이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    },
+    {
+      "buildingId": "1074",
+      "title": "양조장",
+      "source": "Assets/Resources/SO/Building/Modular/P02_양조장.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/P02_양조장.asset.meta",
+      "sourceGuid": "8561afb5f5143614a8ba742d7e4aef94",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1074.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 312, 재료 처리 목재×5, 철괴×3, 기계 부품×3이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    },
+    {
+      "buildingId": "1073",
+      "title": "제분소",
+      "source": "Assets/Resources/SO/Building/Modular/P01_제분소.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/P01_제분소.asset.meta",
+      "sourceGuid": "bef5ea4bb65a1104b9ed257fb6ffadb1",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1073.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 312, 재료 처리 목재×6, 철괴×4, 석재 블록×2, 기계 부품×2이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    },
+    {
+      "buildingId": "1049",
+      "title": "전리품거치대",
+      "source": "Assets/Resources/SO/Building/Modular/G06_전리품거치대.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/G06_전리품거치대.asset.meta",
+      "sourceGuid": "24d7866392adfbe468819cd27fecafd8",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1049.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 치안과 보안이다. 건설에는 작업량 501, 재료 목재×5, 철괴×3이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    },
+    {
+      "buildingId": "1002",
+      "title": "조리손질대",
+      "source": "Assets/Resources/SO/Building/Modular/D03_조리손질대.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/D03_조리손질대.asset.meta",
+      "sourceGuid": "37fea6eb1c9eeb843b76ed0dbc12e3d0",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1002.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 조리, 전력 소비, 생산 작업대이다. 건설에는 작업량 312, 재료 처리 목재×9, 철괴×3, 석재 블록×2이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    },
+    {
+      "buildingId": "1001",
+      "title": "고기그릴",
+      "source": "Assets/Resources/SO/Building/Modular/D02_고기그릴.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/D02_고기그릴.asset.meta",
+      "sourceGuid": "70000b7382d2d3c4ba492123068cd53d",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1001.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 조리, 연료 소비, 욕구 회복이다. 건설에는 작업량 364, 재료 석재 블록×4, 철괴×5이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    },
+    {
+      "buildingId": "1000",
+      "title": "간이화덕",
+      "source": "Assets/Resources/SO/Building/Modular/D01_간이화덕.asset",
+      "sourceMeta": "Assets/Resources/SO/Building/Modular/D01_간이화덕.asset.meta",
+      "sourceGuid": "12515c9dd1e06424180ccafcaeba8d56",
+      "catalogReference": true,
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1000.json",
+      "authored": {
+        "maximumMode": 2,
+        "assistedPowerDemand": 2,
+        "automaticPowerDemand": 5,
+        "assistedWorkMultiplier": 1.35,
+        "automaticWorkPerSecond": 1,
+        "automaticQualityCap": 0.75,
+        "maintenancePerGameHour": 1
+      },
+      "wikiFactLabels": [
+        "분류",
+        "크기"
+      ],
+      "wikiSummary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 조리, 연료 소비, 욕구 회복이다. 건설에는 작업량 261, 재료 석재 블록×9, 철괴×3이 필요하다.",
+      "missingAutomationFields": [
+        "maximumMode",
+        "assistedPowerDemand",
+        "automaticPowerDemand",
+        "assistedWorkMultiplier",
+        "automaticWorkPerSecond",
+        "automaticQualityCap",
+        "maintenancePerGameHour"
+      ],
+      "qualityCapStatus": "authored-but-runtime-consumer-unconfirmed"
+    }
+  ],
+  "relatedGaps": [
+    "GAP-052",
+    "GAP-053",
+    "GAP-054",
+    "GAP-055",
+    "GAP-056"
+  ],
+  "remaining": [
+    "자동화 모듈이 있는 모든 시설의 실제 건설·생산 가용성 및 공정별 실행",
+    "자동 품질 상한의 소비처/의도 확인",
+    "전체 전력·유체·환경·컨베이어 규칙 대조",
+    "모든 시스템·모든 위키의 의미 중복 및 남은 원본 검토"
+  ],
+  "validation": {
+    "sourceComparison": "static",
+    "runtimeExecution": "not-run",
+    "saveRoundTrip": "not-run",
+    "balanceImpact": "none; audit files only"
+  }
+}

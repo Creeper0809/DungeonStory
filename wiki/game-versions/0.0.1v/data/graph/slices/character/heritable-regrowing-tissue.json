@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "heritable-regrowing-tissue",
+    "spoiler_tier": "none",
+    "title": "재생 조직"
+  },
+  "edges": [],
+  "schema_version": 1
+}

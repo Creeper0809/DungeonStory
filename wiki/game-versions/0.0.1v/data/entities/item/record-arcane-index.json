@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.3kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "44"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "룬과 주문을 효과, 재료와 위험별로 찾아볼 수 있게 정리한 비전 색인철이다. 오르데나의 비전 색인철에는 같은 주문을 수호원은 무기로, 등기원은 압수물로, 통상원은 과세품으로 분류한 흔적이 남아 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "record-arcane-index",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 비전 색인철.",
+  "title": "비전 색인철"
+}

@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "drug-blood-stimulant",
+    "spoiler_tier": "none",
+    "title": "혈화 촉진제"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-blood-stimulant",
+      "label": "생산·해금",
+      "to": "item/drug-blood-stimulant",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "equipment-item-armor-hardened-leather-coat",
+    "spoiler_tier": "none",
+    "title": "경화 가죽 외투"
+  },
+  "edges": [],
+  "schema_version": 1
+}

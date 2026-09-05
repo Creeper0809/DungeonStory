@@ -1,0 +1,44 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "30"
+    },
+    {
+      "label": "필요 연구",
+      "value": "보철 공학"
+    },
+    {
+      "label": "효과",
+      "value": "2개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "medical",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "medicine-standard",
+      "target_spoiler_tier": "none",
+      "target_title": "표준 약품",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-prosthetics",
+      "target_spoiler_tier": "none",
+      "target_title": "보철 공학",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "procedure-rehabilitation",
+  "spoiler_tier": "none",
+  "summary": "보철 적응 훈련과 상처 관리를 통해 움직임과 조작 능력을 회복한다.",
+  "title": "보철 재활"
+}

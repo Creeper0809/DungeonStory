@@ -2,7 +2,7 @@ V27 PRODUCTION REACHABILITY AUDITONLY
 auditStatus=PASS
 gameplayReachabilityGreen=true
 recipes=355
-resourceItems=363
+resourceItems=364
 orphanItemResearchReferences=0
 researchProjects=180
 orphanRecipeResearchReferences=0
@@ -12,11 +12,11 @@ supportTaggedRecipes=40
 supportConsumerLinks=50
 hearthConsumers=15
 ovenConsumers=2
-sourceFiles=1283
+sourceFiles=1284
 deterministicSecondCapture=required-by-menu-entrypoint
 scriptableObjectMutationCount=0
-sourceDigest=c7afd8ca6f66fa4f6e12151ba76b60a78c8e49ed36c78cf8868f654545c8f217
-csvSha256=3116475645ac02b1b83997517287960cf8bc37e9f198feded22382f37a520524
+sourceDigest=02835c58c47f9c4798781795f8e7a80b38fe274bb3d6967099bc8d21e48f1629
+csvSha256=bcfe5a95a3b474a76d53004e92235f07e9244b73802d1137c15b089012f05c2d
 
 ORPHAN RECIPE RESEARCH REFERENCES
 

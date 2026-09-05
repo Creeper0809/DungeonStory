@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.18kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "19"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "목과 입가를 감싸 추위와 먼지를 막는 긴 천이다. 하르나크에서 만든 목도리는 뿔과 귀의 위치에 맞춰 여밈을 옮길 수 있도록 가장자리에 여유 천을 남긴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "apparel-scarf",
+  "spoiler_tier": "none",
+  "summary": "목도리 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다.",
+  "title": "목도리"
+}

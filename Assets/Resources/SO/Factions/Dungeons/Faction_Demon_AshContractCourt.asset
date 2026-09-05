@@ -88,6 +88,12 @@ MonoBehaviour:
     amount: 5
   - itemId: craft:ritual-reagent
     amount: 8
+  tradeEconomicPolicy:
+    capabilityId: faction-economy:paid-market-purchase
+    capabilityVersion: 1
+  supplyEconomicPolicy:
+    capabilityId: faction-economy:alliance-benefit
+    capabilityVersion: 1
   tradeCooldownDays: 23
   supplyCooldownDays: 84
   reinforcementCooldownDays: 10

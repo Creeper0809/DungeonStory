@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "22"
+    },
+    {
+      "label": "필요 연구",
+      "value": "증류"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "drug-hallucinogenic-distillate",
+      "target_spoiler_tier": "none",
+      "target_title": "환각균 증류액",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-cave-mushroom",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴버섯",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-alcohol",
+      "target_spoiler_tier": "none",
+      "target_title": "알코올",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-distillation",
+      "target_spoiler_tier": "none",
+      "target_title": "증류",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-hallucinogenic-distillate",
+  "spoiler_tier": "none",
+  "summary": "환각균 증류액 생산 주문",
+  "title": "환각균 증류액"
+}

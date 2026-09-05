@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "상점"
+    },
+    {
+      "label": "크기",
+      "value": "1×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-1016",
+  "spoiler_tier": "none",
+  "summary": "시설의 고유 역할은 소매 거래이다. 건설에는 작업량 81, 재료 목재×3, 철괴×2이 필요하다.",
+  "title": "무기거치대"
+}

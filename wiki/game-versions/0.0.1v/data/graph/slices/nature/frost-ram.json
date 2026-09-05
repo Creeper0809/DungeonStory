@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "frost-ram",
+    "spoiler_tier": "none",
+    "title": "서리숫양"
+  },
+  "edges": [
+    {
+      "amount": "3",
+      "from": "nature/frost-ram",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "fiber-frost-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "서리 양모직 원섬유",
+      "to": "item/fiber-frost-wool",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/frost-ram",
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-cave-flu",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴 독감",
+      "to": "medical/disease-cave-flu",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/frost-ram",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "shadow-wolf",
+      "target_spoiler_tier": "none",
+      "target_title": "그림자늑대",
+      "to": "nature/shadow-wolf",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

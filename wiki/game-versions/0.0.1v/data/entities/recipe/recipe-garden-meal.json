@@ -1,0 +1,71 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "42"
+    },
+    {
+      "label": "필요 연구",
+      "value": "채식 조리"
+    },
+    {
+      "label": "사이클당 깨끗한 물",
+      "value": "1.4"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "food-garden-meal",
+      "target_spoiler_tier": "none",
+      "target_title": "정원 요리",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-cave-mushroom",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴버섯",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-ember-root",
+      "target_spoiler_tier": "none",
+      "target_title": "잿불뿌리",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-vegan",
+      "target_spoiler_tier": "none",
+      "target_title": "채식 조리",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-twilight-grain",
+      "target_spoiler_tier": "none",
+      "target_title": "황혼곡",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-garden-meal",
+  "spoiler_tier": "none",
+  "summary": "정원 요리 생산 주문",
+  "title": "정원 요리"
+}

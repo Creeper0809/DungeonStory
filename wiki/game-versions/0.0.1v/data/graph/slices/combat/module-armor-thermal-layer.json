@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "module-armor-thermal-layer",
+    "spoiler_tier": "none",
+    "title": "열 차폐층"
+  },
+  "edges": [],
+  "schema_version": 1
+}

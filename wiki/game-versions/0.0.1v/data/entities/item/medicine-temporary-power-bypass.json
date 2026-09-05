@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "10개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "58"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "파손된 구성체 핵과 서보를 임시 회로로 우회한다. 제4주조도시의 기억판 안치에서는 임시 동력 바이패스를 손보기 전에 기억판부터 떼어 낸다. 몸보다 사람이 먼저라는 오래된 순서다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "medicine-temporary-power-bypass",
+  "spoiler_tier": "none",
+  "summary": "파손된 구성체 핵과 서보를 임시 회로로 우회한다.",
+  "title": "임시 동력 바이패스"
+}

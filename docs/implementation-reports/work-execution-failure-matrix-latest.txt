@@ -1,0 +1,40 @@
+WORK_EXECUTION_FAILURE_MATRIX_V1
+result=PASS
+catalog=31; profiles=31; green=31; unimplemented=0; commonContract=GREEN
+axes=target invalidation + facility/recipe/item reservation failure + safe-checkpoint cancellation
+restockFocusedContract=two-owner competition + cancellation return + shortage rejection + exact-once lease commit
+note=NotApplicable and PolicyExempt are explicit authored outcomes, never implicit success.
+
+status | workType | route | target | facility | recipe | item | checkpoint | executor | evidence
+--- | --- | --- | --- | --- | --- | --- | --- | --- | ---
+GREEN | work:operate | CommonFacilityTimed | CommonExecutor | CommonExecutor | NotApplicable | NotApplicable | CommonExecutor | WorkTaskExecutor | generic timed facility operation
+GREEN | work:restock | RestockHaul | CommonExecutor | SpecialExecutor | NotApplicable | SpecialExecutor | CommonExecutor | WorkTaskExecutor | stable restock operation owns a quantity Lease; cancellation releases and destination commit consumes exactly once
+GREEN | work:construct | CommonWorkOrder | CommonExecutor | CommonExecutor | NotApplicable | CommonExecutor | CommonExecutor | WorkTaskExecutor | work-order material readiness and construction workforce lease
+GREEN | work:repair | RegisteredHandler | CommonExecutor | SpecialExecutor | NotApplicable | NotApplicable | CommonExecutor | RepairWorkExecutionHandler | repair handler plus common persistent/timed loops
+GREEN | work:clean | RegisteredHandler | CommonExecutor | SpecialExecutor | NotApplicable | NotApplicable | CommonExecutor | CleanWorkExecutionHandler | clean handler plus common timed loop
+GREEN | work:research | RegisteredHandler | CommonExecutor | SpecialExecutor | NotApplicable | NotApplicable | CommonExecutor | ResearchWorkExecutionHandler | research workforce lease and common timed loop
+GREEN | work:guard | CommonDutyMonitor | CommonExecutor | CommonExecutor | NotApplicable | NotApplicable | PolicyExempt | WorkDutyController | guard is emergency response; duty monitor owns invalidation
+GREEN | work:reception | CommonFacilityTimed | CommonExecutor | CommonExecutor | NotApplicable | NotApplicable | CommonExecutor | WorkTaskExecutor | exterior reception timed work
+GREEN | work:rescue | RescueAbility | SpecialExecutor | NotApplicable | NotApplicable | NotApplicable | PolicyExempt | AbilityRescue | rescue ability owns patient invalidation; emergency-response work is not suspendible
+GREEN | work:rest | RestAbility | SpecialExecutor | SpecialExecutor | NotApplicable | NotApplicable | PolicyExempt | AIRest | rest adapter owns facility failure; protected recovery is not suspendible
+GREEN | work:craft | RegisteredHandler | CommonExecutor | SpecialExecutor | SpecialExecutor | SpecialExecutor | CommonExecutor | CraftWorkExecutionAdapter | production BeginWork owns recipe/input reservation failure
+GREEN | work:haul | HaulAbility | SpecialExecutor | NotApplicable | NotApplicable | SpecialExecutor | SpecialExecutor | AbilityHaul | AbilityHaul renews quantity leases, revalidates pickup/delivery, and cancels at movement/pickup boundaries
+GREEN | work:hunt | HuntAbility | SpecialExecutor | NotApplicable | NotApplicable | SpecialExecutor | SpecialExecutor | AbilityHunt | AbilityHunt owns target reservation and cancellation checks between movement/reload/attack phases
+GREEN | work:butcher | RegisteredHandler | CommonExecutor | SpecialExecutor | NotApplicable | NotApplicable | CommonExecutor | ButcherWorkExecutionHandler | butcher availability revalidation plus common timed loop
+GREEN | work:draw-water | RegisteredHandler | CommonExecutor | SpecialExecutor | NotApplicable | NotApplicable | CommonExecutor | SurvivalWorkExecutionHandler | survival availability revalidation plus common timed loop
+GREEN | work:cook | RegisteredHandler | CommonExecutor | SpecialExecutor | SpecialExecutor | SpecialExecutor | CommonExecutor | SurvivalWorkExecutionHandler | production BeginWork owns recipe/input reservation failure
+GREEN | work:treat | RegisteredHandler | CommonExecutor | SpecialExecutor | NotApplicable | SpecialExecutor | PolicyExempt | SurvivalWorkExecutionHandler | medical availability and item consumption failure return through the common terminal path
+GREEN | work:surgery | RegisteredHandler | CommonExecutor | SpecialExecutor | NotApplicable | SpecialExecutor | PolicyExempt | SurgeryWorkExecutionHandler | surgery TryReserveWork/ReleaseDoctor owns the special non-interruptible reservation lifecycle
+GREEN | work:refuel | RegisteredHandler | CommonExecutor | SpecialExecutor | NotApplicable | SpecialExecutor | CommonExecutor | SurvivalWorkExecutionHandler | fuel/recharge begin and persistent application failures return through the common terminal path
+GREEN | work:warden | RegisteredHandler | CommonExecutor | SpecialExecutor | NotApplicable | NotApplicable | CommonExecutor | WardenWorkExecutionUnityAdapter | warden adapter plus common timed/persistent loop
+GREEN | work:perform | RegisteredHandler | CommonExecutor | SpecialExecutor | NotApplicable | NotApplicable | CommonExecutor | PerformWorkExecutionUnityAdapter | performance adapter plus common timed/persistent loop
+GREEN | work:gather | RegisteredHandler | CommonExecutor | SpecialExecutor | NotApplicable | NotApplicable | CommonExecutor | ResourceGatheringWorkExecutionHandler | world-resource persistent progress revalidation
+GREEN | work:sow | RegisteredHandler | CommonExecutor | SpecialExecutor | NotApplicable | NotApplicable | CommonExecutor | ResourceGatheringWorkExecutionHandler | crop persistent progress revalidation
+GREEN | work:harvest | RegisteredHandler | CommonExecutor | SpecialExecutor | NotApplicable | NotApplicable | CommonExecutor | ResourceGatheringWorkExecutionHandler | crop persistent progress revalidation
+GREEN | work:logging | RegisteredHandler | CommonExecutor | SpecialExecutor | NotApplicable | NotApplicable | CommonExecutor | ResourceGatheringWorkExecutionHandler | world-resource persistent progress revalidation
+GREEN | work:quarry | RegisteredHandler | CommonExecutor | SpecialExecutor | SpecialExecutor | SpecialExecutor | CommonExecutor | ResourceGatheringWorkExecutionHandler | resource node or production BeginWork owns quarry failure
+GREEN | work:animal-care | RegisteredHandler | CommonExecutor | SpecialExecutor | NotApplicable | NotApplicable | CommonExecutor | AnimalHusbandryWorkExecutionAdapter | husbandry adapter plus common persistent loop
+GREEN | work:grand-project | RegisteredHandler | CommonExecutor | SpecialExecutor | NotApplicable | SpecialExecutor | CommonExecutor | GrandProjectWorkExecutionHandler | project workforce/material state plus common persistent loop
+GREEN | work:threat-mitigation | RegisteredHandler | CommonExecutor | SpecialExecutor | NotApplicable | NotApplicable | PolicyExempt | ThreatMitigationWorkExecutionHandler | threat adapter owns target invalidation; emergency-response work is not suspendible
+GREEN | work:plumbing | RegisteredHandler | CommonExecutor | SpecialExecutor | NotApplicable | NotApplicable | CommonExecutor | PlumbingWorkExecutionHandler | plumbing query revalidation plus common timed loop
+GREEN | work:dismantle | CommonWorkOrder | CommonExecutor | CommonExecutor | NotApplicable | NotApplicable | CommonExecutor | WorkTaskExecutor | work-order cancellation/material state and common checkpoint loop

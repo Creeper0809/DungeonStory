@@ -1,0 +1,46 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-horn",
+    "spoiler_tier": "none",
+    "title": "뿔"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-arrow-rune",
+      "label": "필요 조건",
+      "to": "item/resource-horn",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bolt-rune",
+      "label": "필요 조건",
+      "to": "item/resource-horn",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bone-charm",
+      "label": "필요 조건",
+      "to": "item/resource-horn",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bowstring-sinew",
+      "label": "필요 조건",
+      "to": "item/resource-horn",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/source-animal-horn",
+      "label": "생산·해금",
+      "to": "item/resource-horn",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

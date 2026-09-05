@@ -1,0 +1,176 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-defense-fortification",
+    "spoiler_tier": "none",
+    "title": "요새화"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-defense-fortification",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "facility-blueprint-6102",
+      "target_spoiler_tier": "none",
+      "target_title": "요새화 설계도",
+      "to": "facility/facility-blueprint-6102",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-fortification",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-watch",
+      "target_spoiler_tier": "none",
+      "target_title": "경계 근무",
+      "to": "research/research-defense-watch",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-fortification",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-watch",
+      "target_spoiler_tier": "none",
+      "target_title": "경계 근무",
+      "to": "research/research-defense-watch",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-fortification",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-watch",
+      "target_spoiler_tier": "none",
+      "target_title": "경계 근무",
+      "to": "research/research-defense-watch",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-fortification",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1046",
+      "target_spoiler_tier": "none",
+      "target_title": "순찰상황판",
+      "to": "facility/building-1046",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-fortification",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1047",
+      "target_spoiler_tier": "none",
+      "target_title": "전술지도탁자",
+      "to": "facility/building-1047",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-fortification",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1049",
+      "target_spoiler_tier": "none",
+      "target_title": "전리품거치대",
+      "to": "facility/building-1049",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-fortification",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1055",
+      "target_spoiler_tier": "none",
+      "target_title": "무기로커",
+      "to": "facility/building-1055",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-shield-tower",
+      "label": "필요 조건",
+      "to": "research/research-defense-fortification",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "facility/facility-blueprint-6102",
+      "label": "관련",
+      "to": "research/research-defense-fortification",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-secure-trade",
+      "label": "선행 연구",
+      "to": "research/research-defense-fortification",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-secure-trade",
+      "label": "선행 연구",
+      "to": "research/research-defense-fortification",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-secure-trade",
+      "label": "선행 연구",
+      "to": "research/research-defense-fortification",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-ranged-positions",
+      "label": "선행 연구",
+      "to": "research/research-defense-fortification",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-ranged-positions",
+      "label": "선행 연구",
+      "to": "research/research-defense-fortification",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-ranged-positions",
+      "label": "선행 연구",
+      "to": "research/research-defense-fortification",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-supply",
+      "label": "선행 연구",
+      "to": "research/research-defense-fortification",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-supply",
+      "label": "선행 연구",
+      "to": "research/research-defense-fortification",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-supply",
+      "label": "선행 연구",
+      "to": "research/research-defense-fortification",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

@@ -44,9 +44,10 @@ namespace DungeonStory.FacilityEvolution
 
     public readonly struct FacilityEvolutionOrderId : IEquatable<FacilityEvolutionOrderId>
     {
-        public FacilityEvolutionOrderId(string value) => Value = value?.Trim() ?? string.Empty;
+        public FacilityEvolutionOrderId(string value) => Value = value ?? string.Empty;
         public string Value { get; }
-        public bool IsValid => Value.Length > 0;
+        public bool IsValid => Value.Length > 0
+            && string.Equals(Value, Value.Trim(), StringComparison.Ordinal);
         public bool Equals(FacilityEvolutionOrderId other) =>
             string.Equals(Value, other.Value, StringComparison.Ordinal);
         public override bool Equals(object obj) =>

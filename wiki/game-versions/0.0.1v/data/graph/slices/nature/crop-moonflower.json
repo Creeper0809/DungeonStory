@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "crop-moonflower",
+    "spoiler_tier": "none",
+    "title": "월화"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/crop-moonflower",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "genome-moonflower-base",
+      "target_spoiler_tier": "none",
+      "target_title": "Genome_moonflower",
+      "to": "nature/genome-moonflower-base",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/crop-moonflower",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-herbalism",
+      "target_spoiler_tier": "none",
+      "target_title": "약초학",
+      "to": "research/research-pharmacology-herbalism",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

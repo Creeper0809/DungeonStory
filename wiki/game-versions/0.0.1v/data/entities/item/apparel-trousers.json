@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.5kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "19"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "허리에서 발목까지 다리를 따로 감싸는 튼튼한 일상 바지다. 하르나크에서 만든 바지는 꼬리가 있는 주민도 입을 수 있도록 허리 뒤쪽 솔기를 고치기 쉽게 남겨 둔다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "apparel-trousers",
+  "spoiler_tier": "none",
+  "summary": "바지 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다.",
+  "title": "바지"
+}

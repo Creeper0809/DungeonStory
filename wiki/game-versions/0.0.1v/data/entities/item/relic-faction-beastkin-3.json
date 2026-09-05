@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "0"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "무리의 보호를 받은 외부인에게만 주는 핀이다. 라카쉬 세갈래길의 붉은사냥 망토핀에는 사냥한 짐승보다 함께 돌아온 사람의 수가 먼저 새겨져 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "relic-faction-beastkin-3",
+  "spoiler_tier": "none",
+  "summary": "무리의 보호를 받은 외부인에게만 주는 핀.",
+  "title": "붉은사냥 망토핀"
+}

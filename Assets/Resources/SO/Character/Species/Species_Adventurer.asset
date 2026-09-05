@@ -63,8 +63,7 @@ MonoBehaviour:
   strongWorkTypeIds: []
   weakWorkTypeIds: []
   shortDescription: "\uB358\uC804\uC744 \uCE68\uC785\uD558\uB294 \uC678\uBD80 \uC6D0\uC815\uC790"
-  description: "\uB358\uC804 \uC778\uAD6C\uC758 \uBC88\uC2DD \uB300\uC0C1\uC774 \uC544\uB2CC
-    \uC801\uB300\uC801 \uC678\uBD80 \uC6D0\uC815\uC790 \uC885\uC871 \uC815\uC758\uB2E4."
+  description: "\uB358\uC804\uC744 \uCE68\uC785\uD558\uB294 \uC801\uB300\uC801 \uC678\uBD80 \uC6D0\uC815\uC790 \uC885\uC871 \uC815\uC758\uB2E4."
   preferredFacilityLabels: []
   dislikedEnvironmentLabels: []
   stayDurationMultiplier: 1

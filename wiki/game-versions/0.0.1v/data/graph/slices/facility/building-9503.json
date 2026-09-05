@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-9503",
+    "spoiler_tier": "none",
+    "title": "외과 수술대"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-medical-surgery",
+      "label": "시설 해금",
+      "to": "facility/building-9503",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

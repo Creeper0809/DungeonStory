@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "fiber-ember-cotton",
+    "spoiler_tier": "none",
+    "title": "잿불 목화 원섬유"
+  },
+  "edges": [
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-spin-ember-cotton",
+      "label": "필요 조건",
+      "to": "item/fiber-ember-cotton",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-spin-powered-ember-cotton",
+      "label": "필요 조건",
+      "to": "item/fiber-ember-cotton",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

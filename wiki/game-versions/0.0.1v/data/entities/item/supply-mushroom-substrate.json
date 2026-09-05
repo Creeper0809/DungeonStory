@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "11"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "버섯 균사가 뿌리내릴 수 있도록 유기물과 수분을 맞춘 재배 배지다. 므네실라에서는 손으로 쥐었을 때 뭉쳤다가 쉽게 풀리는 배지를 제대로 된 것으로 친다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "supply-mushroom-substrate",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 균사 재배 배지.",
+  "title": "균사 재배 배지"
+}

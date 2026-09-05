@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.35kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "30개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "172"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "흑강, 룬가죽, 고급 약품과 비전 연구의 핵심이다. 밀로세아 가도를 지나는 마나 결정은 서로 부딪히지 않게 칸막이 상자에 담고, 검문은 상자를 열지 않고 빛의 세기로 한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "resource-mana-crystal",
+  "spoiler_tier": "none",
+  "summary": "흑강, 룬가죽, 고급 약품과 비전 연구의 핵심.",
+  "title": "마나 결정"
+}

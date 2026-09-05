@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "3kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "4"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "발소리보다 그림자가 먼저 튀어나가는 작은 짐승. 위험은 낮지만 매우 빠르다. 죽은 그림자토끼의 사체는 도축 시설로 옮겨 식량과 부산물로 나눈다. 라카쉬 세갈래길의 무리는 그림자토끼 사체에서 얻은 고기와 가죽을 사냥한 사람보다 피난 행렬의 필요에 따라 나눈다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "wild-carcass-shadow-hare",
+  "spoiler_tier": "none",
+  "summary": "도축 시설로 옮기면 식량과 부산물을 얻는다.",
+  "title": "그림자토끼 사체"
+}

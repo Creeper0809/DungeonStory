@@ -54,11 +54,19 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: material:paper
-    amount: 1
+    amount: 2
   - itemId: material:cloth
-    amount: 1
+    amount: 2
   outputs:
   - outputLineId: output:recipe:supply:certified-seed-kit/000/main/supply:certified-seed-kit
     role: 0

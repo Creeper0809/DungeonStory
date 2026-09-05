@@ -118,7 +118,7 @@ MonoBehaviour:
         - itemId: material:lumber
           amount: 12
         - itemId: material:cloth
-          amount: 8
+          amount: 11
         - itemId: material:iron-ingot
           amount: 3
     - rid: 7737211921440178932

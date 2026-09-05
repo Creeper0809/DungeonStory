@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "44"
+    },
+    {
+      "label": "필요 연구",
+      "value": "연금 가공"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "craft-toxic-trap-coating",
+      "target_spoiler_tier": "none",
+      "target_title": "독성 함정 도포제",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "5",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-rot-toxin",
+      "target_spoiler_tier": "none",
+      "target_title": "부패 독소",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-dark-resin",
+      "target_spoiler_tier": "none",
+      "target_title": "암흑수액",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-arcane-alchemy",
+      "target_spoiler_tier": "none",
+      "target_title": "연금 가공",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-craft-toxic-trap-coating",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 독성 함정 도포제을(를) 생산한다.",
+  "title": "독성 함정 도포제"
+}

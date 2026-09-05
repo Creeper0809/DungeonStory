@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "apparel-tunic",
+    "spoiler_tier": "none",
+    "title": "튜닉"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-tunic",
+      "label": "생산·해금",
+      "to": "item/apparel-tunic",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

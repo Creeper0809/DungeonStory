@@ -1,0 +1,30 @@
+---
+import BaseLayout from '../../components/BaseLayout.astro';
+import GuideBody from '../../components/GuideBody.astro';
+import SystemIndex from '../../components/SystemIndex.astro';
+import { getCurrentVersion, getGuide, getGuideNavigation, getGuideRedirect } from '../../lib/wiki-data';
+
+const version = getCurrentVersion();
+const guideId = Astro.params.id ?? '';
+const redirectTo = getGuideRedirect(version, guideId);
+if (redirectTo) return Response.redirect(new URL(`/guide/${redirectTo}/`, Astro.url), 308);
+const guide = getGuide(version, guideId);
+if (!guide) return new Response(null, { status: 404 });
+const navigation = getGuideNavigation(version);
+const guideKind = navigation.pages.find((item) => item.id === guide.id)?.kind === 'situation' ? '상황별 안내' : '주제 안내';
+---
+
+<BaseLayout title={guide.spoiler_tier === 'warning' ? '스포일러 주의 가이드' : guide.title} description={guide.summary} version={version}>
+  <article class="guide-page" data-pagefind-body>
+    <nav class="breadcrumbs" aria-label="현재 위치"><a href="/directory/">둘러보기</a><span>/</span><span aria-current="page">{guide.title}</span></nav>
+    <header class="page-header"><p class="eyebrow">{guideKind}</p><h1>{guide.title}</h1><p>{guide.summary}</p></header>
+    <div class="guide-page__layout">
+      <div class="guide-page__main">
+        {guide.spoiler_tier === 'warning' && <p class="empty-state">이 가이드는 스포일러가 될 수 있는 항목과 연결될 수 있다. 상세 항목은 개별 페이지에서 경고 뒤에 표시한다.</p>}
+        <GuideBody body={guide.body} version={version} />
+        <SystemIndex guide={guide} version={version} />
+      </div>
+      <aside class="guide-page__rail" aria-label="이 문서 탐색" hidden></aside>
+    </div>
+  </article>
+</BaseLayout>

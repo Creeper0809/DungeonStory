@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "proficiency-melee-combat",
+  "spoiler_tier": "none",
+  "summary": "근접 공격, 방패 방어와 근접 제압의 숙련이다.",
+  "title": "근접 전투"
+}

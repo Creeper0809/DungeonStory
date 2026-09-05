@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "weather-clear",
+    "spoiler_tier": "none",
+    "title": "맑음"
+  },
+  "edges": [],
+  "schema_version": 1
+}

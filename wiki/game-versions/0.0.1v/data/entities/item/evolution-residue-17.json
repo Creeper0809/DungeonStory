@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "2621440"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "17단계 촉매를 분해해 얻은 여러 결이 포개진 파편이다. 하르나크의 수리공은 범용 촉매 잔재 진행 17 · 4등급을 정제해 같은 진행대의 재료와 다시 합친다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "evolution-residue-17",
+  "spoiler_tier": "none",
+  "summary": "촉매를 분해해 얻은 잔재. 정제하거나 다음 진행 단계로 합칠 수 있다.",
+  "title": "범용 촉매 잔재 진행 17 · 4등급"
+}

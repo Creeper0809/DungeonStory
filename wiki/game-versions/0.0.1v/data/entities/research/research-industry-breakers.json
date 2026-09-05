@@ -1,0 +1,67 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "582"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Industry And Automation"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-automatic-bills",
+      "target_spoiler_tier": "none",
+      "target_title": "자동 주문과 재고 감지",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-automatic-bills",
+      "target_spoiler_tier": "none",
+      "target_title": "자동 주문과 재고 감지",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-automatic-bills",
+      "target_spoiler_tier": "none",
+      "target_title": "자동 주문과 재고 감지",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8830",
+      "target_spoiler_tier": "none",
+      "target_title": "정비 부품함",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9814",
+      "target_spoiler_tier": "none",
+      "target_title": "회로 차단기",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-industry-breakers",
+  "spoiler_tier": "none",
+  "summary": "차단기와 산업 정비에 필요한 이론, 제작 절차, 안전 기준과 운용 보상을 하나의 완결된 연구 패키지로 통합한다.",
+  "title": "차단기와 산업 정비"
+}

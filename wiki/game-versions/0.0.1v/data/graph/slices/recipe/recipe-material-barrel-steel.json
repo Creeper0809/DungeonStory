@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-material-barrel-steel",
+    "spoiler_tier": "none",
+    "title": "총열강"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-material-barrel-steel",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-spring-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "용수철강",
+      "to": "item/material-spring-steel",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-barrel-steel",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-barrel-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "총열강",
+      "to": "item/material-barrel-steel",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-material-barrel-steel",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-steel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "강철",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-material-barrel-steel",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-pressure-barrels",
+      "target_spoiler_tier": "none",
+      "target_title": "내압 화기와 방폭",
+      "to": "research/research-equipment-pressure-barrels",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

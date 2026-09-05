@@ -1,0 +1,67 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "28"
+    },
+    {
+      "label": "필요 연구",
+      "value": "진통·마취"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "medicine-anesthetic",
+      "target_spoiler_tier": "none",
+      "target_title": "마취제",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-dreamleaf",
+      "target_spoiler_tier": "none",
+      "target_title": "몽엽",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-alcohol",
+      "target_spoiler_tier": "none",
+      "target_title": "알코올",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "container-medical-vial",
+      "target_spoiler_tier": "none",
+      "target_title": "재사용 의료 바이알",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-anesthesia",
+      "target_spoiler_tier": "none",
+      "target_title": "진통·마취",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-anesthetic",
+  "spoiler_tier": "none",
+  "summary": "마취제 생산 주문",
+  "title": "마취제"
+}

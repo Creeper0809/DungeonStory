@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "life-history-vampire",
+    "spoiler_tier": "none",
+    "title": "Life_Vampire"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/characterspecies-3",
+      "label": "관련",
+      "to": "character/life-history-vampire",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

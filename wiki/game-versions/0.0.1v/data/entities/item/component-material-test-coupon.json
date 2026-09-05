@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.35kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "132"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "재료 시험편으로 완성품의 치수와 재료 상태가 허용 범위에 드는지 확인한다. 크릭 제7굴의 재료 시험편에는 통과한 시험 기준과 다시 검사할 날짜가 함께 적혀 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "component-material-test-coupon",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 재료 시험편.",
+  "title": "재료 시험편"
+}

@@ -1,0 +1,201 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-medical-surgery",
+    "spoiler_tier": "none",
+    "title": "외과술"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-medical-surgery",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-anatomy",
+      "target_spoiler_tier": "none",
+      "target_title": "해부학",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-surgery",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-anatomy",
+      "target_spoiler_tier": "none",
+      "target_title": "해부학",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-surgery",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-anatomy",
+      "target_spoiler_tier": "none",
+      "target_title": "해부학",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-surgery",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-anesthesia",
+      "target_spoiler_tier": "none",
+      "target_title": "진통·마취",
+      "to": "research/research-pharmacology-anesthesia",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-surgery",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-anesthesia",
+      "target_spoiler_tier": "none",
+      "target_title": "진통·마취",
+      "to": "research/research-pharmacology-anesthesia",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-surgery",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-anesthesia",
+      "target_spoiler_tier": "none",
+      "target_title": "진통·마취",
+      "to": "research/research-pharmacology-anesthesia",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-surgery",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9503",
+      "target_spoiler_tier": "none",
+      "target_title": "외과 수술대",
+      "to": "facility/building-9503",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-surgery",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9504",
+      "target_spoiler_tier": "none",
+      "target_title": "세정대",
+      "to": "facility/building-9504",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-surgery",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9505",
+      "target_spoiler_tier": "none",
+      "target_title": "마취 장치",
+      "to": "facility/building-9505",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-amputation",
+      "label": "필요 조건",
+      "to": "research/research-medical-surgery",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-live-organ-extraction",
+      "label": "필요 조건",
+      "to": "research/research-medical-surgery",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-orc-combat-heart",
+      "label": "필요 조건",
+      "to": "research/research-medical-surgery",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-orc-skeletal-reinforcement",
+      "label": "필요 조건",
+      "to": "research/research-medical-surgery",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-organ-repair",
+      "label": "필요 조건",
+      "to": "research/research-medical-surgery",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-medical-sterile-bandage",
+      "label": "필요 조건",
+      "to": "research/research-medical-surgery",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-textile-sterile-cloth",
+      "label": "필요 조건",
+      "to": "research/research-medical-surgery",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-organ-preservation",
+      "label": "선행 연구",
+      "to": "research/research-medical-surgery",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-organ-preservation",
+      "label": "선행 연구",
+      "to": "research/research-medical-surgery",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-organ-preservation",
+      "label": "선행 연구",
+      "to": "research/research-medical-surgery",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-prosthetics",
+      "label": "선행 연구",
+      "to": "research/research-medical-surgery",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-prosthetics",
+      "label": "선행 연구",
+      "to": "research/research-medical-surgery",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-prosthetics",
+      "label": "선행 연구",
+      "to": "research/research-medical-surgery",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

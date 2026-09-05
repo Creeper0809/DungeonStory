@@ -1,0 +1,48 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "무기 형식학"
+    },
+    {
+      "label": "제작 작업",
+      "value": "116"
+    },
+    {
+      "label": "무게",
+      "value": "4.2kg"
+    },
+    {
+      "label": "최대 사거리",
+      "value": "2"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "combat",
+  "relations": [
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-weapon-patterns",
+      "target_spoiler_tier": "none",
+      "target_title": "무기 형식학",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-growth-frame",
+      "target_spoiler_tier": "none",
+      "target_title": "성장형 장비 골격",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "equipment-item-weapon-halberd",
+  "spoiler_tier": "none",
+  "summary": "할버드 전투 장비",
+  "title": "할버드"
+}

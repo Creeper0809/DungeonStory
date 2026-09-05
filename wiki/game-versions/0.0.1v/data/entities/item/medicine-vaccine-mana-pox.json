@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.75kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "14개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "76"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "마나두창 백신은 특정 감염에 대비해 면역 반응을 준비시키는 의료 물자다. 베르사디온의 마나두창 백신에는 환자, 집도의와 마나 제공자가 누른 세 봉인이 모두 있어야 빛이 돈다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "medicine-vaccine-mana-pox",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 마나두창 백신.",
+  "title": "마나두창 백신"
+}

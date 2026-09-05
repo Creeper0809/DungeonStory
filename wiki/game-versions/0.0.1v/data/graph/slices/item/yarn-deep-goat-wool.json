@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "yarn-deep-goat-wool",
+    "spoiler_tier": "none",
+    "title": "심층 염소모직 원사"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-spin-deep-goat-wool",
+      "label": "생산·해금",
+      "to": "item/yarn-deep-goat-wool",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-spin-powered-deep-goat-wool",
+      "label": "생산·해금",
+      "to": "item/yarn-deep-goat-wool",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "7",
+      "from": "recipe/recipe-v22-weave-deep-goat-wool",
+      "label": "필요 조건",
+      "to": "item/yarn-deep-goat-wool",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

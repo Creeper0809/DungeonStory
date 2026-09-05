@@ -1,0 +1,99 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-medical-geriatric-medicine",
+    "spoiler_tier": "none",
+    "title": "노인의학과 만성 관리"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-medical-geriatric-medicine",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-gerontology",
+      "target_spoiler_tier": "none",
+      "target_title": "노인학과 생물학적 연령 계측",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-geriatric-medicine",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-gerontology",
+      "target_spoiler_tier": "none",
+      "target_title": "노인학과 생물학적 연령 계측",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-geriatric-medicine",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-gerontology",
+      "target_spoiler_tier": "none",
+      "target_title": "노인학과 생물학적 연령 계측",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-geriatric-medicine",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-sewer",
+      "target_spoiler_tier": "none",
+      "target_title": "하수 처리와 수세 위생",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-geriatric-medicine",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-sewer",
+      "target_spoiler_tier": "none",
+      "target_title": "하수 처리와 수세 위생",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-geriatric-medicine",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-sewer",
+      "target_spoiler_tier": "none",
+      "target_title": "하수 처리와 수세 위생",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-geriatric-medicine",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8865",
+      "target_spoiler_tier": "none",
+      "target_title": "노인 병상",
+      "to": "facility/building-8865",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-geriatric-medicine",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8866",
+      "target_spoiler_tier": "none",
+      "target_title": "만성 관리실",
+      "to": "facility/building-8866",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

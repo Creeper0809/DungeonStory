@@ -1,0 +1,137 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-plumbing-reuse",
+    "spoiler_tier": "none",
+    "title": "정수와 재이용"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-plumbing-reuse",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-distillation",
+      "target_spoiler_tier": "none",
+      "target_title": "증류",
+      "to": "research/research-pharmacology-distillation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-reuse",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-distillation",
+      "target_spoiler_tier": "none",
+      "target_title": "증류",
+      "to": "research/research-pharmacology-distillation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-reuse",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-distillation",
+      "target_spoiler_tier": "none",
+      "target_title": "증류",
+      "to": "research/research-pharmacology-distillation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-reuse",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-sewer",
+      "target_spoiler_tier": "none",
+      "target_title": "하수 처리와 수세 위생",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-reuse",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-sewer",
+      "target_spoiler_tier": "none",
+      "target_title": "하수 처리와 수세 위생",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-reuse",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-sewer",
+      "target_spoiler_tier": "none",
+      "target_title": "하수 처리와 수세 위생",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-reuse",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9821",
+      "target_spoiler_tier": "none",
+      "target_title": "소독 정수기",
+      "to": "facility/building-9821",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-reclaimed-water-filter",
+      "label": "필요 조건",
+      "to": "research/research-plumbing-reuse",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-electric-smelting",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-reuse",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-electric-smelting",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-reuse",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-electric-smelting",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-reuse",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-rune-purification",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-reuse",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-rune-purification",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-reuse",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-rune-purification",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-reuse",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

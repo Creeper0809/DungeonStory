@@ -10,7 +10,8 @@ using System.Linq;
 /// </summary>
 public sealed class ProductionApparelOrderTerminalDestructiveDrainParticipant :
     IProductionFacilityDestructiveDrainParticipant,
-    IProductionFacilityDestructiveDrainDurablePrepareParticipant
+    IProductionFacilityDestructiveDrainDurablePrepareParticipant,
+    IProductionFacilityDestructiveDrainCheckpointGcParticipant
 {
     public const int CurrentContractVersion = 1;
 
@@ -22,6 +23,8 @@ public sealed class ProductionApparelOrderTerminalDestructiveDrainParticipant :
     private readonly IApparelLeaseAuthorityQuery leases;
     private readonly IProductionApparelOrderTerminalDrainQuery producerQuery;
     private readonly IProductionApparelOrderTerminalDrainCommand producer;
+    private readonly IProductionApparelOrderTerminalDrainCheckpointGcPort
+        checkpointGc;
 
     internal ProductionApparelOrderTerminalDestructiveDrainParticipant(
         IProductionOutputDestinationLifecycleQuery lifecycle,
@@ -49,10 +52,14 @@ public sealed class ProductionApparelOrderTerminalDestructiveDrainParticipant :
             ?? throw new ArgumentNullException(nameof(producerQuery));
         this.producer = producer
             ?? throw new ArgumentNullException(nameof(producer));
+        checkpointGc = producer as
+            IProductionApparelOrderTerminalDrainCheckpointGcPort;
     }
 
     public string ParticipantId =>
         ProductionFacilityDestructiveDrainParticipantIds.ApparelWorkOrders;
+
+    public string CheckpointGcParticipantId => ParticipantId;
 
     public int ContractVersion => CurrentContractVersion;
 
@@ -364,6 +371,62 @@ public sealed class ProductionApparelOrderTerminalDestructiveDrainParticipant :
             default:
                 return RecoveryConflict(current);
         }
+    }
+
+    public ProductionFacilityDestructiveDrainCheckpointGcResult
+        PrepareCheckpointGarbageCollection(
+            ProductionFacilityDestructiveDrainCheckpointGcContext context,
+            IReadOnlyList<ProductionFacilityDestructiveDrainEntrySaveData>
+                entries,
+            out IProductionFacilityDestructiveDrainCheckpointGcCandidate
+                candidate)
+    {
+        candidate = null;
+        return checkpointGc != null
+            ? checkpointGc.PrepareCheckpointGarbageCollection(
+                context,
+                entries,
+                out candidate)
+            : new ProductionFacilityDestructiveDrainCheckpointGcResult(
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Corruption,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .MissingParticipant,
+                context.CheckpointSequence,
+                "production-apparel-checkpoint-gc-port-missing");
+    }
+
+    public ProductionFacilityDestructiveDrainCheckpointGcResult
+        PublishCheckpointGarbageCollection(
+            IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        if (checkpointGc == null)
+        {
+            throw new InvalidOperationException(
+                "Apparel checkpoint-GC port is missing.");
+        }
+        return checkpointGc.PublishCheckpointGarbageCollection(candidate);
+    }
+
+    public void RollbackCheckpointGarbageCollection(
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        if (checkpointGc == null)
+        {
+            throw new InvalidOperationException(
+                "Apparel checkpoint-GC port is missing.");
+        }
+        checkpointGc.RollbackCheckpointGarbageCollection(candidate);
+    }
+
+    public void CompleteCheckpointGarbageCollection(
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        if (checkpointGc == null)
+        {
+            throw new InvalidOperationException(
+                "Apparel checkpoint-GC port is missing.");
+        }
+        checkpointGc.CompleteCheckpointGarbageCollection(candidate);
     }
 
     private ProductionApparelOrderTerminalDrainRequest CaptureRequest(

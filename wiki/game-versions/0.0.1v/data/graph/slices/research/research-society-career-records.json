@@ -1,0 +1,116 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-society-career-records",
+    "spoiler_tier": "none",
+    "title": "경력 기록"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-society-career-records",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-office",
+      "target_spoiler_tier": "none",
+      "target_title": "영주 집무",
+      "to": "research/research-authority-office",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-career-records",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-office",
+      "target_spoiler_tier": "none",
+      "target_title": "영주 집무",
+      "to": "research/research-authority-office",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-career-records",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-office",
+      "target_spoiler_tier": "none",
+      "target_title": "영주 집무",
+      "to": "research/research-authority-office",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-career-records",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-household-records",
+      "target_spoiler_tier": "none",
+      "target_title": "가구 기록과 영아 돌봄",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-career-records",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-household-records",
+      "target_spoiler_tier": "none",
+      "target_title": "가구 기록과 영아 돌봄",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-career-records",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-household-records",
+      "target_spoiler_tier": "none",
+      "target_title": "가구 기록과 영아 돌봄",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-career-records",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8894",
+      "target_spoiler_tier": "none",
+      "target_title": "경력 기록대",
+      "to": "facility/building-8894",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-record-career-ledger",
+      "label": "필요 조건",
+      "to": "research/research-society-career-records",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-retirement",
+      "label": "선행 연구",
+      "to": "research/research-society-career-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-retirement",
+      "label": "선행 연구",
+      "to": "research/research-society-career-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-retirement",
+      "label": "선행 연구",
+      "to": "research/research-society-career-records",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

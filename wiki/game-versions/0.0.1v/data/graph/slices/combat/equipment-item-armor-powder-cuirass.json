@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "equipment-item-armor-powder-cuirass",
+    "spoiler_tier": "none",
+    "title": "화약수 흉갑"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-powder-cuirass",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-plate-blank",
+      "target_spoiler_tier": "none",
+      "target_title": "판금 소재판",
+      "to": "item/material-plate-blank",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-powder-cuirass",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "textile-insulating-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "절연 직물",
+      "to": "item/textile-insulating-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-armor-powder-cuirass",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-pressure-barrels",
+      "target_spoiler_tier": "none",
+      "target_title": "내압 화기와 방폭",
+      "to": "research/research-equipment-pressure-barrels",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

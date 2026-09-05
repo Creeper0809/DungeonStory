@@ -1,0 +1,27 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Apprenticeship"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "10",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-first-safe-task",
+      "target_spoiler_tier": "warning",
+      "target_title": "첫 안전 작업",
+      "type": "grants-skill-experience"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "life-event-first-safe-task",
+  "spoiler_tier": "warning",
+  "summary": "청소년이 감독 아래 첫 작업을 사고 없이 마쳤다.",
+  "title": "첫 안전 작업"
+}

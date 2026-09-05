@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "battlefield-broken-pillars",
+    "spoiler_tier": "none",
+    "title": "무너진 기둥숲"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/encounter-02",
+      "label": "관련",
+      "to": "world/battlefield-broken-pillars",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-14",
+      "label": "관련",
+      "to": "world/battlefield-broken-pillars",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-26",
+      "label": "관련",
+      "to": "world/battlefield-broken-pillars",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

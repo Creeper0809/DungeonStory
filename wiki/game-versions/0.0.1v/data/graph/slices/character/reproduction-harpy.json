@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "reproduction-harpy",
+    "spoiler_tier": "none",
+    "title": "Reproduction_Harpy"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/characterspecies-8",
+      "label": "관련",
+      "to": "character/reproduction-harpy",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

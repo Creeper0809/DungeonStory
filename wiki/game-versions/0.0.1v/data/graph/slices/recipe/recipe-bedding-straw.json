@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-bedding-straw",
+    "spoiler_tier": "none",
+    "title": "짚 깔짚"
+  },
+  "edges": [
+    {
+      "amount": "10",
+      "from": "recipe/recipe-bedding-straw",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-grass-straw",
+      "target_spoiler_tier": "none",
+      "target_title": "풀·짚",
+      "to": "item/resource-grass-straw",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-bedding-straw",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "husbandry-bedding",
+      "target_spoiler_tier": "none",
+      "target_title": "깔짚",
+      "to": "item/husbandry-bedding",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-bedding-straw",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-shade-fiber",
+      "target_spoiler_tier": "none",
+      "target_title": "그늘섬유",
+      "to": "item/resource-shade-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-bedding-straw",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-feed",
+      "target_spoiler_tier": "none",
+      "target_title": "사료·깔짚",
+      "to": "research/research-husbandry-feed",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "facilityevolutionrecipe-9104",
+    "spoiler_tier": "none",
+    "title": "요새 훈련 진화"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9104",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1040",
+      "target_spoiler_tier": "none",
+      "target_title": "훈련허수아비",
+      "to": "facility/building-1040",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9104",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1041",
+      "target_spoiler_tier": "none",
+      "target_title": "사격과녁",
+      "to": "facility/building-1041",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9104",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-1044",
+      "target_spoiler_tier": "none",
+      "target_title": "경비초소책상",
+      "to": "facility/building-1044",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9104",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-1045",
+      "target_spoiler_tier": "none",
+      "target_title": "경보종",
+      "to": "facility/building-1045",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

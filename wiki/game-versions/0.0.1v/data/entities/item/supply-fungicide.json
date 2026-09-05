@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "21"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "포자와 곰팡이가 작물과 저장고에 번지는 것을 막는 살균제다. 므네실라산 살균제에는 재배 균사와 병원성 곰팡이를 구별할 수 있도록 포자색 견본이 붙어 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "supply-fungicide",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 살균제.",
+  "title": "살균제"
+}

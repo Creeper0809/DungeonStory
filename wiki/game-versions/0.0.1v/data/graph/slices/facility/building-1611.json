@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1611",
+    "spoiler_tier": "none",
+    "title": "냉장 준비대"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-cuisine-kitchen-hygiene",
+      "label": "시설 해금",
+      "to": "facility/building-1611",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

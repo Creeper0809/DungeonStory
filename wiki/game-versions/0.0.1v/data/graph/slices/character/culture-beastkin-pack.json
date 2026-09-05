@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "culture-beastkin-pack",
+    "spoiler_tier": "none",
+    "title": "무리의 화로 문화"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/culture-beastkin-pack",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-beastkin-pack-meal",
+      "target_spoiler_tier": "none",
+      "target_title": "무리 한솥",
+      "to": "event/practice-beastkin-pack-meal",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-beastkin-pack",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-beastkin-scent-vigil",
+      "target_spoiler_tier": "none",
+      "target_title": "향취 철야",
+      "to": "event/practice-beastkin-scent-vigil",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-beastkin-pack",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "resource-meat",
+      "target_spoiler_tier": "none",
+      "target_title": "생고기",
+      "to": "item/resource-meat",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

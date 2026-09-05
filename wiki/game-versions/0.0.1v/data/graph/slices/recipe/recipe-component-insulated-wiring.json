@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-component-insulated-wiring",
+    "spoiler_tier": "none",
+    "title": "절연 배선 묶음"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-insulated-wiring",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-insulated-wiring",
+      "target_spoiler_tier": "none",
+      "target_title": "절연 배선 묶음",
+      "to": "item/component-insulated-wiring",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-insulated-wiring",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-gold-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "금괴",
+      "to": "item/material-gold-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-component-insulated-wiring",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "textile-insulating-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "절연 직물",
+      "to": "item/textile-insulating-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-insulated-wiring",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-industry-electric-lighting",
+      "target_spoiler_tier": "none",
+      "target_title": "산업 조명",
+      "to": "research/research-industry-electric-lighting",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

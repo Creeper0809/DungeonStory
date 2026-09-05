@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "평균 기온",
+      "value": "27°C"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "nature",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "climate-ember-wastes",
+  "spoiler_tier": "none",
+  "summary": "평균 기온 27℃, 연교차 8℃, 현지 시각 보정 0시간을 제공해 지역별 장기 환경 기준을 만든다.",
+  "title": "잿불 황무지"
+}

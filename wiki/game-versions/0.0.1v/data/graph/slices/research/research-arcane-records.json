@@ -1,0 +1,113 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-arcane-records",
+    "spoiler_tier": "none",
+    "title": "기록 체계"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-arcane-records",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1032",
+      "target_spoiler_tier": "none",
+      "target_title": "연구용책장",
+      "to": "facility/building-1032",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-record-arcane-index",
+      "label": "필요 조건",
+      "to": "research/research-arcane-records",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-arcane-alchemy",
+      "label": "선행 연구",
+      "to": "research/research-arcane-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-arcane-alchemy",
+      "label": "선행 연구",
+      "to": "research/research-arcane-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-arcane-alchemy",
+      "label": "선행 연구",
+      "to": "research/research-arcane-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-relic-appraisal",
+      "label": "선행 연구",
+      "to": "research/research-arcane-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-relic-appraisal",
+      "label": "선행 연구",
+      "to": "research/research-arcane-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-relic-appraisal",
+      "label": "선행 연구",
+      "to": "research/research-arcane-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "선행 연구",
+      "to": "research/research-arcane-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "선행 연구",
+      "to": "research/research-arcane-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "선행 연구",
+      "to": "research/research-arcane-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-life-seasonal-calendar",
+      "label": "선행 연구",
+      "to": "research/research-arcane-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-life-seasonal-calendar",
+      "label": "선행 연구",
+      "to": "research/research-arcane-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-life-seasonal-calendar",
+      "label": "선행 연구",
+      "to": "research/research-arcane-records",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

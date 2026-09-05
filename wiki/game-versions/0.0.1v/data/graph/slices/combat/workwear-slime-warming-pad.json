@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "workwear-slime-warming-pad",
+    "spoiler_tier": "none",
+    "title": "보온 점액 패드"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "combat/workwear-slime-warming-pad",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "equipment-slime-warming-pad",
+      "target_spoiler_tier": "none",
+      "target_title": "보온 점액 패드",
+      "to": "item/equipment-slime-warming-pad",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/workwear-slime-warming-pad",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-environment-cold-work",
+      "target_spoiler_tier": "none",
+      "target_title": "저온 작업 보호",
+      "to": "research/research-environment-cold-work",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

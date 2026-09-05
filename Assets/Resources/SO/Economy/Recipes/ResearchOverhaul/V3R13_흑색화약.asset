@@ -54,13 +54,21 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: material:charcoal
     amount: 2
   - itemId: resource:sulfur
-    amount: 1
-  - itemId: material:niter
     amount: 2
+  - itemId: material:niter
+    amount: 4
   outputs:
   - outputLineId: output:recipe:material:black-powder/000/main/material:black-powder
     role: 0

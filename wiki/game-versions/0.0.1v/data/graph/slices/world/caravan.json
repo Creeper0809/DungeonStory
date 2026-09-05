@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "caravan",
+    "spoiler_tier": "none",
+    "title": "이동 상단"
+  },
+  "edges": [],
+  "schema_version": 1
+}

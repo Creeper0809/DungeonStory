@@ -15,6 +15,7 @@ public static class ProductionPreparedOutputDeliveryCoordinatorDebugScenarios
     {
         VerifyAppliedReplayAndDeferred();
         VerifyCapacityRejectAndPublishFaultRollback();
+        VerifyWarehouseReachabilityUsesActualPath();
     }
 
     private static void VerifyAppliedReplayAndDeferred()
@@ -165,7 +166,8 @@ public static class ProductionPreparedOutputDeliveryCoordinatorDebugScenarios
                 Items,
                 Admission,
                 new EmptyCatalog(),
-                new EmptyWarehouses());
+                new EmptyWarehouses(),
+                new UnavailableGridProvider());
         }
 
         internal FakeEconomy Economy { get; }
@@ -484,6 +486,76 @@ public static class ProductionPreparedOutputDeliveryCoordinatorDebugScenarios
         public int WarehouseVersion => 0;
         public IReadOnlyList<IWarehouseFacility> Warehouses =>
             Array.Empty<IWarehouseFacility>();
+    }
+
+    private static void VerifyWarehouseReachabilityUsesActualPath()
+    {
+        Grid grid = new(8, 1);
+        for (int y = 0; y < grid.height; y++)
+        {
+            for (int x = 0; x < grid.width; x++)
+            {
+                grid.SetAreaType(
+                    new Vector2Int(x, y),
+                    GridCellAreaType.ExteriorPath);
+            }
+            grid.SetAreaType(new Vector2Int(5, y),
+                GridCellAreaType.BlockedExterior);
+        }
+
+        GameObject nearRoot = new("CoordinatorNearUnreachableWarehouse");
+        GameObject farRoot = new("CoordinatorFarReachableWarehouse");
+        try
+        {
+            RouteProbeBuilding near = nearRoot.AddComponent<RouteProbeBuilding>();
+            RouteProbeBuilding far = farRoot.AddComponent<RouteProbeBuilding>();
+            near.Configure(grid, new Vector2Int(6, 0));
+            far.Configure(grid, new Vector2Int(0, 0));
+            Vector2Int origin = new(4, 0);
+
+            Require(!ProductionPreparedOutputDeliveryCoordinator
+                    .TryGetWarehouseRouteCost(grid, origin, near, out _),
+                "A Manhattan-near warehouse behind a sealed barrier was considered reachable.");
+            Require(ProductionPreparedOutputDeliveryCoordinator
+                    .TryGetWarehouseRouteCost(
+                        grid,
+                        origin,
+                        far,
+                        out int farCost)
+                && farCost != int.MaxValue,
+                "A farther warehouse in the output source component was not reachable.");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(nearRoot);
+            UnityEngine.Object.DestroyImmediate(farRoot);
+        }
+    }
+
+    private sealed class RouteProbeBuilding : BuildableObject
+    {
+        internal void Configure(Grid targetGrid, Vector2Int position)
+        {
+            SetGrid(targetGrid);
+            centerPos = position;
+        }
+    }
+
+    private sealed class UnavailableGridProvider : IGridSystemProvider
+    {
+        public GridSystemManager Manager => throw new InvalidOperationException();
+        public Grid Grid => throw new InvalidOperationException();
+        public bool TryGetManager(out GridSystemManager manager)
+        {
+            manager = null;
+            return false;
+        }
+
+        public bool TryGetGrid(out Grid grid)
+        {
+            grid = null;
+            return false;
+        }
     }
 
     private static ProductionPreparedOutputDeliveryRevisionSnapshot EconomyRevision(

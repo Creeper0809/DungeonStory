@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.95kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "54"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "방 칸막이 키트에는 현장 조립과 보강에 필요한 작은 부품을 빠짐없이 모아 두었다. 특히 라카쉬 세갈래길식 방 칸막이 키트는 수레와 천막 어디에나 맞도록 구멍 간격이 한 뼘으로 통일돼 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "component-room-partition-kit",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 방 칸막이 키트.",
+  "title": "방 칸막이 키트"
+}

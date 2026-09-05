@@ -1,14 +1,16 @@
 RESULT=PASS; authority=shared-access-union; normalLimitPermille=700; faultLimitPermille=900
-sourceDigest=f9f7d13d41e7c5276cfd537bcc8e8e8dc014cd366ed4f5b2c73dd4877d13a41a
-spatialCsvSha256=5ab343c880e334b8fd87b451624caa17a5181e3c14ce9f88c92026b2534b265e
+sourceDigest=cb60cf191e5afb870d66387288397cac741a7f7c90baea6efdad7c27f8f23b9d
+spatialCsvSha256=d8aa14655c8e932e4f7691b0c8a90182c3004b97d1a97e2c6b67c4ddca9b6a99
+PASS INCREMENTAL_EDITOR_EXECUTION seedsPerStage=256;minimumSuccesses=243;updateBudgetMs=8;seedNodeBudget=250000;seedTimeBudgetMs=1000;runBudgetMs=300000;thresholdImpossibleEarlyExit=true;partialArtifactPublish=false
 PASS ACTUAL_ASSET_EXACT_BACKTRACKING_ORACLE asset=9601;requirements=2;solution=9601@24:1|9601@24:0
 PASS ACTUAL_ASSET_DETERMINISTIC_BEAM_FALLBACK asset=9601;requirements=9;beamWidth=64;solution=9601@24:1|9601@24:0|9601@2:0|9601@4:0|9601@6:0|9601@8:0|9601@10:0|9601@12:0|9601@14:0
+PASS ACTUAL_ASSET_SEARCH_BUDGET_FAIL_LOUD nodeAndTimeBudgetExhaustion=inconclusive-error
 PASS ACTUAL_ASSET_UNIQUE_ACCESS_ADVERSARIAL_REJECTED sameSoleStand=false;multiStandSharedCorridor=true
 PASS ACTUAL_ASSET_FIXED_EGRESS_LANDING_PROTECTED footprintOverlap=0;accessOverlap=0
 PASS ACTUAL_ASSET_HEURISTIC_FALSE_NEGATIVE_GATE value=0
-PASS population=1;width=27;normalPeak=26;faultPeak=35;normalStoragePeak=467;faultStoragePeak=763;minimumHeadroom=740
-PASS population=3;width=27;normalPeak=75;faultPeak=105;normalStoragePeak=559;faultStoragePeak=729;minimumHeadroom=543
-PASS population=6;width=27;normalPeak=150;faultPeak=210;normalStoragePeak=546;faultStoragePeak=529;minimumHeadroom=308
-PASS population=12;width=49;normalPeak=300;faultPeak=420;normalStoragePeak=610;faultStoragePeak=460;minimumHeadroom=312
-PASS population=18;width=65;normalPeak=450;faultPeak=630;normalStoragePeak=645;faultStoragePeak=474;minimumHeadroom=307
-PASS population=24;width=81;normalPeak=600;faultPeak=840;normalStoragePeak=654;faultStoragePeak=476;minimumHeadroom=316
+PASS population=1;width=27;normalPeak=26;faultPeak=35;normalStoragePeak=644;faultStoragePeak=839;minimumHeadroom=740
+PASS population=3;width=27;normalPeak=75;faultPeak=105;normalStoragePeak=528;faultStoragePeak=663;minimumHeadroom=506
+PASS population=6;width=29;normalPeak=150;faultPeak=210;normalStoragePeak=622;faultStoragePeak=583;minimumHeadroom=321
+PASS population=12;width=51;normalPeak=300;faultPeak=420;normalStoragePeak=673;faultStoragePeak=526;minimumHeadroom=300
+PASS population=18;width=71;normalPeak=450;faultPeak=630;normalStoragePeak=653;faultStoragePeak=517;minimumHeadroom=309
+PASS population=24;width=87;normalPeak=600;faultPeak=840;normalStoragePeak=670;faultStoragePeak=526;minimumHeadroom=306

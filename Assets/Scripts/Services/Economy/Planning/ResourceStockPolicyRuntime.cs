@@ -11,6 +11,7 @@ public sealed class ResourceStockPolicyLogisticsDependencies
         IWorldItemStackRuntime itemRuntime,
         IPhysicalFacilityItemBatchTransferGateway transferGateway,
         IWorldDropZoneQuery dropZones,
+        IQualityRejectedSaleDestinationAuthority rejectedSaleDestination,
         IWorkforceReplanService workforce)
     {
         ItemRuntime = itemRuntime
@@ -19,6 +20,8 @@ public sealed class ResourceStockPolicyLogisticsDependencies
             ?? throw new ArgumentNullException(nameof(transferGateway));
         DropZones = dropZones
             ?? throw new ArgumentNullException(nameof(dropZones));
+        RejectedSaleDestination = rejectedSaleDestination
+            ?? throw new ArgumentNullException(nameof(rejectedSaleDestination));
         Workforce = workforce
             ?? throw new ArgumentNullException(nameof(workforce));
     }
@@ -26,6 +29,8 @@ public sealed class ResourceStockPolicyLogisticsDependencies
     internal IWorldItemStackRuntime ItemRuntime { get; }
     internal IPhysicalFacilityItemBatchTransferGateway TransferGateway { get; }
     internal IWorldDropZoneQuery DropZones { get; }
+    internal IQualityRejectedSaleDestinationAuthority RejectedSaleDestination
+        { get; }
     internal IWorkforceReplanService Workforce { get; }
 }
 
@@ -52,6 +57,7 @@ public sealed class ResourceStockPolicyProductionDependencies
 public sealed class ResourceStockPolicyRuntime :
     IResourceStockPolicyRuntime,
     IResourceStockPolicySaleCommandPort,
+    IQualityRejectedSaleCommandPort,
     IInitializable,
     ITickable
 {
@@ -63,9 +69,10 @@ public sealed class ResourceStockPolicyRuntime :
     private readonly ResourceStockPolicyLogisticsDependencies logistics;
     private readonly ResourceStockPolicyProductionDependencies production;
     private readonly ICombatEquipmentRuntime combatEquipment;
-    private readonly IGameMoneyAccount money;
+    private readonly IIdempotentGameMoneyAccount money;
     private readonly IGameClock gameClock;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly IEconomyProjectInputOwnerPort inputOwners;
     private readonly HashSet<string> reportedRejectedSaleFailures =
         new(StringComparer.Ordinal);
 
@@ -84,9 +91,10 @@ public sealed class ResourceStockPolicyRuntime :
         ResourceStockPolicyLogisticsDependencies logistics,
         ResourceStockPolicyProductionDependencies production,
         ICombatEquipmentRuntime combatEquipment,
-        IGameMoneyAccount money,
+        IIdempotentGameMoneyAccount money,
         IGameClock gameClock,
-        DungeonRuntimeAggregateRootStore aggregateRootStore)
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IEconomyProjectInputOwnerPort inputOwners)
     {
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         this.logistics = logistics
@@ -99,6 +107,8 @@ public sealed class ResourceStockPolicyRuntime :
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.inputOwners = inputOwners
+            ?? throw new ArgumentNullException(nameof(inputOwners));
     }
 
     public int Version => state.Version;
@@ -117,6 +127,7 @@ public sealed class ResourceStockPolicyRuntime :
     public void Tick()
     {
         RecoverPendingSales();
+        RecoverPendingRejectedSales();
         if (gameClock.IsPaused || gameClock.Time < state.NextEvaluationTime)
         {
             return;
@@ -161,7 +172,8 @@ public sealed class ResourceStockPolicyRuntime :
         out string failureReason)
     {
         failureReason = string.Empty;
-        if (policy == null || string.IsNullOrWhiteSpace(policy.itemId))
+        if (policy == null
+            || !EconomyProjectInputOwnerAuthority.IsCanonical(policy.itemId))
         {
             failureReason = "재고 정책에 아이템이 지정되지 않았습니다.";
             return false;
@@ -175,6 +187,25 @@ public sealed class ResourceStockPolicyRuntime :
             return false;
         }
 
+        if (byItemId.TryGetValue(copy.itemId, out ResourceStockPolicyData current)
+            && HasInputOwner(current))
+        {
+            bool pending = state.PendingSalesByItemId.ContainsKey(copy.itemId);
+            if (!pending
+                && (!copy.enabled
+                    || copy.surplusDisposition != StockSurplusDisposition.Sell))
+            {
+                if (!TryRetireInputOwner(
+                        current,
+                        EconomyProjectInputOwnerAuthority.StockPolicyDisabledReason,
+                        out failureReason))
+                    return false;
+            }
+            else
+            {
+                CopyInputOwner(current, copy);
+            }
+        }
         byItemId[copy.itemId] = copy;
         state.Version++;
         RefreshView();
@@ -194,6 +225,23 @@ public sealed class ResourceStockPolicyRuntime :
 
     public DungeonResourceStockPolicySaveData Capture()
     {
+        foreach (ResourceStockPolicyData policy in policyView.Where(HasInputOwner))
+        {
+            if (!inputOwners.TryValidate(
+                    EconomyProjectInputOwnerAuthority.StockPolicyDomain,
+                    policy.itemId,
+                    policy.inputDestinationId,
+                    new Vector2Int(policy.inputDestinationX, policy.inputDestinationY),
+                    EconomyProjectInputOwnerAnchorKind.ReservedTarget,
+                    string.Empty,
+                    BuildRequirements(policy),
+                    policy.inputCapacityGrams,
+                    policy.inputMassAuthorityRevision,
+                    policy.inputCapacityFingerprint,
+                    out string ownerFailure))
+                throw new InvalidOperationException(
+                    "Stock-policy exact input owner is invalid: " + ownerFailure);
+        }
         return new DungeonResourceStockPolicySaveData
         {
             nextSaleSequence = state.NextSaleSequence,
@@ -203,6 +251,10 @@ public sealed class ResourceStockPolicyRuntime :
             pendingSales = state.PendingSalesByItemId.Values
                 .OrderBy(pending => pending.itemId, StringComparer.Ordinal)
                 .Select(pending => pending.Clone())
+                .ToList(),
+            pendingRejectedSales = state.PendingRejectedSalesByOperationId.Values
+                .OrderBy(pending => pending.operationId, StringComparer.Ordinal)
+                .Select(pending => pending.Clone())
                 .ToList()
         };
     }
@@ -210,7 +262,9 @@ public sealed class ResourceStockPolicyRuntime :
     public ResourceStockPolicyRestoreCandidate PrepareRestoreCandidate(
         DungeonResourceStockPolicySaveData saveData)
     {
-        if (saveData?.policies == null || saveData.pendingSales == null)
+        if (saveData?.policies == null
+            || saveData.pendingSales == null
+            || saveData.pendingRejectedSales == null)
         {
             throw new InvalidOperationException(
                 "Stock-policy restore payload or policy list is missing.");
@@ -231,6 +285,11 @@ public sealed class ResourceStockPolicyRuntime :
             ResourceStockPolicyPendingSale copy = saved.Clone();
             restored.PendingSalesByItemId.Add(copy.itemId, copy);
         }
+        foreach (QualityRejectedSalePending saved in saveData.pendingRejectedSales)
+        {
+            QualityRejectedSalePending copy = saved.Clone();
+            restored.PendingRejectedSalesByOperationId.Add(copy.operationId, copy);
+        }
 
         RefreshView(restored);
         return new ResourceStockPolicyRestoreCandidate(restored, saveData);
@@ -249,7 +308,7 @@ public sealed class ResourceStockPolicyRuntime :
 
     private void Evaluate(ResourceStockPolicyData policy)
     {
-        if (policy == null || !policy.enabled)
+        if (policy == null)
         {
             return;
         }
@@ -258,11 +317,27 @@ public sealed class ResourceStockPolicyRuntime :
             SetStatus(policy, "판매 정산 복구 대기");
             return;
         }
+        if (!policy.enabled)
+        {
+            TryRetireInputOwner(
+                policy,
+                EconomyProjectInputOwnerAuthority.StockPolicyDisabledReason,
+                out _);
+            return;
+        }
 
         int owned = CountOwned(policy.itemId);
         int surplus = Mathf.Max(0, owned - policy.maximumStock);
         if (surplus <= 0)
         {
+            if (!TryRetireInputOwner(
+                    policy,
+                    EconomyProjectInputOwnerAuthority.StockPolicyDisabledReason,
+                    out string retireFailure))
+            {
+                SetStatus(policy, retireFailure);
+                return;
+            }
             SetStatus(policy, owned < policy.minimumStock
                 ? $"부족 {owned}/{policy.minimumStock}"
                 : $"목표 범위 {owned}/{policy.targetStock}");
@@ -306,7 +381,9 @@ public sealed class ResourceStockPolicyRuntime :
             ? Mathf.Max(1, Mathf.CeilToInt(1f / fractionalUnitProceeds))
             : int.MaxValue;
 
-        string destinationId = SellDestinationPrefix + policy.itemId;
+        string destinationId =
+            EconomyProjectInputOwnerAuthority.BuildStockPolicyDestinationId(
+                policy.itemId);
         int delivered = CountAtDestination(
             policy.itemId,
             destinationId,
@@ -382,6 +459,16 @@ public sealed class ResourceStockPolicyRuntime :
             return;
         }
 
+        if (!TryEnsureInputOwner(
+                policy,
+                resourceItem,
+                dropoff,
+                out string ownerFailure))
+        {
+            SetStatus(policy, ownerFailure);
+            return;
+        }
+
         logistics.ItemRuntime.TryRequestItemDelivery(
             policy.itemId,
             missing,
@@ -419,16 +506,49 @@ public sealed class ResourceStockPolicyRuntime :
             return;
         }
 
+        if (!logistics.RejectedSaleDestination.TryEnsureTarget(
+                out FacilityBufferAcknowledgedOutputReleaseTarget target,
+                out string targetFailure))
+        {
+            foreach (WorldItemStackSnapshot stack in candidates)
+                ReportRejectedSaleFailureOnce(stack, targetFailure);
+            return;
+        }
+
         int settled = 0;
         foreach (WorldItemStackSnapshot stack in candidates)
         {
-            if (stack.State == WorldItemStackState.FacilityOutputBuffer)
+            if (state.PendingRejectedSalesByOperationId.Values.Any(pending =>
+                    pending != null
+                    && string.Equals(
+                        pending.sourceStackId,
+                        stack.StackId,
+                        StringComparison.Ordinal)))
             {
-                RequestRejectedQualitySaleDelivery(stack);
+                continue;
+            }
+            bool exactTarget = stack.HasDestinationPosition
+                && stack.DestinationPosition == target.DestinationPosition;
+            if (stack.State == WorldItemStackState.Loose && exactTarget)
+            {
+                reportedRejectedSaleFailures.Remove(stack.StackId);
+                logistics.ItemRuntime.PrioritizeHaul(stack.StackId);
+                logistics.Workforce.RequestOneHaulerToReplan(
+                    forceInterrupt: false);
                 continue;
             }
             if (stack.State != WorldItemStackState.FacilityBuffer
-                || settled >= QualityRejectedOutputRules.MaximumSettlementsPerEvaluation
+                || !exactTarget)
+            {
+                if (stack.State is WorldItemStackState.Loose
+                    or WorldItemStackState.FacilityOutputBuffer
+                    or WorldItemStackState.Stored)
+                {
+                    RequestRejectedQualitySaleDelivery(stack, target);
+                }
+                continue;
+            }
+            if (settled >= QualityRejectedOutputRules.MaximumSettlementsPerEvaluation
                 || !TryResolveRejectedQualityTier(
                     stack,
                     out CraftsmanshipQualityTier quality))
@@ -455,39 +575,38 @@ public sealed class ResourceStockPolicyRuntime :
                     "이 완제품은 시장 판매가 금지되어 있습니다.");
                 continue;
             }
-            if (!TryConsumeRejectedQualityOutput(
+            if (!TryBeginRejectedQualitySale(
                     stack,
+                    proceeds,
+                    target,
+                    out QualityRejectedSalePending pending,
                     out string consumeReason))
             {
                 ReportRejectedSaleFailureOnce(stack, consumeReason);
                 continue;
             }
 
-            reportedRejectedSaleFailures.Remove(stack.StackId);
-            money.Add(
-                proceeds,
-                new EconomyTransactionContext(
-                    EconomyTransactionKind.SaleIncome,
-                    stack.StackId,
-                    targetId: stack.ItemId,
-                    description: "품질 미달 완제품 판매"));
-            settled++;
-            state.Version++;
+            if (TryFinalizePendingRejectedSale(pending, out string finalizeFailure))
+            {
+                reportedRejectedSaleFailures.Remove(stack.StackId);
+                settled++;
+            }
+            else
+            {
+                ReportRejectedSaleFailureOnce(stack, finalizeFailure);
+            }
         }
     }
 
     private void RequestRejectedQualitySaleDelivery(
-        WorldItemStackSnapshot stack)
+        WorldItemStackSnapshot stack,
+        FacilityBufferAcknowledgedOutputReleaseTarget target)
     {
-        if (!logistics.DropZones.TryGetDeliveryDropoff(out Vector2Int dropoff))
-        {
-            return;
-        }
         if (logistics.ItemRuntime.TryRequestStackDelivery(
                 stack.StackId,
                 1,
-                dropoff,
-                QualityRejectedOutputRules.MarketDestinationId,
+                target.DestinationPosition,
+                target.DestinationId,
                 out int requested,
                 out string failureReason)
             && requested == 1)
@@ -511,33 +630,122 @@ public sealed class ResourceStockPolicyRuntime :
         return GoldEconomyBalanceRules.TargetExternalSaleRecovery;
     }
 
-    private bool TryConsumeRejectedQualityOutput(
+    private bool TryBeginRejectedQualitySale(
         WorldItemStackSnapshot stack,
+        int proceeds,
+        FacilityBufferAcknowledgedOutputReleaseTarget target,
+        out QualityRejectedSalePending pending,
         out string failureReason)
     {
+        pending = null;
         failureReason = string.Empty;
-        if (PhysicalItemIds.TryGetEquipmentDefinitionId(stack.ItemId, out _))
+        int sequence = state.NextSaleSequence;
+        if (sequence <= 0 || sequence == int.MaxValue)
         {
-            return combatEquipment.TryConsumeForMarketSale(
-                stack.StackId,
-                out _,
-                out failureReason);
+            failureReason = "quality-rejected-sale-sequence-exhausted";
+            return false;
         }
-        if (!ApparelItemStateCodec.TryRead(stack.Components, out _))
+        bool combatBacked = PhysicalItemIds.TryGetEquipmentDefinitionId(
+            stack.ItemId,
+            out _);
+        if (!combatBacked
+            && !ApparelItemStateCodec.TryRead(stack.Components, out _))
         {
             failureReason = "판매 대상으로 표시된 완제품 상태를 읽을 수 없습니다.";
             return false;
         }
-        ItemInstanceId instanceId = (ItemInstanceId)stack.ItemInstanceId;
-        if (!instanceId.IsValid
-            || !logistics.ItemRuntime.TryAbsorbUniqueItemStack(
-                stack.StackId,
-                instanceId))
+
+        pending = QualityRejectedSaleOutbox.CreatePrepared(
+            sequence,
+            stack,
+            proceeds,
+            target,
+            combatBacked);
+        state.PendingRejectedSalesByOperationId.Add(
+            pending.operationId,
+            pending);
+        state.NextSaleSequence = checked(sequence + 1);
+        state.Version++;
+
+        CombatEquipmentWorldState previousWorldState =
+            CombatEquipmentWorldState.Loose;
+        bool combatCustodyBound = false;
+        if (combatBacked)
         {
-            failureReason = "판매할 의복의 물리 스택을 소비하지 못했습니다.";
-            return false;
+            if (!combatEquipment.TryGetInstanceBySourceStack(
+                    stack.StackId,
+                    out CombatEquipmentInstance before))
+            {
+                return AbortPreparedRejectedSale(
+                    pending,
+                    "market-sale-equipment-missing",
+                    out failureReason);
+            }
+            previousWorldState = before.worldState;
+            if (!combatEquipment.TryBeginMarketSale(
+                    stack.StackId,
+                    pending.operationId,
+                    out CombatEquipmentInstance bound,
+                    out failureReason)
+                || !string.Equals(
+                    bound?.instanceId,
+                    pending.itemInstanceId,
+                    StringComparison.Ordinal))
+            {
+                return AbortPreparedRejectedSale(
+                    pending,
+                    failureReason,
+                    out failureReason);
+            }
+            combatCustodyBound = true;
+        }
+
+        if (!logistics.ItemRuntime.TryCommitPendingBatchPhysicalDisposition(
+                new[] { new PhysicalItemTransformInput(stack.StackId, 1) },
+                PhysicalItemDispositionKind.Transfer,
+                pending.operationId,
+                pending.reasonCode,
+                out PhysicalItemBatchDispositionReceipt receipt,
+                out failureReason)
+            || !QualityRejectedSaleOutbox.TryApplyPhysicalReceipt(
+                pending,
+                receipt,
+                out failureReason))
+        {
+            if (combatCustodyBound
+                && !combatEquipment.TryRestoreMarketSalePendingToPhysical(
+                    pending.itemInstanceId,
+                    pending.operationId,
+                    pending.sourceStackId,
+                    previousWorldState,
+                    out string restoreFailure))
+            {
+                throw new InvalidOperationException(
+                    "Rejected-sale physical commit failed and combat custody could not be restored: "
+                    + restoreFailure);
+            }
+            return AbortPreparedRejectedSale(
+                pending,
+                failureReason,
+                out failureReason);
         }
         return true;
+    }
+
+    private bool AbortPreparedRejectedSale(
+        QualityRejectedSalePending pending,
+        string reason,
+        out string failureReason)
+    {
+        if (pending != null)
+        {
+            state.PendingRejectedSalesByOperationId.Remove(pending.operationId);
+            state.Version++;
+        }
+        failureReason = string.IsNullOrWhiteSpace(reason)
+            ? "quality-rejected-sale-prepare-failed"
+            : reason;
+        return false;
     }
 
     private bool TryResolveRejectedQualityTier(
@@ -744,6 +952,96 @@ public sealed class ResourceStockPolicyRuntime :
         }
     }
 
+    private void RecoverPendingRejectedSales()
+    {
+        QualityRejectedSalePending[] pendingSales =
+            state.PendingRejectedSalesByOperationId.Values
+                .OrderBy(pending => pending.operationId, StringComparer.Ordinal)
+                .ToArray();
+        foreach (QualityRejectedSalePending pending in pendingSales)
+        {
+            if (!TryFinalizePendingRejectedSale(
+                    pending,
+                    out string failureReason))
+            {
+                Debug.LogWarning(
+                    $"품질 미달 완제품 판매 정산 복구 대기 · {pending.itemId} · "
+                    + failureReason);
+            }
+        }
+    }
+
+    private bool TryFinalizePendingRejectedSale(
+        QualityRejectedSalePending pending,
+        out string failureReason)
+    {
+        QualityRejectedSaleCommitPhase phaseBefore = pending?.phase
+            ?? QualityRejectedSaleCommitPhase.Prepared;
+        if (!QualityRejectedSaleOutbox.TryFinalizePending(
+                pending,
+                this,
+                out failureReason))
+        {
+            if (pending != null && pending.phase != phaseBefore)
+            {
+                state.Version++;
+            }
+            return false;
+        }
+        if (pending.phase != phaseBefore)
+        {
+            state.Version++;
+        }
+        if (!state.PendingRejectedSalesByOperationId.Remove(pending.operationId))
+        {
+            throw new InvalidOperationException(
+                "quality-rejected-sale-owner-missing-after-ack");
+        }
+        state.Version++;
+        return true;
+    }
+
+    public bool TryGetPendingRejectedSaleTransfer(
+        string operationId,
+        out PhysicalItemBatchDispositionReceipt receipt) =>
+        logistics.ItemRuntime.TryGetPendingBatchPhysicalDisposition(
+            operationId,
+            out receipt);
+
+    public bool TryPublishRejectedSaleIncome(
+        QualityRejectedSalePending pending,
+        out string failureReason)
+    {
+        return money.TryCreditOnce(
+            pending.proceeds,
+            new EconomyTransactionContext(
+                EconomyTransactionKind.SaleIncome,
+                pending.operationId,
+                pending.itemId,
+                "품질 미달 완제품 판매"),
+            out failureReason);
+    }
+
+    public bool TryReleaseRejectedSaleUniqueAuthority(
+        QualityRejectedSalePending pending,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        return !pending.requiresCombatAuthority
+            || combatEquipment.TryFinalizeMarketSale(
+                pending.itemInstanceId,
+                pending.operationId,
+                out _,
+                out failureReason);
+    }
+
+    public bool AcknowledgeRejectedSaleTransfer(
+        string commitId,
+        out string failureReason) =>
+        logistics.ItemRuntime.AcknowledgeBatchPhysicalDisposition(
+            commitId,
+            out failureReason);
+
     private bool TryFinalizePendingSale(
         ResourceStockPolicyPendingSale pending,
         out string failureReason)
@@ -768,6 +1066,11 @@ public sealed class ResourceStockPolicyRuntime :
             SetStatus(
                 policy,
                 $"초과 재고 {pending.quantity}개 판매 · {pending.proceeds} 골드");
+            if (!TryRetireInputOwner(
+                    policy,
+                    EconomyProjectInputOwnerAuthority.StockPolicySaleCompletedReason,
+                    out string retireFailure))
+                SetStatus(policy, retireFailure);
         }
         state.Version++;
         failureReason = string.Empty;
@@ -809,30 +1112,14 @@ public sealed class ResourceStockPolicyRuntime :
             return false;
         }
 
-        int balanceBefore = money.Balance;
-        int expectedBalance;
-        try
-        {
-            expectedBalance = checked(balanceBefore + amount);
-        }
-        catch (OverflowException)
-        {
-            failureReason = "stock-policy-sale-income-overflow";
-            return false;
-        }
-        money.Add(
+        return money.TryCreditOnce(
             amount,
             new EconomyTransactionContext(
                 EconomyTransactionKind.SaleIncome,
                 operationId,
                 itemId,
-                "초과 재고 판매"));
-        if (money.Balance != expectedBalance)
-        {
-            failureReason = "stock-policy-sale-income-not-published";
-            return false;
-        }
-        return true;
+                "초과 재고 판매"),
+            out failureReason);
     }
 
     public bool AcknowledgeSaleTransfer(
@@ -895,5 +1182,114 @@ public sealed class ResourceStockPolicyRuntime :
                     destinationId,
                     QualityRejectedOutputRules.MarketDestinationId,
                     StringComparison.Ordinal));
+    }
+
+    private bool TryEnsureInputOwner(
+        ResourceStockPolicyData policy,
+        ResourceItemDefinitionSO item,
+        Vector2Int position,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (item == null || item.MaxStack <= 0)
+        {
+            failureReason = "stock-policy-input-item-invalid";
+            return false;
+        }
+        string destinationId =
+            EconomyProjectInputOwnerAuthority.BuildStockPolicyDestinationId(
+                policy.itemId);
+        if (!string.Equals(
+                policy.inputDestinationId,
+                destinationId,
+                StringComparison.Ordinal)
+            || policy.inputDestinationX != position.x
+            || policy.inputDestinationY != position.y)
+        {
+            policy.inputDestinationId = destinationId;
+            policy.inputDestinationX = position.x;
+            policy.inputDestinationY = position.y;
+            policy.inputCapacityGrams = 0L;
+            policy.inputMassAuthorityRevision = 0L;
+            policy.inputCapacityFingerprint = string.Empty;
+        }
+        if (!inputOwners.TryEnsure(
+                EconomyProjectInputOwnerAuthority.StockPolicyDomain,
+                policy.itemId,
+                policy.inputDestinationId,
+                new Vector2Int(policy.inputDestinationX, policy.inputDestinationY),
+                EconomyProjectInputOwnerAnchorKind.ReservedTarget,
+                string.Empty,
+                BuildRequirements(policy),
+                policy.inputCapacityGrams,
+                policy.inputMassAuthorityRevision,
+                policy.inputCapacityFingerprint,
+                out EconomyProjectInputOwnerProjection projection,
+                out failureReason))
+            return false;
+        policy.inputCapacityGrams = projection.CapacityGrams;
+        policy.inputMassAuthorityRevision = projection.MassAuthorityRevision;
+        policy.inputCapacityFingerprint = projection.Fingerprint;
+        state.Version++;
+        return true;
+    }
+
+    private bool TryRetireInputOwner(
+        ResourceStockPolicyData policy,
+        string reason,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (!HasInputOwner(policy))
+            return true;
+        if (!inputOwners.TryRetireDestination(
+                EconomyProjectInputOwnerAuthority.StockPolicyDomain,
+                policy.inputDestinationId,
+                reason,
+                out failureReason))
+            return false;
+        ClearInputOwner(policy);
+        state.Version++;
+        return true;
+    }
+
+    private IReadOnlyDictionary<string, int> BuildRequirements(
+        ResourceStockPolicyData policy)
+    {
+        if (!catalog.TryGetItem(
+                policy.itemId,
+                out ResourceItemDefinitionSO item)
+            || item.MaxStack <= 0)
+            throw new InvalidOperationException(
+                "Stock-policy input owner has no authored item capacity.");
+        return new Dictionary<string, int>(StringComparer.Ordinal)
+        {
+            [policy.itemId] = item.MaxStack
+        };
+    }
+
+    private static bool HasInputOwner(ResourceStockPolicyData policy) =>
+        policy != null && !string.IsNullOrEmpty(policy.inputDestinationId);
+
+    private static void CopyInputOwner(
+        ResourceStockPolicyData source,
+        ResourceStockPolicyData target)
+    {
+        target.inputDestinationId = source.inputDestinationId;
+        target.inputDestinationX = source.inputDestinationX;
+        target.inputDestinationY = source.inputDestinationY;
+        target.inputCapacityGrams = source.inputCapacityGrams;
+        target.inputMassAuthorityRevision = source.inputMassAuthorityRevision;
+        target.inputCapacityFingerprint = source.inputCapacityFingerprint;
+    }
+
+    private static void ClearInputOwner(ResourceStockPolicyData policy)
+    {
+        policy.inputDestinationId = string.Empty;
+        policy.inputDestinationX = 0;
+        policy.inputDestinationY = 0;
+        policy.inputCapacityGrams = 0L;
+        policy.inputMassAuthorityRevision = 0L;
+        policy.inputCapacityFingerprint = string.Empty;
     }
 }

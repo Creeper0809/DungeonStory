@@ -1,0 +1,192 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-arcane-advanced",
+    "spoiler_tier": "none",
+    "title": "비전 연구"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-arcane-advanced",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "facility-blueprint-6104",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 연구 설계도",
+      "to": "facility/facility-blueprint-6104",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "research/research-arcane-advanced",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-alchemy",
+      "target_spoiler_tier": "none",
+      "target_title": "연금 가공",
+      "to": "research/research-arcane-alchemy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-arcane-advanced",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-alchemy",
+      "target_spoiler_tier": "none",
+      "target_title": "연금 가공",
+      "to": "research/research-arcane-alchemy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-arcane-advanced",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-alchemy",
+      "target_spoiler_tier": "none",
+      "target_title": "연금 가공",
+      "to": "research/research-arcane-alchemy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-arcane-advanced",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1056",
+      "target_spoiler_tier": "none",
+      "target_title": "마력보관함",
+      "to": "facility/building-1056",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "facility/facility-blueprint-6104",
+      "label": "관련",
+      "to": "research/research-arcane-advanced",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-arrow-rune",
+      "label": "필요 조건",
+      "to": "research/research-arcane-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-bolt-rune",
+      "label": "필요 조건",
+      "to": "research/research-arcane-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-arcane-resonance",
+      "label": "선행 연구",
+      "to": "research/research-arcane-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-arcane-resonance",
+      "label": "선행 연구",
+      "to": "research/research-arcane-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-arcane-resonance",
+      "label": "선행 연구",
+      "to": "research/research-arcane-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-rune-identification",
+      "label": "선행 연구",
+      "to": "research/research-arcane-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-rune-identification",
+      "label": "선행 연구",
+      "to": "research/research-arcane-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-rune-identification",
+      "label": "선행 연구",
+      "to": "research/research-arcane-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-blacksteel",
+      "label": "선행 연구",
+      "to": "research/research-arcane-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-blacksteel",
+      "label": "선행 연구",
+      "to": "research/research-arcane-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-blacksteel",
+      "label": "선행 연구",
+      "to": "research/research-arcane-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-mining-mana",
+      "label": "선행 연구",
+      "to": "research/research-arcane-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-mining-mana",
+      "label": "선행 연구",
+      "to": "research/research-arcane-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-mining-mana",
+      "label": "선행 연구",
+      "to": "research/research-arcane-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-rune-leather",
+      "label": "선행 연구",
+      "to": "research/research-arcane-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-rune-leather",
+      "label": "선행 연구",
+      "to": "research/research-arcane-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-rune-leather",
+      "label": "선행 연구",
+      "to": "research/research-arcane-advanced",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

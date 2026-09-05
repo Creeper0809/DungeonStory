@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ending-timeless-sanctuary",
+  "spoiler_tier": "warning",
+  "summary": "실제 인구가 거주하는 시간 고정망을 장기 가동해 노화 없는 구역을 유지한다.",
+  "title": "시간 없는 성역"
+}

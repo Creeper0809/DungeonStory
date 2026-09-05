@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.35kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "56"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "포로 작업 도구는 허용된 작업에 필요한 공구만 추려 수량과 반납을 관리하는 꾸러미다. 오르데나제 포로 작업 도구에는 포로 이름보다 감시자 번호가 더 깊게 찍혀 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "tool-prisoner-work-kit",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 포로 작업 도구.",
+  "title": "포로 작업 도구"
+}

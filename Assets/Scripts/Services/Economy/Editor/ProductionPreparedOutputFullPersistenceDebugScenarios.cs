@@ -17,18 +17,51 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
     private const long ExpectedBatchMassGrams = 3_600L;
     private const long ExpectedCapacityGrams = 14_400L;
 
+    private static readonly ScenarioConfig SawmillScenario = new(
+        "sawmill",
+        RecipeId,
+        ItemId,
+        FacilityId,
+        WorkerId,
+        "Assets/Resources/SO/Building/Modular/P03_제재소.asset",
+        expectedOutputQuantity: 3,
+        expectedBatchMassGrams: ExpectedBatchMassGrams,
+        expectedCapacityGrams: ExpectedCapacityGrams,
+        expectedInitialFreshnessSeconds: null);
+    private static readonly ScenarioConfig GrainPorridgeScenario = new(
+        "grain-porridge",
+        "recipe:grain-porridge",
+        "food:grain-porridge",
+        "building:qa:cookbench-full-persistence",
+        "character:qa:cookbench-full-persistence",
+        "Assets/Resources/SO/Building/Modular/P15_조리대.asset",
+        expectedOutputQuantity: 6,
+        expectedBatchMassGrams: 3_600L,
+        expectedCapacityGrams: 14_400L,
+        expectedInitialFreshnessSeconds: 360d);
+    private const double AgedFreshnessSeconds = 119.375d;
+
     [MenuItem(
-        "DungeonStory/V27/Physical Mass/Verify Sawmill Full Persistence")]
+        "DungeonStory/V27/Physical Mass/Verify Prepared Output Full Persistence")]
     public static void RunFromMenu()
     {
-        VerifyFullCurrentFormatRoundTrip();
+        VerifyAllCurrentFormatRoundTrips();
         Debug.Log("V27_SAWMILL_FULL_PERSISTENCE=PASS");
+        Debug.Log(
+            "V27_PREPARED_OUTPUT_FULL_PERSISTENCE=PASS sawmill=1; perishable=1");
+    }
+
+    public static void VerifyAllCurrentFormatRoundTrips()
+    {
+        VerifyFullCurrentFormatRoundTrip();
+        VerifyPerishableCurrentFormatRoundTrip();
     }
 
     public static void VerifyFullCurrentFormatRoundTrip()
     {
-        using RuntimeGraph source = new("Source", 7103);
+        using RuntimeGraph source = new("Source", 7103, SawmillScenario);
         source.SeedOwnedCurrentFormatBill();
+        VerifyStockSensorExactAdmissionAndRetry(source);
         ProductionBillRecord sourceRecord = source.SingleBill;
         source.PrepareWip(sourceRecord);
 
@@ -78,10 +111,13 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
         Require(
             JsonUtility.FromJson<DungeonProductionBillSaveData>(sourceBills)
                 ?.version == DungeonProductionBillSaveData.CurrentVersion
-            && DungeonProductionBillSaveData.CurrentVersion == 17,
-            "Source production owner is not a current-format V17 payload.");
+            && DungeonProductionBillSaveData.CurrentVersion == 22,
+            "Source production owner is not a current-format V22 payload.");
 
-        using RuntimeGraph destination = new("Destination", 7103);
+        using RuntimeGraph destination = new(
+            "Destination",
+            7103,
+            SawmillScenario);
         BuildableObject staleDestinationFacility = destination.Facility;
         int staleDestructionEvents = 0;
         staleDestinationFacility.OnBuildingDestroyed += () =>
@@ -213,6 +249,168 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
         RequireGraphState(destination, "destination replay");
     }
 
+    private static void VerifyPerishableCurrentFormatRoundTrip()
+    {
+        using RuntimeGraph source = new(
+            "Perishable Source",
+            7193,
+            GrainPorridgeScenario);
+        source.SeedOwnedCurrentFormatBill();
+        ProductionBillRecord sourceRecord = source.SingleBill;
+        source.PrepareWip(sourceRecord);
+
+        ProductionPreparedOutputExecutionResult executed =
+            source.PreparedOutput.Execute(
+                sourceRecord,
+                source.Recipe,
+                source.FacilityHandle,
+                source.WorkerHandle);
+        Require(
+            executed.IsValid
+            && executed.CycleOutputCompleted
+            && executed.Phase == ProductionPreparedOutputPhase.Completed,
+            "Source real adapter did not complete the P15 grain-porridge output.");
+        RequireGraphState(
+            source,
+            "perishable source initial",
+            GrainPorridgeScenario.ExpectedInitialFreshnessSeconds);
+
+        WorldItemStackSnapshot initialStack = source.WorldItems
+            .GetAllStacks()
+            .Single(value => string.Equals(
+                value.ItemId,
+                GrainPorridgeScenario.ItemId,
+                StringComparison.Ordinal));
+        Require(
+            source.WorldItems.TrySetFoodFreshness(
+                initialStack.StackId,
+                AgedFreshnessSeconds,
+                preserved: false,
+                out string freshnessFailure),
+            "Custody-safe grain-porridge freshness mutation failed: "
+                + freshnessFailure);
+        RequireGraphState(
+            source,
+            "perishable source aged",
+            AgedFreshnessSeconds);
+
+        List<DungeonSaveSectionEnvelope> sourceEnvelopes =
+            source.Registry.CaptureAll();
+        string sourceItems = RequireEnvelope(
+            sourceEnvelopes,
+            PhysicalItemsSaveSection.Id).payloadJson;
+        string sourceBills = RequireEnvelope(
+            sourceEnvelopes,
+            ProductionBillsSaveSection.Id).payloadJson;
+        string sourceRouting = RequireEnvelope(
+            sourceEnvelopes,
+            ProductionPreparedOutputRoutingSaveSection.Id).payloadJson;
+        string sourceWorld = RequireEnvelope(
+            sourceEnvelopes,
+            ModularFacilityWorldSaveSection.Id).payloadJson;
+        Require(
+            JsonUtility.FromJson<DungeonProductionBillSaveData>(sourceBills)
+                ?.version == DungeonProductionBillSaveData.CurrentVersion
+            && DungeonProductionBillSaveData.CurrentVersion == 22,
+            "Perishable production owner is not a current-format V22 payload.");
+
+        using RuntimeGraph destination = new(
+            "Perishable Destination",
+            7193,
+            GrainPorridgeScenario);
+        BuildableObject staleDestinationFacility = destination.Facility;
+        int staleDestructionEvents = 0;
+        staleDestinationFacility.OnBuildingDestroyed += () =>
+            staleDestructionEvents++;
+        DungeonGameRestoreReport report = new();
+        Require(
+            destination.Registry.RestoreAll(sourceEnvelopes, report)
+            && report.Success,
+            "Perishable full registry restore failed: "
+                + string.Join(" | ", report.Errors));
+        Require(
+            !destination.LifecycleRestoreCandidates.IsCandidateActive
+            && destination.LifecycleRestoreCandidates.PublishedSourceCount == 0,
+            "Successful perishable restore retained normalized candidate references.");
+
+        BuildableObject replacementFacility = destination.CurrentFacility;
+        Require(
+            replacementFacility != null
+            && !ReferenceEquals(replacementFacility, staleDestinationFacility)
+            && string.Equals(
+                replacementFacility.PersistentInstanceId.Value,
+                staleDestinationFacility.PersistentInstanceId.Value,
+                StringComparison.Ordinal)
+            && staleDestinationFacility.IsGridDestroyed
+            && staleDestructionEvents == 0,
+            "Perishable same-ID facility replacement did not retire the stale object atomically.");
+
+        RequireGraphState(
+            destination,
+            "perishable destination",
+            AgedFreshnessSeconds);
+        List<DungeonSaveSectionEnvelope> recaptured =
+            destination.Registry.CaptureAll();
+        RequireExactSectionIdentity(
+            sourceWorld,
+            RequireEnvelope(
+                recaptured,
+                ModularFacilityWorldSaveSection.Id).payloadJson,
+            "perishable facility world");
+        RequireExactSectionIdentity(
+            sourceItems,
+            RequireEnvelope(
+                recaptured,
+                PhysicalItemsSaveSection.Id).payloadJson,
+            "perishable physical items");
+        RequireExactSectionIdentity(
+            sourceBills,
+            RequireEnvelope(
+                recaptured,
+                ProductionBillsSaveSection.Id).payloadJson,
+            "perishable production bills");
+        RequireExactSectionIdentity(
+            sourceRouting,
+            RequireEnvelope(
+                recaptured,
+                ProductionPreparedOutputRoutingSaveSection.Id).payloadJson,
+            "perishable prepared-output routing");
+
+        int stackCountBeforeReplay = destination.WorldItems
+            .GetAllStacks()
+            .Count;
+        int quantityBeforeReplay = destination.WorldItems
+            .GetAllStacks()
+            .Sum(value => value.Quantity);
+        string physicalBeforeReplay = RequireEnvelope(
+            recaptured,
+            PhysicalItemsSaveSection.Id).payloadJson;
+        ProductionPreparedOutputExecutionResult replay =
+            destination.PreparedOutput.Execute(
+                destination.SingleBill,
+                destination.Recipe,
+                destination.FacilityHandle,
+                destination.WorkerHandle);
+        Require(
+            replay.IsValid
+            && replay.CycleOutputCompleted
+            && replay.Phase == ProductionPreparedOutputPhase.Completed,
+            "Completed perishable prepared-output replay was not idempotent.");
+        Require(
+            destination.WorldItems.GetAllStacks().Count == stackCountBeforeReplay
+            && destination.WorldItems.GetAllStacks().Sum(value => value.Quantity)
+                == quantityBeforeReplay,
+            "Completed perishable replay minted physical quantity or stacks.");
+        RequireExactSectionIdentity(
+            physicalBeforeReplay,
+            destination.PhysicalSection.Capture(),
+            "perishable physical items after completed replay");
+        RequireGraphState(
+            destination,
+            "perishable destination replay",
+            AgedFreshnessSeconds);
+    }
+
     private static string CaptureRuntimeSectionFingerprint(RuntimeGraph graph)
     {
         List<DungeonSaveSectionEnvelope> captured = graph.Registry.CaptureAll();
@@ -223,6 +421,173 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
             + "\n" + RequireEnvelope(
                 captured,
                 ProductionPreparedOutputRoutingSaveSection.Id).payloadJson;
+    }
+
+    private static void VerifyStockSensorExactAdmissionAndRetry(
+        RuntimeGraph graph)
+    {
+        ProductionFacilityHandle facility = graph.FacilityHandle;
+        string itemId = facility.StockSensorInstallationItemId;
+        Require(!string.IsNullOrEmpty(itemId),
+            "P03 fixture does not expose a stock-sensor capability.");
+        string destinationId = ProductionStockSensorRuntime.BuildDestinationId(
+            FacilityId);
+        long onePanelMass = graph.Mass.GetQuantityMass(
+            (ItemDefinitionId)itemId,
+            PhysicalItemMassSubject.ForDefinition((ItemDefinitionId)itemId),
+            1).Value;
+        FacilityBufferMassCapacitySnapshot capacity = default;
+        Require(graph.StockSensors.TryReconcileDestinationAuthorities(
+                out string reconcileFailure)
+            && graph.Claims.TryGetClaim(
+                destinationId,
+                facility.Position,
+                out FacilityBufferDestinationClaim claim)
+            && graph.Admission.TryGetCapacity(
+                destinationId,
+                facility.Position,
+                out capacity)
+            && capacity.Profile.MaxMassGrams == onePanelMass
+            && capacity.ReservedMassGrams == 0L
+            && string.Equals(
+                claim.OwnerDomain,
+                ProductionStockSensorDestinationAuthorityRuntime.OwnerDomain,
+                StringComparison.Ordinal)
+            && string.Equals(
+                claim.OwnerOperationId,
+                destinationId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                claim.OwnerFacilityId,
+                FacilityId,
+                StringComparison.Ordinal),
+            "Stock-sensor exact one-panel authority is invalid: "
+                + reconcileFailure);
+
+        const string firstTransitOwner = "qa:sensor-transit:first";
+        Require(graph.Spawner.Spawn(
+                itemId,
+                1,
+                facility.Position,
+                WorldItemStackState.InTransit,
+                firstTransitOwner) == 1,
+            "First stock-sensor transit panel did not spawn.");
+        WorldItemStackSnapshot first = graph.WorldItems.GetAllStacks().Single(value =>
+            value != null
+            && value.State == WorldItemStackState.InTransit
+            && string.Equals(
+                value.DestinationId,
+                firstTransitOwner,
+                StringComparison.Ordinal));
+        Require(graph.Transfers.TryCompleteTransitToFacilityBuffer(
+                (ItemStackId)first.StackId,
+                firstTransitOwner,
+                facility.Position,
+                destinationId,
+                out FacilityBufferMassAdmissionReceipt firstReceipt,
+                out DomainFailure firstFailure)
+            && firstReceipt.CommittedMassGrams == onePanelMass
+            && graph.Occupancy.Capture(destinationId).TotalMassGrams
+                == onePanelMass,
+            "First stock-sensor panel did not enter its exact gram socket: "
+                + firstFailure.Code);
+        ProductionFacilityHandle movedWhileOccupied = new(
+            facility.RuntimeObject,
+            facility.InstanceId,
+            facility.Position + Vector2Int.right,
+            facility.IsDestroyed,
+            facility.StockSensorInstallationItemId,
+            facility.AllowsOverflowDump,
+            facility.OverflowOffset,
+            facility.DefinitionId,
+            facility.WorkstationTag,
+            facility.OutputBufferCycleCapacity,
+            facility.ProcessFluidProfile);
+        Require(!graph.SensorAuthority.TryEnsure(
+                movedWhileOccupied,
+                out _,
+                out string occupiedUpdateFailure)
+            && occupiedUpdateFailure.Contains(
+                "authority-update-not-empty",
+                StringComparison.Ordinal),
+            "A live sensor lot allowed same-ID authority anchor mutation.");
+
+        const string secondTransitOwner = "qa:sensor-transit:second";
+        Require(graph.Spawner.Spawn(
+                itemId,
+                1,
+                facility.Position,
+                WorldItemStackState.InTransit,
+                secondTransitOwner) == 1,
+            "Second stock-sensor transit panel did not spawn.");
+        WorldItemStackSnapshot second = graph.WorldItems.GetAllStacks().Single(value =>
+            value != null
+            && value.State == WorldItemStackState.InTransit
+            && string.Equals(
+                value.DestinationId,
+                secondTransitOwner,
+                StringComparison.Ordinal));
+        Require(!graph.Transfers.TryCompleteTransitToFacilityBuffer(
+                (ItemStackId)second.StackId,
+                secondTransitOwner,
+                facility.Position,
+                destinationId,
+                out _,
+                out DomainFailure fullFailure)
+            && fullFailure.Code == FailureCode.ConveyorPortFull
+            && graph.WorldItems.GetAllStacks().SingleOrDefault(value =>
+                value != null
+                && string.Equals(
+                    value.StackId,
+                    second.StackId,
+                    StringComparison.Ordinal)) is WorldItemStackSnapshot retained
+            && retained.State == WorldItemStackState.InTransit
+            && string.Equals(
+                retained.DestinationId,
+                secondTransitOwner,
+                StringComparison.Ordinal)
+            && graph.Admission.TryGetCapacity(
+                destinationId,
+                facility.Position,
+                out capacity)
+            && capacity.ReservedMassGrams == 0L,
+            "A full stock-sensor socket did not retain the same exact transit lot.");
+
+        graph.StockSensors.FinalizeDeliveredSensors();
+        Require(graph.StockSensors.Has(facility)
+            && graph.Occupancy.Capture(destinationId).TotalMassGrams == 0L,
+            "Installed sensor was not exact-once consumed from its socket.");
+        Require(graph.Transfers.TryCompleteTransitToFacilityBuffer(
+                (ItemStackId)second.StackId,
+                secondTransitOwner,
+                facility.Position,
+                destinationId,
+                out FacilityBufferMassAdmissionReceipt retryReceipt,
+                out DomainFailure retryFailure)
+            && retryReceipt.CommittedMassGrams == onePanelMass
+            && graph.Occupancy.Capture(destinationId).TotalMassGrams
+                == onePanelMass,
+            "The same retained sensor lot did not retry after capacity cleared: "
+                + retryFailure.Code);
+        Require(graph.Items.ReleaseDestination(
+                destinationId,
+                facility.Position) == 1
+            && graph.Occupancy.Capture(destinationId).TotalMassGrams == 0L,
+            "Sensor retry fixture did not conservatively release its extra panel.");
+        Require(graph.WorldItems.TryCommitBatchPhysicalDisposition(
+                new[]
+                {
+                    new PhysicalItemTransformInput(second.StackId, 1)
+                },
+                PhysicalItemDispositionKind.Sink,
+                "qa:stock-sensor-extra-panel-cleanup",
+                "qa.stock-sensor-extra-panel-cleanup",
+                out PhysicalItemBatchDispositionReceipt cleanupReceipt,
+                out string cleanupFailure)
+            && cleanupReceipt.IsCommitted
+            && cleanupReceipt.InputMassGrams == onePanelMass,
+            "Sensor retry fixture did not close its extra panel with a typed sink: "
+                + cleanupFailure);
     }
 
     private static void RequireAuthorityJoinState(RuntimeGraph graph, string stage)
@@ -248,6 +613,30 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                 out FacilityBufferMassCapacitySnapshot capacity)
             && capacity.Profile.MaxMassGrams == ExpectedCapacityGrams,
             stage + " capacity profile did not join the replacement facility.");
+        string sensorDestinationId =
+            ProductionStockSensorRuntime.BuildDestinationId(FacilityId);
+        long sensorMassGrams = graph.Mass.GetQuantityMass(
+            (ItemDefinitionId)facility.StockSensorInstallationItemId,
+            PhysicalItemMassSubject.ForDefinition(
+                (ItemDefinitionId)facility.StockSensorInstallationItemId),
+            1).Value;
+        Require(graph.Claims.TryGetClaim(
+                sensorDestinationId,
+                facility.Position,
+                out FacilityBufferDestinationClaim sensorClaim)
+            && graph.Admission.TryGetCapacity(
+                sensorDestinationId,
+                facility.Position,
+                out FacilityBufferMassCapacitySnapshot sensorCapacity)
+            && sensorCapacity.Profile.MaxMassGrams == sensorMassGrams
+            && sensorCapacity.ReservedMassGrams == 0L
+            && graph.Occupancy.Capture(sensorDestinationId).TotalMassGrams == 0L
+            && string.Equals(
+                sensorClaim.OwnerDomain,
+                ProductionStockSensorDestinationAuthorityRuntime.OwnerDomain,
+                StringComparison.Ordinal)
+            && graph.StockSensors.Has(facility),
+            stage + " derived stock-sensor authority/state did not join the replacement facility.");
         Require(
             graph.Routing.CaptureDestination(batch.destinationId).Count == 1
             && graph.Occupancy.Capture(batch.destinationId).TotalMassGrams
@@ -262,8 +651,12 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
             stage + " lifecycle aggregate did not retain its owned output graph.");
     }
 
-    private static void RequireGraphState(RuntimeGraph graph, string stage)
+    private static void RequireGraphState(
+        RuntimeGraph graph,
+        string stage,
+        double? expectedFreshnessSeconds = null)
     {
+        ScenarioConfig config = graph.Config;
         DungeonProductionBillSaveData bills = graph.Production.Capture();
         Require(
             bills.version == DungeonProductionBillSaveData.CurrentVersion
@@ -276,28 +669,40 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
             && batch.schemaVersion ==
                 ProductionPreparedOutputBatchSaveData.CurrentSchemaVersion
             && batch.phase == ProductionPreparedOutputPhase.Completed
-            && batch.totalPhysicalMassGrams == ExpectedBatchMassGrams
-            && batch.outputBufferCycleCapacity == 4
-            && batch.projectedPortfolioCapacityGrams == ExpectedCapacityGrams
-            && batch.requiredMinimumCapacityGrams == ExpectedCapacityGrams
+            && batch.totalPhysicalMassGrams == config.ExpectedBatchMassGrams
+            && batch.outputBufferCycleCapacity ==
+                config.ExpectedOutputBufferCycleCapacity
+            && batch.projectedPortfolioCapacityGrams ==
+                config.ExpectedCapacityGrams
+            && batch.requiredMinimumCapacityGrams ==
+                config.ExpectedCapacityGrams
             && IsSha256(batch.recipeDefinitionDigest)
             && IsSha256(batch.migrationProfileDigest)
             && IsSha256(batch.capacitySourceDigest)
             && IsSha256(batch.outcomeFingerprint)
             && IsSha256(batch.admissionFingerprint),
             stage + " prepared-output digest/mass/capacity contract drifted.");
-        ProductionPreparedOutputLineSaveData line = batch.lines.Single();
+        ProductionPreparedOutputLineSaveData line = batch.lines.Single(value =>
+            value != null
+            && string.Equals(
+                value.itemId,
+                config.ItemId,
+                StringComparison.Ordinal));
         Require(
-            string.Equals(line.itemId, ItemId, StringComparison.Ordinal)
-            && line.quantity == 3
-            && line.exactMassGrams == ExpectedBatchMassGrams
+            string.Equals(line.itemId, config.ItemId, StringComparison.Ordinal)
+            && line.quantity == config.ExpectedOutputQuantity
+            && line.exactMassGrams == config.ExpectedBatchMassGrams
             && IsSha256(line.componentFingerprint),
-            stage + " exact lumber line drifted.");
+            stage + " exact output line drifted.");
 
-        WorldItemStackSnapshot stack = graph.WorldItems.GetAllStacks().Single();
+        WorldItemStackSnapshot stack = graph.WorldItems.GetAllStacks()
+            .Single(value => string.Equals(
+                value.ItemId,
+                config.ItemId,
+                StringComparison.Ordinal));
         Require(
-            string.Equals(stack.ItemId, ItemId, StringComparison.Ordinal)
-            && stack.Quantity == 3
+            string.Equals(stack.ItemId, config.ItemId, StringComparison.Ordinal)
+            && stack.Quantity == config.ExpectedOutputQuantity
             && stack.State == WorldItemStackState.FacilityOutputBuffer
             && string.Equals(
                 stack.DestinationId,
@@ -309,33 +714,48 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                     "item-state:facility-buffer-planned-output-provenance",
                     StringComparison.Ordinal)) == 1,
             stage + " physical stack/provenance drifted.");
+        if (expectedFreshnessSeconds.HasValue)
+        {
+            Require(
+                FoodFreshnessComponentCodec.TryRead(
+                    stack.Components,
+                    out double remainingSeconds,
+                    out bool preserved)
+                && remainingSeconds == expectedFreshnessSeconds.Value
+                && !preserved,
+                stage + " perishable freshness drifted.");
+        }
         Require(
             graph.Mass.GetQuantityMass(
-                (ItemDefinitionId)ItemId,
+                (ItemDefinitionId)config.ItemId,
                 PhysicalItemMassSubjectAdapter.Create(
                     graph.Mass,
-                    (ItemDefinitionId)ItemId,
+                    (ItemDefinitionId)config.ItemId,
                     stack.ItemInstanceId,
                     stack.Components),
-                stack.Quantity).Value == ExpectedBatchMassGrams,
+                stack.Quantity).Value == config.ExpectedBatchMassGrams,
             stage + " physical stack mass drifted.");
 
         ProductionPreparedOutputRoutingLineSnapshot routed =
             graph.Routing.CaptureBill(
-                (ProductionBillId)bills.bills[0].billId).Single();
+                    (ProductionBillId)bills.bills[0].billId)
+                .Single(value => string.Equals(
+                    value.ItemId,
+                    config.ItemId,
+                    StringComparison.Ordinal));
         Require(
-            string.Equals(routed.ItemId, ItemId, StringComparison.Ordinal)
-            && routed.OriginalQuantity == 3
-            && routed.RemainingQuantity == 3
-            && routed.OriginalMassGrams == ExpectedBatchMassGrams
-            && routed.RemainingMassGrams == ExpectedBatchMassGrams,
+            string.Equals(routed.ItemId, config.ItemId, StringComparison.Ordinal)
+            && routed.OriginalQuantity == config.ExpectedOutputQuantity
+            && routed.RemainingQuantity == config.ExpectedOutputQuantity
+            && routed.OriginalMassGrams == config.ExpectedBatchMassGrams
+            && routed.RemainingMassGrams == config.ExpectedBatchMassGrams,
             stage + " routing aggregate drifted.");
         Require(
             graph.Admission.TryGetCapacity(
                 batch.destinationId,
                 graph.FacilityHandle.Position,
                 out FacilityBufferMassCapacitySnapshot capacity)
-            && capacity.Profile.MaxMassGrams == ExpectedCapacityGrams
+            && capacity.Profile.MaxMassGrams == config.ExpectedCapacityGrams
             && capacity.ReservedMassGrams == 0L,
             stage + " output capacity authority drifted.");
     }
@@ -356,6 +776,14 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
         .Single(value => value != null
             && string.Equals(value.sectionId, id, StringComparison.Ordinal));
 
+    private static DungeonProductionGenericBillTerminalDrainSaveData
+        EmptyGenericTerminalPayload() => new()
+        {
+            version = DungeonProductionGenericBillTerminalDrainSaveData
+                .CurrentVersion,
+            entries = new List<ProductionGenericBillTerminalDrainSaveData>()
+        };
+
     private static string CaptureDetachedLifecycleAggregate(
         RuntimeGraph graph,
         IReadOnlyList<DungeonSaveSectionEnvelope> envelopes)
@@ -364,6 +792,18 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
             RequireEnvelope(envelopes, ModularFacilityWorldSaveSection.Id).payloadJson);
         DungeonProductionBillSaveData production = JsonUtility.FromJson<DungeonProductionBillSaveData>(
             RequireEnvelope(envelopes, ProductionBillsSaveSection.Id).payloadJson);
+        DungeonSaveSectionEnvelope genericTerminalEnvelope = envelopes
+            .SingleOrDefault(value => value != null
+                && string.Equals(
+                    value.sectionId,
+                    ProductionGenericBillTerminalDrainSaveSection.Id,
+                    StringComparison.Ordinal));
+        DungeonProductionGenericBillTerminalDrainSaveData genericTerminal =
+            genericTerminalEnvelope == null
+                ? EmptyGenericTerminalPayload()
+                : JsonUtility.FromJson<
+                    DungeonProductionGenericBillTerminalDrainSaveData>(
+                    genericTerminalEnvelope.payloadJson);
         DungeonPhysicalItemSaveData physical = JsonUtility.FromJson<DungeonPhysicalItemSaveData>(
             RequireEnvelope(envelopes, PhysicalItemsSaveSection.Id).payloadJson);
         ProductionPreparedOutputRoutingSaveData routing =
@@ -375,6 +815,7 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
             (BuildingInstanceId)FacilityId,
             world,
             production,
+            genericTerminal,
             new DungeonCombatEquipmentSaveData
             {
                 craftOrders = new List<CombatEquipmentCraftOrderSaveData>()
@@ -481,6 +922,7 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                     sourceMaintenance,
                     sourceEnvironment,
                     sourceItems,
+                    sourceCharacters,
                     sourceRouting),
             destructiveOperationId);
         ProductionFacilityDestructiveDrainParticipantSaveData physicalParticipant =
@@ -515,6 +957,7 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                     sourceMaintenance,
                     sourceEnvironment,
                     multiStackProjection,
+                    sourceCharacters,
                     sourceRouting)[ProductionFacilityDestructiveDrainParticipantIds
                         .PhysicalCustodyCarryRecovery];
         Require(physicalParticipant.owners.Count == 1
@@ -618,16 +1061,18 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                 apparelWorkOrderTerminalStates =
                     Array.Empty<ApparelWorkOrderTerminalStateSaveData>()
             }));
-        complete.Add(Envelope(
-            ProductionGenericBillTerminalDrainSaveSection.Id,
-            new DungeonProductionGenericBillTerminalDrainSaveData
+        DungeonProductionGenericBillTerminalDrainSaveData
+            emptyGenericTerminalDrains = new()
             {
                 version =
                     DungeonProductionGenericBillTerminalDrainSaveData
                         .CurrentVersion,
                 entries = new List<
                     ProductionGenericBillTerminalDrainSaveData>()
-            }));
+            };
+        complete.Add(Envelope(
+            ProductionGenericBillTerminalDrainSaveSection.Id,
+            emptyGenericTerminalDrains));
         complete.Add(Envelope(
             CombatEquipmentTerminalDrainSaveSection.Id,
             new DungeonCombatEquipmentTerminalDrainSaveData
@@ -649,6 +1094,15 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
         complete.Add(Envelope(
             ProductionFacilityDestructiveDrainSaveSection.Id,
             drain));
+        complete.Add(Envelope(
+            WorkOrdersSaveSection.Id,
+            new DungeonWorkOrderSaveData
+            {
+                version = DungeonWorkOrderSaveData.CurrentVersion,
+                nextOrderSequence = 1,
+                orders = new List<WorkOrderSaveData>(),
+                qualityPipelines = new List<QualityTargetPipelineSaveData>()
+            }));
 
         DungeonGameRestoreReport valid = new();
         validator.Validate(
@@ -703,6 +1157,7 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                 repairMaintenance,
                 sourceEnvironment,
                 sourceItems,
+                sourceCharacters,
                 sourceRouting),
             destructiveOperationId);
         string repairLifecycle = ProductionOutputDestinationDurableSaveProjector
@@ -832,6 +1287,7 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                 sourceMaintenance,
                 sourceEnvironment,
                 sourceItems,
+                sourceCharacters,
                 sourceRouting),
             destructiveOperationId);
         drain.entries[0].preparedLifecycleFingerprint = expectedLifecycleFingerprint;
@@ -849,6 +1305,337 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
         Require(registryValid.Success,
             "Exact destructive-drain registry preflight failed: "
             + string.Join(" | ", registryValid.Errors));
+
+        ModularFacilityBuildingSaveData dismantleWorldTarget =
+            sourceWorld.buildings.Single(value => value != null
+                && string.Equals(
+                    value.persistentInstanceId,
+                    destructiveFacilityId.Value,
+                    StringComparison.Ordinal));
+        BuildingSO dismantleDefinition = graph.BuildingDefinitions.GetBuilding(
+            dismantleWorldTarget.buildingId);
+        const string dismantlePipelineId =
+            "quality:qa:destructive-drain-owner";
+        WorkOrderSaveData dismantleOwner = new()
+        {
+            workOrderId = "work:000001",
+            workTypeId = BuiltInWorkTypeIds.Dismantle.Value,
+            targetBuildingId = dismantleWorldTarget.buildingId,
+            gridX = dismantleWorldTarget.centerX,
+            gridY = dismantleWorldTarget.centerY,
+            requiredWork = 1f,
+            completedWork = 1f,
+            materialDestinationId =
+                "quality-recovery:" + dismantlePipelineId,
+            qualityPipelineId = dismantlePipelineId,
+            qualityRoll = new CraftQualityRollSaveData(),
+            status = WorkOrderStatus.Blocked,
+            destructiveDrainOperationId = destructiveOperationId.Value
+        };
+        QualityTargetPipelineSaveData dismantlePipeline = new()
+        {
+            pipelineId = dismantlePipelineId,
+            definitionId = string.IsNullOrEmpty(
+                dismantleDefinition.ContentDefinitionId)
+                ? dismantleDefinition.id.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture)
+                : dismantleDefinition.ContentDefinitionId,
+            facilityPipeline = true,
+            currentRoll = new CraftQualityRollSaveData(),
+            stage = QualityTargetPipelineStage.Recovering,
+            footprintX = dismantleWorldTarget.centerX,
+            footprintY = dismantleWorldTarget.centerY,
+            footprintWidth = Math.Max(1, dismantleWorldTarget.width),
+            footprintHeight = Math.Max(1, dismantleWorldTarget.height)
+        };
+        DungeonWorkOrderSaveData workOrderOwners = new()
+        {
+            version = DungeonWorkOrderSaveData.CurrentVersion,
+            nextOrderSequence = 2,
+            orders = new List<WorkOrderSaveData> { dismantleOwner },
+            qualityPipelines = new List<QualityTargetPipelineSaveData>
+            {
+                dismantlePipeline
+            }
+        };
+        drain.entries[0].cause =
+            ProductionFacilityDestructiveDrainCause.ExplicitDemolition;
+        drain.entries[0].initiatingMutationOperationId =
+            ProductionFacilityDestructiveDrainCanonical
+                .BuildInitiatingMutationOperationId(
+                    ProductionFacilityDestructiveDrainCause
+                        .ExplicitDemolition,
+                    destructiveFacilityId);
+        ReplacePayload(
+            complete,
+            ProductionFacilityDestructiveDrainSaveSection.Id,
+            drain);
+        ReplacePayload(
+            complete,
+            WorkOrdersSaveSection.Id,
+            workOrderOwners);
+
+        DungeonGameRestoreReport exactWorkOrderJoin = new();
+        validator.Validate(
+            new DungeonGameSaveData { sections = complete },
+            exactWorkOrderJoin);
+        Require(exactWorkOrderJoin.Success,
+            "Exact work-order destructive-drain join failed whole-save preflight: "
+            + string.Join(" | ", exactWorkOrderJoin.Errors));
+        DungeonGameRestoreReport exactWorkOrderRegistryJoin = new();
+        validator.Validate(
+            complete.ToDictionary(
+                value => value.sectionId,
+                StringComparer.Ordinal),
+            exactWorkOrderRegistryJoin);
+        Require(exactWorkOrderRegistryJoin.Success,
+            "Exact work-order destructive-drain join failed registry preflight: "
+            + string.Join(" | ", exactWorkOrderRegistryJoin.Errors));
+
+        int exactGridX = dismantleOwner.gridX;
+        dismantleOwner.gridX++;
+        dismantlePipeline.footprintX++;
+        ReplacePayload(
+            complete,
+            WorkOrdersSaveSection.Id,
+            workOrderOwners);
+        DungeonGameRestoreReport mismatchedWorkOrderTarget = new();
+        validator.Validate(
+            new DungeonGameSaveData { sections = complete },
+            mismatchedWorkOrderTarget);
+        Require(!mismatchedWorkOrderTarget.Success
+                && mismatchedWorkOrderTarget.Errors.Any(value =>
+                    value.Contains(
+                        "work-order-world-target-mismatch",
+                        StringComparison.Ordinal)),
+            "A work-order target different from its persistent facility passed preflight.");
+        dismantleOwner.gridX = exactGridX;
+        dismantlePipeline.footprintX--;
+
+        dismantleOwner.qualityPipelineId =
+            "quality:qa:destructive-drain-owner:missing";
+        ReplacePayload(
+            complete,
+            WorkOrdersSaveSection.Id,
+            workOrderOwners);
+        DungeonGameRestoreReport missingWorkOrderPipeline = new();
+        validator.Validate(
+            new DungeonGameSaveData { sections = complete },
+            missingWorkOrderPipeline);
+        Require(!missingWorkOrderPipeline.Success
+                && missingWorkOrderPipeline.Errors.Any(value => value.Contains(
+                    "work-order-pipeline-cardinality",
+                    StringComparison.Ordinal)),
+            "A destructive-drain work order without its continuation pipeline passed preflight.");
+        dismantleOwner.qualityPipelineId = dismantlePipelineId;
+
+        dismantlePipeline.footprintX++;
+        ReplacePayload(
+            complete,
+            WorkOrdersSaveSection.Id,
+            workOrderOwners);
+        DungeonGameRestoreReport mismatchedWorkOrderPipeline = new();
+        validator.Validate(
+            new DungeonGameSaveData { sections = complete },
+            mismatchedWorkOrderPipeline);
+        Require(!mismatchedWorkOrderPipeline.Success
+                && mismatchedWorkOrderPipeline.Errors.Any(value =>
+                    value.Contains(
+                        "work-order-pipeline-identity-mismatch",
+                        StringComparison.Ordinal)),
+            "A destructive-drain work order joined a different pipeline footprint.");
+        dismantlePipeline.footprintX--;
+
+        string exactOperationId = dismantleOwner.destructiveDrainOperationId;
+        dismantleOwner.destructiveDrainOperationId =
+            ProductionFacilityDestructiveDrainOperationId.FromFacility(
+                (BuildingInstanceId)"building:qa:other-demolition").Value;
+        ReplacePayload(
+            complete,
+            WorkOrdersSaveSection.Id,
+            workOrderOwners);
+        DungeonGameSaveData mismatchedWorkOrderSave = new()
+        {
+            sections = complete
+        };
+        string mismatchedBefore = JsonUtility.ToJson(mismatchedWorkOrderSave);
+        DungeonGameRestoreReport mismatchedWorkOrder = new();
+        validator.Validate(mismatchedWorkOrderSave, mismatchedWorkOrder);
+        Require(!mismatchedWorkOrder.Success
+                && mismatchedWorkOrder.Errors.Any(value => value.Contains(
+                    "work-order-journal-cardinality",
+                    StringComparison.Ordinal))
+                && string.Equals(
+                    mismatchedBefore,
+                    JsonUtility.ToJson(mismatchedWorkOrderSave),
+                    StringComparison.Ordinal),
+            "A mismatched work-order operation passed or mutated whole-save preflight.");
+        DungeonGameRestoreReport mismatchedWorkOrderRegistry = new();
+        validator.Validate(
+            complete.ToDictionary(
+                value => value.sectionId,
+                StringComparer.Ordinal),
+            mismatchedWorkOrderRegistry);
+        Require(!mismatchedWorkOrderRegistry.Success
+                && mismatchedWorkOrderRegistry.Errors.Any(value =>
+                    value.Contains(
+                        "work-order-journal-cardinality",
+                        StringComparison.Ordinal)),
+            "A mismatched work-order operation passed registry preflight.");
+        dismantleOwner.destructiveDrainOperationId = exactOperationId;
+
+        drain.entries[0].cause =
+            ProductionFacilityDestructiveDrainCause.StructuralIntegrity;
+        ReplacePayload(
+            complete,
+            ProductionFacilityDestructiveDrainSaveSection.Id,
+            drain);
+        ReplacePayload(
+            complete,
+            WorkOrdersSaveSection.Id,
+            workOrderOwners);
+        DungeonGameRestoreReport wrongCause = new();
+        validator.Validate(
+            new DungeonGameSaveData { sections = complete },
+            wrongCause);
+        Require(!wrongCause.Success
+                && wrongCause.Errors.Any(value => value.Contains(
+                    "work-order-journal-identity-mismatch",
+                    StringComparison.Ordinal)),
+            "A dismantle work order joined a non-demolition destructive drain.");
+        drain.entries[0].cause =
+            ProductionFacilityDestructiveDrainCause.ExplicitDemolition;
+
+        dismantleOwner.facilityRemovedForRetry = true;
+        ReplacePayload(
+            complete,
+            ProductionFacilityDestructiveDrainSaveSection.Id,
+            drain);
+        ReplacePayload(
+            complete,
+            WorkOrdersSaveSection.Id,
+            workOrderOwners);
+        DungeonGameRestoreReport prematureRemovalAck = new();
+        validator.Validate(
+            new DungeonGameSaveData { sections = complete },
+            prematureRemovalAck);
+        Require(!prematureRemovalAck.Success
+                && prematureRemovalAck.Errors.Any(value => value.Contains(
+                    "work-order-terminal-phase-mismatch",
+                    StringComparison.Ordinal)),
+            "A work-order world-removal acknowledgement joined a non-terminal journal.");
+        dismantleOwner.facilityRemovedForRetry = false;
+
+        dismantleOwner.cancelRebuildAfterDestructiveDrain = true;
+        ReplacePayload(
+            complete,
+            WorkOrdersSaveSection.Id,
+            workOrderOwners);
+        DungeonGameRestoreReport cancelStateMismatch = new();
+        validator.Validate(
+            new DungeonGameSaveData { sections = complete },
+            cancelStateMismatch);
+        Require(!cancelStateMismatch.Success
+                && cancelStateMismatch.Errors.Any(value => value.Contains(
+                    "work-order-cancel-state-mismatch",
+                    StringComparison.Ordinal)),
+            "A cancelled destructive recovery retained a non-cancelled pipeline.");
+        dismantlePipeline.stage = QualityTargetPipelineStage.Cancelled;
+        ReplacePayload(
+            complete,
+            WorkOrdersSaveSection.Id,
+            workOrderOwners);
+        DungeonGameRestoreReport exactCancelledOwner = new();
+        validator.Validate(
+            new DungeonGameSaveData { sections = complete },
+            exactCancelledOwner);
+        Require(exactCancelledOwner.Success,
+            "A canonical pre-removal cancelled salvage owner failed preflight: "
+            + string.Join(" | ", exactCancelledOwner.Errors));
+        dismantleOwner.cancelRebuildAfterDestructiveDrain = false;
+        dismantlePipeline.stage = QualityTargetPipelineStage.Recovering;
+
+        WorkOrderSaveData duplicateDismantleOwner =
+            JsonUtility.FromJson<WorkOrderSaveData>(
+                JsonUtility.ToJson(dismantleOwner));
+        duplicateDismantleOwner.workOrderId =
+            "work:000002";
+        workOrderOwners.orders.Add(duplicateDismantleOwner);
+        workOrderOwners.nextOrderSequence = 3;
+        ReplacePayload(
+            complete,
+            WorkOrdersSaveSection.Id,
+            workOrderOwners);
+        DungeonGameRestoreReport duplicateWorkOrderOwner = new();
+        validator.Validate(
+            new DungeonGameSaveData { sections = complete },
+            duplicateWorkOrderOwner);
+        Require(!duplicateWorkOrderOwner.Success
+                && duplicateWorkOrderOwner.Errors.Any(value => value.Contains(
+                    "work-order-owner-duplicate",
+                    StringComparison.Ordinal)),
+            "Two dismantle work orders owned the same destructive-drain operation.");
+        workOrderOwners.orders.Remove(duplicateDismantleOwner);
+        workOrderOwners.nextOrderSequence = 2;
+
+        ReplacePayload(
+            complete,
+            WorkOrdersSaveSection.Id,
+            workOrderOwners);
+        List<DungeonSaveSectionEnvelope> workOrderWithoutJournal = complete
+            .Where(value => !string.Equals(
+                value.sectionId,
+                ProductionFacilityDestructiveDrainSaveSection.Id,
+                StringComparison.Ordinal))
+            .Select(CloneEnvelope)
+            .ToList();
+        DungeonGameRestoreReport missingWorkOrderJournal = new();
+        validator.Validate(
+            new DungeonGameSaveData
+            {
+                sections = workOrderWithoutJournal
+            },
+            missingWorkOrderJournal);
+        Require(!missingWorkOrderJournal.Success
+                && missingWorkOrderJournal.Errors.Any(value => value.Contains(
+                    "without its journal section",
+                    StringComparison.Ordinal)),
+            "A work-order destructive-drain owner passed without its journal.");
+        DungeonGameRestoreReport missingWorkOrderRegistryJournal = new();
+        validator.Validate(
+            workOrderWithoutJournal.ToDictionary(
+                value => value.sectionId,
+                StringComparer.Ordinal),
+            missingWorkOrderRegistryJournal);
+        Require(!missingWorkOrderRegistryJournal.Success
+                && missingWorkOrderRegistryJournal.Errors.Any(value =>
+                    value.Contains(
+                        "without its registry journal section",
+                        StringComparison.Ordinal)),
+            "A registry work-order destructive-drain owner passed without its journal.");
+
+        drain.entries[0].cause =
+            ProductionFacilityDestructiveDrainCause.StructuralIntegrity;
+        drain.entries[0].initiatingMutationOperationId =
+            ProductionFacilityDestructiveDrainCanonical
+                .BuildInitiatingMutationOperationId(
+                    ProductionFacilityDestructiveDrainCause
+                        .StructuralIntegrity,
+                    destructiveFacilityId);
+        ReplacePayload(
+            complete,
+            ProductionFacilityDestructiveDrainSaveSection.Id,
+            drain);
+        ReplacePayload(
+            complete,
+            WorkOrdersSaveSection.Id,
+            new DungeonWorkOrderSaveData
+            {
+                version = DungeonWorkOrderSaveData.CurrentVersion,
+                nextOrderSequence = 1,
+                orders = new List<WorkOrderSaveData>(),
+                qualityPipelines = new List<QualityTargetPipelineSaveData>()
+            });
 
         string exactParticipantFingerprint =
             drain.entries[0].participants[0]
@@ -1087,6 +1874,309 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
             updatePrepared: false);
         AcknowledgeAllOwners(drain.entries[0].participants);
         ProductionFacilityDestructiveDrainParticipantSaveData
+            acknowledgedSensorParticipant = drain.entries[0].participants.Single(
+                value => string.Equals(
+                    value.participantId,
+                    ProductionFacilityDestructiveDrainParticipantIds
+                        .StockSensorEmbeddedSalvage,
+                    StringComparison.Ordinal));
+        ProductionFacilityDestructiveDrainOwnerSaveData acknowledgedSensorOwner =
+            acknowledgedSensorParticipant.owners.Single();
+        ProductionInstalledStockSensorSaveData sourceInstalledSensor =
+            sourceProduction.installedStockSensors.Single(value => value != null
+                && string.Equals(value.facilityId,
+                    destructiveFacilityId.Value,
+                    StringComparison.Ordinal));
+        string sensorDestination = ProductionStockSensorRuntime
+            .BuildDestinationId(destructiveFacilityId.Value);
+        string sensorChildStep =
+            ProductionStockSensorDestructiveDrainCanonical
+                .BuildChildStepOperationId(
+                    acknowledgedSensorOwner.stepOperationId);
+        string sensorSourceClaim =
+            ProductionFacilityDestructiveDrainCanonical.ComputeFingerprint(
+                "qa:stock-sensor-source-claim:" + destructiveFacilityId.Value);
+        string sensorSourceOwnership =
+            ProductionFacilityDestructiveDrainCanonical.ComputeFingerprint(
+                "qa:stock-sensor-source-ownership:"
+                + destructiveFacilityId.Value);
+        string sensorChildRequest =
+            ProductionInputDestinationCustodyDrainFingerprint.CreateRequest(
+                destructiveOperationId.Value,
+                sensorChildStep,
+                acknowledgedSensorOwner.ownerStableId,
+                sensorDestination,
+                destructiveFacilityId.Value,
+                sensorDestination,
+                0,
+                0,
+                sensorSourceClaim,
+                sensorSourceOwnership,
+                Array.Empty<ProductionInputDestinationDrainStackSaveData>(),
+                Array.Empty<ProductionInputDestinationDrainOperationSaveData>(),
+                Array.Empty<ProductionInputDestinationDrainActorSaveData>(),
+                0,
+                0L);
+        ProductionInputDestinationCustodyDrainSaveData terminalSensorChild = new()
+        {
+            parentOperationId = destructiveOperationId.Value,
+            stepOperationId = sensorChildStep,
+            ownerStableId = acknowledgedSensorOwner.ownerStableId,
+            billId = sensorDestination,
+            facilityId = destructiveFacilityId.Value,
+            sourceDestinationId = sensorDestination,
+            sourceClaimFingerprint = sensorSourceClaim,
+            sourceOwnershipFingerprint = sensorSourceOwnership,
+            requestFingerprint = sensorChildRequest,
+            phase = ProductionInputDestinationCustodyDrainPhase
+                .BillAcknowledgedAwaitingCheckpointGc,
+            sourceStacks = new List<ProductionInputDestinationDrainStackSaveData>(),
+            sourceOperations = new List<
+                ProductionInputDestinationDrainOperationSaveData>(),
+            sourceActors = new List<ProductionInputDestinationDrainActorSaveData>(),
+            completedActorIds = new List<string>(),
+            releasedOperationIds = new List<string>(),
+            releasedStackIds = new List<string>(),
+            inputQuantity = 0,
+            inputMassGrams = 0L,
+            releasedQuantity = 0,
+            releasedMassGrams = 0L,
+            resultFingerprint =
+                ProductionFacilityDestructiveDrainCanonical.ComputeFingerprint(
+                    "qa:stock-sensor-empty-release:"
+                    + destructiveFacilityId.Value)
+        };
+        terminalSensorChild.commitId =
+            ProductionInputDestinationCustodyDrainFingerprint.CreateCommit(
+                terminalSensorChild.stepOperationId,
+                terminalSensorChild.requestFingerprint);
+        terminalSensorChild.receiptFingerprint =
+            ProductionInputDestinationCustodyDrainFingerprint.CreateReceipt(
+                terminalSensorChild.requestFingerprint,
+                terminalSensorChild.resultFingerprint,
+                0,
+                0L,
+                Array.Empty<string>(),
+                Array.Empty<string>());
+        ProductionStockSensorRemovalSaveData terminalSensorRemoval = new()
+        {
+            phase = ProductionStockSensorRemovalPhase
+                .OwnerAcknowledgedAwaitingCheckpointGc,
+            facilityId = destructiveFacilityId.Value,
+            itemId = sourceInstalledSensor.itemId,
+            operationId = ProductionStockSensorRuntime.BuildRemovalOperationId(
+                destructiveFacilityId.Value,
+                sourceInstalledSensor.inputSourceStackId),
+            reasonCode = ProductionStockSensorRuntime.RemovalReasonCode,
+            installationSourceStackId =
+                sourceInstalledSensor.inputSourceStackId,
+            expectedOutputMassGrams = sourceInstalledSensor.embeddedMassGrams,
+            outputQuantity = 1,
+            outputMassGrams = sourceInstalledSensor.embeddedMassGrams,
+            outputCommitIds = new List<string>()
+        };
+        terminalSensorRemoval.outputCommitIds.Add(
+            ProductionStockSensorRuntime.BuildRemovalOutputCommitId(
+                terminalSensorRemoval));
+        Require(ProductionStockSensorDestructiveDrainCanonical.Provenance
+                .TryCreate(
+                    destructiveFacilityId,
+                    null,
+                    null,
+                    terminalSensorRemoval,
+                    out ProductionStockSensorDestructiveDrainCanonical.Provenance
+                        sensorProvenance),
+            "Fixture did not create canonical stock-sensor provenance.");
+        acknowledgedSensorOwner.requestFingerprint =
+            ProductionStockSensorDestructiveDrainCanonical
+                .BuildRequestFingerprint(
+                    terminalSensorChild.requestFingerprint,
+                    sensorProvenance);
+        Require(ProductionStockSensorDestructiveDrainCanonical
+                .TryBuildCompositeTerminal(
+                    acknowledgedSensorOwner.requestFingerprint,
+                    terminalSensorChild,
+                    terminalSensorRemoval,
+                    out string sensorCommit,
+                    out string sensorReceipt),
+            "Fixture did not create a canonical stock-sensor terminal receipt.");
+        acknowledgedSensorOwner.commitId = sensorCommit;
+        acknowledgedSensorOwner.receiptFingerprint = sensorReceipt;
+        emptyItems.pendingProductionInputDestinationDrains.Add(
+            terminalSensorChild);
+        emptyProduction.pendingStockSensorRemovals.Add(terminalSensorRemoval);
+        acknowledgedSensorParticipant.expectedCurrentContributionFingerprint =
+            ProductionOutputDestinationDurableSaveProjector.ProjectStockSensor(
+                destructiveFacilityId,
+                emptyProduction,
+                emptyItems,
+                sourceCharacters);
+        ReplacePayload(
+            complete,
+            ProductionBillsSaveSection.Id,
+            emptyProduction);
+        ProductionBillSaveData sourceGenericBill = sourceProduction.bills.Single(
+            value => value != null && string.Equals(
+                value.buildingInstanceId,
+                destructiveFacilityId.Value,
+                StringComparison.Ordinal));
+        ProductionFacilityDestructiveDrainParticipantSaveData
+            acknowledgedGenericParticipant = drain.entries[0].participants.Single(
+                value => string.Equals(
+                    value.participantId,
+                    ProductionFacilityDestructiveDrainParticipantIds
+                        .GenericProductionBills,
+                    StringComparison.Ordinal));
+        ProductionFacilityDestructiveDrainOwnerSaveData acknowledgedGenericOwner =
+            acknowledgedGenericParticipant.owners.Single(value => string.Equals(
+                value.ownerStableId,
+                ProductionFacilityDestructiveDrainOwnerStableIds.GenericBill(
+                    sourceGenericBill.billId),
+                StringComparison.Ordinal));
+        string genericSourceFingerprint =
+            ProductionGenericBillTerminalDrainCanonical
+                .CreateSourceBillFingerprint(sourceGenericBill);
+        string genericChildStep = acknowledgedGenericOwner.stepOperationId
+            + ":input-destination-custody";
+        string emptyInputOwnershipFingerprint =
+            ProductionFacilityDestructiveDrainCanonical.ComputeFingerprint(
+                "qa:empty-input-destination:" + sourceGenericBill.billId);
+        string genericChildRequest =
+            ProductionInputDestinationCustodyDrainFingerprint.CreateRequest(
+                destructiveOperationId.Value,
+                genericChildStep,
+                acknowledgedGenericOwner.ownerStableId,
+                sourceGenericBill.billId,
+                destructiveFacilityId.Value,
+                sourceGenericBill.materialDestinationId,
+                0,
+                0,
+                genericSourceFingerprint,
+                emptyInputOwnershipFingerprint,
+                Array.Empty<ProductionInputDestinationDrainStackSaveData>(),
+                Array.Empty<ProductionInputDestinationDrainOperationSaveData>(),
+                Array.Empty<ProductionInputDestinationDrainActorSaveData>(),
+                0,
+                0L);
+        ProductionInputDestinationCustodyDrainSaveData terminalGenericChild = new()
+        {
+            parentOperationId = destructiveOperationId.Value,
+            stepOperationId = genericChildStep,
+            ownerStableId = acknowledgedGenericOwner.ownerStableId,
+            billId = sourceGenericBill.billId,
+            facilityId = destructiveFacilityId.Value,
+            sourceDestinationId = sourceGenericBill.materialDestinationId,
+            ownerGridX = 0,
+            ownerGridY = 0,
+            sourceClaimFingerprint = genericSourceFingerprint,
+            sourceOwnershipFingerprint = emptyInputOwnershipFingerprint,
+            requestFingerprint = genericChildRequest,
+            phase = ProductionInputDestinationCustodyDrainPhase
+                .BillAcknowledgedAwaitingCheckpointGc,
+            sourceStacks = new List<ProductionInputDestinationDrainStackSaveData>(),
+            sourceOperations = new List<
+                ProductionInputDestinationDrainOperationSaveData>(),
+            sourceActors = new List<ProductionInputDestinationDrainActorSaveData>(),
+            completedActorIds = new List<string>(),
+            releasedOperationIds = new List<string>(),
+            releasedStackIds = new List<string>(),
+            inputQuantity = 0,
+            inputMassGrams = 0L,
+            releasedQuantity = 0,
+            releasedMassGrams = 0L,
+            resultFingerprint = ProductionFacilityDestructiveDrainCanonical
+                .ComputeFingerprint(
+                    "qa:empty-input-release:" + sourceGenericBill.billId)
+        };
+        terminalGenericChild.commitId =
+            ProductionInputDestinationCustodyDrainFingerprint.CreateCommit(
+                terminalGenericChild.stepOperationId,
+                terminalGenericChild.requestFingerprint);
+        terminalGenericChild.receiptFingerprint =
+            ProductionInputDestinationCustodyDrainFingerprint.CreateReceipt(
+                terminalGenericChild.requestFingerprint,
+                terminalGenericChild.resultFingerprint,
+                0,
+                0L,
+                Array.Empty<string>(),
+                Array.Empty<string>());
+        string genericProducerRequest =
+            ProductionGenericBillTerminalDrainCanonical.CreateRequestFingerprint(
+                destructiveOperationId.Value,
+                acknowledgedGenericOwner.stepOperationId,
+                acknowledgedGenericOwner.ownerStableId,
+                sourceGenericBill,
+                genericChildStep,
+                genericChildRequest);
+        ProductionGenericBillTerminalDrainSaveData terminalGenericProducer = new()
+        {
+            parentOperationId = destructiveOperationId.Value,
+            stepOperationId = acknowledgedGenericOwner.stepOperationId,
+            ownerStableId = acknowledgedGenericOwner.ownerStableId,
+            billId = sourceGenericBill.billId,
+            facilityId = destructiveFacilityId.Value,
+            inputDestinationId = sourceGenericBill.materialDestinationId,
+            sourceBill = ProductionGenericBillTerminalDrainCanonical.CloneBill(
+                sourceGenericBill),
+            sourceBillFingerprint = genericSourceFingerprint,
+            inputDestinationDrainStepOperationId = genericChildStep,
+            inputDestinationDrainRequestFingerprint = genericChildRequest,
+            requestFingerprint = genericProducerRequest,
+            phase = ProductionGenericBillTerminalDrainPhase
+                .OwnerAcknowledgedAwaitingCheckpointGc,
+            inputDestinationDrainCommitId = terminalGenericChild.commitId,
+            inputDestinationDrainReceiptFingerprint =
+                terminalGenericChild.receiptFingerprint,
+            releasedInputQuantity = 0,
+            releasedInputMassGrams = 0L
+        };
+        terminalGenericProducer.wipTerminalCommitId =
+            ProductionGenericBillTerminalDrainCanonical
+                .RequiresWipTerminalReceipt(sourceGenericBill)
+                ? ProductionGenericBillTerminalDrainCanonical
+                    .CreateWipTerminalCommitId(
+                        sourceGenericBill.billId,
+                        sourceGenericBill.cycleSequence)
+                : string.Empty;
+        terminalGenericProducer.billTerminalEffectFingerprint =
+            ProductionGenericBillTerminalDrainCanonical
+                .CreateBillTerminalEffectFingerprint(
+                    terminalGenericProducer.requestFingerprint,
+                    terminalGenericProducer
+                        .inputDestinationDrainReceiptFingerprint,
+                    terminalGenericProducer.wipTerminalCommitId);
+        terminalGenericProducer.commitId =
+            ProductionGenericBillTerminalDrainCanonical.CreateCommitId(
+                terminalGenericProducer.stepOperationId,
+                terminalGenericProducer.requestFingerprint);
+        terminalGenericProducer.receiptFingerprint =
+            ProductionGenericBillTerminalDrainCanonical.CreateReceiptFingerprint(
+                terminalGenericProducer.requestFingerprint,
+                terminalGenericProducer.inputDestinationDrainReceiptFingerprint,
+                terminalGenericProducer.billTerminalEffectFingerprint,
+                terminalGenericProducer.commitId);
+        acknowledgedGenericOwner.requestFingerprint = genericProducerRequest;
+        acknowledgedGenericOwner.commitId = terminalGenericProducer.commitId;
+        acknowledgedGenericOwner.receiptFingerprint =
+            terminalGenericProducer.receiptFingerprint;
+        emptyItems.pendingProductionInputDestinationDrains.Add(
+            terminalGenericChild);
+        emptyGenericTerminalDrains.entries.Add(terminalGenericProducer);
+        ReplacePayload(
+            complete,
+            ProductionGenericBillTerminalDrainSaveSection.Id,
+            emptyGenericTerminalDrains);
+        if (ProductionGenericBillTerminalDrainCanonical
+            .RequiresWipTerminalReceipt(sourceGenericBill))
+        {
+            emptyProduction.wipTerminalReceipts.Add(
+                CreateFacilityDestroyedWipReceipt(sourceGenericBill));
+            ReplacePayload(
+                complete,
+                ProductionBillsSaveSection.Id,
+                emptyProduction);
+        }
+        ProductionFacilityDestructiveDrainParticipantSaveData
             acknowledgedPhysicalParticipant = drain.entries[0].participants.Single(
                 value => string.Equals(
                     value.participantId,
@@ -1147,6 +2237,13 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                     outputLineId = value.outputLineId,
                     itemId = value.itemId,
                     componentFingerprint = value.componentFingerprint,
+                    outputCapabilityId = value.outputCapabilityId,
+                    outputCapabilityVersion = value.outputCapabilityVersion,
+                    outputComponentCodecId = value.outputComponentCodecId,
+                    outputComponentCodecVersion =
+                        value.outputComponentCodecVersion,
+                    outputCapabilityFingerprint =
+                        value.outputCapabilityFingerprint,
                     originalQuantity = value.originalQuantity,
                     originalMassGrams = value.originalMassGrams,
                     remainingQuantity = value.remainingQuantity,
@@ -1471,6 +2568,7 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                     facilityId,
                     world,
                     production,
+                    EmptyGenericTerminalPayload(),
                     items,
                     characters,
                     routing,
@@ -1503,6 +2601,13 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                 .PhysicalCustodyContributorId] =
                 ProductionOutputDestinationDurableSaveProjector.ProjectPhysicalCustody(
                     facilityId,
+                    items,
+                    characters),
+            [ProductionOutputDestinationDurableSaveProjector
+                .StockSensorContributorId] =
+                ProductionOutputDestinationDurableSaveProjector.ProjectStockSensor(
+                    facilityId,
+                    production,
                     items,
                     characters)
         };
@@ -1566,6 +2671,50 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
             receiptFingerprint = string.Empty
         };
 
+    private static ProductionWipTerminalReceiptSaveData
+        CreateFacilityDestroyedWipReceipt(ProductionBillSaveData source)
+    {
+        long outputMass = (source.resolvedOutputs
+                ?? new List<ProductionResolvedOutputSaveData>())
+            .Where(value => value != null)
+            .Aggregate(0L, (total, value) => checked(
+                total + value.committedMassGrams));
+        long availableMass = checked(
+            source.wipInputMassGrams + source.processCleanWaterMassGrams);
+        long loss = checked(availableMass - outputMass
+            - source.processWastewaterMassGrams);
+        if (loss < 0L)
+        {
+            throw new InvalidOperationException(
+                "Facility-destroyed WIP fixture has negative declared loss.");
+        }
+        return new ProductionWipTerminalReceiptSaveData
+        {
+            commitId = ProductionGenericBillTerminalDrainCanonical
+                .CreateWipTerminalCommitId(
+                    source.billId,
+                    source.cycleSequence),
+            billId = source.billId,
+            recipeId = source.recipeId,
+            buildingInstanceId = source.buildingInstanceId,
+            cycleSequence = source.cycleSequence,
+            inputCommitId = source.wipInputCommitId,
+            inputQuantity = source.wipInputQuantity,
+            inputMassGrams = source.wipInputMassGrams,
+            processCleanWaterMassGrams = source.processCleanWaterMassGrams,
+            processWastewaterMassGrams = source.processWastewaterMassGrams,
+            wastewaterComponents = (source.processWastewaterComponents
+                    ?? new List<ProductionWastewaterComponentSaveData>())
+                .Select(value => value?.Clone())
+                .ToList(),
+            committedOutputMassGrams = outputMass,
+            reason = ProductionWipTerminalReason.FacilityDestroyed,
+            lossKind = ProductionWipTerminalLossKind
+                .ExplicitIrrecoverableProcessLoss,
+            declaredLossMassGrams = loss
+        };
+    }
+
     private static void AcknowledgeAllOwners(
         IEnumerable<ProductionFacilityDestructiveDrainParticipantSaveData>
             participants)
@@ -1627,6 +2776,72 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
         && value.All(character => character is >= '0' and <= '9'
             or >= 'a' and <= 'f');
 
+    private sealed class ScenarioConfig
+    {
+        internal ScenarioConfig(
+            string label,
+            string recipeId,
+            string itemId,
+            string facilityId,
+            string workerId,
+            string buildingAssetPath,
+            int expectedOutputQuantity,
+            long expectedBatchMassGrams,
+            long expectedCapacityGrams,
+            double? expectedInitialFreshnessSeconds)
+        {
+            if (!Canonical(label)
+                || !Canonical(recipeId)
+                || !Canonical(itemId)
+                || !Canonical(facilityId)
+                || !Canonical(workerId)
+                || !Canonical(buildingAssetPath)
+                || expectedOutputQuantity <= 0
+                || expectedBatchMassGrams <= 0L
+                || expectedCapacityGrams <= 0L
+                || expectedCapacityGrams != checked(
+                    expectedBatchMassGrams *
+                    ExpectedOutputBufferCycleCapacity)
+                || expectedInitialFreshnessSeconds is < 0d
+                || expectedInitialFreshnessSeconds.HasValue
+                    && (double.IsNaN(expectedInitialFreshnessSeconds.Value)
+                        || double.IsInfinity(
+                            expectedInitialFreshnessSeconds.Value)))
+            {
+                throw new InvalidOperationException(
+                    "Prepared-output full-persistence scenario config is invalid.");
+            }
+
+            Label = label;
+            RecipeId = recipeId;
+            ItemId = itemId;
+            FacilityId = facilityId;
+            WorkerId = workerId;
+            BuildingAssetPath = buildingAssetPath;
+            ExpectedOutputQuantity = expectedOutputQuantity;
+            ExpectedBatchMassGrams = expectedBatchMassGrams;
+            ExpectedCapacityGrams = expectedCapacityGrams;
+            ExpectedInitialFreshnessSeconds =
+                expectedInitialFreshnessSeconds;
+        }
+
+        internal string Label { get; }
+        internal string RecipeId { get; }
+        internal string ItemId { get; }
+        internal string FacilityId { get; }
+        internal string WorkerId { get; }
+        internal string BuildingAssetPath { get; }
+        internal int ExpectedOutputQuantity { get; }
+        internal long ExpectedBatchMassGrams { get; }
+        internal long ExpectedCapacityGrams { get; }
+        internal double? ExpectedInitialFreshnessSeconds { get; }
+        internal int ExpectedOutputBufferCycleCapacity => 4;
+
+        private static bool Canonical(string value) =>
+            !string.IsNullOrWhiteSpace(value)
+            && string.Equals(value, value.Trim(), StringComparison.Ordinal);
+    }
+
     private static void Require(bool condition, string message)
     {
         if (!condition)
@@ -1641,8 +2856,12 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
         private readonly GameObject textureObject;
         private readonly MutableGridProvider gridProvider;
 
-        internal RuntimeGraph(string suffix, int seed)
+        internal RuntimeGraph(
+            string suffix,
+            int seed,
+            ScenarioConfig config)
         {
+            Config = config ?? throw new ArgumentNullException(nameof(config));
             RootStore = new DungeonRuntimeAggregateRootStore();
             LifecycleRestoreCandidates =
                 new ProductionOutputLifecycleRestoreCandidateIndex(
@@ -1653,20 +2872,25 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                 new UnityGameContentRootLoader());
             Economy = new ResourceEconomyContentCatalog(gameContent);
             Require(
-                Economy.TryGetRecipe(RecipeId, out ProductionRecipeSO recipe),
-                "Sawmill recipe is missing.");
+                Economy.TryGetRecipe(
+                    Config.RecipeId,
+                    out ProductionRecipeSO recipe),
+                Config.Label + " recipe is missing.");
             Recipe = recipe;
             ItemCatalog = EditorItemCatalogFactory.Create();
             Mass = new PhysicalItemMassQuery(ItemCatalog);
 
             facilityObject = new GameObject(
-                "Sawmill Full Persistence " + suffix);
+                Config.Label + " Full Persistence " + suffix);
             Facility = facilityObject.AddComponent<BuildableObject>();
-            Facility.RestorePersistentIdentity((BuildingInstanceId)FacilityId);
+            Facility.RestorePersistentIdentity(
+                (BuildingInstanceId)Config.FacilityId);
             CharacterAiEditorTestDependencies.Inject(Facility);
             BuildingSO building = AssetDatabase.LoadAssetAtPath<BuildingSO>(
-                "Assets/Resources/SO/Building/Modular/P03_제재소.asset");
-            Require(building != null, "P03 sawmill definition is missing.");
+                Config.BuildingAssetPath);
+            Require(
+                building != null,
+                Config.Label + " building definition is missing.");
             BuildingDefinitions = new FixedBuildingDefinitionLookup(building);
             Vector2Int facilityPosition = new(11, 1);
             Facility.SetGrid(Grid);
@@ -1680,15 +2904,15 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                 "P03 sawmill fixture could not register in the facility world.");
 
             workerObject = new GameObject(
-                "Sawmill Full Persistence Worker " + suffix);
+                Config.Label + " Full Persistence Worker " + suffix);
             CharacterActor worker = workerObject.AddComponent<CharacterActor>();
             CharacterAiEditorTestDependencies.Inject(workerObject);
             worker.EnsureRuntimeState();
-            worker.Identity.SetPersistentId(WorkerId);
+            worker.Identity.SetPersistentId(Config.WorkerId);
             Worker = worker;
 
             researchObject = new GameObject(
-                "Sawmill Full Persistence Research " + suffix)
+                Config.Label + " Full Persistence Research " + suffix)
             {
                 hideFlags = HideFlags.HideAndDontSave
             };
@@ -1717,10 +2941,18 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                 Repository,
                 EditorNullItemMarkerPresenter.Instance,
                 QuantityReservations);
-            IWorldItemSpawner spawner = new WorldItemSpawner(
+            Spawner = new WorldItemSpawner(
                 ItemCatalog,
                 Repository,
                 EditorNullItemMarkerPresenter.Instance);
+            Occupancy = new FacilityBufferPhysicalOccupancyQuery(
+                Repository,
+                Mass,
+                QuantityReservations);
+            Admission = new FacilityBufferMassAdmissionService(
+                Claims,
+                Occupancy,
+                Mass);
             WorldItemQueryService query = new(
                 ItemCatalog,
                 Mass,
@@ -1750,17 +2982,20 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                 query,
                 EditorNullItemMarkerPresenter.Instance,
                 new EditorCharacterAiPerformanceRecorder(),
-                DisabledDungeonDebugRuleQuery.Instance);
+                DisabledDungeonDebugRuleQuery.Instance,
+                new FacilityOutputClearanceTelemetryRuntime());
             WorldItemWarehouseService warehouses = new(
                 ItemCatalog,
                 Repository,
                 worldRegistry,
-                spawner,
+                Spawner,
                 EditorNullItemMarkerPresenter.Instance,
                 gridProvider,
                 characterIds,
                 reservations,
-                QuantityReservations);
+                QuantityReservations,
+                massAdmission: null,
+                facilityBufferMassAdmission: Admission);
             IBufferStackAggregationService bufferAggregation =
                 new BufferStackAggregationService(
                     ItemCatalog,
@@ -1768,7 +3003,7 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                     EditorNullItemMarkerPresenter.Instance,
                     QuantityReservations,
                     QuantityReservations);
-            ItemTransferService transfers = new(
+            Transfers = new ItemTransferService(
                 reads,
                 characterIds,
                 gridProvider,
@@ -1777,11 +3012,18 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                 new ResourceCombatEquipmentCatalog(gameContent),
                 new GameEventBus(),
                 Repository,
-                spawner,
+                Spawner,
                 warehouses,
                 QuantityReservations,
                 QuantityReservations,
-                bufferAggregation);
+                bufferAggregation,
+                warehouseMassAdmission: null,
+                retailStockPhysical: null,
+                facilityBufferMassAdmission: Admission);
+            FacilityOutputExactRouteService exactRoute = new(
+                Repository,
+                Mass,
+                EditorNullItemMarkerPresenter.Instance);
             WorldItems = WorldItemEditorTestFactory.Create(
                 gridProvider,
                 ItemCatalog,
@@ -1794,13 +3036,14 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                 Clock,
                 Repository,
                 reservations,
-                spawner,
+                Spawner,
                 query,
                 haulPlanning,
                 EditorNullItemMarkerPresenter.Instance,
-                transfers,
+                Transfers,
                 new EditorCharacterAiPerformanceRecorder(),
-                QuantityReservations);
+                QuantityReservations,
+                exactRoute);
 
             IStockQuery stock = new PhysicalStockQuery(
                 Repository,
@@ -1808,11 +3051,11 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                 Mass);
             FacilityBufferDestinationReleaseService release = new(
                 WorldItems,
-                transfers,
+                Transfers,
                 worldRegistry);
-            ProductionItemGateway items = new(
+            Items = new ProductionItemGateway(
                 stock,
-                transfers,
+                Transfers,
                 WorldItems,
                 ItemCatalog,
                 release);
@@ -1832,8 +3075,8 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                 new EmptyWorkforceReplanService();
             IProductionInputLogisticsService inputLogistics =
                 new ProductionInputLogisticsService(
-                    Economy,
-                    items,
+                Economy,
+                    Items,
                     progression,
                     workforce,
                     workshops);
@@ -1842,10 +3085,22 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
             BuildingWorld = new CandidateAwareBuildingWorldQuery(
                 gridProvider,
                 RestoreCandidates);
+            ProductionPreparedOutputComponentCodec componentCodec = new();
+            ResourceItemDefinitionCatalog itemDefinitions = new(gameContent);
+            PerishableFoodOutputCapability perishableCapability = new(
+                itemDefinitions);
+            ProductionOutputHandlerRegistry outputHandlers = new(
+                new IProductionOutputCapability[]
+                {
+                    new StandardDefinitionProductionOutputCapability(
+                        Economy,
+                        componentCodec),
+                    perishableCapability
+                });
             IProductionAssemblyBridge bridge =
                 new ProductionAssemblyBridgeAdapter(
-                    items,
-                    items,
+                    Items,
+                    Items,
                     stockSensorPhysical,
                     inputLogistics,
                     cycleUtilities,
@@ -1853,36 +3108,39 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                     BuildingWorld,
                     new EmptyWarehouseQuery(),
                     workforce,
-                    Array.Empty<IProductionOutputHandler>(),
+                    outputHandlers,
                     narrativeQualification: null,
-                    performance:
+                    performance: () =>
                         CharacterAiEditorTestDependencies.NeutralPerformance);
             Bridge = bridge;
             WorkerHandle = bridge.CaptureWorker(Worker);
             Require(
-                FacilityHandle.OutputBufferCycleCapacity == 4,
-                "P03 sawmill output-buffer cycle authority is not four.");
+                FacilityHandle.OutputBufferCycleCapacity ==
+                    Config.ExpectedOutputBufferCycleCapacity,
+                Config.Label
+                    + " output-buffer cycle authority is not four.");
 
             IProductionOutputPlanningService outputPlanning =
                 new ProductionOutputPlanningService(Economy, bridge);
-            ProductionPreparedOutputComponentCodec componentCodec = new();
             ProductionMaximumOutputFactorCatalog maximumFactors = new(
                 LoadAll<BuildingSO>("Assets/Resources/SO/Building"));
+            ProductionOutputMaximumMassRegistry maximumMass = new(
+                new IProductionOutputMaximumMassCapability[]
+                {
+                    new StandardDefinitionProductionOutputCapability(
+                        Economy,
+                        componentCodec),
+                    perishableCapability
+                },
+                Mass);
             ProductionOutputBufferCapacityProjector capacity = new(
                 Economy,
                 bridge,
                 maximumFactors,
                 componentCodec,
-                Mass);
-            CapacityProjector = capacity;
-            Occupancy = new FacilityBufferPhysicalOccupancyQuery(
-                Repository,
                 Mass,
-                QuantityReservations);
-            Admission = new FacilityBufferMassAdmissionService(
-                Claims,
-                Occupancy,
-                Mass);
+                maximumMass);
+            CapacityProjector = capacity;
             FacilityBufferDestinationLifecycleService lifecycle = new(
                 Claims,
                 Claims,
@@ -1907,7 +3165,13 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                 new EmptyGrandProjectBenefits(),
                 new CanonicalProductionOutputResolver(
                     new RandomStreamProvider(seed)),
-                componentCodec,
+                new ProductionPreparedOutputMaterializerRegistry(
+                    new IProductionPreparedOutputMaterializer[]
+                    {
+                        componentCodec,
+                        new PerishableFoodPreparedOutputMaterializer()
+                    },
+                    outputHandlers),
                 Mass,
                 capacity,
                 destinations,
@@ -1925,10 +3189,23 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                 Claims,
                 Admission,
                 lifecycle);
+            SensorAuthority =
+                new ProductionStockSensorDestinationAuthorityRuntime(
+                    Items,
+                    Claims,
+                    Claims,
+                    Admission,
+                    Admission,
+                    Occupancy,
+                    lifecycle);
             ProductionStockSensorRuntime stockSensors = new(
                 bridge,
                 productionState,
-                sensorRemoval);
+                sensorRemoval,
+                SensorAuthority,
+                new ProductionFacilityDestructiveDrainOpenOperationQuery(
+                    RootStore));
+            StockSensors = stockSensors;
             IProductionOutputExecutionService legacyOutput =
                 new ProductionOutputExecutionService(
                     bridge,
@@ -1964,18 +3241,24 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
             Lifecycle = new ProductionOutputDestinationLifecycleQuery(
                 new ProductionBillLifecycleContributor(Production),
                 new CombatEquipmentCraftLifecycleContributor(
-                    EmptyCombatEquipmentQueue.Instance,
-                    EmptyMaintenanceOrders.Instance),
+                    () => EmptyCombatEquipmentQueue.Instance,
+                    () => EmptyMaintenanceOrders.Instance),
                 new ApparelWorkOrderLifecycleContributor(
                     EmptyApparelWorkOrders.Instance),
                 new ProductionOutputCapacityRoutingLifecycleContributor(
+                    Claims,
                     Admission,
                     Occupancy,
                     Routing,
                     EmptyExactRouteOutbox.Instance),
                 new ProductionOutputPhysicalLifecycleContributor(
                     Repository,
-                    worldRegistry));
+                    worldRegistry),
+                new ProductionStockSensorLifecycleContributor(
+                    stockSensors,
+                    Repository,
+                    worldRegistry,
+                    Mass));
 
             PhysicalSection = new PhysicalItemsSaveSection(
                 WorldItems,
@@ -1990,7 +3273,9 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                 WorldItems,
                 WorldItems,
                 productionJoin,
-                LifecycleRestoreCandidates);
+                LifecycleRestoreCandidates,
+                RestoreCandidates,
+                new ProductionFacilityHandleQueryAdapter());
             ProductionPreparedOutputRoutingRestoreJoin routingJoin = new(
                 WorldItems,
                 new EmptyExactRouteReconciler(),
@@ -2092,6 +3377,7 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                 {
                     LifecycleRestoreCandidates,
                     WorldService,
+                    exactRoute,
                     WorldItems,
                     Claims,
                     Admission,
@@ -2100,6 +3386,7 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                 });
         }
 
+        internal ScenarioConfig Config { get; }
         internal DungeonRuntimeAggregateRootStore RootStore { get; }
         internal ProductionOutputLifecycleRestoreCandidateIndex
             LifecycleRestoreCandidates { get; }
@@ -2114,10 +3401,10 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
         internal IGameClock Clock { get; }
         internal BuildableObject Facility { get; }
         internal BuildableObject CurrentFacility => BuildingWorld.Buildings
-            .Single(value => value != null
+                .Single(value => value != null
                 && string.Equals(
                     value.PersistentInstanceId.Value,
-                    FacilityId,
+                    Config.FacilityId,
                     StringComparison.Ordinal));
         internal CharacterActor Worker { get; }
         internal IBuildingWorldQuery BuildingWorld { get; }
@@ -2126,15 +3413,21 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
             Bridge.CaptureFacility(CurrentFacility);
         internal ProductionWorkerHandle WorkerHandle { get; }
         internal WorldItemRepository Repository { get; }
+        internal IWorldItemSpawner Spawner { get; }
         internal ItemQuantityReservationService QuantityReservations { get; }
+        internal ItemTransferService Transfers { get; }
         internal WorldItemStackRuntime WorldItems { get; }
+        internal ProductionItemGateway Items { get; }
         internal FacilityBufferDestinationClaimRegistry Claims { get; }
         internal FacilityBufferMassAdmissionService Admission { get; }
         internal FacilityBufferPhysicalOccupancyQuery Occupancy { get; }
+        internal ProductionStockSensorDestinationAuthorityRuntime
+            SensorAuthority { get; }
         internal FacilityBufferPlannedOutputPublicationService Publication { get; }
         internal ProductionPreparedOutputRoutingAuthority Routing { get; }
         internal ProductionPreparedOutputExecutionAdapter PreparedOutput { get; }
         internal ProductionAggregateStateStore State { get; }
+        internal ProductionStockSensorRuntime StockSensors { get; }
         internal ProductionBillRuntime Production { get; }
         internal ProductionOutputDestinationLifecycleQuery Lifecycle { get; }
         internal ModularFacilityWorldSaveService WorldService { get; }
@@ -2154,8 +3447,8 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                     new()
                     {
                         billId = billId,
-                        recipeId = RecipeId,
-                        buildingInstanceId = FacilityId,
+                        recipeId = Config.RecipeId,
+                        buildingInstanceId = Config.FacilityId,
                         mode = ProductionOrderMode.RepeatCount,
                         remainingCycles = 1,
                         targetStock = 0,
@@ -2164,7 +3457,7 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                             ProductionBillRuntime.DestinationPrefix + billId,
                         outputDestinationId =
                             ProductionBillRuntime.OutputDestinationPrefix
-                            + FacilityId,
+                            + Config.FacilityId,
                         preparedOutput =
                             new ProductionPreparedOutputBatchSaveData()
                     }
@@ -2172,8 +3465,8 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
             };
             Require(
                 seed.version == DungeonProductionBillSaveData.CurrentVersion
-                && seed.version == 17,
-                "Production seed is not current V17.");
+                && seed.version == 22,
+                "Production seed is not current V22.");
             Production.Restore(Production.BuildRestore(seed));
             Require(
                 Production.Capture().bills.Count == 1,
@@ -2182,17 +3475,51 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
 
         internal void PrepareWip(ProductionBillRecord record)
         {
-            long inputMass = Mass.GetQuantityMass(
-                (ItemDefinitionId)"resource:log",
-                PhysicalItemMassSubject.ForDefinition(
-                    (ItemDefinitionId)"resource:log"),
-                2).Value;
+            ItemAmountDefinition[] inputs = Recipe.Inputs
+                .Where(value => value != null)
+                .ToArray();
+            int inputQuantity = inputs.Sum(value => value.Amount);
+            long inputMass = inputs.Aggregate(
+                0L,
+                (sum, value) => checked(sum + Mass.GetQuantityMass(
+                    (ItemDefinitionId)value.ItemId,
+                    PhysicalItemMassSubject.ForDefinition(
+                        (ItemDefinitionId)value.ItemId),
+                    value.Amount).Value));
+            Require(
+                inputQuantity > 0 && inputMass > 0L,
+                Config.Label + " WIP input authority is empty.");
             record.SetMaterialsConsumed(true);
             record.SetWipInput(new ProductionWipInputReceipt(
                 "physical-batch-disposition:1:production-wip-input:"
-                + record.billId.Value + ":00000001:2:" + inputMass,
-                2,
+                + record.billId.Value + ":00000001:"
+                + inputQuantity + ":" + inputMass,
+                inputQuantity,
                 inputMass));
+
+            long cleanWaterMass = ProductionFluidMassRules.ToMassGrams(
+                Recipe.CleanWaterPerCycle);
+            long wastewaterMass = ProductionFluidMassRules.ToMassGrams(
+                Recipe.WastewaterPerCycle);
+            if (cleanWaterMass > 0L || wastewaterMass > 0L)
+            {
+                IReadOnlyList<ProcessWastewaterComponent>
+                    wastewaterComponents = wastewaterMass > 0L
+                        ? new[]
+                        {
+                            new ProcessWastewaterComponent(
+                                Recipe.WastewaterComposition,
+                                ProcessWastewaterSourceKind.Recipe,
+                                Recipe.RecipeId,
+                                Recipe.WastewaterPerCycle)
+                        }
+                        : Array.Empty<ProcessWastewaterComponent>();
+                record.SetProcessFluidConsumed(true);
+                record.SetProcessFluid(new ProductionProcessFluidReceipt(
+                    cleanWaterMass,
+                    wastewaterMass,
+                    wastewaterComponents: wastewaterComponents));
+            }
         }
 
         public void Dispose()

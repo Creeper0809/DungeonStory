@@ -904,7 +904,10 @@ public sealed class CharacterDeprivationRuntime :
         float exhaustion = CharacterDeprivationStateStore.GetBurden(state, DeprivationKind.Exhaustion).burden;
         float hunger = CharacterDeprivationStateStore.GetBurden(state, DeprivationKind.Hunger).burden;
         float thirst = CharacterDeprivationStateStore.GetBurden(state, DeprivationKind.Thirst).burden;
-        return Mathf.Clamp(1f - exhaustion * 0.004f - (hunger + thirst) * 0.0015f, 0.4f, 1f);
+        return CharacterDeprivationWorkSpeedAuthority.Resolve(
+            exhaustion,
+            hunger,
+            thirst);
     }
 
     public void RecordTaboo(CharacterActor actor, string memory)

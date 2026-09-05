@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "equipment-item-armor-leather",
+    "spoiler_tier": "none",
+    "title": "가죽 갑옷"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "combat/equipment-item-armor-leather",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-tanning",
+      "target_spoiler_tier": "none",
+      "target_title": "무두질",
+      "to": "research/research-textile-tanning",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "medical",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "disease-night-thirst",
+  "spoiler_tier": "none",
+  "summary": "야간에 극심한 갈증과 충동을 유발하며 혈액 접촉으로 번진다.",
+  "title": "밤갈증병"
+}

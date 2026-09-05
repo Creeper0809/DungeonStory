@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-cheese-mushroom",
+    "spoiler_tier": "none",
+    "title": "치즈버섯찜"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-cheese-mushroom",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cheese",
+      "target_spoiler_tier": "none",
+      "target_title": "치즈",
+      "to": "item/material-cheese",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-cheese-mushroom",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "food-cheese-mushroom",
+      "target_spoiler_tier": "none",
+      "target_title": "치즈버섯찜",
+      "to": "item/food-cheese-mushroom",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-cheese-mushroom",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-cave-mushroom",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴버섯",
+      "to": "item/resource-cave-mushroom",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-cheese-mushroom",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-livestock",
+      "target_spoiler_tier": "none",
+      "target_title": "축산 조리",
+      "to": "research/research-cuisine-livestock",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

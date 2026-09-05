@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "equipment-item-armor-scale-coat",
+    "spoiler_tier": "none",
+    "title": "비늘 외투"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-scale-coat",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-growth-frame",
+      "target_spoiler_tier": "none",
+      "target_title": "성장형 장비 골격",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-scale-coat",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-chain-mesh",
+      "target_spoiler_tier": "none",
+      "target_title": "사슬 망",
+      "to": "item/material-chain-mesh",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-armor-scale-coat",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-mail-weaving",
+      "target_spoiler_tier": "none",
+      "target_title": "사슬 편조",
+      "to": "research/research-equipment-mail-weaving",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

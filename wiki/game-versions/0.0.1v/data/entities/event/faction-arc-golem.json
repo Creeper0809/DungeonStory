@@ -1,0 +1,121 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-golem-2",
+      "target_spoiler_tier": "warning",
+      "target_title": "기억 누락 보고",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-golem-3",
+      "target_spoiler_tier": "warning",
+      "target_title": "도구씨족의 설계권",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "relic-faction-golem-2",
+      "target_spoiler_tier": "none",
+      "target_title": "돌맥 조율쇠",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-contract-golem-crisis",
+      "target_spoiler_tier": "none",
+      "target_title": "돌맥 주조소 위기 대응 계약",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-contract-golem-strategic",
+      "target_spoiler_tier": "none",
+      "target_title": "돌맥 주조소 장기 전략 계약",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-contract-golem-supply",
+      "target_spoiler_tier": "none",
+      "target_title": "돌맥 주조소 정기 물자 계약",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-golem-1",
+      "target_spoiler_tier": "warning",
+      "target_title": "멈춘 운반자",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-golem-4",
+      "target_spoiler_tier": "warning",
+      "target_title": "수리인가 해방인가",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-golem-6",
+      "target_spoiler_tier": "warning",
+      "target_title": "스스로 선택한 형상",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "relic-faction-golem-1",
+      "target_spoiler_tier": "none",
+      "target_title": "자기각인 핵편",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-golem-5",
+      "target_spoiler_tier": "warning",
+      "target_title": "주조핵의 명령",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "relic-faction-golem-3",
+      "target_spoiler_tier": "none",
+      "target_title": "첫자유 관절핀",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "faction-arc-golem",
+  "spoiler_tier": "warning",
+  "summary": "마모된 핵과 생산 할당량 사이에서 인격을 가진 구성체의 권리를 묻는다.",
+  "title": "돌맥 주조소"
+}

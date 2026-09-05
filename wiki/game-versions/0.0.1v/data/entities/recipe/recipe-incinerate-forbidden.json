@@ -1,0 +1,40 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "6"
+    },
+    {
+      "label": "필요 연구",
+      "value": "기초 위생"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "waste-forbidden-rot",
+      "target_spoiler_tier": "none",
+      "target_title": "금기 부패물",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-survival-sanitation",
+      "target_spoiler_tier": "none",
+      "target_title": "기초 위생",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-incinerate-forbidden",
+  "spoiler_tier": "none",
+  "summary": "금기 부패물 소각 생산 주문",
+  "title": "금기 부패물 소각"
+}

@@ -1,0 +1,80 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "moss-boar",
+    "spoiler_tier": "none",
+    "title": "이끼멧돼지"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "nature/moss-boar",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "resource-hide",
+      "target_spoiler_tier": "none",
+      "target_title": "생가죽",
+      "to": "item/resource-hide",
+      "type": "references"
+    },
+    {
+      "amount": "8",
+      "from": "nature/moss-boar",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "resource-meat",
+      "target_spoiler_tier": "none",
+      "target_title": "생고기",
+      "to": "item/resource-meat",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/moss-boar",
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-cave-flu",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴 독감",
+      "to": "medical/disease-cave-flu",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/moss-boar",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-rat",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴쥐",
+      "to": "nature/cave-rat",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/moss-boar",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "shadow-wolf",
+      "target_spoiler_tier": "none",
+      "target_title": "그림자늑대",
+      "to": "nature/shadow-wolf",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/anatomy-quadruped",
+      "label": "관련",
+      "to": "nature/moss-boar",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/crystal-beetle",
+      "label": "관련",
+      "to": "nature/moss-boar",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

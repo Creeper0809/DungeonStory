@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "battlefield-narrow-bridge",
+    "spoiler_tier": "none",
+    "title": "좁은 교량"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/encounter-01",
+      "label": "관련",
+      "to": "world/battlefield-narrow-bridge",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-13",
+      "label": "관련",
+      "to": "world/battlefield-narrow-bridge",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-25",
+      "label": "관련",
+      "to": "world/battlefield-narrow-bridge",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

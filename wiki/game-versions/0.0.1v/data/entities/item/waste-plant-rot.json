@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.6kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "3"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "상한 식물성 음식. 퇴비와 저급 사료로 쓸 수 있다. 므네실라는 식물성 부패물을 거둔 밭으로 되돌려 보내 다음 수확까지 흙이 회복되는 시간을 잰다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "waste-plant-rot",
+  "spoiler_tier": "none",
+  "summary": "상한 식물성 음식. 퇴비와 저급 사료로 쓸 수 있다.",
+  "title": "식물성 부패물"
+}

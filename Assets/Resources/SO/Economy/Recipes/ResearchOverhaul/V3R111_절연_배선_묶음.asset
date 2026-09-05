@@ -54,11 +54,19 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=CuttingWaste|reason=research-machining-forming-and-assembly-offcut|physicalByproduct=false
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: material:gold-ingot
-    amount: 1
+    amount: 2
   - itemId: textile:insulating-cloth
-    amount: 1
+    amount: 3
   outputs:
   - outputLineId: output:recipe:component:insulated-wiring/000/main/component:insulated-wiring
     role: 0

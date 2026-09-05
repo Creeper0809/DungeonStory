@@ -44,4 +44,28 @@ public sealed class CharacterStatsMaintenanceSchedule
     {
         nextMoodExpiryCheckAt = now + 0.25f;
     }
+
+    public CharacterStatsMaintenanceScheduleSnapshot Capture() => new(
+        nextNeedDecayAt,
+        nextMoodExpiryCheckAt);
+
+    public void Restore(CharacterStatsMaintenanceScheduleSnapshot snapshot)
+    {
+        nextNeedDecayAt = snapshot.NextNeedDecayAt;
+        nextMoodExpiryCheckAt = snapshot.NextMoodExpiryCheckAt;
+    }
+}
+
+public readonly struct CharacterStatsMaintenanceScheduleSnapshot
+{
+    public CharacterStatsMaintenanceScheduleSnapshot(
+        float nextNeedDecayAt,
+        float nextMoodExpiryCheckAt)
+    {
+        NextNeedDecayAt = nextNeedDecayAt;
+        NextMoodExpiryCheckAt = nextMoodExpiryCheckAt;
+    }
+
+    public float NextNeedDecayAt { get; }
+    public float NextMoodExpiryCheckAt { get; }
 }

@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "equipment-item-shield-tower",
+    "spoiler_tier": "none",
+    "title": "대형 방패"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "combat/equipment-item-shield-tower",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-defense-fortification",
+      "target_spoiler_tier": "none",
+      "target_title": "요새화",
+      "to": "research/research-defense-fortification",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.05kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "100개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "14"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "출처와 가치를 확인한 원정 귀중품. 판매 정책으로 금고 자금화할 수 있다. 라카쉬 세갈래길의 감정사는 감정된 귀중품에 원래 주인, 발견한 길과 돌려줄 가능성을 함께 적는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "offense-appraised-valuables",
+  "spoiler_tier": "none",
+  "summary": "출처와 가치를 확인한 원정 귀중품. 판매 정책으로 금고 자금화할 수 있다.",
+  "title": "감정된 귀중품"
+}

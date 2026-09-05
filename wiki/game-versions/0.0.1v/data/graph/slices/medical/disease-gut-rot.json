@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "medical",
+    "slug": "disease-gut-rot",
+    "spoiler_tier": "none",
+    "title": "장부패증"
+  },
+  "edges": [
+    {
+      "amount": "9",
+      "from": "event/seasonal-autumn-rot-cart",
+      "label": "연결",
+      "to": "medical/disease-gut-rot",
+      "type": "adds-disease-exposure"
+    },
+    {
+      "amount": null,
+      "from": "nature/carrion-drake",
+      "label": "관련",
+      "to": "medical/disease-gut-rot",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

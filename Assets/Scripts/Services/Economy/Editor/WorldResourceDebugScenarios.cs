@@ -34,6 +34,11 @@ public static class WorldResourceDebugScenarios
                 scope.Container.Resolve<IWorldResourcePersistence>();
             IWorldItemStackRuntime items =
                 scope.Container.Resolve<IWorldItemStackRuntime>();
+            // The verifier may be invoked on the first PlayMode frame before
+            // the normal tick scheduler has published topology-backed nodes.
+            // Prime the same production runtime once instead of treating that
+            // scheduling race as missing content.
+            scope.Container.Resolve<WorldResourceRuntime>().Tick();
             BlueprintResearchRuntime research = scope.Container
                 .Resolve<ProgressionSceneRuntimeReferences>()
                 .BlueprintResearch;
@@ -114,11 +119,10 @@ public static class WorldResourceDebugScenarios
             research.State.Projects.Complete(
                 new ResearchProjectId("research:forestry:logging"));
 
-            string outputCapacityEvidence = VerifyOutputContainmentAdmission(
+            string outputCapacityEvidence = VerifyExactSourceAtomicPublication(
                 resources,
                 persistence,
                 items,
-                scope.Container.Resolve<IProductionItemGateway>(),
                 catalog);
             lines.Add(outputCapacityEvidence);
 
@@ -200,6 +204,85 @@ public static class WorldResourceDebugScenarios
             .Sum(stack => stack.Quantity);
     }
 
+    private static string VerifyExactSourceAtomicPublication(
+        IWorldResourceRuntime resources,
+        IWorldResourcePersistence persistence,
+        IWorldItemStackRuntime items,
+        IResourceEconomyContentCatalog catalog)
+    {
+        WorldResourceNode selectedNode = resources.Nodes
+            .Where(value => value != null)
+            .FirstOrDefault(node => resources.TryGetWork(
+                    node,
+                    BuiltInWorkTypeIds.Quarry,
+                    out WorldResourceWorkSnapshot work)
+                && work.Available);
+        WorkTypeId selectedWorkType = BuiltInWorkTypeIds.Quarry;
+        if (selectedNode == null)
+        {
+            selectedNode = resources.Nodes
+                .Where(value => value != null)
+                .FirstOrDefault(node => resources.TryGetWork(
+                        node,
+                        BuiltInWorkTypeIds.Logging,
+                        out WorldResourceWorkSnapshot work)
+                    && work.Available);
+            selectedWorkType = BuiltInWorkTypeIds.Logging;
+        }
+        Require(selectedNode != null, "No finite resource output fixture was found.");
+        Require(resources.TryGetWork(
+                selectedNode,
+                selectedWorkType,
+                out WorldResourceWorkSnapshot selectedWork),
+            "Finite resource work snapshot is missing.");
+        Require(catalog.TryGetRecipe(
+                selectedWork.RecipeId,
+                out ProductionRecipeSO recipe),
+            "Finite resource recipe is missing.");
+        ProductionOutputDefinition guaranteedMain = recipe.Outputs
+            .Single(value => value != null
+                && value.Role == ProductionOutputRole.Main
+                && value.Probability >= 1f);
+        DungeonWorldResourceSaveData before = persistence.Capture();
+        WorldResourceSourceSaveData beforeSource = FindSavedSource(
+            before,
+            selectedNode.NodeId,
+            selectedWorkType);
+        int mainBefore = CountItem(items, guaranteedMain.ItemId);
+        Require(resources.ApplyWork(
+                selectedNode,
+                selectedWorkType,
+                selectedWork.RequiredWork,
+                out bool completed)
+            && completed,
+            "Finite resource exact-source output did not commit.");
+        WorldResourceSourceSaveData afterSource = FindSavedSource(
+            persistence.Capture(),
+            selectedNode.NodeId,
+            selectedWorkType);
+        int mainDelta = CountItem(items, guaranteedMain.ItemId) - mainBefore;
+        Require(mainDelta >= guaranteedMain.Amount,
+            "Guaranteed resource Main output was not materialized exactly once.");
+        Require(afterSource.completedCycleSequence
+                == beforeSource.completedCycleSequence + 1
+            && afterSource.remainingCycles == beforeSource.remainingCycles - 1
+            && Math.Abs(afterSource.completedWork) < 0.0001f
+            && afterSource.pendingOutput != null
+            && afterSource.pendingOutput.IsEmpty,
+            "Resource source and frozen-output owner did not finalize together.");
+        Require(!items.GetAllStacks().Any(stack => stack != null
+                && stack.State == WorldItemStackState.FacilityOutputBuffer
+                && stack.DestinationId?.StartsWith(
+                    ReservedTargetDestinationIdentity.PhysicalSourceBufferPrefix
+                    + WorldResourceOutputPublicationPortAdapter.OwnerDomain,
+                    StringComparison.Ordinal) == true),
+            "World-resource exact-source authority leaked a retained batch.");
+        return "PASS WORLD_RESOURCE_EXACT_SOURCE_ATOMIC_PUBLICATION "
+            + $"node={selectedNode.NodeId};recipe={selectedWork.RecipeId};"
+            + $"item={guaranteedMain.ItemId};quantityDelta={mainDelta};"
+            + $"sequence={afterSource.completedCycleSequence};conserved=true";
+    }
+
     private static string VerifyOutputContainmentAdmission(
         IWorldResourceRuntime resources,
         IWorldResourcePersistence persistence,
@@ -224,9 +307,7 @@ public static class WorldResourceDebugScenarios
             if (!resources.TryGetWork(node, workType, out WorldResourceWorkSnapshot work)
                 || !work.Available
                 || !catalog.TryGetRecipe(work.RecipeId, out ProductionRecipeSO recipe))
-            {
                 continue;
-            }
 
             ProductionOutputDefinition output = recipe.Outputs
                 .FirstOrDefault(value => value != null
@@ -241,7 +322,7 @@ public static class WorldResourceDebugScenarios
                     StringComparison.Ordinal));
             if (savedNode == null)
                 continue;
-            Vector2Int position = new Vector2Int(savedNode.gridX, savedNode.gridY);
+            Vector2Int position = new(savedNode.gridX, savedNode.gridY);
             bool occupied = items.GetAllStacks().Any(stack => stack != null
                 && stack.Quantity > 0
                 && stack.State == WorldItemStackState.Loose
@@ -283,9 +364,7 @@ public static class WorldResourceDebugScenarios
                 && !existingIds.Contains(stack.StackId)
                 && stack.State == WorldItemStackState.Loose
                 && stack.Position == selectedPosition
-                && string.Equals(
-                    stack.ItemId,
-                    selectedOutput.ItemId,
+                && string.Equals(stack.ItemId, selectedOutput.ItemId,
                     StringComparison.Ordinal)));
             Require(created.Sum(stack => stack.Quantity) == 1,
                 "The containment fixture did not create exactly one physical unit.");
@@ -294,18 +373,9 @@ public static class WorldResourceDebugScenarios
                     1,
                     selectedPosition,
                     out DomainFailure saturatedFailure)
-                && saturatedFailure.Code == FailureCode.ProductionOutputSpaceUnavailable,
-                "An occupied source containment did not fail with the typed capacity reason.");
-            Require(resources.TryGetWork(
-                    selectedNode,
-                    selectedWork.WorkTypeId,
-                    out WorldResourceWorkSnapshot blocked)
-                && !blocked.Available
-                && string.Equals(
-                    blocked.UnavailableReason,
-                    FailureCode.ProductionOutputSpaceUnavailable.ToString(),
-                    StringComparison.Ordinal),
-                "Resource work remained available while its source containment was occupied.");
+                && saturatedFailure.Code
+                    == FailureCode.ProductionOutputSpaceUnavailable,
+                "An occupied source containment lacked the typed capacity reason.");
             Require(!resources.ApplyWork(
                     selectedNode,
                     selectedWork.WorkTypeId,
@@ -313,13 +383,26 @@ public static class WorldResourceDebugScenarios
                     out bool completedWhileBlocked)
                 && !completedWhileBlocked,
                 "Blocked resource work consumed a cycle or completed output.");
+            Require(resources.TryGetWork(
+                    selectedNode,
+                    selectedWork.WorkTypeId,
+                    out WorldResourceWorkSnapshot blocked)
+                && blocked.Available
+                && blocked.PendingOutputReady
+                && Math.Abs(blocked.CompletedWork - blocked.RequiredWork) < 0.0001f,
+                "Blocked output was not retained as completed retryable WIP.");
             WorldResourceSourceSaveData blockedSource = FindSavedSource(
                 persistence.Capture(),
                 selectedNode.NodeId,
                 selectedWork.WorkTypeId);
             Require(blockedSource.remainingCycles == beforeSource.remainingCycles
-                    && Math.Abs(blockedSource.completedWork - beforeSource.completedWork) < 0.0001f,
-                "Output saturation mutated resource quantity or work progress.");
+                    && blockedSource.completedCycleSequence
+                        == beforeSource.completedCycleSequence
+                    && blockedSource.pendingOutput != null
+                    && !blockedSource.pendingOutput.IsEmpty
+                    && Math.Abs(blockedSource.completedWork
+                        - selectedWork.RequiredWork) < 0.0001f,
+                "Output saturation consumed a resource cycle or lost completed WIP.");
         }
         finally
         {
@@ -330,15 +413,26 @@ public static class WorldResourceDebugScenarios
             }
         }
 
-        Require(resources.TryGetWork(
+        Require(resources.TryFinalizePendingOutput(
                 selectedNode,
                 selectedWork.WorkTypeId,
-                out WorldResourceWorkSnapshot recovered)
-            && recovered.Available,
-            "Resource work did not recover after source containment was cleared.");
+                out bool recoveredCompletion)
+            && recoveredCompletion,
+            "Resource output did not finalize after containment was cleared.");
+        WorldResourceSourceSaveData recoveredSource = FindSavedSource(
+            persistence.Capture(),
+            selectedNode.NodeId,
+            selectedWork.WorkTypeId);
+        Require(recoveredSource.completedCycleSequence
+                == beforeSource.completedCycleSequence + 1
+            && recoveredSource.pendingOutput != null
+            && recoveredSource.pendingOutput.IsEmpty
+            && Math.Abs(recoveredSource.completedWork) < 0.0001f,
+            "Recovered source output did not commit exactly once.");
         return "PASS OUTPUT_CONTAINMENT_TYPED_BLOCK_RECOVERY "
             + $"node={selectedNode.NodeId};recipe={selectedWork.RecipeId};"
-            + $"item={selectedOutput.ItemId};quantity=1;conserved=true";
+            + $"item={selectedOutput.ItemId};quantity=1;conserved=true;"
+            + "workConserved=true;resourceCycleConserved=true;recovered=true";
     }
 
     private static WorldResourceSourceSaveData FindSavedSource(

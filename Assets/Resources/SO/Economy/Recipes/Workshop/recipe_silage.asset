@@ -61,7 +61,7 @@ MonoBehaviour:
   - itemId: resource:twilight-grain
     amount: 1
   outputs:
-  - outputLineId: output:main
+  - outputLineId: output:recipe:silage/000/main/feed:silage
     role: 0
     itemId: feed:silage
     amount: 3

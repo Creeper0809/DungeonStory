@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "특수"
+    },
+    {
+      "label": "크기",
+      "value": "1×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-1049",
+  "spoiler_tier": "none",
+  "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 치안과 보안이다. 건설에는 작업량 501, 재료 목재×5, 철괴×3이 필요하다.",
+  "title": "전리품거치대"
+}

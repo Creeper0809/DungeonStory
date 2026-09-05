@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using UnityEngine;
 using System.Text;
 
 /// <summary>
@@ -11,9 +12,17 @@ using System.Text;
 /// at a time so faults roll forward without replaying an earlier physical effect.
 /// </summary>
 public sealed class ProductionInputDestinationCustodyDrainOutbox :
-    IProductionInputDestinationCustodyDrainOutbox
+    IProductionInputDestinationCustodyDrainOutbox,
+    IProductionInputDestinationCustodyDrainCheckpointGcPort,
+    IProductionInputDestinationCustodyDrainLiveQuery
 {
     private readonly WorldItemRepository repository;
+    private readonly HashSet<CheckpointGcCandidate>
+        activeCheckpointGcCandidates = new();
+
+    public IReadOnlyList<ProductionInputDestinationCustodyDrainSaveData>
+        CaptureAll() => repository
+        .CapturePendingProductionInputDestinationDrains();
 
     public ProductionInputDestinationCustodyDrainOutbox(
         WorldItemRepository repository)
@@ -252,6 +261,15 @@ public sealed class ProductionInputDestinationCustodyDrainOutbox :
         string stepOperationId,
         string receiptFingerprint)
     {
+        if (activeCheckpointGcCandidates.Any(candidate =>
+                candidate.ExpectedRows.Any(row => string.Equals(
+                    row.stepOperationId,
+                    stepOperationId,
+                    StringComparison.Ordinal))))
+        {
+            return Deferred(
+                "production-input-destination-checkpoint-gc-transaction-active");
+        }
         if (!TryGet(stepOperationId,
                 out ProductionInputDestinationCustodyDrainSaveData value))
         {
@@ -270,6 +288,147 @@ public sealed class ProductionInputDestinationCustodyDrainOutbox :
         repository.RemovePendingProductionInputDestinationDrain(stepOperationId);
         return Current(value,
             ProductionInputDestinationCustodyDrainStatus.Applied);
+    }
+
+    public bool TryPrepareCheckpointGarbageCollection(
+        IReadOnlyList<ProductionInputDestinationCustodyDrainSaveData> records,
+        out IProductionInputDestinationCustodyDrainCheckpointGcCandidate candidate,
+        out string failureReason)
+    {
+        candidate = null;
+        failureReason = string.Empty;
+        ProductionInputDestinationCustodyDrainSaveData[] expected = (records
+                ?? Array.Empty<ProductionInputDestinationCustodyDrainSaveData>())
+            .Select(value => value?.Clone())
+            .OrderBy(value => value?.stepOperationId, StringComparer.Ordinal)
+            .ToArray();
+        if (expected.Any(value => value == null)
+            || expected.Select(value => value.stepOperationId)
+                .Distinct(StringComparer.Ordinal).Count() != expected.Length)
+        {
+            failureReason =
+                "production-input-destination-checkpoint-gc-records-invalid";
+            return false;
+        }
+        foreach (ProductionInputDestinationCustodyDrainSaveData row in expected)
+        {
+            if (row.phase != ProductionInputDestinationCustodyDrainPhase
+                    .BillAcknowledgedAwaitingCheckpointGc
+                || !ProductionInputDestinationCustodyDrainContract.IsValidSave(row)
+                || !TryGet(row.stepOperationId,
+                    out ProductionInputDestinationCustodyDrainSaveData current)
+                || !RowsEqual(current, row))
+            {
+                failureReason =
+                    "production-input-destination-checkpoint-gc-row-conflict";
+                return false;
+            }
+        }
+        HashSet<string> expectedIds = expected
+            .Select(value => value.stepOperationId)
+            .ToHashSet(StringComparer.Ordinal);
+        if (activeCheckpointGcCandidates.Any(active =>
+                active.ExpectedRows.Any(row => expectedIds.Contains(
+                    row.stepOperationId))))
+        {
+            failureReason =
+                "production-input-destination-checkpoint-gc-overlap";
+            return false;
+        }
+        CheckpointGcCandidate prepared = new(expected);
+        if (!activeCheckpointGcCandidates.Add(prepared))
+        {
+            throw new InvalidOperationException(
+                "production-input-destination-checkpoint-gc-candidate-registration-failed");
+        }
+        candidate = prepared;
+        return true;
+    }
+
+    public bool TryPublishCheckpointGarbageCollection(
+        IProductionInputDestinationCustodyDrainCheckpointGcCandidate candidate,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        if (exact.Published)
+            return true;
+        foreach (ProductionInputDestinationCustodyDrainSaveData row in exact.ExpectedRows)
+        {
+            if (!repository
+                    .TryRemoveExactPendingProductionInputDestinationDrainForCheckpointGc(
+                        row,
+                        out ProductionInputDestinationCustodyDrainSaveData removed))
+            {
+                if (exact.RemovedRows.Any(value => !repository
+                        .CanRestoreExactPendingProductionInputDestinationDrainForCheckpointGc(
+                            value)))
+                {
+                    throw new InvalidOperationException(
+                        "production-input-destination-checkpoint-gc-publish-rollback-conflict");
+                }
+                for (int index = exact.RemovedRows.Count - 1; index >= 0; index--)
+                {
+                    if (!repository
+                            .TryRestoreExactPendingProductionInputDestinationDrainForCheckpointGc(
+                                exact.RemovedRows[index]))
+                    {
+                        throw new InvalidOperationException(
+                            "production-input-destination-checkpoint-gc-publish-rollback-conflict");
+                    }
+                }
+                exact.RemovedRows.Clear();
+                failureReason =
+                    "production-input-destination-checkpoint-gc-publish-conflict";
+                return false;
+            }
+            exact.RemovedRows.Add(removed);
+        }
+        exact.Published = true;
+        return true;
+    }
+
+    public void RollbackCheckpointGarbageCollection(
+        IProductionInputDestinationCustodyDrainCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        if (exact.RemovedRows.Any(value => !repository
+                .CanRestoreExactPendingProductionInputDestinationDrainForCheckpointGc(
+                    value)))
+        {
+            throw new InvalidOperationException(
+                "production-input-destination-checkpoint-gc-rollback-conflict");
+        }
+        for (int index = exact.RemovedRows.Count - 1; index >= 0; index--)
+        {
+            if (!repository
+                    .TryRestoreExactPendingProductionInputDestinationDrainForCheckpointGc(
+                        exact.RemovedRows[index]))
+            {
+                throw new InvalidOperationException(
+                    "production-input-destination-checkpoint-gc-rollback-conflict");
+            }
+        }
+        exact.RemovedRows.Clear();
+        exact.Published = false;
+    }
+
+    public void CompleteCheckpointGarbageCollection(
+        IProductionInputDestinationCustodyDrainCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        if (!exact.Published && exact.RemovedRows.Count != 0)
+        {
+            throw new InvalidOperationException(
+                "production-input-destination-checkpoint-gc-not-rolled-back");
+        }
+        exact.Completed = true;
+        exact.RemovedRows.Clear();
+        if (!activeCheckpointGcCandidates.Remove(exact))
+        {
+            throw new InvalidOperationException(
+                "production-input-destination-checkpoint-gc-candidate-unregistration-failed");
+        }
     }
 
     public bool TryCapture(
@@ -426,6 +585,47 @@ public sealed class ProductionInputDestinationCustodyDrainOutbox :
             return false;
         }
         return true;
+    }
+
+    private CheckpointGcCandidate RequireCheckpointGcCandidate(
+        IProductionInputDestinationCustodyDrainCheckpointGcCandidate candidate)
+    {
+        if (candidate is not CheckpointGcCandidate exact
+            || exact.Completed
+            || !activeCheckpointGcCandidates.Contains(exact))
+        {
+            throw new InvalidOperationException(
+                "production-input-destination-checkpoint-gc-candidate-conflict");
+        }
+        return exact;
+    }
+
+    private static bool RowsEqual(
+        ProductionInputDestinationCustodyDrainSaveData left,
+        ProductionInputDestinationCustodyDrainSaveData right) => left != null
+        && right != null
+        && string.Equals(
+            JsonUtility.ToJson(left),
+            JsonUtility.ToJson(right),
+            StringComparison.Ordinal);
+
+    private sealed class CheckpointGcCandidate :
+        IProductionInputDestinationCustodyDrainCheckpointGcCandidate
+    {
+        internal CheckpointGcCandidate(
+            IReadOnlyList<ProductionInputDestinationCustodyDrainSaveData>
+                expectedRows)
+        {
+            ExpectedRows = expectedRows
+                ?? throw new ArgumentNullException(nameof(expectedRows));
+        }
+
+        internal IReadOnlyList<ProductionInputDestinationCustodyDrainSaveData>
+            ExpectedRows { get; }
+        internal List<ProductionInputDestinationCustodyDrainSaveData> RemovedRows
+        { get; } = new();
+        internal bool Published { get; set; }
+        internal bool Completed { get; set; }
     }
 
     private static bool IsValid(ProductionInputDestinationDrainStackSaveData value) =>

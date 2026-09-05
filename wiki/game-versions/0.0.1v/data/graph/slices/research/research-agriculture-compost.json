@@ -1,0 +1,174 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-agriculture-compost",
+    "spoiler_tier": "none",
+    "title": "퇴비·윤작"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-agriculture-compost",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-field",
+      "target_spoiler_tier": "none",
+      "target_title": "외부 경작",
+      "to": "research/research-agriculture-field",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-compost",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-field",
+      "target_spoiler_tier": "none",
+      "target_title": "외부 경작",
+      "to": "research/research-agriculture-field",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-compost",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-field",
+      "target_spoiler_tier": "none",
+      "target_title": "외부 경작",
+      "to": "research/research-agriculture-field",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-compost",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1085",
+      "target_spoiler_tier": "none",
+      "target_title": "퇴비장",
+      "to": "facility/building-1085",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-compost-animal",
+      "label": "필요 조건",
+      "to": "research/research-agriculture-compost",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-compost-manure",
+      "label": "필요 조건",
+      "to": "research/research-agriculture-compost",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-compost-mixed",
+      "label": "필요 조건",
+      "to": "research/research-agriculture-compost",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-compost-plant",
+      "label": "필요 조건",
+      "to": "research/research-agriculture-compost",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-low-fuel-animal",
+      "label": "필요 조건",
+      "to": "research/research-agriculture-compost",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-low-fuel-plant",
+      "label": "필요 조건",
+      "to": "research/research-agriculture-compost",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-low-fuel-rot",
+      "label": "필요 조건",
+      "to": "research/research-agriculture-compost",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-supply-nitrate-fertilizer",
+      "label": "필요 조건",
+      "to": "research/research-agriculture-compost",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/source-spoilage-animal",
+      "label": "필요 조건",
+      "to": "research/research-agriculture-compost",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/source-spoilage-mixed",
+      "label": "필요 조건",
+      "to": "research/research-agriculture-compost",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/source-spoilage-plant",
+      "label": "필요 조건",
+      "to": "research/research-agriculture-compost",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-irrigation",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-compost",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-irrigation",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-compost",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-irrigation",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-compost",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-sewer",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-compost",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-sewer",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-compost",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-sewer",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-compost",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

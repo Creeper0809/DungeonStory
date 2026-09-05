@@ -65,6 +65,7 @@ MonoBehaviour:
     - rid: 1003
     - rid: 1008
     - rid: 1009
+    - rid: 1000
   width: 2
   height: 1
   layer: 1
@@ -80,6 +81,13 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: 1000
+      type: {class: BuildingProductionOutputDispositionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionOutputDispositionAbility
+        dispositionKind: 1
+        ownerCapabilityId: production:recipe-driven-output
+        reasonCode: content-gap:missing-authored-recipe
     - rid: 1002
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
@@ -100,11 +108,15 @@ MonoBehaviour:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:ore-sorter
         stockSensorInstallationItemId: component:stock-sensor-panel
+        lanePolicy: 2
+        manualWorkLaneCount: 1
+        automaticWorkLaneCount: 1
     - rid: 1007
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
         defaultBatchCapacity: 4
+        physicalOutputBufferCycleCapacity: 4
         outputCapacities:
         - itemId: material:lead-ingot
           capacity: 24
@@ -165,7 +177,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 1
-        constructionWorkRequired: 312
+        constructionWorkRequired: 467
         repairWorkRequired: 36
         cleanWorkRequired: 6
         researchWorkRequired: 6

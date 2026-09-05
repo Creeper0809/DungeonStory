@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-tool-maintenance-kit",
+    "spoiler_tier": "none",
+    "title": "정비 키트"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-maintenance-kit",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "tool-maintenance-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "정비 키트",
+      "to": "item/tool-maintenance-kit",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-maintenance-kit",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-machine-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "기계 부품",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-tool-maintenance-kit",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "천",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-tool-maintenance-kit",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-industry-breakers",
+      "target_spoiler_tier": "none",
+      "target_title": "차단기와 산업 정비",
+      "to": "research/research-industry-breakers",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

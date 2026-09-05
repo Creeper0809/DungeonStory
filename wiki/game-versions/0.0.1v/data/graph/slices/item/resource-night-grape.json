@@ -1,0 +1,39 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-night-grape",
+    "spoiler_tier": "none",
+    "title": "밤포도"
+  },
+  "edges": [
+    {
+      "amount": "10",
+      "from": "character/festival-open-sky-chorus",
+      "label": "필요 조건",
+      "to": "item/resource-night-grape",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-lavish-meat",
+      "label": "필요 조건",
+      "to": "item/resource-night-grape",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-grape-juice",
+      "label": "필요 조건",
+      "to": "item/resource-night-grape",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-syrup",
+      "label": "필요 조건",
+      "to": "item/resource-night-grape",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

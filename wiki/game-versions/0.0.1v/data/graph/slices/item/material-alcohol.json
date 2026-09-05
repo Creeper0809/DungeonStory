@@ -1,0 +1,39 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-alcohol",
+    "spoiler_tier": "none",
+    "title": "알코올"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-anesthetic",
+      "label": "필요 조건",
+      "to": "item/material-alcohol",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-hallucinogenic-distillate",
+      "label": "필요 조건",
+      "to": "item/material-alcohol",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-supply-botanical-pesticide",
+      "label": "필요 조건",
+      "to": "item/material-alcohol",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-alcohol",
+      "label": "생산·해금",
+      "to": "item/material-alcohol",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

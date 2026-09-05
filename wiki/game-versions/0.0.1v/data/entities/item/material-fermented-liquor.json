@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.5kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "14"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "발효액은 음료, 조리와 약품 제조에 나눠 쓰는 액체 재료다. 밀로세아 가도를 지나는 발효액 통에는 흔들림과 낮밤의 온도 차를 확인한 검문표가 차례로 붙는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-fermented-liquor",
+  "spoiler_tier": "none",
+  "summary": "작업실의 다음 공정으로 실제 운반되는 물리 중간재.",
+  "title": "발효액"
+}

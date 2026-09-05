@@ -1,12 +1,12 @@
-RESULT=IN_PROGRESS; phase=remaining-packaging-review; assetMutations=0
-items=414; semantics=363; missing=51; recipes=355
-authoredPackagedLotFeatures=0; reusable=0; disposable=0; destroyedDuringUse=0
-bulkInfrastructureCandidates=0; mealServingOrRationReview=2; physicalPackageReview=49
-executionLifecycleSourceInput=8; transformIntermediate=28; terminalOutput=15; executionOrphan=0
+RESULT=PASS; phase=packaging-contract-review; assetMutations=0
+items=415; semantics=415; reviewed=52; recipes=355
+authoredPackagedLotFeatures=1; integralUnitNoDetachableTare=51; detachableTare=1; unresolved=0; reusable=1; disposable=0; destroyedDuringUse=0
+bulkInfrastructureCandidates=0; mealServingOrRationReview=2; physicalPackageReview=50
+executionLifecycleSourceInput=8; transformIntermediate=28; terminalOutput=16; executionOrphan=0
 runtimeConsumerRows=28; runtimeConsumerLinks=31; runtimeConsumerCatalogExact=true
 automaticTareAssignment=false; semanticAutoApproval=false; producerConsumerVectorsRequired=true
 runtimeGatewayEvidence=terminal-sink-service+survival-adapter+surgery-logistics; gatewayPresenceIsNotPerItemRouteProof=true
 deterministicRecapture=PASS; byteIdentical=true
-ledgerScopeDigest=5dd5ab22d3c38b5f36dc6417150559b1b3885824ba937b773f825ed0803f5f81
-sourceDigest=b11aa24a9ee6fbe362adadb30ff42b6186b6e16628a21e99bc4592ab1afc86e0
-nextGate=AUTHOR_CONTAINER_RETURN_WASTE_TRANSFER_OR_EXPLICIT_SINK; status=IN_PROGRESS
+ledgerScopeDigest=99dbf93a98559019affd853087ccd39be3a5a156c3f3482c2c64c95012a55fef
+sourceDigest=e24e1e265ee6c466af83f04a4178426f86733cc15c12f972c2c7e09e7307bc81
+nextGate=NONE; status=PASS

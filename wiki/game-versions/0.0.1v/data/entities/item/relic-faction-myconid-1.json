@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "0"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "말 없이 전달된 첫 동맹 기억을 담은 병이다. 므네실라의 첫포자 기억병에는 인간군이 불태운 정원과 그곳에서 피신시킨 사람들의 냄새 기억이 남아 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "relic-faction-myconid-1",
+  "spoiler_tier": "none",
+  "summary": "말 없이 전달된 첫 동맹 기억을 담은 병.",
+  "title": "첫포자 기억병"
+}

@@ -47,6 +47,42 @@ public static class V26FounderTraitAuditScenario
             CharacterActor actor) => Array.Empty<IGameplayEffectSource>();
     }
 
+    private sealed class CompletionAuditWorld :
+        ICharacterWorldQuery,
+        ICharacterLifetimeQuery
+    {
+        public CharacterActor[] Active = Array.Empty<CharacterActor>();
+        public CharacterActor[] Lifetime = Array.Empty<CharacterActor>();
+        public int CharacterVersion => 1;
+        public IReadOnlyList<CharacterActor> Characters => Active;
+        public int LifetimeCharacterVersion => 1;
+        public IReadOnlyList<CharacterActor> AllCharacters => Lifetime;
+    }
+
+    private sealed class CompletionAuditEnvironment :
+        ICharacterEnvironmentStatusQuery
+    {
+        public bool ThrowOnExposure;
+        public CharacterEnvironmentExposure GetExposure(CharacterId characterId)
+        {
+            if (ThrowOnExposure)
+                throw new InvalidOperationException(
+                    "Injected completion environment failure.");
+            return new CharacterEnvironmentExposure
+            {
+                characterId = characterId.Value
+            };
+        }
+        public EnvironmentalExposureBand GetPhysiologicalBand(
+            CharacterId characterId) => EnvironmentalExposureBand.Stable;
+        public EnvironmentalExposureBand GetVisualBand(
+            CharacterId characterId) => EnvironmentalExposureBand.Stable;
+        public float GetWorkSpeedMultiplier(CharacterId characterId) => 1f;
+        public float GetPrecisionWorkSpeedMultiplier(CharacterId characterId) => 1f;
+        public float GetMoveSpeedMultiplier(CharacterId characterId) => 1f;
+        public float GetAccuracyPenaltyPoints(CharacterId characterId) => 0f;
+    }
+
     private const string CatalogPath =
         "Assets/Resources/SO/Content/GameDomainContentCatalog.asset";
     private const string ReportPath =
@@ -259,6 +295,7 @@ public static class V26FounderTraitAuditScenario
         }
         Require(revisionRejected, "Unknown identity rule revision was partially restored.");
         VerifyExtremeTraitRuntime();
+        VerifyCharacterNarrativeExternalRestoreTransaction();
 
         const int million = 1_000_000;
         ulong stableA = MythicCraftInspirationRules.ResolveFixedRollHash(
@@ -432,6 +469,21 @@ public static class V26FounderTraitAuditScenario
 
     private static void VerifyExtremeTraitRuntime()
     {
+        const ulong naturalGoldenHash = 2920600955397026131UL;
+        ulong capturedNaturalGoldenHash =
+            GoldenHarvestDeterministicOutcomeAuthority.CaptureRollHash(
+                21UL,
+                "building:qa:golden-witness",
+                0,
+                "character:qa:golden-witness");
+        Require(capturedNaturalGoldenHash == naturalGoldenHash
+                && Mathf.Abs(
+                    GoldenHarvestDeterministicOutcomeAuthority.CaptureRoll01(
+                        capturedNaturalGoldenHash)
+                    - 0.026131f) < 0.000001f,
+            "Golden Harvest natural deterministic witness drifted from the "
+            + "production roll authority.");
+
         GameObject host = new("V26 Extreme Trait Runtime Audit");
         try
         {
@@ -541,17 +593,115 @@ public static class V26FounderTraitAuditScenario
                 "Miracle surgery eligibility or once-per-order guard failed.");
 
             ApplyTrait(actor, 304);
-            Require(runtime.TryScheduleGoldenHarvest(actor, "field:audit", 3, 50f)
-                && !runtime.TryResolveGoldenHarvest(
-                    actor, "field:audit", 147UL, 50f, out _)
-                && runtime.TryResolveGoldenHarvest(
+            const string goldenFieldId = "field:audit";
+            const string goldenOperationId =
+                "crop-harvest:field:audit:000003";
+            float goldenResolveAt = 50f + GameCalendarRules.SecondsPerDay;
+            GoldenHarvestPreparedResolution preparedGolden = default;
+            Require(runtime.TryScheduleGoldenHarvest(
                     actor,
-                    "field:audit",
+                    goldenFieldId,
+                    3,
+                    50f)
+                && !runtime.TryPrepareGoldenHarvest(
+                    actor,
+                    goldenFieldId,
+                    goldenOperationId,
                     147UL,
-                    50f + GameCalendarRules.SecondsPerDay,
-                    out ExtremeRiskResolution harvest)
-                && harvest.PrimaryMultiplier > 0f,
-                "Golden harvest delay or resolution failed.");
+                    50f,
+                    out _)
+                && runtime.TryPrepareGoldenHarvest(
+                    actor,
+                    goldenFieldId,
+                    goldenOperationId,
+                    147UL,
+                    goldenResolveAt,
+                    out preparedGolden)
+                && preparedGolden.Resolution.PrimaryMultiplier > 0f
+                && !preparedGolden.Committed,
+                "Golden harvest delay or preparation failed.");
+            Require(runtime.TryPrepareGoldenHarvest(
+                    actor,
+                    goldenFieldId,
+                    goldenOperationId,
+                    147UL,
+                    goldenResolveAt,
+                    out GoldenHarvestPreparedResolution prepareReplay),
+                "Golden harvest preparation was not idempotent.");
+            RequireGoldenHarvestPreparedExact(
+                preparedGolden,
+                prepareReplay,
+                expectedCommitted: false,
+                context: "Golden harvest prepare replay");
+
+            IReadOnlyList<CharacterIdentityRuntimeStateSaveData>
+                goldenCapturedState = store.Capture();
+            store.Restore(
+                goldenCapturedState,
+                CharacterAiEditorTestDependencies.ContentDefinitions
+                    .GetAll<CharacterTraitSO>());
+            IReadOnlyList<GoldenHarvestPreparedResolution> restoredCensus =
+                runtime.CapturePreparedGoldenHarvests();
+            Require(restoredCensus.Count == 1,
+                $"Golden harvest restored census count={restoredCensus.Count}.");
+            RequireGoldenHarvestPreparedExact(
+                preparedGolden,
+                restoredCensus[0],
+                expectedCommitted: false,
+                context: "Golden harvest restored census");
+            int removedOnDeath = store.RemoveCharacter(
+                preparedGolden.CharacterId,
+                new ICharacterIdentityDeathStateRetentionPolicy[]
+                {
+                    runtime
+                });
+            IReadOnlyList<GoldenHarvestPreparedResolution> deathRetainedCensus =
+                runtime.CapturePreparedGoldenHarvests();
+            Require(removedOnDeath >= 0 && deathRetainedCensus.Count == 1,
+                "Character death removed an unresolved Golden Harvest owner.");
+            RequireGoldenHarvestPreparedExact(
+                preparedGolden,
+                deathRetainedCensus[0],
+                expectedCommitted: false,
+                context: "Golden harvest death retention");
+
+            Require(runtime.TryCommitPreparedGoldenHarvest(
+                    preparedGolden.CharacterId,
+                    preparedGolden.TraitDefinitionId,
+                    goldenOperationId,
+                    out GoldenHarvestPreparedResolution committedGolden),
+                "Golden harvest prepared result did not commit.");
+            Require(runtime.TryCommitPreparedGoldenHarvest(
+                    preparedGolden.CharacterId,
+                    preparedGolden.TraitDefinitionId,
+                    goldenOperationId,
+                    out GoldenHarvestPreparedResolution commitReplay),
+                "Golden harvest commit replay was not idempotent.");
+            RequireGoldenHarvestPreparedExact(
+                committedGolden,
+                commitReplay,
+                expectedCommitted: true,
+                context: "Golden harvest commit replay");
+            IReadOnlyList<GoldenHarvestPreparedResolution> committedCensus =
+                runtime.CapturePreparedGoldenHarvests();
+            Require(committedCensus.Count == 1,
+                $"Golden harvest committed census count={committedCensus.Count}.");
+            RequireGoldenHarvestPreparedExact(
+                committedGolden,
+                committedCensus[0],
+                expectedCommitted: true,
+                context: "Golden harvest committed census");
+            Require(runtime.TryAcknowledgePreparedGoldenHarvest(
+                    preparedGolden.CharacterId,
+                    preparedGolden.TraitDefinitionId,
+                    goldenOperationId)
+                && runtime.CapturePreparedGoldenHarvests().Count == 0
+                && !store.TryGet(
+                    preparedGolden.CharacterId,
+                    preparedGolden.TraitDefinitionId,
+                    ExtremeTraitRuntime.GoldenHarvestRuleId,
+                    out _),
+                "Golden harvest acknowledgement did not clear the census.");
 
             ApplyTrait(actor, 305);
             Require(runtime.TryBeginProductionLimitBreak(
@@ -627,9 +777,31 @@ public static class V26FounderTraitAuditScenario
                         && Mathf.Approximately(factor.Value, -2f)),
                 "Cleaning compulsion direct order did not apply mood and stress costs.");
 
+            VerifyWorkCompletionDeliveryTransaction(
+                actor,
+                store,
+                moodPolicy,
+                directOrders,
+                needs);
+
             IReadOnlyList<CharacterIdentityRuntimeStateSaveData> captured = store.Capture();
-            Require(captured.Count == 1 && captured[0].rules.Count >= 7,
-                "Extreme runtime state was not captured under one character authority.");
+            Require(captured.Count == 1
+                    && store.TryGet(
+                        actor.Identity.PersistentId,
+                        "character-trait:217",
+                        "mood:small-success",
+                        out CharacterIdentityRuleStateSaveData smallSuccess)
+                    && !string.IsNullOrWhiteSpace(smallSuccess.statePayload)
+                    && store.TryGet(
+                        actor.Identity.PersistentId,
+                        "character-trait:230",
+                        "mood:first-process-success",
+                        out CharacterIdentityRuleStateSaveData firstProcess)
+                    && !string.IsNullOrWhiteSpace(firstProcess.statePayload),
+                "Extreme runtime state was not captured under one character authority. "
+                + $"characters={captured.Count}, rules="
+                + string.Join(",", captured.Select(value =>
+                    $"{value.characterId}:{value.rules.Count}")));
         }
         finally
         {
@@ -645,5 +817,323 @@ public static class V26FounderTraitAuditScenario
             CharacterPotentialGrade.Ordinary,
             traitId,
             autoChooseDrafts: false);
+
+    private static void VerifyWorkCompletionDeliveryTransaction(
+        CharacterActor actor,
+        CharacterIdentityStateStore store,
+        CharacterMoodPolicyService moodPolicy,
+        CharacterDirectOrderCostPreviewService directOrders,
+        CharacterPersistentNeedRuntime needs)
+    {
+        actor.Progression.ApplyPreparedIdentity(
+            "V27 Completion Delivery Audit",
+            "audit",
+            new[] { 217, 230 },
+            CharacterPotentialGrade.Ordinary,
+            2701,
+            autoChooseDrafts: false);
+        CompletionAuditWorld world = new()
+        {
+            Active = new[] { actor },
+            Lifetime = new[] { actor }
+        };
+        CompletionAuditEnvironment environment = new()
+        {
+            ThrowOnExposure = true
+        };
+        WorkCompletionIdentityDeliveryLedger ledger = new();
+        WorkIdentityEventAdapter adapter = new(
+            new GameEventBus(),
+            world,
+            moodPolicy,
+            directOrders,
+            store,
+            environment,
+            needs,
+            ledger,
+            world);
+        WorkCompletionIdentityDeliveryRequest request = new(
+            "identity-event:crop-harvest:audit:000000",
+            "crop-harvest:building:crop-plot:audit",
+            0,
+            actor.Identity.TypedPersistentId,
+            BuiltInWorkTypeIds.Harvest.Value,
+            "building:crop-plot:audit:normal",
+            CharacterCommandOrigin.Autonomous,
+            3);
+        string before = CaptureCompletionState(actor, store);
+        bool faulted = false;
+        try
+        {
+            adapter.EnsureApplied(request);
+        }
+        catch (InvalidOperationException error) when (
+            error.Message.Contains(
+                "Injected completion environment failure",
+                StringComparison.Ordinal))
+        {
+            faulted = true;
+        }
+        Require(faulted
+                && ledger.Capture().Count == 0
+                && string.Equals(
+                    before,
+                    CaptureCompletionState(actor, store),
+                    StringComparison.Ordinal),
+            "Faulted work-completion delivery did not roll back exactly.");
+
+        environment.ThrowOnExposure = false;
+        WorkCompletionIdentityDeliveryResult applied =
+            adapter.EnsureApplied(request);
+        string afterApplied = CaptureCompletionState(actor, store);
+        WorkCompletionIdentityDeliveryResult replay =
+            adapter.EnsureApplied(request);
+        Require(applied.Status == WorkCompletionIdentityDeliveryStatus.Applied
+                && replay.Status ==
+                    WorkCompletionIdentityDeliveryStatus.AlreadyApplied
+                && ledger.Capture().Count == 1
+                && string.Equals(
+                    afterApplied,
+                    CaptureCompletionState(actor, store),
+                    StringComparison.Ordinal),
+            "Work-completion delivery replay changed applied identity state.");
+
+        WorkCompletionIdentityDeliveryLedger transientLedger = new();
+        world.Active = Array.Empty<CharacterActor>();
+        WorkIdentityEventAdapter transientAdapter = new(
+            new GameEventBus(),
+            world,
+            moodPolicy,
+            directOrders,
+            store,
+            environment,
+            needs,
+            transientLedger,
+            world);
+        WorkCompletionIdentityDeliveryRequest transientRequest = new(
+            "identity-event:crop-harvest:transient:000000",
+            "crop-harvest:building:crop-plot:transient",
+            0,
+            actor.Identity.TypedPersistentId,
+            BuiltInWorkTypeIds.Harvest.Value,
+            "building:crop-plot:transient:normal",
+            CharacterCommandOrigin.Autonomous,
+            3);
+        Require(transientAdapter.EnsureApplied(transientRequest).Status ==
+                WorkCompletionIdentityDeliveryStatus.Deferred
+            && transientLedger.Capture().Count == 0,
+            "Transient completion recipient absence was not deferred.");
+        world.Active = new[] { actor };
+        Require(transientAdapter.EnsureApplied(transientRequest).IsApplied,
+            "Returned completion recipient did not resume exactly once.");
+
+        WorkCompletionIdentityDeliveryLedger terminalLedger = new();
+        world.Active = Array.Empty<CharacterActor>();
+        world.Lifetime = Array.Empty<CharacterActor>();
+        WorkIdentityEventAdapter terminalAdapter = new(
+            new GameEventBus(),
+            world,
+            moodPolicy,
+            directOrders,
+            store,
+            environment,
+            needs,
+            terminalLedger,
+            world);
+        WorkCompletionIdentityDeliveryRequest terminalRequest = new(
+            "identity-event:crop-harvest:terminal:000000",
+            "crop-harvest:building:crop-plot:terminal",
+            0,
+            actor.Identity.TypedPersistentId,
+            BuiltInWorkTypeIds.Harvest.Value,
+            "building:crop-plot:terminal:normal",
+            CharacterCommandOrigin.Autonomous,
+            3);
+        Require(terminalAdapter.EnsureApplied(terminalRequest).IsApplied
+                && terminalLedger.Capture().Single().disposition ==
+                    WorkCompletionIdentityDeliveryDisposition
+                        .TerminalRecipientUnavailable,
+            "Terminal completion recipient absence did not retire durably.");
+
+        WorkCompletionIdentityDeliveryRequest unsupported = new(
+            "identity-event:unsupported:000000",
+            "unsupported:completion:audit",
+            0,
+            actor.Identity.TypedPersistentId,
+            BuiltInWorkTypeIds.Harvest.Value,
+            "unsupported:product",
+            CharacterCommandOrigin.DirectPlayerOrder,
+            3);
+        Require(terminalAdapter.EnsureApplied(unsupported).Status ==
+                WorkCompletionIdentityDeliveryStatus.Conflict,
+            "Unsupported durable work-completion scope was accepted.");
+    }
+
+    private static void VerifyCharacterNarrativeExternalRestoreTransaction()
+    {
+        IGameContentDefinitionSource content =
+            CharacterAiEditorTestDependencies.ContentDefinitions;
+        CharacterIdentityStateStore identityStore = new();
+        identityStore.Set(
+            "character:v27:narrative-restore:audit",
+            "character-trait:217",
+            "mood:small-success",
+            1,
+            "{\"lastSmallSuccessDay\":2}");
+        WorkCompletionIdentityDeliveryLedger ledger = new();
+        ledger.Restore(new[]
+        {
+            new WorkCompletionIdentityDeliveryCursorSaveData
+            {
+                producerStreamId =
+                    "crop-harvest:building:crop-plot:narrative-previous",
+                operationSequence = 0,
+                deliveryId =
+                    "identity-event:crop-harvest:narrative-previous:000000",
+                payloadFingerprint = new string('b', 64),
+                disposition = WorkCompletionIdentityDeliveryDisposition
+                    .EffectsApplied
+            }
+        });
+        CharacterNarrativeRuntime runtime = new(
+            new DungeonRuntimeAggregateRootStore(),
+            new CharacterNarrativeCatalog(content),
+            identityStore,
+            content,
+            ledger);
+        CharacterNarrativeAggregateState candidate = runtime.PrepareRestore(
+            new CharacterNarrativeWorldSaveData
+            {
+                characters = new List<CharacterNarrativeSaveData>(),
+                identityStates =
+                    new List<CharacterIdentityRuntimeStateSaveData>(),
+                workCompletionDeliveries = new List<
+                    WorkCompletionIdentityDeliveryCursorSaveData>
+                {
+                    new()
+                    {
+                        producerStreamId =
+                            "crop-harvest:building:crop-plot:narrative-candidate",
+                        operationSequence = 0,
+                        deliveryId =
+                            "identity-event:crop-harvest:narrative-candidate:000000",
+                        payloadFingerprint = new string('a', 64),
+                        disposition = WorkCompletionIdentityDeliveryDisposition
+                            .EffectsApplied
+                    }
+                }
+            });
+
+        runtime.BeginRestoreCandidate();
+        runtime.PublishRestore(candidate);
+        Require(identityStore.Capture().Count == 1
+                && ledger.Capture().Single().producerStreamId.EndsWith(
+                    "narrative-previous",
+                    StringComparison.Ordinal),
+            "Narrative section staging mutated external live state.");
+        runtime.PublishRestoreCandidate();
+        Require(identityStore.Capture().Count == 0
+                && runtime.Version == 2
+                && ledger.Capture().Single().producerStreamId.EndsWith(
+                    "narrative-candidate",
+                    StringComparison.Ordinal),
+            "Narrative external candidate was not published atomically.");
+        runtime.RollbackPublishedRestoreCandidate();
+        Require(identityStore.Capture().Count == 1
+                && runtime.Version == 1
+                && ledger.Capture().Single().producerStreamId.EndsWith(
+                    "narrative-previous",
+                    StringComparison.Ordinal),
+            "Narrative external publication did not roll back exactly.");
+
+        runtime.BeginRestoreCandidate();
+        runtime.PublishRestore(candidate);
+        runtime.PublishRestoreCandidate();
+        runtime.CompleteRestoreCandidate();
+        Require(identityStore.Capture().Count == 0
+                && runtime.Version == 2
+                && ledger.Capture().Single().producerStreamId.EndsWith(
+                    "narrative-candidate",
+                    StringComparison.Ordinal),
+            "Narrative external publication did not survive completion.");
+    }
+
+    private static string CaptureCompletionState(
+        CharacterActor actor,
+        CharacterIdentityStateStore store)
+    {
+        CharacterMoodSnapshot mood = actor.Mood;
+        string moodToken = string.Join(";", mood.Factors
+            .OrderBy(value => value.Id, StringComparer.Ordinal)
+            .Select(value => string.Join(
+                ",",
+                value.Id,
+                value.Value.ToString("R", System.Globalization.CultureInfo.InvariantCulture),
+                value.RemainingSeconds.ToString(
+                    "R",
+                    System.Globalization.CultureInfo.InvariantCulture))));
+        string identityToken = string.Join(";", store.Capture()
+            .OrderBy(value => value.characterId, StringComparer.Ordinal)
+            .SelectMany(value => value.rules
+                .OrderBy(rule => rule.traitDefinitionId, StringComparer.Ordinal)
+                .ThenBy(rule => rule.ruleId, StringComparer.Ordinal)
+                .Select(rule => string.Join(
+                    ",",
+                    value.characterId,
+                    rule.traitDefinitionId,
+                    rule.ruleId,
+                    rule.revision,
+                    rule.statePayload))));
+        return mood.Value.ToString(
+                "R",
+                System.Globalization.CultureInfo.InvariantCulture)
+            + "|" + mood.BaseValue.ToString(
+                "R",
+                System.Globalization.CultureInfo.InvariantCulture)
+            + "|" + moodToken
+            + "|" + JsonUtility.ToJson(actor.Progression.NarrativeLedger)
+            + "|" + identityToken;
+    }
+
+    private static void RequireGoldenHarvestPreparedExact(
+        GoldenHarvestPreparedResolution expected,
+        GoldenHarvestPreparedResolution actual,
+        bool expectedCommitted,
+        string context)
+    {
+        Require(!string.IsNullOrWhiteSpace(actual.Fingerprint)
+            && string.Equals(
+                actual.OperationId,
+                expected.OperationId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                actual.CharacterId,
+                expected.CharacterId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                actual.TraitDefinitionId,
+                expected.TraitDefinitionId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                actual.FieldId,
+                expected.FieldId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                actual.Fingerprint,
+                expected.Fingerprint,
+                StringComparison.Ordinal)
+            && expected.Committed == expectedCommitted
+            && actual.Committed == expectedCommitted
+            && actual.Resolution.Outcome == expected.Resolution.Outcome
+            && actual.Resolution.PrimaryMultiplier.Equals(
+                expected.Resolution.PrimaryMultiplier)
+            && actual.Resolution.SecondaryMultiplier.Equals(
+                expected.Resolution.SecondaryMultiplier)
+            && actual.Resolution.ProgressDelta.Equals(
+                expected.Resolution.ProgressDelta)
+            && actual.Resolution.FixedRollHash
+                == expected.Resolution.FixedRollHash,
+            $"{context} changed the frozen prepared result.");
+    }
 }
 #endif

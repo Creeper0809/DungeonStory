@@ -1,0 +1,14 @@
+---
+import BaseLayout from '../../../../components/BaseLayout.astro';
+import WorkReferenceContent from '../../../../components/WorkReferenceContent.astro';
+import { getWorkReference, hasGameVersion } from '../../../../lib/wiki-data';
+
+const version = Astro.params.version ?? '';
+if (!hasGameVersion(version)) return new Response(null, { status: 404 });
+const reference = getWorkReference(version, Astro.params.id ?? '');
+if (!reference) return new Response(null, { status: 404 });
+---
+
+<BaseLayout title={reference.title} version={version} historical currentHref={`/work/${reference.id}/`}>
+  <WorkReferenceContent reference={reference} version={version} historical />
+</BaseLayout>

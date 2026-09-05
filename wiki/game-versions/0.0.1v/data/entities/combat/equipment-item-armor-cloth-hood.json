@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "제작 작업",
+      "value": "52"
+    },
+    {
+      "label": "무게",
+      "value": "0.4kg"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "combat",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-armor-cloth-hood",
+  "spoiler_tier": "none",
+  "summary": "천 후드 전투 장비",
+  "title": "천 후드"
+}

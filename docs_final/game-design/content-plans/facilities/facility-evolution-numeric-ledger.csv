@@ -1,0 +1,7 @@
+evolution_id,from_facility_count,required_star_grade,result_star_grade,public_by_default,require_usable_room,required_room_score_count,required_unique_fixture_count,required_record_token_count,required_material_count,allowed_mutation_tag_count,identity_pressure_weight_count,minimum_identity_score,required_research_recipe_id,source_path
+evolve_research_desk_to_alchemy_bench,1,1,2,1,1,3,2,0,0,2,2,0.2,,Assets/Resources/SO/FacilityEvolution/P1/EV_AlchemyBench.asset
+evolve_training_dummy_to_archery_target,1,1,2,1,1,3,2,0,0,2,2,0.2,,Assets/Resources/SO/FacilityEvolution/P1/EV_ArcheryTarget.asset
+evolve_commercial_hearth_to_grill,1,1,2,1,1,2,1,0,0,2,2,0.1,,Assets/Resources/SO/FacilityEvolution/P1/EV_CommercialGrill.asset
+evolve_mana_shelf_to_ritual_focus,1,1,2,1,1,3,2,0,0,2,2,0.2,,Assets/Resources/SO/FacilityEvolution/P1/EV_RitualFocus.asset
+evolve_shop_display_to_secure_display,1,1,2,1,1,3,2,0,0,2,3,0.1,,Assets/Resources/SO/FacilityEvolution/P1/EV_SecureDisplay.asset
+evolve_guard_desk_to_tactical_table,1,1,2,1,1,3,1,0,0,2,2,0.2,,Assets/Resources/SO/FacilityEvolution/P1/EV_TacticalTable.asset

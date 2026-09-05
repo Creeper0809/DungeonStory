@@ -1,0 +1,85 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "546"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Industry And Automation"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-rune-automation",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 자동화",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-rune-automation",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 자동화",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-rune-automation",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 자동화",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-aberrant-augmentation",
+      "target_spoiler_tier": "none",
+      "target_title": "이형 개조",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-aberrant-augmentation",
+      "target_spoiler_tier": "none",
+      "target_title": "이형 개조",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-aberrant-augmentation",
+      "target_spoiler_tier": "none",
+      "target_title": "이형 개조",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8901",
+      "target_spoiler_tier": "none",
+      "target_title": "흑강 주조 보조로",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-industry-dark-foundry",
+  "spoiler_tier": "none",
+  "summary": "흑강과 마나를 대가로 고밀도 자동 생산을 운용한다.",
+  "title": "심연 공장"
+}

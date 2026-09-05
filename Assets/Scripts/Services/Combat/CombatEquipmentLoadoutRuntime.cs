@@ -64,10 +64,8 @@ public sealed class CombatEquipmentLoadoutRuntime
             failureReason = "equipment.assign.owned_by_other_character";
             return false;
         }
-        if (instance.worldState is CombatEquipmentWorldState.Lost
-            or CombatEquipmentWorldState.ExpeditionPacked
-            or CombatEquipmentWorldState.MaintenanceBuffer
-            or CombatEquipmentWorldState.RetailStock)
+        if (!CombatEquipmentWorldStateRules.AllowsPlayerMutation(
+                instance.worldState))
         {
             failureReason = "equipment.assign.invalid_world_state";
             return false;

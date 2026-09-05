@@ -1,0 +1,36 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Death Legacy"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "60",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-killer-sighted",
+      "target_spoiler_tier": "warning",
+      "target_title": "원수의 깃발",
+      "type": "advances-ambition"
+    },
+    {
+      "amount": "-8",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-killer-sighted",
+      "target_spoiler_tier": "warning",
+      "target_title": "원수의 깃발",
+      "type": "changes-trauma"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "life-event-killer-sighted",
+  "spoiler_tier": "warning",
+  "summary": "원정 정찰대가 오래전 죽음의 책임자를 발견했다.",
+  "title": "원수의 깃발"
+}

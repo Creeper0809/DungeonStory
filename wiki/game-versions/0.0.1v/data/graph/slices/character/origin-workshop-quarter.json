@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "origin-workshop-quarter",
+    "spoiler_tier": "none",
+    "title": "공방 거리"
+  },
+  "edges": [],
+  "schema_version": 1
+}

@@ -1,0 +1,35 @@
+# CulturalPracticeDefinitionSO
+
+사건·캠페인 영역의 작성 콘텐츠 유형이다.
+
+총 20개 항목이며, 비교군은 실제 대체 가능성을 검토하기 위한 후보군이다.
+
+## 데이터
+
+- [유형별 콘텐츠 CSV](../../../csv/events-campaign/cultural-practice.csv)
+- [중첩 작성 필드 CSV](../../../fields/events-campaign/cultural-practice.csv)
+- [정방향 관계 CSV](../../../relations/events-campaign/cultural-practice.csv)
+- [역방향 관계 CSV](../../../incoming/events-campaign/cultural-practice.csv)
+
+| 안정 ID | 이름 | 전략적 역할 | 비용·위험 | 런타임 상태 | 수명주기 | 역참조 | 구현 권위 |
+|---|---|---|---|---|---|---:|---|
+| `practice:adventurer-name-token` | 이름패 걸기 | CulturalPracticeDefinitionSO 계열에서 조건·선택·결과를 통해 캠페인 상태 변화를 만든다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [practice_adventurer-name-token.asset](../../../../../Assets/Resources/SO/V20/Narrative/Practices/practice_adventurer-name-token.asset) |
+| `practice:adventurer-return-table` | 귀환자의 식탁 | CulturalPracticeDefinitionSO 계열에서 조건·선택·결과를 통해 캠페인 상태 변화를 만든다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [practice_adventurer-return-table.asset](../../../../../Assets/Resources/SO/V20/Narrative/Practices/practice_adventurer-return-table.asset) |
+| `practice:beastkin-pack-meal` | 무리 한솥 | CulturalPracticeDefinitionSO 계열에서 조건·선택·결과를 통해 캠페인 상태 변화를 만든다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [practice_beastkin-pack-meal.asset](../../../../../Assets/Resources/SO/V20/Narrative/Practices/practice_beastkin-pack-meal.asset) |
+| `practice:beastkin-scent-vigil` | 향취 철야 | CulturalPracticeDefinitionSO 계열에서 조건·선택·결과를 통해 캠페인 상태 변화를 만든다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [practice_beastkin-scent-vigil.asset](../../../../../Assets/Resources/SO/V20/Narrative/Practices/practice_beastkin-scent-vigil.asset) |
+| `practice:demon-oath-embers` | 맹세의 잿불 | CulturalPracticeDefinitionSO 계열에서 조건·선택·결과를 통해 캠페인 상태 변화를 만든다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [practice_demon-oath-embers.asset](../../../../../Assets/Resources/SO/V20/Narrative/Practices/practice_demon-oath-embers.asset) |
+| `practice:demon-third-bell` | 세 번째 종 | CulturalPracticeDefinitionSO 계열에서 조건·선택·결과를 통해 캠페인 상태 변화를 만든다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [practice_demon-third-bell.asset](../../../../../Assets/Resources/SO/V20/Narrative/Practices/practice_demon-third-bell.asset) |
+| `practice:golem-core-polish` | 핵 광택일 | CulturalPracticeDefinitionSO 계열에서 조건·선택·결과를 통해 캠페인 상태 변화를 만든다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [practice_golem-core-polish.asset](../../../../../Assets/Resources/SO/V20/Narrative/Practices/practice_golem-core-polish.asset) |
+| `practice:golem-memory-plaque` | 기억판 안치 | CulturalPracticeDefinitionSO 계열에서 조건·선택·결과를 통해 캠페인 상태 변화를 만든다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [practice_golem-memory-plaque.asset](../../../../../Assets/Resources/SO/V20/Narrative/Practices/practice_golem-memory-plaque.asset) |
+| `practice:harpy-dawn-chorus` | 새벽 합창 | CulturalPracticeDefinitionSO 계열에서 조건·선택·결과를 통해 캠페인 상태 변화를 만든다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [practice_harpy-dawn-chorus.asset](../../../../../Assets/Resources/SO/V20/Narrative/Practices/practice_harpy-dawn-chorus.asset) |
+| `practice:harpy-first-flight` | 첫 비행의 깃 | CulturalPracticeDefinitionSO 계열에서 조건·선택·결과를 통해 캠페인 상태 변화를 만든다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [practice_harpy-first-flight.asset](../../../../../Assets/Resources/SO/V20/Narrative/Practices/practice_harpy-first-flight.asset) |
+| `practice:kobold-bench-feast` | 작업대 잔치 | CulturalPracticeDefinitionSO 계열에서 조건·선택·결과를 통해 캠페인 상태 변화를 만든다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [practice_kobold-bench-feast.asset](../../../../../Assets/Resources/SO/V20/Narrative/Practices/practice_kobold-bench-feast.asset) |
+| `practice:kobold-tool-naming` | 첫 도구 이름짓기 | CulturalPracticeDefinitionSO 계열에서 조건·선택·결과를 통해 캠페인 상태 변화를 만든다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [practice_kobold-tool-naming.asset](../../../../../Assets/Resources/SO/V20/Narrative/Practices/practice_kobold-tool-naming.asset) |
+| `practice:myconid-shared-mist` | 공유 안개 | CulturalPracticeDefinitionSO 계열에서 조건·선택·결과를 통해 캠페인 상태 변화를 만든다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [practice_myconid-shared-mist.asset](../../../../../Assets/Resources/SO/V20/Narrative/Practices/practice_myconid-shared-mist.asset) |
+| `practice:myconid-spore-return` | 포자 귀환 | CulturalPracticeDefinitionSO 계열에서 조건·선택·결과를 통해 캠페인 상태 변화를 만든다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [practice_myconid-spore-return.asset](../../../../../Assets/Resources/SO/V20/Narrative/Practices/practice_myconid-spore-return.asset) |
+| `practice:orc-shared-cauldron` | 큰솥의 몫 | CulturalPracticeDefinitionSO 계열에서 조건·선택·결과를 통해 캠페인 상태 변화를 만든다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [practice_orc-shared-cauldron.asset](../../../../../Assets/Resources/SO/V20/Narrative/Practices/practice_orc-shared-cauldron.asset) |
+| `practice:orc-weapon-vigil` | 무기 철야 | CulturalPracticeDefinitionSO 계열에서 조건·선택·결과를 통해 캠페인 상태 변화를 만든다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [practice_orc-weapon-vigil.asset](../../../../../Assets/Resources/SO/V20/Narrative/Practices/practice_orc-weapon-vigil.asset) |
+| `practice:slime-clear-water` | 맑은물 합류 | CulturalPracticeDefinitionSO 계열에서 조건·선택·결과를 통해 캠페인 상태 변화를 만든다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [practice_slime-clear-water.asset](../../../../../Assets/Resources/SO/V20/Narrative/Practices/practice_slime-clear-water.asset) |
+| `practice:slime-core-ring` | 핵고리 성년식 | CulturalPracticeDefinitionSO 계열에서 조건·선택·결과를 통해 캠페인 상태 변화를 만든다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [practice_slime-core-ring.asset](../../../../../Assets/Resources/SO/V20/Narrative/Practices/practice_slime-core-ring.asset) |
+| `practice:vampire-consent-cup` | 동의의 잔 | CulturalPracticeDefinitionSO 계열에서 조건·선택·결과를 통해 캠페인 상태 변화를 만든다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [practice_vampire-consent-cup.asset](../../../../../Assets/Resources/SO/V20/Narrative/Practices/practice_vampire-consent-cup.asset) |
+| `practice:vampire-incense-memory` | 혈향 촛불 | CulturalPracticeDefinitionSO 계열에서 조건·선택·결과를 통해 캠페인 상태 변화를 만든다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [practice_vampire-incense-memory.asset](../../../../../Assets/Resources/SO/V20/Narrative/Practices/practice_vampire-incense-memory.asset) |

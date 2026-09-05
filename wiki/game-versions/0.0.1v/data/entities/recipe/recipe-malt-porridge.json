@@ -1,0 +1,53 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "20"
+    },
+    {
+      "label": "필요 연구",
+      "value": "농산 조리"
+    },
+    {
+      "label": "사이클당 깨끗한 물",
+      "value": "1.5"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "food-malt-porridge",
+      "target_spoiler_tier": "none",
+      "target_title": "맥아죽",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-crops",
+      "target_spoiler_tier": "none",
+      "target_title": "농산 조리",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-malt",
+      "target_spoiler_tier": "none",
+      "target_title": "맥아",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-malt-porridge",
+  "spoiler_tier": "none",
+  "summary": "같은 방의 연결 시설을 사용하는 수동 생산 단계.",
+  "title": "맥아죽"
+}

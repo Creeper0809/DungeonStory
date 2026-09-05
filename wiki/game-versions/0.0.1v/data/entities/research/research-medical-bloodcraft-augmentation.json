@@ -1,0 +1,49 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "115"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Surgery And Transplant"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-xenotransplant",
+      "target_spoiler_tier": "none",
+      "target_title": "이종 이식",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-xenotransplant",
+      "target_spoiler_tier": "none",
+      "target_title": "이종 이식",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-xenotransplant",
+      "target_spoiler_tier": "none",
+      "target_title": "이종 이식",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-medical-bloodcraft-augmentation",
+  "spoiler_tier": "none",
+  "summary": "혈액낭과 야간안을 혈술로 강화하고 거부 부담을 통제한다.",
+  "title": "혈술 개조"
+}

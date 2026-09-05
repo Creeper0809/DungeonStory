@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DungeonStory.Factions
 {
@@ -49,6 +50,79 @@ public enum FactionRouteStatus
     Lost = 4
 }
 
+public enum FactionRouteSettlementState
+{
+    NotApplicable = 0,
+    NoDebitRequired = 1,
+    Paid = 2,
+    AllianceBenefitDebited = 3
+}
+
+public enum FactionRouteCargoDeliveryState
+{
+    NotApplicable = 0,
+    Ready = 1,
+    Publishing = 2,
+    Delivered = 3
+}
+
+[Serializable]
+public sealed class FactionRouteCargoDeliveryReceipt
+{
+    public FactionRouteCargoDeliveryState state;
+    public string batchCommitId = string.Empty;
+    public string destinationId = string.Empty;
+    public string outcomeFingerprint = string.Empty;
+    public int deliveryX;
+    public int deliveryY;
+    public long totalMassGrams;
+    public List<ProductionDomainPublishedStackSaveData> stacks = new();
+
+    public FactionRouteCargoDeliveryReceipt Clone() => new()
+    {
+        state = state,
+        batchCommitId = batchCommitId ?? string.Empty,
+        destinationId = destinationId ?? string.Empty,
+        outcomeFingerprint = outcomeFingerprint ?? string.Empty,
+        deliveryX = deliveryX,
+        deliveryY = deliveryY,
+        totalMassGrams = totalMassGrams,
+        stacks = (stacks ?? new List<ProductionDomainPublishedStackSaveData>())
+            .Where(value => value != null)
+            .Select(value => value.Clone())
+            .ToList()
+    };
+}
+
+public static class FactionRouteEconomicPolicyIds
+{
+    public const string PaidMarketPurchase =
+        "faction-economy:paid-market-purchase";
+    public const string AllianceBenefit =
+        "faction-economy:alliance-benefit";
+}
+
+[Serializable]
+public sealed class FactionRouteEconomicPolicyDescriptor
+{
+    public string capabilityId = string.Empty;
+    public int capabilityVersion;
+
+    public FactionRouteEconomicPolicyDescriptor Clone() => new()
+    {
+        capabilityId = capabilityId ?? string.Empty,
+        capabilityVersion = capabilityVersion
+    };
+
+    public static FactionRouteEconomicPolicyDescriptor Create(
+        string capabilityId,
+        int capabilityVersion) => new()
+    {
+        capabilityId = capabilityId ?? string.Empty,
+        capabilityVersion = capabilityVersion
+    };
+}
+
 [Serializable]
 public sealed class FactionCargoLine
 {
@@ -59,6 +133,75 @@ public sealed class FactionCargoLine
     {
         itemId = itemId ?? string.Empty,
         amount = Math.Max(1, amount)
+    };
+}
+
+[Serializable]
+public sealed class FactionRouteQuoteLineReceipt
+{
+    public string itemId = string.Empty;
+    public int amount;
+    public int unitPriceGold;
+
+    public FactionRouteQuoteLineReceipt Clone() => new()
+    {
+        itemId = itemId ?? string.Empty,
+        amount = amount,
+        unitPriceGold = unitPriceGold
+    };
+}
+
+[Serializable]
+public sealed class FactionRouteSettlementReceipt
+{
+    public FactionRouteSettlementState state;
+    public string capabilityId = string.Empty;
+    public int capabilityVersion;
+    public int operationSequence;
+    public int cargoAuthoredGold;
+    public int paymentGold;
+    public List<FactionRouteQuoteLineReceipt> quoteLines = new();
+    public string sourceDigest = string.Empty;
+    public string quoteDigest = string.Empty;
+    public string transactionId = string.Empty;
+    public string transactionSourceId = string.Empty;
+    public string transactionTargetId = string.Empty;
+    public int balanceBefore;
+    public int balanceAfter;
+    public string allianceBenefitAuthorityDigest = string.Empty;
+    public string allianceBenefitReservationId = string.Empty;
+    public long allianceBenefitDebitMilliEwu;
+    public long allianceBenefitBalanceBeforeMilliEwu;
+    public long allianceBenefitBalanceAfterMilliEwu;
+
+    public FactionRouteSettlementReceipt Clone() => new()
+    {
+        state = state,
+        capabilityId = capabilityId ?? string.Empty,
+        capabilityVersion = capabilityVersion,
+        operationSequence = operationSequence,
+        cargoAuthoredGold = cargoAuthoredGold,
+        paymentGold = paymentGold,
+        quoteLines = (quoteLines ?? new List<FactionRouteQuoteLineReceipt>())
+            .Where(value => value != null)
+            .Select(value => value.Clone())
+            .ToList(),
+        sourceDigest = sourceDigest ?? string.Empty,
+        quoteDigest = quoteDigest ?? string.Empty,
+        transactionId = transactionId ?? string.Empty,
+        transactionSourceId = transactionSourceId ?? string.Empty,
+        transactionTargetId = transactionTargetId ?? string.Empty,
+        balanceBefore = balanceBefore,
+        balanceAfter = balanceAfter,
+        allianceBenefitAuthorityDigest =
+            allianceBenefitAuthorityDigest ?? string.Empty,
+        allianceBenefitReservationId =
+            allianceBenefitReservationId ?? string.Empty,
+        allianceBenefitDebitMilliEwu = allianceBenefitDebitMilliEwu,
+        allianceBenefitBalanceBeforeMilliEwu =
+            allianceBenefitBalanceBeforeMilliEwu,
+        allianceBenefitBalanceAfterMilliEwu =
+            allianceBenefitBalanceAfterMilliEwu
     };
 }
 
@@ -104,6 +247,8 @@ public sealed class FactionDefinitionSnapshot
         string reinforcementRole,
         IReadOnlyList<FactionCargoLine> tradeCargo,
         IReadOnlyList<FactionCargoLine> supplyCargo,
+        FactionRouteEconomicPolicyDescriptor tradeEconomicPolicy,
+        FactionRouteEconomicPolicyDescriptor supplyEconomicPolicy,
         int tradeCooldownDays,
         int supplyCooldownDays,
         int reinforcementCooldownDays)
@@ -117,6 +262,10 @@ public sealed class FactionDefinitionSnapshot
         ReinforcementRole = reinforcementRole ?? string.Empty;
         TradeCargo = tradeCargo ?? Array.Empty<FactionCargoLine>();
         SupplyCargo = supplyCargo ?? Array.Empty<FactionCargoLine>();
+        TradeEconomicPolicy = tradeEconomicPolicy?.Clone()
+            ?? throw new ArgumentNullException(nameof(tradeEconomicPolicy));
+        SupplyEconomicPolicy = supplyEconomicPolicy?.Clone()
+            ?? throw new ArgumentNullException(nameof(supplyEconomicPolicy));
         TradeCooldownDays = Math.Max(1, tradeCooldownDays);
         SupplyCooldownDays = Math.Max(1, supplyCooldownDays);
         ReinforcementCooldownDays = Math.Max(1, reinforcementCooldownDays);
@@ -131,6 +280,8 @@ public sealed class FactionDefinitionSnapshot
     public string ReinforcementRole { get; }
     public IReadOnlyList<FactionCargoLine> TradeCargo { get; }
     public IReadOnlyList<FactionCargoLine> SupplyCargo { get; }
+    public FactionRouteEconomicPolicyDescriptor TradeEconomicPolicy { get; }
+    public FactionRouteEconomicPolicyDescriptor SupplyEconomicPolicy { get; }
     public int TradeCooldownDays { get; }
     public int SupplyCooldownDays { get; }
     public int ReinforcementCooldownDays { get; }
@@ -206,10 +357,12 @@ public sealed class FactionRouteState
     public int createdDay;
     public int estimatedArrivalDay;
     public bool ambushed;
-    public bool cargoDelivered;
+    public FactionRouteCargoDeliveryReceipt cargoDelivery = new();
     public bool actorsSpawned;
     public List<string> reinforcementActorIds = new List<string>();
     public List<FactionCargoLine> cargo = new List<FactionCargoLine>();
+    public FactionRouteSettlementReceipt settlement =
+        new FactionRouteSettlementReceipt();
 
     public FactionHexCoord CurrentCoord =>
         path != null && path.Count > 0
@@ -220,12 +373,17 @@ public sealed class FactionRouteState
 [Serializable]
 public sealed class DungeonFactionSaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 5;
 
     public int version = CurrentVersion;
     public int currentDay = 1;
     public int routeSequence;
+    public int routeSettlementOperationSequence;
     public int goodwillOperationSequence;
+    public long allianceBenefitBalanceMilliEwu;
+    public long allianceBenefitRefillRemainder;
+    public int allianceBenefitLastRefillDay = 1;
+    public string allianceBenefitAuthorityDigest = string.Empty;
     public List<DungeonFactionState> factions =
         new List<DungeonFactionState>();
     public List<FactionRouteState> routes =

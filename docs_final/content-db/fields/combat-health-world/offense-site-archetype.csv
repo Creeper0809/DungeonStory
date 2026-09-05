@@ -1,0 +1,454 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+OffenseSiteArchetypeSO|archive,archive,m_Name,archive,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,id,170107,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,siteTypeId,archive,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,displayName,봉인 기록소,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,description,지역의 길과 약점을 기록한 문서가 보관되어 있습니다.,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,factionId,human,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,pressureAxis,4,StrategicPressureAxis,Intelligence,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,pressureAmount,18,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,minimumStrength,3,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,maximumStrength,6,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,minimumLifetimeDays,2,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,maximumLifetimeDays,7,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,hiddenUntilDiscovered,1,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,canMove,0,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,dynamicSpawnEligible,1,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,rewards.0.grantSpec.rid,7302563269269258796,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,rewards.0.displayLabel,봉인 지식,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,rewards.0.baseAmount,8,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,rewards.0.amountPerStrength,3,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,rewards.1.grantSpec.rid,7302563269269258797,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,rewards.1.displayLabel,봉인 설계도,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,rewards.1.baseAmount,1,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,rewards.1.amountPerStrength,0,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,rewards.2.grantSpec.rid,7302563269269258798,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,rewards.2.displayLabel,지역 전략 압력,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,rewards.2.baseAmount,1,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,rewards.2.amountPerStrength,0,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,references.version,2,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,references.RefIds.0.rid,7302563269269258796,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,references.RefIds.0.type.class,OffenseStockRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,references.RefIds.0.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,references.RefIds.0.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,references.RefIds.0.data.stockCategory,9,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,references.RefIds.1.rid,7302563269269258797,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,references.RefIds.1.type.class,OffenseAnyBlueprintRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,references.RefIds.1.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,references.RefIds.1.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,references.RefIds.1.data,,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,references.RefIds.2.rid,7302563269269258798,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,references.RefIds.2.type.class,OffenseRegionalPressureRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,references.RefIds.2.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,references.RefIds.2.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|archive,archive,references.RefIds.2.data,,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,m_Name,armory,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,id,170102,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,siteTypeId,armory,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,displayName,전진 무기고,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,description,순찰대의 무기와 탄약을 보급하는 무기고입니다.,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,factionId,human,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,pressureAxis,2,StrategicPressureAxis,Armament,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,pressureAmount,16,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,minimumStrength,2,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,maximumStrength,5,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,minimumLifetimeDays,2,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,maximumLifetimeDays,7,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,hiddenUntilDiscovered,1,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,canMove,0,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,dynamicSpawnEligible,1,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,rewards.0.grantSpec.rid,7302563269269258856,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,rewards.0.displayLabel,노획 무기,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,rewards.0.baseAmount,2,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,rewards.0.amountPerStrength,1,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,rewards.1.grantSpec.rid,7302563269269258857,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,rewards.1.displayLabel,노획 탄약,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,rewards.1.baseAmount,12,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,rewards.1.amountPerStrength,5,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,rewards.2.grantSpec.rid,7302563269269258858,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,rewards.2.displayLabel,지역 전략 압력,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,rewards.2.baseAmount,1,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,rewards.2.amountPerStrength,0,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,references.version,2,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,references.RefIds.0.rid,7302563269269258856,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,references.RefIds.0.type.class,OffenseStockRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,references.RefIds.0.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,references.RefIds.0.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,references.RefIds.0.data.stockCategory,2,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,references.RefIds.1.rid,7302563269269258857,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,references.RefIds.1.type.class,OffenseStockRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,references.RefIds.1.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,references.RefIds.1.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,references.RefIds.1.data.stockCategory,7,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,references.RefIds.2.rid,7302563269269258858,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,references.RefIds.2.type.class,OffenseRegionalPressureRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,references.RefIds.2.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,references.RefIds.2.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|armory,armory,references.RefIds.2.data,,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,m_Name,caravan,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,id,170101,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,siteTypeId,caravan,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,displayName,이동 상단,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,description,도로를 따라 물자와 정보를 옮기는 상단입니다.,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,factionId,human,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,pressureAxis,1,StrategicPressureAxis,Logistics,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,pressureAmount,10,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,minimumStrength,1,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,maximumStrength,3,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,minimumLifetimeDays,2,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,maximumLifetimeDays,5,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,hiddenUntilDiscovered,1,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,canMove,1,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,dynamicSpawnEligible,1,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,rewards.0.grantSpec.rid,7302563269269258738,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,rewards.0.displayLabel,압수한 자금,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,rewards.0.baseAmount,140,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,rewards.0.amountPerStrength,60,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,rewards.1.grantSpec.rid,7302563269269258739,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,rewards.1.displayLabel,상단 물자,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,rewards.1.baseAmount,8,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,rewards.1.amountPerStrength,3,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,rewards.2.grantSpec.rid,7302563269269258740,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,rewards.2.displayLabel,지역 전략 압력,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,rewards.2.baseAmount,1,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,rewards.2.amountPerStrength,0,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,references.version,2,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,references.RefIds.0.rid,7302563269269258738,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,references.RefIds.0.type.class,OffenseMoneyRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,references.RefIds.0.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,references.RefIds.0.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,references.RefIds.0.data,,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,references.RefIds.1.rid,7302563269269258739,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,references.RefIds.1.type.class,OffenseStockRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,references.RefIds.1.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,references.RefIds.1.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,references.RefIds.1.data.stockCategory,1,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,references.RefIds.2.rid,7302563269269258740,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,references.RefIds.2.type.class,OffenseRegionalPressureRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,references.RefIds.2.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,references.RefIds.2.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|caravan,caravan,references.RefIds.2.data,,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,m_Name,farm,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,id,170100,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,siteTypeId,farm,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,displayName,변경 농장,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,description,보급과 사료가 모이는 소규모 농장입니다.,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,factionId,human,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,pressureAxis,1,StrategicPressureAxis,Logistics,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,pressureAmount,12,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,minimumStrength,1,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,maximumStrength,3,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,minimumLifetimeDays,2,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,maximumLifetimeDays,5,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,hiddenUntilDiscovered,1,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,canMove,1,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,dynamicSpawnEligible,1,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,rewards.0.grantSpec.rid,7302563269269258762,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,rewards.0.displayLabel,식량 전리품,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,rewards.0.baseAmount,10,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,rewards.0.amountPerStrength,4,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,rewards.1.grantSpec.rid,7302563269269258763,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,rewards.1.displayLabel,지역 전략 압력,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,rewards.1.baseAmount,1,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,rewards.1.amountPerStrength,0,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,references.version,2,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,references.RefIds.0.rid,7302563269269258762,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,references.RefIds.0.type.class,OffenseStockRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,references.RefIds.0.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,references.RefIds.0.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,references.RefIds.0.data.stockCategory,0,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,references.RefIds.1.rid,7302563269269258763,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,references.RefIds.1.type.class,OffenseRegionalPressureRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,references.RefIds.1.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,references.RefIds.1.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|farm,farm,references.RefIds.1.data,,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,m_Name,fixed_rival-dungeon,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,id,170110,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,siteTypeId,fixed:rival-dungeon,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,displayName,경쟁 던전 전초권,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,description,오랫동안 던전 주변을 압박해 온 경쟁 세력의 중심 권역입니다.,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,factionId,human,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,pressureAxis,3,StrategicPressureAxis,Manpower,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,pressureAmount,20,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,minimumStrength,5,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,maximumStrength,5,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,minimumLifetimeDays,2,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,maximumLifetimeDays,7,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,hiddenUntilDiscovered,1,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,canMove,0,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,dynamicSpawnEligible,0,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,rewards.0.grantSpec.rid,7302563269269258802,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,rewards.0.displayLabel,경쟁 던전 무기,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,rewards.0.baseAmount,8,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,rewards.0.amountPerStrength,2,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,rewards.1.grantSpec.rid,7302563269269258803,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,rewards.1.displayLabel,경쟁 던전 탄약,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,rewards.1.baseAmount,24,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,rewards.1.amountPerStrength,6,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,rewards.2.grantSpec.rid,7302563269269258804,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,rewards.2.displayLabel,지역 전략 압력,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,rewards.2.baseAmount,1,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,rewards.2.amountPerStrength,0,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,references.version,2,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,references.RefIds.0.rid,7302563269269258802,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,references.RefIds.0.type.class,OffenseStockRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,references.RefIds.0.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,references.RefIds.0.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,references.RefIds.0.data.stockCategory,2,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,references.RefIds.1.rid,7302563269269258803,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,references.RefIds.1.type.class,OffenseStockRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,references.RefIds.1.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,references.RefIds.1.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,references.RefIds.1.data.stockCategory,7,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,references.RefIds.2.rid,7302563269269258804,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,references.RefIds.2.type.class,OffenseRegionalPressureRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,references.RefIds.2.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,references.RefIds.2.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:rival-dungeon,fixed:rival-dungeon,references.RefIds.2.data,,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:truth-core,fixed:truth-core,m_Name,fixed_truth-core,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:truth-core,fixed:truth-core,id,170111,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:truth-core,fixed:truth-core,siteTypeId,fixed:truth-core,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:truth-core,fixed:truth-core,displayName,봉인 기록 심장부,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:truth-core,fixed:truth-core,description,모든 원정 기록이 가리키는 봉인 지대의 심장부입니다.,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:truth-core,fixed:truth-core,factionId,human,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:truth-core,fixed:truth-core,pressureAxis,0,StrategicPressureAxis,None,explicit-serialized
+OffenseSiteArchetypeSO|fixed:truth-core,fixed:truth-core,pressureAmount,0,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:truth-core,fixed:truth-core,minimumStrength,8,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:truth-core,fixed:truth-core,maximumStrength,8,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:truth-core,fixed:truth-core,minimumLifetimeDays,2,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:truth-core,fixed:truth-core,maximumLifetimeDays,7,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:truth-core,fixed:truth-core,hiddenUntilDiscovered,1,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:truth-core,fixed:truth-core,canMove,0,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:truth-core,fixed:truth-core,dynamicSpawnEligible,0,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:truth-core,fixed:truth-core,rewards.0.grantSpec.rid,7302563269269258847,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:truth-core,fixed:truth-core,rewards.0.displayLabel,진실의 기록,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:truth-core,fixed:truth-core,rewards.0.baseAmount,24,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:truth-core,fixed:truth-core,rewards.0.amountPerStrength,4,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:truth-core,fixed:truth-core,references.version,2,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:truth-core,fixed:truth-core,references.RefIds.0.rid,7302563269269258847,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:truth-core,fixed:truth-core,references.RefIds.0.type.class,OffenseStockRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:truth-core,fixed:truth-core,references.RefIds.0.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:truth-core,fixed:truth-core,references.RefIds.0.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|fixed:truth-core,fixed:truth-core,references.RefIds.0.data.stockCategory,9,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,m_Name,patrol,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,id,170105,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,siteTypeId,patrol,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,displayName,순찰대 야영지,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,description,병력의 이동 거점으로 쓰이는 임시 야영지입니다.,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,factionId,human,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,pressureAxis,3,StrategicPressureAxis,Manpower,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,pressureAmount,13,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,minimumStrength,2,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,maximumStrength,5,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,minimumLifetimeDays,2,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,maximumLifetimeDays,5,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,hiddenUntilDiscovered,1,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,canMove,1,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,dynamicSpawnEligible,1,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,rewards.0.grantSpec.rid,7302563269269258799,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,rewards.0.displayLabel,야영 보급,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,rewards.0.baseAmount,3,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,rewards.0.amountPerStrength,1,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,rewards.1.grantSpec.rid,7302563269269258800,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,rewards.1.displayLabel,순찰대 탄약,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,rewards.1.baseAmount,8,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,rewards.1.amountPerStrength,4,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,rewards.2.grantSpec.rid,7302563269269258801,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,rewards.2.displayLabel,지역 전략 압력,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,rewards.2.baseAmount,1,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,rewards.2.amountPerStrength,0,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,references.version,2,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,references.RefIds.0.rid,7302563269269258799,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,references.RefIds.0.type.class,OffenseStockRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,references.RefIds.0.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,references.RefIds.0.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,references.RefIds.0.data.stockCategory,5,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,references.RefIds.1.rid,7302563269269258800,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,references.RefIds.1.type.class,OffenseStockRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,references.RefIds.1.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,references.RefIds.1.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,references.RefIds.1.data.stockCategory,7,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,references.RefIds.2.rid,7302563269269258801,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,references.RefIds.2.type.class,OffenseRegionalPressureRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,references.RefIds.2.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,references.RefIds.2.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|patrol,patrol,references.RefIds.2.data,,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,m_Name,prisoner_convoy,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,id,170108,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,siteTypeId,prisoner_convoy,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,displayName,포로 수송대,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,description,붙잡힌 이들과 경비가 이동하는 수송대입니다.,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,factionId,human,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,pressureAxis,3,StrategicPressureAxis,Manpower,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,pressureAmount,14,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,minimumStrength,2,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,maximumStrength,5,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,minimumLifetimeDays,2,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,maximumLifetimeDays,5,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,hiddenUntilDiscovered,1,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,canMove,1,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,dynamicSpawnEligible,1,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,rewards.0.grantSpec.rid,7302563269269258781,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,rewards.0.displayLabel,구출한 포로,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,rewards.0.baseAmount,1,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,rewards.0.amountPerStrength,0,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,rewards.1.grantSpec.rid,7302563269269258782,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,rewards.1.displayLabel,지역 전략 압력,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,rewards.1.baseAmount,1,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,rewards.1.amountPerStrength,0,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,references.version,2,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,references.RefIds.0.rid,7302563269269258781,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,references.RefIds.0.type.class,OffensePrisonerRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,references.RefIds.0.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,references.RefIds.0.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,references.RefIds.0.data,,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,references.RefIds.1.rid,7302563269269258782,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,references.RefIds.1.type.class,OffenseRegionalPressureRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,references.RefIds.1.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,references.RefIds.1.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|prisoner_convoy,prisoner_convoy,references.RefIds.1.data,,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,m_Name,quarry,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,id,170103,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,siteTypeId,quarry,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,displayName,징발 채석장,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,description,성벽과 공성 장비 재료를 캐내는 채석장입니다.,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,factionId,human,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,pressureAxis,2,StrategicPressureAxis,Armament,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,pressureAmount,12,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,minimumStrength,1,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,maximumStrength,4,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,minimumLifetimeDays,2,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,maximumLifetimeDays,7,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,hiddenUntilDiscovered,1,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,canMove,0,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,dynamicSpawnEligible,1,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,rewards.0.grantSpec.rid,7302563269269258888,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,rewards.0.displayLabel,채석 자재,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,rewards.0.baseAmount,14,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,rewards.0.amountPerStrength,6,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,rewards.1.grantSpec.rid,7302563269269258889,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,rewards.1.displayLabel,지역 전략 압력,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,rewards.1.baseAmount,1,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,rewards.1.amountPerStrength,0,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,references.version,2,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,references.RefIds.0.rid,7302563269269258888,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,references.RefIds.0.type.class,OffenseStockRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,references.RefIds.0.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,references.RefIds.0.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,references.RefIds.0.data.stockCategory,1,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,references.RefIds.1.rid,7302563269269258889,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,references.RefIds.1.type.class,OffenseRegionalPressureRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,references.RefIds.1.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,references.RefIds.1.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|quarry,quarry,references.RefIds.1.data,,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,m_Name,ritual_site,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,id,170109,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,siteTypeId,ritual_site,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,displayName,의식 장소,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,description,지역 전체에 영향을 주는 의식이 준비되고 있습니다.,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,factionId,sealed,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,pressureAxis,4,StrategicPressureAxis,Intelligence,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,pressureAmount,20,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,minimumStrength,3,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,maximumStrength,7,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,minimumLifetimeDays,2,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,maximumLifetimeDays,7,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,hiddenUntilDiscovered,1,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,canMove,0,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,dynamicSpawnEligible,1,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,rewards.0.grantSpec.rid,7302563269269258880,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,rewards.0.displayLabel,의식 마나,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,rewards.0.baseAmount,8,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,rewards.0.amountPerStrength,4,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,rewards.1.grantSpec.rid,7302563269269258881,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,rewards.1.displayLabel,의식 기록,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,rewards.1.baseAmount,5,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,rewards.1.amountPerStrength,2,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,rewards.2.grantSpec.rid,7302563269269258882,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,rewards.2.displayLabel,지역 전략 압력,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,rewards.2.baseAmount,1,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,rewards.2.amountPerStrength,0,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,references.version,2,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,references.RefIds.0.rid,7302563269269258880,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,references.RefIds.0.type.class,OffenseStockRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,references.RefIds.0.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,references.RefIds.0.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,references.RefIds.0.data.stockCategory,3,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,references.RefIds.1.rid,7302563269269258881,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,references.RefIds.1.type.class,OffenseStockRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,references.RefIds.1.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,references.RefIds.1.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,references.RefIds.1.data.stockCategory,9,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,references.RefIds.2.rid,7302563269269258882,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,references.RefIds.2.type.class,OffenseRegionalPressureRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,references.RefIds.2.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,references.RefIds.2.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|ritual_site,ritual_site,references.RefIds.2.data,,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,m_Name,ruin,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,id,170106,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,siteTypeId,ruin,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,displayName,버려진 폐허,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,description,물자와 오래된 기록이 남아 있을 수 있는 폐허입니다.,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,factionId,sealed,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,pressureAxis,0,StrategicPressureAxis,None,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,pressureAmount,0,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,minimumStrength,1,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,maximumStrength,4,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,minimumLifetimeDays,2,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,maximumLifetimeDays,7,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,hiddenUntilDiscovered,1,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,canMove,0,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,dynamicSpawnEligible,1,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,rewards.0.grantSpec.rid,7302563269269258764,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,rewards.0.displayLabel,폐허의 잔재,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,rewards.0.baseAmount,8,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,rewards.0.amountPerStrength,5,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,rewards.1.grantSpec.rid,7302563269269258765,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,rewards.1.displayLabel,회수한 설계도,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,rewards.1.baseAmount,0,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,rewards.1.amountPerStrength,1,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,references.version,2,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,references.RefIds.0.rid,7302563269269258764,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,references.RefIds.0.type.class,OffenseStockRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,references.RefIds.0.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,references.RefIds.0.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,references.RefIds.0.data.stockCategory,1,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,references.RefIds.1.rid,7302563269269258765,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,references.RefIds.1.type.class,OffenseAnyBlueprintRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,references.RefIds.1.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,references.RefIds.1.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|ruin,ruin,references.RefIds.1.data,,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,m_Name,watchtower,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,id,170104,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,siteTypeId,watchtower,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,displayName,감시탑,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,description,던전 주변의 움직임을 기록하는 감시탑입니다.,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,factionId,human,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,pressureAxis,4,StrategicPressureAxis,Intelligence,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,pressureAmount,15,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,minimumStrength,2,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,maximumStrength,4,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,minimumLifetimeDays,2,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,maximumLifetimeDays,7,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,hiddenUntilDiscovered,1,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,canMove,0,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,dynamicSpawnEligible,1,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,rewards.0.grantSpec.rid,7302563269269258890,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,rewards.0.displayLabel,정찰 기록,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,rewards.0.baseAmount,4,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,rewards.0.amountPerStrength,2,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,rewards.1.grantSpec.rid,7302563269269258891,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,rewards.1.displayLabel,지역 전략 압력,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,rewards.1.baseAmount,1,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,rewards.1.amountPerStrength,0,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,references.version,2,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,references.RefIds.0.rid,7302563269269258890,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,references.RefIds.0.type.class,OffenseStockRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,references.RefIds.0.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,references.RefIds.0.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,references.RefIds.0.data.stockCategory,9,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,references.RefIds.1.rid,7302563269269258891,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,references.RefIds.1.type.class,OffenseRegionalPressureRewardSpec,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,references.RefIds.1.type.ns,,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,references.RefIds.1.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseSiteArchetypeSO|watchtower,watchtower,references.RefIds.1.data,,,,explicit-serialized

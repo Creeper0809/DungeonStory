@@ -20,15 +20,23 @@ public sealed class GrandProjectSaveSection :
 
     private readonly IGrandProjectRuntime runtime;
     private readonly IPhysicalItemRestoreCandidateQuery physicalCandidates;
+    private readonly IEconomyProjectInputOwnerRestoreRuntime inputOwners;
+    private readonly IRestoreWorldCandidateQuery worldCandidates;
 
     public GrandProjectSaveSection(
         IGrandProjectRuntime runtime,
-        IPhysicalItemRestoreCandidateQuery physicalCandidates)
+        IPhysicalItemRestoreCandidateQuery physicalCandidates,
+        IEconomyProjectInputOwnerRestoreRuntime inputOwners,
+        IRestoreWorldCandidateQuery worldCandidates)
     {
         this.runtime = runtime
             ?? throw new ArgumentNullException(nameof(runtime));
         this.physicalCandidates = physicalCandidates
             ?? throw new ArgumentNullException(nameof(physicalCandidates));
+        this.inputOwners = inputOwners
+            ?? throw new ArgumentNullException(nameof(inputOwners));
+        this.worldCandidates = worldCandidates
+            ?? throw new ArgumentNullException(nameof(worldCandidates));
     }
 
     public override string SectionId => Id;
@@ -54,7 +62,42 @@ public sealed class GrandProjectSaveSection :
     {
         ValidateLocalPayload(payload);
         ValidatePhysicalRestoreCandidate(payload, physicalCandidates);
-        return runtime.BuildRestore(payload);
+        GrandProjectRestoreCandidate candidate = runtime.BuildRestore(payload);
+        ValidateDetachedInputOwner(candidate);
+        if (!inputOwners.TryReplaceForRestore(
+                EconomyProjectInputOwnerAuthority.GrandProjectDomain,
+                BuildInputOwnerDescriptors(payload),
+                out string ownerFailure))
+            throw new InvalidOperationException(
+                "Grand-project exact input-owner restore join failed: "
+                + ownerFailure);
+        return candidate;
+    }
+
+    private IReadOnlyList<EconomyProjectInputOwnerDescriptor>
+        BuildInputOwnerDescriptors(DungeonGrandProjectSaveData payload)
+    {
+        GrandProjectRuntimeState owner = payload?.state;
+        if (owner == null || string.IsNullOrEmpty(owner.activeProjectId))
+            return Array.Empty<EconomyProjectInputOwnerDescriptor>();
+        GrandProjectDefinition definition = runtime.Definitions.Single(value =>
+            string.Equals(value.ProjectId, owner.activeProjectId,
+                StringComparison.Ordinal));
+        return new[] { new EconomyProjectInputOwnerDescriptor(
+            EconomyProjectInputOwnerAuthority.GrandProjectDomain,
+            definition.ProjectId,
+            owner.destinationId,
+            new UnityEngine.Vector2Int(owner.inputDestinationX, owner.inputDestinationY),
+            FacilityBufferDestinationAnchorKind.LiveFacility,
+            owner.inputOwnerFacilityId,
+            definition.Requirements.GroupBy(value => value.ItemId,
+                    StringComparer.Ordinal)
+                .ToDictionary(group => group.Key,
+                    group => group.Sum(value => value.Amount),
+                    StringComparer.Ordinal),
+            owner.inputCapacityGrams,
+            owner.inputMassAuthorityRevision,
+            owner.inputCapacityFingerprint) };
     }
 
     private void ValidateLocalPayload(DungeonGrandProjectSaveData payload)
@@ -131,4 +174,34 @@ public sealed class GrandProjectSaveSection :
         && receipt.SourceStackIds.SequenceEqual(
             owner.sourceStackIds,
             StringComparer.Ordinal);
+
+    private void ValidateDetachedInputOwner(
+        GrandProjectRestoreCandidate candidate)
+    {
+        GrandProjectRuntimeState state = candidate?.RuntimeState;
+        if (state == null || string.IsNullOrEmpty(state.activeProjectId))
+            return;
+        if (!worldCandidates.TryGetBuildings(
+                out IReadOnlyList<BuildableObject> buildings)
+            || buildings == null)
+            throw new InvalidOperationException(
+                "Grand-project input owner restore requires the detached facility world.");
+        BuildableObject[] offices = buildings
+            .Where(value => value != null
+                && !value.IsBuildingDestroyed
+                && value.SupportsWork(BuiltInWorkTypeIds.GrandProject)
+                && value.HasSemanticTag("grand-project-office")
+                && string.Equals(
+                    value.PersistentInstanceId.Value,
+                    state.inputOwnerFacilityId,
+                    StringComparison.Ordinal)
+                && value.centerPos == new UnityEngine.Vector2Int(
+                    state.inputDestinationX,
+                    state.inputDestinationY))
+            .ToArray();
+        if (offices.Length != 1)
+            throw new InvalidOperationException(
+                "Grand-project detached LiveFacility input owner drifted: "
+                + state.activeProjectId);
+    }
 }

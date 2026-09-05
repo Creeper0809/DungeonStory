@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.08kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "200개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "7"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "동굴 비단에서 뽑아 세척한 섬유다. 실로 잣기 전까지 엉킴과 오염을 피해서 보관한다. 특히 아일라세라산 동굴 비단 원섬유에는 바람 절벽의 세 횡풍을 견뎠다는 푸른 깃매듭이 달려 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "fiber-cave-silk",
+  "spoiler_tier": "none",
+  "summary": "등급·상태 밴드로만 병합되는 V22 원섬유.",
+  "title": "동굴 비단 원섬유"
+}

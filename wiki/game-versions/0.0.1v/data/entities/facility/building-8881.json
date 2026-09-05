@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "제작"
+    },
+    {
+      "label": "크기",
+      "value": "1×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-8881",
+  "spoiler_tier": "none",
+  "summary": "시설의 고유 역할은 생산 작업대이다. 건설에는 작업량 369, 재료 석재 블록×16, 강철×10, 정밀 부품×6, 룬 도체×4, 외 3개이 필요하다.",
+  "title": "교차계통 배양기"
+}

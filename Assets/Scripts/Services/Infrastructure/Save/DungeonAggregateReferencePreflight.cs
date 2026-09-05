@@ -13,6 +13,19 @@ public interface IDungeonSaveCaptureGuard
     void ValidateBeforeCapture();
 }
 
+/// <summary>
+/// Validates the canonical, fully captured envelope graph before a save can be
+/// returned to a slot writer. This is intentionally later than
+/// <see cref="IDungeonSaveCaptureGuard"/> so cross-section validators inspect
+/// the exact bytes and versions that would become durable.
+/// </summary>
+public interface IDungeonCapturedSavePreflightValidator
+{
+    void Validate(
+        DungeonGameSaveData captured,
+        DungeonGameRestoreReport report);
+}
+
 public interface IDungeonSaveRestoreCompletedHook
 {
     void OnRestoreCompleted();
@@ -22,8 +35,12 @@ public interface IDungeonSaveRestoreCompletedHook
 /// Validates identities and authored-content references across aggregate payloads before
 /// any save section is allowed to mutate the live world.
 /// </summary>
-public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightValidator
+public sealed class DungeonAggregateReferencePreflight :
+    IDungeonSavePreflightValidator,
+    IDungeonCapturedSavePreflightValidator
 {
+    // The same detached aggregate graph must be validated before both restore
+    // mutation and durable capture publication.
     private readonly IItemDefinitionCatalog itemDefinitions;
     private readonly IBuildingDefinitionLookup buildingDefinitions;
     private readonly ICombatEquipmentCatalog combatEquipmentDefinitions;
@@ -68,6 +85,10 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
             DungeonSaveSectionPayload.ReadOrNew<DungeonCharacterWorldSaveData>(
                 saveData,
                 CharacterWorldSaveSection.Id);
+        CharacterNarrativeWorldSaveData characterNarrative =
+            DungeonSaveSectionPayload.ReadOrNew<CharacterNarrativeWorldSaveData>(
+                saveData,
+                CharacterNarrativeSaveSection.Id);
         ModularFacilityWorldSaveData buildings =
             DungeonSaveSectionPayload.ReadOrNew<ModularFacilityWorldSaveData>(
                 saveData,
@@ -108,6 +129,11 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
             DungeonSaveSectionPayload.ReadOrNew<TreasuryEconomySaveData>(
                 saveData,
                 TreasuryEconomySaveSection.Id);
+        DungeonResourceStockPolicySaveData stockPolicies =
+            DungeonSaveSectionPayload.ReadOrNew<
+                DungeonResourceStockPolicySaveData>(
+                saveData,
+                ResourceStockPolicySaveSection.Id);
         CharacterLifeWorldSaveData life =
             DungeonSaveSectionPayload.ReadOrNew<CharacterLifeWorldSaveData>(
                 saveData,
@@ -161,6 +187,11 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
         AddActiveInvasionCharacterIds(invasion, characterIds, report);
         BuildingReferenceIndex buildingIds = ValidateBuildings(buildings, report);
         ValidateRetailStockJoins(buildings, physical, report);
+        ValidateQualityRejectedSaleJoins(
+            stockPolicies,
+            treasury,
+            physical,
+            report);
         ValidatePowerFuelPhysicalReceipts(
             powerInfrastructure,
             buildingIds.InstanceIds,
@@ -240,6 +271,7 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
         ValidateCropEcology(
             cropEcology,
             cropPlots,
+            characterNarrative,
             buildingIds.InstanceIds,
             physical.SeedLots,
             report);
@@ -390,6 +422,8 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
             }
 
             RequireUniqueId(stack.stackId, "item stack", result.StackIds, report);
+            if (!string.IsNullOrWhiteSpace(stack.stackId))
+                result.StacksById.TryAdd(stack.stackId, stack);
             RequireItemDefinition(stack.itemId, report);
             if (!string.IsNullOrWhiteSpace(stack.itemInstanceId))
             {
@@ -817,6 +851,141 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
             {
                 report.AddError(
                     $"Restock reservation '{reservationOwner}' has no owning shop operation record.");
+            }
+        }
+    }
+
+    private static void ValidateQualityRejectedSaleJoins(
+        DungeonResourceStockPolicySaveData stockPolicies,
+        TreasuryEconomySaveData treasury,
+        PhysicalReferenceIndex physical,
+        DungeonGameRestoreReport report)
+    {
+        Dictionary<string, QualityRejectedSalePending> owners =
+            (stockPolicies?.pendingRejectedSales
+                ?? new List<QualityRejectedSalePending>())
+            .Where(value => value != null)
+            .ToDictionary(value => value.operationId, StringComparer.Ordinal);
+        HashSet<string> joinedEquipment = new(StringComparer.Ordinal);
+        foreach (QualityRejectedSalePending owner in owners.Values)
+        {
+            if (owner.phase == QualityRejectedSaleCommitPhase.Prepared)
+            {
+                report.AddError(
+                    $"Quality-rejected sale '{owner.operationId}' was captured before physical commitment.");
+                continue;
+            }
+            if (!physical.PendingBatchByOperation.TryGetValue(
+                    owner.operationId,
+                    out PhysicalItemBatchDispositionSaveData receipt)
+                || receipt.kind != (int)PhysicalItemDispositionKind.Transfer
+                || !string.Equals(
+                    receipt.reasonCode,
+                    owner.reasonCode,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    receipt.commitId,
+                    owner.commitId,
+                    StringComparison.Ordinal)
+                || receipt.quantity != owner.quantity
+                || receipt.inputMassGrams != owner.inputMassGrams
+                || receipt.sourceStackIds == null
+                || receipt.sourceStackIds.Count != 1
+                || !string.Equals(
+                    receipt.sourceStackIds[0],
+                    owner.sourceStackId,
+                    StringComparison.Ordinal))
+            {
+                report.AddError(
+                    $"Quality-rejected sale '{owner.operationId}' has no exact physical Transfer receipt.");
+            }
+
+            if (owner.requiresCombatAuthority
+                && owner.phase != QualityRejectedSaleCommitPhase.UniqueAuthorityReleased)
+            {
+                if (!physical.EquipmentInstances.TryGetValue(
+                        owner.itemInstanceId,
+                        out CombatEquipmentInstance equipment)
+                    || equipment.worldState
+                        != CombatEquipmentWorldState.MarketSalePending
+                    || !string.IsNullOrEmpty(equipment.ownerCharacterId)
+                    || !string.Equals(
+                        equipment.sourceStackId,
+                        owner.operationId,
+                        StringComparison.Ordinal)
+                    || !joinedEquipment.Add(owner.itemInstanceId)
+                    || !physical.UniqueItems.TryGetValue(
+                        owner.itemInstanceId,
+                        out UniqueItemInstanceSaveData unique)
+                    || !string.Equals(
+                        unique.definitionId,
+                        owner.itemId,
+                        StringComparison.Ordinal)
+                    || !string.Equals(
+                        QualityRejectedSaleOutbox.ComputeComponentFingerprint(
+                            unique.definitionId,
+                            unique.itemInstanceId,
+                            unique.components),
+                        owner.componentFingerprint,
+                        StringComparison.Ordinal))
+                {
+                    report.AddError(
+                        $"Quality-rejected sale '{owner.operationId}' has no exact MarketSalePending equipment authority.");
+                }
+            }
+            else if (owner.requiresCombatAuthority
+                && owner.phase
+                    == QualityRejectedSaleCommitPhase.UniqueAuthorityReleased
+                && physical.EquipmentInstances.ContainsKey(owner.itemInstanceId))
+            {
+                report.AddError(
+                    $"Quality-rejected sale '{owner.operationId}' retained combat authority after terminal release.");
+            }
+
+            bool expectsIncome = owner.phase is
+                QualityRejectedSaleCommitPhase.IncomePublished
+                or QualityRejectedSaleCommitPhase.UniqueAuthorityReleased;
+            EconomyTransactionRecord[] income = (treasury?.transactionLedger?.records
+                    ?? new List<EconomyTransactionRecord>())
+                .Where(value => value != null
+                    && value.succeeded
+                    && value.kind == EconomyTransactionKind.SaleIncome
+                    && string.Equals(
+                        value.sourceId,
+                        owner.operationId,
+                        StringComparison.Ordinal))
+                .ToArray();
+            if ((expectsIncome && (income.Length != 1
+                    || income[0].amount != owner.proceeds
+                    || !string.Equals(
+                        income[0].targetId,
+                        owner.itemId,
+                        StringComparison.Ordinal)))
+                || (!expectsIncome && income.Length != 0))
+            {
+                report.AddError(
+                    $"Quality-rejected sale '{owner.operationId}' has a mismatched treasury income record.");
+            }
+        }
+
+        foreach (CombatEquipmentInstance equipment in
+                 physical.EquipmentInstances.Values.Where(value => value != null
+                     && value.worldState
+                        == CombatEquipmentWorldState.MarketSalePending))
+        {
+            if (!owners.TryGetValue(
+                    equipment.sourceStackId,
+                    out QualityRejectedSalePending owner)
+                || !owner.requiresCombatAuthority
+                || owner.phase
+                    == QualityRejectedSaleCommitPhase.UniqueAuthorityReleased
+                || !string.Equals(
+                    owner.itemInstanceId,
+                    equipment.instanceId,
+                    StringComparison.Ordinal))
+            {
+                report.AddError(
+                    $"MarketSalePending equipment '{equipment.instanceId}' has no exact quality-rejected sale owner.");
             }
         }
     }
@@ -1268,7 +1437,7 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
         }
     }
 
-    private static void ValidateDungeonExpansionResearch(
+    internal static void ValidateDungeonExpansionResearch(
         DungeonResearchSaveData research,
         ModularFacilityWorldSaveData facilities,
         DungeonGameRestoreReport report)
@@ -1367,11 +1536,15 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
                     $"Certified-seed aggregate contains an invalid or duplicate order '{order?.orderId ?? string.Empty}'.");
                 continue;
             }
-            RequireReference(
-                order.facilityInstanceId,
-                buildingIds,
-                "Certified-seed facility",
-                report);
+            if (order.phase !=
+                CertifiedSeedOrderPhase.FacilityDestroyedLossPending)
+            {
+                RequireReference(
+                    order.facilityInstanceId,
+                    buildingIds,
+                    "Certified-seed facility",
+                    report);
+            }
             if (!economyContent.TryGetCrop(
                     order.cropId,
                     out CropDefinitionSO crop)
@@ -1405,17 +1578,46 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
                     $"Certified-seed order '{order.orderId}' has no exact pending input receipt.");
                 continue;
             }
-            if (order.phase != CertifiedSeedOrderPhase.OutputPublished)
+            if (order.phase ==
+                CertifiedSeedOrderPhase.FacilityDestroyedLossPending)
                 continue;
-            if (!physical.OutputByCommitId.TryGetValue(
-                    order.outputCommitId ?? string.Empty,
+            bool hasPhysicalOutput = order.phase is
+                CertifiedSeedOrderPhase.OutputPublished
+                or CertifiedSeedOrderPhase
+                    .OutputRestoredAwaitingInputAcknowledgement;
+            if (!hasPhysicalOutput)
+                continue;
+            ProductionDomainOutputPublicationSaveData publication =
+                order.outputPublication;
+            ProductionDomainPublishedStackSaveData publishedStack =
+                publication?.stacks?.SingleOrDefault();
+            if (!ProductionDomainOutputPublicationService
+                    .TryValidateCommittedOwner(publication, out _)
+                || publication.outputAcknowledged !=
+                    (order.phase == CertifiedSeedOrderPhase
+                        .OutputRestoredAwaitingInputAcknowledgement)
+                || publishedStack == null
+                || !physical.StacksById.TryGetValue(
+                    publishedStack.stackId ?? string.Empty,
                     out WorldItemStackSaveData output)
                 || output == null
                 || output.quantity != 1
+                || output.quantity != publishedStack.quantity
                 || !string.Equals(
                     output.itemId,
                     crop.SeedItemId,
                     StringComparison.Ordinal)
+                || !string.Equals(
+                    output.itemId,
+                    publishedStack.itemId,
+                    StringComparison.Ordinal)
+                || output.state != WorldItemStackState.FacilityOutputBuffer
+                || !string.Equals(
+                    output.destinationId,
+                    publication.destinationId,
+                    StringComparison.Ordinal)
+                || output.gridX != publication.destinationX
+                || output.gridY != publication.destinationY
                 || order.certifiedSeedLot == null)
             {
                 report.AddError(
@@ -2266,6 +2468,7 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
     private void ValidateCropEcology(
         CropEcologyWorldSaveData source,
         DungeonCropPlotSaveData cropPlots,
+        CharacterNarrativeWorldSaveData characterNarrative,
         ISet<string> buildingIds,
         IReadOnlyList<(string itemDefinitionId, SeedLotState state)> physicalSeedLots,
         DungeonGameRestoreReport report)
@@ -2320,6 +2523,37 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
                 report.AddError(
                     $"Physical seed lot '{itemDefinitionId}' references missing or mismatched genome '{seedLot.cultivarGenomeId}'.");
             }
+        }
+
+        try
+        {
+            CropEcologyAggregateState ecologyCandidate =
+                CropEcologyAggregateState.Restore(source);
+            CropHarvestOwnerValidationSnapshot[] owners = (
+                    cropPlots?.plots ?? new List<CropPlotSaveData>())
+                .Where(value => value?.pendingHarvest != null
+                    && value.pendingHarvest.phase
+                        != CropHarvestOutputPhase.None)
+                .Select(value => new CropHarvestOwnerValidationSnapshot
+                {
+                    PlotId = value.buildingInstanceId,
+                    Owner = value.pendingHarvest
+                })
+                .ToArray();
+            CropPhysicalRestoreGuard.ValidatePreparedHarvestOwnerSnapshots(
+                owners,
+                ecologyCandidate.CapturePreparedHarvests(),
+                ExtremeTraitRuntime.CapturePreparedGoldenHarvests(
+                    characterNarrative?.identityStates));
+            CropHarvestCompletionDeliveryRestoreJoin.Validate(
+                cropPlots?.plots,
+                characterNarrative?.workCompletionDeliveries);
+        }
+        catch (Exception exception)
+        {
+            report.AddError(
+                "Crop harvest prepared restore join is invalid: "
+                + exception.Message);
         }
     }
 
@@ -2421,6 +2655,8 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
     {
         internal HashSet<string> StackIds { get; } =
             new HashSet<string>(StringComparer.Ordinal);
+        internal Dictionary<string, WorldItemStackSaveData> StacksById { get; } =
+            new(StringComparer.Ordinal);
         internal HashSet<string> ItemInstanceIds { get; } =
             new HashSet<string>(StringComparer.Ordinal);
         internal HashSet<string> UniqueItemInstanceIds { get; } =

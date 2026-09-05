@@ -1,0 +1,81 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-rune-dust",
+    "spoiler_tier": "none",
+    "title": "룬 가루"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-ammo-signal-flare",
+      "label": "필요 조건",
+      "to": "item/resource-rune-dust",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-mana-shield-plate",
+      "label": "필요 조건",
+      "to": "item/resource-rune-dust",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-rune-conductor",
+      "label": "필요 조건",
+      "to": "item/resource-rune-dust",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-record-arcane-index",
+      "label": "필요 조건",
+      "to": "item/resource-rune-dust",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-rune-cold-suit",
+      "label": "필요 조건",
+      "to": "item/resource-rune-dust",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-supply-funeral-preparation-kit",
+      "label": "필요 조건",
+      "to": "item/resource-rune-dust",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-rune-identification-lens",
+      "label": "필요 조건",
+      "to": "item/resource-rune-dust",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-trail-charm",
+      "label": "필요 조건",
+      "to": "item/resource-rune-dust",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "nature/rune-deer",
+      "label": "관련",
+      "to": "item/resource-rune-dust",
+      "type": "references"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-tool-watch-signal-horn",
+      "label": "필요 조건",
+      "to": "item/resource-rune-dust",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

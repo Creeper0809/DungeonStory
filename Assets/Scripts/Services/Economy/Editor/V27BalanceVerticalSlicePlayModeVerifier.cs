@@ -540,7 +540,7 @@ public sealed class V27BalanceVerticalSlicePlayModeRunner : MonoBehaviour
         IWarehouseFacility warehouse = world.Warehouses
             .Where(value => value?.Inventory != null
                 && value.Inventory.Accepts(StockCategory.Food)
-                && value.Inventory.CanStore(StockCategory.Food, 1))
+                && value.Inventory.RemainingMassGrams > 0L)
             .OrderBy(value => value.PersistentInstanceId.Value,
                 StringComparer.Ordinal)
             .FirstOrDefault();

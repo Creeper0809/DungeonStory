@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-9304",
+    "spoiler_tier": "none",
+    "title": "실내 건조대"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-textile-fiber",
+      "label": "시설 해금",
+      "to": "facility/building-9304",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

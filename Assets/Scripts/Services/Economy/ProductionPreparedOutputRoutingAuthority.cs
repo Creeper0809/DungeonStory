@@ -24,7 +24,7 @@ public sealed class ProductionPreparedOutputRoutingAuthority :
 {
     private const string RequestV1 = "facility-output-exact-route-request-v1";
     private const string ReceiptV1 = "facility-output-exact-route-receipt-v1";
-    private const string RoutingV3 = "prepared-output-routing-v3";
+    private const string RoutingV9 = "prepared-output-routing-v9";
     private const string DeliveryRevisionV1 =
         "prepared-output-delivery-revision-v1";
     private const string DeliveryRerouteOperationV1 =
@@ -154,6 +154,11 @@ public sealed class ProductionPreparedOutputRoutingAuthority :
                     StringComparer.Ordinal)
                 .Select(operation => SnapshotReceipt(batch, line, operation)))
             .ToArray();
+        ProductionPreparedOutputNonPhysicalDispositionSnapshot[] dispositions =
+            batch.nonPhysicalDispositions
+                .OrderBy(value => value.outputLineId, StringComparer.Ordinal)
+                .Select(Snapshot)
+                .ToArray();
         snapshot = new ProductionPreparedOutputRoutingBatchSnapshot(
             batch.batchCommitId,
             batch.ownerBillId,
@@ -166,7 +171,8 @@ public sealed class ProductionPreparedOutputRoutingAuthority :
             lines,
             operations,
             receipts,
-            IsDrainAcknowledged(batch));
+            IsDrainAcknowledged(batch),
+            dispositions);
         return true;
     }
 
@@ -867,12 +873,28 @@ public sealed class ProductionPreparedOutputRoutingAuthority :
         line.itemId,
         line.destinationId,
         line.componentFingerprint,
+        line.outputCapabilityId,
+        line.outputCapabilityVersion,
+        line.outputComponentCodecId,
+        line.outputComponentCodecVersion,
+        line.outputCapabilityFingerprint,
         line.originalQuantity,
         line.originalMassGrams,
         line.remainingQuantity,
         line.remainingMassGrams,
         line.routedQuantity,
         line.routedMassGrams);
+
+    private static ProductionPreparedOutputNonPhysicalDispositionSnapshot Snapshot(
+        ProductionPreparedOutputNonPhysicalDispositionSaveData disposition) =>
+        new(
+            disposition.batchCommitId,
+            disposition.lineCommitId,
+            disposition.outputLineId,
+            disposition.role,
+            disposition.canonicalPayload,
+            disposition.dispositionFingerprint,
+            disposition.exactMassGrams);
 
     private static ProductionPreparedOutputPhysicalRouteReceipt SnapshotReceipt(
         ProductionPreparedOutputRoutingBatchSaveData batch,
@@ -1127,6 +1149,11 @@ public sealed class ProductionPreparedOutputRoutingAuthority :
                 itemId = line.itemId,
                 destinationId = batch.destinationId,
                 componentFingerprint = line.componentFingerprint,
+                outputCapabilityId = line.outputCapabilityId,
+                outputCapabilityVersion = line.outputCapabilityVersion,
+                outputComponentCodecId = line.outputComponentCodecId,
+                outputComponentCodecVersion = line.outputComponentCodecVersion,
+                outputCapabilityFingerprint = line.outputCapabilityFingerprint,
                 originalQuantity = line.quantity,
                 remainingQuantity = line.quantity,
                 originalMassGrams = line.exactMassGrams,
@@ -1137,6 +1164,24 @@ public sealed class ProductionPreparedOutputRoutingAuthority :
             }).ToList();
         if (lines.Count == 0)
             throw new InvalidOperationException("Completed batch has no routable line.");
+        List<ProductionPreparedOutputNonPhysicalDispositionSaveData>
+            nonPhysicalDispositions = batch.lines
+                .Where(line => line != null
+                    && line.rollSucceeded
+                    && ProductionOutputRoleRules.IsNonPhysical(line.role))
+                .OrderBy(line => line.outputLineId, StringComparer.Ordinal)
+                .Select(line => new
+                    ProductionPreparedOutputNonPhysicalDispositionSaveData
+                    {
+                        batchCommitId = batch.batchCommitId,
+                        lineCommitId = line.lineCommitId,
+                        outputLineId = line.outputLineId,
+                        role = line.role,
+                        canonicalPayload = line.componentPayload,
+                        dispositionFingerprint = line.componentFingerprint,
+                        exactMassGrams = line.exactMassGrams
+                    })
+                .ToList();
         ProductionPreparedOutputRoutingBatchSaveData result = new()
         {
             batchCommitId = batch.batchCommitId,
@@ -1146,6 +1191,19 @@ public sealed class ProductionPreparedOutputRoutingAuthority :
             cycleSequence = batch.cycleSequence,
             outcomeFingerprint = batch.outcomeFingerprint,
             destinationId = batch.destinationId,
+            capacitySourceDigest = batch.capacitySourceDigest,
+            outputBufferCycleCapacity = batch.outputBufferCycleCapacity,
+            projectedPortfolioCapacityGrams =
+                batch.projectedPortfolioCapacityGrams,
+            requiredMinimumCapacityGrams =
+                batch.requiredMinimumCapacityGrams,
+            maximumMassProofDigest = batch.maximumMassProofDigest,
+            maximumBatchMassGrams = batch.maximumBatchMassGrams,
+            capacityClaimDigest = batch.capacityClaimDigest,
+            totalDeclaredLossMassGrams = batch.totalDeclaredLossMassGrams,
+            totalDeclaredExternalInputMassGrams =
+                batch.totalDeclaredExternalInputMassGrams,
+            nonPhysicalDispositions = nonPhysicalDispositions,
             lines = lines
         };
         result.routingFingerprint = RoutingFingerprint(result);
@@ -1183,7 +1241,10 @@ public sealed class ProductionPreparedOutputRoutingAuthority :
         ProductionPreparedOutputRoutingBatchSaveData batch,
         ISet<string> operationIds)
     {
-        if (batch == null || batch.lines == null || batch.lines.Count == 0)
+        if (batch == null || batch.lines == null || batch.lines.Count == 0
+            || batch.nonPhysicalDispositions == null
+            || batch.totalDeclaredLossMassGrams < 0L
+            || batch.totalDeclaredExternalInputMassGrams < 0L)
             throw new InvalidOperationException("Routing batch is empty.");
         RequireCanonical(batch.batchCommitId, "batch.id");
         RequireCanonical(batch.ownerBillId, "batch.bill");
@@ -1215,6 +1276,63 @@ public sealed class ProductionPreparedOutputRoutingAuthority :
                 throw new InvalidOperationException("Routing lines are unordered.");
             previous = line.outputLineId;
         }
+
+        long declaredLossMassGrams = 0L;
+        long declaredExternalInputMassGrams = 0L;
+        previous = string.Empty;
+        foreach (ProductionPreparedOutputNonPhysicalDispositionSaveData
+                 disposition in batch.nonPhysicalDispositions)
+        {
+            ValidateNonPhysicalDisposition(batch, disposition);
+            if (previous.Length > 0
+                && string.CompareOrdinal(
+                    previous,
+                    disposition.outputLineId) >= 0)
+            {
+                throw new InvalidOperationException(
+                    "Routing non-physical dispositions are unordered.");
+            }
+            previous = disposition.outputLineId;
+            if (disposition.role == ProductionOutputRole.DeclaredLoss)
+            {
+                declaredLossMassGrams = checked(
+                    declaredLossMassGrams + disposition.exactMassGrams);
+            }
+            else
+            {
+                declaredExternalInputMassGrams = checked(
+                    declaredExternalInputMassGrams
+                    + disposition.exactMassGrams);
+            }
+        }
+        if (declaredLossMassGrams != batch.totalDeclaredLossMassGrams
+            || declaredExternalInputMassGrams !=
+                batch.totalDeclaredExternalInputMassGrams)
+        {
+            throw new InvalidOperationException(
+                "Routing non-physical disposition total conflicts.");
+        }
+
+        long originalPhysicalMassGrams = batch.lines.Aggregate(
+            0L,
+            (total, line) => checked(total + line.originalMassGrams));
+        bool hasProof = IsDigest(batch.maximumMassProofDigest)
+            && batch.maximumBatchMassGrams > 0L
+            && IsDigest(batch.capacityClaimDigest);
+        if (!IsDigest(batch.capacitySourceDigest)
+            || batch.outputBufferCycleCapacity is < 2 or > 4
+            || batch.projectedPortfolioCapacityGrams <= 0L
+            || !hasProof
+            || originalPhysicalMassGrams > batch.maximumBatchMassGrams
+            || batch.requiredMinimumCapacityGrams != Math.Max(
+                batch.projectedPortfolioCapacityGrams,
+                checked(
+                    batch.maximumBatchMassGrams
+                    * batch.outputBufferCycleCapacity)))
+        {
+            throw new InvalidOperationException(
+                "Routing batch capacity authority is invalid.");
+        }
     }
 
     private static void ValidateLine(
@@ -1235,6 +1353,11 @@ public sealed class ProductionPreparedOutputRoutingAuthority :
         RequireCanonical(line.itemId, "line.item");
         RequireCanonical(line.destinationId, "line.destination");
         RequireDigest(line.componentFingerprint, "line.component");
+        RequireCanonical(line.outputCapabilityId, "line.capability");
+        RequireCanonical(line.outputComponentCodecId, "line.componentCodec");
+        RequireDigest(
+            line.outputCapabilityFingerprint,
+            "line.capabilityFingerprint");
         if (!string.Equals(line.batchCommitId, batch.batchCommitId,
                 StringComparison.Ordinal)
             || !string.Equals(line.destinationId, batch.destinationId,
@@ -1242,6 +1365,18 @@ public sealed class ProductionPreparedOutputRoutingAuthority :
             || !string.Equals(line.lineCommitId,
                 ProductionPreparedOutputIdentity.BuildLineCommitId(
                     batch.batchCommitId, line.outputLineId),
+                StringComparison.Ordinal)
+            || line.outputCapabilityVersion <= 0
+            || line.outputComponentCodecVersion <= 0
+            || !string.Equals(
+                line.outputCapabilityFingerprint,
+                ProductionOutputCapabilityDescriptorFingerprint.Capture(
+                    line.outputLineId,
+                    line.itemId,
+                    line.outputCapabilityId,
+                    line.outputCapabilityVersion,
+                    line.outputComponentCodecId,
+                    line.outputComponentCodecVersion),
                 StringComparison.Ordinal))
             throw new InvalidOperationException("Routing line identity conflicts.");
 
@@ -1267,6 +1402,43 @@ public sealed class ProductionPreparedOutputRoutingAuthority :
         if (coveredQuantity != line.routedQuantity
             || coveredMass != line.routedMassGrams)
             throw new InvalidOperationException("Routing operation coverage conflicts.");
+    }
+
+    private static void ValidateNonPhysicalDisposition(
+        ProductionPreparedOutputRoutingBatchSaveData batch,
+        ProductionPreparedOutputNonPhysicalDispositionSaveData disposition)
+    {
+        if (disposition == null
+            || !ProductionOutputRoleRules.IsNonPhysical(disposition.role)
+            || disposition.exactMassGrams <= 0L
+            || disposition.canonicalPayload == null
+            || disposition.canonicalPayload.Length == 0
+            || !string.Equals(
+                disposition.canonicalPayload,
+                disposition.canonicalPayload.Trim(),
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Routing non-physical disposition is invalid.");
+        }
+        RequireCanonical(disposition.outputLineId, "disposition.output");
+        RequireDigest(
+            disposition.dispositionFingerprint,
+            "disposition.fingerprint");
+        if (!string.Equals(
+                disposition.batchCommitId,
+                batch.batchCommitId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                disposition.lineCommitId,
+                ProductionPreparedOutputIdentity.BuildLineCommitId(
+                    batch.batchCommitId,
+                    disposition.outputLineId),
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Routing non-physical disposition identity conflicts.");
+        }
     }
 
     private static void ValidateOperation(
@@ -1691,11 +1863,40 @@ public sealed class ProductionPreparedOutputRoutingAuthority :
     {
         List<string> values = new()
         {
-            RoutingV3, batch.batchCommitId, batch.ownerBillId,
+            RoutingV9, batch.batchCommitId, batch.ownerBillId,
             batch.ownerRecipeId, batch.ownerFacilityId,
             batch.cycleSequence.ToString(CultureInfo.InvariantCulture),
-            batch.outcomeFingerprint, batch.destinationId
+            batch.outcomeFingerprint, batch.destinationId,
+            batch.capacitySourceDigest,
+            batch.outputBufferCycleCapacity.ToString(
+                CultureInfo.InvariantCulture),
+            batch.projectedPortfolioCapacityGrams.ToString(
+                CultureInfo.InvariantCulture),
+            batch.requiredMinimumCapacityGrams.ToString(
+                CultureInfo.InvariantCulture),
+            batch.maximumMassProofDigest,
+            batch.maximumBatchMassGrams.ToString(
+                CultureInfo.InvariantCulture),
+            batch.capacityClaimDigest,
+            batch.totalDeclaredLossMassGrams.ToString(
+                CultureInfo.InvariantCulture),
+            batch.totalDeclaredExternalInputMassGrams.ToString(
+                CultureInfo.InvariantCulture)
         };
+        foreach (ProductionPreparedOutputNonPhysicalDispositionSaveData
+                 disposition in batch.nonPhysicalDispositions.OrderBy(
+                     value => value.outputLineId,
+                     StringComparer.Ordinal))
+        {
+            values.Add(disposition.lineCommitId);
+            values.Add(disposition.outputLineId);
+            values.Add(((int)disposition.role).ToString(
+                CultureInfo.InvariantCulture));
+            values.Add(disposition.canonicalPayload);
+            values.Add(disposition.dispositionFingerprint);
+            values.Add(disposition.exactMassGrams.ToString(
+                CultureInfo.InvariantCulture));
+        }
         foreach (var line in batch.lines.OrderBy(value => value.outputLineId,
                      StringComparer.Ordinal))
         {
@@ -1704,6 +1905,13 @@ public sealed class ProductionPreparedOutputRoutingAuthority :
             values.Add(((int)line.role).ToString(CultureInfo.InvariantCulture));
             values.Add(line.itemId);
             values.Add(line.componentFingerprint);
+            values.Add(line.outputCapabilityId);
+            values.Add(line.outputCapabilityVersion.ToString(
+                CultureInfo.InvariantCulture));
+            values.Add(line.outputComponentCodecId);
+            values.Add(line.outputComponentCodecVersion.ToString(
+                CultureInfo.InvariantCulture));
+            values.Add(line.outputCapabilityFingerprint);
             values.Add(line.originalQuantity.ToString(CultureInfo.InvariantCulture));
             values.Add(line.originalMassGrams.ToString(CultureInfo.InvariantCulture));
         }
@@ -1806,9 +2014,7 @@ public sealed class ProductionPreparedOutputRoutingAuthority :
     }
 
     private static bool IsPhysicalRole(ProductionOutputRole role) =>
-        role is ProductionOutputRole.Main or ProductionOutputRole.Byproduct
-            or ProductionOutputRole.RecoverableWaste
-            or ProductionOutputRole.ReturnedPackaging;
+        ProductionOutputRoleRules.IsPhysical(role);
 
     private static void RequireBill(ProductionBillId billId)
     {

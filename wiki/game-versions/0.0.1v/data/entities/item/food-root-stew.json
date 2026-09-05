@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.7kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "9"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "잿불뿌리를 큼직하게 썰어 푹 끓인 열량 높은 비건 스튜다. 므네실라의 잿불뿌리 스튜는 뿌리를 구운 재를 한 꼬집 넣어 단맛을 끌어낸다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "food-root-stew",
+  "spoiler_tier": "none",
+  "summary": "열량이 높은 비건 스튜.",
+  "title": "잿불뿌리 스튜"
+}

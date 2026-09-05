@@ -41,6 +41,13 @@ public static class ProductionInputDestinationCustodyDrainServiceDebugScenarios
         VerifyDropFailureRetainsExactOwnership();
     }
 
+    internal static string RunDropFailureRecoveryPendingRetryFocused()
+    {
+        VerifyDropFailureRetainsExactOwnership();
+        return "drop-publication-failure=recovery-pending; "
+            + "retry=exact-once; acknowledgement=exact";
+    }
+
     private static void VerifyOneShotSnapshotBuildAndTamperRejection()
     {
         using Fixture fixture = Fixture.Create();
@@ -235,6 +242,11 @@ public static class ProductionInputDestinationCustodyDrainServiceDebugScenarios
             "Injected carried-drop failure did not defer the drain.");
         fixture.RequireDropFailureOwnershipIntact(cargo);
 
+        DungeonPhysicalItemSaveData pendingPhysical = fixture.Runtime.Capture();
+        CharacterCarryInventorySaveData pendingCarry = cargo.Inventory.Capture();
+        cargo = fixture.RestoreActiveCargo(pendingPhysical, pendingCarry);
+        fixture.RequireDropFailureOwnershipIntact(cargo);
+
         fixture.WorldProxy.FailCarryDrops = false;
         ProductionInputDestinationCustodyDrainResult committed = fixture
             .CommitSynchronously(request, () =>
@@ -244,6 +256,19 @@ public static class ProductionInputDestinationCustodyDrainServiceDebugScenarios
             "Drop-failure retry did not roll forward to completion: "
             + committed.FailureReason);
         fixture.RequireExactReleasedPhysical(request, cargo);
+        ProductionInputDestinationCustodyDrainResult acknowledged = fixture
+            .Service.TryAcknowledge(
+                StepOperationId,
+                committed.ReceiptFingerprint);
+        Require(acknowledged.Status ==
+                ProductionInputDestinationCustodyDrainStatus.Applied,
+            "Drop-failure recovery acknowledgement failed: "
+            + acknowledged.FailureReason);
+        Require(fixture.Service.TryAcknowledge(
+                    StepOperationId,
+                    committed.ReceiptFingerprint).Status ==
+                ProductionInputDestinationCustodyDrainStatus.Replay,
+            "Drop-failure recovery acknowledgement was not idempotent.");
     }
 
     private static string Digest(char value) => new(value, 64);
@@ -359,7 +384,8 @@ public static class ProductionInputDestinationCustodyDrainServiceDebugScenarios
                     operationId,
                     ActorId,
                     ItemReservationPurpose.Hauling,
-                    "haul:facility-buffer:" + SourceDestinationId,
+                    $"haul:{WorldItemHaulDestinationKind.FacilityBuffer}:"
+                    + SourceDestinationId,
                     new ItemQuantityReservationRequest(
                         new ItemStackId(sourceStackId),
                         2,
@@ -777,13 +803,15 @@ public static class ProductionInputDestinationCustodyDrainServiceDebugScenarios
                         value.Name,
                         "RequireAuthoredCharacterDefinition",
                         StringComparison.Ordinal)
-                    && value.GetParameters().Length == 1
+                    && value.GetParameters().Length == 2
                     && value.GetParameters()[0].ParameterType ==
-                        typeof(string));
+                        typeof(string)
+                    && value.GetParameters()[1].ParameterType ==
+                        typeof(CharacterRole));
             return InvokeEditorFixture<CharacterSO>(
                 method,
                 null,
-                new object[] { "Adventurer" });
+                new object[] { "Adventurer", CharacterRole.Regular });
         }
 
         private static Type RequireCharacterEditorDependencyType() =>

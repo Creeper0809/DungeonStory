@@ -1,0 +1,29 @@
+{
+  "facts": [
+    {
+      "label": "희귀도",
+      "value": "비일반"
+    },
+    {
+      "label": "성향",
+      "value": "이점"
+    },
+    {
+      "label": "효과",
+      "value": "1개"
+    },
+    {
+      "label": "정체성 규칙",
+      "value": "2개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "trait-227",
+  "spoiler_tier": "none",
+  "summary": "버려진 장비와 부산물에서 쓸 만한 부품을 먼저 찾는다.",
+  "title": "회수 전문가"
+}

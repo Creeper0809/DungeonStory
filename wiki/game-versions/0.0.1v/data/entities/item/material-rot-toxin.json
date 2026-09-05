@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "40개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "16"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "금기 약물과 독성 의식에 쓰는 농축 독소이다. 므네실라의 부패 독소는 정원 흙과 닿지 않도록 검은 유리병에 밀봉하고, 새는 병은 용기째 태운다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-rot-toxin",
+  "spoiler_tier": "none",
+  "summary": "금기 약물과 독성 의식에 쓰는 농축 독소.",
+  "title": "부패 독소"
+}

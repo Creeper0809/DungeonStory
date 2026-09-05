@@ -1,0 +1,7 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+SpeciesCultureDefinitionSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/CharacterCultureGameplayRuntime.cs
+SpeciesCultureDefinitionSO,content-type,,type-reference,services:character,content-loading,structural-type-consumer,Assets/Scripts/Services/Character/CharacterNarrativeCatalog.cs
+SpeciesCultureDefinitionSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/CharacterNarrativeContracts.cs
+SpeciesCultureDefinitionSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/CharacterNarrativeRuntime.cs
+SpeciesCultureDefinitionSO,content-type,,type-reference; save-restore-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/EnemyIndividualRuntime.cs
+SpeciesCultureDefinitionSO,content-type,,type-reference; save-restore-reference,services:survival,runtime,structural-type-consumer,Assets/Scripts/Services/Survival/CharacterConsumablesApplicationAdapters.cs

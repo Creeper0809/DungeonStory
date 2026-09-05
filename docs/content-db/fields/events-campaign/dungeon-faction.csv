@@ -1,0 +1,325 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,m_Name,Faction_Beastkin_RedPawPost,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,factionId,faction:dungeon:beastkin,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,displayName,붉은발 역참,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,speciesTag,Beastkin,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,description,"빠른 교역, 정찰과 긴급 운반을 맡는 수인 역참 연합.",,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,relationTags.0,야외,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,relationTags.1,무리,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,relationTags.2,소음,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,tradeTags.0,고기,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,tradeTags.1,가죽,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,tradeTags.2,사료,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,tradeTags.3,동물,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,reinforcementRole,정찰병과 긴급 운반대,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,crest.fileID,6718755981451334900,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,tradeCargo.0.itemId,resource:meat,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,tradeCargo.0.amount,8,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,tradeCargo.1.itemId,resource:hide,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,tradeCargo.1.amount,5,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,tradeCargo.2.itemId,feed:dog-food,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,tradeCargo.2.amount,6,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,supplyCargo.0.itemId,food:preserved-ration,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,supplyCargo.0.amount,12,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,supplyCargo.1.itemId,material:leather,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,supplyCargo.1.amount,8,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,supplyCargo.2.itemId,feed:hay,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,supplyCargo.2.amount,10,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,tradeEconomicPolicy.capabilityId,faction-economy:paid-market-purchase,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,tradeEconomicPolicy.capabilityVersion,1,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,supplyEconomicPolicy.capabilityId,faction-economy:alliance-benefit,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,supplyEconomicPolicy.capabilityVersion,1,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,tradeCooldownDays,7,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,supplyCooldownDays,20,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset,faction:dungeon:beastkin,reinforcementCooldownDays,10,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,m_Name,faction_dungeon_beastkin,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,factionId,faction:dungeon:beastkin,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,displayName,붉은발 역참,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,speciesTag,Beastkin,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,description,빠른 교역·정찰·긴급 운반 지원,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,relationTags.0,야외,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,relationTags.1,무리,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,relationTags.2,소음,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,tradeTags.0,야외,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,tradeTags.1,무리,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,tradeTags.2,소음,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,reinforcementRole,빠른 교역·정찰·긴급 운반 지원,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,crest.fileID,0,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,tradeCargo.0.itemId,food:preserved-ration,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,tradeCargo.0.amount,8,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,tradeCargo.1.itemId,resource:blood,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,tradeCargo.1.amount,5,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,supplyCargo.0.itemId,food:preserved-ration,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,supplyCargo.0.amount,14,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,supplyCargo.1.itemId,resource:blood,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,supplyCargo.1.amount,10,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,m_Name,Faction_Demon_AshContractCourt,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,factionId,faction:dungeon:demon,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,displayName,잿불 계약정,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,speciesTag,Demon,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,description,"마력 촉매, 사치품과 화염·저주 전력을 계약하는 데몬 궁정.",,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,relationTags.0,화염,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,relationTags.1,마력,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,relationTags.2,고급,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,tradeTags.0,마력,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,tradeTags.1,사치품,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,tradeTags.2,촉매,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,tradeTags.3,계약 장비,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,reinforcementRole,화염술사와 계약 저주단,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,crest.fileID,5183132274818712004,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,tradeCargo.0.itemId,resource:mana-crystal,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,tradeCargo.0.amount,6,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,tradeCargo.1.itemId,craft:gold-ornament,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,tradeCargo.1.amount,3,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,tradeCargo.2.itemId,craft:ritual-reagent,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,tradeCargo.2.amount,4,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,supplyCargo.0.itemId,drug:mana-awakener,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,supplyCargo.0.amount,6,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,supplyCargo.1.itemId,material:blacksteel-ingot,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,supplyCargo.1.amount,5,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,supplyCargo.2.itemId,craft:ritual-reagent,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,supplyCargo.2.amount,8,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,tradeEconomicPolicy.capabilityId,faction-economy:paid-market-purchase,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,tradeEconomicPolicy.capabilityVersion,1,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,supplyEconomicPolicy.capabilityId,faction-economy:alliance-benefit,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,supplyEconomicPolicy.capabilityVersion,1,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,tradeCooldownDays,23,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,supplyCooldownDays,84,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,reinforcementCooldownDays,10,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,m_Name,faction_dungeon_demon,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,factionId,faction:dungeon:demon,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,displayName,잿불 계약정,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,speciesTag,Demon,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,description,마력 촉매와 화염·저주 전투 지원,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,relationTags.0,화염,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,relationTags.1,마력,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,relationTags.2,고급,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,tradeTags.0,화염,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,tradeTags.1,마력,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,tradeTags.2,고급,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,reinforcementRole,마력 촉매와 화염·저주 전투 지원,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,crest.fileID,0,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,tradeCargo.0.itemId,resource:mana-crystal,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,tradeCargo.0.amount,8,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,tradeCargo.1.itemId,material:lumber,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,tradeCargo.1.amount,5,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,supplyCargo.0.itemId,resource:mana-crystal,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,supplyCargo.0.amount,14,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,supplyCargo.1.itemId,material:lumber,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,supplyCargo.1.amount,10,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,m_Name,Faction_Golem_StoneveinFoundry,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,factionId,faction:dungeon:golem,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,displayName,석맥 주조소,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,speciesTag,Golem,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,description,"장갑판, 동력핵과 자동화 부품을 주조하는 골렘 산업 도시.",,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,relationTags.0,질서,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,relationTags.1,마력,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,relationTags.2,기계,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,tradeTags.0,장갑판,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,tradeTags.1,동력핵,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,tradeTags.2,자동화,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,tradeTags.3,중화기,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,reinforcementRole,방패벽과 시설 긴급 복구반,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,crest.fileID,6163230633357516711,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,tradeCargo.0.itemId,material:iron-ingot,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,tradeCargo.0.amount,8,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,tradeCargo.1.itemId,material:stone-block,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,tradeCargo.1.amount,10,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,tradeCargo.2.itemId,resource:mana-crystal,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,tradeCargo.2.amount,4,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,supplyCargo.0.itemId,material:steel-ingot,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,supplyCargo.0.amount,10,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,supplyCargo.1.itemId,material:blacksteel-ingot,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,supplyCargo.1.amount,5,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,supplyCargo.2.itemId,resource:mana-crystal,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,supplyCargo.2.amount,8,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,tradeEconomicPolicy.capabilityId,faction-economy:paid-market-purchase,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,tradeEconomicPolicy.capabilityVersion,1,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,supplyEconomicPolicy.capabilityId,faction-economy:alliance-benefit,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,supplyEconomicPolicy.capabilityVersion,1,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,tradeCooldownDays,27,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,supplyCooldownDays,99,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,reinforcementCooldownDays,10,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,m_Name,faction_dungeon_golem,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,factionId,faction:dungeon:golem,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,displayName,석맥 주조소,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,speciesTag,Golem,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,description,장갑판·동력핵과 방패벽·시설 복구 지원,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,relationTags.0,질서,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,relationTags.1,마력,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,relationTags.2,기계,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,tradeTags.0,질서,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,tradeTags.1,마력,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,tradeTags.2,기계,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,reinforcementRole,장갑판·동력핵과 방패벽·시설 복구 지원,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,crest.fileID,0,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,tradeCargo.0.itemId,material:lumber,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,tradeCargo.0.amount,8,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,tradeCargo.1.itemId,resource:mana-crystal,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,tradeCargo.1.amount,5,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,supplyCargo.0.itemId,material:lumber,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,supplyCargo.0.amount,14,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,supplyCargo.1.itemId,resource:mana-crystal,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,supplyCargo.1.amount,10,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,m_Name,Faction_Harpy_StormNest,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,factionId,faction:dungeon:harpy,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,displayName,폭풍 둥지,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,speciesTag,Harpy,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,description,정보와 원거리 탄약을 빠르게 나르는 하피 고지 동맹.,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,relationTags.0,야외,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,relationTags.1,청정,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,relationTags.2,개방,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,tradeTags.0,정보,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,tradeTags.1,깃털,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,tradeTags.2,원거리 탄약,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,tradeTags.3,정찰,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,reinforcementRole,외부 고지 정찰과 원거리 엄호대,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,crest.fileID,3228507006170723322,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,tradeCargo.0.itemId,resource:feather,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,tradeCargo.0.amount,10,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,tradeCargo.1.itemId,ammo:arrow-iron,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,tradeCargo.1.amount,12,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,tradeCargo.2.itemId,ammo:bolt-bone,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,tradeCargo.2.amount,8,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,supplyCargo.0.itemId,ammo:arrow-steel,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,supplyCargo.0.amount,16,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,supplyCargo.1.itemId,ammo:bolt-steel,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,supplyCargo.1.amount,12,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,supplyCargo.2.itemId,resource:feather,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,supplyCargo.2.amount,14,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,tradeEconomicPolicy.capabilityId,faction-economy:paid-market-purchase,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,tradeEconomicPolicy.capabilityVersion,1,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,supplyEconomicPolicy.capabilityId,faction-economy:alliance-benefit,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,supplyEconomicPolicy.capabilityVersion,1,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,tradeCooldownDays,16,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,supplyCooldownDays,22,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,reinforcementCooldownDays,10,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,m_Name,faction_dungeon_harpy,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,factionId,faction:dungeon:harpy,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,displayName,폭풍 둥지,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,speciesTag,Harpy,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,description,정보·원거리 탄약과 외부 고지 엄호,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,relationTags.0,야외,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,relationTags.1,청정,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,relationTags.2,개방,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,tradeTags.0,야외,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,tradeTags.1,청정,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,tradeTags.2,개방,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,reinforcementRole,정보·원거리 탄약과 외부 고지 엄호,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,crest.fileID,0,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,tradeCargo.0.itemId,captivity:memory-residue,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,tradeCargo.0.amount,8,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,tradeCargo.1.itemId,ammo:arrow,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,tradeCargo.1.amount,5,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,supplyCargo.0.itemId,captivity:memory-residue,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,supplyCargo.0.amount,14,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,supplyCargo.1.itemId,ammo:arrow,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,supplyCargo.1.amount,10,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,m_Name,Faction_Kobold_DeepGearWarren,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,factionId,faction:dungeon:kobold,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,displayName,심층 톱니굴,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,speciesTag,Kobold,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,description,"광석, 탄약, 함정 부품과 정비 인력을 공급하는 코볼트 공방.",,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,relationTags.0,질서,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,relationTags.1,협소,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,relationTags.2,기계,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,tradeTags.0,광석,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,tradeTags.1,볼트,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,tradeTags.2,함정,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,tradeTags.3,방어 설계도,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,reinforcementRole,함정 재장전과 현장 수리반,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,crest.fileID,3016723583821970900,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,tradeCargo.0.itemId,resource:iron-ore,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,tradeCargo.0.amount,10,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,tradeCargo.1.itemId,ammo:bolt-iron,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,tradeCargo.1.amount,12,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,tradeCargo.2.itemId,material:iron-ingot,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,tradeCargo.2.amount,5,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,supplyCargo.0.itemId,ammo:bolt-steel,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,supplyCargo.0.amount,16,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,supplyCargo.1.itemId,material:steel-ingot,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,supplyCargo.1.amount,8,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,supplyCargo.2.itemId,material:lumber,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,supplyCargo.2.amount,10,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,tradeEconomicPolicy.capabilityId,faction-economy:paid-market-purchase,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,tradeEconomicPolicy.capabilityVersion,1,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,supplyEconomicPolicy.capabilityId,faction-economy:alliance-benefit,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,supplyEconomicPolicy.capabilityVersion,1,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,tradeCooldownDays,25,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,supplyCooldownDays,49,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,reinforcementCooldownDays,10,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,m_Name,faction_dungeon_kobold,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,factionId,faction:dungeon:kobold,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,displayName,심층 톱니굴,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,speciesTag,Kobold,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,description,함정 재장전·수리와 광물·탄약 지원,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,relationTags.0,질서,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,relationTags.1,협소,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,relationTags.2,기계,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,tradeTags.0,질서,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,tradeTags.1,협소,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,tradeTags.2,기계,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,reinforcementRole,함정 재장전·수리와 광물·탄약 지원,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,crest.fileID,0,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,tradeCargo.0.itemId,material:lumber,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,tradeCargo.0.amount,8,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,tradeCargo.1.itemId,ammo:arrow,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,tradeCargo.1.amount,5,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,supplyCargo.0.itemId,material:lumber,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,supplyCargo.0.amount,14,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,supplyCargo.1.itemId,ammo:arrow,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,supplyCargo.1.amount,10,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,m_Name,Faction_Myconid_MycelialGrove,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,factionId,faction:dungeon:myconid,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,displayName,균사 심림,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,speciesTag,Myconid,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,description,"약품, 퇴비와 발효식을 순환시키는 균사 공동체.",,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,relationTags.0,습기,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,relationTags.1,오염,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,relationTags.2,야외,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,tradeTags.0,약품,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,tradeTags.1,발효식,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,tradeTags.2,퇴비,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,tradeTags.3,균사 재료,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,reinforcementRole,치료사와 포자 제독반,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,crest.fileID,-3987502361948189796,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,tradeCargo.0.itemId,resource:cave-mushroom,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,tradeCargo.0.amount,10,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,tradeCargo.1.itemId,material:compost,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,tradeCargo.1.amount,8,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,tradeCargo.2.itemId,medicine:herbal-poultice,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,tradeCargo.2.amount,5,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,supplyCargo.0.itemId,medicine:antidote,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,supplyCargo.0.amount,8,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,supplyCargo.1.itemId,medicine:standard,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,supplyCargo.1.amount,8,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,supplyCargo.2.itemId,food:mushroom-soup,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,supplyCargo.2.amount,10,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,tradeEconomicPolicy.capabilityId,faction-economy:paid-market-purchase,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,tradeEconomicPolicy.capabilityVersion,1,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,supplyEconomicPolicy.capabilityId,faction-economy:alliance-benefit,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,supplyEconomicPolicy.capabilityVersion,1,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,tradeCooldownDays,22,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,supplyCooldownDays,38,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,reinforcementCooldownDays,10,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,m_Name,faction_dungeon_myconid,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,factionId,faction:dungeon:myconid,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,displayName,균사 심림,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,speciesTag,Myconid,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,description,치료·제독과 약품·퇴비 지원,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,relationTags.0,습기,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,relationTags.1,오염,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,relationTags.2,저온,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,tradeTags.0,습기,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,tradeTags.1,오염,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,tradeTags.2,저온,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,reinforcementRole,치료·제독과 약품·퇴비 지원,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,crest.fileID,0,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,tradeCargo.0.itemId,medicine:standard,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,tradeCargo.0.amount,8,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,tradeCargo.1.itemId,resource:blood,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,tradeCargo.1.amount,5,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,supplyCargo.0.itemId,medicine:standard,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,supplyCargo.0.amount,14,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,supplyCargo.1.itemId,resource:blood,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,supplyCargo.1.amount,10,,,explicit-serialized

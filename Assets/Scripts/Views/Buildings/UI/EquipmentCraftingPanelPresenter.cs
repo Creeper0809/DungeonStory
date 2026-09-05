@@ -20,6 +20,8 @@ public sealed class EquipmentCraftingPanelPresenter :
 {
     private readonly ICombatEquipmentRuntime equipment;
     private readonly EquipmentProgressionCommandPanel progressionCommands;
+    private readonly ICombatCraftDefinitionCatalog craftDefinitions;
+    private readonly IItemDefinitionCatalog itemDefinitions;
     private readonly Dictionary<string, string> expandedDefinitionByFacility =
         new Dictionary<string, string>(StringComparer.Ordinal);
     private readonly Dictionary<string, string> feedbackByFacility =
@@ -27,12 +29,16 @@ public sealed class EquipmentCraftingPanelPresenter :
 
     public EquipmentCraftingPanelPresenter(
         ICombatEquipmentRuntime equipment,
-        EquipmentProgressionCommandPanel progressionCommands)
+        EquipmentProgressionCommandPanel progressionCommands,
+        ICombatCraftDefinitionCatalog craftDefinitions = null,
+        IItemDefinitionCatalog itemDefinitions = null)
     {
         this.equipment = equipment
             ?? throw new ArgumentNullException(nameof(equipment));
         this.progressionCommands = progressionCommands
             ?? throw new ArgumentNullException(nameof(progressionCommands));
+        this.craftDefinitions = craftDefinitions;
+        this.itemDefinitions = itemDefinitions;
     }
 
     public IReadOnlyList<GameObject> Render(
@@ -66,8 +72,7 @@ public sealed class EquipmentCraftingPanelPresenter :
         }
 
         HashSet<string> craftableIds = new HashSet<string>(
-            ability.CraftableEquipmentIds
-                .Where(id => !string.IsNullOrWhiteSpace(id)),
+            CombatCraftAllowlist.Capture(ability.CraftableEquipmentIds),
             StringComparer.Ordinal);
         CombatEquipmentDefinitionSO[] definitions = equipment.Definitions
             .Where(definition =>
@@ -76,13 +81,22 @@ public sealed class EquipmentCraftingPanelPresenter :
             .OrderBy(definition => definition.Kind)
             .ThenBy(definition => definition.DisplayName, StringComparer.Ordinal)
             .ToArray();
+        CombatCraftDefinitionSnapshot[] ammunition = (craftDefinitions?.All
+                ?? Array.Empty<CombatCraftDefinitionSnapshot>())
+            .Where(value => value != null
+                && value.Kind == CombatCraftOutputKind.GenericAmmunition
+                && craftableIds.Contains(value.CraftDefinitionId))
+            .OrderBy(value => value.CraftDefinitionId, StringComparer.Ordinal)
+            .ToArray();
         CombatEquipmentCraftOrderSaveData[] queue = equipment.CraftQueue
             .Where(order =>
                 order != null
                 && order.destinationX == building.centerPos.x
                 && order.destinationY == building.centerPos.y)
             .ToArray();
-        if (definitions.Length == 0 && queue.Length == 0)
+        if (definitions.Length == 0
+            && ammunition.Length == 0
+            && queue.Length == 0)
         {
             created.AddRange(progressionCommands.Render(
                 parent,
@@ -227,6 +241,44 @@ public sealed class EquipmentCraftingPanelPresenter :
                     refresh,
                     created);
             }
+        }
+
+        foreach (CombatCraftDefinitionSnapshot definition in ammunition)
+        {
+            string outputName = itemDefinitions != null
+                && itemDefinitions.TryGet(
+                    definition.OutputItemId,
+                    out ItemDefinitionSO outputItem)
+                ? outputItem.DisplayName
+                : definition.OutputItemId.Value;
+            GameObject row = CreateRow(
+                parent,
+                $"EquipmentCraft_{Sanitize(definition.CraftDefinitionId)}",
+                44f);
+            created.Add(row);
+            AddLabel(
+                row.transform,
+                $"{outputName} ×{definition.OutputQuantity}",
+                font,
+                338f);
+            AddButton(
+                row.transform,
+                "제작",
+                font,
+                true,
+                () =>
+                {
+                    bool queued = equipment.TryQueueCraft(
+                        definition.CraftDefinitionId,
+                        building,
+                        out string message);
+                    string feedbackMessage = queued
+                        ? $"{outputName} 제작을 예약했습니다."
+                        : message;
+                    feedbackByFacility[facilityKey] = feedbackMessage;
+                    showFeedback?.Invoke(feedbackMessage);
+                    refresh?.Invoke();
+                });
         }
 
         created.AddRange(progressionCommands.Render(

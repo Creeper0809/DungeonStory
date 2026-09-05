@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-8874",
+    "spoiler_tier": "none",
+    "title": "격리 병동"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-health-isolation-medicine",
+      "label": "시설 해금",
+      "to": "facility/building-8874",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

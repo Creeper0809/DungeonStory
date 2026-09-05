@@ -1,0 +1,49 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1014",
+      "target_spoiler_tier": "none",
+      "target_title": "잠금진열장",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1013",
+      "target_spoiler_tier": "none",
+      "target_title": "잡화진열선반",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-1070",
+      "target_spoiler_tier": "none",
+      "target_title": "촛대",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-1012",
+      "target_spoiler_tier": "none",
+      "target_title": "판매카운터",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "facilityevolutionrecipe-9102",
+  "spoiler_tier": "none",
+  "summary": "판매 서비스와 조명이 갖춰진 상점에서 잡화진열선반을 잠금진열장으로 진화시킨다.",
+  "title": "상점 진열장 진화"
+}

@@ -1,0 +1,58 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "world",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-rally",
+      "target_spoiler_tier": "none",
+      "target_title": "전열 재정비",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-rally",
+      "target_spoiler_tier": "none",
+      "target_title": "전열 재정비",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-truth-seal",
+      "target_spoiler_tier": "none",
+      "target_title": "진실 봉인",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-truth-seal",
+      "target_spoiler_tier": "none",
+      "target_title": "진실 봉인",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "offense-unappraised-loot",
+      "target_spoiler_tier": "none",
+      "target_title": "미감정 전리품",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "enemy-inquisition-high-judge",
+  "spoiler_tier": "none",
+  "summary": "전장의 최고 전력을 봉인한 뒤 정화병을 집중시킨다.",
+  "title": "성화 대심문관"
+}

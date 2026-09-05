@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1014",
+      "target_spoiler_tier": "none",
+      "target_title": "잠금진열장",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1015",
+      "target_spoiler_tier": "none",
+      "target_title": "잡화상자",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1013",
+      "target_spoiler_tier": "none",
+      "target_title": "잡화진열선반",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-commerce-secure-display-2",
+  "spoiler_tier": "none",
+  "summary": "잡화 진열과 보관 부품을 결합해 고가 상품을 지키는 잠금진열장으로 개조한다.",
+  "title": "잠금진열장 개조"
+}

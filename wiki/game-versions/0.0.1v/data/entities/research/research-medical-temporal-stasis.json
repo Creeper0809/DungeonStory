@@ -1,0 +1,139 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "5455"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Records And Arcane"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-genetics-cross-lineage-stabilization",
+      "target_spoiler_tier": "none",
+      "target_title": "교차계통 안정화",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-genetics-cross-lineage-stabilization",
+      "target_spoiler_tier": "none",
+      "target_title": "교차계통 안정화",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-genetics-cross-lineage-stabilization",
+      "target_spoiler_tier": "none",
+      "target_title": "교차계통 안정화",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-rune-module-tuning",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 부품 조율",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-rune-module-tuning",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 부품 조율",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-rune-module-tuning",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 부품 조율",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-whole-body-regeneration",
+      "target_spoiler_tier": "none",
+      "target_title": "전신 재생",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-whole-body-regeneration",
+      "target_spoiler_tier": "none",
+      "target_title": "전신 재생",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-whole-body-regeneration",
+      "target_spoiler_tier": "none",
+      "target_title": "전신 재생",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-climate-regional-climatology",
+      "target_spoiler_tier": "none",
+      "target_title": "지역 기후학과 시각 항법",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-climate-regional-climatology",
+      "target_spoiler_tier": "none",
+      "target_title": "지역 기후학과 시각 항법",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-climate-regional-climatology",
+      "target_spoiler_tier": "none",
+      "target_title": "지역 기후학과 시각 항법",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8872",
+      "target_spoiler_tier": "none",
+      "target_title": "시간 고정실",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-medical-temporal-stasis",
+  "spoiler_tier": "none",
+  "summary": "전신 재생과 시각 항법, 교차계통 안정화, 룬 조율로 생물학적 시간을 고정한다.",
+  "title": "시간 고정"
+}

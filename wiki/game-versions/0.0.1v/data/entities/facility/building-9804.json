@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "자원"
+    },
+    {
+      "label": "크기",
+      "value": "1×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-9804",
+  "spoiler_tier": "none",
+  "summary": "시설 동작은 BuildingEconomyAbility, BuildingFacilityAbility, BuildingFacilityPartAbility, BuildingUtilityConnectionAbility, BuildingWorkAmountAbility 모듈로 구성된다. 건설에는 작업량 353, 재료 석재 블록×3, 철괴×2, 천×1, 기계 부품×2이 필요하다.",
+  "title": "통합 기반 덕트"
+}

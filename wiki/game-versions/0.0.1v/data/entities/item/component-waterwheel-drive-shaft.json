@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "3.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "190"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "수차 구동축은 움직이는 부품의 하중을 받아 동력과 힘을 다음 관절로 전달한다. 제4주조도시의 골렘은 수차 구동축을 끼우기 전 자기 기억판과 맞닿는 면을 직접 닦는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "component-waterwheel-drive-shaft",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 수차 구동축.",
+  "title": "수차 구동축"
+}

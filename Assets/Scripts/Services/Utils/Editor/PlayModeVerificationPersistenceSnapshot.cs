@@ -95,6 +95,12 @@ public static class PlayModeVerificationPersistenceSnapshot
             JsonUtility.ToJson(manifest, true));
     }
 
+    public static bool Exists(string snapshotId)
+    {
+        string id = ValidateId(snapshotId);
+        return File.Exists(Path.Combine(GetSnapshotPath(id), "manifest.json"));
+    }
+
     public static bool Restore(string snapshotId)
     {
         string id = ValidateId(snapshotId);

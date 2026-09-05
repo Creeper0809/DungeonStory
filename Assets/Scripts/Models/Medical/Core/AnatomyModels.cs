@@ -230,6 +230,15 @@ public sealed class AnatomyProfileDefinition
         && !string.IsNullOrWhiteSpace(reason);
 }
 
+public static class CharacterAnatomyStateBounds
+{
+    public const float MaximumInstalledPartEfficiency = 1.75f;
+    public const float MinimumModuleBonus = -100f;
+    public const float MaximumModuleBonus = 100f;
+    public const float MaximumFunctionalEfficiency =
+        MaximumInstalledPartEfficiency + MaximumModuleBonus;
+}
+
 [Serializable]
 public sealed class AnatomyNodeHealthState
 {

@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-material-mana-alloy",
+    "spoiler_tier": "none",
+    "title": "마나 합금"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-mana-alloy",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-mana-alloy",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 합금",
+      "to": "item/material-mana-alloy",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-mana-alloy",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-gold-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "금괴",
+      "to": "item/material-gold-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-mana-alloy",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-steel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "강철",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-mana-alloy",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-mana-crystal",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 결정",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-material-mana-alloy",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-industry-mana-power",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 동력과 룬 전력망",
+      "to": "research/research-industry-mana-power",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

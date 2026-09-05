@@ -1,0 +1,85 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-authority-quarters",
+    "spoiler_tier": "none",
+    "title": "기본 숙소"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-authority-quarters",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1029",
+      "target_spoiler_tier": "none",
+      "target_title": "침실용책장",
+      "to": "facility/building-1029",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-authority-prestige",
+      "label": "선행 연구",
+      "to": "research/research-authority-quarters",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-authority-prestige",
+      "label": "선행 연구",
+      "to": "research/research-authority-quarters",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-authority-prestige",
+      "label": "선행 연구",
+      "to": "research/research-authority-quarters",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-hospitality-operations",
+      "label": "선행 연구",
+      "to": "research/research-authority-quarters",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-hospitality-operations",
+      "label": "선행 연구",
+      "to": "research/research-authority-quarters",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-hospitality-operations",
+      "label": "선행 연구",
+      "to": "research/research-authority-quarters",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-household-records",
+      "label": "선행 연구",
+      "to": "research/research-authority-quarters",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-household-records",
+      "label": "선행 연구",
+      "to": "research/research-authority-quarters",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-household-records",
+      "label": "선행 연구",
+      "to": "research/research-authority-quarters",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

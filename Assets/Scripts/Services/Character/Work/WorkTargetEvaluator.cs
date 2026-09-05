@@ -6,6 +6,7 @@ internal sealed class WorkTargetEvaluator
     private readonly AbilityWork work;
     private readonly IWorkPolicyRegistry workPolicyRegistry;
     private readonly ICaptiveLaborQuery captiveLaborQuery;
+    private readonly ICharacterSettlementStandingQuery settlementStandings;
     private readonly WorkTargetEnvironmentPolicy environment;
     private readonly Func<GridPathSearchResult, IEnumerable<IWarehouseFacility>>
         findWarehouses;
@@ -21,6 +22,7 @@ internal sealed class WorkTargetEvaluator
         AbilityWork work,
         IWorkPolicyRegistry workPolicyRegistry,
         ICaptiveLaborQuery captiveLaborQuery,
+        ICharacterSettlementStandingQuery settlementStandings,
         WorkTargetEnvironmentPolicy environment,
         Func<GridPathSearchResult, IEnumerable<IWarehouseFacility>> findWarehouses,
         Func<BuildableObject, WorkTypeDefinition, WorkPriorityLevel,
@@ -30,6 +32,7 @@ internal sealed class WorkTargetEvaluator
         this.work = work ?? throw new ArgumentNullException(nameof(work));
         this.workPolicyRegistry = workPolicyRegistry;
         this.captiveLaborQuery = captiveLaborQuery;
+        this.settlementStandings = settlementStandings;
         this.environment = environment
             ?? throw new ArgumentNullException(nameof(environment));
         this.findWarehouses = findWarehouses
@@ -169,6 +172,18 @@ internal sealed class WorkTargetEvaluator
                 lastWorkTypeFailure = AIActionFailure.Create(
                     AIActionFailureKind.Unsupported,
                     captiveReason,
+                    building);
+                continue;
+            }
+            if (settlementStandings != null
+                && !settlementStandings.IsWorkAllowed(
+                    work.WorkerActor,
+                    workTypeId,
+                    out string standingReason))
+            {
+                lastWorkTypeFailure = AIActionFailure.Create(
+                    AIActionFailureKind.Unsupported,
+                    standingReason,
                     building);
                 continue;
             }

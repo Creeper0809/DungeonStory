@@ -9,8 +9,16 @@ public interface ICaptivityRuntime
     bool TryGetCaptive(string captiveId, out CaptiveState captive);
     bool TryGetActor(string captiveId, out CharacterActor actor);
     bool TryGetHousing(string captiveId, out BuildableObject housing);
+    bool TryGetRehabilitationFacility(
+        string captiveId,
+        out BuildableObject facility);
     bool IsCaptive(string persistentId);
     bool HasSecureHousing(CharacterActor captive, out BuildableObject housing, out string reason);
+}
+
+public interface ICaptivityRestoreStateQuery
+{
+    IReadOnlyList<CaptiveState> Captives { get; }
 }
 
 public interface ICaptiveLaborQuery
@@ -63,6 +71,16 @@ public interface ICaptivityCommandService
         out string status);
     bool TryRecruit(string captiveId, out string failureReason);
     bool TryConvertToMinion(string captiveId, out string failureReason);
+    bool TryStartRehabilitation(
+        string captiveId,
+        CharacterActor warden,
+        BuildableObject facility,
+        out string failureReason);
+    bool AdvanceRehabilitation(
+        string captiveId,
+        CharacterActor warden,
+        float approvedWork,
+        out string status);
     bool TryRansom(
         string captiveId,
         out int paidAmount,
@@ -94,6 +112,21 @@ public interface ICaptivityEscapeRuntime
     IDisposable BeginEscapePass(CharacterActor actor, string captiveId);
     void CompleteEscape(string captiveId, CharacterActor actor);
     void FailEscape(string captiveId, CharacterActor actor, string reason);
+}
+
+public interface IMinionSettlementCommand
+{
+    bool TryBeginDailySocialEvaluation(
+        string minionId,
+        int absoluteDay,
+        out CaptiveState state);
+    void RecordSocialConflict(
+        string minionId,
+        string result);
+    bool TryBreakMinionControl(
+        string minionId,
+        string reason,
+        out string failureReason);
 }
 
 public interface ICaptivityEscortRuntime

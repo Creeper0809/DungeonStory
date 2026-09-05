@@ -1,0 +1,36 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Career"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "45",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-captains-test",
+      "target_spoiler_tier": "warning",
+      "target_title": "대장의 시험",
+      "type": "advances-ambition"
+    },
+    {
+      "amount": "6",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-captains-test",
+      "target_spoiler_tier": "warning",
+      "target_title": "대장의 시험",
+      "type": "changes-relationship"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "life-event-captains-test",
+  "spoiler_tier": "warning",
+  "summary": "퇴로가 불안한 방어전에서 경비대장 후보가 위험한 역습을 제안한다.",
+  "title": "대장의 시험"
+}

@@ -1,0 +1,7 @@
+schema=v27-production-output-clearance-profile-promotion@1
+result=PASS
+candidateSha256=7bb4a50d328e7c9236602fce0f1645c5dae436b5851eba84d27464afa5fa5f16
+resourceSha256=7bb4a50d328e7c9236602fce0f1645c5dae436b5851eba84d27464afa5fa5f16
+catalogAuthorityDigest=acdf6de1a70df3d37ebe37332383c8b0693b1b200e18e89130924270f2962e52
+profiles=92
+secondWriteByteDiff=0

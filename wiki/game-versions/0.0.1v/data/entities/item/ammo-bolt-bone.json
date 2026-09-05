@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "100개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "6"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "가벼운 뼈촉을 달아 석궁 장전과 사격을 익힐 때 쓰는 연습용 볼트다. 크릭 제7굴의 일곱 톱니 자국은 뼈촉 볼트가 발사 시험을 버텼다는 표시다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ammo-bolt-bone",
+  "spoiler_tier": "none",
+  "summary": "가벼운 연습용 석궁 볼트.",
+  "title": "뼈촉 볼트"
+}

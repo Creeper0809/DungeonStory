@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-component-reclaimed-water-filter",
+    "spoiler_tier": "none",
+    "title": "재생수 필터 카트리지"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-reclaimed-water-filter",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯",
+      "to": "item/material-charcoal",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-reclaimed-water-filter",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-reclaimed-water-filter",
+      "target_spoiler_tier": "none",
+      "target_title": "재생수 필터 카트리지",
+      "to": "item/component-reclaimed-water-filter",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-reclaimed-water-filter",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "textile-sterile-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "무균 천",
+      "to": "item/textile-sterile-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-reclaimed-water-filter",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-reuse",
+      "target_spoiler_tier": "none",
+      "target_title": "정수와 재이용",
+      "to": "research/research-plumbing-reuse",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

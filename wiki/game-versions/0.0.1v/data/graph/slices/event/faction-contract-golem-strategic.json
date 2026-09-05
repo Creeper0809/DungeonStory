@@ -1,0 +1,29 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "faction-contract-golem-strategic",
+    "spoiler_tier": "none",
+    "title": "돌맥 주조소 장기 전략 계약"
+  },
+  "edges": [
+    {
+      "amount": "8",
+      "from": "event/faction-contract-golem-strategic",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-rune-conductor",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 도체",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-golem",
+      "label": "관련",
+      "to": "event/faction-contract-golem-strategic",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

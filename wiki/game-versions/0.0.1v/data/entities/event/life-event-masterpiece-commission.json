@@ -1,0 +1,36 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Apprenticeship"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "50",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-masterpiece-commission",
+      "target_spoiler_tier": "warning",
+      "target_title": "첫 대작 의뢰",
+      "type": "advances-ambition"
+    },
+    {
+      "amount": "35",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-masterpiece-commission",
+      "target_spoiler_tier": "warning",
+      "target_title": "첫 대작 의뢰",
+      "type": "grants-skill-experience"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "life-event-masterpiece-commission",
+  "spoiler_tier": "warning",
+  "summary": "대가 시험을 위한 장비 제작 의뢰가 들어왔다.",
+  "title": "첫 대작 의뢰"
+}

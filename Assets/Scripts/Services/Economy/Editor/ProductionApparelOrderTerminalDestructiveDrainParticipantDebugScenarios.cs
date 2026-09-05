@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
 
@@ -23,6 +24,7 @@ public static class
         VerifyDurablePrepareReplayDriftAndProducerAhead();
         VerifyCommitAcknowledgementAndRecoveryMapping();
         VerifyZeroOwnerPlan();
+        VerifyCheckpointGcUsesRealOutboxAndTerminalAuthority();
     }
 
     private static void VerifyDeterministicPrepareAndExactOwnerRequest()
@@ -222,6 +224,281 @@ public static class
             "Zero-owner apparel plan was not deterministic and valid.");
     }
 
+    private static void VerifyCheckpointGcUsesRealOutboxAndTerminalAuthority()
+    {
+        ApparelWorkOrderRuntime runtime = CreateActualRuntime();
+        FakeLeases leases = new();
+        FakeLifecycle lifecycle = new(runtime);
+        ProductionApparelOrderTerminalDrainOutbox outbox = new(
+            new DungeonRuntimeAggregateRootStore(),
+            leases,
+            leases,
+            runtime,
+            runtime);
+        ProductionApparelOrderTerminalDestructiveDrainParticipant participant =
+            new(lifecycle, runtime, leases, outbox, outbox);
+
+        BuildingInstanceId targetFacility =
+            (BuildingInstanceId)"building:tailor:checkpoint-gc-target";
+        BuildingInstanceId unrelatedFacility =
+            (BuildingInstanceId)"building:tailor:checkpoint-gc-unrelated";
+        ApparelWorkOrderSaveData targetA = CreateCheckpointGcOrder(
+            "target-a", targetFacility);
+        ApparelWorkOrderSaveData targetB = CreateCheckpointGcOrder(
+            "target-b", targetFacility);
+        ApparelWorkOrderSaveData unrelated = CreateCheckpointGcOrder(
+            "unrelated", unrelatedFacility);
+        runtime.PublishRestoreState(runtime.PrepareRestoreState(
+            new[] { targetB, unrelated, targetA },
+            Array.Empty<ApparelWorkOrderTerminalStateSaveData>()));
+
+        ProductionFacilityDestructiveDrainEntrySaveData targetEntry =
+            TerminalizeActualOrders(participant, lifecycle, targetFacility);
+        ProductionFacilityDestructiveDrainEntrySaveData unrelatedEntry =
+            TerminalizeActualOrders(participant, lifecycle, unrelatedFacility);
+        string[] targetSteps = targetEntry.participants.Single().owners
+            .Select(value => value.stepOperationId)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string unrelatedStep = unrelatedEntry.participants.Single().owners
+            .Single().stepOperationId;
+        string terminalsBefore = CanonicalTerminalStates(
+            runtime.CaptureTerminalStates());
+        string producersBefore = CanonicalApparelProducers(
+            outbox.CaptureCurrentFormat());
+        int versionBefore = runtime.Version;
+        ProductionFacilityDestructiveDrainCheckpointGcContext context = new(
+            1L,
+            new string('a', 64),
+            "slot:qa-apparel-checkpoint-gc");
+
+        ProductionFacilityDestructiveDrainCheckpointGcResult prepared =
+            participant.PrepareCheckpointGarbageCollection(
+                context,
+                new[] { targetEntry },
+                out IProductionFacilityDestructiveDrainCheckpointGcCandidate
+                    candidate);
+        Require(
+            prepared.Status ==
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied
+            && candidate != null
+            && runtime.Version == versionBefore
+            && string.Equals(
+                CanonicalTerminalStates(runtime.CaptureTerminalStates()),
+                terminalsBefore,
+                StringComparison.Ordinal)
+            && string.Equals(
+                CanonicalApparelProducers(outbox.CaptureCurrentFormat()),
+                producersBefore,
+                StringComparison.Ordinal),
+            "P0_APPAREL_CHECKPOINT_GC_PREPARE_MUTATED_REAL_AUTHORITY");
+
+        ProductionFacilityDestructiveDrainCheckpointGcResult published =
+            participant.PublishCheckpointGarbageCollection(candidate);
+        Require(
+            published.Status ==
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied
+            && targetSteps.All(step => !outbox.TryCapture(step, out _))
+            && runtime.CaptureTerminalStates().All(value =>
+                !string.Equals(value.sourceOrder.orderId, targetA.orderId,
+                    StringComparison.Ordinal)
+                && !string.Equals(value.sourceOrder.orderId, targetB.orderId,
+                    StringComparison.Ordinal))
+            && outbox.TryCapture(unrelatedStep, out _)
+            && runtime.CaptureTerminalStates().Any(value => string.Equals(
+                value.sourceOrder.orderId,
+                unrelated.orderId,
+                StringComparison.Ordinal)),
+            "P0_APPAREL_CHECKPOINT_GC_PUBLISH_DID_NOT_REMOVE_EXACT_ROWS");
+
+        participant.RollbackCheckpointGarbageCollection(candidate);
+        Require(
+            runtime.Version == versionBefore
+            && string.Equals(
+                CanonicalTerminalStates(runtime.CaptureTerminalStates()),
+                terminalsBefore,
+                StringComparison.Ordinal)
+            && string.Equals(
+                CanonicalApparelProducers(outbox.CaptureCurrentFormat()),
+                producersBefore,
+                StringComparison.Ordinal),
+            "P0_APPAREL_CHECKPOINT_GC_ROLLBACK_NOT_BYTE_EXACT");
+
+        participant.CompleteCheckpointGarbageCollection(candidate);
+        bool staleRejected = false;
+        try
+        {
+            participant.PublishCheckpointGarbageCollection(candidate);
+        }
+        catch (InvalidOperationException)
+        {
+            staleRejected = true;
+        }
+        Require(staleRejected,
+            "P0_APPAREL_CHECKPOINT_GC_COMPLETED_CANDIDATE_REUSED");
+
+        ProductionFacilityDestructiveDrainCheckpointGcResult retry =
+            participant.PrepareCheckpointGarbageCollection(
+                context,
+                new[] { targetEntry },
+                out IProductionFacilityDestructiveDrainCheckpointGcCandidate
+                    retryCandidate);
+        Require(
+            retry.Status ==
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied
+            && retryCandidate != null,
+            "P0_APPAREL_CHECKPOINT_GC_COMPLETE_DID_NOT_RELEASE_GATE");
+        participant.CompleteCheckpointGarbageCollection(retryCandidate);
+    }
+
+    private static ApparelWorkOrderRuntime CreateActualRuntime() => new(
+        Proxy<IApparelDefinitionCatalog>(),
+        Proxy<ITextileMaterialCatalog>(),
+        Proxy<IWorldItemStackRuntime>(),
+        Proxy<ILeasedItemReservationService>(),
+        Proxy<IFacilityCapabilityQuery>(),
+        Proxy<IGameClock>(),
+        Proxy<IPhysicalItemBatchDispositionService>(),
+        Proxy<IApparelPhysicalTransaction>(),
+        Proxy<IProductionOutputMaximumMassRegistry>(),
+        new ProductionFacilityMutationEpochRuntime(),
+        performance: Proxy<ICharacterPerformanceQuery>());
+
+    private static T Proxy<T>() where T : class =>
+        BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy.Create<T>();
+
+    private static ApparelWorkOrderSaveData CreateCheckpointGcOrder(
+        string suffix,
+        BuildingInstanceId facility) => new()
+    {
+        orderId = "apparel-order:qa:checkpoint-gc:" + suffix,
+        kind = ApparelWorkOrderKind.Laundry,
+        state = ApparelWorkOrderState.Ready,
+        facilityInstanceId = facility.Value,
+        requiredWork = 12f,
+        completedWork = 3f,
+        consumedWork = 1f
+    };
+
+    private static ProductionFacilityDestructiveDrainEntrySaveData
+        TerminalizeActualOrders(
+            ProductionApparelOrderTerminalDestructiveDrainParticipant participant,
+            IProductionOutputDestinationLifecycleQuery lifecycle,
+            BuildingInstanceId facility)
+    {
+        ProductionFacilityDestructiveDrainOperationId operation =
+            ProductionFacilityDestructiveDrainOperationId.FromFacility(facility);
+        ProductionOutputDestinationLifecycleSnapshot lifecycleSnapshot =
+            lifecycle.Capture(facility);
+        ProductionFacilityDestructiveDrainPrepareContext prepare = new(
+            operation,
+            ProductionFacilityDestructiveDrainCause.ExplicitDemolition,
+            facility,
+            ProductionOutputDestinationId.FromFacility(facility),
+            lifecycleSnapshot.DurableSemanticFingerprint);
+        ProductionFacilityDestructiveDrainParticipantPlan plan =
+            participant.Prepare(prepare);
+        List<ProductionFacilityDestructiveDrainOwnerSaveData> savedOwners =
+            new(plan.Owners.Count);
+        List<ProductionFacilityDestructiveDrainStepContext> plannedSteps =
+            new(plan.Owners.Count);
+        foreach (ProductionFacilityDestructiveDrainOwnerPlan owner in plan.Owners)
+        {
+            ProductionFacilityDestructiveDrainOwnerSaveData saved = new()
+            {
+                ownerStableId = owner.OwnerStableId,
+                disposition = owner.Disposition,
+                targetDestinationId = owner.TargetDestinationId,
+                stepOperationId = ProductionFacilityDestructiveDrainCanonical
+                    .BuildStepOperationId(
+                        operation,
+                        participant.ParticipantId,
+                        owner.OwnerStableId),
+                phase = ProductionFacilityDestructiveDrainStepPhase.Planned,
+                requestFingerprint = owner.RequestFingerprint
+            };
+            ProductionFacilityDestructiveDrainStepContext planned = new(
+                operation,
+                facility,
+                participant.ParticipantId,
+                saved,
+                plan.DurableContributionFingerprint);
+            Require(participant.TryPrepareDurable(planned, out string failure),
+                "P0_APPAREL_CHECKPOINT_GC_DURABLE_PREPARE_FAILED:" + failure);
+            savedOwners.Add(saved);
+            plannedSteps.Add(planned);
+        }
+
+        List<ProductionFacilityDestructiveDrainOwnerSaveData> acknowledged =
+            new(plan.Owners.Count);
+        for (int index = 0; index < plannedSteps.Count; index++)
+        {
+            ProductionFacilityDestructiveDrainOwnerSaveData saved =
+                savedOwners[index];
+            ProductionFacilityDestructiveDrainStepResult committed =
+                participant.TryCommit(plannedSteps[index]);
+            Require(committed.Status ==
+                    ProductionFacilityDestructiveDrainStepStatus.Applied,
+                "P0_APPAREL_CHECKPOINT_GC_TERMINAL_COMMIT_FAILED");
+            saved.phase = ProductionFacilityDestructiveDrainStepPhase
+                .EffectCommittedAwaitingOwnerAck;
+            saved.commitId = committed.CommitId;
+            saved.receiptFingerprint = committed.ReceiptFingerprint;
+            ProductionFacilityDestructiveDrainStepContext awaitingAck = new(
+                operation,
+                facility,
+                participant.ParticipantId,
+                saved,
+                plan.DurableContributionFingerprint);
+            Require(participant.TryAcknowledge(awaitingAck).Status ==
+                    ProductionFacilityDestructiveDrainStepStatus.Applied,
+                "P0_APPAREL_CHECKPOINT_GC_ACKNOWLEDGEMENT_FAILED");
+            saved.phase = ProductionFacilityDestructiveDrainStepPhase
+                .OwnerAcknowledged;
+            acknowledged.Add(saved.Clone());
+        }
+
+        return new ProductionFacilityDestructiveDrainEntrySaveData
+        {
+            operationId = operation.Value,
+            cause = ProductionFacilityDestructiveDrainCause.ExplicitDemolition,
+            facilityId = facility.Value,
+            destinationId = ProductionOutputDestinationId.FromFacility(facility)
+                .Value,
+            phase = ProductionFacilityDestructiveDrainPhase
+                .WorldRemovedAwaitingCheckpointGc,
+            participants = new List<
+                ProductionFacilityDestructiveDrainParticipantSaveData>
+            {
+                new()
+                {
+                    participantId = participant.ParticipantId,
+                    contractVersion = participant.ContractVersion,
+                    preparedContributionFingerprint =
+                        plan.DurableContributionFingerprint,
+                    expectedCurrentContributionFingerprint =
+                        plan.DurableContributionFingerprint,
+                    planFingerprint = plan.PlanFingerprint,
+                    owners = acknowledged
+                }
+            }
+        };
+    }
+
+    private static string CanonicalTerminalStates(
+        IEnumerable<ApparelWorkOrderTerminalStateSaveData> values) =>
+        string.Join("\n", (values
+                ?? Array.Empty<ApparelWorkOrderTerminalStateSaveData>())
+            .OrderBy(value => value.sourceOrder.orderId, StringComparer.Ordinal)
+            .Select(value => JsonUtility.ToJson(value)));
+
+    private static string CanonicalApparelProducers(
+        IEnumerable<ProductionApparelOrderTerminalDrainSaveData> values) =>
+        string.Join("\n", (values
+                ?? Array.Empty<ProductionApparelOrderTerminalDrainSaveData>())
+            .OrderBy(value => value.stepOperationId, StringComparer.Ordinal)
+            .Select(value => JsonUtility.ToJson(value)));
+
     private static ApparelWorkOrderSaveData CreateOrder(
         string suffix,
         BuildingInstanceId facility) => new()
@@ -355,8 +632,8 @@ public static class
 
     private sealed class FakeLifecycle : IProductionOutputDestinationLifecycleQuery
     {
-        private readonly FakeOrders orders;
-        public FakeLifecycle(FakeOrders orders) => this.orders = orders;
+        private readonly IApparelWorkOrderQuery orders;
+        public FakeLifecycle(IApparelWorkOrderQuery orders) => this.orders = orders;
         public ProductionOutputDestinationLifecycleSnapshot Capture(
             BuildingInstanceId facilityId)
         {
@@ -403,7 +680,9 @@ public static class
         }
     }
 
-    private sealed class FakeLeases : IApparelLeaseAuthorityQuery
+    private sealed class FakeLeases :
+        IApparelLeaseAuthorityQuery,
+        IApparelLeaseAuthorityCommand
     {
         private readonly Dictionary<string, string> fingerprints =
             new(StringComparer.Ordinal);
@@ -444,6 +723,36 @@ public static class
                 });
             failureReason = string.Empty;
             return true;
+        }
+
+        public ApparelLeaseAuthorityReleaseResult TryReleaseExact(
+            string ownerOperationId,
+            string expectedFingerprint,
+            ItemReservationReleaseReason reason)
+        {
+            if (!fingerprints.TryGetValue(ownerOperationId, out string current))
+            {
+                return new ApparelLeaseAuthorityReleaseResult(
+                    ApparelLeaseAuthorityReleaseStatus.Replay,
+                    0,
+                    string.Empty,
+                    string.Empty);
+            }
+            if (!string.Equals(current, expectedFingerprint,
+                    StringComparison.Ordinal))
+            {
+                return new ApparelLeaseAuthorityReleaseResult(
+                    ApparelLeaseAuthorityReleaseStatus.Conflict,
+                    0,
+                    current,
+                    "fixture-lease-fingerprint-conflict");
+            }
+            fingerprints.Remove(ownerOperationId);
+            return new ApparelLeaseAuthorityReleaseResult(
+                ApparelLeaseAuthorityReleaseStatus.Applied,
+                1,
+                current,
+                string.Empty);
         }
     }
 

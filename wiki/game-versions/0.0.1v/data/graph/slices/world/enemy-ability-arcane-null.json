@@ -1,0 +1,39 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "enemy-ability-arcane-null",
+    "spoiler_tier": "none",
+    "title": "마법 차단"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/enemy-inquisition-censor",
+      "label": "관련",
+      "to": "world/enemy-ability-arcane-null",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-inquisition-rune-sniper",
+      "label": "관련",
+      "to": "world/enemy-ability-arcane-null",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-truth-null-warden",
+      "label": "관련",
+      "to": "world/enemy-ability-arcane-null",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-truth-sealkeeper",
+      "label": "관련",
+      "to": "world/enemy-ability-arcane-null",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

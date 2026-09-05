@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.6kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "20개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "37"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "피부 손상과 방어구 마찰을 줄이는 연고이다. 므네실라의 수액 연고는 마르지 않도록 잎기름으로 표면을 덮고, 바닥의 침전물은 다음 항아리의 농도를 맞추는 데 쓴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "craft-resin-balm",
+  "spoiler_tier": "none",
+  "summary": "피부 손상과 방어구 마찰을 줄이는 연고.",
+  "title": "수액 연고"
+}

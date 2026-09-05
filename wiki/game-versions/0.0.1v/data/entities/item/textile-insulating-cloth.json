@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.95kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "17"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "절연 직물은 의복과 안감, 생활용 천을 재단하는 직물 재료다. 노르칸드라 상단은 절연 직물을 하르나크 재단소에 넘길 때 뿔, 날개와 꼬리용 재단 여유를 따로 표시한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "textile-insulating-cloth",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 절연 직물.",
+  "title": "절연 직물"
+}

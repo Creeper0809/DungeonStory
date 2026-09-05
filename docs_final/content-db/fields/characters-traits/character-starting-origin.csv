@@ -1,0 +1,49 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+CharacterStartingOriginSO|origin:caravan-city,origin:caravan-city,m_Name,StartingOrigin_caravan-city,,,explicit-serialized
+CharacterStartingOriginSO|origin:caravan-city,origin:caravan-city,originId,origin:caravan-city,,,explicit-serialized
+CharacterStartingOriginSO|origin:caravan-city,origin:caravan-city,displayName,대상로 도시,,,explicit-serialized
+CharacterStartingOriginSO|origin:caravan-city,origin:caravan-city,description,대상로 도시에서 살아온 경험이 기초 숙련으로 남았다.,,,explicit-serialized
+CharacterStartingOriginSO|origin:caravan-city,origin:caravan-city,proficiencyBonuses.0.proficiencyId,proficiency:social,,,explicit-serialized
+CharacterStartingOriginSO|origin:caravan-city,origin:caravan-city,proficiencyBonuses.0.experience,10,,,explicit-serialized
+CharacterStartingOriginSO|origin:caravan-city,origin:caravan-city,proficiencyBonuses.1.proficiencyId,proficiency:ranged-combat,,,explicit-serialized
+CharacterStartingOriginSO|origin:caravan-city,origin:caravan-city,proficiencyBonuses.1.experience,7,,,explicit-serialized
+CharacterStartingOriginSO|origin:frontier,origin:frontier,m_Name,StartingOrigin_frontier,,,explicit-serialized
+CharacterStartingOriginSO|origin:frontier,origin:frontier,originId,origin:frontier,,,explicit-serialized
+CharacterStartingOriginSO|origin:frontier,origin:frontier,displayName,변방 개척지,,,explicit-serialized
+CharacterStartingOriginSO|origin:frontier,origin:frontier,description,변방 개척지에서 살아온 경험이 기초 숙련으로 남았다.,,,explicit-serialized
+CharacterStartingOriginSO|origin:frontier,origin:frontier,proficiencyBonuses.0.proficiencyId,proficiency:fieldwork,,,explicit-serialized
+CharacterStartingOriginSO|origin:frontier,origin:frontier,proficiencyBonuses.0.experience,12,,,explicit-serialized
+CharacterStartingOriginSO|origin:frontier,origin:frontier,proficiencyBonuses.1.proficiencyId,proficiency:ranged-combat,,,explicit-serialized
+CharacterStartingOriginSO|origin:frontier,origin:frontier,proficiencyBonuses.1.experience,5,,,explicit-serialized
+CharacterStartingOriginSO|origin:granary-village,origin:granary-village,m_Name,StartingOrigin_granary-village,,,explicit-serialized
+CharacterStartingOriginSO|origin:granary-village,origin:granary-village,originId,origin:granary-village,,,explicit-serialized
+CharacterStartingOriginSO|origin:granary-village,origin:granary-village,displayName,곡창 마을,,,explicit-serialized
+CharacterStartingOriginSO|origin:granary-village,origin:granary-village,description,곡창 마을에서 살아온 경험이 기초 숙련으로 남았다.,,,explicit-serialized
+CharacterStartingOriginSO|origin:granary-village,origin:granary-village,proficiencyBonuses.0.proficiencyId,proficiency:food-production,,,explicit-serialized
+CharacterStartingOriginSO|origin:granary-village,origin:granary-village,proficiencyBonuses.0.experience,12,,,explicit-serialized
+CharacterStartingOriginSO|origin:granary-village,origin:granary-village,proficiencyBonuses.1.proficiencyId,proficiency:fieldwork,,,explicit-serialized
+CharacterStartingOriginSO|origin:granary-village,origin:granary-village,proficiencyBonuses.1.experience,5,,,explicit-serialized
+CharacterStartingOriginSO|origin:quarry-commune,origin:quarry-commune,m_Name,StartingOrigin_quarry-commune,,,explicit-serialized
+CharacterStartingOriginSO|origin:quarry-commune,origin:quarry-commune,originId,origin:quarry-commune,,,explicit-serialized
+CharacterStartingOriginSO|origin:quarry-commune,origin:quarry-commune,displayName,채석 공동체,,,explicit-serialized
+CharacterStartingOriginSO|origin:quarry-commune,origin:quarry-commune,description,채석 공동체에서 살아온 경험이 기초 숙련으로 남았다.,,,explicit-serialized
+CharacterStartingOriginSO|origin:quarry-commune,origin:quarry-commune,proficiencyBonuses.0.proficiencyId,proficiency:construction-engineering,,,explicit-serialized
+CharacterStartingOriginSO|origin:quarry-commune,origin:quarry-commune,proficiencyBonuses.0.experience,12,,,explicit-serialized
+CharacterStartingOriginSO|origin:quarry-commune,origin:quarry-commune,proficiencyBonuses.1.proficiencyId,proficiency:melee-combat,,,explicit-serialized
+CharacterStartingOriginSO|origin:quarry-commune,origin:quarry-commune,proficiencyBonuses.1.experience,5,,,explicit-serialized
+CharacterStartingOriginSO|origin:temple-hospice,origin:temple-hospice,m_Name,StartingOrigin_temple-hospice,,,explicit-serialized
+CharacterStartingOriginSO|origin:temple-hospice,origin:temple-hospice,originId,origin:temple-hospice,,,explicit-serialized
+CharacterStartingOriginSO|origin:temple-hospice,origin:temple-hospice,displayName,신전 구호소,,,explicit-serialized
+CharacterStartingOriginSO|origin:temple-hospice,origin:temple-hospice,description,신전 구호소에서 살아온 경험이 기초 숙련으로 남았다.,,,explicit-serialized
+CharacterStartingOriginSO|origin:temple-hospice,origin:temple-hospice,proficiencyBonuses.0.proficiencyId,proficiency:medicine,,,explicit-serialized
+CharacterStartingOriginSO|origin:temple-hospice,origin:temple-hospice,proficiencyBonuses.0.experience,10,,,explicit-serialized
+CharacterStartingOriginSO|origin:temple-hospice,origin:temple-hospice,proficiencyBonuses.1.proficiencyId,proficiency:scholarship,,,explicit-serialized
+CharacterStartingOriginSO|origin:temple-hospice,origin:temple-hospice,proficiencyBonuses.1.experience,7,,,explicit-serialized
+CharacterStartingOriginSO|origin:workshop-quarter,origin:workshop-quarter,m_Name,StartingOrigin_workshop-quarter,,,explicit-serialized
+CharacterStartingOriginSO|origin:workshop-quarter,origin:workshop-quarter,originId,origin:workshop-quarter,,,explicit-serialized
+CharacterStartingOriginSO|origin:workshop-quarter,origin:workshop-quarter,displayName,공방 거리,,,explicit-serialized
+CharacterStartingOriginSO|origin:workshop-quarter,origin:workshop-quarter,description,공방 거리에서 살아온 경험이 기초 숙련으로 남았다.,,,explicit-serialized
+CharacterStartingOriginSO|origin:workshop-quarter,origin:workshop-quarter,proficiencyBonuses.0.proficiencyId,proficiency:crafting,,,explicit-serialized
+CharacterStartingOriginSO|origin:workshop-quarter,origin:workshop-quarter,proficiencyBonuses.0.experience,12,,,explicit-serialized
+CharacterStartingOriginSO|origin:workshop-quarter,origin:workshop-quarter,proficiencyBonuses.1.proficiencyId,proficiency:construction-engineering,,,explicit-serialized
+CharacterStartingOriginSO|origin:workshop-quarter,origin:workshop-quarter,proficiencyBonuses.1.experience,5,,,explicit-serialized

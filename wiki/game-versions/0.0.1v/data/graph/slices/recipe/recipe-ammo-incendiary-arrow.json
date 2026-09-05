@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-ammo-incendiary-arrow",
+    "spoiler_tier": "none",
+    "title": "소이 화살"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-ammo-incendiary-arrow",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-granulated-powder",
+      "target_spoiler_tier": "none",
+      "target_title": "과립 화약",
+      "to": "item/material-granulated-powder",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "recipe/recipe-ammo-incendiary-arrow",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "ammo-incendiary-arrow",
+      "target_spoiler_tier": "none",
+      "target_title": "소이 화살",
+      "to": "item/ammo-incendiary-arrow",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "6",
+      "from": "recipe/recipe-ammo-incendiary-arrow",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "ammo-arrow-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "강철촉 화살",
+      "to": "item/ammo-arrow-steel",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-ammo-incendiary-arrow",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-black-powder",
+      "target_spoiler_tier": "none",
+      "target_title": "흑색화약 배합",
+      "to": "research/research-equipment-black-powder",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

@@ -32,6 +32,11 @@ public sealed class ProductionCapacityRoutingDrainLineSaveData
     public string outputLineId = string.Empty;
     public string itemId = string.Empty;
     public string componentFingerprint = string.Empty;
+    public string outputCapabilityId = string.Empty;
+    public int outputCapabilityVersion;
+    public string outputComponentCodecId = string.Empty;
+    public int outputComponentCodecVersion;
+    public string outputCapabilityFingerprint = string.Empty;
     public int originalQuantity;
     public long originalMassGrams;
     public int remainingQuantity;
@@ -45,6 +50,11 @@ public sealed class ProductionCapacityRoutingDrainLineSaveData
         outputLineId = outputLineId,
         itemId = itemId,
         componentFingerprint = componentFingerprint,
+        outputCapabilityId = outputCapabilityId,
+        outputCapabilityVersion = outputCapabilityVersion,
+        outputComponentCodecId = outputComponentCodecId,
+        outputComponentCodecVersion = outputComponentCodecVersion,
+        outputCapabilityFingerprint = outputCapabilityFingerprint,
         originalQuantity = originalQuantity,
         originalMassGrams = originalMassGrams,
         remainingQuantity = remainingQuantity,
@@ -318,7 +328,7 @@ public static class ProductionCapacityRoutingDrainFingerprint
         long inputMassGrams)
     {
         StringBuilder canonical = new StringBuilder(1024)
-            .Append("production-capacity-routing-drain-request@1|");
+            .Append("production-capacity-routing-drain-request@2|");
         AppendToken(canonical, stepOperationId);
         AppendToken(canonical, ownerStableId);
         AppendToken(canonical, facilityId);
@@ -534,6 +544,11 @@ public static class ProductionCapacityRoutingDrainFingerprint
             AppendToken(target, value?.outputLineId);
             AppendToken(target, value?.itemId);
             AppendToken(target, value?.componentFingerprint);
+            AppendToken(target, value?.outputCapabilityId);
+            target.Append(value?.outputCapabilityVersion ?? -1).Append(';');
+            AppendToken(target, value?.outputComponentCodecId);
+            target.Append(value?.outputComponentCodecVersion ?? -1).Append(';');
+            AppendToken(target, value?.outputCapabilityFingerprint);
             target.Append(value?.originalQuantity ?? -1).Append(':')
                 .Append(value?.originalMassGrams ?? -1L).Append(':')
                 .Append(value?.remainingQuantity ?? -1).Append(':')
@@ -692,6 +707,33 @@ public readonly struct ProductionCapacityRoutingDrainResult
     public string CommitId { get; }
     public string ReceiptFingerprint { get; }
     public string FailureReason { get; }
+}
+
+public interface IProductionCapacityRoutingDrainCheckpointGcCandidate
+{
+}
+
+/// <summary>
+/// Row-scoped checkpoint collector for acknowledged capacity-routing producer
+/// tombstones. Whole-batch routing and exact-route absence must be rechecked by
+/// the upper participant immediately before publish.
+/// </summary>
+public interface IProductionCapacityRoutingDrainCheckpointGcOutbox
+{
+    bool TryPrepareCheckpointGarbageCollection(
+        IReadOnlyList<ProductionCapacityRoutingDrainSaveData> records,
+        out IProductionCapacityRoutingDrainCheckpointGcCandidate candidate,
+        out string failureReason);
+
+    bool TryPublishCheckpointGarbageCollection(
+        IProductionCapacityRoutingDrainCheckpointGcCandidate candidate,
+        out string failureReason);
+
+    void RollbackCheckpointGarbageCollection(
+        IProductionCapacityRoutingDrainCheckpointGcCandidate candidate);
+
+    void CompleteCheckpointGarbageCollection(
+        IProductionCapacityRoutingDrainCheckpointGcCandidate candidate);
 }
 
 public interface IProductionCapacityRoutingDrainQuery

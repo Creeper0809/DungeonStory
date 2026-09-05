@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Anatomy"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "heritable-regrowing-tissue",
+  "spoiler_tier": "none",
+  "summary": "경미한 조직 손상을 빠르게 복구하지만 영양 소모가 늘어난다.",
+  "title": "재생 조직"
+}

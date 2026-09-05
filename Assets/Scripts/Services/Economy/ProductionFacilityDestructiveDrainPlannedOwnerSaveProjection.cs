@@ -16,6 +16,7 @@ public static class ProductionFacilityDestructiveDrainPlannedOwnerSaveProjection
         CombatEquipmentMaintenanceSaveData maintenance,
         DungeonCharacterEnvironmentSaveData environment,
         DungeonPhysicalItemSaveData items,
+        DungeonCharacterWorldSaveData characters,
         ProductionPreparedOutputRoutingSaveData routing)
     {
         if (!facilityId.IsValid)
@@ -27,6 +28,8 @@ public static class ProductionFacilityDestructiveDrainPlannedOwnerSaveProjection
             || maintenance?.orders == null
             || environment?.apparelWorkOrders == null
             || items?.stacks == null
+            || items.pendingProductionInputDestinationDrains == null
+            || characters?.actors == null
             || routing?.batches == null)
         {
             throw new InvalidOperationException(
@@ -110,9 +113,81 @@ public static class ProductionFacilityDestructiveDrainPlannedOwnerSaveProjection
                                     .PhysicalDestination(destination)
                             }
                             : Array.Empty<string>(),
-                        "physical custody destination")
+                        "physical custody destination"),
+                [ProductionFacilityDestructiveDrainParticipantIds
+                    .StockSensorEmbeddedSalvage] = ProjectUnique(
+                        HasActiveStockSensorSource(production, facilityId.Value)
+                        || ProductionOutputDestinationDurableSaveProjector
+                            .CaptureExactDestinationCustody(
+                                ProductionStockSensorRuntime.BuildDestinationId(
+                                    facilityId.Value),
+                                items,
+                                characters).HasAuthority
+                        || HasDurableStockSensorChild(items, facilityId.Value)
+                            ? new[]
+                            {
+                                ProductionFacilityDestructiveDrainOwnerStableIds
+                                    .StockSensor(facilityId.Value)
+                            }
+                            : Array.Empty<string>(),
+                        "stock sensor")
             };
         return result;
+    }
+
+    private static bool HasActiveStockSensorSource(
+        DungeonProductionBillSaveData production,
+        string facilityId)
+    {
+        if (production.installedStockSensorFacilityIds == null
+            || production.acknowledgedStockSensorFacilityIds == null
+            || production.pendingStockSensorInstalls == null
+            || production.installedStockSensors == null
+            || production.pendingStockSensorRemovals == null)
+        {
+            throw new InvalidOperationException(
+                "Stock-sensor owner projection requires current-format source collections.");
+        }
+
+        bool pendingInstall = production.pendingStockSensorInstalls.Any(value =>
+            value != null && string.Equals(
+                value.facilityId,
+                facilityId,
+                StringComparison.Ordinal));
+        bool installed = production.installedStockSensors.Any(value =>
+            value != null && string.Equals(
+                value.facilityId,
+                facilityId,
+                StringComparison.Ordinal));
+        bool activeRemoval = production.pendingStockSensorRemovals.Any(value =>
+            value != null
+            && value.phase != ProductionStockSensorRemovalPhase
+                .OwnerAcknowledgedAwaitingCheckpointGc
+            && string.Equals(
+                value.facilityId,
+                facilityId,
+                StringComparison.Ordinal));
+        return pendingInstall || installed || activeRemoval;
+    }
+
+    private static bool HasDurableStockSensorChild(
+        DungeonPhysicalItemSaveData items,
+        string facilityId)
+    {
+        string owner = ProductionFacilityDestructiveDrainOwnerStableIds
+            .StockSensor(facilityId);
+        string destination = ProductionStockSensorRuntime.BuildDestinationId(
+            facilityId);
+        return items.pendingProductionInputDestinationDrains.Any(value =>
+            value != null
+            && string.Equals(value.ownerStableId,
+                owner, StringComparison.Ordinal)
+            && string.Equals(value.facilityId,
+                facilityId, StringComparison.Ordinal)
+            && string.Equals(value.billId,
+                destination, StringComparison.Ordinal)
+            && string.Equals(value.sourceDestinationId,
+                destination, StringComparison.Ordinal));
     }
 
     private static bool IsOwnedPhysicalStack(

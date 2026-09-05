@@ -1,0 +1,76 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "42"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Cuisine"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-field",
+      "target_spoiler_tier": "none",
+      "target_title": "외부 경작",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-field",
+      "target_spoiler_tier": "none",
+      "target_title": "외부 경작",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-field",
+      "target_spoiler_tier": "none",
+      "target_title": "외부 경작",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-milling",
+      "target_spoiler_tier": "none",
+      "target_title": "제분·제빵",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-milling",
+      "target_spoiler_tier": "none",
+      "target_title": "제분·제빵",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-milling",
+      "target_spoiler_tier": "none",
+      "target_title": "제분·제빵",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-cuisine-vegan",
+  "spoiler_tier": "none",
+  "summary": "비건과 채식 식단을 실제 재료로 구분해 조리한다.",
+  "title": "채식 조리"
+}

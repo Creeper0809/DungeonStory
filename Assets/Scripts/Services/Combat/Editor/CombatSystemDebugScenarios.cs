@@ -59,6 +59,9 @@ public static class CombatSystemDebugScenarios
         }
     }
 
+    public static bool VerifyCharacterMedicalStrictSaveForAutomation() =>
+        VerifyCharacterMedicalStrictSave();
+
     public static bool RunAll(bool logSuccess)
     {
         IReadOnlyList<string> failures = ValidateAll();
@@ -1600,14 +1603,16 @@ public static class CombatSystemDebugScenarios
 
     private static bool VerifyCoverAssets()
     {
-        (string path, float chance, float hitPoints, int materials)[] expected =
+        (string path, float chance, float hitPoints, int materials,
+            float constructionWork, float repairWork)[] expected =
         {
-            ("C01_WoodBarricade", 0.35f, 60f, 3),
-            ("C02_SackBulwark", 0.55f, 90f, 4),
-            ("C03_ArrowScreen", 0.70f, 110f, 5)
+            ("C01_WoodBarricade", 0.35f, 60f, 5, 476f, 8.4f),
+            ("C02_SackBulwark", 0.55f, 90f, 6, 458f, 11.9f),
+            ("C03_ArrowScreen", 0.70f, 110f, 8, 463f, 14.7f)
         };
 
-        foreach ((string file, float chance, float hitPoints, int materials) in expected)
+        foreach ((string file, float chance, float hitPoints, int materials,
+                     float constructionWork, float repairWork) in expected)
         {
             BuildingSO building = AssetDatabase.LoadAssetAtPath<BuildingSO>(
                 $"Assets/Resources/SO/Building/Combat/{file}.asset");
@@ -1620,7 +1625,12 @@ public static class CombatSystemDebugScenarios
                 || cover == null
                 || !Mathf.Approximately(cover.blockChance, chance)
                 || !Mathf.Approximately(cover.coverHitPoints, hitPoints)
-                || building.GetRequiredWork(BuiltInWorkTypeIds.Construct) <= 0f
+                || !Mathf.Approximately(
+                    building.GetRequiredWork(BuiltInWorkTypeIds.Construct),
+                    constructionWork)
+                || !Mathf.Approximately(
+                    building.GetRequiredWork(BuiltInWorkTypeIds.Repair),
+                    repairWork)
                 || requirements == null
                 || requirements.Count != 1
                 || requirements[0].Amount != materials
@@ -1965,7 +1975,7 @@ public static class CombatSystemDebugScenarios
             "Validate",
             System.Reflection.BindingFlags.Public
             | System.Reflection.BindingFlags.Static);
-        validate.Invoke(null, new object[] { payload, report, null });
+        validate.Invoke(null, new object[] { payload, report, null, null });
     }
 
     private static bool VerifyV14CombatLifecycleSave()

@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "character-archetype-9006",
+    "spoiler_tier": "none",
+    "title": "티크"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/character-archetype-9006",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "characterspecies-6",
+      "target_spoiler_tier": "none",
+      "target_title": "코볼트",
+      "to": "character/characterspecies-6",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

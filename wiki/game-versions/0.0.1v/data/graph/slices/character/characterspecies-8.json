@@ -1,0 +1,51 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "characterspecies-8",
+    "spoiler_tier": "none",
+    "title": "하피"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/characterspecies-8",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "funeral-culture-harpy",
+      "target_spoiler_tier": "none",
+      "target_title": "Funeral_Harpy",
+      "to": "character/funeral-culture-harpy",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/characterspecies-8",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "life-history-harpy",
+      "target_spoiler_tier": "none",
+      "target_title": "Life_Harpy",
+      "to": "character/life-history-harpy",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/characterspecies-8",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "reproduction-harpy",
+      "target_spoiler_tier": "none",
+      "target_title": "Reproduction_Harpy",
+      "to": "character/reproduction-harpy",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/character-archetype-9008",
+      "label": "관련",
+      "to": "character/characterspecies-8",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

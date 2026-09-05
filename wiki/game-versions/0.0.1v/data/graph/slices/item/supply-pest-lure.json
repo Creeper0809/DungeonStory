@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "supply-pest-lure",
+    "spoiler_tier": "none",
+    "title": "해충 유인제"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-supply-pest-lure",
+      "label": "생산·해금",
+      "to": "item/supply-pest-lure",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "recipe-arcane-alchemy-1",
+    "spoiler_tier": "none",
+    "title": "연금술작업대 개조"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/recipe-arcane-alchemy-1",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1030",
+      "target_spoiler_tier": "none",
+      "target_title": "연구책상",
+      "to": "facility/building-1030",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/recipe-arcane-alchemy-1",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1031",
+      "target_spoiler_tier": "none",
+      "target_title": "연금술작업대",
+      "to": "facility/building-1031",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/recipe-arcane-alchemy-1",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1032",
+      "target_spoiler_tier": "none",
+      "target_title": "연구용책장",
+      "to": "facility/building-1032",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

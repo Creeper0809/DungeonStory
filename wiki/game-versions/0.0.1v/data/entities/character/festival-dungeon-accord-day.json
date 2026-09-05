@@ -1,0 +1,22 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "craft-dreamweave-ritual-banner",
+      "target_spoiler_tier": "none",
+      "target_title": "몽직물 의식 장식",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "festival-dungeon-accord-day",
+  "spoiler_tier": "none",
+  "summary": "세력 사절과 직원이 공동 방어·구호 계약의 이행을 공개 점검한다.",
+  "title": "던전 협약 기념일"
+}

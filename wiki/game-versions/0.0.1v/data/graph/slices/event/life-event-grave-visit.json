@@ -1,0 +1,29 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "life-event-grave-visit",
+    "spoiler_tier": "warning",
+    "title": "묘비 앞의 약속"
+  },
+  "edges": [
+    {
+      "amount": "-2",
+      "from": "event/life-event-grave-visit",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-grave-visit",
+      "target_spoiler_tier": "warning",
+      "target_title": "묘비 앞의 약속",
+      "to": "event/life-event-grave-visit",
+      "type": "changes-trauma"
+    },
+    {
+      "amount": "-2",
+      "from": "event/life-event-grave-visit",
+      "label": "연결",
+      "to": "event/life-event-grave-visit",
+      "type": "changes-trauma"
+    }
+  ],
+  "schema_version": 1
+}

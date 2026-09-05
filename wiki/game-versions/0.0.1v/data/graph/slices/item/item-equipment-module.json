@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "item-equipment-module",
+    "spoiler_tier": "none",
+    "title": "개량 부품"
+  },
+  "edges": [],
+  "schema_version": 1
+}

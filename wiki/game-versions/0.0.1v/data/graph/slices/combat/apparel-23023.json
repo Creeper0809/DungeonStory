@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "apparel-23023",
+    "spoiler_tier": "none",
+    "title": "운반 멜빵"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "combat/apparel-23023",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-commerce-logistics",
+      "target_spoiler_tier": "none",
+      "target_title": "창고 구획",
+      "to": "research/research-commerce-logistics",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

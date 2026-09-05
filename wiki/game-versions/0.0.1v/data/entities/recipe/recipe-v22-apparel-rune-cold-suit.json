@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "12"
+    },
+    {
+      "label": "필요 연구",
+      "value": "룬 단열학"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "equipment-rune-cold-suit",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 방한복",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-environment-rune-insulation",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 단열학",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-sewing-thread",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉실",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "천",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-v22-apparel-rune-cold-suit",
+  "spoiler_tier": "none",
+  "summary": "원섬유→원사→원단→의복의 V22 물리 생산 단계다.",
+  "title": "룬 방한복 재단"
+}

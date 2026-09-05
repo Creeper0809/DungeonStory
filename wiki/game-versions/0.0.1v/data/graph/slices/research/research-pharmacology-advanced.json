@@ -1,0 +1,154 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-pharmacology-advanced",
+    "spoiler_tier": "none",
+    "title": "고급 약리"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-advanced",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-stimulants",
+      "target_spoiler_tier": "none",
+      "target_title": "각성제",
+      "to": "research/research-pharmacology-stimulants",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-advanced",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-stimulants",
+      "target_spoiler_tier": "none",
+      "target_title": "각성제",
+      "to": "research/research-pharmacology-stimulants",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-advanced",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-stimulants",
+      "target_spoiler_tier": "none",
+      "target_title": "각성제",
+      "to": "research/research-pharmacology-stimulants",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-advanced",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-medical",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 회복",
+      "to": "research/research-survival-medical",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-advanced",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-medical",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 회복",
+      "to": "research/research-survival-medical",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-advanced",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-medical",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 회복",
+      "to": "research/research-survival-medical",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-advanced-medicine",
+      "label": "필요 조건",
+      "to": "research/research-pharmacology-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-antidote",
+      "label": "필요 조건",
+      "to": "research/research-pharmacology-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-trauma-medicine",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-trauma-medicine",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-trauma-medicine",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-xenotransplant",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-xenotransplant",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-xenotransplant",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-advanced",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

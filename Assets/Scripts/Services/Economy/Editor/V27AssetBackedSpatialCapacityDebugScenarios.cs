@@ -9,6 +9,7 @@ using DungeonStory.Balance;
 using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
+using Stopwatch = System.Diagnostics.Stopwatch;
 
 [BalanceCaptureFactory]
 public static class V27AssetBackedSpatialCapacityDebugScenarios
@@ -25,18 +26,47 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
     private const int SeedsPerStage = 256;
     private const int MinimumSuccesses = 243;
     private const long GameDayMilliseconds = 180000L;
-    private const int MaximumPhysicalStackUnits = 75;
     private const int NormalStorageLimitPermille = 700;
     private const int FaultStorageLimitPermille = 900;
     private const int ExactOracleMaximumRequirements = 4;
     private const int BeamWidth = 64;
+    private const int MaximumSearchNodesPerSeed = 250000;
+    // Node count is the deterministic complexity authority. Wall time is a
+    // fail-safe only: isolated batch workers can incur one-off GC or host
+    // scheduling pauses that must not turn the same search into a false
+    // negative. The aggregate five-minute bound remains authoritative.
+    private const long MaximumSearchMillisecondsPerSeed = 1000L;
+    private const long MaximumRunMilliseconds = 300000L;
+    private const long EditorUpdateBudgetMilliseconds = 8L;
+    private static IncrementalRun activeRun;
+    private static string lastRunStatus;
 
     [MenuItem("DungeonStory/V27/Verify Asset-Backed Spatial Capacity 256 Seeds")]
     public static void RunFromMenu()
     {
-        string report = RunAll();
-        Debug.Log(report);
+        Debug.Log(RunAll());
     }
+
+    public static void RunBatchModeAndExit()
+    {
+        if (!Application.isBatchMode)
+            throw new InvalidOperationException(
+                "SPATIAL_CAPACITY_BATCH_ENTRY_REQUIRES_BATCH_MODE");
+
+        try
+        {
+            Debug.Log(StartIncremental());
+            EditorApplication.update += ExitBatchModeWhenComplete;
+        }
+        catch (Exception exception)
+        {
+            Debug.LogException(exception);
+            EditorApplication.Exit(1);
+        }
+    }
+
+    [MenuItem("DungeonStory/V27/Cancel Asset-Backed Spatial Capacity Run")]
+    private static void CancelFromMenu() => Debug.Log(CancelIncremental());
 
     [MenuItem("DungeonStory/V27/Verify Asset-Backed Search Fallbacks Focused")]
     private static void RunSearchFallbacksFocusedFromMenu() =>
@@ -52,6 +82,7 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
             + $"exactRequirements={proof.ExactRequirementCount};"
             + $"beamRequirements={proof.BeamRequirementCount};"
             + $"beamWidth={BeamWidth};heuristicFalseNegative=0;"
+            + "seedBudgetFailLoud=PASS;boundedBeam=PASS;"
             + "uniqueAccessAdversarial=PASS;fixedEgressLanding=PASS";
     }
 
@@ -88,22 +119,13 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
     public static IReadOnlyList<V27AssetBackedStageCapacityAssessment>
         CaptureStageCapacityAssessments()
     {
-        BuildingSO[] assets = LoadAssets();
-        List<V27AssetBackedStageCapacityAssessment> values = new();
-        List<SeedResult> discardedRows = new();
-        int previousWidth = MinimumWidth;
-        foreach (int population in PopulationStagePortfolioCatalog.PopulationStages)
-        {
-            AssetRequirement[] requirements = BuildRequirements(assets, population);
-            StageResult stage = FindMinimumWidth(
-                population,
-                requirements,
-                Math.Max(previousWidth, AuthoredTargetWidth(population)),
-                discardedRows);
-            Require(stage.SuccessCount >= MinimumSuccesses,
-                $"DUNGEON_CAPACITY_MODEL_INVALID: population={population};"
-                + $"success={stage.SuccessCount}/{SeedsPerStage};width={stage.Width}.");
-            values.Add(new V27AssetBackedStageCapacityAssessment(
+        if (activeRun != null)
+            throw new InvalidOperationException(
+                "SPATIAL_CAPACITY_INCREMENTAL_RUN_IN_PROGRESS:"
+                + CaptureIncrementalStatus());
+        StageResult[] stages = LoadVerifiedStageResults();
+        return stages.Select(stage =>
+            new V27AssetBackedStageCapacityAssessment(
                 stage.Population,
                 stage.Width,
                 stage.SuccessCount,
@@ -113,43 +135,95 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
                 stage.MaximumNormalStorageUtilization,
                 stage.MaximumFaultStorageUtilization,
                 stage.FacilityCount,
-                stage.StorageCapacity,
+                stage.StorageCapacityGrams,
                 stage.MaximumUsedCells,
                 stage.MaximumExclusiveCells,
                 stage.MaximumRawAccessCells,
                 stage.MaximumSharedAccessCells,
                 stage.MinimumAccessOverlapSavings,
-                stage.OverflowCells));
-            previousWidth = stage.Width;
-        }
-        return values;
+                stage.OverflowCells))
+            .ToArray();
     }
 
-    public static string RunAll()
+    public static string RunAll() => StartIncremental();
+
+    public static string StartIncremental()
     {
+        if (activeRun != null)
+            return CaptureIncrementalStatus();
+
         BuildingSO[] assets = LoadAssets();
         string sourceDigest = CaptureSourceDigest();
         VerifySpatialSafetyContracts(assets);
         SearchProof searchProof = VerifySearchFallbacks(assets);
-        List<StageResult> stages = new();
-        List<SeedResult> allRows = new();
-        int previousWidth = MinimumWidth;
-        foreach (int population in PopulationStagePortfolioCatalog.PopulationStages)
-        {
-            AssetRequirement[] requirements = BuildRequirements(assets, population);
-            int authoredFloor = AuthoredTargetWidth(population);
-            StageResult stage = FindMinimumWidth(
-                population,
-                requirements,
-                Math.Max(previousWidth, authoredFloor),
-                allRows);
-            Require(stage.SuccessCount >= MinimumSuccesses,
-                $"DUNGEON_CAPACITY_MODEL_INVALID: population={population};"
-                + $"success={stage.SuccessCount}/{SeedsPerStage};width={stage.Width}.");
-            stages.Add(stage);
-            previousWidth = stage.Width;
-        }
+        activeRun = new IncrementalRun(assets, sourceDigest, searchProof);
+        EditorApplication.update += AdvanceIncremental;
+        return CaptureIncrementalStatus();
+    }
 
+    public static string CaptureIncrementalStatus() => activeRun != null
+        ? activeRun.Status
+        : lastRunStatus
+            ?? "RESULT=IDLE; verifier=asset-backed-spatial-capacity";
+
+    public static string CancelIncremental()
+    {
+        if (activeRun == null)
+            return CaptureIncrementalStatus();
+        string status = activeRun.Cancel();
+        EditorApplication.update -= AdvanceIncremental;
+        activeRun = null;
+        lastRunStatus = status;
+        return status;
+    }
+
+    private static void AdvanceIncremental()
+    {
+        IncrementalRun run = activeRun;
+        if (run == null)
+        {
+            EditorApplication.update -= AdvanceIncremental;
+            return;
+        }
+        try
+        {
+            if (!run.Advance(EditorUpdateBudgetMilliseconds))
+                return;
+            EditorApplication.update -= AdvanceIncremental;
+            activeRun = null;
+            lastRunStatus = run.Status;
+            Debug.Log(run.Status);
+        }
+        catch (Exception exception)
+        {
+            EditorApplication.update -= AdvanceIncremental;
+            activeRun = null;
+            lastRunStatus = "RESULT=FAIL; verifier=asset-backed-spatial-capacity;"
+                + $"exceptionType={exception.GetType().Name};"
+                + $"message={exception.Message.Replace('\r', ' ').Replace('\n', ' ')}";
+            Debug.LogException(exception);
+        }
+    }
+
+    private static void ExitBatchModeWhenComplete()
+    {
+        string status = CaptureIncrementalStatus();
+        if (status.StartsWith("RESULT=RUNNING", StringComparison.Ordinal))
+            return;
+
+        EditorApplication.update -= ExitBatchModeWhenComplete;
+        bool passed = status.StartsWith("RESULT=PASS", StringComparison.Ordinal);
+        Debug.Log("V27 spatial batch terminal: " + status);
+        EditorApplication.Exit(passed ? 0 : 1);
+    }
+
+    private static string CompleteRun(
+        IReadOnlyList<StageResult> stages,
+        IReadOnlyList<SeedResult> allRows,
+        string sourceDigest,
+        SearchProof searchProof,
+        long elapsedMilliseconds)
+    {
         string csv = BuildCsv(allRows);
         string csvDigest = HashText(csv);
         WriteText(SpatialCsvPath, csv);
@@ -165,9 +239,185 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
             + $" minimumHeadroomPermille={stages.Min(value => value.MinimumHeadroom)};"
             + $" maximumNormalUtilizationPermille={stages.Max(value => value.MaximumNormalUtilization)};"
             + $" maximumFaultUtilizationPermille={stages.Max(value => value.MaximumFaultUtilization)};"
-            + $" searchProof={searchProof.Marker};"
+            + $" searchProof={searchProof.Marker};elapsedMs={elapsedMilliseconds};"
             + " widths=" + string.Join(",", stages.Select(value =>
                 $"{value.Population}:{value.Width}"));
+    }
+
+    private sealed class IncrementalRun
+    {
+        private readonly BuildingSO[] assets;
+        private readonly string sourceDigest;
+        private readonly SearchProof searchProof;
+        private readonly int[] populations;
+        private readonly List<StageResult> stages = new();
+        private readonly List<SeedResult> allRows = new();
+        private readonly Stopwatch elapsed = Stopwatch.StartNew();
+        private List<SeedResult> widthRows;
+        private AssetRequirement[] requirements;
+        private WidthChoiceCatalog choiceCatalog;
+        private int stageIndex;
+        private int previousWidth = MinimumWidth;
+        private int population;
+        private int width;
+        private int nextSeed;
+
+        internal IncrementalRun(
+            BuildingSO[] assets,
+            string sourceDigest,
+            SearchProof searchProof)
+        {
+            this.assets = assets ?? throw new ArgumentNullException(nameof(assets));
+            this.sourceDigest = sourceDigest ?? throw new ArgumentNullException(
+                nameof(sourceDigest));
+            this.searchProof = searchProof;
+            populations = PopulationStagePortfolioCatalog.PopulationStages.ToArray();
+            if (populations.Length == 0)
+                throw new InvalidOperationException("SPATIAL_POPULATION_STAGES_MISSING");
+            BeginStage();
+            Status = "RESULT=RUNNING; verifier=asset-backed-spatial-capacity;"
+                + $"stage=1/{populations.Length};population={population};"
+                + $"width={width};completedSeeds=0/{SeedsPerStage};"
+                + $"runBudgetMs={MaximumRunMilliseconds};"
+                + $"seedNodeBudget={MaximumSearchNodesPerSeed};"
+                + $"seedTimeBudgetMs={MaximumSearchMillisecondsPerSeed}";
+        }
+
+        internal string Status { get; private set; }
+
+        internal bool Advance(long updateBudgetMilliseconds)
+        {
+            if (elapsed.ElapsedMilliseconds > MaximumRunMilliseconds)
+                throw new InvalidOperationException(
+                    "SPATIAL_SOLVER_RUN_BUDGET_EXCEEDED:"
+                    + $"elapsedMs={elapsed.ElapsedMilliseconds};"
+                    + $"limitMs={MaximumRunMilliseconds};population={population};"
+                    + $"width={width};nextSeed={nextSeed};"
+                    + $"completedStages={stages.Count}/{populations.Length}.");
+
+            Stopwatch update = Stopwatch.StartNew();
+            do
+            {
+                SearchBudget budget = SearchBudget.CreateBounded(
+                    population,
+                    width,
+                    nextSeed,
+                    MaximumSearchNodesPerSeed,
+                    MaximumSearchMillisecondsPerSeed);
+                SeedResult result = TryPlace(
+                    population,
+                    width,
+                    nextSeed,
+                    requirements,
+                    choiceCatalog,
+                    budget);
+                if (budget.Exceeded)
+                    throw new InvalidOperationException(budget.FailureCode);
+                widthRows.Add(result);
+                nextSeed++;
+
+                int failures = widthRows.Count(value => !value.Succeeded);
+                int maximumAllowedFailures = SeedsPerStage - MinimumSuccesses;
+                if (failures > maximumAllowedFailures)
+                {
+                    AdvanceWidth(
+                        $"threshold-impossible:{failures}>{maximumAllowedFailures}");
+                }
+                else if (nextSeed > SeedsPerStage)
+                {
+                    int successes = widthRows.Count(value => value.Succeeded);
+                    if (successes >= MinimumSuccesses)
+                    {
+                        CompleteStage(successes);
+                        if (stageIndex >= populations.Length)
+                        {
+                            Status = CompleteRun(
+                                stages,
+                                allRows,
+                                sourceDigest,
+                                searchProof,
+                                elapsed.ElapsedMilliseconds);
+                            return true;
+                        }
+                        BeginStage();
+                    }
+                    else
+                    {
+                        AdvanceWidth(
+                            $"completed-width:{successes}/{SeedsPerStage}");
+                    }
+                }
+
+                Status = "RESULT=RUNNING; verifier=asset-backed-spatial-capacity;"
+                    + $"stage={stageIndex + 1}/{populations.Length};"
+                    + $"population={population};width={width};"
+                    + $"completedSeeds={nextSeed - 1}/{SeedsPerStage};"
+                    + $"widthSuccesses={widthRows.Count(value => value.Succeeded)};"
+                    + $"elapsedMs={elapsed.ElapsedMilliseconds};"
+                    + $"runBudgetMs={MaximumRunMilliseconds};"
+                    + $"seedNodeBudget={MaximumSearchNodesPerSeed};"
+                    + $"seedTimeBudgetMs={MaximumSearchMillisecondsPerSeed}";
+            }
+            while (update.ElapsedMilliseconds < updateBudgetMilliseconds);
+            return false;
+        }
+
+        internal string Cancel()
+        {
+            Status = "RESULT=CANCELLED; verifier=asset-backed-spatial-capacity;"
+                + $"population={population};width={width};"
+                + $"completedSeeds={nextSeed - 1}/{SeedsPerStage};"
+                + $"completedStages={stages.Count}/{populations.Length};"
+                + $"elapsedMs={elapsed.ElapsedMilliseconds}";
+            return Status;
+        }
+
+        private void BeginStage()
+        {
+            population = populations[stageIndex];
+            requirements = BuildRequirements(assets, population);
+            width = Math.Max(previousWidth, AuthoredTargetWidth(population));
+            BeginWidth();
+        }
+
+        private void BeginWidth()
+        {
+            if (width > MaximumWidth)
+                throw new InvalidOperationException(
+                    $"DUNGEON_CAPACITY_MODEL_INVALID: population={population} "
+                    + $"exceeds the {MaximumWidth}-column safety bound.");
+            widthRows = new List<SeedResult>(SeedsPerStage);
+            nextSeed = 1;
+            choiceCatalog = WidthChoiceCatalog.Create(width, requirements);
+        }
+
+        private void AdvanceWidth(string reason)
+        {
+            int completed = widthRows.Count;
+            int successes = widthRows.Count(value => value.Succeeded);
+            int failedWidth = width;
+            width = checked(width + 2);
+            BeginWidth();
+            Status = "RESULT=RUNNING; verifier=asset-backed-spatial-capacity;"
+                + $"population={population};rejectedWidth={failedWidth};"
+                + $"evaluatedSeeds={completed}/{SeedsPerStage};"
+                + $"successes={successes};reason={reason};nextWidth={width}";
+        }
+
+        private void CompleteStage(int successes)
+        {
+            StageResult stage = CreateStageResult(
+                population,
+                width,
+                requirements,
+                widthRows,
+                successes);
+            foreach (SeedResult row in widthRows)
+                allRows.Add(row);
+            stages.Add(stage);
+            previousWidth = width;
+            stageIndex++;
+        }
     }
 
     public static string CaptureSourceDigest()
@@ -175,16 +425,24 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
         string[] sourcePaths =
         {
             "Assets/Scripts/Services/Economy/Editor/V27AssetBackedSpatialCapacityDebugScenarios.cs",
+            "Assets/Scripts/Services/Economy/Editor/V27SixAdultSurvivalLoopDebugScenarios.cs",
+            "Assets/Scripts/Services/Economy/V27SurvivalClosedLoopModels.cs",
             "Assets/Scripts/Services/Economy/V27PopulationCapacityModels.cs",
+            "Assets/Scripts/Services/Infrastructure/DungeonSpaceExpansionRuntime.cs",
             "Assets/Scripts/Services/Buildings/BuildableObject.SpatialAndInteraction.cs",
             "Assets/Scripts/Services/Grid/Building/GridBuildingRuntime.cs",
             "Assets/Scripts/Models/Economy/Content/WorldResourceRuntime.cs",
             "Assets/Scripts/Services/Economy/WorldResourcePortAdapters.cs",
-            "Assets/Scripts/Services/Wildlife/WildlifeHabitatDecorationRuntime.cs"
+            "Assets/Scripts/Services/Wildlife/WildlifeHabitatDecorationRuntime.cs",
+            "Assets/Resources/SO/Economy/Items/food_grain_porridge.asset",
+            "Assets/Resources/SO/Economy/Items/resource_twilight_grain.asset",
+            "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I01_깨끗한_물.asset",
+            "Assets/Resources/SO/Economy/Recipes/recipe_grain_porridge.asset",
+            "Assets/Resources/SO/Economy/Recipes/ResearchOverhaul/V3R01_깨끗한_물.asset",
+            "Assets/Resources/SO/Economy/Crops/crop_twilight_grain.asset",
+            "Assets/Resources/SO/Survival/SurvivalBalanceSettings.asset"
         };
         string[] authorityPaths = sourcePaths
-            .Concat(AssetDatabase.FindAssets("t:BuildingSO")
-                .Select(AssetDatabase.GUIDToAssetPath))
             .Where(path => !string.IsNullOrWhiteSpace(path))
             .Distinct(StringComparer.Ordinal)
             .OrderBy(path => path, StringComparer.Ordinal)
@@ -199,64 +457,213 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
                     absolutePath);
             canonical.Append(path.Replace('\\', '/'))
                 .Append('=')
-                .Append(HashFile(absolutePath))
+                .Append(HashSpatialSourceFile(absolutePath))
                 .Append('\n');
+        }
+        BuildingSO[] assets = LoadAssets();
+        foreach (int population in PopulationStagePortfolioCatalog.PopulationStages)
+        foreach (AssetRequirement requirement in BuildRequirements(assets, population))
+        {
+            BuildingSO asset = requirement.Asset;
+            string assetPath = AssetDatabase.GetAssetPath(asset)
+                .Replace('\\', '/');
+            Vector2Int[] footprint = asset.GetGridPosList(Vector2Int.zero)
+                .Distinct()
+                .OrderBy(value => value.y)
+                .ThenBy(value => value.x)
+                .ToArray();
+            canonical.Append("portfolio|")
+                .Append(population).Append('|')
+                .Append(requirement.StableId).Append('|')
+                .Append(assetPath).Append('|')
+                .Append(asset.width).Append('x').Append(asset.height).Append('|')
+                .Append((int)asset.layer).Append('|')
+                .Append(asset.IsGridMovement ? '1' : '0').Append('|')
+                .Append(asset.GetStorageMassCapacityGrams()).Append('|')
+                .Append(requirement.VisitsPerDay).Append('|')
+                .Append(requirement.OccupancyMilliseconds).Append('|')
+                .Append(requirement.FaultMultiplierPermille).Append('|');
+            foreach (Vector2Int cell in footprint)
+                canonical.Append(cell.x).Append(',').Append(cell.y).Append(';');
+            canonical.Append('\n');
         }
         return HashText(canonical.ToString());
     }
 
-    private static StageResult FindMinimumWidth(
-        int population,
-        IReadOnlyList<AssetRequirement> requirements,
-        int minimumWidth,
-        ICollection<SeedResult> finalRows)
+    private static StageResult[] LoadVerifiedStageResults()
     {
-        for (int width = Math.Max(MinimumWidth, minimumWidth);
-             width <= MaximumWidth;
-             width += 2)
+        if (!File.Exists(SpatialCsvPath) || !File.Exists(SharedCongestionPath))
+            throw new InvalidOperationException(
+                "SPATIAL_CAPACITY_CURRENT_SOURCE_ARTIFACT_MISSING: run "
+                + nameof(StartIncremental) + " and wait for RESULT=PASS.");
+        string csv = File.ReadAllText(SpatialCsvPath, new UTF8Encoding(false, true));
+        string report = File.ReadAllText(
+            SharedCongestionPath,
+            new UTF8Encoding(false, true));
+        if (!report.StartsWith("RESULT=PASS;", StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "SPATIAL_CAPACITY_ARTIFACT_NOT_PASS");
+        string expectedSourceDigest = ReadReportValue(report, "sourceDigest");
+        string expectedCsvDigest = ReadReportValue(report, "spatialCsvSha256");
+        string currentSourceDigest = CaptureSourceDigest();
+        string currentCsvDigest = HashText(csv);
+        if (!string.Equals(
+                expectedSourceDigest,
+                currentSourceDigest,
+                StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "SPATIAL_CAPACITY_ARTIFACT_STALE:"
+                + $"expectedSourceDigest={expectedSourceDigest};"
+                + $"currentSourceDigest={currentSourceDigest}.");
+        if (!string.Equals(
+                expectedCsvDigest,
+                currentCsvDigest,
+                StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "SPATIAL_CAPACITY_ARTIFACT_DIGEST_MISMATCH:"
+                + $"expectedCsvDigest={expectedCsvDigest};"
+                + $"currentCsvDigest={currentCsvDigest}.");
+
+        SeedResult[] rows = ParseSeedResults(csv);
+        int[] expectedPopulations = PopulationStagePortfolioCatalog.PopulationStages
+            .ToArray();
+        int[] actualPopulations = rows
+            .Select(value => value.Population)
+            .Distinct()
+            .OrderBy(value => value)
+            .ToArray();
+        if (!expectedPopulations.OrderBy(value => value)
+                .SequenceEqual(actualPopulations))
+            throw new InvalidOperationException(
+                "SPATIAL_CAPACITY_ARTIFACT_POPULATION_SET_MISMATCH:"
+                + $"expected={string.Join("|", expectedPopulations)};"
+                + $"actual={string.Join("|", actualPopulations)}.");
+
+        List<StageResult> stages = new(expectedPopulations.Length);
+        foreach (int population in expectedPopulations)
         {
-            List<SeedResult> candidates = new(SeedsPerStage);
-            for (int seed = 1; seed <= SeedsPerStage; seed++)
-                candidates.Add(TryPlace(population, width, seed, requirements));
-            SeedResult[] successes = candidates.Where(value => value.Succeeded).ToArray();
-            if (successes.Length < MinimumSuccesses)
-                continue;
-            foreach (SeedResult row in candidates)
-                finalRows.Add(row);
-            return new StageResult(
+            SeedResult[] stageRows = rows
+                .Where(value => value.Population == population)
+                .OrderBy(value => value.Seed)
+                .ToArray();
+            int[] widths = stageRows.Select(value => value.Width).Distinct().ToArray();
+            int[] seeds = stageRows.Select(value => value.Seed).Distinct().ToArray();
+            if (stageRows.Length != SeedsPerStage
+                || seeds.Length != SeedsPerStage
+                || seeds[0] != 1
+                || seeds[seeds.Length - 1] != SeedsPerStage
+                || widths.Length != 1)
+                throw new InvalidOperationException(
+                    "SPATIAL_CAPACITY_ARTIFACT_SEED_COVERAGE_INVALID:"
+                    + $"population={population};rows={stageRows.Length};"
+                    + $"uniqueSeeds={seeds.Length};widths={string.Join("|", widths)}.");
+            SeedResult[] successes = stageRows
+                .Where(value => value.Succeeded)
+                .ToArray();
+            Require(successes.Length >= MinimumSuccesses,
+                $"DUNGEON_CAPACITY_MODEL_INVALID: population={population};"
+                + $"success={successes.Length}/{SeedsPerStage};width={widths[0]}.");
+            stages.Add(new StageResult(
                 population,
-                width,
+                widths[0],
                 successes.Length,
                 successes.Min(value => value.HeadroomPermille),
                 successes.Max(value => value.PeakNormalUtilizationPermille),
                 successes.Max(value => value.PeakFaultUtilizationPermille),
                 successes.Max(value => value.NormalStorageUtilizationPermille),
                 successes.Max(value => value.FaultStorageUtilizationPermille),
-                requirements.Count,
-                successes.Min(value => value.StorageCapacityUnits),
+                successes.Max(value => value.PlacedFacilities),
+                successes.Min(value => value.StorageCapacityGrams),
                 successes.Max(value => value.UsedCells),
                 successes.Max(value => value.ExclusiveCells),
                 successes.Max(value => value.RawAccessCells),
                 successes.Max(value => value.SharedAccessCells),
                 successes.Min(value => value.AccessOverlapSavings),
-                successes.Max(value => value.OverflowCells));
+                successes.Max(value => value.OverflowCells)));
         }
-        throw new InvalidOperationException(
-            $"DUNGEON_CAPACITY_MODEL_INVALID: population={population} exceeds "
-            + $"the {MaximumWidth}-column safety bound.");
+        return stages.ToArray();
     }
+
+    private static string ReadReportValue(string report, string key)
+    {
+        string prefix = key + "=";
+        string line = (report ?? string.Empty)
+            .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+            .SingleOrDefault(value => value.StartsWith(prefix, StringComparison.Ordinal));
+        if (line == null)
+            throw new InvalidOperationException(
+                "SPATIAL_CAPACITY_ARTIFACT_MANIFEST_FIELD_MISSING:" + key);
+        return line.Substring(prefix.Length);
+    }
+
+    private static SeedResult[] ParseSeedResults(string csv)
+    {
+        string[] lines = (csv ?? string.Empty)
+            .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+        const string Header =
+            "population,width,seed,succeeded,failureCode,solverMode,usedCells,exclusiveCells,rawAccessCells,sharedAccessCells,headroomPermille,accessOverlapSavings,peakNormalUtilizationPermille,peakFaultUtilizationPermille,normalStorageUtilizationPermille,faultStorageUtilizationPermille,storageCapacityGrams,normalStockMassGrams,faultStockMassGrams,placedFacilities,overflowCells";
+        if (lines.Length < 2 || !string.Equals(lines[0], Header, StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "SPATIAL_CAPACITY_ARTIFACT_SCHEMA_MISMATCH");
+        List<SeedResult> rows = new(lines.Length - 1);
+        for (int index = 1; index < lines.Length; index++)
+        {
+            string[] fields = lines[index].Split(',');
+            if (fields.Length != 21)
+                throw new InvalidOperationException(
+                    "SPATIAL_CAPACITY_ARTIFACT_ROW_INVALID:line=" + (index + 1));
+            rows.Add(new SeedResult(
+                ParseInt(fields[0]),
+                ParseInt(fields[1]),
+                ParseInt(fields[2]),
+                ParseBool(fields[3]),
+                fields[4],
+                ParseInt(fields[6]),
+                ParseInt(fields[7]),
+                ParseInt(fields[8]),
+                ParseInt(fields[9]),
+                ParseInt(fields[10]),
+                ParseInt(fields[11]),
+                ParseInt(fields[12]),
+                ParseInt(fields[13]),
+                ParseInt(fields[14]),
+                ParseInt(fields[15]),
+                ParseLong(fields[16]),
+                ParseLong(fields[17]),
+                ParseLong(fields[18]),
+                ParseInt(fields[19]),
+                ParseInt(fields[20]),
+                fields[5]));
+        }
+        return rows.ToArray();
+    }
+
+    private static int ParseInt(string token) => int.Parse(
+        token,
+        System.Globalization.NumberStyles.Integer,
+        System.Globalization.CultureInfo.InvariantCulture);
+
+    private static long ParseLong(string token) => long.Parse(
+        token,
+        System.Globalization.NumberStyles.Integer,
+        System.Globalization.CultureInfo.InvariantCulture);
+
+    private static bool ParseBool(string token) => token switch
+    {
+        "true" => true,
+        "false" => false,
+        _ => throw new FormatException("Non-canonical Boolean token: " + token)
+    };
 
     private static SeedResult TryPlace(
         int population,
         int width,
         int seed,
-        IReadOnlyList<AssetRequirement> source)
+        IReadOnlyList<AssetRequirement> source,
+        WidthChoiceCatalog choiceCatalog,
+        SearchBudget budget)
     {
         Grid grid = CreateGrid(width);
-        BuildingPlacementValidator validator = new(
-            new GridPlacementValidator(),
-            () => new BuildingConditionContext(
-                null, null, null, IgnoreUnlocksDebugRules.Instance));
         HashSet<Vector2Int> fixedCells = new()
         {
             new Vector2Int(0, 1),
@@ -276,10 +683,10 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
 
         PlacementSearchResult search = SolvePlacements(
             grid,
-            validator,
             requirements,
             seed,
-            fixedCells);
+            choiceCatalog,
+            budget);
         if (!search.Succeeded)
             return SeedResult.Fail(population, width, seed, search.FailureCode);
 
@@ -371,27 +778,55 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
             faultPeak,
             storage.NormalPermille,
             storage.FaultPermille,
-            storage.StorageCapacityUnits,
-            storage.NormalStockUnits,
-            storage.FaultStockUnits,
+            storage.StorageCapacityGrams,
+            storage.NormalStockMassGrams,
+            storage.FaultStockMassGrams,
             placed.Count,
             freeContainment.Length,
             search.Mode);
     }
 
+    private static StageResult CreateStageResult(
+        int population,
+        int width,
+        IReadOnlyList<AssetRequirement> requirements,
+        IReadOnlyList<SeedResult> candidates,
+        int successCount)
+    {
+        SeedResult[] successes = candidates
+            .Where(value => value.Succeeded)
+            .ToArray();
+        Require(successes.Length == successCount && successCount >= MinimumSuccesses,
+            $"DUNGEON_CAPACITY_MODEL_INVALID: population={population};"
+            + $"success={successes.Length}/{SeedsPerStage};width={width}.");
+        return new StageResult(
+            population,
+            width,
+            successCount,
+            successes.Min(value => value.HeadroomPermille),
+            successes.Max(value => value.PeakNormalUtilizationPermille),
+            successes.Max(value => value.PeakFaultUtilizationPermille),
+            successes.Max(value => value.NormalStorageUtilizationPermille),
+            successes.Max(value => value.FaultStorageUtilizationPermille),
+            requirements.Count,
+            successes.Min(value => value.StorageCapacityGrams),
+            successes.Max(value => value.UsedCells),
+            successes.Max(value => value.ExclusiveCells),
+            successes.Max(value => value.RawAccessCells),
+            successes.Max(value => value.SharedAccessCells),
+            successes.Min(value => value.AccessOverlapSavings),
+            successes.Max(value => value.OverflowCells));
+    }
+
     private static PlacementSearchResult SolvePlacements(
         Grid grid,
-        BuildingPlacementValidator validator,
         IReadOnlyList<AssetRequirement> requirements,
         int seed,
-        ISet<Vector2Int> fixedCells)
+        WidthChoiceCatalog choiceCatalog,
+        SearchBudget budget)
     {
         PlacementChoice[][] candidates = requirements
-            .Select(requirement => EnumerateChoices(
-                grid,
-                validator,
-                requirement,
-                fixedCells))
+            .Select(requirement => choiceCatalog.Get(requirement.Asset))
             .ToArray();
         for (int index = 0; index < candidates.Length; index++)
         {
@@ -405,8 +840,11 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
                 candidates,
                 seed,
                 grid.width,
-                out PlacementSearchState greedy))
+                out PlacementSearchState greedy,
+                budget))
             return PlacementSearchResult.Pass("greedy", greedy.Choices);
+        if (budget.Exceeded)
+            return PlacementSearchResult.Fail(budget.FailureCode);
 
         if (requirements.Count <= ExactOracleMaximumRequirements)
         {
@@ -415,8 +853,11 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
                     candidates,
                     seed,
                     grid.width,
-                    out PlacementSearchState exact))
+                    out PlacementSearchState exact,
+                    budget))
                 return PlacementSearchResult.Pass("exact", exact.Choices);
+            if (budget.Exceeded)
+                return PlacementSearchResult.Fail(budget.FailureCode);
             return PlacementSearchResult.Fail("EXACT_ASSET_PLACEMENT_IMPOSSIBLE");
         }
 
@@ -426,8 +867,11 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
                 seed,
                 grid.width,
                 BeamWidth,
-                out PlacementSearchState beam))
+                out PlacementSearchState beam,
+                budget))
             return PlacementSearchResult.Pass("beam", beam.Choices);
+        if (budget.Exceeded)
+            return PlacementSearchResult.Fail(budget.FailureCode);
         return PlacementSearchResult.Fail("BEAM_ASSET_PLACEMENT_EXHAUSTED");
     }
 
@@ -480,27 +924,40 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
         IReadOnlyList<PlacementChoice[]> candidates,
         int seed,
         int width,
-        out PlacementSearchState result)
+        out PlacementSearchState result,
+        SearchBudget budget = null)
     {
+        budget ??= SearchBudget.CreateUnbounded();
         PlacementSearchState state = PlacementSearchState.Empty;
         for (int index = 0; index < requirements.Count; index++)
         {
             AssetRequirement requirement = requirements[index];
-            PlacementChoice choice = candidates[index]
-                .Where(value => CanAdd(state, value))
-                .OrderBy(value => IncrementalScore(
-                    state, value, requirement, seed, width))
-                .ThenBy(value => value.Anchor.y)
-                .ThenBy(value => value.Anchor.x)
-                .FirstOrDefault();
+            PlacementChoice choice = default;
+            long bestScore = long.MaxValue;
+            foreach (PlacementChoice candidate in candidates[index])
+            {
+                if (!budget.TryVisit("greedy") || !CanAdd(state, candidate))
+                    continue;
+                long score = IncrementalScore(
+                    state, candidate, requirement, seed, width);
+                if (choice.Valid && (score > bestScore
+                    || score == bestScore
+                    && CompareAnchor(candidate.Anchor, choice.Anchor) >= 0))
+                    continue;
+                choice = candidate;
+                bestScore = score;
+            }
+            if (budget.Exceeded)
+            {
+                result = null;
+                return false;
+            }
             if (!choice.Valid)
             {
                 result = null;
                 return false;
             }
-            state = state.Add(
-                choice,
-                IncrementalScore(state, choice, requirement, seed, width));
+            state = state.Add(choice, bestScore);
         }
         result = state;
         return true;
@@ -512,28 +969,37 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
         int seed,
         int width,
         int beamWidth,
-        out PlacementSearchState result)
+        out PlacementSearchState result,
+        SearchBudget budget = null)
     {
+        budget ??= SearchBudget.CreateUnbounded();
         List<PlacementSearchState> frontier = new() { PlacementSearchState.Empty };
         for (int index = 0; index < requirements.Count; index++)
         {
             AssetRequirement requirement = requirements[index];
-            List<PlacementSearchState> next = new();
+            List<PlacementSearchState> next = new(beamWidth);
             foreach (PlacementSearchState state in frontier)
             foreach (PlacementChoice choice in candidates[index])
             {
+                if (!budget.TryVisit("beam"))
+                {
+                    result = null;
+                    return false;
+                }
                 if (!CanAdd(state, choice))
                     continue;
-                next.Add(state.Add(
-                    choice,
-                    IncrementalScore(state, choice, requirement, seed, width)));
+                long incrementalScore = IncrementalScore(
+                    state, choice, requirement, seed, width);
+                long totalScore = checked(state.TotalScore + incrementalScore);
+                if (next.Count == beamWidth
+                    && totalScore > next[next.Count - 1].TotalScore)
+                    continue;
+                AddBoundedBeamCandidate(
+                    next,
+                    state.Add(choice, incrementalScore),
+                    beamWidth);
             }
-            frontier = next
-                .OrderBy(value => value.TotalScore)
-                .ThenBy(value => value.UsedCellCount)
-                .ThenBy(value => value.CanonicalKey, StringComparer.Ordinal)
-                .Take(beamWidth)
-                .ToList();
+            frontier = next;
             if (frontier.Count == 0)
             {
                 result = null;
@@ -549,11 +1015,15 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
         IReadOnlyList<PlacementChoice[]> candidates,
         int seed,
         int width,
-        out PlacementSearchState result)
+        out PlacementSearchState result,
+        SearchBudget budget = null)
     {
+        budget ??= SearchBudget.CreateUnbounded();
         PlacementSearchState found = null;
         bool Search(int index, PlacementSearchState state)
         {
+            if (!budget.TryVisit("exact"))
+                return false;
             if (index >= requirements.Count)
             {
                 found = state;
@@ -569,6 +1039,8 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
                 .ToArray();
             foreach (PlacementChoice choice in ordered)
             {
+                if (!budget.TryVisit("exact-candidate"))
+                    return false;
                 if (Search(
                         index + 1,
                         state.Add(
@@ -583,6 +1055,47 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
         bool succeeded = Search(0, PlacementSearchState.Empty);
         result = found;
         return succeeded;
+    }
+
+    private static int CompareAnchor(Vector2Int left, Vector2Int right)
+    {
+        int y = left.y.CompareTo(right.y);
+        return y != 0 ? y : left.x.CompareTo(right.x);
+    }
+
+    private static int CompareSearchState(
+        PlacementSearchState left,
+        PlacementSearchState right)
+    {
+        int score = left.TotalScore.CompareTo(right.TotalScore);
+        if (score != 0)
+            return score;
+        int used = left.UsedCellCount.CompareTo(right.UsedCellCount);
+        return used != 0
+            ? used
+            : string.CompareOrdinal(left.CanonicalKey, right.CanonicalKey);
+    }
+
+    private static void AddBoundedBeamCandidate(
+        List<PlacementSearchState> destination,
+        PlacementSearchState candidate,
+        int capacity)
+    {
+        int low = 0;
+        int high = destination.Count;
+        while (low < high)
+        {
+            int middle = low + ((high - low) >> 1);
+            if (CompareSearchState(destination[middle], candidate) <= 0)
+                low = middle + 1;
+            else
+                high = middle;
+        }
+        if (low >= capacity)
+            return;
+        destination.Insert(low, candidate);
+        if (destination.Count > capacity)
+            destination.RemoveAt(destination.Count - 1);
     }
 
     private static bool CanAdd(
@@ -762,6 +1275,26 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
                     beamB.CanonicalKey,
                     StringComparison.Ordinal),
             "ACTUAL_ASSET_DETERMINISTIC_BEAM_PROOF_FAILED.");
+        SearchBudget exhaustedBudget = SearchBudget.CreateBounded(
+            population: 0,
+            width: fixtureWidth,
+            seed: seed,
+            maximumNodes: 1,
+            maximumMilliseconds: 10000L);
+        bool budgetedBeam = TryBeamSearch(
+            largeRequirements,
+            largeCandidates,
+            seed,
+            fixtureWidth,
+            BeamWidth,
+            out _,
+            exhaustedBudget);
+        Require(!budgetedBeam
+                && exhaustedBudget.Exceeded
+                && exhaustedBudget.FailureCode.StartsWith(
+                    "SPATIAL_SOLVER_SEED_BUDGET_EXCEEDED:",
+                    StringComparison.Ordinal),
+            "ACTUAL_ASSET_SEARCH_BUDGET_FAIL_LOUD_PROOF_FAILED.");
         return new SearchProof(
             AssetStableId(asset),
             smallRequirements.Length,
@@ -855,19 +1388,16 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
             DivideCeiling(population, restCapacity), population, 4000, 1100);
 
         BuildingSO storage = Select(assets,
-            value => value.GetStorageCapacity() > 0 && value.StoresAllCategories(),
+            value => value.GetStorageMassCapacityGrams() > 0L
+                && value.StoresAllCategories(),
             preferStorageDensity: true);
-        int normalStockUnits = checked(
-            survival.SevenDayGrainUnits
-            + survival.ImmediateMealUnits
-            + survival.SevenDayWaterUnits);
-        int requiredNormalCapacity = DivideCeiling(
-            checked(normalStockUnits * 1000),
+        long requiredNormalCapacityGrams = DivideCeiling(
+            checked(survival.RequiredStorageMassGrams * 1000L),
             NormalStorageLimitPermille);
         Add(values, "storage", storage,
-            DivideCeiling(
-                requiredNormalCapacity,
-                Math.Max(1, storage.GetStorageCapacity())),
+            checked((int)DivideCeiling(
+                requiredNormalCapacityGrams,
+                storage.GetStorageMassCapacityGrams())),
             population * 4, 700, 1600);
 
         if (population >= 3)
@@ -937,10 +1467,10 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
     {
         BuildingSO selected = assets.Where(predicate)
             .OrderBy(value => preferStorageDensity
-                ? -(decimal)value.GetStorageCapacity()
+                ? -(decimal)value.GetStorageMassCapacityGrams()
                     / Math.Max(1, value.width * value.height)
                 : value.width * value.height)
-            .ThenByDescending(value => value.GetStorageCapacity())
+            .ThenByDescending(value => value.GetStorageMassCapacityGrams())
             .ThenBy(value => value.GetFacilityCode(), StringComparer.Ordinal)
             .ThenBy(value => value.name, StringComparer.Ordinal)
             .FirstOrDefault();
@@ -1026,12 +1556,21 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
         + " faultLimitPermille=900\n"
         + $"sourceDigest={sourceDigest}\n"
         + $"spatialCsvSha256={csvDigest}\n"
+        + "PASS INCREMENTAL_EDITOR_EXECUTION "
+        + $"seedsPerStage={SeedsPerStage};minimumSuccesses={MinimumSuccesses};"
+        + $"updateBudgetMs={EditorUpdateBudgetMilliseconds};"
+        + $"seedNodeBudget={MaximumSearchNodesPerSeed};"
+        + $"seedTimeBudgetMs={MaximumSearchMillisecondsPerSeed};"
+        + $"runBudgetMs={MaximumRunMilliseconds};"
+        + "thresholdImpossibleEarlyExit=true;partialArtifactPublish=false\n"
         + $"PASS ACTUAL_ASSET_EXACT_BACKTRACKING_ORACLE asset={searchProof.AssetId};"
         + $"requirements={searchProof.ExactRequirementCount};"
         + $"solution={searchProof.ExactCanonicalKey}\n"
         + $"PASS ACTUAL_ASSET_DETERMINISTIC_BEAM_FALLBACK asset={searchProof.AssetId};"
         + $"requirements={searchProof.BeamRequirementCount};beamWidth={BeamWidth};"
         + $"solution={searchProof.BeamCanonicalKey}\n"
+        + "PASS ACTUAL_ASSET_SEARCH_BUDGET_FAIL_LOUD "
+        + "nodeAndTimeBudgetExhaustion=inconclusive-error\n"
         + "PASS ACTUAL_ASSET_UNIQUE_ACCESS_ADVERSARIAL_REJECTED "
         + "sameSoleStand=false;multiStandSharedCorridor=true\n"
         + "PASS ACTUAL_ASSET_FIXED_EGRESS_LANDING_PROTECTED "
@@ -1076,7 +1615,8 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
 
     private static int AuthoredTargetWidth(int population) => population switch
     {
-        <= 6 => 27,
+        <= 3 => PopulationStagePortfolioCatalog.InteriorColumnsForPopulation(population),
+        6 => DungeonSpaceExpansionCatalog.InitialInteriorColumns,
         <= 12 => DungeonSpaceExpansionCatalog.BasicSectorTargetColumns,
         <= 18 => DungeonSpaceExpansionCatalog.SupportedSectorTargetColumns,
         _ => DungeonSpaceExpansionCatalog.DeepSectorTargetColumns
@@ -1093,7 +1633,7 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
     private static string BuildCsv(IEnumerable<SeedResult> source)
     {
         StringBuilder builder = new(
-            "population,width,seed,succeeded,failureCode,solverMode,usedCells,exclusiveCells,rawAccessCells,sharedAccessCells,headroomPermille,accessOverlapSavings,peakNormalUtilizationPermille,peakFaultUtilizationPermille,normalStorageUtilizationPermille,faultStorageUtilizationPermille,storageCapacityUnits,normalStockUnits,faultStockUnits,placedFacilities,overflowCells\r\n");
+            "population,width,seed,succeeded,failureCode,solverMode,usedCells,exclusiveCells,rawAccessCells,sharedAccessCells,headroomPermille,accessOverlapSavings,peakNormalUtilizationPermille,peakFaultUtilizationPermille,normalStorageUtilizationPermille,faultStorageUtilizationPermille,storageCapacityGrams,normalStockMassGrams,faultStockMassGrams,placedFacilities,overflowCells\r\n");
         foreach (SeedResult value in source
                      .OrderBy(value => value.Population)
                      .ThenBy(value => value.Seed))
@@ -1111,9 +1651,9 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
                 .Append(value.PeakFaultUtilizationPermille).Append(',')
                 .Append(value.NormalStorageUtilizationPermille).Append(',')
                 .Append(value.FaultStorageUtilizationPermille).Append(',')
-                .Append(value.StorageCapacityUnits).Append(',')
-                .Append(value.NormalStockUnits).Append(',')
-                .Append(value.FaultStockUnits).Append(',')
+                .Append(value.StorageCapacityGrams).Append(',')
+                .Append(value.NormalStockMassGrams).Append(',')
+                .Append(value.FaultStockMassGrams).Append(',')
                 .Append(value.PlacedFacilities).Append(',').Append(value.OverflowCells)
                 .Append("\r\n");
         }
@@ -1139,6 +1679,36 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
         using FileStream stream = File.OpenRead(path);
         using SHA256 sha = SHA256.Create();
         return Hex(sha.ComputeHash(stream));
+    }
+
+    private static string HashSpatialSourceFile(string path)
+    {
+        if (!string.Equals(
+                Path.GetExtension(path),
+                ".asset",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return HashFile(path);
+        }
+
+        string[] lines = File.ReadAllText(path, new UTF8Encoding(false, true))
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace('\r', '\n')
+            .Split('\n');
+        for (int index = 0; index < lines.Length; index++)
+        {
+            string trimmed = lines[index].TrimStart();
+            if (!trimmed.StartsWith("unitPrice:", StringComparison.Ordinal)
+                && !trimmed.StartsWith("saleRate:", StringComparison.Ordinal))
+            {
+                continue;
+            }
+            int indentation = lines[index].Length - trimmed.Length;
+            string field = trimmed.Substring(0, trimmed.IndexOf(':'));
+            lines[index] = new string(' ', indentation) + field
+                + ": <spatially-irrelevant-market-authority>";
+        }
+        return HashText(string.Join("\n", lines));
     }
 
     private static string Hex(byte[] bytes)
@@ -1183,32 +1753,33 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
     {
         SurvivalClosedLoopAssessment survival =
             V27SixAdultSurvivalLoopDebugScenarios.CapturePopulationStage(population);
-        int normalStock = checked(
-            survival.SevenDayGrainUnits
-            + survival.ImmediateMealUnits
-            + survival.SevenDayWaterUnits);
-        int productionBurst = Math.Max(
-            MaximumPhysicalStackUnits,
+        long normalStockMassGrams = survival.RequiredStorageMassGrams;
+        long productionBurstMassGrams = Math.Max(
+            survival.MaximumRelevantStackMassGrams,
             Math.Max(
-                DivideCeiling((int)survival.GrossGrainMilliUnitsPerDay, 1000),
-                DivideCeiling((int)survival.GrossMealMilliUnitsPerDay, 1000)));
-        int faultStock = checked(normalStock + productionBurst);
-        int storageCapacity = requirements
+                survival.GrossGrainMassGramsPerDay,
+                survival.GrossMealMassGramsPerDay));
+        long faultStockMassGrams = checked(
+            normalStockMassGrams + productionBurstMassGrams);
+        long storageCapacityGrams = requirements
             .Where(value => value.StableId.StartsWith(
                 "facility:storage:", StringComparison.Ordinal))
-            .Sum(value => value.Asset.GetStorageCapacity());
-        int overflowCapacity = checked(overflowCells * MaximumPhysicalStackUnits);
-        if (storageCapacity <= 0)
+            .Sum(value => value.Asset.GetStorageMassCapacityGrams());
+        long overflowCapacityGrams = checked(
+            overflowCells * survival.MaximumRelevantStackMassGrams);
+        if (storageCapacityGrams <= 0L)
             throw new InvalidOperationException(
                 $"STORAGE_CAPACITY_AUTHORITY_MISSING: population={population}.");
         return new StorageUtilization(
-            storageCapacity,
-            normalStock,
-            faultStock,
-            DivideCeiling(checked(normalStock * 1000), storageCapacity),
-            DivideCeiling(
-                checked(faultStock * 1000),
-                checked(storageCapacity + overflowCapacity)));
+            storageCapacityGrams,
+            normalStockMassGrams,
+            faultStockMassGrams,
+            checked((int)DivideCeiling(
+                checked(normalStockMassGrams * 1000L),
+                storageCapacityGrams)),
+            checked((int)DivideCeiling(
+                checked(faultStockMassGrams * 1000L),
+                checked(storageCapacityGrams + overflowCapacityGrams))));
     }
 
     private static long DivideCeiling(long numerator, long denominator) => checked(
@@ -1244,6 +1815,133 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
     {
         if (!condition)
             throw new InvalidOperationException(message);
+    }
+
+    private sealed class WidthChoiceCatalog
+    {
+        private readonly IReadOnlyDictionary<BuildingSO, PlacementChoice[]> choices;
+
+        private WidthChoiceCatalog(
+            IReadOnlyDictionary<BuildingSO, PlacementChoice[]> choices) =>
+            this.choices = choices;
+
+        internal static WidthChoiceCatalog Create(
+            int width,
+            IReadOnlyList<AssetRequirement> requirements)
+        {
+            Grid grid = CreateGrid(width);
+            BuildingPlacementValidator validator = new(
+                new GridPlacementValidator(),
+                () => new BuildingConditionContext(
+                    null, null, null, IgnoreUnlocksDebugRules.Instance));
+            HashSet<Vector2Int> fixedCells = new()
+            {
+                new Vector2Int(0, 1),
+                new Vector2Int(1, 1)
+            };
+            Dictionary<BuildingSO, PlacementChoice[]> values = new();
+            foreach (AssetRequirement requirement in requirements
+                         .GroupBy(value => value.Asset)
+                         .Select(value => value.First())
+                         .OrderBy(value => AssetStableId(value.Asset),
+                             StringComparer.Ordinal))
+            {
+                values.Add(
+                    requirement.Asset,
+                    EnumerateChoices(
+                        grid,
+                        validator,
+                        requirement,
+                        fixedCells));
+            }
+            return new WidthChoiceCatalog(values);
+        }
+
+        internal PlacementChoice[] Get(BuildingSO asset)
+        {
+            if (asset != null && choices.TryGetValue(asset, out PlacementChoice[] value))
+                return value;
+            throw new InvalidOperationException(
+                "SPATIAL_CHOICE_CATALOG_ASSET_MISSING:"
+                + AssetStableId(asset));
+        }
+    }
+
+    private sealed class SearchBudget
+    {
+        private readonly int population;
+        private readonly int width;
+        private readonly int seed;
+        private readonly int maximumNodes;
+        private readonly long maximumMilliseconds;
+        private readonly Stopwatch elapsed;
+        private readonly bool bounded;
+        private string phase = string.Empty;
+
+        private SearchBudget(
+            int population,
+            int width,
+            int seed,
+            int maximumNodes,
+            long maximumMilliseconds,
+            bool bounded)
+        {
+            this.population = population;
+            this.width = width;
+            this.seed = seed;
+            this.maximumNodes = maximumNodes;
+            this.maximumMilliseconds = maximumMilliseconds;
+            this.bounded = bounded;
+            elapsed = Stopwatch.StartNew();
+        }
+
+        internal static SearchBudget CreateBounded(
+            int population,
+            int width,
+            int seed,
+            int maximumNodes,
+            long maximumMilliseconds) => new(
+                population,
+                width,
+                seed,
+                maximumNodes,
+                maximumMilliseconds,
+                bounded: true);
+
+        internal static SearchBudget CreateUnbounded() => new(
+            0,
+            0,
+            0,
+            int.MaxValue,
+            long.MaxValue,
+            bounded: false);
+
+        internal int VisitedNodes { get; private set; }
+        internal bool Exceeded { get; private set; }
+        internal string FailureCode =>
+            "SPATIAL_SOLVER_SEED_BUDGET_EXCEEDED:"
+            + $"population={population};width={width};seed={seed};"
+            + $"phase={phase};nodes={VisitedNodes};nodeLimit={maximumNodes};"
+            + $"elapsedMs={elapsed.ElapsedMilliseconds};"
+            + $"timeLimitMs={maximumMilliseconds}";
+
+        internal bool TryVisit(string nextPhase)
+        {
+            if (!bounded)
+                return true;
+            if (Exceeded)
+                return false;
+            phase = nextPhase ?? string.Empty;
+            VisitedNodes = checked(VisitedNodes + 1);
+            if (VisitedNodes > maximumNodes
+                || (VisitedNodes & 255) == 0
+                && elapsed.ElapsedMilliseconds > maximumMilliseconds)
+            {
+                Exceeded = true;
+                return false;
+            }
+            return true;
+        }
     }
 
     private sealed class IgnoreUnlocksDebugRules : IDungeonDebugRuleQuery
@@ -1319,34 +2017,30 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
             IReadOnlyList<PlacementChoice> choices,
             HashSet<Vector2Int> exclusive,
             HashSet<Vector2Int> sharedAccess,
-            long totalScore)
+            long totalScore,
+            int usedCellCount,
+            string canonicalKey)
         {
             Choices = choices;
             Exclusive = exclusive;
             SharedAccess = sharedAccess;
             TotalScore = totalScore;
-            CanonicalKey = string.Join("|", choices.Select(value =>
-                $"{AssetStableId(value.Asset)}@{value.Anchor.x}:{value.Anchor.y}"));
+            UsedCellCount = usedCellCount;
+            CanonicalKey = canonicalKey ?? string.Empty;
         }
 
         internal static PlacementSearchState Empty { get; } = new(
             Array.Empty<PlacementChoice>(),
             new HashSet<Vector2Int>(),
             new HashSet<Vector2Int>(),
-            0L);
+            0L,
+            0,
+            string.Empty);
         internal IReadOnlyList<PlacementChoice> Choices { get; }
         internal HashSet<Vector2Int> Exclusive { get; }
         internal HashSet<Vector2Int> SharedAccess { get; }
         internal long TotalScore { get; }
-        internal int UsedCellCount
-        {
-            get
-            {
-                HashSet<Vector2Int> used = new(Exclusive);
-                used.UnionWith(SharedAccess);
-                return used.Count;
-            }
-        }
+        internal int UsedCellCount { get; }
         internal string CanonicalKey { get; }
 
         internal PlacementSearchState Add(
@@ -1358,11 +2052,21 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
             exclusive.UnionWith(choice.Footprint);
             HashSet<Vector2Int> sharedAccess = new(SharedAccess);
             sharedAccess.UnionWith(choice.Access);
+            int overlap = sharedAccess.Count(value => exclusive.Contains(value));
+            int usedCellCount = checked(
+                exclusive.Count + sharedAccess.Count - overlap);
+            string fragment = $"{AssetStableId(choice.Asset)}@"
+                + $"{choice.Anchor.x}:{choice.Anchor.y}";
+            string canonicalKey = CanonicalKey.Length == 0
+                ? fragment
+                : CanonicalKey + "|" + fragment;
             return new PlacementSearchState(
                 choices,
                 exclusive,
                 sharedAccess,
-                checked(TotalScore + score));
+                checked(TotalScore + score),
+                usedCellCount,
+                canonicalKey);
         }
     }
 
@@ -1443,9 +2147,9 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
             int peakFaultUtilizationPermille,
             int normalStorageUtilizationPermille,
             int faultStorageUtilizationPermille,
-            int storageCapacityUnits,
-            int normalStockUnits,
-            int faultStockUnits,
+            long storageCapacityGrams,
+            long normalStockMassGrams,
+            long faultStockMassGrams,
             int placedFacilities,
             int overflowCells,
             string solverMode)
@@ -1465,9 +2169,9 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
             PeakFaultUtilizationPermille = peakFaultUtilizationPermille;
             NormalStorageUtilizationPermille = normalStorageUtilizationPermille;
             FaultStorageUtilizationPermille = faultStorageUtilizationPermille;
-            StorageCapacityUnits = storageCapacityUnits;
-            NormalStockUnits = normalStockUnits;
-            FaultStockUnits = faultStockUnits;
+            StorageCapacityGrams = storageCapacityGrams;
+            NormalStockMassGrams = normalStockMassGrams;
+            FaultStockMassGrams = faultStockMassGrams;
             PlacedFacilities = placedFacilities;
             OverflowCells = overflowCells;
             SolverMode = solverMode ?? string.Empty;
@@ -1490,9 +2194,9 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
         internal int PeakFaultUtilizationPermille { get; }
         internal int NormalStorageUtilizationPermille { get; }
         internal int FaultStorageUtilizationPermille { get; }
-        internal int StorageCapacityUnits { get; }
-        internal int NormalStockUnits { get; }
-        internal int FaultStockUnits { get; }
+        internal long StorageCapacityGrams { get; }
+        internal long NormalStockMassGrams { get; }
+        internal long FaultStockMassGrams { get; }
         internal int PlacedFacilities { get; }
         internal int OverflowCells { get; }
         internal string SolverMode { get; }
@@ -1510,7 +2214,7 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
             int maximumNormalStorageUtilization,
             int maximumFaultStorageUtilization,
             int facilityCount,
-            int storageCapacity,
+            long storageCapacityGrams,
             int maximumUsedCells,
             int maximumExclusiveCells,
             int maximumRawAccessCells,
@@ -1527,7 +2231,7 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
             MaximumNormalStorageUtilization = maximumNormalStorageUtilization;
             MaximumFaultStorageUtilization = maximumFaultStorageUtilization;
             FacilityCount = facilityCount;
-            StorageCapacity = storageCapacity;
+            StorageCapacityGrams = storageCapacityGrams;
             MaximumUsedCells = maximumUsedCells;
             MaximumExclusiveCells = maximumExclusiveCells;
             MaximumRawAccessCells = maximumRawAccessCells;
@@ -1544,7 +2248,7 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
         internal int MaximumNormalStorageUtilization { get; }
         internal int MaximumFaultStorageUtilization { get; }
         internal int FacilityCount { get; }
-        internal int StorageCapacity { get; }
+        internal long StorageCapacityGrams { get; }
         internal int MaximumUsedCells { get; }
         internal int MaximumExclusiveCells { get; }
         internal int MaximumRawAccessCells { get; }
@@ -1556,22 +2260,22 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
     private readonly struct StorageUtilization
     {
         internal StorageUtilization(
-            int storageCapacityUnits,
-            int normalStockUnits,
-            int faultStockUnits,
+            long storageCapacityGrams,
+            long normalStockMassGrams,
+            long faultStockMassGrams,
             int normalPermille,
             int faultPermille)
         {
-            StorageCapacityUnits = storageCapacityUnits;
-            NormalStockUnits = normalStockUnits;
-            FaultStockUnits = faultStockUnits;
+            StorageCapacityGrams = storageCapacityGrams;
+            NormalStockMassGrams = normalStockMassGrams;
+            FaultStockMassGrams = faultStockMassGrams;
             NormalPermille = normalPermille;
             FaultPermille = faultPermille;
         }
 
-        internal int StorageCapacityUnits { get; }
-        internal int NormalStockUnits { get; }
-        internal int FaultStockUnits { get; }
+        internal long StorageCapacityGrams { get; }
+        internal long NormalStockMassGrams { get; }
+        internal long FaultStockMassGrams { get; }
         internal int NormalPermille { get; }
         internal int FaultPermille { get; }
     }
@@ -1626,7 +2330,7 @@ public readonly struct V27AssetBackedStageCapacityAssessment
         int maximumNormalStorageUtilizationPermille,
         int maximumFaultStorageUtilizationPermille,
         int facilityRequirementCount,
-        int minimumStorageCapacityUnits,
+        long minimumStorageCapacityGrams,
         int maximumUsedCells,
         int maximumExclusiveCells,
         int maximumRawAccessCells,
@@ -1643,7 +2347,7 @@ public readonly struct V27AssetBackedStageCapacityAssessment
         MaximumNormalStorageUtilizationPermille = maximumNormalStorageUtilizationPermille;
         MaximumFaultStorageUtilizationPermille = maximumFaultStorageUtilizationPermille;
         FacilityRequirementCount = facilityRequirementCount;
-        MinimumStorageCapacityUnits = minimumStorageCapacityUnits;
+        MinimumStorageCapacityGrams = minimumStorageCapacityGrams;
         MaximumUsedCells = maximumUsedCells;
         MaximumExclusiveCells = maximumExclusiveCells;
         MaximumRawAccessCells = maximumRawAccessCells;
@@ -1661,7 +2365,7 @@ public readonly struct V27AssetBackedStageCapacityAssessment
     public int MaximumNormalStorageUtilizationPermille { get; }
     public int MaximumFaultStorageUtilizationPermille { get; }
     public int FacilityRequirementCount { get; }
-    public int MinimumStorageCapacityUnits { get; }
+    public long MinimumStorageCapacityGrams { get; }
     public int MaximumUsedCells { get; }
     public int MaximumExclusiveCells { get; }
     public int MaximumRawAccessCells { get; }

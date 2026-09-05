@@ -1,0 +1,51 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "characterspecies-9",
+    "spoiler_tier": "none",
+    "title": "골렘"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/characterspecies-9",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "funeral-culture-golem",
+      "target_spoiler_tier": "none",
+      "target_title": "Funeral_Golem",
+      "to": "character/funeral-culture-golem",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/characterspecies-9",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "life-history-golem",
+      "target_spoiler_tier": "none",
+      "target_title": "Life_Golem",
+      "to": "character/life-history-golem",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/characterspecies-9",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "reproduction-golem",
+      "target_spoiler_tier": "none",
+      "target_title": "Reproduction_Golem",
+      "to": "character/reproduction-golem",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/character-archetype-9009",
+      "label": "관련",
+      "to": "character/characterspecies-9",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,242 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-sewing-thread",
+    "spoiler_tier": "none",
+    "title": "재봉실"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-apron",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-farmer-workwear",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-formal-coat",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-hooded-robe",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-rune-cold-suit",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-skirt",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-surgical-apron",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-weapon-vigil-cloak",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-wing-cloak",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-boots",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-ceremonial-dress",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-daily-robe",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-festival-vest",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-miner-workwear",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-mourning-clothes",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-tunic",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-work-shirt",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-apparel-cloak",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-apparel-cold-work-suit",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-apparel-envoy-coat",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-apparel-golem-functional-lining",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-apparel-raincoat",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-apparel-smith-apron",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-apparel-sterile-gown",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-apparel-trousers",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-apparel-wing-harness",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-v22-apparel-hauling-harness",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-v22-apparel-heat-work-suit",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-v22-apparel-keeper-coat",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-v22-apparel-ritual-robe",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-v22-apparel-spore-garden-cloak",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-v22-apparel-waterproof-work-suit",
+      "label": "필요 조건",
+      "to": "item/material-sewing-thread",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "recipe/recipe-v22-sewing-thread",
+      "label": "생산·해금",
+      "to": "item/material-sewing-thread",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

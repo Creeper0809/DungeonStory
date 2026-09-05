@@ -1,0 +1,156 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-defense-siege-fortification",
+    "spoiler_tier": "none",
+    "title": "공성 요새화"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-defense-siege-fortification",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-ranged-positions",
+      "target_spoiler_tier": "none",
+      "target_title": "사격 방책",
+      "to": "research/research-defense-ranged-positions",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-siege-fortification",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-ranged-positions",
+      "target_spoiler_tier": "none",
+      "target_title": "사격 방책",
+      "to": "research/research-defense-ranged-positions",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-siege-fortification",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-ranged-positions",
+      "target_spoiler_tier": "none",
+      "target_title": "사격 방책",
+      "to": "research/research-defense-ranged-positions",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-siege-fortification",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-remote-control",
+      "target_spoiler_tier": "none",
+      "target_title": "원격 통제",
+      "to": "research/research-defense-remote-control",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-siege-fortification",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-remote-control",
+      "target_spoiler_tier": "none",
+      "target_title": "원격 통제",
+      "to": "research/research-defense-remote-control",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-siege-fortification",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-remote-control",
+      "target_spoiler_tier": "none",
+      "target_title": "원격 통제",
+      "to": "research/research-defense-remote-control",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-siege-fortification",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "제강",
+      "to": "research/research-metallurgy-steel",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-siege-fortification",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "제강",
+      "to": "research/research-metallurgy-steel",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-siege-fortification",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "제강",
+      "to": "research/research-metallurgy-steel",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-siege-fortification",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1805",
+      "target_spoiler_tier": "none",
+      "target_title": "벽면 발사구",
+      "to": "facility/building-1805",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-shield-pavise",
+      "label": "필요 조건",
+      "to": "research/research-defense-siege-fortification",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-siege-reinforcement-kit",
+      "label": "필요 조건",
+      "to": "research/research-defense-siege-fortification",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-alliance-signals",
+      "label": "선행 연구",
+      "to": "research/research-defense-siege-fortification",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-alliance-signals",
+      "label": "선행 연구",
+      "to": "research/research-defense-siege-fortification",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-alliance-signals",
+      "label": "선행 연구",
+      "to": "research/research-defense-siege-fortification",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

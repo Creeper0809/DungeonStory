@@ -34,12 +34,35 @@ public static class DungeonCombatRegistration
             .As<IAnatomyConditionLexicon>();
         builder.Register<ResourceCombatEquipmentCatalog>(Lifetime.Singleton)
             .As<ICombatEquipmentCatalog>();
+        builder.Register<CombatCraftDefinitionCatalog>(Lifetime.Singleton)
+            .As<ICombatCraftDefinitionCatalog>();
+        builder.Register<CombatCraftFacilityEligibilityQuery>(Lifetime.Singleton)
+            .As<ICombatCraftFacilityEligibilityQuery>();
+        builder.Register<CombatRejectedRecoveryProjector>(Lifetime.Singleton)
+            .As<ICombatRejectedRecoveryProjector>();
         builder.Register<ResourceEquipmentModuleCatalog>(Lifetime.Singleton)
             .As<IEquipmentModuleCatalog>();
         builder.Register<CombatEquipmentStatProjector>(Lifetime.Singleton);
         builder.Register<CombatEquipmentPhysicalStateWriter>(Lifetime.Singleton);
         builder.Register<CombatEquipmentRuntimeStateStore>(Lifetime.Singleton);
+        builder.Register<EquipmentModulePreparedOutputBinder>(Lifetime.Singleton)
+            .As<IFacilityBufferPlannedUniqueOutputBinder>();
+        builder.Register<CombatEquipmentCraftOutputTransaction>(
+                Lifetime.Singleton)
+            .AsSelf()
+            .As<IProductionDomainOutputRestoreOwnerSource>()
+            .As<IProductionDomainOutputFacilityLifecycleQuery>();
         builder.Register<CombatEquipmentLoadoutStore>(Lifetime.Singleton);
+        builder.Register<EquipmentModuleInputOwnerRuntime>(Lifetime.Singleton)
+            .As<IEquipmentModuleInputOwnerRuntime>();
+        builder.RegisterEntryPoint<EquipmentModuleInputOwnerLifecycleRuntime>(
+                Lifetime.Singleton)
+            .As<IStartable>()
+            .As<ITickable>()
+            .As<IDungeonSaveCaptureGuard>();
+        builder.Register<EquipmentModuleInputOwnerRestoreParticipant>(
+                Lifetime.Singleton)
+            .As<IDungeonRestoreTransactionParticipant>();
         builder.Register<EquipmentModuleRuntime>(Lifetime.Singleton)
             .AsSelf()
             .As<IEquipmentModuleAppraisalRecovery>();
@@ -47,7 +70,13 @@ public static class DungeonCombatRegistration
                 Lifetime.Singleton)
             .As<IDungeonSaveRestoreCompletedHook>();
         builder.Register<EquipmentHistoryTransferRuntime>(Lifetime.Singleton);
+        builder.Register<LineageTransferCraftOperationContributor>(
+                Lifetime.Singleton)
+            .As<ICraftPersistentOperationContributor>();
         builder.Register<CombatEquipmentRuntimeCollaborators>(Lifetime.Singleton);
+        builder.Register<CombatEquipmentCraftInputDestinationRuntime>(
+                Lifetime.Singleton)
+            .As<ICombatEquipmentCraftInputDestinationRuntime>();
         builder.Register<CombatEquipmentCraftingRuntime>(Lifetime.Singleton);
         builder.Register<CombatEquipmentCraftMaterialRestoreGuard>(
                 Lifetime.Singleton)
@@ -60,6 +89,13 @@ public static class DungeonCombatRegistration
             .As<IBuildingEquipmentCraftingRuntimePort>()
             .As<ICombatLoadoutRuntime>()
             .As<ICombatEquipmentBurdenQuery>();
+        builder.RegisterFactory<ICombatEquipmentCraftQueueQuery>(
+            resolver => () => resolver.Resolve<ICombatEquipmentCraftQueueQuery>(),
+            Lifetime.Singleton);
+        builder.RegisterFactory<IBuildingEquipmentCraftingRuntimePort>(
+            resolver => () => resolver.Resolve<
+                IBuildingEquipmentCraftingRuntimePort>(),
+            Lifetime.Singleton);
         builder.Register<RetailEquipmentAuthority>(Lifetime.Singleton)
             .As<IRetailEquipmentAuthority>();
         builder.Register<RetailStockPhysicalRuntime>(Lifetime.Singleton)
@@ -71,6 +107,10 @@ public static class DungeonCombatRegistration
         builder.Register<CharacterDerivedStatsSnapshotProjector>(Lifetime.Singleton);
         builder.Register<EquipmentExpeditionRewardService>(Lifetime.Singleton)
             .As<IEquipmentExpeditionRewardService>();
+        builder.Register<EquipmentEvolutionInputDeliveryGateway>(Lifetime.Singleton)
+            .As<IEquipmentEvolutionInputDeliveryGateway>();
+        builder.Register<EquipmentEvolutionInputOwnerRuntime>(Lifetime.Singleton)
+            .As<IEquipmentEvolutionInputOwnerRuntime>();
         builder.Register<EquipmentEvolutionRuntime>(Lifetime.Singleton)
             .As<IEquipmentEvolutionRuntime>()
             .As<IEquipmentEvolutionPersistence>()
@@ -94,9 +134,14 @@ public static class DungeonCombatRegistration
         builder.Register<EquipmentMaintenanceClockServices>(Lifetime.Singleton);
         builder.RegisterEntryPoint<EquipmentMaintenancePolicyRuntime>(
                 Lifetime.Singleton)
+            .AsSelf()
             .As<ICombatEquipmentMaintenanceRuntime>()
             .As<ICombatEquipmentMaintenanceOrderQuery>()
             .As<ICombatEquipmentRepairTerminalEffectQuery>();
+        builder.RegisterFactory<ICombatEquipmentMaintenanceOrderQuery>(
+            resolver => () => resolver.Resolve<
+                ICombatEquipmentMaintenanceOrderQuery>(),
+            Lifetime.Singleton);
         builder.Register<EquipmentRepairMaterialRestoreGuard>(
                 Lifetime.Singleton)
             .As<IDungeonRestoreTransactionParticipant>();
@@ -120,6 +165,12 @@ public static class DungeonCombatRegistration
                 Lifetime.Singleton)
             .As<ISurgicalPatientTransportRuntime>();
         builder.Register<CharacterMedicalWorldServices>(Lifetime.Singleton);
+        builder.Register<CharacterMedicalSupplyDestinationRuntime>(
+                Lifetime.Singleton)
+            .As<ICharacterMedicalSupplyDestinationRuntime>();
+        builder.Register<CharacterMedicalSupplyDestinationDrainRuntime>(
+                Lifetime.Singleton)
+            .As<ICharacterMedicalSupplyDestinationDrainRuntime>();
         builder.RegisterEntryPoint<CharacterMedicalRuntime>(Lifetime.Singleton)
             .As<ICharacterMedicalQuery>()
             .As<ICharacterMedicalCommand>()
@@ -145,7 +196,18 @@ public static class DungeonCombatRegistration
             .As<ISurgicalPartRuntime>()
             .As<ISurgicalAugmentationQuery>();
         builder.Register<SurgicalPartProductionOutputHandler>(Lifetime.Singleton)
-            .As<IProductionOutputHandler>();
+            .As<IProductionOutputHandler>()
+            .As<IProductionOutputCapability>();
+        builder.Register<SurgicalPartProductionOutputRestoreCapabilityValidator>(
+                Lifetime.Singleton)
+            .As<IProductionResolvedOutputRestoreCapabilityValidator>();
+        builder.Register<SurgicalPartProductionOutputMaximumMassCapability>(
+                Lifetime.Singleton)
+            .As<IProductionOutputMaximumMassCapability>();
+        builder.Register<SurgeryMaterialDestinationRuntime>(Lifetime.Singleton)
+            .As<ISurgeryMaterialDestinationRuntime>();
+        builder.Register<SurgeryMaterialTerminalRuntime>(Lifetime.Singleton)
+            .As<ISurgeryMaterialTerminalRuntime>();
         builder.Register<HealSurgicalNodeEffectHandler>(Lifetime.Singleton)
             .As<ISurgicalProcedureEffectHandler>();
         builder.Register<MaintainSurgicalPartEffectHandler>(Lifetime.Singleton)
@@ -235,9 +297,20 @@ public static class DungeonCombatRegistration
             .As<IDefenseStatusRuntimeService>();
         builder.Register<DefenseFacilityNetworkRuntime>(Lifetime.Singleton)
             .As<IDefenseFacilityNetworkRuntime>();
+        builder.Register<DefenseFacilityInputOwnerBuildingSource>(
+                Lifetime.Singleton)
+            .As<IDefenseFacilityInputOwnerSource>();
+        builder.Register<DefenseFacilityInputOwnerRuntime>(Lifetime.Singleton)
+            .As<IDefenseFacilityInputOwnerRuntime>();
+        builder.RegisterEntryPoint<DefenseFacilityInputOwnerLifecycleRuntime>(
+                Lifetime.Singleton)
+            .As<IDungeonSaveCaptureGuard>();
         builder.Register<DefenseFacilityRuntime>(Lifetime.Singleton)
             .AsSelf()
             .As<IDefenseFacilityRuntime>();
+        builder.Register<DefenseFacilityInputOwnerRestoreParticipant>(
+                Lifetime.Singleton)
+            .As<IDungeonRestoreTransactionParticipant>();
         builder.Register<DefenseFacilityPhysicalItemGateway>(Lifetime.Singleton)
             .As<IDefenseFacilityPhysicalItemGateway>();
         builder.Register<DefenseFacilityPhysicalRestoreGuard>(Lifetime.Singleton)
@@ -265,4 +338,5 @@ public static class DungeonCombatRegistration
                 Lifetime.Singleton)
             .AsSelf();
     }
+
 }

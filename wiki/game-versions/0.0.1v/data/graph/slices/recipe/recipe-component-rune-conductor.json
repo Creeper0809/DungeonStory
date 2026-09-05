@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-component-rune-conductor",
+    "spoiler_tier": "none",
+    "title": "룬 도체"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-rune-conductor",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-rune-conductor",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 도체",
+      "to": "item/component-rune-conductor",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-rune-conductor",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-gold-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "금괴",
+      "to": "item/material-gold-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-rune-conductor",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-rune-dust",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 가루",
+      "to": "item/resource-rune-dust",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-component-rune-conductor",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-mana-crystal",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 결정",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-rune-conductor",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-industry-mana-power",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 동력과 룬 전력망",
+      "to": "research/research-industry-mana-power",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

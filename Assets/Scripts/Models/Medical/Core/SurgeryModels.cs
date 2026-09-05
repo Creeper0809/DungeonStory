@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using UnityEngine;
 using UnityEngine.Scripting.APIUpdating;
 
@@ -103,7 +106,17 @@ public enum SurgeryOrderState
     Completed = 7,
     Failed = 8,
     Cancelled = 9,
-    EnvironmentWaiting = 10
+    EnvironmentWaiting = 10,
+    TerminalDraining = 11
+}
+
+public enum SurgeryMaterialTerminalDrainPhase
+{
+    None = 0,
+    Prepared = 1,
+    EffectCommittedAwaitingAck = 2,
+    OwnerAcknowledgedAwaitingClosure = 3,
+    ClosedAwaitingCheckpointGc = 4
 }
 
 public enum SurgeryStatusCode
@@ -390,6 +403,24 @@ public sealed class SurgeryOrder
     public string doctorId = string.Empty;
     public string facilityId = string.Empty;
     public string materialDestinationId = string.Empty;
+    public long materialBufferCapacityGrams;
+    public long materialMassAuthorityRevision;
+    public string materialCapacityFingerprint = string.Empty;
+    public string materialSinkOperationId = string.Empty;
+    public string materialSinkCommitId = string.Empty;
+    public long materialSinkInputMassGrams;
+    public bool materialSinkAcknowledged;
+    public SurgeryMaterialTerminalDrainPhase materialTerminalDrainPhase;
+    public SurgeryOrderState materialTerminalTargetState;
+    public string materialTerminalParentOperationId = string.Empty;
+    public string materialTerminalStepOperationId = string.Empty;
+    public string materialTerminalRequestFingerprint = string.Empty;
+    public string materialTerminalCommitId = string.Empty;
+    public string materialTerminalReceiptFingerprint = string.Empty;
+    public int materialTerminalInputQuantity;
+    public long materialTerminalInputMassGrams;
+    public int materialTerminalOwnerX;
+    public int materialTerminalOwnerY;
     public SurgeryOrderState state;
     public float requiredWork;
     public float completedWork;
@@ -434,6 +465,73 @@ public sealed class SurgeryOrder
     public float Progress01 => requiredWork <= 0f
         ? 0f
         : Mathf.Clamp01(completedWork / requiredWork);
+}
+
+public static class SurgeryMaterialSinkIdentity
+{
+    public static string FormatOperationId(string orderId) =>
+        $"surgery-material-sink:{orderId ?? string.Empty}";
+}
+
+public static class SurgeryMaterialTerminalIdentity
+{
+    public static string FormatParentOperationId(string orderId) =>
+        $"surgery-material-terminal:{orderId ?? string.Empty}";
+
+    public static string FormatStepOperationId(string orderId) =>
+        FormatParentOperationId(orderId) + ":custody";
+
+    public static string FormatOwnerStableId(string orderId) =>
+        $"surgery-order:{orderId ?? string.Empty}";
+}
+
+public static class SurgeryMaterialCapacityFingerprint
+{
+    public static string Create(SurgeryOrder order)
+    {
+        if (order == null)
+            throw new ArgumentNullException(nameof(order));
+
+        StringBuilder canonical = new();
+        Append(canonical, "surgery-material-capacity-v1");
+        Append(canonical, order.orderId);
+        Append(canonical, order.facilityId);
+        Append(canonical, order.materialDestinationId);
+        Append(canonical, order.materialBufferCapacityGrams.ToString(
+            CultureInfo.InvariantCulture));
+        Append(canonical, order.materialMassAuthorityRevision.ToString(
+            CultureInfo.InvariantCulture));
+        Append(canonical, ((int)(order.subject?.kind
+            ?? SurgicalSubjectKind.Character)).ToString(
+                CultureInfo.InvariantCulture));
+        Append(canonical, order.subject?.subjectId ?? string.Empty);
+        Append(canonical, order.selectedPartInstanceId ?? string.Empty);
+        foreach (IGrouping<string, SurgicalMaterialRequirement> group in
+                 (order.materials ?? new List<SurgicalMaterialRequirement>())
+                     .Where(value => value != null && !value.optional)
+                     .GroupBy(value => value.itemId, StringComparer.Ordinal)
+                     .OrderBy(value => value.Key, StringComparer.Ordinal))
+        {
+            Append(canonical, group.Key);
+            Append(canonical, group.Sum(value => Mathf.Max(1, value.quantity))
+                .ToString(CultureInfo.InvariantCulture));
+        }
+
+        using SHA256 sha = SHA256.Create();
+        byte[] digest = sha.ComputeHash(
+            Encoding.UTF8.GetBytes(canonical.ToString()));
+        StringBuilder hex = new(digest.Length * 2);
+        foreach (byte value in digest)
+            hex.Append(value.ToString("x2", CultureInfo.InvariantCulture));
+        return hex.ToString();
+    }
+
+    private static void Append(StringBuilder builder, string value)
+    {
+        string token = value ?? string.Empty;
+        builder.Append(token.Length.ToString(CultureInfo.InvariantCulture))
+            .Append(':').Append(token).Append('|');
+    }
 }
 
 [Serializable]
@@ -482,7 +580,7 @@ public static class SurgicalPartInstallationIdentity
 [Serializable]
 public sealed class DungeonSurgerySaveData
 {
-    public const int CurrentVersion = 10;
+    public const int CurrentVersion = 12;
 
     public int version = CurrentVersion;
     public List<SurgeryOrder> orders = new();

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.5kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "8개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "235"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "마나와 월화를 안정화한 고급 치료제이다. 므네실라 치료사는 고급 약품을 쓴 뒤 환자가 다시 먹고 걷고 일할 때까지 약병을 치우지 않는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "medicine-advanced",
+  "spoiler_tier": "none",
+  "summary": "마나와 월화를 안정화한 고급 치료제.",
+  "title": "고급 약품"
+}

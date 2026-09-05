@@ -1,0 +1,27 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "룬가죽"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "world",
+  "relations": [
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-rune-leather",
+      "target_spoiler_tier": "none",
+      "target_title": "룬가죽",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "material-rune-leather",
+  "spoiler_tier": "none",
+  "summary": "다른 콘텐츠 4개가 이 정의를 참조한다.",
+  "title": "룬가죽"
+}

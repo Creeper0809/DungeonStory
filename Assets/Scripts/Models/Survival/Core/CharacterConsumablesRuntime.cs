@@ -18,7 +18,6 @@ public sealed class CharacterConsumablesRuntime :
     private const float MealDeliveryProbeSeconds = 1f;
     private const float GameHourSeconds = 60f;
     private const float MedicalUseHealthRatio = 0.82f;
-    private const string FacilityInputDestinationPrefix = "facility-input:";
 
     private readonly struct MealOperationFailureState
     {
@@ -48,6 +47,17 @@ public sealed class CharacterConsumablesRuntime :
     private readonly HashSet<ConsumableOperationId> queuedMealOperationFailures = new();
     private const int MaximumRememberedMealOperationFailures = 64;
     private float nextMealDeliveryProbeAt;
+#if UNITY_EDITOR
+    private bool mealDeliveryPausedForDiagnostics;
+
+    public bool MealDeliveryPausedForDiagnostics =>
+        mealDeliveryPausedForDiagnostics;
+
+    public void ConfigureMealDeliveryForDiagnostics(bool paused)
+    {
+        mealDeliveryPausedForDiagnostics = paused;
+    }
+#endif
     public long MealDeliveryProbeCount { get; private set; }
     public string LastMealDeliveryProbeDetail { get; private set; } = "not-run";
     public string LastMealDeliveryRequestFailure { get; private set; } = "not-run";
@@ -1234,7 +1244,9 @@ public sealed class CharacterConsumablesRuntime :
                 automaticOperation: true,
                 out result,
                 allowedFacilityDestinationId:
-                    GetRecreationalSubstanceDestinationId(facilityId));
+                    GetRecreationalSubstanceDestinationId(
+                        facilityId,
+                        selected.Substance.Id));
         }
 
         List<RecreationalSubstanceCandidate> deliverable =
@@ -1242,7 +1254,9 @@ public sealed class CharacterConsumablesRuntime :
         if (deliverable.Count > 0)
         {
             RecreationalSubstanceCandidate selected = deliverable[0];
-            string destinationId = GetRecreationalSubstanceDestinationId(facilityId);
+            string destinationId = GetRecreationalSubstanceDestinationId(
+                facilityId,
+                selected.Substance.Id);
             if (HasRoutedItem(destinationId, selected.Substance.Id))
             {
                 result = CharacterConsumablesSubstanceResult.Failed(
@@ -1632,13 +1646,18 @@ public sealed class CharacterConsumablesRuntime :
     {
         AdvanceSubstanceUsePlans();
         AdvanceMealPlans();
-        PruneExpiredDeliveries();
+        PruneExpiredDeliveries(forceExpirySweep: true);
         float deltaTime = Mathf.Max(0f, clock.DeltaTime);
         if (deltaTime <= 0f)
         {
             return;
         }
-        PrimeHungryActorMealDelivery();
+#if UNITY_EDITOR
+        if (!mealDeliveryPausedForDiagnostics)
+#endif
+        {
+            PrimeHungryActorMealDelivery();
+        }
         foreach (CharacterSubstanceState state in WriteState.SubstanceStates.Values)
         {
             state.activeSeconds = Mathf.Max(0f, state.activeSeconds - deltaTime);
@@ -1751,6 +1770,101 @@ public sealed class CharacterConsumablesRuntime :
             + $"reachableMealFacilities={reachableMealFacilityCount};"
             + $"eligibleSources={deliveryCandidateCount};"
             + $"lastRequestFailure={LastMealDeliveryRequestFailure}";
+    }
+
+    public void ReconcilePersistentActorReferences(
+        IReadOnlyCollection<CharacterId> persistentActorIds)
+    {
+        if (persistentActorIds == null)
+        {
+            throw new ArgumentNullException(nameof(persistentActorIds));
+        }
+
+        HashSet<CharacterId> persistent = persistentActorIds
+            .Where(id => id.IsValid)
+            .ToHashSet();
+        CharacterConsumablesAggregateState snapshot = ReadState;
+        string[] activeOperations = snapshot.ActiveMealPlans
+            .Where(pair => pair.Value != null
+                && !persistent.Contains(new CharacterId(pair.Value.characterId)))
+            .Select(pair => pair.Key.Value)
+            .Concat(snapshot.ActiveSubstanceUsePlans
+                .Where(pair => pair.Value != null
+                    && !persistent.Contains(new CharacterId(pair.Value.characterId)))
+                .Select(pair => pair.Key.Value))
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        if (activeOperations.Length > 0)
+        {
+            throw new InvalidOperationException(
+                "Character consumables capture found active physical operations "
+                + "owned by non-persistent actors: "
+                + string.Join(",", activeOperations));
+        }
+
+        ConsumableDeliveryId[] orphanedDeliveries = snapshot.PendingDeliveries
+            .Where(pair => pair.Value == null
+                || !persistent.Contains(pair.Value.CharacterId))
+            .Select(pair => pair.Key)
+            .ToArray();
+        CharacterId[] orphanedDietPolicies = snapshot.DietPolicies.Keys
+            .Where(id => !persistent.Contains(id))
+            .ToArray();
+        CharacterId[] orphanedQualityPolicies = snapshot.MealQualityPolicies.Keys
+            .Where(id => !persistent.Contains(id))
+            .ToArray();
+        CharacterSubstanceKey[] orphanedSubstancePolicies =
+            snapshot.SubstancePolicies.Keys
+                .Where(key => !persistent.Contains(key.CharacterId))
+                .ToArray();
+        CharacterSubstanceKey[] orphanedSubstanceStates = snapshot.SubstanceStates.Keys
+            .Where(key => !persistent.Contains(key.CharacterId))
+            .ToArray();
+        ConsumableOperationId[] orphanedCompletedOperations =
+            snapshot.CompletedOperations
+                .Where(pair => pair.Value == null
+                    || !persistent.Contains(pair.Value.CharacterId))
+                .Select(pair => pair.Key)
+                .ToArray();
+        CharacterId[] orphanedCooldowns = snapshot.MealFollowupCooldownUntil.Keys
+            .Where(id => !persistent.Contains(id))
+            .ToArray();
+
+        if (orphanedDeliveries.Length == 0
+            && orphanedDietPolicies.Length == 0
+            && orphanedQualityPolicies.Length == 0
+            && orphanedSubstancePolicies.Length == 0
+            && orphanedSubstanceStates.Length == 0
+            && orphanedCompletedOperations.Length == 0
+            && orphanedCooldowns.Length == 0)
+        {
+            return;
+        }
+
+        CharacterConsumablesAggregateState state = WriteState;
+        foreach (ConsumableDeliveryId deliveryId in orphanedDeliveries)
+        {
+            if (state.PendingDeliveries.Remove(
+                    deliveryId,
+                    out CharacterMealDeliveryState delivery)
+                && delivery != null)
+            {
+                state.DeliveryByRoute.Remove(
+                    CharacterConsumablesStateRules.Route(delivery));
+            }
+        }
+        foreach (CharacterId id in orphanedDietPolicies)
+            state.DietPolicies.Remove(id);
+        foreach (CharacterId id in orphanedQualityPolicies)
+            state.MealQualityPolicies.Remove(id);
+        foreach (CharacterSubstanceKey key in orphanedSubstancePolicies)
+            state.SubstancePolicies.Remove(key);
+        foreach (CharacterSubstanceKey key in orphanedSubstanceStates)
+            state.SubstanceStates.Remove(key);
+        foreach (ConsumableOperationId id in orphanedCompletedOperations)
+            state.CompletedOperations.Remove(id);
+        foreach (CharacterId id in orphanedCooldowns)
+            state.MealFollowupCooldownUntil.Remove(id);
     }
 
     public DungeonCharacterConsumablesSaveData Capture()
@@ -1923,7 +2037,9 @@ public sealed class CharacterConsumablesRuntime :
             {
                 expiredDeliveryId = existingId;
             }
-            string destinationId = GetMealDestinationId(facilityId);
+            string destinationId = GetMealDestinationId(
+                facilityId,
+                candidate.Definition.Id);
             if (HasRoutedItem(destinationId, candidate.Definition.Id))
             {
                 return true;
@@ -1979,7 +2095,6 @@ public sealed class CharacterConsumablesRuntime :
         bool requireExactRoute = true)
     {
         routePending = false;
-        string destinationId = GetMealDestinationId(facilityId);
         List<MealCandidate> result = new();
         if (!TryGetMealFacility(
                 facilityId,
@@ -1994,6 +2109,9 @@ public sealed class CharacterConsumablesRuntime :
             {
                 continue;
             }
+            string destinationId = GetMealDestinationId(
+                facilityId,
+                stack.ItemId);
             bool isBuffer = stack.State == CharacterConsumablesStackState.FacilityBuffer
                 && string.Equals(stack.DestinationId, destinationId, StringComparison.Ordinal);
             if (bufferOnly != isBuffer || !bufferOnly
@@ -2160,25 +2278,47 @@ public sealed class CharacterConsumablesRuntime :
         {
             return 1f;
         }
-        float additive = 0f;
-        float withdrawalPenalty = 0f;
+        double additive = 0d;
+        double withdrawalPenalty = 0d;
         foreach (KeyValuePair<CharacterSubstanceKey, CharacterSubstanceState> pair
-                 in ReadState.SubstanceStates)
+                 in ReadState.SubstanceStates
+                     .Where(value => value.Key.CharacterId.Equals(characterId))
+                     .OrderBy(
+                         value => value.Key.ItemId.Value,
+                         StringComparer.Ordinal))
         {
-            if (!pair.Key.CharacterId.Equals(characterId)
-                || !inventory.TryResolveSubstance(pair.Key.ItemId, out CharacterConsumablesSubstanceDefinitionSnapshot substance))
+            if (!inventory.TryResolveSubstance(
+                    pair.Key.ItemId,
+                    out CharacterConsumablesSubstanceDefinitionSnapshot substance))
             {
                 continue;
             }
             if (pair.Value.activeSeconds > 0f)
             {
-                additive += workEffect
+                double effect = workEffect
                     ? substance.Definition.WorkSpeedEffect
                     : substance.Definition.CombatEffect;
+                if (double.IsNaN(effect) || double.IsInfinity(effect))
+                    throw new InvalidOperationException(
+                        "Character substance effect must be finite: "
+                        + pair.Key.ItemId.Value);
+                additive += effect;
             }
-            withdrawalPenalty += pair.Value.withdrawal * 0.0025f;
+            if (float.IsNaN(pair.Value.withdrawal)
+                || float.IsInfinity(pair.Value.withdrawal)
+                || pair.Value.withdrawal < 0f)
+            {
+                throw new InvalidOperationException(
+                    "Character substance withdrawal must be finite and "
+                    + "nonnegative: " + pair.Key.ItemId.Value);
+            }
+            withdrawalPenalty += pair.Value.withdrawal
+                * CharacterSubstanceEffectMultiplierAuthority
+                    .WithdrawalPenaltyPerPoint;
         }
-        return Mathf.Clamp(1f + additive - withdrawalPenalty, 0.45f, 1.75f);
+        return CharacterSubstanceEffectMultiplierAuthority.Resolve(
+            additive,
+            withdrawalPenalty);
     }
 
     private bool IsMealFollowupCooldownActive(
@@ -2241,7 +2381,7 @@ public sealed class CharacterConsumablesRuntime :
         }
     }
 
-    private void PruneExpiredDeliveries()
+    private void PruneExpiredDeliveries(bool forceExpirySweep = false)
     {
         CharacterConsumablesAggregateState snapshot = ReadState;
         if (snapshot.PendingDeliveries.Count == 0
@@ -2271,7 +2411,8 @@ public sealed class CharacterConsumablesRuntime :
                     .Equals(pair.Key))
             .Select(pair => pair.Key)
             .ToArray();
-        bool expiryDue = clock.Time >= snapshot.NextDeliveryPruneAt;
+        bool expiryDue = forceExpirySweep
+            || clock.Time >= snapshot.NextDeliveryPruneAt;
         if (orphanedDeliveries.Length == 0
             && staleRoutes.Length == 0
             && !expiryDue)
@@ -2304,7 +2445,9 @@ public sealed class CharacterConsumablesRuntime :
                      .Values.Where(value => value != null
                          && clock.Time >= value.retryAfter).ToArray())
         {
-            string destinationId = GetMealDestinationId(delivery.BuildingInstanceId);
+            string destinationId = GetMealDestinationId(
+                delivery.BuildingInstanceId,
+                delivery.ItemDefinitionId);
             if (HasRoutedItem(destinationId, delivery.ItemDefinitionId))
             {
                 delivery.retryAfter = clock.Time + DeliveryRetrySeconds;
@@ -2392,7 +2535,6 @@ public sealed class CharacterConsumablesRuntime :
         BuildingInstanceId facilityId,
         bool bufferOnly)
     {
-        string destinationId = GetRecreationalSubstanceDestinationId(facilityId);
         List<RecreationalSubstanceCandidate> result = new();
         foreach (CharacterConsumablesStackSnapshot stack in inventory.GetAllStacks())
         {
@@ -2404,6 +2546,10 @@ public sealed class CharacterConsumablesRuntime :
             {
                 continue;
             }
+
+            string destinationId = GetRecreationalSubstanceDestinationId(
+                facilityId,
+                stack.ItemId);
 
             bool isFacilityBuffer = stack.State == CharacterConsumablesStackState.FacilityBuffer
                 && string.Equals(stack.DestinationId, destinationId, StringComparison.Ordinal);
@@ -2528,11 +2674,20 @@ public sealed class CharacterConsumablesRuntime :
 
     private int GetCurrentScheduleHour() =>
         Mathf.FloorToInt(Mathf.Max(0f, clock.Time) / GameHourSeconds) % 24;
-    private static string GetMealDestinationId(BuildingInstanceId facilityId) =>
-        FacilityInputDestinationPrefix + $"meal:{facilityId.Value}";
+    public static string GetMealDestinationId(
+        BuildingInstanceId facilityId,
+        ConsumableItemDefinitionId itemId) =>
+        CharacterConsumablesInputDestinationIdentity.Build(
+            CharacterConsumablesInputKind.Meal,
+            facilityId,
+            itemId);
     public static string GetRecreationalSubstanceDestinationId(
-        BuildingInstanceId facilityId) =>
-        FacilityInputDestinationPrefix + $"recreation-substance:{facilityId.Value}";
+        BuildingInstanceId facilityId,
+        ConsumableItemDefinitionId itemId) =>
+        CharacterConsumablesInputDestinationIdentity.Build(
+            CharacterConsumablesInputKind.RecreationalSubstance,
+            facilityId,
+            itemId);
     private static bool IsAvailableMealBufferStack(
         CharacterConsumablesStackSnapshot stack,
         BuildingInstanceId facilityId) =>
@@ -2540,7 +2695,7 @@ public sealed class CharacterConsumablesRuntime :
         && stack.State == CharacterConsumablesStackState.FacilityBuffer
         && string.Equals(
             stack.DestinationId,
-            GetMealDestinationId(facilityId),
+            GetMealDestinationId(facilityId, stack.ItemId),
             StringComparison.Ordinal);
 
     private readonly struct MealCandidate

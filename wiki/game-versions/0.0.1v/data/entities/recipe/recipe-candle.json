@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "46"
+    },
+    {
+      "label": "필요 연구",
+      "value": "의식 장식"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "craft-candle",
+      "target_spoiler_tier": "none",
+      "target_title": "양초",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-shade-fiber",
+      "target_spoiler_tier": "none",
+      "target_title": "그늘섬유",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-authority-ritual",
+      "target_spoiler_tier": "none",
+      "target_title": "의식 장식",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-tallow",
+      "target_spoiler_tier": "none",
+      "target_title": "정제 지방",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-candle",
+  "spoiler_tier": "none",
+  "summary": "양초 생산 주문",
+  "title": "양초"
+}

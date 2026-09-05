@@ -1,0 +1,51 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+FuneralCultureSO|funeral-culture:adventurer,funeral-culture:adventurer,m_Name,Funeral_Adventurer,,,explicit-serialized
+FuneralCultureSO|funeral-culture:adventurer,funeral-culture:adventurer,cultureId,funeral-culture:adventurer,,,explicit-serialized
+FuneralCultureSO|funeral-culture:adventurer,funeral-culture:adventurer,speciesTag,Adventurer,,,explicit-serialized
+FuneralCultureSO|funeral-culture:adventurer,funeral-culture:adventurer,ritualName,Adventurer burial,,,explicit-serialized
+FuneralCultureSO|funeral-culture:adventurer,funeral-culture:adventurer,requiredFacilityTag,facility:funeral:adventurer-burial,,,explicit-serialized
+FuneralCultureSO|funeral-culture:beastkin,funeral-culture:beastkin,m_Name,Funeral_Beastkin,,,explicit-serialized
+FuneralCultureSO|funeral-culture:beastkin,funeral-culture:beastkin,cultureId,funeral-culture:beastkin,,,explicit-serialized
+FuneralCultureSO|funeral-culture:beastkin,funeral-culture:beastkin,speciesTag,Beastkin,,,explicit-serialized
+FuneralCultureSO|funeral-culture:beastkin,funeral-culture:beastkin,ritualName,무리 장례,,,explicit-serialized
+FuneralCultureSO|funeral-culture:beastkin,funeral-culture:beastkin,requiredFacilityTag,facility:funeral:pack-farewell,,,explicit-serialized
+FuneralCultureSO|funeral-culture:demon,funeral-culture:demon,m_Name,Funeral_Demon,,,explicit-serialized
+FuneralCultureSO|funeral-culture:demon,funeral-culture:demon,cultureId,funeral-culture:demon,,,explicit-serialized
+FuneralCultureSO|funeral-culture:demon,funeral-culture:demon,speciesTag,Demon,,,explicit-serialized
+FuneralCultureSO|funeral-culture:demon,funeral-culture:demon,ritualName,계약 소각,,,explicit-serialized
+FuneralCultureSO|funeral-culture:demon,funeral-culture:demon,requiredFacilityTag,facility:funeral:contract-burning,,,explicit-serialized
+FuneralCultureSO|funeral-culture:golem,funeral-culture:golem,m_Name,Funeral_Golem,,,explicit-serialized
+FuneralCultureSO|funeral-culture:golem,funeral-culture:golem,cultureId,funeral-culture:golem,,,explicit-serialized
+FuneralCultureSO|funeral-culture:golem,funeral-culture:golem,speciesTag,Golem,,,explicit-serialized
+FuneralCultureSO|funeral-culture:golem,funeral-culture:golem,ritualName,핵 안치,,,explicit-serialized
+FuneralCultureSO|funeral-culture:golem,funeral-culture:golem,requiredFacilityTag,facility:funeral:core-rest,,,explicit-serialized
+FuneralCultureSO|funeral-culture:harpy,funeral-culture:harpy,m_Name,Funeral_Harpy,,,explicit-serialized
+FuneralCultureSO|funeral-culture:harpy,funeral-culture:harpy,cultureId,funeral-culture:harpy,,,explicit-serialized
+FuneralCultureSO|funeral-culture:harpy,funeral-culture:harpy,speciesTag,Harpy,,,explicit-serialized
+FuneralCultureSO|funeral-culture:harpy,funeral-culture:harpy,ritualName,하늘장,,,explicit-serialized
+FuneralCultureSO|funeral-culture:harpy,funeral-culture:harpy,requiredFacilityTag,facility:funeral:sky-burial,,,explicit-serialized
+FuneralCultureSO|funeral-culture:kobold,funeral-culture:kobold,m_Name,Funeral_Kobold,,,explicit-serialized
+FuneralCultureSO|funeral-culture:kobold,funeral-culture:kobold,cultureId,funeral-culture:kobold,,,explicit-serialized
+FuneralCultureSO|funeral-culture:kobold,funeral-culture:kobold,speciesTag,Kobold,,,explicit-serialized
+FuneralCultureSO|funeral-culture:kobold,funeral-culture:kobold,ritualName,도구 매장,,,explicit-serialized
+FuneralCultureSO|funeral-culture:kobold,funeral-culture:kobold,requiredFacilityTag,facility:funeral:tool-burial,,,explicit-serialized
+FuneralCultureSO|funeral-culture:myconid,funeral-culture:myconid,m_Name,Funeral_Myconid,,,explicit-serialized
+FuneralCultureSO|funeral-culture:myconid,funeral-culture:myconid,cultureId,funeral-culture:myconid,,,explicit-serialized
+FuneralCultureSO|funeral-culture:myconid,funeral-culture:myconid,speciesTag,Myconid,,,explicit-serialized
+FuneralCultureSO|funeral-culture:myconid,funeral-culture:myconid,ritualName,포자 정원,,,explicit-serialized
+FuneralCultureSO|funeral-culture:myconid,funeral-culture:myconid,requiredFacilityTag,facility:funeral:spore-garden,,,explicit-serialized
+FuneralCultureSO|funeral-culture:orc,funeral-culture:orc,m_Name,Funeral_Orc,,,explicit-serialized
+FuneralCultureSO|funeral-culture:orc,funeral-culture:orc,cultureId,funeral-culture:orc,,,explicit-serialized
+FuneralCultureSO|funeral-culture:orc,funeral-culture:orc,speciesTag,Orc,,,explicit-serialized
+FuneralCultureSO|funeral-culture:orc,funeral-culture:orc,ritualName,무기 철야·화장,,,explicit-serialized
+FuneralCultureSO|funeral-culture:orc,funeral-culture:orc,requiredFacilityTag,facility:funeral:orc-vigil,,,explicit-serialized
+FuneralCultureSO|funeral-culture:slime,funeral-culture:slime,m_Name,Funeral_Slime,,,explicit-serialized
+FuneralCultureSO|funeral-culture:slime,funeral-culture:slime,cultureId,funeral-culture:slime,,,explicit-serialized
+FuneralCultureSO|funeral-culture:slime,funeral-culture:slime,speciesTag,Slime,,,explicit-serialized
+FuneralCultureSO|funeral-culture:slime,funeral-culture:slime,ritualName,용해지,,,explicit-serialized
+FuneralCultureSO|funeral-culture:slime,funeral-culture:slime,requiredFacilityTag,facility:funeral:dissolution-pool,,,explicit-serialized
+FuneralCultureSO|funeral-culture:vampire,funeral-culture:vampire,m_Name,Funeral_Vampire,,,explicit-serialized
+FuneralCultureSO|funeral-culture:vampire,funeral-culture:vampire,cultureId,funeral-culture:vampire,,,explicit-serialized
+FuneralCultureSO|funeral-culture:vampire,funeral-culture:vampire,speciesTag,Vampire,,,explicit-serialized
+FuneralCultureSO|funeral-culture:vampire,funeral-culture:vampire,ritualName,혈향 촛불,,,explicit-serialized
+FuneralCultureSO|funeral-culture:vampire,funeral-culture:vampire,requiredFacilityTag,facility:funeral:blood-incense,,,explicit-serialized

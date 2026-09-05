@@ -19,6 +19,7 @@ public static class PhysicalStockQueryV18DebugScenarios
     public static void RunAll()
     {
         PreparedOutputLegacyBypassStaticDiagnostics.RunAll();
+        PhysicalItemExactSourcePublicationDebugScenarios.RunAll();
         FacilityBufferMassAdmissionDebugScenarios.RunAll();
         WorldItemRepository repository = new(
             new GuidPersistentIdGenerator(),
@@ -119,7 +120,6 @@ public static class PhysicalStockQueryV18DebugScenarios
         Require(query.GetWarehouseTotal(firstWarehouse) == 10,
             "Warehouse total was not derived from physical stacks.");
         WarehouseInventory massInventory = new(
-            60,
             25_000L,
             StockCategory.General,
             restrictCategory: false);
@@ -146,27 +146,21 @@ public static class PhysicalStockQueryV18DebugScenarios
             {
                 new WarehouseManagementSnapshot(
                     totalStock: 10,
-                    capacity: 0,
-                    hasCapacityLimit: false,
                     stock: massInventory.EnumerateStock().ToDictionary(
                         pair => pair.Key,
                         pair => pair.Value),
-                    hasMassCapacityAuthority: true,
                     storedMassGrams: 12_000L,
                     maxMassGrams: 25_000L),
                 new WarehouseManagementSnapshot(
                     totalStock: 2,
-                    capacity: 8,
-                    hasCapacityLimit: true,
-                    stock: new Dictionary<StockCategory, int>())
+                    stock: new Dictionary<StockCategory, int>(),
+                    storedMassGrams: 2_000L,
+                    maxMassGrams: 8_000L)
             });
         Require(massSummary.WarehouseCount == 2
-                && massSummary.MassWarehouseCount == 1
-                && massSummary.LegacyCountWarehouseCount == 1
-                && massSummary.TotalStoredMassGrams == 12_000L
-                && massSummary.TotalMaxMassGrams == 25_000L
-                && massSummary.TotalCapacity == 8,
-            "Warehouse management summary mixed gram and legacy count capacities.");
+                && massSummary.TotalStoredMassGrams == 14_000L
+                && massSummary.TotalMaxMassGrams == 33_000L,
+            "Warehouse management summary did not aggregate gram capacities.");
         Require(massInventory.GetAcceptableQuantity(LumberItemId, 20) == 10
                 && massInventory.CanStoreItem(LumberItemId, 10)
                 && !massInventory.CanStoreItem(LumberItemId, 11),
@@ -374,10 +368,19 @@ public static class PhysicalStockQueryV18DebugScenarios
                 continue;
             }
 
+            string[] forbiddenMembers =
+            {
+                ".CanStore(",
+                ".MaxCapacity",
+                ".RemainingCapacity",
+                ".HasCapacityLimit"
+            };
             string[] lines = File.ReadAllLines(path);
             for (int index = 0; index < lines.Length; index++)
             {
-                if (lines[index].Contains(".CanStore(", StringComparison.Ordinal))
+                if (forbiddenMembers.Any(member => lines[index].Contains(
+                        member,
+                        StringComparison.Ordinal)))
                 {
                     violations.Add($"{path}:{index + 1}");
                 }
@@ -387,7 +390,7 @@ public static class PhysicalStockQueryV18DebugScenarios
         Require(
             violations.Count == 0,
             "Production count-only warehouse candidate callsites remain; "
-            + "carry exact item identity into CanStoreItem instead: "
+            + "use exact item identity and gram-capacity authority instead: "
             + string.Join(", ", violations));
     }
 
@@ -1593,7 +1596,6 @@ public static class PhysicalStockQueryV18DebugScenarios
             WorldItemStackRuntime.WarehouseStorageDestinationPrefix
             + warehouseId.Value;
         WarehouseInventory inventory = new(
-            60,
             25_000L,
             StockCategory.General,
             restrictCategory: false);
@@ -2045,7 +2047,6 @@ public static class PhysicalStockQueryV18DebugScenarios
             WorldItemStackRuntime.WarehouseStorageDestinationPrefix
             + warehouseId.Value;
         WarehouseInventory inventory = new(
-            storage.capacity,
             storage.maxStoredMassGrams,
             storage.category,
             restrictCategory: !storage.allCategories);
@@ -2147,7 +2148,6 @@ public static class PhysicalStockQueryV18DebugScenarios
             catalog,
             massQuery);
         WarehouseInventory restoredInventory = new(
-            storage.capacity,
             storage.maxStoredMassGrams,
             storage.category,
             restrictCategory: !storage.allCategories);
@@ -2184,7 +2184,6 @@ public static class PhysicalStockQueryV18DebugScenarios
         WarehouseInventory firstInventory)
     {
         WarehouseInventory secondInventory = new(
-            60,
             25_000L,
             StockCategory.General,
             restrictCategory: false);
@@ -2338,6 +2337,45 @@ public static class PhysicalStockQueryV18DebugScenarios
             "Expired admission did not retain a typed terminal tombstone.");
 
         clock.CurrentTime = 21f;
+        WarehouseMassAdmissionRequest haulRenewalRequest = CreateAdmissionRequest(
+            admission,
+            massQuery,
+            firstWarehouseId,
+            "haul:qa:warehouse-renewal-window",
+            requestedQuantity: 1);
+        Require(
+            admission.TryReserve(
+                haulRenewalRequest,
+                out WarehouseMassAdmissionToken haulRenewalToken,
+                out DomainFailure haulReserveFailure)
+            && !haulReserveFailure.IsFailure,
+            $"Haul renewal reservation failed: {haulReserveFailure.Code}.");
+        clock.CurrentTime = 30f;
+        Require(
+            admission.TryRenew(
+                haulRenewalToken.TokenId,
+                admission.GetWarehouseCapacityRevision(firstWarehouseId),
+                out WarehouseMassAdmissionToken renewedHaulToken,
+                out DomainFailure haulRenewFailure)
+            && !haulRenewFailure.IsFailure
+            && renewedHaulToken.ExpiresAtGameSeconds >= 75d,
+            "Haul admission did not renew to the active-haul lease window.");
+        clock.CurrentTime = 50f;
+        _ = admission.GetReservedInboundMassGrams(firstWarehouseId);
+        Require(
+            admission.TryGetStatus(
+                haulRenewalToken.TokenId,
+                out WarehouseMassAdmissionStatusSnapshot liveHaulStatus)
+            && liveHaulStatus.Status
+                == WarehouseMassAdmissionTokenStatus.Reserved
+            && admission.TryRelease(
+                haulRenewalToken.TokenId,
+                WarehouseMassAdmissionReleaseReason.CancelledBeforePickup,
+                out DomainFailure haulReleaseFailure)
+            && !haulReleaseFailure.IsFailure,
+            "Renewed haul admission expired inside its active-haul window.");
+
+        clock.CurrentTime = 51f;
         WarehouseMassAdmissionRequest invalidatedRequest = CreateAdmissionRequest(
             admission,
             massQuery,
@@ -2371,6 +2409,40 @@ public static class PhysicalStockQueryV18DebugScenarios
         WorldItemRepositoryEditorAccess.RemoveStack(repository, unrelatedStackId);
         WorldItemRepositoryEditorAccess.RemoveStack(repository, committedStackId);
         WorldItemRepositoryEditorAccess.RemoveStack(repository, externalStackId);
+        admission.BeginRestoreCandidate();
+        admission.PublishRestoreCandidate();
+        WarehouseMassAdmissionRequest restoredRequest = CreateAdmissionRequest(
+            admission,
+            massQuery,
+            firstWarehouseId,
+            "qa:warehouse-exact-token-restore",
+            requestedQuantity: 1);
+        const string restoredTokenId = "warehouse-mass:0000000000000042";
+        Require(
+            admission.TryRestoreReserved(
+                restoredTokenId,
+                restoredRequest,
+                expectedReservedMassGrams: 1_200L,
+                out WarehouseMassAdmissionToken restoredToken,
+                out DomainFailure restoredFailure)
+            && !restoredFailure.IsFailure
+            && string.Equals(
+                restoredToken.TokenId,
+                restoredTokenId,
+                StringComparison.Ordinal)
+            && restoredToken.ReservedMassGrams == 1_200L
+            && admission.TryGetStatus(
+                restoredTokenId,
+                out WarehouseMassAdmissionStatusSnapshot restoredStatus)
+            && restoredStatus.Status == WarehouseMassAdmissionTokenStatus.Reserved,
+            "Current-format restore did not preserve the exact warehouse admission token.");
+        admission.CompleteRestoreCandidate();
+        Require(admission.TryRelease(
+                restoredTokenId,
+                WarehouseMassAdmissionReleaseReason.CancelledBeforePickup,
+                out DomainFailure restoredReleaseFailure)
+            && !restoredReleaseFailure.IsFailure,
+            "Exact restored admission token could not be released.");
         Require(initialRevision > 0L,
             "Warehouse-local capacity revision was not initialized.");
     }
@@ -2386,7 +2458,6 @@ public static class PhysicalStockQueryV18DebugScenarios
         BuildingInstanceId secondWarehouseId =
             (BuildingInstanceId)"building:qa-conveyor-mass-b";
         WarehouseInventory firstInventory = new(
-            60,
             25_000L,
             StockCategory.General,
             restrictCategory: false);
@@ -2395,7 +2466,6 @@ public static class PhysicalStockQueryV18DebugScenarios
             firstWarehouseId,
             CharacterAiEditorTestDependencies.AuthoredGameplay);
         WarehouseInventory secondInventory = new(
-            60,
             25_000L,
             StockCategory.General,
             restrictCategory: false);
@@ -2432,6 +2502,14 @@ public static class PhysicalStockQueryV18DebugScenarios
             repository,
             EditorNullItemMarkerPresenter.Instance,
             new UnityGameClock());
+        FacilityBufferDestinationClaimRegistry destinationClaims = new();
+        FacilityBufferPhysicalOccupancyQuery facilityOccupancy = new(
+            repository,
+            massQuery,
+            quantityReservations);
+        FacilityBufferMassAdmissionService facilityAdmission = new(
+            destinationClaims,
+            facilityOccupancy);
         IItemReservationService reservations = new ItemReservationService(
             repository,
             EditorNullItemMarkerPresenter.Instance,
@@ -2471,11 +2549,12 @@ public static class PhysicalStockQueryV18DebugScenarios
                 itemQueries,
                 EditorNullItemMarkerPresenter.Instance,
                 new EditorCharacterAiPerformanceRecorder(),
-                DisabledDungeonDebugRuleQuery.Instance),
+                DisabledDungeonDebugRuleQuery.Instance,
+                new FacilityOutputClearanceTelemetryRuntime()),
             characterIds,
             gridProvider,
             characterWorld,
-            new FacilityBufferDestinationClaimRegistry(),
+            destinationClaims,
             new ResourceCombatEquipmentCatalog(content),
             new GameEventBus(),
             repository,
@@ -2484,7 +2563,8 @@ public static class PhysicalStockQueryV18DebugScenarios
             quantityReservations,
             quantityReservations,
             aggregation,
-            admission);
+            admission,
+            facilityBufferMassAdmission: facilityAdmission);
 
         const string rejectedOwner = "conveyor-payload:qa-mass-rejected";
         string rejectedStackId = WorldItemRepositoryEditorAccess.AddStack(
@@ -2562,8 +2642,299 @@ public static class PhysicalStockQueryV18DebugScenarios
             "A gram-compatible conveyor payload did not commit exact physical "
             + $"warehouse mass: {acceptedFailure.Code}.");
 
+        const string FacilityDestination =
+            "conveyor-facility-buffer:qa-mass";
+        const string FacilityOwnerDomain = "infrastructure.conveyor";
+        const string FacilityOwnerOperation =
+            "conveyor-facility-owner:qa-mass";
+        const string FacilityOwnerId = "building:qa-conveyor-port";
+        Vector2Int facilityPosition = new(8, 3);
+        FacilityBufferDestinationClaim facilityClaim = new(
+            FacilityDestination,
+            facilityPosition,
+            FacilityOwnerDomain,
+            FacilityOwnerOperation,
+            FacilityOwnerId,
+            FacilityBufferDestinationAnchorKind.LiveBuilding);
+        FacilityBufferCapacityProfile facilityProfile = new(
+            FacilityDestination,
+            facilityPosition,
+            FacilityOwnerDomain,
+            FacilityOwnerOperation,
+            FacilityOwnerId,
+            maxMass: new PhysicalMassGrams(3_600L),
+            capacityRevision: 1L);
+        Require(
+            destinationClaims.TryClaim(facilityClaim, out _, out _)
+            && facilityAdmission.TryReplaceOwnedProfiles(
+                FacilityOwnerDomain,
+                new[] { facilityProfile },
+                out _,
+                out _),
+            "Conveyor facility-buffer claim/profile fixture did not publish.");
+
+        const string MissingProfileOwner =
+            "conveyor-payload:qa-facility-missing-profile";
+        string missingProfileStackId =
+            WorldItemRepositoryEditorAccess.AddStack(
+                repository,
+                LumberItemId,
+                1,
+                WorldItemStackState.Loose,
+                position: new Vector2Int(4, 3));
+        Require(
+            transfers.TryBeginTransit(
+                (ItemStackId)missingProfileStackId,
+                new Vector2Int(4, 3),
+                MissingProfileOwner,
+                out _,
+                out _)
+            && !transfers.TryCompleteTransitToFacilityBuffer(
+                (ItemStackId)missingProfileStackId,
+                MissingProfileOwner,
+                new Vector2Int(9, 3),
+                "conveyor-facility-buffer:qa-missing",
+                out _,
+                out DomainFailure missingProfileFailure)
+            && missingProfileFailure.Code
+                == FailureCode.ConveyorDestinationUnavailable
+            && transfers.TryGetTransitStack(
+                (ItemStackId)missingProfileStackId,
+                MissingProfileOwner,
+                out _),
+            "A conveyor payload entered a facility buffer without an exact "
+            + "claim/profile admission authority.");
+
+        const string OvermassOwner =
+            "conveyor-payload:qa-facility-overmass";
+        string overmassStackId = WorldItemRepositoryEditorAccess.AddStack(
+            repository,
+            LumberItemId,
+            4,
+            WorldItemStackState.Loose,
+            position: new Vector2Int(5, 3));
+        Require(
+            transfers.TryBeginTransit(
+                (ItemStackId)overmassStackId,
+                new Vector2Int(5, 3),
+                OvermassOwner,
+                out _,
+                out _)
+            && !transfers.TryCompleteTransitToFacilityBuffer(
+                (ItemStackId)overmassStackId,
+                OvermassOwner,
+                facilityPosition,
+                FacilityDestination,
+                out _,
+                out DomainFailure overmassFailure)
+            && overmassFailure.Code == FailureCode.ConveyorPortFull
+            && transfers.TryGetTransitStack(
+                (ItemStackId)overmassStackId,
+                OvermassOwner,
+                out _)
+            && facilityAdmission.TryGetCapacity(
+                FacilityDestination,
+                facilityPosition,
+                out FacilityBufferMassCapacitySnapshot afterOvermass)
+            && afterOvermass.ReservedMassGrams == 0L,
+            "An overmass conveyor payload was not rejected atomically by the "
+            + "facility-buffer admission authority.");
+
+        const string BypassOwner =
+            "conveyor-payload:qa-facility-bypass";
+        string bypassStackId = WorldItemRepositoryEditorAccess.AddStack(
+            repository,
+            LumberItemId,
+            1,
+            WorldItemStackState.Loose,
+            position: new Vector2Int(6, 3));
+        Require(
+            transfers.TryBeginTransit(
+                (ItemStackId)bypassStackId,
+                new Vector2Int(6, 3),
+                BypassOwner,
+                out _,
+                out _)
+            && !transfers.TryCompleteTransit(
+                (ItemStackId)bypassStackId,
+                BypassOwner,
+                WorldItemStackState.FacilityBuffer,
+                facilityPosition,
+                FacilityDestination,
+                out DomainFailure bypassFailure)
+            && bypassFailure.Code
+                == FailureCode.ConveyorDestinationUnavailable
+            && transfers.TryGetTransitStack(
+                (ItemStackId)bypassStackId,
+                BypassOwner,
+                out _),
+            "The generic transit completion API still bypassed exact "
+            + "facility-buffer admission.");
+
+        const string FaultOwner = "conveyor-payload:qa-facility-fault";
+        string faultStackId = WorldItemRepositoryEditorAccess.AddStack(
+            repository,
+            LumberItemId,
+            1,
+            WorldItemStackState.Loose,
+            position: new Vector2Int(7, 3));
+        Require(
+            transfers.TryBeginTransit(
+                (ItemStackId)faultStackId,
+                new Vector2Int(7, 3),
+                FaultOwner,
+                out _,
+                out _),
+            "The facility-buffer commit-fault payload did not enter transit.");
+        WorldItemStackSnapshot faultBefore = stockQuery.GetAllStacks().Single(
+            stack => string.Equals(
+                stack.StackId,
+                faultStackId,
+                StringComparison.Ordinal));
+        long faultMassBefore = massQuery.GetQuantityMass(
+            (ItemDefinitionId)faultBefore.ItemId,
+            PhysicalItemMassSubjectAdapter.Create(
+                massQuery,
+                (ItemDefinitionId)faultBefore.ItemId,
+                faultBefore.ItemInstanceId,
+                faultBefore.Components),
+            faultBefore.Quantity).Value;
+        transfers.DebugFailBeforeFacilityTransitAdmissionCommit = () => true;
+        bool faultRejected =
+            !transfers.TryCompleteTransitToFacilityBuffer(
+                (ItemStackId)faultStackId,
+                FaultOwner,
+                facilityPosition,
+                FacilityDestination,
+                out _,
+                out DomainFailure faultFailure);
+        transfers.DebugFailBeforeFacilityTransitAdmissionCommit = null;
+        WorldItemStackSnapshot faultAfter = stockQuery.GetAllStacks().Single(
+            stack => string.Equals(
+                stack.StackId,
+                faultStackId,
+                StringComparison.Ordinal));
+        long faultMassAfter = massQuery.GetQuantityMass(
+            (ItemDefinitionId)faultAfter.ItemId,
+            PhysicalItemMassSubjectAdapter.Create(
+                massQuery,
+                (ItemDefinitionId)faultAfter.ItemId,
+                faultAfter.ItemInstanceId,
+                faultAfter.Components),
+            faultAfter.Quantity).Value;
+        Require(
+            faultRejected
+            && faultFailure.Code == FailureCode.ConveyorDestinationUnavailable
+            && faultAfter.State == faultBefore.State
+            && faultAfter.Position == faultBefore.Position
+            && string.Equals(
+                faultAfter.DestinationId,
+                faultBefore.DestinationId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                faultAfter.SourceStorageDestinationId,
+                faultBefore.SourceStorageDestinationId,
+                StringComparison.Ordinal)
+            && faultAfter.HasDestinationPosition
+                == faultBefore.HasDestinationPosition
+            && faultAfter.DestinationPosition
+                == faultBefore.DestinationPosition
+            && string.Equals(
+                faultAfter.ReservedByPersistentId,
+                faultBefore.ReservedByPersistentId,
+                StringComparison.Ordinal)
+            && faultAfter.ReservedQuantity == faultBefore.ReservedQuantity
+            && faultAfter.ReservationRevision
+                == faultBefore.ReservationRevision
+            && faultAfter.Quantity == faultBefore.Quantity
+            && string.Equals(
+                faultAfter.ItemInstanceId,
+                faultBefore.ItemInstanceId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                faultAfter.ReservationSignature,
+                faultBefore.ReservationSignature,
+                StringComparison.Ordinal)
+            && faultMassAfter == faultMassBefore
+            && facilityAdmission.TryGetCapacity(
+                FacilityDestination,
+                facilityPosition,
+                out FacilityBufferMassCapacitySnapshot afterFault)
+            && afterFault.ReservedMassGrams == 0L,
+            "A failed conveyor facility-buffer commit leaked mass admission "
+            + "or mutated the in-transit lot.");
+
+        const string FacilityAcceptedOwner =
+            "conveyor-payload:qa-facility-accepted";
+        string facilityAcceptedStackId =
+            WorldItemRepositoryEditorAccess.AddStack(
+                repository,
+                LumberItemId,
+                2,
+                WorldItemStackState.Loose,
+                position: new Vector2Int(7, 4));
+        Require(
+            transfers.TryBeginTransit(
+                (ItemStackId)facilityAcceptedStackId,
+                new Vector2Int(7, 4),
+                FacilityAcceptedOwner,
+                out _,
+                out _)
+            && transfers.TryCompleteTransitToFacilityBuffer(
+                (ItemStackId)facilityAcceptedStackId,
+                FacilityAcceptedOwner,
+                facilityPosition,
+                FacilityDestination,
+                out FacilityBufferMassAdmissionReceipt facilityReceipt,
+                out DomainFailure facilityFailure)
+            && !facilityFailure.IsFailure
+            && facilityReceipt.CommittedMassGrams == 2_400L
+            && stockQuery.GetAllStacks().Any(stack =>
+                string.Equals(
+                    stack.StackId,
+                    facilityAcceptedStackId,
+                    StringComparison.Ordinal)
+                && stack.State == WorldItemStackState.FacilityBuffer
+                && string.Equals(
+                    stack.DestinationId,
+                    FacilityDestination,
+                    StringComparison.Ordinal))
+            && facilityAdmission.TryGetCapacity(
+                FacilityDestination,
+                facilityPosition,
+                out FacilityBufferMassCapacitySnapshot afterAccepted)
+            && afterAccepted.ReservedMassGrams == 0L,
+            "A valid conveyor facility-buffer arrival did not commit its exact "
+            + "physical lot and gram receipt.");
+        Require(
+            facilityOccupancy.Capture(FacilityDestination).TotalMassGrams
+                == 2_400L
+            && !transfers.TryCompleteTransitToFacilityBuffer(
+                (ItemStackId)facilityAcceptedStackId,
+                FacilityAcceptedOwner,
+                facilityPosition,
+                FacilityDestination,
+                out _,
+                out DomainFailure replayFailure)
+            && replayFailure.Code == FailureCode.ConveyorDestinationUnavailable
+            && stockQuery.GetAllStacks().Count(stack =>
+                string.Equals(
+                    stack.StackId,
+                    facilityAcceptedStackId,
+                    StringComparison.Ordinal)) == 1,
+            "Conveyor facility-buffer completion was not exact-once.");
+
         WorldItemRepositoryEditorAccess.RemoveStack(repository, rejectedStackId);
         WorldItemRepositoryEditorAccess.RemoveStack(repository, acceptedStackId);
+        WorldItemRepositoryEditorAccess.RemoveStack(
+            repository,
+            missingProfileStackId);
+        WorldItemRepositoryEditorAccess.RemoveStack(repository, overmassStackId);
+        WorldItemRepositoryEditorAccess.RemoveStack(repository, bypassStackId);
+        WorldItemRepositoryEditorAccess.RemoveStack(repository, faultStackId);
+        WorldItemRepositoryEditorAccess.RemoveStack(
+            repository,
+            facilityAcceptedStackId);
     }
 
     private static WarehouseMassAdmissionRequest CreateAdmissionRequest(

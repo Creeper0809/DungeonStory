@@ -1,0 +1,6 @@
+climate_id,mean_temperature_c,annual_amplitude_c,local_hour_offset,source_path
+climate:ember-wastes,27,8,0,Assets/Resources/SO/World/Climate/ClimateZone_ember-wastes.asset
+climate:frost-rift,0,12,0,Assets/Resources/SO/World/Climate/ClimateZone_frost-rift.asset
+climate:mana-stormlands,12,16,0,Assets/Resources/SO/World/Climate/ClimateZone_mana-stormlands.asset
+climate:mycelial-depths,16,5,0,Assets/Resources/SO/World/Climate/ClimateZone_mycelial-depths.asset
+climate:temperate-cave,14,14,0,Assets/Resources/SO/World/Climate/ClimateZone_temperate-cave.asset

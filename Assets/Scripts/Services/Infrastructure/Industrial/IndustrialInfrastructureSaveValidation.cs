@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-internal static class IndustrialInfrastructureSaveValidation
+public static class IndustrialInfrastructureSaveValidation
 {
     public static void RequireValid(DungeonPowerInfrastructureSaveData data) =>
         RequireValid(report => Validate(data, report), "power infrastructure");
@@ -351,6 +351,7 @@ internal static class IndustrialInfrastructureSaveValidation
         }
 
         HashSet<string> payloadIds = NewIds();
+        HashSet<string> payloadStackIds = NewIds();
         foreach (ConveyorPayloadSaveData payload in data.payloads
                      ?? new List<ConveyorPayloadSaveData>())
         {
@@ -359,9 +360,18 @@ internal static class IndustrialInfrastructureSaveValidation
                 continue;
             }
 
-            if (!new BuildingInstanceId(
-                    payload.segmentBuildingInstanceId).IsValid
-                || !new ItemStackId(payload.itemStackId).IsValid
+            if (!IsCanonicalPersistentId(
+                    payload.itemStackId,
+                    new ItemStackId(payload.itemStackId).IsValid)
+                || !payloadStackIds.Add(payload.itemStackId)
+                || !IsCanonicalPersistentId(
+                    payload.segmentBuildingInstanceId,
+                    new BuildingInstanceId(
+                        payload.segmentBuildingInstanceId).IsValid)
+                || !IsCanonicalOptionalPersistentId(
+                    payload.previousBuildingInstanceId,
+                    value => new BuildingInstanceId(value).IsValid)
+                || !IsCanonicalOptionalText(payload.destinationId)
                 || !IsRangeFinite(payload.progress, 0f, 1f)
                 || !IsNonNegativeFinite(payload.lastMovedAt)
                 || !IsNonNegativeFinite(payload.stalledSince)
@@ -430,16 +440,16 @@ internal static class IndustrialInfrastructureSaveValidation
         string label,
         DungeonGameRestoreReport report)
     {
-        string normalized = value?.Trim() ?? string.Empty;
-        if (normalized.Length == 0)
+        if (!IsCanonicalRequiredText(value))
         {
-            report.AddError($"Industrial payload contains a blank {label} ID.");
+            report.AddError(
+                $"Industrial payload contains a blank or non-canonical {label} ID.");
             return false;
         }
 
-        if (!ids.Add(normalized))
+        if (!ids.Add(value))
         {
-            report.AddError($"Industrial payload contains duplicate {label} {normalized}.");
+            report.AddError($"Industrial payload contains duplicate {label} {value}.");
             return false;
         }
 
@@ -452,7 +462,9 @@ internal static class IndustrialInfrastructureSaveValidation
         string label,
         DungeonGameRestoreReport report)
     {
-        if (!new BuildingInstanceId(value).IsValid)
+        if (!IsCanonicalPersistentId(
+                value,
+                new BuildingInstanceId(value).IsValid))
         {
             report.AddError(
                 $"Industrial payload contains an invalid {label} building ID.");
@@ -461,6 +473,25 @@ internal static class IndustrialInfrastructureSaveValidation
 
         return ValidateId(value, ids, label, report);
     }
+
+    private static bool IsCanonicalPersistentId(
+        string value,
+        bool isValid) =>
+        isValid && IsCanonicalRequiredText(value);
+
+    private static bool IsCanonicalOptionalPersistentId(
+        string value,
+        Func<string, bool> isValid) =>
+        IsCanonicalOptionalText(value)
+        && (value.Length == 0 || isValid(value));
+
+    private static bool IsCanonicalRequiredText(string value) =>
+        !string.IsNullOrEmpty(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
+
+    private static bool IsCanonicalOptionalText(string value) =>
+        value != null
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
 
     private static bool IsNonNegativeFinite(float value) =>
         !float.IsNaN(value) && !float.IsInfinity(value) && value >= 0f;

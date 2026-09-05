@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Metabolism"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "heritable-cold-blood-adaptation",
+  "spoiler_tier": "none",
+  "summary": "추운 환경에서 기관 기능 저하가 늦다.",
+  "title": "저온 대사 적응"
+}

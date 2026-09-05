@@ -47,13 +47,17 @@ public sealed class CharacterSummaryCaptivityPresenter
 
         string captiveId = actor.Identity?.PersistentId ?? string.Empty;
         if (!captivityRuntime.TryGetCaptive(captiveId, out CaptiveState captive)
-            || !captive.IsActive)
+            || (!captive.IsInCustody && !captive.IsMinion))
         {
             ShowNotice("이 대상은 포획할 수 있는 쓰러진 침입자가 아닙니다.", false);
             return;
         }
 
-        if (captive.status == CaptivityStatus.AwaitingCapture)
+        if (captive.IsMinion)
+        {
+            ShowNotice("하수인 신분과 재사회화 진행도는 운영 탭의 하수인 관리에서 확인합니다.", true);
+        }
+        else if (captive.status == CaptivityStatus.AwaitingCapture)
         {
             CharacterActor carrier = characterWorld.AllCharacters
                 .Where(candidate => IsAvailableCaptureCarrier(candidate, captiveId))
@@ -95,13 +99,25 @@ public sealed class CharacterSummaryCaptivityPresenter
     {
         string captiveId = actor?.Identity?.PersistentId ?? string.Empty;
         if (!captivityRuntime.TryGetCaptive(captiveId, out CaptiveState captive)
-            || !captive.IsActive)
+            || (!captive.IsInCustody && !captive.IsMinion))
         {
             return;
         }
 
         builder.AppendLine();
-        builder.AppendLine("포로 상태");
+        builder.AppendLine(captive.IsMinion ? "하수인 상태" : "포로 상태");
+        if (captive.IsMinion)
+        {
+            builder.AppendLine(
+                "허용 업무 23/31 · 숙련 성장률 50% · 임금 없음 · 경비 가능 · 원정 불가");
+            builder.AppendLine(
+                $"재사회화 {captive.rehabilitationDays}/{MinionIntegrationRules.RequiredRehabilitationDays}일"
+                + $" · {captive.completedRehabilitationWork:0.#}/{MinionIntegrationRules.RehabilitationRequiredWork:0.#} WU");
+            builder.AppendLine(
+                $"신뢰 {captive.trust:0} · 원한 {captive.grudge:0}"
+                + $" · 타락 {captive.corruption:0} · {captive.lastResult}");
+            return;
+        }
         builder.AppendLine(
             $"{CharacterSummaryTextFormatter.FormatCaptivityStatus(captive.status)} · 건강 {captive.health:0}"
             + $" · 순응 {captive.compliance:0} · 탈출 위험 {captive.escapeRisk:0}");
@@ -129,7 +145,7 @@ public sealed class CharacterSummaryCaptivityPresenter
 
         string captiveId = actor?.Identity?.PersistentId ?? string.Empty;
         bool hasCaptive = captivityRuntime.TryGetCaptive(captiveId, out CaptiveState captive)
-            && captive.IsActive;
+            && (captive.IsInCustody || captive.IsMinion);
         actionButton.gameObject.SetActive(hasCaptive);
         if (!hasCaptive)
         {
@@ -141,6 +157,7 @@ public sealed class CharacterSummaryCaptivityPresenter
             CaptivityStatus.AwaitingCapture => "포획·호송 명령",
             CaptivityStatus.Confined => "기본 노역 허용",
             CaptivityStatus.Labor => "노역 중지",
+            CaptivityStatus.Minion => "하수인 관리",
             CaptivityStatus.Stabilizing
                 or CaptivityStatus.AwaitingEscort
                 or CaptivityStatus.Escorting => "포획 진행 중",
@@ -154,7 +171,8 @@ public sealed class CharacterSummaryCaptivityPresenter
 
         actionButton.interactable = captive.status is CaptivityStatus.AwaitingCapture
             or CaptivityStatus.Confined
-            or CaptivityStatus.Labor;
+            or CaptivityStatus.Labor
+            or CaptivityStatus.Minion;
     }
 
     private static bool IsAvailableCaptureCarrier(CharacterActor candidate, string captiveId)

@@ -1,0 +1,51 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "recipe-commerce-secure-display-2",
+    "spoiler_tier": "none",
+    "title": "잠금진열장 개조"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/recipe-commerce-secure-display-2",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1013",
+      "target_spoiler_tier": "none",
+      "target_title": "잡화진열선반",
+      "to": "facility/building-1013",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/recipe-commerce-secure-display-2",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1014",
+      "target_spoiler_tier": "none",
+      "target_title": "잠금진열장",
+      "to": "facility/building-1014",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/recipe-commerce-secure-display-2",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1015",
+      "target_spoiler_tier": "none",
+      "target_title": "잡화상자",
+      "to": "facility/building-1015",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-secure-trade",
+      "label": "제작식 해금",
+      "to": "facility/recipe-commerce-secure-display-2",
+      "type": "unlocks-recipe"
+    }
+  ],
+  "schema_version": 1
+}

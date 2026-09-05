@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "120"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "연회 식당과 전문 제작을 위한 2단계 상업 파츠를 즉시 해금한다. 라카쉬 세갈래길의 상업 확장 설계도는 고정 상점보다 피난 행렬과 이동 장터가 먼저 지나갈 자리를 남긴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "research-blueprint-6101",
+  "spoiler_tier": "none",
+  "summary": "연회 식당과 전문 제작을 위한 2단계 상업 파츠를 즉시 해금한다.",
+  "title": "상업 확장 설계도"
+}

@@ -95,6 +95,9 @@ MonoBehaviour:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v3:treated-lumber
         stockSensorInstallationItemId: component:stock-sensor-panel
+        lanePolicy: 1
+        manualWorkLaneCount: 1
+        automaticWorkLaneCount: 0
     - rid: 1010
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:

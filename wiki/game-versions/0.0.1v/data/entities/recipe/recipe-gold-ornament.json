@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "32"
+    },
+    {
+      "label": "필요 연구",
+      "value": "귀금 세공"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "craft-gold-ornament",
+      "target_spoiler_tier": "none",
+      "target_title": "금 장식",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-precious",
+      "target_spoiler_tier": "none",
+      "target_title": "귀금 세공",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-gold-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "금괴",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-mana-crystal",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 결정",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-gold-ornament",
+  "spoiler_tier": "none",
+  "summary": "금 장식 생산 주문",
+  "title": "금 장식"
+}

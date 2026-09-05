@@ -1,0 +1,65 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "practice-slime-clear-water",
+    "spoiler_tier": "none",
+    "title": "맑은물 합류"
+  },
+  "edges": [
+    {
+      "amount": "-2",
+      "from": "event/practice-slime-clear-water",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "practice-slime-clear-water",
+      "target_spoiler_tier": "none",
+      "target_title": "맑은물 합류",
+      "to": "event/practice-slime-clear-water",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "1",
+      "from": "event/practice-slime-clear-water",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-clean-water",
+      "target_spoiler_tier": "none",
+      "target_title": "깨끗한 물",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "event/practice-slime-clear-water",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "practice-slime-clear-water",
+      "target_spoiler_tier": "none",
+      "target_title": "맑은물 합류",
+      "to": "event/practice-slime-clear-water",
+      "type": "changes-relationship"
+    },
+    {
+      "amount": "-2",
+      "from": "event/practice-slime-clear-water",
+      "label": "연결",
+      "to": "event/practice-slime-clear-water",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "3",
+      "from": "event/practice-slime-clear-water",
+      "label": "연결",
+      "to": "event/practice-slime-clear-water",
+      "type": "changes-relationship"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-slime-confluence",
+      "label": "관련",
+      "to": "event/practice-slime-clear-water",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

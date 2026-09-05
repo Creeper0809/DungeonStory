@@ -92,7 +92,7 @@ public readonly struct CanonicalProductionResolvedOutputLine
     public int QuantityBeforeIntegrity { get; }
     public bool PassiveIntegrityPenaltyApplied { get; }
     public int ResolvedQuantity { get; }
-    public bool IsPhysical => Role != ProductionOutputRole.DeclaredLoss;
+    public bool IsPhysical => ProductionOutputRoleRules.IsPhysical(Role);
 }
 
 /// <summary>
@@ -138,8 +138,26 @@ public sealed class CanonicalProductionOutputResolver
         ProductionOutputFactor combinedOutputFactor,
         ProductionProcessKind processKind,
         float passiveBatchIntegrity)
+        => Resolve(
+            randomStreamProvider.RootSeed,
+            billId,
+            cycleSequence,
+            recipeId,
+            outputDefinitions,
+            combinedOutputFactor,
+            processKind,
+            passiveBatchIntegrity);
+
+    public CanonicalProductionOutputResolution Resolve(
+        int rootSeed,
+        ProductionBillId billId,
+        int cycleSequence,
+        string recipeId,
+        IEnumerable<ProductionOutputDefinition> outputDefinitions,
+        ProductionOutputFactor combinedOutputFactor,
+        ProductionProcessKind processKind,
+        float passiveBatchIntegrity)
     {
-        int rootSeed = randomStreamProvider.RootSeed;
         if (rootSeed == 0)
             throw new InvalidOperationException("Production output root seed is zero.");
         if (!billId.IsValid)

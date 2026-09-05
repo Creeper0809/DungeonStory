@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "equipment-item-weapon-estoc",
+    "spoiler_tier": "none",
+    "title": "에스터크"
+  },
+  "edges": [],
+  "schema_version": 1
+}

@@ -257,13 +257,20 @@ public static class CircusSaveValidation
                 || order.pendingSupplyMassGrams != 0)
             || !empty && (order.pendingSupplyOperationSequence != order.nextSupplyOperationSequence
                 || order.pendingSupplyQuantity != 1
-                || order.pendingSupplyMassGrams <= 0
+                || order.pendingSupplyMassGrams !=
+                    CircusPerformanceSupplyContracts
+                        .PerformancePropBoxMassGrams
                 || order.pendingSupplySourceStackIds == null
                 || order.pendingSupplySourceStackIds.Count == 0
                 || string.IsNullOrWhiteSpace(order.pendingSupplyOperationId)
                 || string.IsNullOrWhiteSpace(order.pendingSupplyCommitId)
                 || string.IsNullOrWhiteSpace(order.pendingSupplyCartStackId)
                 || order.pendingSupplyCartDurabilityBefore <= order.pendingSupplyCartDurabilityAfter
+                || Math.Abs(
+                    order.pendingSupplyCartDurabilityBefore
+                    - order.pendingSupplyCartDurabilityAfter
+                    - CircusPerformanceSupplyContracts.BanquetCartWearPerShow)
+                    >= 0.001d
                 || order.pendingSupplyCartDurabilityAfter < 0f)
             || order.preparationSuppliesCommitted != !string.IsNullOrEmpty(order.preparationSupplyCommitId))
         {

@@ -1,0 +1,67 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "24"
+    },
+    {
+      "label": "필요 연구",
+      "value": "사료·깔짚"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "husbandry-bedding",
+      "target_spoiler_tier": "none",
+      "target_title": "깔짚",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-feather",
+      "target_spoiler_tier": "none",
+      "target_title": "깃털",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-feed",
+      "target_spoiler_tier": "none",
+      "target_title": "사료·깔짚",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-hide",
+      "target_spoiler_tier": "none",
+      "target_title": "생가죽",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "털",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-bedding-animal",
+  "spoiler_tier": "none",
+  "summary": "털 깔짚 생산 주문",
+  "title": "털 깔짚"
+}

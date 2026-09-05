@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "98"
+    },
+    {
+      "label": "필요 연구",
+      "value": "진통·마취"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "6",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "ammo-tranquilizer-dart",
+      "target_spoiler_tier": "none",
+      "target_title": "진정 다트",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-anesthesia",
+      "target_spoiler_tier": "none",
+      "target_title": "진통·마취",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-standard",
+      "target_spoiler_tier": "none",
+      "target_title": "표준 약품",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-ammo-tranquilizer-dart",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 진정 다트을(를) 생산한다.",
+  "title": "진정 다트"
+}

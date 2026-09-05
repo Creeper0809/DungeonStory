@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-leather",
+    "spoiler_tier": "none",
+    "title": "가죽 무두질"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-leather",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-saltstone",
+      "target_spoiler_tier": "none",
+      "target_title": "소금석",
+      "to": "item/resource-saltstone",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-leather",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-leather",
+      "target_spoiler_tier": "none",
+      "target_title": "가죽",
+      "to": "item/material-leather",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-leather",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-hide",
+      "target_spoiler_tier": "none",
+      "target_title": "생가죽",
+      "to": "item/resource-hide",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-leather",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-tanning",
+      "target_spoiler_tier": "none",
+      "target_title": "무두질",
+      "to": "research/research-textile-tanning",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,121 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "691"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Authority And Housing"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-housing-room-assignment",
+      "target_spoiler_tier": "none",
+      "target_title": "방 배정과 가족 생활구획",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-housing-room-assignment",
+      "target_spoiler_tier": "none",
+      "target_title": "방 배정과 가족 생활구획",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-housing-room-assignment",
+      "target_spoiler_tier": "none",
+      "target_title": "방 배정과 가족 생활구획",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-child-education",
+      "target_spoiler_tier": "none",
+      "target_title": "아동 교육과 도제 제도",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-child-education",
+      "target_spoiler_tier": "none",
+      "target_title": "아동 교육과 도제 제도",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-child-education",
+      "target_spoiler_tier": "none",
+      "target_title": "아동 교육과 도제 제도",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-office",
+      "target_spoiler_tier": "none",
+      "target_title": "영주 집무",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-office",
+      "target_spoiler_tier": "none",
+      "target_title": "영주 집무",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-office",
+      "target_spoiler_tier": "none",
+      "target_title": "영주 집무",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8862",
+      "target_spoiler_tier": "none",
+      "target_title": "계보 관리실",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8884",
+      "target_spoiler_tier": "none",
+      "target_title": "보호자 등록소",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-society-generation-management",
+  "spoiler_tier": "none",
+  "summary": "세대 관리와 보호자 승계에 필요한 이론, 제작 절차, 안전 기준과 운용 보상을 하나의 완결된 연구 패키지로 통합한다.",
+  "title": "세대 관리와 보호자 승계"
+}

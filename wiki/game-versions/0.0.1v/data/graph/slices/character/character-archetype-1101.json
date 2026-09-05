@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "character-archetype-1101",
+    "spoiler_tier": "none",
+    "title": "일반 직원"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/character-archetype-1101",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "characterspecies-1",
+      "target_spoiler_tier": "none",
+      "target_title": "슬라임",
+      "to": "character/characterspecies-1",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/character-archetype-1101",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "trait-102",
+      "target_spoiler_tier": "none",
+      "target_title": "절약가",
+      "to": "character/trait-102",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

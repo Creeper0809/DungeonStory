@@ -1,0 +1,3 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+SpeciesLifeHistorySO,content-type,,type-reference,models:species,content-loading,structural-type-consumer,Assets/Scripts/Models/Species/Core/CharacterSpeciesCatalog.cs
+SpeciesLifeHistorySO,content-type,,type-reference,models:species,runtime,structural-type-consumer,Assets/Scripts/Models/Species/Core/CharacterSpeciesDefinitionSO.cs

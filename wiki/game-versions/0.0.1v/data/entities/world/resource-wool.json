@@ -1,0 +1,27 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "선별 사육"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "world",
+  "relations": [
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-selective",
+      "target_spoiler_tier": "none",
+      "target_title": "선별 사육",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "resource-wool",
+  "spoiler_tier": "none",
+  "summary": "다른 콘텐츠 6개가 이 정의를 참조한다.",
+  "title": "털"
+}

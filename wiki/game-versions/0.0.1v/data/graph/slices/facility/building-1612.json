@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1612",
+    "spoiler_tier": "none",
+    "title": "향신료 선반"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-cuisine-kitchen-hygiene",
+      "label": "시설 해금",
+      "to": "facility/building-1612",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

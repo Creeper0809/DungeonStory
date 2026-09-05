@@ -1,0 +1,53 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "내압 화기와 방폭"
+    },
+    {
+      "label": "제작 작업",
+      "value": "256"
+    },
+    {
+      "label": "무게",
+      "value": "8.2kg"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "combat",
+  "relations": [
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-pressure-barrels",
+      "target_spoiler_tier": "none",
+      "target_title": "내압 화기와 방폭",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "textile-insulating-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "절연 직물",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-plate-blank",
+      "target_spoiler_tier": "none",
+      "target_title": "판금 소재판",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "equipment-item-armor-powder-cuirass",
+  "spoiler_tier": "none",
+  "summary": "화약수 흉갑 전투 장비",
+  "title": "화약수 흉갑"
+}

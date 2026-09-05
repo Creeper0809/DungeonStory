@@ -154,3 +154,136 @@ public sealed class PreparedOutputCheckpointGcDurableSaveParticipant :
             result.Reason + ": " + result.Message);
     }
 }
+
+public sealed class ProductionFacilityDestructiveDrainCheckpointGcDurableSaveParticipant :
+    IDungeonDurableSaveCommitParticipant
+{
+    public const string Id =
+        "200.production-facility-destructive-drain-checkpoint-gc";
+
+    private readonly IProductionFacilityDestructiveDrainCheckpointGcCoordinator
+        coordinator;
+
+    public ProductionFacilityDestructiveDrainCheckpointGcDurableSaveParticipant(
+        IProductionFacilityDestructiveDrainCheckpointGcCoordinator coordinator)
+    {
+        this.coordinator = coordinator
+            ?? throw new ArgumentNullException(nameof(coordinator));
+    }
+
+    public string ParticipantId => Id;
+    public int Order => 200;
+
+    public DungeonDurableSaveCommitResult OnDurableSaveCommitted(
+        DungeonDurableSaveCommitContext context)
+    {
+        ProductionFacilityDestructiveDrainCheckpointGcResult result =
+            coordinator.OnDurableSaveCommitted(
+                context.SlotId,
+                context.SerializedByteDigest);
+        DungeonDurableSaveCommitStatus status = result.Status switch
+        {
+            ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied =>
+                DungeonDurableSaveCommitStatus.Applied,
+            ProductionFacilityDestructiveDrainCheckpointGcStatus.Deferred =>
+                DungeonDurableSaveCommitStatus.Deferred,
+            ProductionFacilityDestructiveDrainCheckpointGcStatus
+                .AlreadyApplied =>
+                DungeonDurableSaveCommitStatus.AlreadyApplied,
+            ProductionFacilityDestructiveDrainCheckpointGcStatus.Corruption =>
+                DungeonDurableSaveCommitStatus.Corruption,
+            _ => DungeonDurableSaveCommitStatus.Corruption
+        };
+        return new DungeonDurableSaveCommitResult(
+            status,
+            Id,
+            result.Reason + ": " + result.Message);
+    }
+}
+
+public sealed class SurgeryMaterialTerminalCheckpointGcDurableSaveParticipant :
+    IDungeonDurableSaveCommitParticipant
+{
+    public const string Id =
+        "300.surgery-material-terminal-checkpoint-gc";
+
+    private readonly ISurgeryMaterialTerminalCheckpointGcCoordinator coordinator;
+
+    public SurgeryMaterialTerminalCheckpointGcDurableSaveParticipant(
+        ISurgeryMaterialTerminalCheckpointGcCoordinator coordinator)
+    {
+        this.coordinator = coordinator
+            ?? throw new ArgumentNullException(nameof(coordinator));
+    }
+
+    public string ParticipantId => Id;
+    public int Order => 300;
+
+    public DungeonDurableSaveCommitResult OnDurableSaveCommitted(
+        DungeonDurableSaveCommitContext context)
+    {
+        SurgeryMaterialTerminalCheckpointGcResult result = coordinator
+            .OnDurableSaveCommitted(
+                context.SlotId,
+                context.SerializedByteDigest);
+        DungeonDurableSaveCommitStatus status = result.Status switch
+        {
+            SurgeryMaterialTerminalCheckpointGcStatus.Applied =>
+                DungeonDurableSaveCommitStatus.Applied,
+            SurgeryMaterialTerminalCheckpointGcStatus.AlreadyApplied =>
+                DungeonDurableSaveCommitStatus.AlreadyApplied,
+            SurgeryMaterialTerminalCheckpointGcStatus.Deferred =>
+                DungeonDurableSaveCommitStatus.Deferred,
+            SurgeryMaterialTerminalCheckpointGcStatus.Corruption =>
+                DungeonDurableSaveCommitStatus.Corruption,
+            _ => DungeonDurableSaveCommitStatus.Corruption
+        };
+        return new DungeonDurableSaveCommitResult(status, Id, result.Message);
+    }
+}
+
+public sealed class
+    CharacterMedicalSupplyDestinationDrainCheckpointGcDurableSaveParticipant :
+    IDungeonDurableSaveCommitParticipant
+{
+    public const string Id =
+        "310.character-medical-supply-destination-drain-checkpoint-gc";
+
+    private readonly
+        ICharacterMedicalSupplyDestinationDrainCheckpointGcCoordinator
+            coordinator;
+
+    public CharacterMedicalSupplyDestinationDrainCheckpointGcDurableSaveParticipant(
+        ICharacterMedicalSupplyDestinationDrainCheckpointGcCoordinator
+            coordinator)
+    {
+        this.coordinator = coordinator
+            ?? throw new ArgumentNullException(nameof(coordinator));
+    }
+
+    public string ParticipantId => Id;
+    public int Order => 310;
+
+    public DungeonDurableSaveCommitResult OnDurableSaveCommitted(
+        DungeonDurableSaveCommitContext context)
+    {
+        CharacterMedicalSupplyDestinationDrainCheckpointGcResult result =
+            coordinator.OnDurableSaveCommitted(
+                context.SlotId,
+                context.SerializedByteDigest);
+        DungeonDurableSaveCommitStatus status = result.Status switch
+        {
+            CharacterMedicalSupplyDestinationDrainCheckpointGcStatus.Applied =>
+                DungeonDurableSaveCommitStatus.Applied,
+            CharacterMedicalSupplyDestinationDrainCheckpointGcStatus
+                    .AlreadyApplied =>
+                DungeonDurableSaveCommitStatus.AlreadyApplied,
+            CharacterMedicalSupplyDestinationDrainCheckpointGcStatus.Deferred =>
+                DungeonDurableSaveCommitStatus.Deferred,
+            CharacterMedicalSupplyDestinationDrainCheckpointGcStatus.Corruption =>
+                DungeonDurableSaveCommitStatus.Corruption,
+            _ => DungeonDurableSaveCommitStatus.Corruption
+        };
+        return new DungeonDurableSaveCommitResult(status, Id, result.Message);
+    }
+}

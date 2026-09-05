@@ -18,6 +18,8 @@ public static class SurgeryContentAssetBuilder
     private const string BloodItemId = "resource:blood";
     private const string LumberItemId = "material:lumber";
     private const string ManaCrystalItemId = "resource:mana-crystal";
+    private const string ProstheticAssemblyAssetPath =
+        "Assets/Resources/SO/Building/Medical/M06_보철조립대.asset";
     internal const long OrganStorageMassCapacityGrams = 12_500L;
 
     private sealed class FacilitySpec
@@ -34,6 +36,9 @@ public static class SurgeryContentAssetBuilder
         public bool TreatsPatients;
         public bool StoresOrgans;
         public bool ConsumesFuel;
+        public string ProductionWorkstationTag;
+        public int ProductionOutputBufferCycleCapacity;
+        public bool AllowsProductionOverflowDump;
     }
 
     private sealed class ProcedureSpec
@@ -90,6 +95,111 @@ public static class SurgeryContentAssetBuilder
         BuildProcedures();
         BuildProstheticRecipes();
         V23RecipeProcessClassAuthoring.NormalizeRecipeWorkUnder(RecipeRoot);
+    }
+
+    [MenuItem(
+        "DungeonStory/Content/V27 Apply M06 Production Authority")]
+    public static void ApplyProstheticProductionAuthority()
+    {
+        BuildingSO building = AssetDatabase.LoadAssetAtPath<BuildingSO>(
+            ProstheticAssemblyAssetPath);
+        if (building == null)
+        {
+            throw new InvalidOperationException(
+                "M06 prosthetic assembly asset is missing.");
+        }
+
+        if (!HasExactProstheticProductionAuthority(building))
+        {
+            building.ReplaceAbilities(
+                CreateProstheticProductionAuthorityAbilities(
+                    building.AbilityModules));
+            building.AbilityModules.EnsureStableIds();
+            building.ValidateAbilitiesOrThrow();
+            EditorUtility.SetDirty(building);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.ForceReserializeAssets(
+                new[] { ProstheticAssemblyAssetPath },
+                ForceReserializeAssetsOptions.ReserializeAssets);
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+        }
+
+        ValidateBuiltContent();
+    }
+
+    private static BuildingAbilityCollection
+        CreateProstheticProductionAuthorityAbilities(
+            BuildingAbilityCollection existingAbilities)
+    {
+        if (existingAbilities == null)
+        {
+            throw new InvalidOperationException(
+                "M06 prosthetic assembly abilities are missing.");
+        }
+
+        BuildingAbilityCollection abilities = new();
+        bool inserted = false;
+        foreach (BuildingAbility existing in existingAbilities.Items)
+        {
+            if (existing is BuildingProductionWorkstationAbility
+                or BuildingProductionBufferAbility)
+            {
+                continue;
+            }
+
+            if (!inserted && existing is BuildingProstheticAssemblyAbility)
+            {
+                abilities.Add(CreateProstheticWorkstationAbility());
+                abilities.Add(CreateProstheticBufferAbility());
+                inserted = true;
+            }
+            abilities.Add(existing);
+        }
+
+        if (!inserted)
+        {
+            throw new InvalidOperationException(
+                "M06 prosthetic assembly ability is missing.");
+        }
+
+        return abilities;
+    }
+
+    private static BuildingProductionWorkstationAbility
+        CreateProstheticWorkstationAbility() => new()
+        {
+            workstationTag = "m06",
+            stockSensorInstallationItemId = ProductionBillRuntime.StockSensorItemId
+        };
+
+    private static BuildingProductionBufferAbility
+        CreateProstheticBufferAbility() => new()
+        {
+            defaultBatchCapacity = 4,
+            physicalOutputBufferCycleCapacity = 4,
+            allowOverflowDump = false
+        };
+
+    private static bool HasExactProstheticProductionAuthority(
+        BuildingSO building)
+    {
+        BuildingProductionWorkstationAbility workstation =
+            building?.GetProductionWorkstationAbility();
+        BuildingProductionBufferAbility buffer =
+            building?.GetProductionBufferAbility();
+        return workstation != null
+            && string.Equals(
+                workstation.WorkstationTag,
+                "m06",
+                StringComparison.Ordinal)
+            && string.Equals(
+                workstation.StockSensorInstallationItemId,
+                ProductionBillRuntime.StockSensorItemId,
+                StringComparison.Ordinal)
+            && buffer != null
+            && buffer.defaultBatchCapacity == 4
+            && buffer.physicalOutputBufferCycleCapacity == 4
+            && !buffer.allowOverflowDump;
     }
 
     private static void BuildConditionLexicons()
@@ -217,41 +327,67 @@ public static class SurgeryContentAssetBuilder
         string fileName = recipeId.Replace(':', '_').Replace('-', '_');
         string path = $"{RecipeRoot}/{fileName}.asset";
         ProductionRecipeSO recipe = AssetDatabase.LoadAssetAtPath<ProductionRecipeSO>(path);
+        ProductionRecipeSO existing = recipe;
         float? approvedRequiredWork = recipe != null
             ? recipe.RequiredWork
             : null;
+        ProductionOutputDefinition[] desiredOutputs =
+        {
+            new(
+                ProductionOutputLineAuthoring.BuildStableId(
+                    recipeId,
+                    0,
+                    outputItemId,
+                    ProductionOutputRole.Main),
+                ProductionOutputRole.Main,
+                outputItemId,
+                1)
+        };
+        ProductionOutputDefinition[] canonicalOutputs =
+            ProductionOutputLineAuthoring.ResolveStableOutputs(
+                recipeId,
+                existing?.Outputs,
+                desiredOutputs);
         if (recipe == null)
         {
             recipe = ScriptableObject.CreateInstance<ProductionRecipeSO>();
             AssetDatabase.CreateAsset(recipe, path);
         }
-
-        recipe.id = dataId;
-        recipe.Configure(
-            recipeId,
-            displayName,
-            description,
-            "m06",
-            BuiltInWorkTypeIds.Craft.Value,
-            "research:medical:prosthetics",
-            approvedRequiredWork ?? requiredWork,
-            inputs,
-            new[]
+        void ConfigureRecipe(ProductionRecipeSO target)
+        {
+            target.id = dataId;
+            target.Configure(
+                recipeId,
+                displayName,
+                description,
+                "m06",
+                BuiltInWorkTypeIds.Craft.Value,
+                "research:medical:prosthetics",
+                approvedRequiredWork ?? requiredWork,
+                inputs,
+                canonicalOutputs);
+            target.ConfigureFlowRole(ProductionFlowRole.Transform);
+            target.ConfigureProcessClass(ProductionProcessClass.Precision);
+            V27ReviewedProductionMassExplanationCatalog.ApplyIfReviewed(target);
+            target.ConfigureBalanceWork(
+                approvedRequiredWork
+                ?? V23BalanceWorkCalculator.CalculateRecipeBaseWork(
+                    target,
+                    ProductionProcessClass.Precision));
+        }
+        if (existing != null)
+        {
+            if (WouldChange(recipe, ConfigureRecipe))
             {
-                new ProductionOutputDefinition(
-                    "output:main",
-                    ProductionOutputRole.Main,
-                    outputItemId,
-                    1)
-            });
-        recipe.ConfigureFlowRole(ProductionFlowRole.Transform);
-        recipe.ConfigureProcessClass(ProductionProcessClass.Precision);
-        recipe.ConfigureBalanceWork(
-            approvedRequiredWork
-            ?? V23BalanceWorkCalculator.CalculateRecipeBaseWork(
-                recipe,
-                ProductionProcessClass.Precision));
-        EditorUtility.SetDirty(recipe);
+                ConfigureRecipe(recipe);
+                EditorUtility.SetDirty(recipe);
+            }
+        }
+        else
+        {
+            ConfigureRecipe(recipe);
+            EditorUtility.SetDirty(recipe);
+        }
     }
 
     private static void BuildFacilities()
@@ -404,6 +540,37 @@ public static class SurgeryContentAssetBuilder
             });
         }
 
+        if (!string.IsNullOrWhiteSpace(spec.ProductionWorkstationTag))
+        {
+            if (spec.ProductionOutputBufferCycleCapacity is < 2 or > 4)
+            {
+                throw new InvalidOperationException(
+                    $"{spec.Code}: production output-buffer cycle capacity must be authored in [2,4].");
+            }
+             abilities.Add(new BuildingProductionWorkstationAbility
+             {
+                 workstationTag = spec.ProductionWorkstationTag,
+                 stockSensorInstallationItemId = ProductionBillRuntime.StockSensorItemId,
+                 lanePolicy = ProductionWorkstationLanePolicy
+                     .ManualWithDetachedBatchProcessors,
+                 manualWorkLaneCount = 1,
+                 automaticWorkLaneCount = 0
+             });
+            abilities.Add(new BuildingProductionBufferAbility
+            {
+                defaultBatchCapacity = spec.ProductionOutputBufferCycleCapacity,
+                physicalOutputBufferCycleCapacity =
+                    spec.ProductionOutputBufferCycleCapacity,
+                allowOverflowDump = spec.AllowsProductionOverflowDump
+            });
+        }
+        else if (spec.ProductionOutputBufferCycleCapacity != 0
+            || spec.AllowsProductionOverflowDump)
+        {
+            throw new InvalidOperationException(
+                $"{spec.Code}: production buffer settings require a workstation tag.");
+        }
+
         abilities.Add(spec.SurgicalAbility);
 
         if (existingAbilities != null)
@@ -437,7 +604,9 @@ public static class SurgeryContentAssetBuilder
             or BuildingEvolutionAbility
             or BuildingMedicalAbility
             or BuildingStorageAbility
-            or BuildingFuelConsumerAbility)
+            or BuildingFuelConsumerAbility
+            or BuildingProductionWorkstationAbility
+            or BuildingProductionBufferAbility)
         {
             return true;
         }
@@ -517,9 +686,10 @@ public static class SurgeryContentAssetBuilder
                 new BuildingProstheticAssemblyAbility
                 {
                     assemblySpeedMultiplier = 1.1f,
-                    qualityBonus = 0.06f,
-                    outputCapacity = 3
-                }, FacilityWorkType.Craft),
+                    qualityBonus = 0.06f
+                }, FacilityWorkType.Craft,
+                productionWorkstationTag: "m06",
+                productionOutputBufferCycleCapacity: 4),
             Facility("M07", 9507, "재활 보조대", 2, 135, 54, new Color32(98, 156, 113, 255),
                 new BuildingRehabilitationAbility
                 {
@@ -599,7 +769,10 @@ public static class SurgeryContentAssetBuilder
         FacilityWorkType workTypes,
         bool treats = false,
         bool stores = false,
-        bool fuel = false)
+        bool fuel = false,
+        string productionWorkstationTag = "",
+        int productionOutputBufferCycleCapacity = 0,
+        bool allowsProductionOverflowDump = false)
     {
         return new FacilitySpec
         {
@@ -614,7 +787,11 @@ public static class SurgeryContentAssetBuilder
             WorkTypes = workTypes,
             TreatsPatients = treats,
             StoresOrgans = stores,
-            ConsumesFuel = fuel
+            ConsumesFuel = fuel,
+            ProductionWorkstationTag = productionWorkstationTag,
+            ProductionOutputBufferCycleCapacity =
+                productionOutputBufferCycleCapacity,
+            AllowsProductionOverflowDump = allowsProductionOverflowDump
         };
     }
 
@@ -1181,6 +1358,12 @@ public static class SurgeryContentAssetBuilder
             LoadAssets<AnatomyConditionLexiconSO>(ConditionLexiconRoot);
         ResearchProjectSO[] research = LoadAssets<ResearchProjectSO>(
             "Assets/Resources/SO/Research/Projects");
+        ProductionRecipeSO[] prostheticRecipes = LoadAssets<ProductionRecipeSO>(
+                RecipeRoot)
+            .Where(recipe => recipe.RecipeId.StartsWith(
+                "recipe:surgery:",
+                StringComparison.Ordinal))
+            .ToArray();
 
         if (buildings.Length != 13)
         {
@@ -1203,6 +1386,43 @@ public static class SurgeryContentAssetBuilder
         {
             throw new InvalidOperationException(
                 $"Expected 180 research projects, found {research.Length}.");
+        }
+        if (prostheticRecipes.Length != 3)
+        {
+            throw new InvalidOperationException(
+                $"Expected 3 prosthetic production recipes, found {prostheticRecipes.Length}.");
+        }
+
+        BuildingSO prostheticAssembly = buildings.SingleOrDefault(building =>
+            string.Equals(
+                building.GetAbility<BuildingFacilityPartAbility>()?.code,
+                "M06",
+                StringComparison.Ordinal));
+        BuildingProductionWorkstationAbility prostheticWorkstation =
+            prostheticAssembly?.GetProductionWorkstationAbility();
+        BuildingProductionBufferAbility prostheticBuffer =
+            prostheticAssembly?.GetProductionBufferAbility();
+        if (prostheticAssembly == null
+            || prostheticWorkstation == null
+            || !string.Equals(
+                prostheticWorkstation.WorkstationTag,
+                "m06",
+                StringComparison.Ordinal)
+            || !string.Equals(
+                prostheticWorkstation.StockSensorInstallationItemId,
+                ProductionBillRuntime.StockSensorItemId,
+                StringComparison.Ordinal)
+            || prostheticBuffer == null
+            || prostheticBuffer.defaultBatchCapacity != 4
+            || prostheticBuffer.physicalOutputBufferCycleCapacity != 4
+            || prostheticBuffer.allowOverflowDump
+            || prostheticRecipes.Any(recipe => !string.Equals(
+                recipe.WorkstationTag,
+                prostheticWorkstation.WorkstationTag,
+                StringComparison.Ordinal)))
+        {
+            throw new InvalidOperationException(
+                "M06 prosthetic production workstation/buffer authority is incomplete or drifted.");
         }
 
         ResourceAnatomyProfileCatalog anatomyCatalog =
@@ -1366,6 +1586,20 @@ public static class SurgeryContentAssetBuilder
             EditorJsonUtility.FromJsonOverwrite(rawBefore, candidate);
             candidate.name = asset.name;
             configure(candidate);
+            if (asset is ProductionRecipeSO leftRecipe
+                && candidate is ProductionRecipeSO rightRecipe)
+            {
+                return !ProductionRecipeAuthoringComparison.AreEquivalent(
+                    leftRecipe,
+                    rightRecipe);
+            }
+            if (asset is BuildingSO leftBuilding
+                && candidate is BuildingSO rightBuilding)
+            {
+                return !AreEquivalentBuildingAuthoring(
+                    leftBuilding,
+                    rightBuilding);
+            }
             return !string.Equals(
                 before,
                 CanonicalizeSemanticJson(
@@ -1376,6 +1610,74 @@ public static class SurgeryContentAssetBuilder
         {
             UnityEngine.Object.DestroyImmediate(candidate);
         }
+    }
+
+    private static bool AreEquivalentBuildingAuthoring(
+        BuildingSO left,
+        BuildingSO right)
+    {
+        SerializedObject leftSerialized = new(left);
+        SerializedObject rightSerialized = new(right);
+        SerializedProperty leftProperty = leftSerialized.GetIterator();
+        SerializedProperty rightProperty = rightSerialized.GetIterator();
+        bool hasLeft = leftProperty.NextVisible(true);
+        bool hasRight = rightProperty.NextVisible(true);
+        while (hasLeft || hasRight)
+        {
+            if (hasLeft != hasRight
+                || !string.Equals(
+                    leftProperty.propertyPath,
+                    rightProperty.propertyPath,
+                    StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            if (!string.Equals(
+                    leftProperty.propertyPath,
+                    "m_Script",
+                    StringComparison.Ordinal)
+                && !string.Equals(
+                    leftProperty.propertyPath,
+                    "abilityModules",
+                    StringComparison.Ordinal)
+                && !SerializedProperty.DataEquals(
+                    leftProperty,
+                    rightProperty))
+            {
+                return false;
+            }
+
+            hasLeft = leftProperty.NextVisible(false);
+            hasRight = rightProperty.NextVisible(false);
+        }
+
+        IReadOnlyList<BuildingAbility> leftAbilities =
+            left.AbilityModules?.Items ?? Array.Empty<BuildingAbility>();
+        IReadOnlyList<BuildingAbility> rightAbilities =
+            right.AbilityModules?.Items ?? Array.Empty<BuildingAbility>();
+        if (leftAbilities.Count != rightAbilities.Count)
+            return false;
+        for (int index = 0; index < leftAbilities.Count; index++)
+        {
+            BuildingAbility leftAbility = leftAbilities[index];
+            BuildingAbility rightAbility = rightAbilities[index];
+            if (leftAbility == null || rightAbility == null)
+            {
+                if (leftAbility != rightAbility)
+                    return false;
+                continue;
+            }
+            if (leftAbility.GetType() != rightAbility.GetType()
+                || !string.Equals(
+                    JsonUtility.ToJson(leftAbility, false),
+                    JsonUtility.ToJson(rightAbility, false),
+                    StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static string CanonicalizeSemanticJson(string json) =>

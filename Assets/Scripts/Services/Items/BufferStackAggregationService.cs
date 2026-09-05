@@ -435,12 +435,17 @@ public sealed class BufferStackAggregationService :
                 : -1,
             freshness.Preserved,
             Mathf.RoundToInt(item.contamination / ContaminationTolerance));
-        List<WorldItemStackRecord> compatible = ResolveTargets(
-            key,
-            destinationPosition,
-            item.contamination,
-            freshness,
-            transport?.stackId);
+        bool preservesOutputProvenance =
+            (item.components ?? new List<ItemInstanceComponentSaveData>())
+            .Any(PlannedOutputPublicationComponentCodec.IsAnyMarker);
+        List<WorldItemStackRecord> compatible = preservesOutputProvenance
+            ? new List<WorldItemStackRecord>()
+            : ResolveTargets(
+                key,
+                destinationPosition,
+                item.contamination,
+                freshness,
+                transport?.stackId);
 
         int remaining = item.quantity;
         string canonicalId = string.Empty;
@@ -793,6 +798,9 @@ public sealed class BufferStackAggregationService :
             || record.state != WorldItemStackState.FacilityBuffer
             || FacilityOutputExactRouteCustodyCodec.HasAnyCustody(
                 record.components)
+            || (record.components
+                    ?? new List<ItemInstanceComponentSaveData>())
+                .Any(PlannedOutputPublicationComponentCodec.IsAnyMarker)
             || !string.Equals(record.destinationId, key.DestinationId, StringComparison.Ordinal)
             || !string.Equals(
                 record.aggregationCohortId,

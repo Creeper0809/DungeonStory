@@ -1,0 +1,62 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "deep-goat",
+    "spoiler_tier": "none",
+    "title": "심층염소"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "nature/deep-goat",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "fiber-deep-goat-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "심층 염소모직 원섬유",
+      "to": "item/fiber-deep-goat-wool",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/deep-goat",
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-deep-parasitosis",
+      "target_spoiler_tier": "none",
+      "target_title": "심층 기생충증",
+      "to": "medical/disease-deep-parasitosis",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/deep-goat",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-hound",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴사냥개",
+      "to": "nature/cave-hound",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/deep-goat",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "shadow-wolf",
+      "target_spoiler_tier": "none",
+      "target_title": "그림자늑대",
+      "to": "nature/shadow-wolf",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/mire-leech",
+      "label": "관련",
+      "to": "nature/deep-goat",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

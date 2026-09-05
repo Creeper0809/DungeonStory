@@ -151,7 +151,8 @@ public sealed class ProductionDistributionRuntime :
             changed |= EnsurePolicies(bill, recipe);
             HashSet<string> selectedConsumerIds = new(StringComparer.Ordinal);
             ProductionFacilityHandle facility = ResolveFacility(bill.buildingInstanceId);
-            if (ProductionPreparedOutputMigrationScope.Contains(bill.recipeId))
+            if (ProductionPreparedOutputCapabilitySelection
+                .UsesPreparedOutputMaterializer(recipe, bridge))
             {
                 if (routedCount < MaximumRoutesPerTick
                     && TryProgressPreparedOutputRoute(
@@ -336,30 +337,48 @@ public sealed class ProductionDistributionRuntime :
 
         if (HasCompatibleWarehouse(itemId))
         {
-            return bridge.TryRouteBufferedOutput(
+            bool completed = bridge.TryRouteBufferedOutput(
                 bill.outputDestinationId,
                 itemId,
                 amount,
                 facility.Position,
                 string.Empty,
                 out int routed,
-                out DomainFailure failure)
-                && routed == amount;
+                out DomainFailure failure);
+            if (completed && routed == amount)
+            {
+                bill.SetBlockedFailure(DomainFailure.None);
+                return true;
+            }
+            if (failure.IsFailure)
+                bill.SetBlockedFailure(failure);
+            return false;
         }
 
         if (facility.AllowsOverflowDump)
         {
-            return bridge.TryRouteBufferedOutput(
+            bool completed = bridge.TryRouteBufferedOutput(
                 bill.outputDestinationId,
                 itemId,
                 amount,
                 facility.Position + facility.OverflowOffset,
                 string.Empty,
                 out int routed,
-                out DomainFailure failure)
-                && routed == amount;
+                out DomainFailure failure);
+            if (completed && routed == amount)
+            {
+                bill.SetBlockedFailure(DomainFailure.None);
+                return true;
+            }
+            if (failure.IsFailure)
+                bill.SetBlockedFailure(failure);
+            return false;
         }
 
+        bill.SetBlockedFailure(new DomainFailure(
+            FailureCode.ProductionOutputUnavailable,
+            itemId,
+            "compatible-warehouse-missing-and-overflow-disabled"));
         return false;
     }
 
@@ -807,8 +826,7 @@ public sealed class ProductionDistributionRuntime :
 
     private bool HasCompatibleWarehouse(string itemId)
     {
-        return catalog.TryGetItem(itemId, out ResourceItemDefinitionSO item)
-            && bridge.HasCompatibleWarehouse(itemId, item.StockCategory);
+        return bridge.HasCompatibleWarehouse(itemId);
     }
 
     private sealed class RouteEvaluation

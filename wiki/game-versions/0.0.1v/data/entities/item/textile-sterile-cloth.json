@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "16"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "무균 천은 의복과 안감, 생활용 천을 재단하는 직물 재료다. 노르칸드라의 무균 천은 삶은 날짜와 봉인한 사람을 겉포장에 적으며, 포장이 젖거나 찢어지면 의료용으로 쓰지 않는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "textile-sterile-cloth",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 무균 천.",
+  "title": "무균 천"
+}

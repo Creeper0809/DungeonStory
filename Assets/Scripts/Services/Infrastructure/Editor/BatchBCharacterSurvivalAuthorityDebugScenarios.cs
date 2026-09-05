@@ -65,7 +65,7 @@ public static class BatchBCharacterSurvivalAuthorityDebugScenarios
             .ToArray();
         int rollbackFree = productionSections.Count(type =>
             typeof(IDungeonRollbackFreeSaveSection).IsAssignableFrom(type));
-        if (productionSections.Length != 68
+        if (productionSections.Length != 74
             || rollbackFree != productionSections.Length)
         {
             failures.Add(
@@ -108,7 +108,7 @@ public static class BatchBCharacterSurvivalAuthorityDebugScenarios
 
         Debug.Log(
             "BATCH_B_CHARACTER_SURVIVAL_AUTHORITY=PASS; "
-            + $"save={rollbackFree}/68; strict=68/68; architecture=PASS");
+            + $"save={rollbackFree}/74; strict=74/74; architecture=PASS");
     }
 
     private static void VerifySaveBoundary<TSection, TPayload>(

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "19"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "가슴을 단단히 감싸되 팔과 어깨의 움직임은 남겨 둔 천옷이다. 하르나크에서 만든 가슴 감개는 날개와 넓은 어깨에 맞춰 등솔기를 고치기 쉽도록 여유 천을 남긴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "apparel-chest-wrap",
+  "spoiler_tier": "none",
+  "summary": "가슴 감개 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다.",
+  "title": "가슴 감개"
+}

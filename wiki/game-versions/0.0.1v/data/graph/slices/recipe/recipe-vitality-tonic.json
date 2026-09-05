@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-vitality-tonic",
+    "spoiler_tier": "none",
+    "title": "활력 강장제"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-vitality-tonic",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-syrup",
+      "target_spoiler_tier": "none",
+      "target_title": "밤포도 시럽",
+      "to": "item/material-syrup",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-vitality-tonic",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-bloodleaf",
+      "target_spoiler_tier": "none",
+      "target_title": "혈엽",
+      "to": "item/resource-bloodleaf",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-vitality-tonic",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-ember-root",
+      "target_spoiler_tier": "none",
+      "target_title": "잿불뿌리",
+      "to": "item/resource-ember-root",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-vitality-tonic",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "drug-vitality-tonic",
+      "target_spoiler_tier": "none",
+      "target_title": "활력 강장제",
+      "to": "item/drug-vitality-tonic",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-vitality-tonic",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-distillation",
+      "target_spoiler_tier": "none",
+      "target_title": "증류",
+      "to": "research/research-pharmacology-distillation",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

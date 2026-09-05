@@ -86,7 +86,8 @@ public static class V27ServiceContinuityEvidenceDebugScenarios
     public static string RunAll()
     {
         string staticReport = V27SixAdultSurvivalLoopDebugScenarios.RunAll();
-        RequireContains(staticReport, "RESULT=PASS; population=6;");
+        RequireContains(staticReport, "RESULT=PASS;");
+        RequireContains(staticReport, "population=6;");
         RequireContains(staticReport, "PASS V27_SURVIVAL_NPLUSONE paths=10");
         RequireFresh(PrimitiveReportPath, PrimitiveSources, PrimitiveMarkers, true);
         RequireFresh(SelfCareReportPath, SelfCareSources, SelfCareMarkers, false);
@@ -127,6 +128,9 @@ public static class V27ServiceContinuityEvidenceDebugScenarios
 
         return "RESULT=PASS; populationAuthority=6; livePathActorCount=6;"
             + " outageCoverageHours=24; paths=10; consoleIssues=0\n"
+            + "currentSourceDigest="
+            + V27CurrentSourceEvidenceDigest.ComputeAllScriptsDigest()
+            + "\n"
             + "PASS V27_SERVICE_CONTINUITY_STATIC_CLOSED_LOOP population=6;"
             + " grossFoodPermille=1250;netFoodPermille=1100;reserveDays=7\n"
             + "PASS V27_SERVICE_CONTINUITY_FIELD_MEAL_PRODUCTION_LIVE physicalCost=1\n"

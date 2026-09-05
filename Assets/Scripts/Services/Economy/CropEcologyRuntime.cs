@@ -19,6 +19,13 @@ public interface IPhysicalSeedLotGateway
         string destinationId,
         out int requested,
         out DomainFailure failure);
+    bool TryReleaseUnreachableSeedDelivery(
+        string seedItemId,
+        string cropId,
+        Vector2Int destinationPosition,
+        string destinationId,
+        out bool released,
+        out DomainFailure failure);
     bool TryCommitPendingBatchPhysicalDisposition(
         IReadOnlyList<PhysicalItemTransformInput> inputs,
         PhysicalItemDispositionKind kind,
@@ -32,15 +39,6 @@ public interface IPhysicalSeedLotGateway
     bool AcknowledgeBatchPhysicalDisposition(
         string commitId,
         out string failureReason);
-    bool TryEnsureSeedLotOutput(
-        string seedItemId,
-        SeedLotState seedLot,
-        Vector2Int position,
-        WorldItemStackState state,
-        string destinationId,
-        string operationId,
-        out string commitId,
-        out string failureReason);
     bool SpawnSeedLot(
         string seedItemId,
         int amount,
@@ -50,19 +48,29 @@ public interface IPhysicalSeedLotGateway
 
 public sealed class PhysicalSeedLotGateway : IPhysicalSeedLotGateway
 {
+    private const string UnreachableDeliveryReleaseReason =
+        "seed-lot-delivery-unreachable-retry";
     private readonly IStockQuery stock;
     private readonly IItemTransferService transfers;
     private readonly IWorldItemStackRuntime physicalItems;
+    private readonly IWorldItemDeliveryReachabilityQuery deliveryReachability;
+    private readonly IFacilityBufferDestinationReleaseService destinationRelease;
 
     public PhysicalSeedLotGateway(
         IStockQuery stock,
         IItemTransferService transfers,
-        IWorldItemStackRuntime physicalItems)
+        IWorldItemStackRuntime physicalItems,
+        IWorldItemDeliveryReachabilityQuery deliveryReachability,
+        IFacilityBufferDestinationReleaseService destinationRelease)
     {
         this.stock = stock ?? throw new ArgumentNullException(nameof(stock));
         this.transfers = transfers ?? throw new ArgumentNullException(nameof(transfers));
         this.physicalItems = physicalItems
             ?? throw new ArgumentNullException(nameof(physicalItems));
+        this.deliveryReachability = deliveryReachability
+            ?? throw new ArgumentNullException(nameof(deliveryReachability));
+        this.destinationRelease = destinationRelease
+            ?? throw new ArgumentNullException(nameof(destinationRelease));
     }
 
     public IReadOnlyList<WorldItemStackSnapshot> GetAllStacks() =>
@@ -112,7 +120,7 @@ public sealed class PhysicalSeedLotGateway : IPhysicalSeedLotGateway
     {
         requested = 0;
         failure = DomainFailure.None;
-        WorldItemStackSnapshot candidate = stock.GetAllStacks()
+        WorldItemStackSnapshot[] candidates = stock.GetAllStacks()
             .Where(value => value != null
                 && value.Quantity > 0
                 && value.AvailableQuantity > 0
@@ -126,19 +134,138 @@ public sealed class PhysicalSeedLotGateway : IPhysicalSeedLotGateway
             .ThenByDescending(value => value.seed.generation)
             .ThenBy(value => value.stack.StackId, StringComparer.Ordinal)
             .Select(value => value.stack)
-            .FirstOrDefault();
-        if (candidate == null)
+            .ToArray();
+        bool reachabilityDeferred = false;
+        DomainFailure firstTransferFailure = DomainFailure.None;
+        foreach (WorldItemStackSnapshot candidate in candidates)
         {
-            failure = new DomainFailure(FailureCode.ItemTransferStackUnavailable, seedItemId);
+            WorldItemDeliveryReachabilityStatus reachability = deliveryReachability
+                .AssessExactStackDelivery(
+                    (ItemStackId)candidate.StackId,
+                    1,
+                    destinationPosition,
+                    destinationId,
+                    out _);
+            if (reachability == WorldItemDeliveryReachabilityStatus.Deferred)
+            {
+                reachabilityDeferred = true;
+                continue;
+            }
+            if (reachability != WorldItemDeliveryReachabilityStatus.Reachable)
+                continue;
+            if (transfers.TryRequestStackDelivery(
+                    (ItemStackId)candidate.StackId,
+                    1,
+                    destinationPosition,
+                    destinationId,
+                    out requested,
+                    out failure))
+            {
+                return true;
+            }
+            if (!firstTransferFailure.IsFailure && failure.IsFailure)
+                firstTransferFailure = failure;
+        }
+        requested = 0;
+        if (firstTransferFailure.IsFailure)
+        {
+            failure = firstTransferFailure;
             return false;
         }
-        return transfers.TryRequestStackDelivery(
-            (ItemStackId)candidate.StackId,
-            1,
-            destinationPosition,
-            destinationId,
-            out requested,
-            out failure);
+        failure = new DomainFailure(
+            FailureCode.ItemTransferStackUnavailable,
+            seedItemId,
+            reachabilityDeferred
+                ? "delivery-reachability-deferred"
+                : "delivery-route-unreachable");
+        return false;
+    }
+
+    public bool TryReleaseUnreachableSeedDelivery(
+        string seedItemId,
+        string cropId,
+        Vector2Int destinationPosition,
+        string destinationId,
+        out bool released,
+        out DomainFailure failure)
+    {
+        released = false;
+        failure = DomainFailure.None;
+        string destination = destinationId ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(seedItemId)
+            || string.IsNullOrWhiteSpace(cropId)
+            || destination.Length == 0
+            || !string.Equals(
+                destination,
+                destination.Trim(),
+                StringComparison.Ordinal))
+        {
+            failure = new DomainFailure(
+                FailureCode.ItemTransferRequestFailed,
+                "seed-delivery-recovery-identity-invalid");
+            return false;
+        }
+
+        // Picked cargo has a durable delivery intent. Its actor owns replan and
+        // physical recovery; releasing it here would violate carried-cargo
+        // ownership and could teleport the item back to storage.
+        if (physicalItems.CaptureHaulDeliveryIntentsByDestination(destination)
+            .Any(intent => intent?.HasCommittedPickup == true))
+        {
+            return true;
+        }
+
+        WorldItemStackSnapshot[] pending = stock.GetAllStacks()
+            .Where(value => value != null
+                && value.Quantity > 0
+                && !value.Forbidden
+                && value.State is WorldItemStackState.Loose
+                    or WorldItemStackState.Stored
+                && string.Equals(
+                    value.DestinationId,
+                    destination,
+                    StringComparison.Ordinal)
+                && string.Equals(value.ItemId, seedItemId, StringComparison.Ordinal))
+            .Select(value => (stack: value, seed: TryDecode(value.Components)))
+            .Where(value => value.seed != null
+                && string.Equals(value.seed.cropId, cropId, StringComparison.Ordinal))
+            .Select(value => value.stack)
+            .OrderBy(value => value.StackId, StringComparer.Ordinal)
+            .ToArray();
+        if (pending.Length == 0)
+            return true;
+
+        foreach (WorldItemStackSnapshot candidate in pending)
+        {
+            WorldItemDeliveryReachabilityStatus reachability = deliveryReachability
+                .AssessExactStackDelivery(
+                    (ItemStackId)candidate.StackId,
+                    1,
+                    destinationPosition,
+                    destination,
+                    out _);
+            if (reachability is WorldItemDeliveryReachabilityStatus.Reachable
+                or WorldItemDeliveryReachabilityStatus.Deferred)
+            {
+                return true;
+            }
+        }
+
+        if (!destinationRelease.TryReleaseAtOwnerPosition(
+                destination,
+                destinationPosition,
+                UnreachableDeliveryReleaseReason,
+                out int releasedQuantity,
+                out string releaseFailure))
+        {
+            failure = new DomainFailure(
+                FailureCode.ItemTransferRequestFailed,
+                "seed-delivery-recovery-release-failed",
+                releaseFailure);
+            return false;
+        }
+        released = releasedQuantity > 0;
+        return true;
     }
 
     public bool SpawnSeedLot(
@@ -183,147 +310,21 @@ public sealed class PhysicalSeedLotGateway : IPhysicalSeedLotGateway
             commitId,
             out failureReason);
 
-    public bool TryEnsureSeedLotOutput(
-        string seedItemId,
-        SeedLotState seedLot,
-        Vector2Int position,
-        WorldItemStackState state,
-        string destinationId,
-        string operationId,
-        out string commitId,
-        out string failureReason)
-    {
-        commitId = string.Empty;
-        failureReason = string.Empty;
-        string itemId = seedItemId ?? string.Empty;
-        string destination = destinationId ?? string.Empty;
-        string operation = operationId ?? string.Empty;
-        if (!IsCanonical(itemId)
-            || seedLot == null
-            || !IsCanonical(operation)
-            || state is not (WorldItemStackState.Loose
-                or WorldItemStackState.FacilityOutputBuffer)
-            || state == WorldItemStackState.FacilityOutputBuffer
-                && !IsCanonical(destination)
-            || state == WorldItemStackState.Loose && destination.Length != 0)
-        {
-            failureReason = "crop-seed-output-invalid-request";
-            return false;
-        }
-
-        ItemInstanceComponentSaveData encoded;
-        try
-        {
-            encoded = SeedLotItemStateCodec.Encode(seedLot);
-        }
-        catch (Exception exception)
-        {
-            failureReason = "crop-seed-output-state-invalid:"
-                + exception.GetType().Name;
-            return false;
-        }
-        string pathogen = seedLot.pathogenLoad.ToString(
-            "R",
-            System.Globalization.CultureInfo.InvariantCulture);
-        string expectedCommit =
-            $"physical-source:{operation}:{itemId}:1:{seedLot.cropId}:"
-            + $"{seedLot.cultivarGenomeId}:{seedLot.generation}:{pathogen}";
-        WorldItemStackSnapshot[] existing = stock.GetAllStacks()
-            .Where(stack => stack != null
-                && ProductionOutputCommitComponentCodec.Matches(
-                    stack.Components,
-                    expectedCommit))
-            .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
-            .ToArray();
-        if (existing.Length > 0)
-        {
-            if (existing.Length != 1
-                || existing[0].Quantity != 1
-                || !string.Equals(existing[0].ItemId, itemId, StringComparison.Ordinal)
-                || existing[0].State != state
-                || existing[0].Position != position
-                || !string.Equals(
-                    existing[0].DestinationId,
-                    destination,
-                    StringComparison.Ordinal)
-                || !SeedLotEquals(TryDecode(existing[0].Components), seedLot))
-            {
-                failureReason = "crop-seed-output-existing-conflict";
-                return false;
-            }
-            commitId = expectedCommit;
-            return true;
-        }
-
-        if (!transfers.TrySpawnItemWithComponents(
-                itemId,
-                1,
-                position,
-                state,
-                destination,
-                new[]
-                {
-                    encoded,
-                    ProductionOutputCommitComponentCodec.Create(expectedCommit)
-                },
-                out int spawned)
-            || spawned != 1)
-        {
-            failureReason = "crop-seed-output-space-unavailable";
-            return false;
-        }
-        WorldItemStackSnapshot[] published = stock.GetAllStacks()
-            .Where(stack => stack != null
-                && ProductionOutputCommitComponentCodec.Matches(
-                    stack.Components,
-                    expectedCommit))
-            .ToArray();
-        if (published.Length != 1
-            || published[0].Quantity != 1
-            || !string.Equals(published[0].ItemId, itemId, StringComparison.Ordinal)
-            || published[0].State != state
-            || published[0].Position != position
-            || !string.Equals(
-                published[0].DestinationId,
-                destination,
-                StringComparison.Ordinal)
-            || !SeedLotEquals(TryDecode(published[0].Components), seedLot))
-        {
-            failureReason = "crop-seed-output-postcondition-failed";
-            return false;
-        }
-        commitId = expectedCommit;
-        return true;
-    }
-
     private static SeedLotState TryDecode(IReadOnlyList<ItemInstanceComponentSaveData> components)
     {
         try { return SeedLotItemStateCodec.Decode(components); }
         catch { return null; }
     }
 
-    private static bool SeedLotEquals(SeedLotState left, SeedLotState right) =>
-        left != null
-        && right != null
-        && string.Equals(left.cropId, right.cropId, StringComparison.Ordinal)
-        && string.Equals(
-            left.cultivarGenomeId,
-            right.cultivarGenomeId,
-            StringComparison.Ordinal)
-        && left.generation == right.generation
-        && left.pathogenLoad.Equals(right.pathogenLoad);
-
-    private static bool IsCanonical(string value) =>
-        !string.IsNullOrWhiteSpace(value)
-        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
 }
 
 public sealed class CropEcologyRuntime :
     ICropEcologyService,
+    ICropEcologyHarvestTransactionService,
     ICropEcologyPersistence,
     IInitialCropSeedGrant
 {
-    private const string MutationRandomStreamId = "crop:genetics";
+    public const string GeneticsRandomStreamId = "crop:genetics";
     private readonly DungeonRuntimeAggregateRootStore rootStore;
     private readonly CropGenomeDefinitionSO[] authoredGenomes;
     private readonly CropGenomeDefinitionSO[] baseGenomes;
@@ -367,7 +368,7 @@ public sealed class CropEcologyRuntime :
             throw new InvalidOperationException(
                 "V22 requires 12 crops, 32 valid authored genomes, and exactly one base genome per crop.");
         random = (randomStreams ?? throw new ArgumentNullException(nameof(randomStreams)))
-            .Get(MutationRandomStreamId);
+            .Get(GeneticsRandomStreamId);
         this.stock = stock ?? throw new ArgumentNullException(nameof(stock));
     }
 
@@ -394,6 +395,45 @@ public sealed class CropEcologyRuntime :
         version = unchecked(version + 1);
         return result;
     }
+    public CropEcologyPreparedHarvestSnapshot PrepareHarvest(
+        string operationId,
+        string plotId)
+    {
+        CropEcologyPreparedHarvestSnapshot result = Writable.PrepareHarvest(
+            operationId,
+            plotId,
+            () => random.NextFloat());
+        version = unchecked(version + 1);
+        return result;
+    }
+    public CropEcologyPreparedHarvestSnapshot CommitPreparedHarvest(
+        string operationId)
+    {
+        CropEcologyPreparedHarvestSnapshot result = Writable
+            .CommitPreparedHarvest(
+                operationId,
+                ResolvePhysicalGenomeReferences());
+        version = unchecked(version + 1);
+        return result;
+    }
+    public bool AcknowledgePreparedHarvest(string operationId)
+    {
+        bool removed = Writable.AcknowledgePreparedHarvest(operationId);
+        if (removed) version = unchecked(version + 1);
+        return removed;
+    }
+    public bool AbortPreparedHarvest(string operationId)
+    {
+        bool removed = Writable.AbortPreparedHarvest(operationId);
+        if (removed) version = unchecked(version + 1);
+        return removed;
+    }
+    public bool TryGetPreparedHarvest(
+        string operationId,
+        out CropEcologyPreparedHarvestSnapshot snapshot) =>
+        Current.TryGetPreparedHarvest(operationId, out snapshot);
+    public IReadOnlyList<CropEcologyPreparedHarvestSnapshot>
+        CapturePreparedHarvests() => Current.CapturePreparedHarvests();
     public void ApplyCompost(string plotId)
     {
         Writable.ApplyCompost(plotId);

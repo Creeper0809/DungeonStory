@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-adventurer-return-table",
+      "target_spoiler_tier": "none",
+      "target_title": "귀환자의 식탁",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "food-preserved-ration",
+      "target_spoiler_tier": "none",
+      "target_title": "보존 배급식",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-adventurer-name-token",
+      "target_spoiler_tier": "none",
+      "target_title": "이름패 걸기",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "culture-adventurer-frontier",
+  "spoiler_tier": "none",
+  "summary": "서로 다른 고향의 규칙을 원정대식 실용주의로 엮는다.",
+  "title": "개척자 연맹 문화"
+}

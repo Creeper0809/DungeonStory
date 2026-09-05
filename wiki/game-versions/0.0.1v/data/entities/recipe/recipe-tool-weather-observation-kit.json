@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "32"
+    },
+    {
+      "label": "필요 연구",
+      "value": "기상 관측"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "tool-weather-observation-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "기상 관측 도구함",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-climate-weather-observation",
+      "target_spoiler_tier": "none",
+      "target_title": "기상 관측",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-precision-optics",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 광학계",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-treated-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "처리 목재",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-tool-weather-observation-kit",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 기상 관측 도구함을(를) 생산한다.",
+  "title": "기상 관측 도구함"
+}

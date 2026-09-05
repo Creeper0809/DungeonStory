@@ -2045,8 +2045,9 @@ public sealed class CharacterAiFaultRecoveryPlayModeRunner : MonoBehaviour
     {
         if (facility == null || quantity <= 0)
             return null;
-        string destinationId = "facility-input:meal:"
-            + facility.RequirePersistentInstanceId().Value;
+        string destinationId = CharacterConsumablesRuntime.GetMealDestinationId(
+            facility.RequirePersistentInstanceId(),
+            new ConsumableItemDefinitionId(itemId));
         string stackId = WorldItemRepositoryEditorAccess.AddStack(
             itemRepository,
             itemId,

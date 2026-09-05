@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "medical-isolation-care-kit",
+    "spoiler_tier": "none",
+    "title": "격리 치료 꾸러미"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-isolation-care-kit",
+      "label": "생산·해금",
+      "to": "item/medical-isolation-care-kit",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

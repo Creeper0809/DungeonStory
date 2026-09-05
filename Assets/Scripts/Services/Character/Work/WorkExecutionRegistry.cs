@@ -45,6 +45,89 @@ public interface IWorkAmountCalculator
         float environmentDurationMultiplier);
 }
 
+public readonly struct WorkStatPolicyDefinitionMaximumSnapshot
+{
+    public WorkStatPolicyDefinitionMaximumSnapshot(
+        WorkTypeId workTypeId,
+        double maximumMultiplier,
+        string sourceDigest)
+    {
+        if (!workTypeId.IsValid
+            || double.IsNaN(maximumMultiplier)
+            || double.IsInfinity(maximumMultiplier)
+            || maximumMultiplier <= 0d
+            || !IsLowercaseSha256(sourceDigest))
+        {
+            throw new ArgumentException(
+                "Work-stat definition maximum is invalid.");
+        }
+
+        WorkTypeId = workTypeId;
+        MaximumMultiplier = maximumMultiplier;
+        SourceDigest = sourceDigest;
+    }
+
+    public WorkTypeId WorkTypeId { get; }
+    public double MaximumMultiplier { get; }
+    public string SourceDigest { get; }
+
+    private static bool IsLowercaseSha256(string value)
+    {
+        if (value == null || value.Length != 64)
+            return false;
+        for (int i = 0; i < value.Length; i++)
+        {
+            char character = value[i];
+            if ((character < '0' || character > '9')
+                && (character < 'a' || character > 'f'))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+
+public interface IWorkStatPolicyDefinitionMaximumSource
+{
+    WorkStatPolicyDefinitionMaximumSnapshot CaptureDefinitionMaximum(
+        WorkTypeId workTypeId);
+}
+
+public interface IWorkStatPolicyDefinitionMaximumQuery
+{
+    WorkStatPolicyDefinitionMaximumSnapshot CaptureDefinitionMaximum(
+        WorkTypeId workTypeId);
+}
+
+/// <summary>
+/// Single authored execution bound shared by live work and execution-free
+/// throughput envelopes. The bounds are gameplay authority, not a fallback for
+/// missing maximum-factor provenance.
+/// </summary>
+public static class WorkRateBoundsAuthority
+{
+    public const string Schema = "work-rate-bounds-authority@1";
+    public const float MinimumWorkPerSecond = 0.05f;
+    public const float MaximumWorkPerSecond = 8f;
+
+    public static string SourceDigest { get; } = CaptureSourceDigest();
+
+    public static float Clamp(float workPerSecond) => Mathf.Clamp(
+        workPerSecond,
+        MinimumWorkPerSecond,
+        MaximumWorkPerSecond);
+
+    private static string CaptureSourceDigest()
+    {
+        CanonicalSemanticDigestBuilder digest = new();
+        digest.Append(Schema);
+        digest.AppendFloat(MinimumWorkPerSecond);
+        digest.AppendFloat(MaximumWorkPerSecond);
+        return digest.ComputeSha256();
+    }
+}
+
 public sealed class WorkExecutionResult
 {
     public bool CompletedSuccessfully { get; set; } = true;
@@ -345,7 +428,9 @@ public static class CareerWorkEligibilityRules
         SafeRetireeWorkTypes.Contains(workTypeId);
 }
 
-public abstract class CharacterContextWorkPolicy : IWorkStatPolicy
+public abstract class CharacterContextWorkPolicy :
+    IWorkStatPolicy,
+    IWorkStatPolicyDefinitionMaximumSource
 {
     private readonly WorkTypeId[] workTypeIds;
 
@@ -375,6 +460,25 @@ public abstract class CharacterContextWorkPolicy : IWorkStatPolicy
         // authority. Policies may still add facility/context modifiers in
         // overrides, but must not apply legacy detailed stats a second time.
         return 1f;
+    }
+
+    public virtual WorkStatPolicyDefinitionMaximumSnapshot
+        CaptureDefinitionMaximum(WorkTypeId workTypeId)
+    {
+        if (Array.IndexOf(workTypeIds, workTypeId) < 0)
+        {
+            throw new InvalidOperationException(
+                "Work-stat policy does not own work type '"
+                + workTypeId.Value + "'.");
+        }
+        CanonicalSemanticDigestBuilder digest = new();
+        digest.Append("character-context-work-stat-maximum@1");
+        digest.Append(workTypeId.Value);
+        digest.AppendDouble(1d);
+        return new WorkStatPolicyDefinitionMaximumSnapshot(
+            workTypeId,
+            1d,
+            digest.ComputeSha256());
     }
 }
 
@@ -432,7 +536,9 @@ public sealed class TreatmentStatPolicy : CharacterContextWorkPolicy
     }
 }
 
-public sealed class SurgeryStatPolicy : IWorkStatPolicy
+public sealed class SurgeryStatPolicy :
+    IWorkStatPolicy,
+    IWorkStatPolicyDefinitionMaximumSource
 {
     private static readonly WorkTypeId[] WorkTypes =
     {
@@ -459,6 +565,22 @@ public sealed class SurgeryStatPolicy : IWorkStatPolicy
         BuildableObject target)
     {
         return 1f;
+    }
+
+    public WorkStatPolicyDefinitionMaximumSnapshot CaptureDefinitionMaximum(
+        WorkTypeId workTypeId)
+    {
+        if (workTypeId != BuiltInWorkTypeIds.Surgery)
+            throw new InvalidOperationException(
+                "Surgery work-stat policy received an unrelated work type.");
+        CanonicalSemanticDigestBuilder digest = new();
+        digest.Append("surgery-work-stat-maximum@1");
+        digest.Append(workTypeId.Value);
+        digest.AppendDouble(1d);
+        return new WorkStatPolicyDefinitionMaximumSnapshot(
+            workTypeId,
+            1d,
+            digest.ComputeSha256());
     }
 }
 
@@ -520,6 +642,31 @@ public sealed class GatheringStatPolicy : CharacterContextWorkPolicy
         }
         return Mathf.Clamp(result, 0.45f, 3f);
     }
+
+    public override WorkStatPolicyDefinitionMaximumSnapshot
+        CaptureDefinitionMaximum(WorkTypeId workTypeId)
+    {
+        double maximum = workTypeId == BuiltInWorkTypeIds.Gather
+            ? 1.10d
+            : workTypeId == BuiltInWorkTypeIds.Logging
+                ? 1.08d * 1.08d
+                : workTypeId == BuiltInWorkTypeIds.Sow
+                    || workTypeId == BuiltInWorkTypeIds.Harvest
+                    || workTypeId == BuiltInWorkTypeIds.Quarry
+                    ? 1d
+                    : throw new InvalidOperationException(
+                        "Gathering work-stat policy received an unrelated work type.");
+        CanonicalSemanticDigestBuilder digest = new();
+        digest.Append("gathering-work-stat-maximum@1");
+        digest.Append(workTypeId.Value);
+        digest.AppendDouble(1.10d);
+        digest.AppendDouble(1.08d);
+        digest.AppendDouble(maximum);
+        return new WorkStatPolicyDefinitionMaximumSnapshot(
+            workTypeId,
+            maximum,
+            digest.ComputeSha256());
+    }
 }
 
 public sealed class AnimalCareStatPolicy : CharacterContextWorkPolicy
@@ -554,6 +701,25 @@ public sealed class AnimalCareStatPolicy : CharacterContextWorkPolicy
         }
         return Mathf.Clamp(result, 0.45f, 3f);
     }
+
+    public override WorkStatPolicyDefinitionMaximumSnapshot
+        CaptureDefinitionMaximum(WorkTypeId workTypeId)
+    {
+        if (workTypeId != BuiltInWorkTypeIds.AnimalCare)
+            throw new InvalidOperationException(
+                "Animal-care work-stat policy received an unrelated work type.");
+        double maximum = 1.04d * 1.04d * 1.04d * 1.04d;
+        CanonicalSemanticDigestBuilder digest = new();
+        digest.Append("animal-care-work-stat-maximum@1");
+        digest.Append(workTypeId.Value);
+        digest.AppendDouble(1.04d);
+        digest.Append(4);
+        digest.AppendDouble(maximum);
+        return new WorkStatPolicyDefinitionMaximumSnapshot(
+            workTypeId,
+            maximum,
+            digest.ComputeSha256());
+    }
 }
 
 public sealed class GrandProjectStatPolicy : CharacterContextWorkPolicy
@@ -580,7 +746,9 @@ public sealed class PlumbingStatPolicy : CharacterContextWorkPolicy
     }
 }
 
-public sealed class WorkStatPolicyRegistry : IWorkStatPolicyRegistry
+public sealed class WorkStatPolicyRegistry :
+    IWorkStatPolicyRegistry,
+    IWorkStatPolicyDefinitionMaximumQuery
 {
     private readonly Dictionary<WorkTypeId, IWorkStatPolicy> policies;
 
@@ -615,6 +783,59 @@ public sealed class WorkStatPolicyRegistry : IWorkStatPolicyRegistry
         return policies.TryGetValue(workTypeId, out IWorkStatPolicy policy)
             ? policy.GetWorkSpeedMultiplier(actor, target)
             : 1f;
+    }
+
+    public WorkStatPolicyDefinitionMaximumSnapshot CaptureDefinitionMaximum(
+        WorkTypeId workTypeId)
+    {
+        if (!WorkTypeCatalog.TryGet(
+                workTypeId,
+                out WorkTypeDefinition definition))
+        {
+            throw new InvalidOperationException(
+                "Unknown work type has no definition maximum: "
+                + workTypeId.Value);
+        }
+        WorkTypeId canonicalId = definition.WorkTypeId;
+        WorkStatPolicyDefinitionMaximumSnapshot inner;
+        bool hasPolicy = policies.TryGetValue(
+            canonicalId,
+            out IWorkStatPolicy policy);
+        if (hasPolicy)
+        {
+            if (policy is not IWorkStatPolicyDefinitionMaximumSource source)
+            {
+                throw new InvalidOperationException(
+                    "Work-stat policy has no definition maximum source: "
+                    + canonicalId.Value);
+            }
+            inner = source.CaptureDefinitionMaximum(canonicalId);
+        }
+        else
+        {
+            CanonicalSemanticDigestBuilder neutralDigest = new();
+            neutralDigest.Append("work-stat-policy-neutral-maximum@1");
+            neutralDigest.Append(canonicalId.Value);
+            neutralDigest.AppendDouble(1d);
+            inner = new WorkStatPolicyDefinitionMaximumSnapshot(
+                canonicalId,
+                1d,
+                neutralDigest.ComputeSha256());
+        }
+
+        if (inner.WorkTypeId != canonicalId)
+            throw new InvalidOperationException(
+                "Work-stat maximum source returned the wrong work type.");
+        CanonicalSemanticDigestBuilder digest = new();
+        digest.Append("work-stat-policy-registry-maximum@1");
+        digest.Append(canonicalId.Value);
+        digest.Append(hasPolicy);
+        digest.AppendDouble(inner.MaximumMultiplier);
+        digest.Append(inner.SourceDigest);
+        return new WorkStatPolicyDefinitionMaximumSnapshot(
+            canonicalId,
+            inner.MaximumMultiplier,
+            digest.ComputeSha256());
     }
 
 }
@@ -699,15 +920,14 @@ public sealed class WorkAmountCalculator : IWorkAmountCalculator
             ? 1f
             : CraftsmanshipQualityRules.ProjectionMultiplier(
                 target.Craftsmanship.Quality);
-        return Mathf.Clamp(
-            statMultiplier
+        return WorkRateBoundsAuthority.Clamp(
+            SettlementLaborBalanceRules.RuntimeLaborCalibrationMultiplier
+            * statMultiplier
             * workSpeed
             * environment
             * evolution
             * poweredAssist
-            * craftsmanship,
-            0.05f,
-            8f);
+            * craftsmanship);
     }
 
 }

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
@@ -30,6 +31,11 @@ public static class ProductionCapacityRoutingDrainOutboxDebugScenarios
             new GuidPersistentIdGenerator(),
             new DungeonRuntimeAggregateRootStore());
         ProductionCapacityRoutingDrainOutbox outbox = new(repository);
+        ProductionCapacityRoutingDrainRequest invalidProvenance = CreateRequest(
+            tamperCapabilityFingerprint: true);
+        Require(outbox.TryPrepare(invalidProvenance).Status ==
+                ProductionCapacityRoutingDrainStatus.Conflict,
+            "Capacity-routing drain accepted a drifted capability fingerprint.");
         ProductionCapacityRoutingDrainRequest request = CreateRequest();
 
         Require(outbox.TryPrepare(request).Status ==
@@ -212,6 +218,12 @@ public static class ProductionCapacityRoutingDrainOutboxDebugScenarios
                     StepOperationId).Status ==
                 ProductionCapacityRoutingDrainStatus.Applied,
             "Capacity-routing drain did not enter durable checkpoint wait.");
+        Require(outbox.TryCapture(
+                    StepOperationId,
+                    out ProductionCapacityRoutingDrainSaveData stableSaved)
+                && stableSaved.phase == ProductionCapacityRoutingDrainPhase
+                    .AwaitingDurableCheckpointGc,
+            "Stable capacity-routing checkpoint row was not durable.");
         Require(outbox.TryCommitEffect(
                     StepOperationId,
                     BatchCommitId,
@@ -246,6 +258,38 @@ public static class ProductionCapacityRoutingDrainOutboxDebugScenarios
                 && saved.phase == ProductionCapacityRoutingDrainPhase
                     .EffectCommittedAwaitingOwnerAck,
             "Committed capacity-routing receipt was not durable.");
+        Require(saved.sourceLines.All(line => line != null
+                && string.Equals(
+                    line.outputCapabilityFingerprint,
+                    ProductionOutputCapabilityDescriptorFingerprint.Capture(
+                        line.outputLineId,
+                        line.itemId,
+                        line.outputCapabilityId,
+                        line.outputCapabilityVersion,
+                        line.outputComponentCodecId,
+                        line.outputComponentCodecVersion),
+                    StringComparison.Ordinal)),
+            "Committed capacity-routing drain lost exact output capability provenance.");
+        Require(string.Equals(
+                saved.requestFingerprint,
+                ProductionCapacityRoutingDrainFingerprint.CreateRequest(
+                    saved.stepOperationId,
+                    saved.ownerStableId,
+                    saved.facilityId,
+                    saved.sourceDestinationId,
+                    saved.batchCommitId,
+                    saved.sourceOutcomeFingerprint,
+                    saved.sourceRoutingFingerprint,
+                    saved.sourceOwnershipFingerprint,
+                    saved.sourceLines,
+                    saved.sourceRoutes,
+                    saved.sourceSlices,
+                    saved.sourceActorCarries,
+                    saved.sourceCustodyStackIds,
+                    saved.inputQuantity,
+                    saved.inputMassGrams),
+                StringComparison.Ordinal),
+            "Committed capacity-routing drain request fingerprint drifted in transit.");
 
         DungeonPhysicalItemSaveData physical = new()
         {
@@ -258,7 +302,7 @@ public static class ProductionCapacityRoutingDrainOutboxDebugScenarios
                 CreateQuiescedActorStack()
             },
             pendingCapacityRoutingDrains = new List<
-                ProductionCapacityRoutingDrainSaveData> { saved.Clone() }
+                ProductionCapacityRoutingDrainSaveData> { stableSaved.Clone() }
         };
         DungeonGameRestoreReport valid =
             ProductionPhysicalCustodyDrainSaveValidationProbe.Validate(
@@ -326,6 +370,40 @@ public static class ProductionCapacityRoutingDrainOutboxDebugScenarios
         Require(!missingPhysicalReport.Success,
             "Actor receipt accepted a missing physical stack.");
 
+        DungeonPhysicalItemSaveData terminalPhysicalDivergence =
+            JsonUtility.FromJson<DungeonPhysicalItemSaveData>(
+                JsonUtility.ToJson(physical));
+        ProductionCapacityRoutingDrainSaveData acknowledgedCapacity =
+            saved.Clone();
+        acknowledgedCapacity.phase = ProductionCapacityRoutingDrainPhase
+            .OwnerAcknowledgedAwaitingCheckpointGc;
+        terminalPhysicalDivergence.pendingCapacityRoutingDrains[0] =
+            acknowledgedCapacity;
+        terminalPhysicalDivergence.pendingProductionCustodyDrains.Add(
+            CreateTerminalPhysicalSuccessor(saved));
+        terminalPhysicalDivergence.stacks[0].gridX++;
+        terminalPhysicalDivergence.stacks[0].destinationId = string.Empty;
+        terminalPhysicalDivergence.stacks[0].hasDestinationPosition = false;
+        terminalPhysicalDivergence.stacks[0].destinationGridX = 0;
+        terminalPhysicalDivergence.stacks[0].destinationGridY = 0;
+        terminalPhysicalDivergence.stacks[0].components = new List<
+            ItemInstanceComponentSaveData>();
+        terminalPhysicalDivergence.stacks.Add(
+            CreateReleasedTerminalStackB());
+        terminalPhysicalDivergence.stacks = terminalPhysicalDivergence.stacks
+            .OrderBy(value => value.gridY)
+            .ThenBy(value => value.gridX)
+            .ThenBy(value => value.itemId, StringComparer.Ordinal)
+            .ThenBy(value => value.stackId, StringComparer.Ordinal)
+            .ToList();
+        DungeonGameRestoreReport terminalPhysicalReport =
+            ProductionPhysicalCustodyDrainSaveValidationProbe.Validate(
+                terminalPhysicalDivergence,
+                new EmptyCatalog());
+        Require(terminalPhysicalReport.Success,
+            "Terminal capacity tombstone incorrectly retained external physical authority: "
+            + string.Join(" | ", terminalPhysicalReport.Errors));
+
         DungeonPhysicalItemSaveData tampered =
             JsonUtility.FromJson<DungeonPhysicalItemSaveData>(
                 JsonUtility.ToJson(physical));
@@ -342,7 +420,7 @@ public static class ProductionCapacityRoutingDrainOutboxDebugScenarios
             canonicalJson);
         string missingCapacityArray = canonicalJson.Replace(
             ",\"pendingCapacityRoutingDrains\":["
-                + JsonUtility.ToJson(saved) + "]",
+                + JsonUtility.ToJson(stableSaved) + "]",
             string.Empty,
             StringComparison.Ordinal);
         bool rejectedMissingArray = false;
@@ -356,17 +434,17 @@ public static class ProductionCapacityRoutingDrainOutboxDebugScenarios
             rejectedMissingArray = true;
         }
         Require(rejectedMissingArray,
-            "V16 physical JSON without capacity-routing array was accepted.");
+            "Current physical JSON without the capacity-routing array was accepted.");
 
         DungeonPhysicalItemSaveData pastVersion =
             JsonUtility.FromJson<DungeonPhysicalItemSaveData>(canonicalJson);
-        pastVersion.version = 15;
+        pastVersion.version = DungeonPhysicalItemSaveData.CurrentVersion - 1;
         DungeonGameRestoreReport pastVersionReport =
             ProductionPhysicalCustodyDrainSaveValidationProbe.Validate(
                 pastVersion,
                 new EmptyCatalog());
         Require(!pastVersionReport.Success,
-            "Physical V15 payload was accepted by the V16 validator.");
+            "A previous physical payload version was accepted by the current validator.");
 
         Require(outbox.TryAcknowledge(
                     StepOperationId,
@@ -383,11 +461,300 @@ public static class ProductionCapacityRoutingDrainOutboxDebugScenarios
                 ProductionCapacityRoutingDrainStatus.Applied
             && !outbox.TryCapture(StepOperationId, out _),
             "Acknowledged capacity-routing producer was not garbage-collected.");
+
+        VerifyCheckpointGcTransaction();
+    }
+
+    private static void VerifyCheckpointGcTransaction()
+    {
+        WorldItemRepository repository = new(
+            new GuidPersistentIdGenerator(),
+            new DungeonRuntimeAggregateRootStore());
+        ProductionCapacityRoutingDrainOutbox outbox = new(repository);
+        IProductionCapacityRoutingDrainCheckpointGcOutbox gc = outbox;
+        ProductionCapacityRoutingDrainSaveData rowA =
+            CreateTerminalCheckpointRow(outbox, "a");
+        ProductionCapacityRoutingDrainSaveData rowB =
+            CreateTerminalCheckpointRow(outbox, "b");
+        ProductionCapacityRoutingDrainSaveData rowC =
+            CreateTerminalCheckpointRow(outbox, "c");
+        string rowAJson = JsonUtility.ToJson(rowA);
+        string rowCJson = JsonUtility.ToJson(rowC);
+        int preparedItemRevision = repository.ItemStackVersion;
+        int preparedHaulRevision = repository.HaulJobVersion;
+
+        Require(gc.TryPrepareCheckpointGarbageCollection(
+                    new[] { rowB, rowA },
+                    out IProductionCapacityRoutingDrainCheckpointGcCandidate
+                        partialCandidate,
+                    out string prepareFailure)
+                && outbox.TryCapture(rowA.stepOperationId, out var preparedA)
+                && string.Equals(
+                    JsonUtility.ToJson(preparedA),
+                    rowAJson,
+                    StringComparison.Ordinal)
+                && repository.ItemStackVersion == preparedItemRevision
+                && repository.HaulJobVersion == preparedHaulRevision,
+            "V27_CAPACITY_CHECKPOINT_GC_PREPARE_MUTATED:" + prepareFailure);
+        Require(!gc.TryPrepareCheckpointGarbageCollection(
+                new[] { rowC }, out _, out _),
+            "V27_CAPACITY_CHECKPOINT_GC_ACCEPTED_SECOND_ACTIVE_CANDIDATE");
+        Require(outbox.TryGarbageCollect(
+                    rowA.stepOperationId,
+                    rowA.receiptFingerprint).Status ==
+                ProductionCapacityRoutingDrainStatus.Deferred,
+            "V27_CAPACITY_CHECKPOINT_GC_DID_NOT_FENCE_LEGACY_GC");
+
+        Require(RemovePendingForFault(
+                repository,
+                "RemovePendingCapacityRoutingDrain",
+                rowB.stepOperationId),
+            "V27_CAPACITY_CHECKPOINT_GC_FAULT_INJECTION_FAILED");
+        int faultItemRevision = repository.ItemStackVersion;
+        int faultHaulRevision = repository.HaulJobVersion;
+        Require(!gc.TryPublishCheckpointGarbageCollection(
+                    partialCandidate,
+                    out _)
+                && outbox.TryCapture(
+                    rowA.stepOperationId,
+                    out ProductionCapacityRoutingDrainSaveData autoRestoredA)
+                && string.Equals(
+                    JsonUtility.ToJson(autoRestoredA),
+                    rowAJson,
+                    StringComparison.Ordinal),
+            "V27_CAPACITY_CHECKPOINT_GC_MIDDLE_FAILURE_NOT_OBSERVED");
+        gc.RollbackCheckpointGarbageCollection(partialCandidate);
+        bool hasRestoredA = outbox.TryCapture(
+            rowA.stepOperationId,
+            out ProductionCapacityRoutingDrainSaveData restoredA);
+        bool hasPreservedC = outbox.TryCapture(
+            rowC.stepOperationId,
+            out ProductionCapacityRoutingDrainSaveData preservedC);
+        Require(hasRestoredA
+                && string.Equals(
+                    JsonUtility.ToJson(restoredA),
+                    rowAJson,
+                    StringComparison.Ordinal)
+                && !outbox.TryCapture(rowB.stepOperationId, out _)
+                && hasPreservedC
+                && string.Equals(
+                    JsonUtility.ToJson(preservedC),
+                    rowCJson,
+                    StringComparison.Ordinal)
+                && repository.ItemStackVersion == faultItemRevision
+                && repository.HaulJobVersion == faultHaulRevision,
+            "V27_CAPACITY_CHECKPOINT_GC_PARTIAL_ROLLBACK_NOT_EXACT");
+        gc.CompleteCheckpointGarbageCollection(partialCandidate);
+        RequireThrows(() => gc.TryPublishCheckpointGarbageCollection(
+                partialCandidate,
+                out _),
+            "V27_CAPACITY_CHECKPOINT_GC_COMPLETED_CANDIDATE_REUSED");
+
+        int exactItemRevision = repository.ItemStackVersion;
+        int exactHaulRevision = repository.HaulJobVersion;
+        Require(gc.TryPrepareCheckpointGarbageCollection(
+                    new[] { restoredA },
+                    out IProductionCapacityRoutingDrainCheckpointGcCandidate
+                        exactCandidate,
+                    out _)
+                && gc.TryPublishCheckpointGarbageCollection(
+                    exactCandidate,
+                    out _)
+                && !outbox.TryCapture(rowA.stepOperationId, out _)
+                && repository.ItemStackVersion == exactItemRevision
+                && repository.HaulJobVersion == exactHaulRevision,
+            "V27_CAPACITY_CHECKPOINT_GC_PUBLISH_NOT_EXACT");
+        gc.RollbackCheckpointGarbageCollection(exactCandidate);
+        Require(outbox.TryCapture(rowA.stepOperationId, out var exactRestored)
+                && string.Equals(
+                    JsonUtility.ToJson(exactRestored),
+                    rowAJson,
+                    StringComparison.Ordinal)
+                && repository.ItemStackVersion == exactItemRevision
+                && repository.HaulJobVersion == exactHaulRevision,
+            "V27_CAPACITY_CHECKPOINT_GC_ROLLBACK_CHANGED_REVISIONS");
+        gc.CompleteCheckpointGarbageCollection(exactCandidate);
+
+        Require(gc.TryPrepareCheckpointGarbageCollection(
+                    new[] { preservedC },
+                    out IProductionCapacityRoutingDrainCheckpointGcCandidate
+                        completedCandidate,
+                    out _)
+                && gc.TryPublishCheckpointGarbageCollection(
+                    completedCandidate,
+                    out _),
+            "V27_CAPACITY_CHECKPOINT_GC_FINAL_PUBLISH_FAILED");
+        gc.CompleteCheckpointGarbageCollection(completedCandidate);
+        Require(!outbox.TryCapture(rowC.stepOperationId, out _),
+            "V27_CAPACITY_CHECKPOINT_GC_COMPLETE_RETAINED_ROW");
+    }
+
+    private static ProductionCapacityRoutingDrainSaveData
+        CreateTerminalCheckpointRow(
+            ProductionCapacityRoutingDrainOutbox outbox,
+            string suffix)
+    {
+        ProductionCapacityRoutingDrainRequest request =
+            CreateCheckpointRequest(suffix);
+        string step = request.StepOperationId;
+        string route = "route:qa:checkpoint:" + suffix;
+        string stack = "stack:qa:checkpoint:" + suffix;
+        Require(outbox.TryPrepare(request).Status ==
+                ProductionCapacityRoutingDrainStatus.Applied
+            && outbox.TryBeginRouting(step, request.RequestFingerprint).Status ==
+                ProductionCapacityRoutingDrainStatus.Applied
+            && outbox.TryRecordLineRouted(
+                step,
+                "line:qa:checkpoint:" + suffix).Status ==
+                ProductionCapacityRoutingDrainStatus.Applied
+            && outbox.TryBeginQuiescingActors(
+                step,
+                new[] { route },
+                new[] { stack }).Status ==
+                ProductionCapacityRoutingDrainStatus.Applied
+            && outbox.TryBeginReleasingOperationAuthority(step).Status ==
+                ProductionCapacityRoutingDrainStatus.Applied
+            && outbox.TryBeginAwaitingStablePhysicalState(step).Status ==
+                ProductionCapacityRoutingDrainStatus.Applied
+            && outbox.TryRecordStablePhysicalStack(step, stack).Status ==
+                ProductionCapacityRoutingDrainStatus.Applied
+            && outbox.TryBeginAwaitingDurableCheckpointGc(step).Status ==
+                ProductionCapacityRoutingDrainStatus.Applied,
+            "V27_CAPACITY_CHECKPOINT_GC_TERMINAL_SETUP_FAILED:" + suffix);
+        Require(outbox.TryCapture(
+                step,
+                out ProductionCapacityRoutingDrainSaveData awaiting),
+            "V27_CAPACITY_CHECKPOINT_GC_AWAITING_ROW_MISSING:" + suffix);
+        ProductionCapacityRoutingDrainResult committed = outbox.TryCommitEffect(
+            step,
+            request.BatchCommitId,
+            1,
+            1_000L,
+            ProductionCapacityRoutingDrainFingerprint.CreateResultFingerprint(
+                awaiting));
+        ProductionCapacityRoutingDrainResult acknowledged =
+            outbox.TryAcknowledge(step, committed.ReceiptFingerprint);
+        bool hasTerminal = outbox.TryCapture(
+            step,
+            out ProductionCapacityRoutingDrainSaveData terminal);
+        Require(committed.Status == ProductionCapacityRoutingDrainStatus.Applied
+            && acknowledged.Status ==
+                ProductionCapacityRoutingDrainStatus.Applied
+            && hasTerminal,
+            "V27_CAPACITY_CHECKPOINT_GC_ACK_SETUP_FAILED:" + suffix);
+        return terminal;
+    }
+
+    private static ProductionCapacityRoutingDrainRequest CreateCheckpointRequest(
+        string suffix)
+    {
+        string step = StepOperationId + ":checkpoint:" + suffix;
+        string batch = BatchCommitId + ":checkpoint:" + suffix;
+        string facility = FacilityId + ":checkpoint:" + suffix;
+        string destination = DestinationId + ":checkpoint:" + suffix;
+        string lineId = "line:qa:checkpoint:" + suffix;
+        string outputId = "output:qa:checkpoint:" + suffix;
+        string itemId = "item:qa:checkpoint:" + suffix;
+        ProductionCapacityRoutingDrainLineSaveData[] lines =
+        {
+            new()
+            {
+                lineCommitId = lineId,
+                outputLineId = outputId,
+                itemId = itemId,
+                componentFingerprint = new string('a', 64),
+                outputCapabilityId =
+                    ProductionOutputCapabilityIds.StandardDefinition,
+                outputCapabilityVersion =
+                    ProductionOutputCapabilityIds.StandardDefinitionVersion,
+                outputComponentCodecId =
+                    ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+                outputComponentCodecVersion =
+                    ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion,
+                outputCapabilityFingerprint =
+                    ProductionOutputCapabilityDescriptorFingerprint.Capture(
+                        outputId,
+                        itemId,
+                        ProductionOutputCapabilityIds.StandardDefinition,
+                        ProductionOutputCapabilityIds.StandardDefinitionVersion,
+                        ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+                        ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion),
+                originalQuantity = 1,
+                originalMassGrams = 1_000L,
+                routedQuantity = 1,
+                routedMassGrams = 1_000L
+            }
+        };
+        string[] custodyStacks = { "stack:qa:checkpoint:" + suffix };
+        string owner = "routing-batch:" + batch;
+        string requestFingerprint =
+            ProductionCapacityRoutingDrainFingerprint.CreateRequest(
+                step,
+                owner,
+                facility,
+                destination,
+                batch,
+                new string('1', 64),
+                new string('2', 64),
+                new string('3', 64),
+                lines,
+                Array.Empty<ProductionCapacityRoutingDrainRouteSaveData>(),
+                Array.Empty<ProductionCapacityRoutingDrainSliceSaveData>(),
+                Array.Empty<ProductionCapacityRoutingDrainActorCarrySaveData>(),
+                custodyStacks,
+                1,
+                1_000L);
+        return new ProductionCapacityRoutingDrainRequest(
+            step,
+            owner,
+            facility,
+            destination,
+            batch,
+            new string('1', 64),
+            new string('2', 64),
+            new string('3', 64),
+            lines,
+            Array.Empty<ProductionCapacityRoutingDrainRouteSaveData>(),
+            Array.Empty<ProductionCapacityRoutingDrainSliceSaveData>(),
+            Array.Empty<ProductionCapacityRoutingDrainActorCarrySaveData>(),
+            custodyStacks,
+            1,
+            1_000L,
+            requestFingerprint);
+    }
+
+    private static bool RemovePendingForFault(
+        WorldItemRepository repository,
+        string methodName,
+        string stepOperationId)
+    {
+        MethodInfo method = typeof(WorldItemRepository).GetMethod(
+            methodName,
+            BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMethodException(
+                typeof(WorldItemRepository).FullName,
+                methodName);
+        return (bool)method.Invoke(repository, new object[] { stepOperationId });
+    }
+
+    private static void RequireThrows(Action action, string message)
+    {
+        try
+        {
+            action();
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+        throw new InvalidOperationException(message);
     }
 
     private static ProductionCapacityRoutingDrainRequest CreateRequest(
-        string facilityId = FacilityId)
+        string facilityId = FacilityId,
+        bool tamperCapabilityFingerprint = false)
     {
+        WorldItemStackSaveData stableActorStack = CreateQuiescedActorStack();
         ProductionCapacityRoutingDrainLineSaveData[] lines =
         {
             new()
@@ -396,6 +763,21 @@ public static class ProductionCapacityRoutingDrainOutboxDebugScenarios
                 outputLineId = "output:qa:a",
                 itemId = "item:qa:a",
                 componentFingerprint = new string('a', 64),
+                outputCapabilityId = ProductionOutputCapabilityIds.StandardDefinition,
+                outputCapabilityVersion =
+                    ProductionOutputCapabilityIds.StandardDefinitionVersion,
+                outputComponentCodecId =
+                    ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+                outputComponentCodecVersion =
+                    ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion,
+                outputCapabilityFingerprint =
+                    ProductionOutputCapabilityDescriptorFingerprint.Capture(
+                        "output:qa:a",
+                        "item:qa:a",
+                        ProductionOutputCapabilityIds.StandardDefinition,
+                        ProductionOutputCapabilityIds.StandardDefinitionVersion,
+                        ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+                        ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion),
                 originalQuantity = 1,
                 originalMassGrams = 1_000L,
                 routedQuantity = 1,
@@ -407,12 +789,29 @@ public static class ProductionCapacityRoutingDrainOutboxDebugScenarios
                 outputLineId = "output:qa:b",
                 itemId = "item:qa:b",
                 componentFingerprint = new string('b', 64),
+                outputCapabilityId = ProductionOutputCapabilityIds.StandardDefinition,
+                outputCapabilityVersion =
+                    ProductionOutputCapabilityIds.StandardDefinitionVersion,
+                outputComponentCodecId =
+                    ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+                outputComponentCodecVersion =
+                    ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion,
+                outputCapabilityFingerprint =
+                    ProductionOutputCapabilityDescriptorFingerprint.Capture(
+                        "output:qa:b",
+                        "item:qa:b",
+                        ProductionOutputCapabilityIds.StandardDefinition,
+                        ProductionOutputCapabilityIds.StandardDefinitionVersion,
+                        ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+                        ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion),
                 originalQuantity = 2,
                 originalMassGrams = 2_000L,
                 remainingQuantity = 2,
                 remainingMassGrams = 2_000L
             }
         };
+        if (tamperCapabilityFingerprint)
+            lines[0].outputCapabilityFingerprint = new string('9', 64);
         ProductionCapacityRoutingDrainRouteSaveData[] routes =
         {
             new()
@@ -431,7 +830,7 @@ public static class ProductionCapacityRoutingDrainOutboxDebugScenarios
             new()
             {
                 routeOperationId = "route:qa:a",
-                sourceStackId = "stack:qa:a",
+                sourceStackId = "source:qa:a",
                 routedStackId = "stack:qa:a",
                 outputLineId = "output:qa:a",
                 lineCommitId = "line:qa:a",
@@ -454,9 +853,9 @@ public static class ProductionCapacityRoutingDrainOutboxDebugScenarios
                 massGrams = 1_000L,
                 stackSignature = ProductionCapacityRoutingDrainFingerprint
                     .CreateActorCarryStackSignature(
-                        "item:qa:a",
-                        string.Empty,
-                        Array.Empty<ItemInstanceComponentSaveData>())
+                        stableActorStack.itemId,
+                        stableActorStack.itemInstanceId,
+                        stableActorStack.components)
             }
         };
         string[] custodyStacks = { "stack:qa:a", "stack:qa:b" };
@@ -635,6 +1034,88 @@ public static class ProductionCapacityRoutingDrainOutboxDebugScenarios
         };
     }
 
+    private static ProductionPhysicalCustodyDrainSaveData
+        CreateTerminalPhysicalSuccessor(
+            ProductionCapacityRoutingDrainSaveData capacity)
+    {
+        string ownerStableId = "physical-destination:"
+            + capacity.sourceDestinationId;
+        string stepOperationId =
+            "production-physical-successor:qa:capacity-routing";
+        string[] sourceStacks = (capacity.preservedStackIds
+                ?? new List<string>())
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string[] sourceActors = (capacity.sourceActorCarries
+                ?? new List<ProductionCapacityRoutingDrainActorCarrySaveData>())
+            .Where(value => value != null)
+            .Select(value => value.actorPersistentId)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string[] sourceIntents = (capacity.sourceActorCarries
+                ?? new List<ProductionCapacityRoutingDrainActorCarrySaveData>())
+            .Where(value => value != null)
+            .Select(value => value.haulIntentOperationId)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string sourceOwnershipFingerprint = new string('4', 64);
+        string requestFingerprint =
+            ProductionPhysicalCustodyDrainFingerprint.CreateRequest(
+                stepOperationId,
+                ownerStableId,
+                capacity.sourceDestinationId,
+                4,
+                5,
+                sourceOwnershipFingerprint,
+                sourceStacks,
+                sourceActors,
+                sourceIntents,
+                capacity.preservedQuantity,
+                capacity.preservedMassGrams);
+        return new ProductionPhysicalCustodyDrainSaveData
+        {
+            stepOperationId = stepOperationId,
+            ownerStableId = ownerStableId,
+            sourceDestinationId = capacity.sourceDestinationId,
+            ownerGridX = 4,
+            ownerGridY = 5,
+            requestFingerprint = requestFingerprint,
+            sourceOwnershipFingerprint = sourceOwnershipFingerprint,
+            phase = ProductionPhysicalCustodyDrainPhase
+                .OwnerAcknowledgedAwaitingCheckpointGc,
+            sourceStackIds = sourceStacks.ToList(),
+            sourceActorIds = sourceActors.ToList(),
+            sourceHaulIntentOperationIds = sourceIntents.ToList(),
+            completedActorIds = sourceActors.ToList(),
+            releasedHaulIntentOperationIds = sourceIntents.ToList(),
+            releasedStackIds = sourceStacks.ToList(),
+            inputQuantity = capacity.preservedQuantity,
+            inputMassGrams = capacity.preservedMassGrams,
+            releasedQuantity = capacity.preservedQuantity,
+            releasedMassGrams = capacity.preservedMassGrams,
+            resultFingerprint = new string('5', 64),
+            commitId = "commit:qa:physical-successor",
+            receiptFingerprint = new string('6', 64)
+        };
+    }
+
+    private static WorldItemStackSaveData CreateReleasedTerminalStackB() =>
+        new()
+        {
+            stackId = "stack:qa:b",
+            itemId = "item:qa:b",
+            quantity = 2,
+            state = WorldItemStackState.Loose,
+            gridX = 4,
+            gridY = 5,
+            destinationId = string.Empty,
+            sourceStorageDestinationId = string.Empty,
+            hasDestinationPosition = false,
+            components = new List<ItemInstanceComponentSaveData>()
+        };
+
     private static void Require(bool condition, string message)
     {
         if (!condition)
@@ -643,34 +1124,46 @@ public static class ProductionCapacityRoutingDrainOutboxDebugScenarios
 
     private sealed class EmptyCatalog : IDungeonItemCatalogProvider
     {
-        private readonly DungeonItemDefinition definition = new(
-            "item:qa:a",
-            "QA Capacity Item",
-            "Capacity-routing save validation fixture item.",
-            StockCategory.General,
-            1,
-            null,
-            1f,
-            75);
+        private readonly DungeonItemDefinition[] definitions =
+        {
+            new(
+                "item:qa:a",
+                "QA Capacity Item A",
+                "Capacity-routing save validation fixture item A.",
+                StockCategory.General,
+                1,
+                null,
+                1f,
+                75),
+            new(
+                "item:qa:b",
+                "QA Capacity Item B",
+                "Capacity-routing save validation fixture item B.",
+                StockCategory.General,
+                1,
+                null,
+                1f,
+                75)
+        };
 
         public IReadOnlyList<DungeonItemDefinition> All =>
-            new[] { definition };
+            definitions;
 
         public DungeonItemDefinition GetDefinition(string itemId) =>
-            string.Equals(itemId, definition.ItemId, StringComparison.Ordinal)
-                ? definition
-                : throw new KeyNotFoundException(itemId);
+            definitions.FirstOrDefault(value => string.Equals(
+                itemId,
+                value.ItemId,
+                StringComparison.Ordinal))
+            ?? throw new KeyNotFoundException(itemId);
 
         public bool TryGetDefinition(
             string itemId,
             out DungeonItemDefinition definition)
         {
-            definition = string.Equals(
-                    itemId,
-                    this.definition.ItemId,
-                    StringComparison.Ordinal)
-                ? this.definition
-                : null;
+            definition = definitions.FirstOrDefault(value => string.Equals(
+                itemId,
+                value.ItemId,
+                StringComparison.Ordinal));
             return definition != null;
         }
     }

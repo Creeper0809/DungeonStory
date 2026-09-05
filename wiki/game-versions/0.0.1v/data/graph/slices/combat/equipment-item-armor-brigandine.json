@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "equipment-item-armor-brigandine",
+    "spoiler_tier": "none",
+    "title": "브리간딘"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-brigandine",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-brigandine-padding",
+      "target_spoiler_tier": "none",
+      "target_title": "브리간딘 안감",
+      "to": "item/component-brigandine-padding",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-brigandine",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-textile-hardener",
+      "target_spoiler_tier": "none",
+      "target_title": "직물 경화제",
+      "to": "item/component-textile-hardener",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-brigandine",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "textile-quilted-liner",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 충전재",
+      "to": "item/textile-quilted-liner",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-armor-brigandine",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-armor-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "방어구 재단",
+      "to": "research/research-equipment-armor-tailoring",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

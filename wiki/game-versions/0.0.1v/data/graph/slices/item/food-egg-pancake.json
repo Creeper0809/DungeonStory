@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "food-egg-pancake",
+    "spoiler_tier": "none",
+    "title": "달걀전"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-egg-pancake",
+      "label": "생산·해금",
+      "to": "item/food-egg-pancake",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

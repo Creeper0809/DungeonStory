@@ -17,7 +17,7 @@ public static class V27ProductionReachabilityAuditOnly
         "Artifacts/QA/v27-production-reachability-audit.txt";
 
     private const int ExpectedRecipeCount = 355;
-    private const int ExpectedItemCount = 363;
+    private const int ExpectedItemCount = 364;
     private const int ExpectedResearchCount = 180;
     private const int ExpectedOrphanCount = 0;
     private const int ExpectedProductionSupportCount = 28;

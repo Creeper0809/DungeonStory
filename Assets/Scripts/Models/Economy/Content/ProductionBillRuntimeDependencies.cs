@@ -47,7 +47,8 @@ public sealed class ProductionBillExecutionDependencies
         IProductionBillSnapshotProjector snapshotProjector,
         IProductionAssemblyBridge bridge,
         IGameClock clock,
-        IProductionPreparedOutputRoutingAuthority preparedOutputRouting = null)
+        IProductionPreparedOutputRoutingAuthority preparedOutputRouting = null,
+        IProductionRecipeExecutionReceiptAuthority recipeExecutionReceipts = null)
     {
         OutputPlanning = outputPlanning
             ?? throw new ArgumentNullException(nameof(outputPlanning));
@@ -63,6 +64,8 @@ public sealed class ProductionBillExecutionDependencies
         Clock = clock ?? throw new ArgumentNullException(nameof(clock));
         PreparedOutputRouting = preparedOutputRouting
             ?? EmptyProductionPreparedOutputRoutingAuthority.Instance;
+        RecipeExecutionReceipts = recipeExecutionReceipts
+            ?? EmptyProductionRecipeExecutionReceiptAuthority.Instance;
     }
 
     public IProductionOutputPlanningService OutputPlanning { get; }
@@ -73,6 +76,8 @@ public sealed class ProductionBillExecutionDependencies
     public IProductionAssemblyBridge Bridge { get; }
     public IGameClock Clock { get; }
     public IProductionPreparedOutputRoutingAuthority PreparedOutputRouting { get; }
+    public IProductionRecipeExecutionReceiptAuthority RecipeExecutionReceipts
+        { get; }
 }
 
 /// <summary>

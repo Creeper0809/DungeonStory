@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Faction"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ambition-faction-champion",
+  "spoiler_tier": "none",
+  "summary": "선택한 세력의 위기를 막아 신뢰받는 투사가 되려 한다.",
+  "title": "동맹의 방패"
+}

@@ -1,0 +1,51 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-v22-weave-deep-goat-wool",
+    "spoiler_tier": "none",
+    "title": "심층 염소모직 직조"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-weave-deep-goat-wool",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-deep-goat-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "심층 염소모직",
+      "to": "item/material-deep-goat-wool",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "7",
+      "from": "recipe/recipe-v22-weave-deep-goat-wool",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "yarn-deep-goat-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "심층 염소모직 원사",
+      "to": "item/yarn-deep-goat-wool",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-weave-deep-goat-wool",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "제작식 해금",
+      "to": "recipe/recipe-v22-weave-deep-goat-wool",
+      "type": "unlocks-recipe"
+    }
+  ],
+  "schema_version": 1
+}

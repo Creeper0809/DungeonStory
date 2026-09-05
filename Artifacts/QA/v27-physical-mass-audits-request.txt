@@ -1,0 +1,5 @@
+V27_PHYSICAL_MASS_AUDIT_REQUEST_V1
+generatedUtc=2026-08-31T11:03:56.1624002Z
+PASS explicit-unit-semantics
+PASS recipe-mass-inventory
+RESULT=PASS

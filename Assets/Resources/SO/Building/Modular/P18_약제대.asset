@@ -84,7 +84,7 @@ MonoBehaviour:
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
-        channels: 1
+        channels: 3
         maxThroughput: 25
         normallyOpen: 1
     - rid: 1003
@@ -100,11 +100,15 @@ MonoBehaviour:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:apothecary
         stockSensorInstallationItemId: component:stock-sensor-panel
+        lanePolicy: 2
+        manualWorkLaneCount: 1
+        automaticWorkLaneCount: 1
     - rid: 1007
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
         defaultBatchCapacity: 4
+        physicalOutputBufferCycleCapacity: 4
         outputCapacities:
         - itemId: material:lead-ingot
           capacity: 24
@@ -165,7 +169,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 1
-        constructionWorkRequired: 312
+        constructionWorkRequired: 467
         repairWorkRequired: 36
         cleanWorkRequired: 6
         researchWorkRequired: 6

@@ -1,0 +1,63 @@
+---
+import { anatomyHref, getGuide, getNeedReferences, guideHref, needHref, type Guide, type NeedReference } from '../lib/wiki-data';
+
+interface Props {
+  reference: NeedReference;
+  version: string;
+  historical?: boolean;
+}
+
+const { reference, version, historical = false } = Astro.props;
+const archiveVersion = historical ? version : undefined;
+const directoryHref = historical ? `/game-versions/${version}/` : '/directory/';
+const residentsHref = historical ? `/game-versions/${version}/guide/residents-and-work/` : '/guide/residents-and-work/';
+const relatedGuides = reference.related_guides
+  .map((id) => getGuide(version, id))
+  .filter((guide): guide is Guide => Boolean(guide));
+const siblings = getNeedReferences(version).filter((item) => item.id !== reference.id);
+const anatomyIndexHref = reference.id === 'health' ? anatomyHref(undefined, archiveVersion) : undefined;
+const injuryStateHref = reference.id === 'health' ? anatomyHref('injury-states', archiveVersion) : undefined;
+---
+
+<article class="need-reference-page" data-pagefind-body={historical ? undefined : 'true'}>
+  <nav class="breadcrumbs" aria-label="현재 위치"><a href={directoryHref}>둘러보기</a><span>/</span><a href={residentsHref}>주민과 노동</a><span>/</span><span aria-current="page">{reference.title}</span></nav>
+  <header class="page-header">
+    <p class="eyebrow">주민 상태</p>
+    <h1>{reference.title}</h1>
+    <p>{reference.summary}</p>
+  </header>
+
+  <div class="need-reference-page__layout">
+    <div class="need-reference-page__main">
+      <section aria-labelledby="need-reading-title">
+        <h2 id="need-reading-title">수치 해석</h2>
+        <p>{reference.read}</p>
+      </section>
+      <section aria-labelledby="need-change-title">
+        <h2 id="need-change-title">수치 변화</h2>
+        <div class="table-wrap"><table><thead><tr><th scope="col">항목</th><th scope="col">수치</th><th scope="col">영향</th></tr></thead><tbody>{reference.metrics.map((metric) => <tr><th scope="row">{metric.label}</th><td>{metric.value}</td><td>{metric.effect}</td></tr>)}</tbody></table></div>
+      </section>
+      <section aria-labelledby="need-threshold-title">
+        <h2 id="need-threshold-title">수치별 변화</h2>
+        <div class="table-wrap"><table><thead><tr><th scope="col">수치</th><th scope="col">변화</th></tr></thead><tbody>{reference.thresholds.map((threshold) => <tr><th scope="row">{threshold.range}</th><td>{threshold.effect}</td></tr>)}</tbody></table></div>
+      </section>
+      <section aria-labelledby="need-crisis-title">
+        <h2 id="need-crisis-title">붕괴 상태</h2>
+        <div class="need-reference-page__crisis"><p>{reference.crisis}</p></div>
+      </section>
+      <section aria-labelledby="need-operation-title">
+        <h2 id="need-operation-title">관리 방법</h2>
+        <ul>{reference.operations.map((operation) => <li>{operation}</li>)}</ul>
+      </section>
+    </div>
+    <aside class="need-reference-page__rail">
+      <section class="fact-box">
+        <h2>상태 정보</h2>
+        <dl><div><dt>측정</dt><dd>{reference.measurement}</dd></div><div><dt>주요 수치</dt><dd>{reference.thresholds.length}개</dd></div><div><dt>연결 문서</dt><dd>{relatedGuides.length}개</dd></div></dl>
+      </section>
+      <section class="version-card"><h2>관련 상태</h2><p>{siblings.map((item, index) => <>{index > 0 && ' · '}<a href={needHref(item.id, archiveVersion)}>{item.title}</a></>)}</p></section>
+      {anatomyIndexHref && injuryStateHref && <section class="version-card"><h2>세부 문서</h2><p><a href={anatomyIndexHref}>신체 구조</a> · <a href={injuryStateHref}>부상 상태와 처치</a></p></section>}
+      <section class="version-card"><h2>관련 문서</h2><p>{relatedGuides.map((guide, index) => <>{index > 0 && ' · '}<a href={guideHref(guide.id, archiveVersion)}>{guide.title}</a></>)}</p></section>
+    </aside>
+  </div>
+</article>

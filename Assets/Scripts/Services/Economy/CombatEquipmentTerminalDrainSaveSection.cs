@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 /// <summary>
-/// Unregistered current-format section for combat craft/repair terminal
+/// Current-format section for combat craft/repair terminal
 /// producers. It validates only after the base-eight lifecycle and detached
 /// Items child candidates have been staged.
 /// </summary>

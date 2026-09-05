@@ -1,0 +1,785 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,m_Name,seasonal_autumn-caravan-rush,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,stableId,seasonal:autumn-caravan-rush,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,displayName,겨울 전 대상행렬,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,description,대상단이 대량 계약을 제안해 생산과 객실을 동시에 점유한다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,season,2,Season,Autumn,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,minimumDurationDays,2,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,maximumDurationDays,4,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,affectedDomainIds.0,faction,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,affectedDomainIds.1,production,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,startEffects.0.kind,9,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,startEffects.0.targetId,contract,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,startEffects.0.amount,180,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,startEffects.0.durationDays,4,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,endEffects.0.targetId,resolved:seasonal:autumn-caravan-rush,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-caravan-rush,seasonal:autumn-caravan-rush,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,m_Name,seasonal_autumn-early-frost,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,stableId,seasonal:autumn-early-frost,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,displayName,이른 서리,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,description,서리가 수확 직전 작물과 야외 원정 보급을 동시에 위협한다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,season,2,Season,Autumn,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,minimumDurationDays,2,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,maximumDurationDays,4,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,affectedDomainIds.0,agriculture,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,affectedDomainIds.1,expedition,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,startEffects.0.kind,14,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,startEffects.0.targetId,early-frost,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,startEffects.0.amount,4,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,startEffects.0.durationDays,4,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,endEffects.0.targetId,resolved:seasonal:autumn-early-frost,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-early-frost,seasonal:autumn-early-frost,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,m_Name,seasonal_autumn-harvest-dispute,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,stableId,seasonal:autumn-harvest-dispute,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,displayName,수확 몫 분쟁,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,description,코볼트 연합이 공동 경작지의 수확 몫을 다시 요구한다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,season,2,Season,Autumn,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,minimumDurationDays,2,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,maximumDurationDays,3,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,affectedDomainIds.0,faction,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,affectedDomainIds.1,agriculture,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,startEffects.0.kind,7,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,startEffects.0.targetId,faction:dungeon:kobold,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,startEffects.0.amount,5,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,startEffects.0.durationDays,3,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,endEffects.0.targetId,resolved:seasonal:autumn-harvest-dispute,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-harvest-dispute,seasonal:autumn-harvest-dispute,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,m_Name,seasonal_autumn-migration-window,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,stableId,seasonal:autumn-migration-window,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,displayName,짧은 이동창,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,description,안정된 날씨가 원정과 야생동물 포획에 모두 좋은 기회를 연다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,season,2,Season,Autumn,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,minimumDurationDays,2,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,maximumDurationDays,3,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,affectedDomainIds.0,expedition,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,affectedDomainIds.1,wildlife,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,startEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,startEffects.0.targetId,migration-window,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,startEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,startEffects.0.durationDays,3,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,endEffects.0.targetId,resolved:seasonal:autumn-migration-window,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-migration-window,seasonal:autumn-migration-window,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,m_Name,seasonal_autumn-predator-descent,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,stableId,seasonal:autumn-predator-descent,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,displayName,포식자 하산,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,description,먹이를 쫓는 포식자가 축사와 외곽 운반로를 노린다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,season,2,Season,Autumn,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,minimumDurationDays,3,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,maximumDurationDays,5,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,affectedDomainIds.0,wildlife,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,affectedDomainIds.1,defense,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,startEffects.0.kind,14,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,startEffects.0.targetId,predators,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,startEffects.0.amount,5,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,startEffects.0.durationDays,5,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,endEffects.0.targetId,resolved:seasonal:autumn-predator-descent,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-predator-descent,seasonal:autumn-predator-descent,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,m_Name,seasonal_autumn-rot-cart,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,stableId,seasonal:autumn-rot-cart,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,displayName,썩은 수레,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,description,오염된 교역 식품이 창고와 식당으로 들어올 위험이 생긴다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,season,2,Season,Autumn,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,minimumDurationDays,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,maximumDurationDays,2,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,affectedDomainIds.0,logistics,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,affectedDomainIds.1,disease,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,startEffects.0.kind,15,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,startEffects.0.targetId,disease:gut-rot,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,startEffects.0.amount,9,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,startEffects.0.durationDays,2,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,endEffects.0.targetId,resolved:seasonal:autumn-rot-cart,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-rot-cart,seasonal:autumn-rot-cart,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,m_Name,seasonal_autumn-spoiled-silage,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,stableId,seasonal:autumn-spoiled-silage,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,displayName,사일리지 발열,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,description,잘못 쌓인 사료가 발열해 축산과 화재 대응을 압박한다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,season,2,Season,Autumn,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,minimumDurationDays,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,maximumDurationDays,3,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,affectedDomainIds.0,husbandry,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,affectedDomainIds.1,facility,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,startEffects.0.kind,14,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,startEffects.0.targetId,silage-fire,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,startEffects.0.amount,4,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,startEffects.0.durationDays,3,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,endEffects.0.targetId,resolved:seasonal:autumn-spoiled-silage,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:autumn-spoiled-silage,seasonal:autumn-spoiled-silage,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,m_Name,seasonal_spring-fever-camp,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,stableId,seasonal:spring-fever-camp,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,displayName,봄열 피난민,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,description,열병이 도는 피난 행렬이 치료와 격리 공간을 요청한다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,season,0,Season,Spring,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,minimumDurationDays,2,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,maximumDurationDays,4,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,affectedDomainIds.0,disease,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,affectedDomainIds.1,service,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,startEffects.0.kind,15,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,startEffects.0.targetId,disease:red-fever,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,startEffects.0.amount,10,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,startEffects.0.durationDays,4,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,endEffects.0.targetId,resolved:seasonal:spring-fever-camp,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-fever-camp,seasonal:spring-fever-camp,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,m_Name,seasonal_spring-migrant-herd,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,stableId,seasonal:spring-migrant-herd,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,displayName,이동 초식군,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,description,번식지로 향하는 초식동물이 밭을 지나며 포식자도 끌어들인다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,season,0,Season,Spring,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,minimumDurationDays,2,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,maximumDurationDays,4,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,affectedDomainIds.0,wildlife,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,affectedDomainIds.1,agriculture,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,startEffects.0.kind,14,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,startEffects.0.targetId,herd,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,startEffects.0.amount,3,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,startEffects.0.durationDays,4,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,endEffects.0.targetId,resolved:seasonal:spring-migrant-herd,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-migrant-herd,seasonal:spring-migrant-herd,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,m_Name,seasonal_spring-nesting-season,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,stableId,seasonal:spring-nesting-season,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,displayName,둥지철,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,description,야생동물이 시설 틈에 둥지를 틀어 생산과 포획 기회를 함께 만든다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,season,0,Season,Spring,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,minimumDurationDays,3,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,maximumDurationDays,5,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,affectedDomainIds.0,wildlife,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,affectedDomainIds.1,facility,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,startEffects.0.kind,14,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,startEffects.0.targetId,nests,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,startEffects.0.amount,2,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,startEffects.0.durationDays,5,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,endEffects.0.targetId,resolved:seasonal:spring-nesting-season,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-nesting-season,seasonal:spring-nesting-season,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,m_Name,seasonal_spring-seed-exchange,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,stableId,seasonal:spring-seed-exchange,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,displayName,떠돌이 종자상,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,description,균사 연합 상인이 희귀 종자와 의약품을 생산품 교환으로 제안한다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,season,0,Season,Spring,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,minimumDurationDays,2,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,maximumDurationDays,2,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,affectedDomainIds.0,faction,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,affectedDomainIds.1,agriculture,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,startEffects.0.kind,6,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,startEffects.0.targetId,faction:dungeon:myconid,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,startEffects.0.amount,4,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,startEffects.0.durationDays,2,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,endEffects.0.targetId,resolved:seasonal:spring-seed-exchange,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-seed-exchange,seasonal:spring-seed-exchange,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,m_Name,seasonal_spring-spore-rain,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,stableId,seasonal:spring-spore-rain,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,displayName,포자비,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,description,습한 포자가 버섯 생산을 돕지만 호흡기 노출을 높인다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,season,0,Season,Spring,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,minimumDurationDays,2,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,maximumDurationDays,4,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,affectedDomainIds.0,agriculture,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,affectedDomainIds.1,disease,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,startEffects.0.kind,15,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,startEffects.0.targetId,disease:spore-lung,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,startEffects.0.amount,8,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,startEffects.0.durationDays,4,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,endEffects.0.targetId,resolved:seasonal:spring-spore-rain,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-spore-rain,seasonal:spring-spore-rain,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,m_Name,seasonal_spring-thaw-flood,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,stableId,seasonal:spring-thaw-flood,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,displayName,해빙수 범람,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,description,녹은 물이 낮은 농지와 운반 통로를 동시에 덮친다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,season,0,Season,Spring,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,minimumDurationDays,2,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,maximumDurationDays,3,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,affectedDomainIds.0,agriculture,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,affectedDomainIds.1,logistics,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,startEffects.0.kind,13,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,startEffects.0.targetId,flood,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,startEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,startEffects.0.durationDays,3,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,endEffects.0.targetId,resolved:seasonal:spring-thaw-flood,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-thaw-flood,seasonal:spring-thaw-flood,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,m_Name,seasonal_spring-washed-road,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,stableId,seasonal:spring-washed-road,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,displayName,씻겨나간 길,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,description,폭우가 원정로와 외부 물자 도착 시간을 흔든다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,season,0,Season,Spring,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,minimumDurationDays,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,maximumDurationDays,3,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,affectedDomainIds.0,expedition,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,affectedDomainIds.1,logistics,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,startEffects.0.kind,13,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,startEffects.0.targetId,road,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,startEffects.0.amount,2,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,startEffects.0.durationDays,3,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,endEffects.0.targetId,resolved:seasonal:spring-washed-road,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:spring-washed-road,seasonal:spring-washed-road,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,m_Name,seasonal_summer-dry-well,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,stableId,seasonal:summer-dry-well,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,displayName,마르는 수원,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,description,깨끗한 물 생산 저하가 농업과 손님 서비스를 동시에 압박한다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,season,1,Season,Summer,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,minimumDurationDays,3,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,maximumDurationDays,5,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,affectedDomainIds.0,agriculture,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,affectedDomainIds.1,service,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,startEffects.0.kind,11,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,startEffects.0.targetId,resource:clean-water,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,startEffects.0.amount,6,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,startEffects.0.durationDays,5,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,endEffects.0.targetId,resolved:seasonal:summer-dry-well,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-dry-well,seasonal:summer-dry-well,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,m_Name,seasonal_summer-festival-scarcity,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,stableId,seasonal:summer-festival-scarcity,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,displayName,축제 식재료 경쟁,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,description,주변 정착지의 축제가 고급 식품 가격과 손님 요구를 끌어올린다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,season,1,Season,Summer,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,minimumDurationDays,2,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,maximumDurationDays,3,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,affectedDomainIds.0,service,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,affectedDomainIds.1,faction,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,startEffects.0.kind,9,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,startEffects.0.targetId,market,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,startEffects.0.amount,-120,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,startEffects.0.durationDays,3,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,endEffects.0.targetId,resolved:seasonal:summer-festival-scarcity,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-festival-scarcity,seasonal:summer-festival-scarcity,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,m_Name,seasonal_summer-heat-grid,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,stableId,seasonal:summer-heat-grid,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,displayName,폭염 전력부하,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,description,냉각과 의료 시설의 동시 가동이 전력망을 압박한다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,season,1,Season,Summer,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,minimumDurationDays,2,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,maximumDurationDays,5,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,affectedDomainIds.0,facility,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,affectedDomainIds.1,health,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,startEffects.0.kind,14,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,startEffects.0.targetId,power-grid,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,startEffects.0.amount,4,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,startEffects.0.durationDays,5,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,endEffects.0.targetId,resolved:seasonal:summer-heat-grid,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-heat-grid,seasonal:summer-heat-grid,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,m_Name,seasonal_summer-mana-lightning,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,stableId,seasonal:summer-mana-lightning,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,displayName,마나 번개,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,description,비전 장치가 과충전되고 원정지에는 희귀 결정이 노출된다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,season,1,Season,Summer,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,minimumDurationDays,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,maximumDurationDays,3,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,affectedDomainIds.0,facility,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,affectedDomainIds.1,expedition,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,startEffects.0.kind,14,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,startEffects.0.targetId,mana-surge,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,startEffects.0.amount,5,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,startEffects.0.durationDays,3,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,endEffects.0.targetId,resolved:seasonal:summer-mana-lightning,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-mana-lightning,seasonal:summer-mana-lightning,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,m_Name,seasonal_summer-smoke-valley,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,stableId,seasonal:summer-smoke-valley,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,displayName,연무 계곡,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,description,산불 연기가 환기와 원거리 전투 시야를 악화시킨다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,season,1,Season,Summer,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,minimumDurationDays,2,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,maximumDurationDays,4,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,affectedDomainIds.0,disease,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,affectedDomainIds.1,combat,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,startEffects.0.kind,15,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,startEffects.0.targetId,disease:ash-lung,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,startEffects.0.amount,7,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,startEffects.0.durationDays,4,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,endEffects.0.targetId,resolved:seasonal:summer-smoke-valley,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-smoke-valley,seasonal:summer-smoke-valley,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,m_Name,seasonal_summer-vermin-bloom,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,stableId,seasonal:summer-vermin-bloom,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,displayName,해충 대발생,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,description,고온에 늘어난 해충이 밭과 식량 창고를 오간다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,season,1,Season,Summer,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,minimumDurationDays,3,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,maximumDurationDays,5,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,affectedDomainIds.0,agriculture,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,affectedDomainIds.1,logistics,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,startEffects.0.kind,14,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,startEffects.0.targetId,crop-pests,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,startEffects.0.amount,5,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,startEffects.0.durationDays,5,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,endEffects.0.targetId,resolved:seasonal:summer-vermin-bloom,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-vermin-bloom,seasonal:summer-vermin-bloom,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,m_Name,seasonal_summer-wounded-mercenaries,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,stableId,seasonal:summer-wounded-mercenaries,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,displayName,부상 용병대,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,description,수인 연합 용병들이 치료와 탄약을 요구하며 추격자를 끌고 온다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,season,1,Season,Summer,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,minimumDurationDays,2,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,maximumDurationDays,3,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,affectedDomainIds.0,service,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,affectedDomainIds.1,faction,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,startEffects.0.kind,7,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,startEffects.0.targetId,faction:dungeon:beastkin,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,startEffects.0.amount,5,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,startEffects.0.durationDays,3,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,endEffects.0.targetId,resolved:seasonal:summer-wounded-mercenaries,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:summer-wounded-mercenaries,seasonal:summer-wounded-mercenaries,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,m_Name,seasonal_winter-cave-flu-wave,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,stableId,seasonal:winter-cave-flu-wave,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,displayName,동굴 독감 유행,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,description,밀폐 생활이 직원과 피난 손님 사이의 공기 감염을 키운다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,season,3,Season,Winter,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,minimumDurationDays,3,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,maximumDurationDays,6,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,affectedDomainIds.0,disease,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,affectedDomainIds.1,service,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,startEffects.0.kind,15,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,startEffects.0.targetId,disease:cave-flu,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,startEffects.0.amount,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,startEffects.0.durationDays,6,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,endEffects.0.targetId,resolved:seasonal:winter-cave-flu-wave,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-cave-flu-wave,seasonal:winter-cave-flu-wave,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,m_Name,seasonal_winter-deep-echo,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,stableId,seasonal:winter-deep-echo,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,displayName,심층의 메아리,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,description,조용해진 동굴에서 진실 수호자의 이동과 희귀 야생동물의 흔적이 함께 드러난다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,season,3,Season,Winter,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,minimumDurationDays,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,maximumDurationDays,2,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,affectedDomainIds.0,expedition,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,affectedDomainIds.1,wildlife,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,startEffects.0.kind,14,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,startEffects.0.targetId,truth-guardian,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,startEffects.0.amount,5,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,startEffects.0.durationDays,2,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,endEffects.0.targetId,resolved:seasonal:winter-deep-echo,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-deep-echo,seasonal:winter-deep-echo,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,m_Name,seasonal_winter-frozen-pipes,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,stableId,seasonal:winter-frozen-pipes,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,displayName,동결 배관,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,description,동결이 물 공급과 의료실 운영을 함께 위협한다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,season,3,Season,Winter,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,minimumDurationDays,2,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,maximumDurationDays,4,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,affectedDomainIds.0,facility,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,affectedDomainIds.1,health,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,startEffects.0.kind,14,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,startEffects.0.targetId,frozen-pipes,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,startEffects.0.amount,4,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,startEffects.0.durationDays,4,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,endEffects.0.targetId,resolved:seasonal:winter-frozen-pipes,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-frozen-pipes,seasonal:winter-frozen-pipes,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,m_Name,seasonal_winter-fuel-demand,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,stableId,seasonal:winter-fuel-demand,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,displayName,연료 쟁탈,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,description,주변 세력이 연료 계약을 요구해 난방과 외교가 충돌한다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,season,3,Season,Winter,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,minimumDurationDays,2,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,maximumDurationDays,4,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,affectedDomainIds.0,faction,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,affectedDomainIds.1,facility,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,startEffects.0.kind,11,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,startEffects.0.targetId,material:charcoal,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,startEffects.0.amount,8,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,startEffects.0.durationDays,4,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,endEffects.0.targetId,resolved:seasonal:winter-fuel-demand,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-fuel-demand,seasonal:winter-fuel-demand,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,m_Name,seasonal_winter-hungry-pack,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,stableId,seasonal:winter-hungry-pack,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,displayName,굶주린 무리,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,description,먹이를 잃은 야생 무리가 가축과 쓰레기장을 습격한다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,season,3,Season,Winter,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,minimumDurationDays,3,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,maximumDurationDays,5,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,affectedDomainIds.0,wildlife,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,affectedDomainIds.1,defense,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,startEffects.0.kind,14,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,startEffects.0.targetId,hungry-pack,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,startEffects.0.amount,6,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,startEffects.0.durationDays,5,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,endEffects.0.targetId,resolved:seasonal:winter-hungry-pack,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-hungry-pack,seasonal:winter-hungry-pack,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,m_Name,seasonal_winter-memorial-envoys,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,stableId,seasonal:winter-memorial-envoys,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,displayName,추모 사절단,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,description,골렘 연합 사절들이 공동 추모에 참여하며 오래된 원한의 처리를 요구한다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,season,3,Season,Winter,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,minimumDurationDays,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,maximumDurationDays,2,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,affectedDomainIds.0,faction,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,affectedDomainIds.1,psychosocial,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,startEffects.0.kind,6,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,startEffects.0.targetId,faction:dungeon:golem,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,startEffects.0.amount,5,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,startEffects.0.durationDays,2,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,endEffects.0.targetId,resolved:seasonal:winter-memorial-envoys,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-memorial-envoys,seasonal:winter-memorial-envoys,endEffects.0.durationDays,0,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,m_Name,seasonal_winter-whiteout,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,stableId,seasonal:winter-whiteout,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,displayName,백색 암흑,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,description,눈보라가 원정 시야와 외부 물류를 거의 끊는다.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,authoringRevision,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,sourceNote,V20 hand-authored seasonal world event manifest.,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,season,3,Season,Winter,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,minimumDurationDays,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,maximumDurationDays,3,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,affectedDomainIds.0,expedition,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,affectedDomainIds.1,logistics,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,triggerRequirements.items,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,triggerRequirements.facilities,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,triggerRequirements.research,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,triggerRequirements.characters,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,triggerRequirements.factions,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,triggerRequirements.worldMetrics,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,triggerRequirements.requiredFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,triggerRequirements.excludedFlags,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,startEffects.0.kind,13,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,startEffects.0.targetId,whiteout,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,startEffects.0.amount,3,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,startEffects.0.durationDays,3,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,dailyEffects,[],,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,endEffects.0.kind,12,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,endEffects.0.targetId,resolved:seasonal:winter-whiteout,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,endEffects.0.amount,1,,,explicit-serialized
+SeasonalWorldEventDefinitionSO|seasonal:winter-whiteout,seasonal:winter-whiteout,endEffects.0.durationDays,0,,,explicit-serialized

@@ -5,7 +5,7 @@ using System.Linq;
 [Serializable]
 public sealed class DungeonProductionGenericBillTerminalDrainSaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     // Deliberately has no current-version initializer. JsonUtility must leave a
     // missing required version at zero so semantic validation fails loudly.

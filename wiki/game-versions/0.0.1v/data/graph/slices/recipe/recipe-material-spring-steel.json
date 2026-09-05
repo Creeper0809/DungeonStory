@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-material-spring-steel",
+    "spoiler_tier": "none",
+    "title": "용수철강"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-spring-steel",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-spring-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "용수철강",
+      "to": "item/material-spring-steel",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-spring-steel",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯",
+      "to": "item/material-charcoal",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-material-spring-steel",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-steel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "강철",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-material-spring-steel",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 단조",
+      "to": "research/research-metallurgy-advanced",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

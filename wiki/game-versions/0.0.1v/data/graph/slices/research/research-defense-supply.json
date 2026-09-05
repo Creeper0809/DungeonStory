@@ -1,0 +1,141 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-defense-supply",
+    "spoiler_tier": "none",
+    "title": "방어 보급학"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-defense-supply",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-logistics",
+      "target_spoiler_tier": "none",
+      "target_title": "창고 구획",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-supply",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-logistics",
+      "target_spoiler_tier": "none",
+      "target_title": "창고 구획",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-supply",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-logistics",
+      "target_spoiler_tier": "none",
+      "target_title": "창고 구획",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-supply",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-fortification",
+      "target_spoiler_tier": "none",
+      "target_title": "요새화",
+      "to": "research/research-defense-fortification",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-supply",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-fortification",
+      "target_spoiler_tier": "none",
+      "target_title": "요새화",
+      "to": "research/research-defense-fortification",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-supply",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-fortification",
+      "target_spoiler_tier": "none",
+      "target_title": "요새화",
+      "to": "research/research-defense-fortification",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-supply",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1802",
+      "target_spoiler_tier": "none",
+      "target_title": "탄약·촉매 보급고",
+      "to": "facility/building-1802",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-supply",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1803",
+      "target_spoiler_tier": "none",
+      "target_title": "함정 정비대",
+      "to": "facility/building-1803",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-corridor-mechanisms",
+      "label": "선행 연구",
+      "to": "research/research-defense-supply",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-corridor-mechanisms",
+      "label": "선행 연구",
+      "to": "research/research-defense-supply",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-corridor-mechanisms",
+      "label": "선행 연구",
+      "to": "research/research-defense-supply",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-field-maintenance",
+      "label": "선행 연구",
+      "to": "research/research-defense-supply",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-field-maintenance",
+      "label": "선행 연구",
+      "to": "research/research-defense-supply",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-field-maintenance",
+      "label": "선행 연구",
+      "to": "research/research-defense-supply",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

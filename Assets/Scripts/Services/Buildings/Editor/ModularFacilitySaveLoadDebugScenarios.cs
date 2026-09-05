@@ -259,7 +259,9 @@ public static class ModularFacilitySaveLoadDebugScenarios
 
     private static Grid CreateSaveFixtureGrid()
     {
-        Grid grid = new Grid(28, DungeonSpaceExpansionCatalog.SupportedGridHeight);
+        Grid grid = new Grid(
+            DungeonSpaceExpansionCatalog.InitialInteriorColumns + 1,
+            DungeonSpaceExpansionCatalog.SupportedGridHeight);
         for (int x = 0; x < grid.width; x++)
         {
             for (int y = 0; y < grid.height; y++)

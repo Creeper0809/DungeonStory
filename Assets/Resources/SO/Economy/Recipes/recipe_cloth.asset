@@ -53,9 +53,13 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=FiberProcessingWaste|reason=core-textile-carding-and-bedding-trim-waste|physicalByproduct=false
   inputs:
   - itemId: resource:shade-fiber
-    amount: 3
+    amount: 4
   outputs:
   - outputLineId: output:recipe:cloth/000/main/material:cloth
     role: 0

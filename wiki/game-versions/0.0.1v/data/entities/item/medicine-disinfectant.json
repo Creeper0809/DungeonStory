@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "25개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "18"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "수술실 세정과 감염 억제에 쓰는 약품이다. 므네실라의 기구 소독제는 마르면 흰 포자막을 남긴다. 닦이지 않은 틈을 눈으로 찾기 위한 흔적이다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "medicine-disinfectant",
+  "spoiler_tier": "none",
+  "summary": "수술실 세정과 감염 억제에 쓰는 약품",
+  "title": "소독제"
+}

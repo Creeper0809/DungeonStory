@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Metabolism"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "heritable-toxin-filter",
+  "spoiler_tier": "none",
+  "summary": "음식과 공기 독소의 축적을 늦춘다.",
+  "title": "독소 여과 기관"
+}

@@ -1,0 +1,6 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+OffenseDecisionCardSO,content-type,,type-reference,models:offense,runtime,structural-type-consumer,Assets/Scripts/Models/Offense/Core/OffenseAuthoredContentPort.cs
+OffenseDecisionCardSO,content-type,,type-reference,services:items,content-loading,structural-type-consumer,Assets/Scripts/Services/Items/GameContentCatalog.cs
+OffenseDecisionCardSO,content-type,,type-reference,services:offense,persistence,structural-type-consumer,Assets/Scripts/Services/Offense/OffenseAggregateSaveValidation.cs
+OffenseDecisionCardSO,content-type,,type-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/Strategic/OffenseStrategicDefinitions.cs
+OffenseDecisionCardSO,content-type,,type-reference; save-restore-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/Strategic/OffenseTravelAndDecisionRuntime.cs

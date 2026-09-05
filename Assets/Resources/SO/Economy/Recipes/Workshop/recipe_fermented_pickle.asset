@@ -50,11 +50,19 @@ MonoBehaviour:
   processingGameHours: 12
   optimalTemperatureC: {x: 12, y: 24}
   warningTemperatureC: {x: 4, y: 32}
-  cleanWaterPerCycle: 0
-  wastewaterPerCycle: 1
+  cleanWaterPerCycle: 1.2
+  wastewaterPerCycle: 2
   wastewaterComposition: 4
-  allowsManualWaterFallback: 0
+  allowsManualWaterFallback: 1
   spoilageItemId: waste:plant-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=FermentationGasLoss|reason=fermentation-gas-and-brine-release-residue|physicalByproduct=false
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: material:brined-vegetable
     amount: 2

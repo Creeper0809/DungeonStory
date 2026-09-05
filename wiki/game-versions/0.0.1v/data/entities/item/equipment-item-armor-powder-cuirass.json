@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "664"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "화약수 부대의 파편 방호 규격에 맞춰 가슴판과 목깃을 보강한 흉갑이다. 오르데나에서 지급한 화약수 흉갑 안쪽에는 군영 번호가 찍혀 있다. 오래 입을수록 번호보다 수선 자국이 먼저 눈에 띈다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-armor-powder-cuirass",
+  "spoiler_tier": "none",
+  "summary": "화약수 흉갑 전투 장비",
+  "title": "화약수 흉갑"
+}

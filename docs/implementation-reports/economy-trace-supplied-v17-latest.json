@@ -1,0 +1,1461 @@
+{
+    "profileId": "economy-trace-supplied-v17",
+    "utcTimestamp": "2026-07-27T21:51:56.5189201Z",
+    "applicationVersion": "0.1.0",
+    "unityVersion": "6000.3.8f1",
+    "operatingSystem": "Windows 11  (10.0.22631)",
+    "processor": "Intel(R) Core(TM) i9-14900HX",
+    "processorCount": 32,
+    "systemMemoryMb": 32559,
+    "graphicsDevice": "NVIDIA GeForce RTX 4080 Laptop GPU",
+    "graphicsMemoryMb": 11997,
+    "screenWidth": 3840,
+    "screenHeight": 2160,
+    "aiSchedulerDisabled": false,
+    "characterPresentationDisabled": false,
+    "characterStatsUpdatesDisabled": false,
+    "requestedActorCount": 100,
+    "requestedLivestockCount": 100,
+    "requestedFacilityCount": 128,
+    "requestedGridWidth": 256,
+    "requestedGridHeight": 8,
+    "requestedActiveFloors": 4,
+    "requestedSimulationSpeed": 5.0,
+    "normalOperationSupplyDays": 5,
+    "seededFoodAmount": 500,
+    "seededWaterAmount": 500,
+    "actualActorCount": 100,
+    "actualStressActorCount": 92,
+    "syntheticSkillGenerationRequestsCancelled": true,
+    "actualWildlifeCount": 101,
+    "actualLivestockCount": 100,
+    "actualStressLivestockCount": 100,
+    "actualBuildingCount": 338,
+    "actualDenseFacilityCount": 128,
+    "actualDenseDoorCount": 56,
+    "activeRendererCount": 657,
+    "visibleRendererCount": 234,
+    "activeCanvasCount": 5,
+    "activeNameplateCount": 100,
+    "dynamicWorkSmoothedFrameMilliseconds": 6.669666613942092,
+    "dynamicWorkAvailableMilliseconds": 6.748350028998518,
+    "dynamicWorkConsumedMilliseconds": 0.7936,
+    "dynamicWorkBacklog": 251,
+    "gridWidth": 256,
+    "gridHeight": 8,
+    "schedulerRegisteredCharacters": 100,
+    "presentationRegisteredCharacters": 100,
+    "presentationVisibleCharacters": 61,
+    "schedulerLastMilliseconds": 0.0071,
+    "schedulerLastDecisions": 0,
+    "schedulerLastLegacyFallbacks": 0,
+    "schedulerLastPathSearches": 0,
+    "schedulerCurrentBudgetMilliseconds": 2.142456254942408,
+    "schedulerEstimatedDecisionMilliseconds": 0.4828662649864217,
+    "schedulerEstimatedPathMilliseconds": 0.07748146750780316,
+    "schedulerSmoothedFrameMilliseconds": 6.669666613942092,
+    "schedulerProcessedDecisions": 620,
+    "schedulerStarvedDecisions": 194,
+    "schedulerSkippedDecisions": 18,
+    "schedulerLegacyFallbacks": 45,
+    "schedulerOldestDeferralSeconds": 1.0700969696044922,
+    "schedulerMaximumDeferralSeconds": 2.622255563735962,
+    "schedulerBudgetExhausted": true,
+    "facilityCandidateIndexPending": false,
+    "facilityCandidateIndexVersion": 7,
+    "sampleCount": 672,
+    "sampleDurationSeconds": 5.005033493041992,
+    "setupMilliseconds": 715.2546,
+    "totalProfileMilliseconds": 15856.5553,
+    "averageFps": 119.77784729003906,
+    "onePercentLowFps": 30.744728088378908,
+    "framesOver16_67Ms": 11,
+    "framesOver33_33Ms": 6,
+    "monoUsedBytesAtStart": 1208250368,
+    "monoUsedBytesAtEnd": 1257988096,
+    "monoUsedBytesAfterStartCollection": 1208250368,
+    "monoUsedBytesAfterEndCollection": 1209171968,
+    "totalAllocatedBytesAtStart": 5485115841,
+    "totalAllocatedBytesAtEnd": 5372018913,
+    "monoUsedFirstQuarterAverageBytes": 1210639189,
+    "monoUsedLastQuarterAverageBytes": 1250687097,
+    "sustainedMonoGrowthBytes": 40047908,
+    "retainedMonoGrowthBytes": 921600,
+    "editorBaselineGcAverageBytes": 41560.816666666666,
+    "gameplayIncrementalGcAverageBytes": 129795.03154761905,
+    "warningCount": 0,
+    "errorCount": 0,
+    "valid": false,
+    "meets60FpsP95": true,
+    "meets60FpsP99": false,
+    "meets60FpsEverySample": false,
+    "meetsSchedulerP95Target": true,
+    "meetsAverageGcTarget": false,
+    "meetsMemoryGrowthTarget": true,
+    "meetsMixedPopulationTarget": false,
+    "usesEditorBaselineAdjustedGcTarget": true,
+    "vSyncDisabled": true,
+    "targetFrameRate": -1,
+    "measurementIncludesRendering": true,
+    "measurementIncludesUi": true,
+    "measurementIncludesPhysics": true,
+    "measurementUsesNormalNewRun": true,
+    "measurementUsesRealCharacterPrefab": true,
+    "measurementUsesRealBuildingObjects": true,
+    "measurementUsesRealWildlifeActors": true,
+    "measurementUsesAnimalHusbandryRuntime": true,
+    "failureReason": "samples=672; errors=0; actors=100/100; livestock=100/100; facilities=128/128; grid=256x8; frameP95=9.102; schedulerP95=1.696; avgGcBytes=171356; baselineGcBytes=41561; incrementalGcBytes=129795; sustainedMonoGrowthBytes=40047908; retainedMonoGrowthBytes=921600",
+    "logMessages": [],
+    "frame": {
+        "average": 8.34878921508789,
+        "p50": 6.791602611541748,
+        "p95": 9.102097511291504,
+        "p99": 32.525901794433597,
+        "maximum": 609.3764038085938
+    },
+    "mainThread": {
+        "average": 7.431421279907227,
+        "p50": 6.760900020599365,
+        "p95": 8.968999862670899,
+        "p99": 26.813800811767579,
+        "maximum": 115.61609649658203
+    },
+    "renderThread": {
+        "average": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "p99": 0.0,
+        "maximum": 0.0
+    },
+    "gcCollect": {
+        "average": 528.043212890625,
+        "p50": 528.043212890625,
+        "p95": 528.043212890625,
+        "p99": 528.043212890625,
+        "maximum": 528.043212890625
+    },
+    "aiBudget": {
+        "average": 0.2843993902206421,
+        "p50": 0.008999999612569809,
+        "p95": 1.6962000131607056,
+        "p99": 2.02239990234375,
+        "maximum": 2.3721001148223879
+    },
+    "characterStats": {
+        "average": 0.03392253816127777,
+        "p50": 0.027899999171495439,
+        "p95": 0.07209999859333039,
+        "p99": 0.11749999970197678,
+        "maximum": 0.18709999322891236
+    },
+    "aiDirector": {
+        "average": 0.0010031342972069979,
+        "p50": 0.00039999998989515007,
+        "p95": 0.003100000089034438,
+        "p99": 0.004100000020116568,
+        "maximum": 0.07880000025033951
+    },
+    "abilityMove": {
+        "average": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "p99": 0.0,
+        "maximum": 0.0
+    },
+    "abilityWork": {
+        "average": 0.35759031772613528,
+        "p50": 0.005100000184029341,
+        "p95": 1.8180999755859376,
+        "p99": 6.159999847412109,
+        "maximum": 6.159999847412109
+    },
+    "runtimeTicks": [
+        {
+            "name": "CaptivityRuntime.Tick",
+            "metric": {
+                "average": 0.0003455223923083395,
+                "p50": 0.0003000000142492354,
+                "p95": 0.00039999998989515007,
+                "p99": 0.0006000000284984708,
+                "maximum": 0.018799999728798868
+            }
+        },
+        {
+            "name": "CircusRuntime.Tick",
+            "metric": {
+                "average": 0.0004802985058631748,
+                "p50": 0.00039999998989515007,
+                "p95": 0.0006000000284984708,
+                "p99": 0.0007999999797903001,
+                "maximum": 0.01679999940097332
+            }
+        },
+        {
+            "name": "ExteriorActivityRuntime.Tick",
+            "metric": {
+                "average": 0.0023068657610565426,
+                "p50": 0.002199999988079071,
+                "p95": 0.0027000000700354578,
+                "p99": 0.004100000020116568,
+                "maximum": 0.027899999171495439
+            }
+        },
+        {
+            "name": "CharacterSkillGenerationService.Tick",
+            "metric": {
+                "average": 0.022154776379466058,
+                "p50": 0.019899999722838403,
+                "p95": 0.03060000017285347,
+                "p99": 0.09120000153779984,
+                "maximum": 0.5371000170707703
+            }
+        },
+        {
+            "name": "WorkOrderRuntime.Tick",
+            "metric": {
+                "average": 0.0002720895572565496,
+                "p50": 0.00019999999494757503,
+                "p95": 0.0003000000142492354,
+                "p99": 0.0005000000237487257,
+                "maximum": 0.012799999676644802
+            }
+        },
+        {
+            "name": "CharacterBodyHealthRuntime.Tick",
+            "metric": {
+                "average": 0.23053790628910066,
+                "p50": 0.22419999539852143,
+                "p95": 0.30169999599456789,
+                "p99": 0.374099999666214,
+                "maximum": 0.4309999942779541
+            }
+        },
+        {
+            "name": "CharacterMedicalRuntime.Tick",
+            "metric": {
+                "average": 0.00036686568637378514,
+                "p50": 0.0003000000142492354,
+                "p95": 0.0005000000237487257,
+                "p99": 0.0006000000284984708,
+                "maximum": 0.016699999570846559
+            }
+        },
+        {
+            "name": "EquipmentMaintenancePolicyRuntime.Tick",
+            "metric": {
+                "average": 0.0017334328731521965,
+                "p50": 0.00139999995008111,
+                "p95": 0.0017000000225380064,
+                "p99": 0.016100000590085985,
+                "maximum": 0.08919999748468399
+            }
+        },
+        {
+            "name": "DefenseEngagementRuntime.Tick",
+            "metric": {
+                "average": 0.0030682089272886516,
+                "p50": 0.003000000026077032,
+                "p95": 0.0035000001080334188,
+                "p99": 0.004800000227987766,
+                "maximum": 0.023000000044703485
+            }
+        },
+        {
+            "name": "OffenseReturnArrivalRuntime.Tick",
+            "metric": {
+                "average": 0.0009958208538591862,
+                "p50": 0.000699999975040555,
+                "p95": 0.0010000000474974514,
+                "p99": 0.00419999985024333,
+                "maximum": 0.06340000033378601
+            }
+        },
+        {
+            "name": "CharacterDeprivationRuntime.Tick",
+            "metric": {
+                "average": 0.005231641698628664,
+                "p50": 0.000699999975040555,
+                "p95": 0.0007999999797903001,
+                "p99": 0.12409999966621399,
+                "maximum": 0.6205999851226807
+            }
+        },
+        {
+            "name": "WorldWaterRuntime.Tick",
+            "metric": {
+                "average": 0.0015211940044537187,
+                "p50": 0.00139999995008111,
+                "p95": 0.0017000000225380064,
+                "p99": 0.002199999988079071,
+                "maximum": 0.03319999948143959
+            }
+        },
+        {
+            "name": "WildlifeCaptureRuntime.Tick",
+            "metric": {
+                "average": 0.0,
+                "p50": 0.0,
+                "p95": 0.0,
+                "p99": 0.0,
+                "maximum": 0.0
+            }
+        },
+        {
+            "name": "WildlifeEcosystemRuntime.Tick",
+            "metric": {
+                "average": 0.0005483582499437034,
+                "p50": 0.0005000000237487257,
+                "p95": 0.000699999975040555,
+                "p99": 0.001500000013038516,
+                "maximum": 0.002099999925121665
+            }
+        },
+        {
+            "name": "WildlifeRuntime.Tick",
+            "metric": {
+                "average": 0.13688910007476808,
+                "p50": 0.11739999800920487,
+                "p95": 0.25099998712539675,
+                "p99": 0.34200000762939455,
+                "maximum": 0.4327999949455261
+            }
+        },
+        {
+            "name": "AnimalHusbandryRuntime.Tick",
+            "metric": {
+                "average": 0.004129701294004917,
+                "p50": 0.0003000000142492354,
+                "p95": 0.0005000000237487257,
+                "p99": 0.0568000003695488,
+                "maximum": 0.6082000136375427
+            }
+        },
+        {
+            "name": "FirstRunObjectiveRuntime.Tick",
+            "metric": {
+                "average": 0.0007079104543663561,
+                "p50": 0.00019999999494757503,
+                "p95": 0.0003000000142492354,
+                "p99": 0.01889999955892563,
+                "maximum": 0.019899999722838403
+            }
+        },
+        {
+            "name": "RoomLayoutCache.Rebuild",
+            "metric": {
+                "average": 0.0,
+                "p50": 0.0,
+                "p95": 0.0,
+                "p99": 0.0,
+                "maximum": 0.0
+            }
+        }
+    ],
+    "gc": {
+        "averageBytes": 171355.8482142857,
+        "p95Bytes": 258331,
+        "maximumBytes": 23043317
+    },
+    "aiPerformance": {
+        "valid": true,
+        "actorCount": 100,
+        "sampleFrames": 512,
+        "scheduler": {
+            "name": "Scheduler",
+            "sampleCount": 512,
+            "average": 0.18698925781250012,
+            "p95": 1.5378,
+            "max": 2.2191,
+            "gcBytes": 0
+        },
+        "behaviorTree": {
+            "name": "BT",
+            "sampleCount": 512,
+            "average": 0.5956347656250006,
+            "p95": 1.2904,
+            "max": 3.974,
+            "gcBytes": 0
+        },
+        "pathBroker": {
+            "name": "Grid.SearchPath",
+            "sampleCount": 113,
+            "average": 0.28646194690265505,
+            "p95": 0.6574,
+            "max": 1.5904,
+            "gcBytes": 0
+        },
+        "garbageCollection": {
+            "name": "GC",
+            "sampleCount": 0,
+            "average": 0.0,
+            "p95": 0.0,
+            "max": 0.0,
+            "gcBytes": 0
+        },
+        "metrics": [
+            {
+                "name": "Scheduler",
+                "sampleCount": 512,
+                "average": 0.18698925781250012,
+                "p95": 1.5378,
+                "max": 2.2191,
+                "gcBytes": 0
+            },
+            {
+                "name": "BT",
+                "sampleCount": 512,
+                "average": 0.5956347656250006,
+                "p95": 1.2904,
+                "max": 3.974,
+                "gcBytes": 0
+            },
+            {
+                "name": "DecisionContext",
+                "sampleCount": 512,
+                "average": 0.012387499999999982,
+                "p95": 0.0671,
+                "max": 0.4464,
+                "gcBytes": 0
+            },
+            {
+                "name": "DomainSelection",
+                "sampleCount": 175,
+                "average": 0.008595428571428568,
+                "p95": 0.0141,
+                "max": 0.1149,
+                "gcBytes": 0
+            },
+            {
+                "name": "ActionScoring",
+                "sampleCount": 512,
+                "average": 0.14578066406249999,
+                "p95": 0.3656,
+                "max": 0.6033,
+                "gcBytes": 0
+            },
+            {
+                "name": "WorldSignal",
+                "sampleCount": 512,
+                "average": 0.0037984374999999908,
+                "p95": 0.0146,
+                "max": 0.1897,
+                "gcBytes": 0
+            },
+            {
+                "name": "FacilityScoring",
+                "sampleCount": 512,
+                "average": 0.010411718749999983,
+                "p95": 0.0347,
+                "max": 0.3819,
+                "gcBytes": 0
+            },
+            {
+                "name": "WorkTargetSelector",
+                "sampleCount": 512,
+                "average": 0.17566445312500005,
+                "p95": 0.3498,
+                "max": 0.6226,
+                "gcBytes": 0
+            },
+            {
+                "name": "Haul",
+                "sampleCount": 13,
+                "average": 1.0634769230769233,
+                "p95": 6.0142,
+                "max": 6.0142,
+                "gcBytes": 0
+            },
+            {
+                "name": "Wildlife",
+                "sampleCount": 512,
+                "average": 0.13431249999999998,
+                "p95": 0.2477,
+                "max": 0.4312,
+                "gcBytes": 0
+            },
+            {
+                "name": "Grid.SearchPath",
+                "sampleCount": 113,
+                "average": 0.28646194690265505,
+                "p95": 0.6574,
+                "max": 1.5904,
+                "gcBytes": 0
+            },
+            {
+                "name": "UI Feedback",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "WorldSignal.SpatialIndex",
+                "sampleCount": 512,
+                "average": 0.0012310546874999974,
+                "p95": 0.0041,
+                "max": 0.0168,
+                "gcBytes": 0
+            },
+            {
+                "name": "WorldSignal.Proximity",
+                "sampleCount": 512,
+                "average": 0.007298437499999999,
+                "p95": 0.0123,
+                "max": 0.0979,
+                "gcBytes": 0
+            },
+            {
+                "name": "WorldSignal.Environment",
+                "sampleCount": 512,
+                "average": 0.017458984375,
+                "p95": 0.1776,
+                "max": 0.3531,
+                "gcBytes": 0
+            },
+            {
+                "name": "Action.Prepare",
+                "sampleCount": 512,
+                "average": 0.053230468749999978,
+                "p95": 0.2515,
+                "max": 0.5121,
+                "gcBytes": 0
+            },
+            {
+                "name": "Action.Considerations",
+                "sampleCount": 512,
+                "average": 0.10896210937500008,
+                "p95": 0.3079,
+                "max": 1.7954,
+                "gcBytes": 0
+            },
+            {
+                "name": "Action.CanStart",
+                "sampleCount": 512,
+                "average": 0.010099609375000013,
+                "p95": 0.0618,
+                "max": 0.2171,
+                "gcBytes": 0
+            },
+            {
+                "name": "Action.ResolveDestination",
+                "sampleCount": 512,
+                "average": 0.1301982421875,
+                "p95": 0.3469,
+                "max": 1.1765,
+                "gcBytes": 0
+            },
+            {
+                "name": "Facility.CandidateSource",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "Facility.CandidateLoop",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "DecisionContext.Needs",
+                "sampleCount": 512,
+                "average": 0.010301757812500007,
+                "p95": 0.0117,
+                "max": 0.0943,
+                "gcBytes": 0
+            },
+            {
+                "name": "DecisionContext.Abilities",
+                "sampleCount": 512,
+                "average": 0.02370683593749996,
+                "p95": 0.0424,
+                "max": 0.1738,
+                "gcBytes": 0
+            },
+            {
+                "name": "DecisionContext.WorldSignal",
+                "sampleCount": 512,
+                "average": 0.017486132812499994,
+                "p95": 0.0341,
+                "max": 0.3693,
+                "gcBytes": 0
+            },
+            {
+                "name": "Facility.Availability",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            }
+        ],
+        "brokerSearches": 67,
+        "brokerCacheHits": 0,
+        "brokerBudgetDeferrals": 18,
+        "summary": "AI 100명 · 평균 0.19ms · p95 1.54ms · 경로 캐시 0.0%"
+    },
+    "slowFrames": [
+        {
+            "measuredFrameMilliseconds": 32.525901794433597,
+            "profilerFrameMilliseconds": 6.8084001541137699,
+            "profilerFrameIndex": 1240382,
+            "samples": [
+                {
+                    "name": "UpdateScene",
+                    "milliseconds": 2.3870999813079836
+                },
+                {
+                    "name": "Profiler.FlushCounters",
+                    "milliseconds": 1.9076000452041627
+                },
+                {
+                    "name": "Profiler.FlushMemoryCounters",
+                    "milliseconds": 1.8913999795913697
+                },
+                {
+                    "name": "RenderPlayModeViewCameras",
+                    "milliseconds": 1.1692999601364136
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!UnityEngine.Rendering::RenderPipelineManager.DoRenderLoop_Internal() [Invoke]",
+                    "milliseconds": 0.9534000158309937
+                },
+                {
+                    "name": "Inl_UniversalRenderTotal",
+                    "milliseconds": 0.9139999747276306
+                },
+                {
+                    "name": "Inl_RenderCameraStack",
+                    "milliseconds": 0.9017999768257141
+                },
+                {
+                    "name": "VContainerUpdate",
+                    "milliseconds": 0.7243000268936157
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "milliseconds": 0.7239000201225281
+                },
+                {
+                    "name": "EditorLoop",
+                    "milliseconds": 0.7044000029563904
+                },
+                {
+                    "name": "Inl_UniversalRenderPipeline.RenderSingleCameraInternal: Main Camera",
+                    "milliseconds": 0.586899995803833
+                },
+                {
+                    "name": "VContainerLateUpdate",
+                    "milliseconds": 0.48910000920295718
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "milliseconds": 0.48890000581741335
+                },
+                {
+                    "name": "EditorLoop",
+                    "milliseconds": 0.4081999957561493
+                },
+                {
+                    "name": "FixedUpdate.Physics2DFixedUpdate",
+                    "milliseconds": 0.37790000438690188
+                },
+                {
+                    "name": "Physics2D.Simulate",
+                    "milliseconds": 0.3711000084877014
+                },
+                {
+                    "name": "CullScriptable",
+                    "milliseconds": 0.30219998955726626
+                },
+                {
+                    "name": "Inl_ScriptableRenderContext.Submit",
+                    "milliseconds": 0.24469999969005586
+                },
+                {
+                    "name": "UniversalRenderPipeline.RenderSingleCameraInternal: Main Camera",
+                    "milliseconds": 0.225600004196167
+                },
+                {
+                    "name": "CharacterBodyHealthRuntime.Tick",
+                    "milliseconds": 0.21490000188350678
+                },
+                {
+                    "name": "ExecuteRenderGraph",
+                    "milliseconds": 0.20909999310970307
+                }
+            ],
+            "allocations": [
+                {
+                    "path": "UpdateScene > VContainerUpdate > UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "bytes": 19740
+                },
+                {
+                    "path": "UpdateScene > Update.ScriptRunDelayedDynamicFrameRate > CoroutinesDelayedCalls > Assembly-CSharp.dll!::AbilityWork.CheckActionWork() [Coroutine: MoveNext] [Invoke]",
+                    "bytes": 5768
+                },
+                {
+                    "path": "UpdateScene > VContainerLateUpdate > UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "bytes": 4160
+                },
+                {
+                    "path": "UpdateScene > Update.ScriptRunDelayedDynamicFrameRate > CoroutinesDelayedCalls > Assembly-CSharp.dll!::AbilityHaul.MoveByPath() [Coroutine: MoveNext] [Invoke]",
+                    "bytes": 3076
+                },
+                {
+                    "path": "Inl_ScriptableRenderContext.Submit > UniversalRenderPipeline.RenderSingleCameraInternal: Main Camera > ExecuteRenderGraph > DrawScreenSpaceUI > GUI.Repaint > UnityEngine.IMGUIModule.dll!UnityEngine::GUIUtility.BeginGUI() [Invoke]",
+                    "bytes": 368
+                },
+                {
+                    "path": "UpdateScene > VContainerUpdate > UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke] > CharacterStatMaintenanceRuntime.Tick",
+                    "bytes": 228
+                },
+                {
+                    "path": "UpdateScene > PreLateUpdate.ScriptRunBehaviourLateUpdate > LateBehaviourUpdate > Assembly-CSharp.dll!::RoomClippedLight2D.LateUpdate() [Invoke]",
+                    "bytes": 120
+                },
+                {
+                    "path": "FixedUpdate.Physics2DFixedUpdate > Physics2D.Simulate > Physics2D.CompileContactCallbacks > Physics2D.SendContactCallbacks > Physics2D.SendTriggerContactCallbacks > Assembly-CSharp.dll!::Door.OnTriggerStay2D() [Invoke]",
+                    "bytes": 40
+                },
+                {
+                    "path": "RenderPlayModeViewCameras > PlayerEndOfFrame > CoroutinesDelayedCalls > Assembly-CSharp.dll!::DungeonGameplayPerformanceProbe.RunSafely() [Coroutine: MoveNext] [Invoke]",
+                    "bytes": 16
+                }
+            ]
+        },
+        {
+            "measuredFrameMilliseconds": 11.529698371887207,
+            "profilerFrameMilliseconds": 7.64300012588501,
+            "profilerFrameIndex": 1240357,
+            "samples": [
+                {
+                    "name": "UpdateScene",
+                    "milliseconds": 2.8166000843048097
+                },
+                {
+                    "name": "Profiler.FlushCounters",
+                    "milliseconds": 2.199199914932251
+                },
+                {
+                    "name": "Profiler.FlushMemoryCounters",
+                    "milliseconds": 2.1805999279022219
+                },
+                {
+                    "name": "RenderPlayModeViewCameras",
+                    "milliseconds": 1.118499994277954
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!UnityEngine.Rendering::RenderPipelineManager.DoRenderLoop_Internal() [Invoke]",
+                    "milliseconds": 1.0494999885559083
+                },
+                {
+                    "name": "Inl_UniversalRenderTotal",
+                    "milliseconds": 1.027500033378601
+                },
+                {
+                    "name": "Inl_RenderCameraStack",
+                    "milliseconds": 1.0118000507354737
+                },
+                {
+                    "name": "EditorLoop",
+                    "milliseconds": 0.8170999884605408
+                },
+                {
+                    "name": "VContainerUpdate",
+                    "milliseconds": 0.7534999847412109
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "milliseconds": 0.7531999945640564
+                },
+                {
+                    "name": "Inl_UniversalRenderPipeline.RenderSingleCameraInternal: Main Camera",
+                    "milliseconds": 0.6358000040054321
+                },
+                {
+                    "name": "VContainerLateUpdate",
+                    "milliseconds": 0.5821999907493591
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "milliseconds": 0.5819000005722046
+                },
+                {
+                    "name": "FixedUpdate.Physics2DFixedUpdate",
+                    "milliseconds": 0.4519999921321869
+                },
+                {
+                    "name": "Physics2D.Simulate",
+                    "milliseconds": 0.4442000091075897
+                },
+                {
+                    "name": "EditorLoop",
+                    "milliseconds": 0.44119998812675478
+                },
+                {
+                    "name": "CullScriptable",
+                    "milliseconds": 0.32659998536109927
+                },
+                {
+                    "name": "Inl_ScriptableRenderContext.Submit",
+                    "milliseconds": 0.28700000047683718
+                },
+                {
+                    "name": "UniversalRenderPipeline.RenderSingleCameraInternal: Main Camera",
+                    "milliseconds": 0.26579999923706057
+                },
+                {
+                    "name": "CharacterBodyHealthRuntime.Tick",
+                    "milliseconds": 0.25040000677108767
+                },
+                {
+                    "name": "Update.ScriptRunBehaviourUpdate",
+                    "milliseconds": 0.24160000681877137
+                },
+                {
+                    "name": "BehaviourUpdate",
+                    "milliseconds": 0.2410999983549118
+                }
+            ],
+            "allocations": [
+                {
+                    "path": "UpdateScene > VContainerUpdate > UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "bytes": 19740
+                },
+                {
+                    "path": "UpdateScene > Update.ScriptRunBehaviourUpdate > BehaviourUpdate > Assembly-CSharp.dll!::LocalLlmRequestQueue.Update() [Invoke] > Assembly-CSharp.dll!::LocalLlmRequestQueue.ProcessRequest() [Coroutine: MoveNext] [Invoke]",
+                    "bytes": 7577
+                },
+                {
+                    "path": "UpdateScene > VContainerLateUpdate > UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "bytes": 6760
+                },
+                {
+                    "path": "UpdateScene > Update.ScriptRunDelayedDynamicFrameRate > CoroutinesDelayedCalls > Assembly-CSharp.dll!::AbilityHaul.MoveByPath() [Coroutine: MoveNext] [Invoke]",
+                    "bytes": 3556
+                },
+                {
+                    "path": "UpdateScene > Update.ScriptRunDelayedDynamicFrameRate > CoroutinesDelayedCalls > Assembly-CSharp.dll!::CharacterSpawner.StartSpawn() [Coroutine: MoveNext] [Invoke]",
+                    "bytes": 2276
+                },
+                {
+                    "path": "UpdateScene > VContainerUpdate > UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke] > CharacterStatMaintenanceRuntime.Tick",
+                    "bytes": 752
+                },
+                {
+                    "path": "Inl_ScriptableRenderContext.Submit > UniversalRenderPipeline.RenderSingleCameraInternal: Main Camera > ExecuteRenderGraph > DrawScreenSpaceUI > GUI.Repaint > UnityEngine.IMGUIModule.dll!UnityEngine::GUIUtility.BeginGUI() [Invoke]",
+                    "bytes": 368
+                },
+                {
+                    "path": "UpdateScene > PreLateUpdate.ScriptRunBehaviourLateUpdate > LateBehaviourUpdate > Assembly-CSharp.dll!::RoomClippedLight2D.LateUpdate() [Invoke]",
+                    "bytes": 120
+                },
+                {
+                    "path": "UpdateScene > Update.ScriptRunBehaviourUpdate > BehaviourUpdate > Assembly-CSharp.dll!::LocalLlmRequestQueue.Update() [Invoke]",
+                    "bytes": 88
+                },
+                {
+                    "path": "RenderPlayModeViewCameras > PlayerEndOfFrame > CoroutinesDelayedCalls > Assembly-CSharp.dll!::DungeonGameplayPerformanceProbe.RunSafely() [Coroutine: MoveNext] [Invoke]",
+                    "bytes": 16
+                }
+            ]
+        },
+        {
+            "measuredFrameMilliseconds": 8.526403427124024,
+            "profilerFrameMilliseconds": 7.464399814605713,
+            "profilerFrameIndex": 1240387,
+            "samples": [
+                {
+                    "name": "UpdateScene",
+                    "milliseconds": 3.1312999725341799
+                },
+                {
+                    "name": "Profiler.FlushCounters",
+                    "milliseconds": 1.9465999603271485
+                },
+                {
+                    "name": "Profiler.FlushMemoryCounters",
+                    "milliseconds": 1.9297000169754029
+                },
+                {
+                    "name": "Update.ScriptRunBehaviourUpdate",
+                    "milliseconds": 1.3116999864578248
+                },
+                {
+                    "name": "BehaviourUpdate",
+                    "milliseconds": 1.3111000061035157
+                },
+                {
+                    "name": "Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke]",
+                    "milliseconds": 1.2151000499725342
+                },
+                {
+                    "name": "CharacterAiScheduler.ProcessAiBudget",
+                    "milliseconds": 1.2141000032424927
+                },
+                {
+                    "name": "RenderPlayModeViewCameras",
+                    "milliseconds": 1.0351999998092652
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!UnityEngine.Rendering::RenderPipelineManager.DoRenderLoop_Internal() [Invoke]",
+                    "milliseconds": 0.8679999709129334
+                },
+                {
+                    "name": "Inl_UniversalRenderTotal",
+                    "milliseconds": 0.8489999771118164
+                },
+                {
+                    "name": "Inl_RenderCameraStack",
+                    "milliseconds": 0.8363000154495239
+                },
+                {
+                    "name": "VContainerUpdate",
+                    "milliseconds": 0.7547000050544739
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "milliseconds": 0.7544000148773193
+                },
+                {
+                    "name": "CharacterAi.EmergencyDecision",
+                    "milliseconds": 0.6952999830245972
+                },
+                {
+                    "name": "EditorLoop",
+                    "milliseconds": 0.6707000136375427
+                },
+                {
+                    "name": "Inl_UniversalRenderPipeline.RenderSingleCameraInternal: Main Camera",
+                    "milliseconds": 0.5508000254631043
+                },
+                {
+                    "name": "CharacterAi.EmergencyDecision",
+                    "milliseconds": 0.489300012588501
+                },
+                {
+                    "name": "VContainerLateUpdate",
+                    "milliseconds": 0.47189998626708987
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "milliseconds": 0.4715999960899353
+                },
+                {
+                    "name": "CharacterAi.ActionScoring",
+                    "milliseconds": 0.4596000015735626
+                },
+                {
+                    "name": "CharacterAi.ActionConsiderations",
+                    "milliseconds": 0.4535999894142151
+                },
+                {
+                    "name": "CharacterAi.WorkTargetSelection",
+                    "milliseconds": 0.44679999351501467
+                },
+                {
+                    "name": "EditorLoop",
+                    "milliseconds": 0.40720000863075259
+                },
+                {
+                    "name": "CullScriptable",
+                    "milliseconds": 0.27000001072883608
+                }
+            ],
+            "allocations": [
+                {
+                    "path": "UpdateScene > Update.ScriptRunBehaviourUpdate > BehaviourUpdate > Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision",
+                    "bytes": 31616
+                },
+                {
+                    "path": "CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations > CharacterAi.WorkTargetSelection > CharacterAi.WorkTarget.Spatial",
+                    "bytes": 22368
+                },
+                {
+                    "path": "UpdateScene > VContainerUpdate > UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "bytes": 19740
+                },
+                {
+                    "path": "CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations > CharacterAi.WorkTargetSelection > CharacterAi.WorkTarget.ActorStats",
+                    "bytes": 19008
+                },
+                {
+                    "path": "CharacterAi.EmergencyDecision > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations > CharacterAi.WorkTargetSelection > CharacterAi.WorkTarget.Spatial > GetComponentNullErrorMessage",
+                    "bytes": 17894
+                },
+                {
+                    "path": "CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations > CharacterAi.WorkTargetSelection > CharacterAi.WorkTarget.Urgency",
+                    "bytes": 16546
+                },
+                {
+                    "path": "Update.ScriptRunBehaviourUpdate > BehaviourUpdate > Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.DecisionContext",
+                    "bytes": 9760
+                },
+                {
+                    "path": "CharacterAi.EmergencyDecision > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations > CharacterAi.WorkTargetSelection > CharacterAi.WorkTarget.ActorStats > CharacterAi.DecisionContext",
+                    "bytes": 9760
+                },
+                {
+                    "path": "Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations > CharacterAi.WorkTargetSelection",
+                    "bytes": 6640
+                },
+                {
+                    "path": "UpdateScene > VContainerUpdate > UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke] > CharacterStatMaintenanceRuntime.Tick",
+                    "bytes": 5920
+                },
+                {
+                    "path": "UpdateScene > VContainerLateUpdate > UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "bytes": 2600
+                },
+                {
+                    "path": "UpdateScene > Update.ScriptRunDelayedDynamicFrameRate > CoroutinesDelayedCalls > Assembly-CSharp.dll!::AbilityHaul.MoveByPath() [Coroutine: MoveNext] [Invoke]",
+                    "bytes": 960
+                },
+                {
+                    "path": "Update.ScriptRunBehaviourUpdate > BehaviourUpdate > Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.ActionScoring",
+                    "bytes": 434
+                },
+                {
+                    "path": "Inl_ScriptableRenderContext.Submit > UniversalRenderPipeline.RenderSingleCameraInternal: Main Camera > ExecuteRenderGraph > DrawScreenSpaceUI > GUI.Repaint > UnityEngine.IMGUIModule.dll!UnityEngine::GUIUtility.BeginGUI() [Invoke]",
+                    "bytes": 368
+                },
+                {
+                    "path": "BehaviourUpdate > Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations",
+                    "bytes": 240
+                },
+                {
+                    "path": "UpdateScene > Update.ScriptRunBehaviourUpdate > BehaviourUpdate > Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget",
+                    "bytes": 160
+                },
+                {
+                    "path": "UpdateScene > Update.ScriptRunDelayedDynamicFrameRate > CoroutinesDelayedCalls > Assembly-CSharp.dll!::AbilityWork.Move2PosBySpeed() [Coroutine: MoveNext] [Invoke]",
+                    "bytes": 120
+                },
+                {
+                    "path": "UpdateScene > PreLateUpdate.ScriptRunBehaviourLateUpdate > LateBehaviourUpdate > Assembly-CSharp.dll!::RoomClippedLight2D.LateUpdate() [Invoke]",
+                    "bytes": 120
+                },
+                {
+                    "path": "UpdateScene > Update.ScriptRunDelayedDynamicFrameRate > CoroutinesDelayedCalls > Assembly-CSharp.dll!::AbilityWork.AllocateWorker() [Coroutine: MoveNext] [Invoke]",
+                    "bytes": 104
+                },
+                {
+                    "path": "Update.ScriptRunBehaviourUpdate > BehaviourUpdate > Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > Assembly-CSharp.dll!::AbilityMove.WaitForAiAction() [Coroutine: MoveNext] [Invoke]",
+                    "bytes": 56
+                },
+                {
+                    "path": "RenderPlayModeViewCameras > PlayerEndOfFrame > CoroutinesDelayedCalls > Assembly-CSharp.dll!::DungeonGameplayPerformanceProbe.RunSafely() [Coroutine: MoveNext] [Invoke]",
+                    "bytes": 16
+                }
+            ]
+        },
+        {
+            "measuredFrameMilliseconds": 7.591602802276611,
+            "profilerFrameMilliseconds": 8.751399993896485,
+            "profilerFrameIndex": 1240396,
+            "samples": [
+                {
+                    "name": "UpdateScene",
+                    "milliseconds": 4.141900062561035
+                },
+                {
+                    "name": "Profiler.FlushCounters",
+                    "milliseconds": 2.1338999271392824
+                },
+                {
+                    "name": "Profiler.FlushMemoryCounters",
+                    "milliseconds": 2.118299961090088
+                },
+                {
+                    "name": "Update.ScriptRunBehaviourUpdate",
+                    "milliseconds": 1.9817999601364136
+                },
+                {
+                    "name": "BehaviourUpdate",
+                    "milliseconds": 1.9814000129699708
+                },
+                {
+                    "name": "Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke]",
+                    "milliseconds": 1.8937000036239625
+                },
+                {
+                    "name": "CharacterAiScheduler.ProcessAiBudget",
+                    "milliseconds": 1.8924000263214112
+                },
+                {
+                    "name": "RenderPlayModeViewCameras",
+                    "milliseconds": 1.1605000495910645
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!UnityEngine.Rendering::RenderPipelineManager.DoRenderLoop_Internal() [Invoke]",
+                    "milliseconds": 0.904699981212616
+                },
+                {
+                    "name": "Inl_UniversalRenderTotal",
+                    "milliseconds": 0.8877999782562256
+                },
+                {
+                    "name": "Inl_RenderCameraStack",
+                    "milliseconds": 0.8765000104904175
+                },
+                {
+                    "name": "VContainerUpdate",
+                    "milliseconds": 0.6639999747276306
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "milliseconds": 0.6638000011444092
+                },
+                {
+                    "name": "EditorLoop",
+                    "milliseconds": 0.6409000158309937
+                },
+                {
+                    "name": "Inl_UniversalRenderPipeline.RenderSingleCameraInternal: Main Camera",
+                    "milliseconds": 0.5842999815940857
+                },
+                {
+                    "name": "VContainerLateUpdate",
+                    "milliseconds": 0.4537000060081482
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "milliseconds": 0.45339998602867129
+                },
+                {
+                    "name": "CharacterAi.EmergencyDecision",
+                    "milliseconds": 0.4187000095844269
+                },
+                {
+                    "name": "CharacterAi.EmergencyDecision",
+                    "milliseconds": 0.3806000053882599
+                },
+                {
+                    "name": "EditorLoop",
+                    "milliseconds": 0.374099999666214
+                },
+                {
+                    "name": "CharacterAi.EmergencyDecision",
+                    "milliseconds": 0.36320000886917117
+                },
+                {
+                    "name": "CharacterAi.EmergencyDecision",
+                    "milliseconds": 0.34689998626708987
+                },
+                {
+                    "name": "CharacterAi.DomainSelection",
+                    "milliseconds": 0.34450000524520876
+                },
+                {
+                    "name": "FixedUpdate.Physics2DFixedUpdate",
+                    "milliseconds": 0.34299999475479128
+                }
+            ],
+            "allocations": [
+                {
+                    "path": "UpdateScene > Update.ScriptRunBehaviourUpdate > BehaviourUpdate > Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision",
+                    "bytes": 35996
+                },
+                {
+                    "path": "CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations > CharacterAi.WorkTargetSelection > CharacterAi.WorkTarget.ActorStats",
+                    "bytes": 33264
+                },
+                {
+                    "path": "Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations > CharacterAi.WorkTargetSelection",
+                    "bytes": 25204
+                },
+                {
+                    "path": "Update.ScriptRunBehaviourUpdate > BehaviourUpdate > Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.DecisionContext",
+                    "bytes": 24400
+                },
+                {
+                    "path": "UpdateScene > VContainerUpdate > UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "bytes": 19740
+                },
+                {
+                    "path": "CharacterAi.EmergencyDecision > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations > CharacterAi.WorkTargetSelection > CharacterAi.WorkTarget.ActorStats > CharacterAi.DecisionContext",
+                    "bytes": 19520
+                },
+                {
+                    "path": "CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations > CharacterAi.WorkTargetSelection > CharacterAi.WorkTarget.Urgency",
+                    "bytes": 16930
+                },
+                {
+                    "path": "CharacterAi.EmergencyDecision > CharacterAi.DomainSelection > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations > CharacterAi.WorkTargetSelection > CharacterAi.WorkTarget.Urgency",
+                    "bytes": 16162
+                },
+                {
+                    "path": "CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations > CharacterAi.WorkTargetSelection > CharacterAi.WorkTarget.Spatial",
+                    "bytes": 10748
+                },
+                {
+                    "path": "CharacterAi.EmergencyDecision > CharacterAi.DomainSelection > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations > CharacterAi.WorkTargetSelection > CharacterAi.WorkTarget.ActorStats",
+                    "bytes": 9504
+                },
+                {
+                    "path": "CharacterAi.EmergencyDecision > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations > CharacterAi.WorkTargetSelection > CharacterAi.WorkTarget.Spatial > GetComponentNullErrorMessage",
+                    "bytes": 8310
+                },
+                {
+                    "path": "CharacterAi.DomainSelection > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations > CharacterAi.WorkTargetSelection > CharacterAi.WorkTarget.ActorStats > CharacterAi.DecisionContext",
+                    "bytes": 4880
+                },
+                {
+                    "path": "UpdateScene > VContainerLateUpdate > UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "bytes": 3640
+                },
+                {
+                    "path": "CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.DomainSelection > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations > CharacterAi.WorkTargetSelection",
+                    "bytes": 3564
+                },
+                {
+                    "path": "UpdateScene > Update.ScriptRunDelayedDynamicFrameRate > CoroutinesDelayedCalls > Assembly-CSharp.dll!::CharacterSpawner.StartSpawn() [Coroutine: MoveNext] [Invoke]",
+                    "bytes": 2276
+                },
+                {
+                    "path": "UpdateScene > Update.ScriptRunDelayedDynamicFrameRate > CoroutinesDelayedCalls > Assembly-CSharp.dll!::AbilityHaul.MoveByPath() [Coroutine: MoveNext] [Invoke]",
+                    "bytes": 2160
+                },
+                {
+                    "path": "UpdateScene > VContainerUpdate > UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke] > CharacterStatMaintenanceRuntime.Tick",
+                    "bytes": 1164
+                },
+                {
+                    "path": "Update.ScriptRunBehaviourUpdate > BehaviourUpdate > Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.ActionScoring",
+                    "bytes": 888
+                },
+                {
+                    "path": "UpdateScene > Update.ScriptRunBehaviourUpdate > BehaviourUpdate > Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget",
+                    "bytes": 720
+                },
+                {
+                    "path": "BehaviourUpdate > Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations",
+                    "bytes": 480
+                },
+                {
+                    "path": "Inl_ScriptableRenderContext.Submit > UniversalRenderPipeline.RenderSingleCameraInternal: Main Camera > ExecuteRenderGraph > DrawScreenSpaceUI > GUI.Repaint > UnityEngine.IMGUIModule.dll!UnityEngine::GUIUtility.BeginGUI() [Invoke]",
+                    "bytes": 368
+                },
+                {
+                    "path": "Update.ScriptRunBehaviourUpdate > BehaviourUpdate > Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.DomainSelection",
+                    "bytes": 240
+                },
+                {
+                    "path": "BehaviourUpdate > Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.DomainSelection > CharacterAi.ActionScoring",
+                    "bytes": 144
+                },
+                {
+                    "path": "Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.DomainSelection > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations",
+                    "bytes": 120
+                }
+            ]
+        },
+        {
+            "measuredFrameMilliseconds": 8.688697814941407,
+            "profilerFrameMilliseconds": 7.689199924468994,
+            "profilerFrameIndex": 1240395,
+            "samples": [
+                {
+                    "name": "UpdateScene",
+                    "milliseconds": 3.3550000190734865
+                },
+                {
+                    "name": "Profiler.FlushCounters",
+                    "milliseconds": 1.8703999519348145
+                },
+                {
+                    "name": "Profiler.FlushMemoryCounters",
+                    "milliseconds": 1.8544999361038209
+                },
+                {
+                    "name": "Update.ScriptRunBehaviourUpdate",
+                    "milliseconds": 1.6741000413894654
+                },
+                {
+                    "name": "BehaviourUpdate",
+                    "milliseconds": 1.6734000444412232
+                },
+                {
+                    "name": "Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke]",
+                    "milliseconds": 1.575700044631958
+                },
+                {
+                    "name": "CharacterAiScheduler.ProcessAiBudget",
+                    "milliseconds": 1.5742000341415406
+                },
+                {
+                    "name": "RenderPlayModeViewCameras",
+                    "milliseconds": 1.2249000072479249
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!UnityEngine.Rendering::RenderPipelineManager.DoRenderLoop_Internal() [Invoke]",
+                    "milliseconds": 1.1644999980926514
+                },
+                {
+                    "name": "Inl_UniversalRenderTotal",
+                    "milliseconds": 1.1483999490737916
+                },
+                {
+                    "name": "Inl_RenderCameraStack",
+                    "milliseconds": 1.1368999481201172
+                },
+                {
+                    "name": "Inl_UniversalRenderPipeline.RenderSingleCameraInternal: Main Camera",
+                    "milliseconds": 0.7645000219345093
+                },
+                {
+                    "name": "VContainerUpdate",
+                    "milliseconds": 0.7041000127792358
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "milliseconds": 0.703000009059906
+                },
+                {
+                    "name": "EditorLoop",
+                    "milliseconds": 0.6432999968528748
+                },
+                {
+                    "name": "CullScriptable",
+                    "milliseconds": 0.48750001192092898
+                },
+                {
+                    "name": "VContainerLateUpdate",
+                    "milliseconds": 0.45410001277923586
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "milliseconds": 0.4537999927997589
+                },
+                {
+                    "name": "CharacterAi.EmergencyDecision",
+                    "milliseconds": 0.4275999963283539
+                },
+                {
+                    "name": "EditorLoop",
+                    "milliseconds": 0.38280001282691958
+                },
+                {
+                    "name": "CharacterAi.EmergencyDecision",
+                    "milliseconds": 0.3643999993801117
+                },
+                {
+                    "name": "CharacterAi.EmergencyDecision",
+                    "milliseconds": 0.362199991941452
+                },
+                {
+                    "name": "CharacterAi.EmergencyDecision",
+                    "milliseconds": 0.3562999963760376
+                },
+                {
+                    "name": "CharacterAi.DomainSelection",
+                    "milliseconds": 0.32519999146461489
+                }
+            ],
+            "allocations": [
+                {
+                    "path": "CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations > CharacterAi.WorkTargetSelection > CharacterAi.WorkTarget.ActorStats",
+                    "bytes": 33264
+                },
+                {
+                    "path": "UpdateScene > Update.ScriptRunBehaviourUpdate > BehaviourUpdate > Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision",
+                    "bytes": 26960
+                },
+                {
+                    "path": "Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations > CharacterAi.WorkTargetSelection",
+                    "bytes": 23120
+                },
+                {
+                    "path": "Update.ScriptRunBehaviourUpdate > BehaviourUpdate > Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.DomainSelection",
+                    "bytes": 19782
+                },
+                {
+                    "path": "UpdateScene > VContainerUpdate > UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "bytes": 19740
+                },
+                {
+                    "path": "Update.ScriptRunBehaviourUpdate > BehaviourUpdate > Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.DecisionContext",
+                    "bytes": 19520
+                },
+                {
+                    "path": "CharacterAi.EmergencyDecision > CharacterAi.DomainSelection > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations > CharacterAi.WorkTargetSelection > CharacterAi.WorkTarget.Urgency",
+                    "bytes": 15010
+                },
+                {
+                    "path": "CharacterAi.EmergencyDecision > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations > CharacterAi.WorkTargetSelection > CharacterAi.WorkTarget.ActorStats > CharacterAi.DecisionContext",
+                    "bytes": 14640
+                },
+                {
+                    "path": "CharacterAi.EmergencyDecision > CharacterAi.DomainSelection > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations > CharacterAi.WorkTargetSelection > CharacterAi.WorkTarget.ActorStats",
+                    "bytes": 7128
+                },
+                {
+                    "path": "CharacterAi.DomainSelection > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations > CharacterAi.WorkTargetSelection > CharacterAi.WorkTarget.ActorStats > CharacterAi.DecisionContext",
+                    "bytes": 4880
+                },
+                {
+                    "path": "CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.DomainSelection > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations > CharacterAi.WorkTargetSelection",
+                    "bytes": 3164
+                },
+                {
+                    "path": "UpdateScene > VContainerLateUpdate > UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "bytes": 2600
+                },
+                {
+                    "path": "UpdateScene > Update.ScriptRunDelayedDynamicFrameRate > CoroutinesDelayedCalls > Assembly-CSharp.dll!::AbilityHaul.MoveByPath() [Coroutine: MoveNext] [Invoke]",
+                    "bytes": 1920
+                },
+                {
+                    "path": "UpdateScene > Update.ScriptRunBehaviourUpdate > BehaviourUpdate > Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget > GetComponentNullErrorMessage",
+                    "bytes": 1164
+                },
+                {
+                    "path": "CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations > CharacterAi.WorkTargetSelection > CharacterAi.WorkTarget.Urgency",
+                    "bytes": 1152
+                },
+                {
+                    "path": "BehaviourUpdate > Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.DomainSelection > Assembly-CSharp.dll!::AbilityHaul.MoveByPath() [Coroutine: MoveNext] [Invoke]",
+                    "bytes": 720
+                },
+                {
+                    "path": "Update.ScriptRunBehaviourUpdate > BehaviourUpdate > Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.ActionScoring",
+                    "bytes": 594
+                },
+                {
+                    "path": "UpdateScene > Update.ScriptRunBehaviourUpdate > BehaviourUpdate > Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget",
+                    "bytes": 576
+                },
+                {
+                    "path": "Inl_ScriptableRenderContext.Submit > UniversalRenderPipeline.RenderSingleCameraInternal: Main Camera > ExecuteRenderGraph > DrawScreenSpaceUI > GUI.Repaint > UnityEngine.IMGUIModule.dll!UnityEngine::GUIUtility.BeginGUI() [Invoke]",
+                    "bytes": 368
+                },
+                {
+                    "path": "BehaviourUpdate > Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations",
+                    "bytes": 360
+                },
+                {
+                    "path": "UpdateScene > VContainerUpdate > UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke] > CharacterStatMaintenanceRuntime.Tick",
+                    "bytes": 188
+                },
+                {
+                    "path": "BehaviourUpdate > Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.DomainSelection > Assembly-CSharp.dll!::AbilityMove.MoveByPathThenWait() [Coroutine: MoveNext] [Invoke]",
+                    "bytes": 152
+                },
+                {
+                    "path": "BehaviourUpdate > Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.DomainSelection > CharacterAi.ActionScoring",
+                    "bytes": 144
+                },
+                {
+                    "path": "Assembly-CSharp.dll!::CharacterAiScheduler.Update() [Invoke] > CharacterAiScheduler.ProcessAiBudget > CharacterAi.EmergencyDecision > CharacterAi.DomainSelection > CharacterAi.ActionScoring > CharacterAi.ActionConsiderations",
+                    "bytes": 120
+                }
+            ]
+        }
+    ]
+}

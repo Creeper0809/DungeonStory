@@ -1,0 +1,71 @@
+---
+import Icon from './Icon.astro';
+import { anatomyHref, getNeedReferences, guideHref, needHref, workHref } from '../lib/wiki-data';
+
+interface Props {
+  version: string;
+  historical?: boolean;
+}
+
+const { version, historical = false } = Astro.props;
+const archiveVersion = historical ? version : undefined;
+const directoryHref = historical ? `/game-versions/${version}/` : '/directory/';
+const needs = getNeedReferences(version).filter((reference) => reference.id !== 'health');
+const majorLinks = [
+  { href: needHref('health', archiveVersion), icon: 'health', label: '건강 상태', description: '현재 체력, 위기 상태, 붕괴와 회복 기준을 확인한다.' },
+  { href: anatomyHref(undefined, archiveVersion), icon: 'grid', label: '신체 구조', description: '부위와 장기별 체력, 기능, 부상과 처치를 확인한다.' },
+  { href: workHref('medicine', archiveVersion), icon: 'research', label: '의료 작업', description: '구조, 진단과 치료, 수술을 준비하고 진행하는 조건을 확인한다.' },
+];
+const communityLinks = [
+  { href: guideHref('health-and-community', archiveVersion), label: '건강과 공동체', description: '치료, 질병, 가족과 방문자가 정착 운영에 남기는 변화를 읽는다.' },
+  { href: guideHref('spaces', archiveVersion), label: '방·동선', description: '병상, 생활 공간과 이동 경로를 배치하는 기준을 확인한다.' },
+  { href: guideHref('residents-and-work', archiveVersion), label: '주민·노동', description: '주민 상태를 고려해 역할, 우선순위와 교대를 조정한다.' },
+];
+---
+
+<article class="health-community-page" data-pagefind-body={historical ? undefined : 'true'}>
+  <nav class="breadcrumbs" aria-label="현재 위치"><a href={directoryHref}>둘러보기</a><span>/</span><span aria-current="page">건강·공동체</span></nav>
+  <header class="page-header">
+    <p class="eyebrow">정착 운영</p>
+    <h1>건강·공동체</h1>
+    <p>정착의 건강은 주민 상태, 신체 손상, 치료 인력, 생활 시설과 작업 배치가 함께 결정한다. 필요한 정보를 아래 세부 문서에서 확인한다.</p>
+  </header>
+
+  <div class="health-community-page__layout">
+    <div class="health-community-page__main">
+      <section aria-labelledby="health-community-core-title">
+        <h2 id="health-community-core-title">건강과 치료</h2>
+        <div class="health-community-card-grid">
+          {majorLinks.map((link) => <a class="health-community-card" href={link.href}><Icon name={link.icon} /><strong>{link.label}</strong><span>{link.description}</span></a>)}
+        </div>
+      </section>
+
+      <section aria-labelledby="health-community-needs-title">
+        <h2 id="health-community-needs-title">생활 상태</h2>
+        <p>식사, 물, 수면, 위생, 배변, 기분과 피로는 주민의 일상 행동과 작업 가능 여부에 직접 영향을 준다.</p>
+        <div class="health-community-state-grid">
+          {needs.map((reference) => <a href={needHref(reference.id, archiveVersion)}><strong>{reference.title}</strong><span>{reference.summary}</span></a>)}
+        </div>
+      </section>
+
+      <section aria-labelledby="health-community-society-title">
+        <h2 id="health-community-society-title">공동체 운영</h2>
+        <div class="health-community-community-list">
+          {communityLinks.map((link) => <a href={link.href}><strong>{link.label}</strong><span>{link.description}</span></a>)}
+        </div>
+      </section>
+    </div>
+
+    <aside class="health-community-page__rail">
+      <section class="fact-box">
+        <h2>빠른 판단</h2>
+        <dl>
+          <div><dt>부상</dt><dd><a href={needHref('health', archiveVersion)}>건강 상태</a>에서 위기 수치를 확인한다.</dd></div>
+          <div><dt>치료</dt><dd><a href={workHref('medicine', archiveVersion)}>의료 작업</a>에서 구조와 치료 조건을 확인한다.</dd></div>
+          <div><dt>생활</dt><dd>생활 상태 문서에서 결핍 기준과 붕괴 결과를 확인한다.</dd></div>
+        </dl>
+      </section>
+      <section class="version-card"><h2>공동체 안내</h2><p><a href={guideHref('health-and-community', archiveVersion)}>건강과 공동체의 운영 기준</a></p></section>
+    </aside>
+  </div>
+</article>

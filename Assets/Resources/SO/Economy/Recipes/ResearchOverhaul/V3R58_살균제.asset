@@ -54,13 +54,21 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=ExtractionResidue|reason=fungicide-filtration-and-charcoal-residue|physicalByproduct=false
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: medicine:antiseptic
-    amount: 1
+    amount: 2
   - itemId: material:charcoal
     amount: 1
   - itemId: resource:clean-water
-    amount: 2
+    amount: 3
   outputs:
   - outputLineId: output:recipe:supply:fungicide/000/main/supply:fungicide
     role: 0

@@ -157,6 +157,140 @@ public static class ResourceItemSemanticDigest
                 canonical.Append(supply.feedEligible);
                 return;
 
+            case AmmunitionItemFeature ammunition:
+                RequireCanonicalRequired(
+                    ammunition.ammunitionKindId,
+                    "ammunition kind ID");
+                canonical.Append("ammunition@1");
+                canonical.Append(ammunition.ammunitionKindId);
+                return;
+
+            case FoodItemFeature food:
+                RequireEnum(food.quality, "food quality");
+                RequireEnum(food.qualityBand, "food quality band");
+                RequireEnum(food.servingRole, "food serving role");
+                RequireFiniteRange(food.nutrition, 0f, float.MaxValue,
+                    "food nutrition");
+                RequireFiniteRange(food.mood, float.MinValue, float.MaxValue,
+                    "food mood");
+                RequireFiniteRange(food.freshnessSeconds, 0f, float.MaxValue,
+                    "food freshness");
+                canonical.Append("food@1");
+                canonical.AppendEnum(food.quality);
+                canonical.AppendEnum(food.qualityBand);
+                canonical.AppendEnum(food.servingRole);
+                canonical.AppendFloat(food.nutrition);
+                canonical.AppendFloat(food.mood);
+                canonical.AppendFloat(food.freshnessSeconds);
+                canonical.Append(food.preserved);
+                return;
+
+            case MedicineItemFeature medicine:
+                RequireFiniteRange(medicine.treatmentPotency, 0f,
+                    float.MaxValue, "medicine treatment potency");
+                RequireFiniteRange(medicine.infectionReduction, 0f,
+                    float.MaxValue, "medicine infection reduction");
+                RequireFiniteRange(medicine.detoxReduction, 0f,
+                    float.MaxValue, "medicine detox reduction");
+                RequireFiniteRange(medicine.painReduction, 0f,
+                    float.MaxValue, "medicine pain reduction");
+                canonical.Append("medicine@1");
+                canonical.Append(medicine.supportsInjuryTreatment);
+                canonical.AppendFloat(medicine.treatmentPotency);
+                canonical.AppendFloat(medicine.infectionReduction);
+                canonical.AppendFloat(medicine.detoxReduction);
+                canonical.AppendFloat(medicine.painReduction);
+                return;
+
+            case PackagedLotItemFeature packaged:
+                RequireEnum(packaged.tareDisposition,
+                    "package tare disposition");
+                RequireCanonicalOptional(packaged.containerItemId,
+                    "package container item ID");
+                canonical.Append("packaged-lot@1");
+                canonical.Append(packaged.packageTareGrams);
+                canonical.AppendEnum(packaged.tareDisposition);
+                canonical.Append(packaged.containerItemId);
+                return;
+
+            case VaccineItemFeature vaccine:
+                RequireCanonicalRequired(vaccine.diseaseId,
+                    "vaccine disease ID");
+                canonical.Append("vaccine@1");
+                canonical.Append(vaccine.diseaseId);
+                canonical.Append(vaccine.doses);
+                return;
+
+            case PathogenSampleItemFeature pathogen:
+                RequireCanonicalRequired(pathogen.diseaseId,
+                    "pathogen disease ID");
+                canonical.Append("pathogen-sample@1");
+                canonical.Append(pathogen.diseaseId);
+                return;
+
+            case MedicalProcedureSupplyItemFeature procedure:
+                RequireCanonicalRequired(procedure.procedureId,
+                    "medical procedure ID");
+                canonical.Append("medical-procedure-supply@1");
+                canonical.Append(procedure.procedureId);
+                return;
+
+            case CropTreatmentItemFeature treatment:
+                RequireEnum(treatment.treatmentKind, "crop treatment kind");
+                RequireFiniteRange(treatment.requiredWork, 0f,
+                    float.MaxValue, "crop treatment work");
+                RequireFiniteRange(treatment.effectAmount, 0f,
+                    float.MaxValue, "crop treatment effect");
+                canonical.Append("crop-treatment@1");
+                canonical.AppendEnum(treatment.treatmentKind);
+                canonical.Append(treatment.quantityPerApplication);
+                canonical.AppendFloat(treatment.requiredWork);
+                canonical.AppendFloat(treatment.effectAmount);
+                canonical.Append(treatment.cooldownDays);
+                return;
+
+            case SubstanceItemFeature substance:
+                RequireCanonicalRequired(substance.substanceId,
+                    "substance ID");
+                RequireEnum(substance.useClass, "substance use class");
+                RequireFiniteRange(substance.addictionChance, 0f, 1f,
+                    "substance addiction chance");
+                RequireFiniteRange(substance.overdoseChance, 0f, 1f,
+                    "substance overdose chance");
+                RequireFiniteRange(substance.toleranceGain, 0f,
+                    float.MaxValue, "substance tolerance gain");
+                RequireFiniteRange(substance.withdrawalPerHour, 0f,
+                    float.MaxValue, "substance withdrawal");
+                RequireFiniteRange(substance.moodEffect, float.MinValue,
+                    float.MaxValue, "substance mood effect");
+                RequireFiniteRange(substance.workSpeedEffect, float.MinValue,
+                    float.MaxValue, "substance work-speed effect");
+                RequireFiniteRange(substance.combatEffect, float.MinValue,
+                    float.MaxValue, "substance combat effect");
+                RequireFiniteRange(substance.durationSeconds, 0f,
+                    float.MaxValue, "substance duration");
+                canonical.Append("substance@1");
+                canonical.Append(substance.substanceId);
+                canonical.AppendEnum(substance.useClass);
+                canonical.AppendFloat(substance.addictionChance);
+                canonical.AppendFloat(substance.overdoseChance);
+                canonical.AppendFloat(substance.toleranceGain);
+                canonical.AppendFloat(substance.withdrawalPerHour);
+                canonical.AppendFloat(substance.moodEffect);
+                canonical.AppendFloat(substance.workSpeedEffect);
+                canonical.AppendFloat(substance.combatEffect);
+                canonical.AppendFloat(substance.durationSeconds);
+                return;
+
+            case EvolutionCatalystItemFeature catalyst:
+                RequireCanonicalOptional(catalyst.family,
+                    "evolution catalyst family");
+                canonical.Append("evolution-catalyst@1");
+                canonical.Append(catalyst.family);
+                canonical.Append(catalyst.potency);
+                canonical.Append(catalyst.residue);
+                return;
+
             default:
                 throw new InvalidOperationException(
                     "Prepared-output resource item has unsupported semantic "
@@ -183,6 +317,16 @@ public static class ResourceItemSemanticDigest
     private static void RequireCanonicalRequired(string value, string role)
     {
         if (string.IsNullOrWhiteSpace(value)
+            || !string.Equals(value, value.Trim(), StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Resource item has a noncanonical {role}.");
+        }
+    }
+
+    private static void RequireCanonicalOptional(string value, string role)
+    {
+        if (value == null
             || !string.Equals(value, value.Trim(), StringComparison.Ordinal))
         {
             throw new InvalidOperationException(

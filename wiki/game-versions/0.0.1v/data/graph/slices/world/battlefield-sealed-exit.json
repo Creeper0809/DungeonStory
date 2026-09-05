@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "battlefield-sealed-exit",
+    "spoiler_tier": "none",
+    "title": "봉인된 퇴로"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/encounter-07",
+      "label": "관련",
+      "to": "world/battlefield-sealed-exit",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-19",
+      "label": "관련",
+      "to": "world/battlefield-sealed-exit",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-31",
+      "label": "관련",
+      "to": "world/battlefield-sealed-exit",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

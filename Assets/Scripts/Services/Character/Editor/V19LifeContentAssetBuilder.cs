@@ -427,7 +427,7 @@ public static class V19LifeContentAssetBuilder
         species.weakWorkTypeIds = Array.Empty<string>();
         species.shortDescription = "던전을 침입하는 외부 원정자";
         species.description =
-            "던전 인구의 번식 대상이 아닌 적대적 외부 원정자 종족 정의다.";
+            "던전을 침입하는 적대적 외부 원정자 종족 정의다.";
         species.stayDurationMultiplier = 1f;
         species.crimeRiskMultiplier = 1f;
         species.incidentType = CharacterSpeciesIncidentType.None;

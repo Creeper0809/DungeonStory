@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "craft-soap",
+    "spoiler_tier": "none",
+    "title": "비누"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-soap",
+      "label": "생산·해금",
+      "to": "item/craft-soap",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

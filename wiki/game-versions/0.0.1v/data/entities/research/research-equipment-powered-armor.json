@@ -1,0 +1,76 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "546"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Industry And Automation"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-articulated-plate",
+      "target_spoiler_tier": "none",
+      "target_title": "관절식 판금",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-articulated-plate",
+      "target_spoiler_tier": "none",
+      "target_title": "관절식 판금",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-articulated-plate",
+      "target_spoiler_tier": "none",
+      "target_title": "관절식 판금",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-precision-fitting",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품 장착",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-precision-fitting",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품 장착",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-precision-fitting",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품 장착",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-equipment-powered-armor",
+  "spoiler_tier": "none",
+  "summary": "관절식 판금에 배전과 정밀 부품 구동계를 결합한다.",
+  "title": "동력 보조 갑주"
+}

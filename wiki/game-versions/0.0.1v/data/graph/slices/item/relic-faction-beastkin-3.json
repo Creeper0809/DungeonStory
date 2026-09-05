@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "relic-faction-beastkin-3",
+    "spoiler_tier": "none",
+    "title": "붉은사냥 망토핀"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "event/faction-arc-beastkin",
+      "label": "관련",
+      "to": "item/relic-faction-beastkin-3",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

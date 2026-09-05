@@ -1,0 +1,214 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-paper",
+    "spoiler_tier": "none",
+    "title": "종이"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "event/practice-adventurer-name-token",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "event/practice-demon-oath-embers",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-ammo-blasting-charge",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-ammo-paper-cartridge",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-ammo-tranquilizer-dart",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-ammo-trap-canister",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-factory-installation-plan",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-price-board",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-material-granulated-powder",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-trait-analysis-kit",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-trauma-care-kit",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-supply-funeral-preparation-kit",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-supply-pest-lure",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-administrative-seal",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "12",
+      "from": "character/festival-ash-oath",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "event/faction-chapter-demon-1",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-book-seasonal-almanac",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-engineering-drawing",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-cartridge-paper",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-record-arcane-index",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-supply-certified-seed-kit",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-record-breeding-ledger",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-record-career-ledger",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "event/faction-chapter-demon-1",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "event/faction-chapter-demon-4",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-material-paper",
+      "label": "생산·해금",
+      "to": "item/material-paper",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "7",
+      "from": "event/faction-chapter-demon-4",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "from": "character/festival-frontier-map-night",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "from": "event/faction-contract-demon-supply",
+      "label": "필요 조건",
+      "to": "item/material-paper",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "enemy-ability-core-repair",
+    "spoiler_tier": "none",
+    "title": "핵 긴급수리"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/enemy-neutral-clockwork",
+      "label": "관련",
+      "to": "world/enemy-ability-core-repair",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-rival-siege-frame",
+      "label": "관련",
+      "to": "world/enemy-ability-core-repair",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-truth-null-warden",
+      "label": "관련",
+      "to": "world/enemy-ability-core-repair",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,49 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "16"
+    },
+    {
+      "label": "필요 연구",
+      "value": "철제 가공"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-stone-block",
+      "target_spoiler_tier": "none",
+      "target_title": "석재 블록",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-iron-ore",
+      "target_spoiler_tier": "none",
+      "target_title": "철광석",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-iron-slag-block",
+  "spoiler_tier": "none",
+  "summary": "철광 슬래그 블록 생산 주문",
+  "title": "철광 슬래그 블록"
+}

@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1021",
+    "spoiler_tier": "none",
+    "title": "정식침대"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-survival-support",
+      "label": "시설 해금",
+      "to": "facility/building-1021",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

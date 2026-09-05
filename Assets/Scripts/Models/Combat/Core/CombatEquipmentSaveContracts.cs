@@ -29,6 +29,15 @@ public enum CombatEquipmentCraftTerminalEffectPhase
     SourceRemoved = 3
 }
 
+public enum CombatEquipmentCraftOutputPhase
+{
+    None = 0,
+    ResolvedWaitingForPublication = 1,
+    PublishedAwaitingInputAcknowledgement = 2,
+    RestoredOutputAwaitingInputAcknowledgement = 3,
+    LegacyUniqueOutput = 4
+}
+
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class CombatEquipmentCraftTerminalEffectSaveData
@@ -161,6 +170,9 @@ public sealed class CombatEquipmentCraftOrderSaveData
     public float completedWork;
     public bool materialsReady;
     public string materialDestinationId = string.Empty;
+    public long materialBufferCapacityGrams;
+    public long materialMassAuthorityRevision;
+    public string materialCapacityFingerprint = string.Empty;
     public string facilityPersistentId = string.Empty;
     public int destinationX;
     public int destinationY;
@@ -191,6 +203,13 @@ public sealed class CombatEquipmentCraftOrderSaveData
     public float craftWorkPerAttempt;
     public List<CombatCraftRecoveryOutputSaveData> recoveryOutputs = new();
     public List<int> spawnedRecoveryAmounts = new();
+    public bool rejectedRecoveryFactorsCaptured;
+    public bool rejectedRecoveryProjected;
+    public float rejectedRecoveryWorkerSkill;
+    public float rejectedRecoverySalvageMultiplier;
+    public long rejectedRecoveryDesiredMassGrams;
+    public long rejectedRecoveryOutputMassGrams;
+    public string rejectedRecoverySourceDigest = string.Empty;
     public string rejectedDismantleOperationId = string.Empty;
     public string rejectedDismantleCommitId = string.Empty;
     public string rejectedDismantleRequestFingerprint = string.Empty;
@@ -215,6 +234,11 @@ public sealed class CombatEquipmentCraftOrderSaveData
     public string outputOperationId = string.Empty;
     public string outputItemId = string.Empty;
     public int outputQuantity;
+    public ProductionOutputCapabilitySaveData outputCapability = new();
+    public CombatEquipmentCraftOutputPhase outputPhase;
+    public ProductionDomainOutputPublicationSaveData outputPublication = new();
+    public bool outputMarketRouted;
+    public ItemInstanceComponentSaveData outputPreparedComponent;
     public string outputCommitId = string.Empty;
     public string outputInstanceId = string.Empty;
     public string outputStackId = string.Empty;
@@ -232,6 +256,14 @@ public sealed class CombatEquipmentCraftOrderSaveData
             completedWork = Mathf.Clamp(completedWork, 0f, Mathf.Max(0.1f, requiredWork)),
             materialsReady = materialsReady,
             materialDestinationId = materialDestinationId ?? string.Empty,
+            materialBufferCapacityGrams = Math.Max(
+                0L,
+                materialBufferCapacityGrams),
+            materialMassAuthorityRevision = Math.Max(
+                0L,
+                materialMassAuthorityRevision),
+            materialCapacityFingerprint =
+                materialCapacityFingerprint ?? string.Empty,
             facilityPersistentId = facilityPersistentId ?? string.Empty,
             destinationX = destinationX,
             destinationY = destinationY,
@@ -266,6 +298,18 @@ public sealed class CombatEquipmentCraftOrderSaveData
             spawnedRecoveryAmounts = spawnedRecoveryAmounts?.
                 Select(value => Mathf.Max(0, value)).ToList()
                 ?? new List<int>(),
+            rejectedRecoveryFactorsCaptured =
+                rejectedRecoveryFactorsCaptured,
+            rejectedRecoveryProjected = rejectedRecoveryProjected,
+            rejectedRecoveryWorkerSkill = rejectedRecoveryWorkerSkill,
+            rejectedRecoverySalvageMultiplier =
+                rejectedRecoverySalvageMultiplier,
+            rejectedRecoveryDesiredMassGrams =
+                Math.Max(0L, rejectedRecoveryDesiredMassGrams),
+            rejectedRecoveryOutputMassGrams =
+                Math.Max(0L, rejectedRecoveryOutputMassGrams),
+            rejectedRecoverySourceDigest =
+                rejectedRecoverySourceDigest ?? string.Empty,
             rejectedDismantleOperationId =
                 rejectedDismantleOperationId ?? string.Empty,
             rejectedDismantleCommitId =
@@ -299,6 +343,13 @@ public sealed class CombatEquipmentCraftOrderSaveData
             outputOperationId = outputOperationId ?? string.Empty,
             outputItemId = outputItemId ?? string.Empty,
             outputQuantity = Mathf.Max(0, outputQuantity),
+            outputCapability = outputCapability?.Clone()
+                ?? new ProductionOutputCapabilitySaveData(),
+            outputPhase = outputPhase,
+            outputPublication = outputPublication?.Clone()
+                ?? new ProductionDomainOutputPublicationSaveData(),
+            outputMarketRouted = outputMarketRouted,
+            outputPreparedComponent = outputPreparedComponent?.Clone(),
             outputCommitId = outputCommitId ?? string.Empty,
             outputInstanceId = outputInstanceId ?? string.Empty,
             outputStackId = outputStackId ?? string.Empty

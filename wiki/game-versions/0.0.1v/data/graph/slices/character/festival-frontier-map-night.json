@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "festival-frontier-map-night",
+    "spoiler_tier": "none",
+    "title": "지도에 불을 밝히는 밤"
+  },
+  "edges": [
+    {
+      "amount": "8",
+      "from": "character/festival-frontier-map-night",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "to": "item/material-paper",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "57"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "정수리와 이마를 가죽으로 덮어 가벼운 충격을 받아 내는 모자다. 라카쉬 세갈래길에서 고친 가죽 모자 안쪽에는 이전 주인의 표식과 다음 행선지가 겹쳐 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-armor-leather-cap",
+  "spoiler_tier": "none",
+  "summary": "가죽 모자 전투 장비",
+  "title": "가죽 모자"
+}

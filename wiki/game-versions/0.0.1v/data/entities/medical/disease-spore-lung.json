@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "medical",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "disease-spore-lung",
+  "spoiler_tier": "none",
+  "summary": "포자폐증의 고유 전파와 기관 증상.",
+  "title": "포자폐증"
+}

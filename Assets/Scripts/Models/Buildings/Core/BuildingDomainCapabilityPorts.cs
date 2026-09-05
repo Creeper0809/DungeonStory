@@ -64,20 +64,6 @@ public interface IBuildingItemStackPort
         StockCategory category,
         int amount,
         out int spawned);
-
-    bool SpawnFacilityBufferItem(
-        string itemId,
-        int amount,
-        Vector2Int position,
-        string destinationId,
-        out int spawned);
-
-    bool SpawnExistingFacilityBufferUniqueItem(
-        string itemId,
-        ItemInstanceId itemInstanceId,
-        Vector2Int position,
-        string destinationId,
-        out string stackId);
 }
 
 public interface IBuildingVisitEventPort

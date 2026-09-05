@@ -1,0 +1,40 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "faction-chapter-demon-3",
+    "spoiler_tier": "warning",
+    "title": "돌맥 주조소의 담보"
+  },
+  "edges": [
+    {
+      "amount": "3",
+      "from": "event/faction-chapter-demon-3",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-rune-conductor",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 도체",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "event/faction-chapter-demon-3",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-rune-conductor",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 도체",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-demon",
+      "label": "관련",
+      "to": "event/faction-chapter-demon-3",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

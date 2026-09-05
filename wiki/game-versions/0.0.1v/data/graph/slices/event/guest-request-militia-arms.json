@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "guest-request-militia-arms",
+    "spoiler_tier": "none",
+    "title": "민병대 긴급 무장"
+  },
+  "edges": [
+    {
+      "amount": "30",
+      "from": "event/guest-request-militia-arms",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "ammo-paper-cartridge",
+      "target_spoiler_tier": "none",
+      "target_title": "종이 탄약통",
+      "to": "item/ammo-paper-cartridge",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

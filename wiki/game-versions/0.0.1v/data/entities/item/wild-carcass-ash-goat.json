@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "20kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "4"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "야생에서 회수한 잿빛 산양의 사체다. 도축 시설로 옮기면 식량과 부산물을 얻을 수 있다. 베르사디온의 화구 사냥꾼이 거둔 잿빛 산양 사체에는 계약 몫을 뜻하는 검은 밀랍이 한 방울 떨어져 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "wild-carcass-ash-goat",
+  "spoiler_tier": "none",
+  "summary": "도축 시설로 옮기면 식량과 부산물을 얻는다.",
+  "title": "잿빛 산양 사체"
+}

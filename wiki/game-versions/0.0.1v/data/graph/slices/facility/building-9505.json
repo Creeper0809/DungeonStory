@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-9505",
+    "spoiler_tier": "none",
+    "title": "마취 장치"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-medical-surgery",
+      "label": "시설 해금",
+      "to": "facility/building-9505",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

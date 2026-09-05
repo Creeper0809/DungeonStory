@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Vengeance Or Discovery"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ambition-avenge-fallen",
+  "spoiler_tier": "none",
+  "summary": "가까운 이를 죽인 지휘관을 찾아 생포하거나 쓰러뜨리려 한다.",
+  "title": "쓰러진 이의 이름"
+}

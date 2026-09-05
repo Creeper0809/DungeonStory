@@ -1,0 +1,31 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-vampire-consent-cup",
+      "target_spoiler_tier": "none",
+      "target_title": "동의의 잔",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-vampire-incense-memory",
+      "target_spoiler_tier": "none",
+      "target_title": "혈향 촛불",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "culture-vampire-nightcourt",
+  "spoiler_tier": "none",
+  "summary": "절제된 환대와 혈액 제공의 동의를 체면보다 중요한 규칙으로 삼는다.",
+  "title": "밤궁정 문화"
+}

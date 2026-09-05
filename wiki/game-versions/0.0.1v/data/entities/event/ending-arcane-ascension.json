@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ending-arcane-ascension",
+  "spoiler_tier": "warning",
+  "summary": "룬 전력망과 비전 생산을 통합해 물질과 마력의 경계를 산업 체계로 바꾼다.",
+  "title": "비전 승천"
+}

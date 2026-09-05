@@ -17,6 +17,46 @@ public interface ICharacterSkillTransientStateRegistry
     void ResetAll();
 }
 
+/// <summary>
+/// Single live and definition-bound authority for temporary work-speed state.
+/// Direct registry callers may not bypass the authored skill clamp with an
+/// arbitrary, non-finite, or over-maximum multiplier.
+/// </summary>
+public static class CharacterSkillWorkSpeedAuthority
+{
+    public const string Schema = "character-skill-work-speed-authority@1";
+    public const float MinimumRuntimeMultiplier = 0.1f;
+    public const float NeutralMultiplier = 1f;
+    public const float MaximumAuthoredBonus = 1.5f;
+    public const float MaximumRuntimeMultiplier =
+        NeutralMultiplier + MaximumAuthoredBonus;
+
+    public static float ResolveFromAuthoredBonus(float bonus)
+    {
+        if (float.IsNaN(bonus) || float.IsInfinity(bonus))
+            throw new InvalidOperationException(
+                "Character skill work-speed bonus must be finite.");
+        return NeutralMultiplier + Math.Clamp(
+            bonus,
+            0f,
+            MaximumAuthoredBonus);
+    }
+
+    public static float RequireRuntimeMultiplier(float multiplier)
+    {
+        if (float.IsNaN(multiplier)
+            || float.IsInfinity(multiplier)
+            || multiplier < MinimumRuntimeMultiplier
+            || multiplier > MaximumRuntimeMultiplier)
+        {
+            throw new InvalidOperationException(
+                "Character skill work-speed multiplier is outside the "
+                + "canonical runtime envelope.");
+        }
+        return multiplier;
+    }
+}
+
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 [DisallowMultipleComponent]
 public sealed class CharacterSkillTransientState : MonoBehaviour

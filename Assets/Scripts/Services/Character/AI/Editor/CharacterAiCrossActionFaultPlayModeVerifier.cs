@@ -15,15 +15,87 @@ using VContainer.Unity;
 /// that a stale plan cannot spend, duplicate, or commit after its authority
 /// has disappeared.
 /// </summary>
+[InitializeOnLoad]
 public static class CharacterAiCrossActionFaultPlayModeVerifier
 {
     public const string ReportPath =
         "Artifacts/QA/character-ai-cross-action-fault-playmode.txt";
     private const string PendingFlagPath =
         "Temp/character-ai-cross-action-fault-playmode.flag";
+    private const string DispatchRequestPath =
+        "Temp/character-ai-cross-action-fault-playmode.dispatch.request";
+    private const string SceneLeaseOwnerPath =
+        "Temp/character-ai-cross-action-fault-playmode.scene-lease";
+    private const string SceneLeaseOwnerToken =
+        "character-ai-cross-action-fault|Assets/Scenes/GameplayScene.unity";
+
+    static CharacterAiCrossActionFaultPlayModeVerifier()
+    {
+        EditorApplication.update -= DispatchPendingRun;
+        EditorApplication.update += DispatchPendingRun;
+        EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+        EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        EditorApplication.delayCall -= RecoverOwnedSceneLeaseIfOrphaned;
+        EditorApplication.delayCall += RecoverOwnedSceneLeaseIfOrphaned;
+    }
 
     [MenuItem("DungeonStory/Debug/QA/Run AI Cross-Action Fault PlayMode Matrix")]
     public static void RunFromMenu() => RequestRun();
+
+    public static void QueueRunFromEditorCommand()
+    {
+        Directory.CreateDirectory("Temp");
+        if (File.Exists(DispatchRequestPath)
+            || File.Exists(PendingFlagPath)
+            || File.Exists(SceneLeaseOwnerPath))
+        {
+            throw new InvalidOperationException(
+                "An AI cross-action verification run is already pending.");
+        }
+        UnityEngine.SceneManagement.Scene active =
+            UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+        string dirtyFailure = "scene-invalid";
+        if (!active.IsValid()
+            || (active.isDirty
+                && !ByteIdenticalSceneDirtinessGuard.TryClearFalseDirty(
+                    active,
+                    out dirtyFailure)))
+        {
+            throw new InvalidOperationException(
+                "AI cross-action verification refused an unsaved scene: "
+                + (active.IsValid() ? dirtyFailure : "scene-invalid"));
+        }
+        File.WriteAllText(DispatchRequestPath, "run");
+    }
+
+    internal static bool HasPendingDurableRun =>
+        File.Exists(DispatchRequestPath)
+        || File.Exists(PendingFlagPath)
+        || File.Exists(SceneLeaseOwnerPath);
+
+    private static void DispatchPendingRun()
+    {
+        if (!File.Exists(DispatchRequestPath)
+            || EditorApplication.isCompiling
+            || EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            return;
+        }
+        string request;
+        try
+        {
+            request = File.ReadAllText(DispatchRequestPath).Trim();
+        }
+        catch (IOException)
+        {
+            return;
+        }
+        if (!string.Equals(request, "run", StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "AI cross-action dispatch request must contain the exact token 'run'.");
+        File.Delete(DispatchRequestPath);
+        RequestRun();
+    }
 
     public static void RequestRun()
     {
@@ -34,8 +106,87 @@ public static class CharacterAiCrossActionFaultPlayModeVerifier
         }
 
         Directory.CreateDirectory("Temp");
-        File.WriteAllText(PendingFlagPath, DateTime.UtcNow.ToString("O"));
-        EditorApplication.EnterPlaymode();
+        Directory.CreateDirectory("Artifacts/QA");
+        if (EditorApplication.isCompiling
+            || EditorApplication.isPlayingOrWillChangePlaymode
+            || EditorUtility.scriptCompilationFailed)
+        {
+            throw new InvalidOperationException(
+                "AI cross-action verification requires stable compiled EditMode.");
+        }
+
+        bool leaseAcquired = false;
+        try
+        {
+            SanitizedGameplayScenePlayModeLease.Acquire(
+                SceneLeaseOwnerPath,
+                SceneLeaseOwnerToken);
+            leaseAcquired = true;
+            File.WriteAllText(PendingFlagPath, DateTime.UtcNow.ToString("O"));
+            EditorApplication.EnterPlaymode();
+            if (!EditorApplication.isPlayingOrWillChangePlaymode)
+                throw new InvalidOperationException(
+                    "AI cross-action verification PlayMode transition was rejected.");
+        }
+        catch
+        {
+            File.Delete(PendingFlagPath);
+            if (leaseAcquired)
+            {
+                SanitizedGameplayScenePlayModeLease.Release(
+                    SceneLeaseOwnerPath,
+                    SceneLeaseOwnerToken);
+            }
+            throw;
+        }
+    }
+
+    private static void OnPlayModeStateChanged(PlayModeStateChange state)
+    {
+        if (state == PlayModeStateChange.EnteredPlayMode
+            && File.Exists(PendingFlagPath))
+        {
+            File.Delete(PendingFlagPath);
+            StartRunner();
+        }
+        else if (state == PlayModeStateChange.EnteredEditMode)
+        {
+            File.Delete(PendingFlagPath);
+            try
+            {
+                SanitizedGameplayScenePlayModeLease.Release(
+                    SceneLeaseOwnerPath,
+                    SceneLeaseOwnerToken);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError(
+                    "AI cross-action sanitized scene lease cleanup failed: "
+                    + exception);
+            }
+        }
+    }
+
+    private static void RecoverOwnedSceneLeaseIfOrphaned()
+    {
+        if (!File.Exists(SceneLeaseOwnerPath)
+            || EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            return;
+        }
+        try
+        {
+            File.Delete(PendingFlagPath);
+            SanitizedGameplayScenePlayModeLease.Release(
+                SceneLeaseOwnerPath,
+                SceneLeaseOwnerToken);
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError(
+                "AI cross-action orphaned scene lease recovery failed: "
+                + exception);
+        }
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -85,11 +236,11 @@ public sealed class CharacterAiCrossActionFaultPlayModeRunner : MonoBehaviour
     private IDungeonSaveSectionRegistry saveRegistry;
     private ICharacterAiWorldRegistry aiWorld;
     private ICharacterAiSchedulingService aiScheduling;
+    private IWorldItemHaulPlanningService haulPlanning;
     private CharacterAiScheduler scheduler;
     private bool schedulerWasEnabled;
     private ICharacterNarrativeQuery narrativeQuery;
     private ICharacterNarrativeCommand narrativeCommands;
-    private DungeonSaveSectionRegistry medicalRestoreRegistry;
     private List<DungeonSaveSectionEnvelope> worldSnapshot;
     private float originalTimeScale;
 
@@ -169,6 +320,47 @@ public sealed class CharacterAiCrossActionFaultPlayModeRunner : MonoBehaviour
         yield return ResolveWorld();
         if (failures.Count > 0) yield break;
 
+        bool tierZeroReady = StartPartyPreparationPlayModeVerifier
+            .TryReconcileTierZeroForDirectGameplayFixture(
+                scope,
+                out string tierZeroDetail);
+        Check(
+            tierZeroReady,
+            tierZeroReady
+                ? "cross-action fixture reconciled the direct-entry grid through the production Tier-0 path: "
+                  + tierZeroDetail
+                : "cross-action fixture could not reconcile the production Tier-0 grid: "
+                  + tierZeroDetail);
+        if (!tierZeroReady) yield break;
+        scope.Container.Resolve<IGridSystemProvider>().TryGetGrid(out grid);
+        DungeonInteriorLayoutSnapshot tierZeroLayout = default;
+        string tierZeroLayoutFailure = "grid-unavailable";
+        bool tierZeroLayoutReady = grid != null
+            && DungeonSpaceGridLayout.TryCapture(
+                grid,
+                out tierZeroLayout,
+                out tierZeroLayoutFailure)
+            && tierZeroLayout.ColumnCount
+                == DungeonSpaceExpansionCatalog.InitialInteriorColumns;
+        Check(
+            tierZeroLayoutReady,
+            grid == null
+                ? "cross-action fixture lost the grid after Tier-0 publication"
+                : "cross-action fixture Tier-0 publication did not expose the exact canonical layout: "
+                  + tierZeroLayoutFailure);
+        if (failures.Count > 0) yield break;
+
+        IDungeonCapturedSavePreflightValidator[] capturedValidators =
+            scope.Container
+                .Resolve<IEnumerable<IDungeonCapturedSavePreflightValidator>>()
+                .Where(value => value != null)
+                .ToArray();
+        Check(
+            capturedValidators.Count(value =>
+                value is DungeonAggregateReferencePreflight) == 1,
+            "cross-action fixture resolves exactly one aggregate reference preflight at the captured-save boundary");
+        if (failures.Count > 0) yield break;
+
         PauseAi();
         QuiesceLiveActionsForSnapshot();
         yield return null;
@@ -227,13 +419,11 @@ public sealed class CharacterAiCrossActionFaultPlayModeRunner : MonoBehaviour
         saveRegistry = scope.Container.Resolve<IDungeonSaveSectionRegistry>();
         aiWorld = scope.Container.Resolve<ICharacterAiWorldRegistry>();
         aiScheduling = scope.Container.Resolve<ICharacterAiSchedulingService>();
+        haulPlanning = scope.Container.Resolve<IWorldItemHaulPlanningService>();
         scheduler = FindFirstObjectByType<CharacterAiScheduler>(
             FindObjectsInactive.Include);
         narrativeQuery = scope.Container.Resolve<ICharacterNarrativeQuery>();
         narrativeCommands = scope.Container.Resolve<ICharacterNarrativeCommand>();
-        DungeonRuntimeAggregateRootStore aggregateRootStore =
-            scope.Container.Resolve<DungeonRuntimeAggregateRootStore>();
-        medicalRestoreRegistry = CreateMedicalRestoreRegistry(aggregateRootStore);
         Check(items != null && repository != null && reservations != null,
             "physical item authorities resolved");
         Check(medicalQuery != null && medicalCommands != null
@@ -397,78 +587,200 @@ public sealed class CharacterAiCrossActionFaultPlayModeRunner : MonoBehaviour
         CharacterActor carrier = CreateTemporaryActor("HaulDeathFault", 990823);
         Check(carrier != null, "haul-dead-drop: temporary carrier created");
         if (carrier == null) yield break;
-        Vector2Int? carrierStart = grid.SearchPath(actor.GetNowXY())
-            .GetReachablePositions()
-            .Where(position => grid.IsValidGridPos(position)
-                && grid.IsWalkable(position)
-                && position != actor.GetNowXY())
-            .Distinct()
-            .OrderBy(position => Mathf.Abs(position.x - actor.GetNowXY().x)
-                + Mathf.Abs(position.y - actor.GetNowXY().y))
-            .Skip(2)
-            .Select(position => (Vector2Int?)position)
-            .FirstOrDefault();
-        Check(carrierStart.HasValue,
-            "haul-dead-drop: reachable carrier start located");
-        if (!carrierStart.HasValue) yield break;
-        carrier.transform.position = grid.GetWorldPos(carrierStart.Value);
-        Facility destination = CreateTemporaryWarehouse(carrier);
-        Check(destination != null, "haul-dead-drop: temporary warehouse created");
-        if (destination == null) yield break;
-
-        string itemId = FindStackableItemId();
-        Vector2Int sourceCell = carrier.GetNowXY();
-        HashSet<string> beforeIds = items.GetAllStacks()
-            .Where(stack => stack != null)
+        Facility destination = null;
+        string[] quarantineIds = items.GetAllStacks()
+            .Where(stack => stack != null && !stack.Forbidden)
             .Select(stack => stack.StackId)
-            .ToHashSet(StringComparer.Ordinal);
-        int totalBefore = TotalQuantity(itemId);
-        Check(items.SpawnItemAt(itemId, 1, sourceCell,
-                WorldItemStackState.Loose, string.Empty, out int spawned)
-            && spawned == 1,
-            "haul-dead-drop: physical source spawned");
-        WorldItemStackSnapshot source = items.GetAllStacks().FirstOrDefault(stack =>
-            stack != null
-            && !beforeIds.Contains(stack.StackId)
-            && string.Equals(stack.ItemId, itemId, StringComparison.Ordinal));
-        Check(source != null && items.PrioritizeHaul(source.StackId),
-            "haul-dead-drop: source prioritized");
-        if (source == null) yield break;
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        try
+        {
+            int quarantineFailures = quarantineIds.Count(stackId =>
+                !items.SetForbidden(stackId, true));
+            Check(quarantineFailures == 0,
+                "haul-dead-drop: pre-existing haul jobs quarantined; failures="
+                + quarantineFailures);
+            if (quarantineFailures != 0) yield break;
 
-        AbilityHaul haul = AbilityHaul.Ensure(carrier);
-        haul.StartHauling();
-        float deadline = Time.realtimeSinceStartup + 5f;
-        while (carrier.CarryInventory?.HasItems != true
-            && Time.realtimeSinceStartup < deadline)
+            Vector2Int? carrierStart = grid.SearchPath(actor.GetNowXY())
+                .GetReachablePositions()
+                .Where(position => grid.IsValidGridPos(position)
+                    && grid.IsWalkable(position)
+                    && position != actor.GetNowXY())
+                .Distinct()
+                .OrderBy(position => Mathf.Abs(position.x - actor.GetNowXY().x)
+                    + Mathf.Abs(position.y - actor.GetNowXY().y))
+                .Skip(2)
+                .Select(position => (Vector2Int?)position)
+                .FirstOrDefault();
+            Check(carrierStart.HasValue,
+                "haul-dead-drop: reachable carrier start located");
+            if (!carrierStart.HasValue) yield break;
+            carrier.transform.position = grid.GetWorldPos(carrierStart.Value);
+            destination = CreateTemporaryWarehouse(carrier);
+            Check(destination != null, "haul-dead-drop: temporary warehouse created");
+            if (destination == null) yield break;
+
+            string itemId = FindNonSurvivalHaulFixtureItemId();
+            Check(!string.IsNullOrWhiteSpace(itemId),
+                "haul-dead-drop: non-survival physical fixture item resolved");
+            if (string.IsNullOrWhiteSpace(itemId)) yield break;
+            Vector2Int sourceCell = carrier.GetNowXY();
+            HashSet<string> beforeIds = items.GetAllStacks()
+                .Where(stack => stack != null)
+                .Select(stack => stack.StackId)
+                .ToHashSet(StringComparer.Ordinal);
+            int totalBefore = TotalQuantity(itemId);
+            Check(items.SpawnItemAt(itemId, 1, sourceCell,
+                    WorldItemStackState.Loose, string.Empty, out int spawned)
+                && spawned == 1,
+                "haul-dead-drop: physical source spawned");
+            WorldItemStackSnapshot source = items.GetAllStacks().FirstOrDefault(stack =>
+                stack != null
+                && !beforeIds.Contains(stack.StackId)
+                && string.Equals(stack.ItemId, itemId, StringComparison.Ordinal));
+            Check(source != null && items.PrioritizeHaul(source.StackId),
+                "haul-dead-drop: source prioritized");
+            if (source == null) yield break;
+
+            AbilityHaul haul = AbilityHaul.Ensure(carrier);
+            if (haul != null) scope.Container.Inject(haul);
+            string startFailure = "haul-ability-unavailable";
+            bool canStart = false;
+            float startDeadline = Time.realtimeSinceStartup + 5f;
+            while (!canStart && Time.realtimeSinceStartup < startDeadline)
+            {
+                canStart = haul != null
+                    && haul.CanStartHauling(out startFailure);
+                if (canStart) break;
+                if (haulPlanning != null
+                    && !haulPlanning.TryPreviewBestPlan(
+                        carrier,
+                        out _,
+                        out string previewFailure)
+                    && !string.IsNullOrWhiteSpace(previewFailure))
+                {
+                    startFailure = previewFailure;
+                }
+                yield return null;
+            }
+            Check(canStart,
+                "haul-dead-drop: isolated production haul can start; "
+                + (startFailure ?? string.Empty));
+            if (!canStart) yield break;
+            haul.StartHauling();
+            float deadline = Time.realtimeSinceStartup + 5f;
+            while (carrier.CarryInventory?.HasItems != true
+                && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            Check(carrier.CarryInventory?.HasItems == true,
+                "haul-dead-drop: physical pickup committed; stage="
+                + haul.CurrentExecutionStage
+                + "; failure=" + haul.LastFailureReason
+                + "; plan=" + haul.CurrentPlanSummary);
+            if (carrier.CarryInventory?.HasItems != true) yield break;
+
+            string carrierId = carrier.BuildingCharacterId.Value;
+            CharacterCarryInventory carrierInventory = carrier.CarryInventory;
+            Vector2Int destinationPosition = destination.centerPos;
+            Vector2Int dropCell = FindDistinctReachableCell(
+                carrier,
+                source.Position,
+                destinationPosition);
+            carrier.transform.position = grid.GetWorldPos(dropCell);
+            carrier.Die(CharacterDeathCauseCode.Combat, "qa-haul-carrier-dead");
             yield return null;
-        Check(carrier.CarryInventory?.HasItems == true,
-            "haul-dead-drop: physical pickup committed");
-        if (carrier.CarryInventory?.HasItems != true) yield break;
+            yield return null;
+            WorldItemStackSnapshot recovery = FindRecoveryDrop(
+                carrierId,
+                WorldItemCarryInterruptionKind.Dead);
+            Check(recovery != null
+                    && recovery.Position == dropCell
+                    && recovery.Position != source.Position
+                    && recovery.Position != destinationPosition
+                    && (carrierInventory == null || !carrierInventory.HasItems),
+                "haul-dead-drop: exact last actor-cell physical drop without teleport");
+            Check(TotalQuantity(itemId) == totalBefore + 1,
+                "haul-dead-drop: quantity conserved across death interruption");
+            evidence.Add("HAUL_DEAD_CURRENT_CELL_TRANSIENT_DROP=PASS");
+            evidence.Add("HAUL_DEAD_QUANTITY_NO_TELEPORT=PASS");
 
-        string carrierId = carrier.BuildingCharacterId.Value;
-        CharacterCarryInventory carrierInventory = carrier.CarryInventory;
-        Vector2Int destinationPosition = destination.centerPos;
-        Vector2Int dropCell = FindDistinctReachableCell(
-            carrier,
-            source.Position,
-            destinationPosition);
-        carrier.transform.position = grid.GetWorldPos(dropCell);
-        carrier.Die(CharacterDeathCauseCode.Combat, "qa-haul-carrier-dead");
-        yield return null;
-        yield return null;
-        WorldItemStackSnapshot recovery = FindRecoveryDrop(
-            carrierId,
-            WorldItemCarryInterruptionKind.Dead);
-        Check(recovery != null
-                && recovery.Position == dropCell
-                && recovery.Position != source.Position
-                && recovery.Position != destinationPosition
-                && (carrierInventory == null || !carrierInventory.HasItems),
-            "haul-dead-drop: exact last actor-cell physical drop without teleport");
-        Check(TotalQuantity(itemId) == totalBefore + 1,
-            "haul-dead-drop: quantity conserved across death interruption");
-        evidence.Add("HAUL_DEAD_CURRENT_CELL_TRANSIENT_DROP=PASS");
-        evidence.Add("HAUL_DEAD_QUANTITY_NO_TELEPORT=PASS");
+            DungeonPhysicalItemSaveData physicalCheckpoint = itemPersistence.Capture();
+            WorldItemStackSaveData savedRecovery = physicalCheckpoint.stacks?
+                .SingleOrDefault(value => value != null
+                    && recovery != null
+                    && string.Equals(
+                        value.stackId,
+                        recovery.StackId,
+                        StringComparison.Ordinal));
+            bool savedExact = savedRecovery != null
+                && savedRecovery.gridX == dropCell.x
+                && savedRecovery.gridY == dropCell.y
+                && savedRecovery.quantity == 1
+                && savedRecovery.dropDisposition
+                    == WorldItemDropDisposition.TransientCarryRecoveryDrop
+                && savedRecovery.recoveryInterruptionKind
+                    == WorldItemCarryInterruptionKind.Dead
+                && string.Equals(
+                    savedRecovery.recoveryCarrierPersistentId,
+                    carrierId,
+                    StringComparison.Ordinal)
+                && savedRecovery.recoveryDeadlineGameTime
+                    > savedRecovery.droppedAtGameTime;
+            Check(savedExact,
+                "haul-dead-drop: current-format physical checkpoint exact");
+            if (!savedExact) yield break;
+
+            WorldItemRepositoryEditorAccess.RemoveStack(repository, recovery.StackId);
+            Check(items.GetAllStacks().All(value => value == null
+                    || !string.Equals(
+                        value.StackId,
+                        recovery.StackId,
+                        StringComparison.Ordinal)),
+                "haul-dead-drop: recovery row removed before restore");
+            items.Restore(physicalCheckpoint);
+            WorldItemStackSnapshot restoredRecovery = FindRecoveryDrop(
+                carrierId,
+                WorldItemCarryInterruptionKind.Dead);
+            bool restoredExact = restoredRecovery != null
+                && string.Equals(
+                    restoredRecovery.StackId,
+                    recovery.StackId,
+                    StringComparison.Ordinal)
+                && restoredRecovery.Position == dropCell
+                && restoredRecovery.Quantity == 1
+                && restoredRecovery.IsTransientCarryRecoveryDrop
+                && restoredRecovery.RecoveryInterruptionKind
+                    == WorldItemCarryInterruptionKind.Dead
+                && string.Equals(
+                    restoredRecovery.RecoveryCarrierPersistentId,
+                    carrierId,
+                    StringComparison.Ordinal)
+                && restoredRecovery.RecoveryDeadlineGameTime
+                    > restoredRecovery.DroppedAtGameTime
+                && TotalQuantity(itemId) == totalBefore + 1;
+            Check(restoredExact,
+                "haul-dead-drop: current-format restore preserves exact physical drop");
+            if (restoredExact)
+                evidence.Add("HAUL_DEAD_CURRENT_FORMAT_RESTORE_EXACT=PASS");
+        }
+        finally
+        {
+            AbilityHaul.Ensure(carrier)?.StopHauling("qa-dead-drop-fixture-retire");
+            if (destination != null) destination.DestroySelf();
+            RetireTemporaryActorBeforeAggregateCapture(carrier);
+            foreach (string stackId in quarantineIds)
+            {
+                if (items.GetAllStacks().Any(stack => stack != null
+                        && string.Equals(
+                            stack.StackId,
+                            stackId,
+                            StringComparison.Ordinal)))
+                {
+                    items.SetForbidden(stackId, false);
+                }
+            }
+        }
     }
 
     private WorldItemStackSnapshot FindRecoveryDrop(
@@ -514,6 +826,8 @@ public sealed class CharacterAiCrossActionFaultPlayModeRunner : MonoBehaviour
             yield break;
         }
         CharacterBodyHealthSnapshot original = bodyHealth.GetSnapshot(patient);
+        string rescuerPersistentId = actor.Identity?.PersistentId ?? string.Empty;
+        string patientPersistentId = patient.Identity?.PersistentId ?? string.Empty;
         List<CharacterBodyPartHealthState> injured = original.Parts.Select(ClonePart).ToList();
         foreach (CharacterBodyPartHealthState part in injured)
             if (part.bodyPart is CombatBodyPart.LeftLeg or CombatBodyPart.RightLeg)
@@ -528,14 +842,26 @@ public sealed class CharacterAiCrossActionFaultPlayModeRunner : MonoBehaviour
         CharacterMedicalOrder order = medicalQuery.ActiveOrders.FirstOrDefault(value =>
             value != null && value.IsActive && string.Equals(value.patientId,
                 patient.Identity?.PersistentId, StringComparison.Ordinal));
-        List<DungeonSaveSectionEnvelope> captured =
-            medicalRestoreRegistry.CaptureAll();
+        List<DungeonSaveSectionEnvelope> captured = saveRegistry.CaptureAll();
         rescue.StopRescue(CharacterMedicalStatusCode.RescueInterrupted);
         DungeonGameRestoreReport restoreReport = new();
-        bool restored = medicalRestoreRegistry.RestoreAll(captured, restoreReport);
+        bool restored = saveRegistry.RestoreAll(captured, restoreReport);
         Check(restored && restoreReport.Success,
-            "rescue-save-load: medical aggregate restored through V18 transaction boundary");
+            "rescue-save-load: full aggregate restored through V18 transaction boundary; "
+            + string.Join(" | ", restoreReport.Errors));
         yield return null;
+        actor = LiveActors().FirstOrDefault(candidate => string.Equals(
+                    candidate.Identity?.PersistentId,
+                    rescuerPersistentId,
+                    StringComparison.Ordinal))
+            ?? actor;
+        patient = LiveActors().FirstOrDefault(candidate => string.Equals(
+                      candidate.Identity?.PersistentId,
+                      patientPersistentId,
+                      StringComparison.Ordinal))
+            ?? patient;
+        scope.Container.Resolve<IGridSystemProvider>().TryGetGrid(out grid);
+        rescue = AbilityRescue.Ensure(actor);
         patient.SetLifecycleState(CharacterLifecycleState.Despawned);
         yield return null;
         Check(!rescue.IsRescuing,
@@ -1029,35 +1355,6 @@ public sealed class CharacterAiCrossActionFaultPlayModeRunner : MonoBehaviour
             && string.Equals(value.patientId, patient?.Identity?.PersistentId,
                 StringComparison.Ordinal));
 
-    private DungeonSaveSectionRegistry CreateMedicalRestoreRegistry(
-        DungeonRuntimeAggregateRootStore aggregateRootStore) =>
-        CreateIsolatedRestoreRegistry(
-            CharacterMedicalSaveSection.Id,
-            medicalPersistence as IDungeonRestoreTransactionParticipant,
-            aggregateRootStore);
-
-    private DungeonSaveSectionRegistry CreateIsolatedRestoreRegistry(
-        string sectionId,
-        IDungeonRestoreTransactionParticipant participant,
-        DungeonRuntimeAggregateRootStore aggregateRootStore)
-    {
-        IDungeonSaveSection section = saveRegistry.OrderedSections.Single(
-            candidate => string.Equals(candidate.SectionId, sectionId,
-                StringComparison.Ordinal));
-        List<IDungeonSaveSection> sections = section.DependsOn
-            .Distinct(StringComparer.Ordinal)
-            .Select(dependency =>
-                (IDungeonSaveSection)new DependencyMarkerSection(dependency))
-            .Append(section)
-            .ToList();
-        return new DungeonSaveSectionRegistry(
-            sections,
-            aggregateRootStore,
-            participant != null
-                ? new[] { participant }
-                : Array.Empty<IDungeonRestoreTransactionParticipant>());
-    }
-
     private WildlifeActor SpawnIsolatedHuntPrey(WildlifeActor speciesSource)
     {
         if (speciesSource == null || grid == null || wildlife == null)
@@ -1226,6 +1523,33 @@ public sealed class CharacterAiCrossActionFaultPlayModeRunner : MonoBehaviour
             && !stack.Forbidden && !string.IsNullOrWhiteSpace(stack.ItemId))
         .Select(stack => stack.ItemId).FirstOrDefault();
 
+    private string FindNonSurvivalHaulFixtureItemId() =>
+        (resources?.Items ?? Array.Empty<ResourceItemDefinitionSO>())
+        .Where(item => item != null
+            && item.Kind == ResourceItemKind.Raw
+            && (item.IngredientTags
+                & (ResourceIngredientTag.Wood | ResourceIngredientTag.Mineral)) != 0
+            && item.Nutrition <= 0f
+            && item.FacilityNutritionValue <= 0f
+            && item.FuelValue <= 0f
+            && item.UnitWeight > 0f
+            && item.UnitWeight <= 10f)
+        .OrderBy(item => item.UnitWeight)
+        .ThenBy(item => item.ItemId, StringComparer.Ordinal)
+        .Select(item => item.ItemId)
+        .FirstOrDefault();
+
+    private void RetireTemporaryActorBeforeAggregateCapture(CharacterActor temporaryActor)
+    {
+        if (temporaryActor == null) return;
+        aiScheduling?.Unregister(temporaryActor);
+        aiWorld?.UnregisterCharacter(temporaryActor);
+        aiWorld?.UnregisterCharacterLifetime(temporaryActor);
+        temporaryActors.Remove(temporaryActor);
+        if (temporaryActor.gameObject != null)
+            temporaryActor.gameObject.SetActive(false);
+    }
+
     private Vector2Int FindIsolatedItemSeedPosition()
     {
         Vector2Int fallback = actor != null ? actor.GetNowXY() : Vector2Int.zero;
@@ -1385,9 +1709,14 @@ public sealed class CharacterAiCrossActionFaultPlayModeRunner : MonoBehaviour
         StringBuilder report = new();
         report.AppendLine("# AI Cross-Action Fault PlayMode Matrix");
         report.AppendLine("authority=production-runtime");
-        report.AppendLine("rows=haul-source-despawn,haul-source-shrink,haul-destination-destroy,rescue-patient-despawn,rescue-save-load,rescue-patient-death,rescue-bed-destroy,rescue-medicine-loss,hunt-hunter-downed,hunt-hunter-dead,hunt-prey-despawn,hunt-path-invalidation,drink-item-loss,field-meal-item-loss,substance-item-loss");
+        report.AppendLine("currentSourceDigest="
+            + V27CurrentSourceEvidenceDigest.ComputeAllScriptsDigest());
+        report.AppendLine("gameplaySceneSha256="
+            + V27CurrentSourceEvidenceDigest.ComputeGameplaySceneDigest());
+        report.AppendLine("rows=haul-source-despawn,haul-source-shrink,haul-destination-destroy,haul-carrier-dead,rescue-patient-despawn,rescue-save-load,rescue-patient-death,rescue-bed-destroy,rescue-medicine-loss,hunt-hunter-downed,hunt-hunter-dead,hunt-prey-despawn,hunt-path-invalidation,drink-item-loss,field-meal-item-loss,substance-item-loss");
         foreach (string line in evidence) report.AppendLine(line);
         report.AppendLine("lateCommit=" + (failures.Count == 0 ? "0" : "FAILED"));
+        report.AppendLine("RESULT=" + (failures.Count == 0 ? "PASS" : "FAIL"));
         report.AppendLine("result=" + (failures.Count == 0 ? "PASS" : "FAIL"));
         if (failures.Count > 0) report.AppendLine("failures=" + string.Join(" | ", failures));
         File.WriteAllText(CharacterAiCrossActionFaultPlayModeVerifier.ReportPath,
@@ -1487,23 +1816,4 @@ public sealed class CharacterAiCrossActionFaultPlayModeRunner : MonoBehaviour
         public bool AllowsInteriorWalkability => false;
     }
 
-    private sealed class DependencyMarkerSection :
-        DungeonDebugStagedSaveSection,
-        IDungeonRollbackFreeSaveSection
-    {
-        private readonly string id;
-
-        public DependencyMarkerSection(string id)
-        {
-            this.id = id ?? throw new ArgumentNullException(nameof(id));
-        }
-
-        public override string SectionId => id;
-        public override DungeonSaveRestorePhase RestorePhase =>
-            DungeonSaveRestorePhase.RuntimeState;
-
-        protected override void CommitMarker(DungeonGameRestoreReport report)
-        {
-        }
-    }
 }

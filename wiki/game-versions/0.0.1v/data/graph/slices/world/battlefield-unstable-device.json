@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "battlefield-unstable-device",
+    "spoiler_tier": "none",
+    "title": "불안정 장치"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/encounter-06",
+      "label": "관련",
+      "to": "world/battlefield-unstable-device",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-18",
+      "label": "관련",
+      "to": "world/battlefield-unstable-device",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-30",
+      "label": "관련",
+      "to": "world/battlefield-unstable-device",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

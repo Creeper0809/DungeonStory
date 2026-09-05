@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-expedition-ration-pack",
+    "spoiler_tier": "none",
+    "title": "원정 배급 꾸러미"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-expedition-ration-pack",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-ration-mixture",
+      "target_spoiler_tier": "none",
+      "target_title": "배급식 혼합물",
+      "to": "item/material-ration-mixture",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-expedition-ration-pack",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-salted-meat",
+      "target_spoiler_tier": "none",
+      "target_title": "염지 고기",
+      "to": "item/material-salted-meat",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-expedition-ration-pack",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "food-expedition-ration-pack",
+      "target_spoiler_tier": "none",
+      "target_title": "원정 배급 꾸러미",
+      "to": "item/food-expedition-ration-pack",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-expedition-ration-pack",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-starch",
+      "target_spoiler_tier": "none",
+      "target_title": "전분",
+      "to": "item/material-starch",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-expedition-ration-pack",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-survival-field-rations",
+      "target_spoiler_tier": "none",
+      "target_title": "야전 식량학",
+      "to": "research/research-survival-field-rations",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

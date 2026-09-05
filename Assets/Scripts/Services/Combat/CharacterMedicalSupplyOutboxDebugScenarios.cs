@@ -5,19 +5,25 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
-internal static class CharacterMedicalSupplyOutboxDebugScenarios
+public static class CharacterMedicalSupplyOutboxDebugScenarios
 {
     private const string Item = "medicine:qa:medical-supply";
-    private const string Destination = "facility-input:medical:qa";
+    private const string Destination =
+        "facility-input:exact:medical.character-supply:medical:1:00000001";
 
     [MenuItem("Dungeon Story/QA/V27/Character Medical Supply Outbox")]
     private static void RunFromMenu()
     {
+        RunAll();
+        Debug.Log(
+            "[V27][PASS] Character medical supply Sink, package tare, order publication and acknowledgement recovery are exact.");
+    }
+
+    public static void RunAll()
+    {
         VerifyPublishedSupplyRecoversAcknowledgementOnly();
         VerifyUncommittedIntentClearsWithoutAdvancingSequence();
         VerifyExtractedBloodUsesExactPhysicalDefinition();
-        Debug.Log(
-            "[V27][PASS] Character medical supply Sink, package tare, order publication and acknowledgement recovery are exact.");
     }
 
     private static void VerifyPublishedSupplyRecoversAcknowledgementOnly()
@@ -70,7 +76,8 @@ internal static class CharacterMedicalSupplyOutboxDebugScenarios
                 new FixedSupplyStockPort(stack),
                 new FixedResourceCatalog(medicine),
                 new FailFirstAcknowledgeGateway(baseGateway),
-                tare);
+                tare,
+                new AlwaysValidDestinationRuntime());
             Require(
                 !coordinator.TryRecoverPendingSupply(
                     order,
@@ -116,7 +123,8 @@ internal static class CharacterMedicalSupplyOutboxDebugScenarios
                 new FixedSupplyStockPort(stack),
                 new FixedResourceCatalog(medicine),
                 baseGateway,
-                tare);
+                tare,
+                new AlwaysValidDestinationRuntime());
             Require(
                 recovered.TryRecoverPendingSupply(order, out recoveryFailure)
                 && (CharacterMedicalSupplyCommitPhase)
@@ -155,7 +163,8 @@ internal static class CharacterMedicalSupplyOutboxDebugScenarios
                 new PhysicalFacilityItemSinkGateway(
                     new FixedStockQuery(),
                     dispositions),
-                new RecordingPackageTareDisposition());
+                new RecordingPackageTareDisposition(),
+                new AlwaysValidDestinationRuntime());
 
             Require(
                 coordinator.TryRecoverPendingSupply(
@@ -195,14 +204,22 @@ internal static class CharacterMedicalSupplyOutboxDebugScenarios
                 stock,
                 new FixedResourceCatalog(medicine, exposeItems: false),
                 new RejectingSinkGateway(),
-                new RecordingPackageTareDisposition());
+                new RecordingPackageTareDisposition(),
+                new AlwaysValidDestinationRuntime());
             CharacterMedicalOrder order = new()
             {
                 orderId = "medical:2",
                 patientId = "character:qa:extracted-blood",
+                treatmentFacilityId = "building:candidate",
                 state = CharacterMedicalOrderState.Treating,
                 statusCode = CharacterMedicalStatusCode.SupplyUnavailable,
-                treatmentMaterialDestinationId = Destination
+                treatmentMaterialDestinationId =
+                    "facility-input:exact:medical.character-supply:medical:2:00000001",
+                treatmentDestinationSequence = 1,
+                nextTreatmentMaterialDestinationSequence = 2,
+                treatmentBufferCapacityGrams = 500L,
+                treatmentMassAuthorityRevision = 1L,
+                treatmentCapacityFingerprint = new string('a', 64)
             };
 
             Require(
@@ -216,7 +233,7 @@ internal static class CharacterMedicalSupplyOutboxDebugScenarios
                 && stock.RequestedPosition == new Vector2Int(9, 3)
                 && string.Equals(
                     stock.RequestedDestinationId,
-                    Destination,
+                    order.treatmentMaterialDestinationId,
                     StringComparison.Ordinal)
                 && order.treatmentSupply
                     == CharacterMedicalSupplyKind.ExtractedBlood
@@ -278,6 +295,12 @@ internal static class CharacterMedicalSupplyOutboxDebugScenarios
         treatmentItemId = Item,
         treatmentPotency = 1f,
         treatmentMaterialDestinationId = Destination,
+        treatmentDestinationSequence = 1,
+        nextTreatmentMaterialDestinationSequence = 2,
+        treatmentFacilityId = "building:candidate",
+        treatmentBufferCapacityGrams = 500L,
+        treatmentMassAuthorityRevision = 1L,
+        treatmentCapacityFingerprint = new string('a', 64),
         treatmentSupplyCommitPhase =
             (int)CharacterMedicalSupplyCommitPhase.IntentRecorded,
         treatmentSupplyOperationSequence = 1,
@@ -551,6 +574,44 @@ internal static class CharacterMedicalSupplyOutboxDebugScenarios
             CallCount++;
             LastPosition = outputPosition;
             receipt = default;
+            failureReason = string.Empty;
+            return true;
+        }
+    }
+
+    private sealed class AlwaysValidDestinationRuntime :
+        ICharacterMedicalSupplyDestinationRuntime
+    {
+        public bool TryEnsure(
+            CharacterMedicalOrder order,
+            BuildableObject facility,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryReplace(
+            IReadOnlyList<CharacterMedicalOrder> orders,
+            IReadOnlyDictionary<string, Vector2Int> facilityPositions,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryRevoke(
+            CharacterMedicalOrder order,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryValidate(
+            CharacterMedicalOrder order,
+            out string failureReason)
+        {
             failureReason = string.Empty;
             return true;
         }

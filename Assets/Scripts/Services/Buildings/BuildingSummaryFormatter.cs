@@ -30,6 +30,7 @@ public sealed class BuildingSummaryFormatter : IBuildingSummaryFormatter
     private readonly IWorldFilthQuery worldFilthQuery;
     private readonly IStockCategoryDefinitionCatalog stockCategoryCatalog;
     private readonly IBuildingCategoryDefinitionCatalog buildingCategoryCatalog;
+    private readonly IInGameNarrativeTextQuery narrativeText;
 
     public BuildingSummaryFormatter(
         IBuildingDefinitionLookup buildingDefinitionLookup,
@@ -37,7 +38,8 @@ public sealed class BuildingSummaryFormatter : IBuildingSummaryFormatter
         IBuildingWorkOrderSummaryQuery workOrderSummaryQuery,
         IWorldFilthQuery worldFilthQuery,
         IStockCategoryDefinitionCatalog stockCategoryCatalog,
-        IBuildingCategoryDefinitionCatalog buildingCategoryCatalog)
+        IBuildingCategoryDefinitionCatalog buildingCategoryCatalog,
+        IInGameNarrativeTextQuery narrativeText)
     {
         this.buildingDefinitionLookup = buildingDefinitionLookup
             ?? throw new ArgumentNullException(nameof(buildingDefinitionLookup));
@@ -51,6 +53,8 @@ public sealed class BuildingSummaryFormatter : IBuildingSummaryFormatter
             ?? throw new ArgumentNullException(nameof(stockCategoryCatalog));
         this.buildingCategoryCatalog = buildingCategoryCatalog
             ?? throw new ArgumentNullException(nameof(buildingCategoryCatalog));
+        this.narrativeText = narrativeText
+            ?? throw new ArgumentNullException(nameof(narrativeText));
     }
 
     public BuildingSummaryPresentation Format(BuildableObject building)
@@ -81,7 +85,9 @@ public sealed class BuildingSummaryFormatter : IBuildingSummaryFormatter
             return BuildFilthDetailLines(filthTarget);
         }
 
-        List<string> lines = new List<string>
+        List<string> lines = new List<string>();
+        AddFacilityNarrative(lines, building.BuildingData);
+        lines.AddRange(new[]
         {
             BuildingSummaryUiTextQuery.Get(
                 "BuildingSummary.Status",
@@ -94,7 +100,7 @@ public sealed class BuildingSummaryFormatter : IBuildingSummaryFormatter
                 building.centerPos.x,
                 building.centerPos.y,
                 FormatCategory(building.category))
-        };
+        });
 
         FacilityData facility = building.Facility;
         if (facility != null)
@@ -264,24 +270,12 @@ public sealed class BuildingSummaryFormatter : IBuildingSummaryFormatter
 
         if (building is IWarehouseFacility warehouse && warehouse.HasWarehouseInventory)
         {
-            if (warehouse.Inventory.HasMassCapacityAuthority)
-            {
-                return BuildingSummaryUiTextQuery.Get(
-                    "BuildingSummary.Warehouse.Capacity",
-                    WarehouseMassUiFormatter.FormatKilograms(
-                        warehouse.Inventory.StoredMassGrams),
-                    WarehouseMassUiFormatter.FormatKilograms(
-                        warehouse.Inventory.MaxMassGrams));
-            }
-
-            return warehouse.Inventory.HasCapacityLimit
-                ? BuildingSummaryUiTextQuery.Get(
-                    "BuildingSummary.Warehouse.Capacity",
-                    warehouse.Inventory.TotalStock,
-                    warehouse.Inventory.MaxCapacity)
-                : BuildingSummaryUiTextQuery.Get(
-                    "BuildingSummary.Warehouse.Amount",
-                    warehouse.Inventory.TotalStock);
+            return BuildingSummaryUiTextQuery.Get(
+                "BuildingSummary.Warehouse.Capacity",
+                WarehouseMassUiFormatter.FormatKilograms(
+                    warehouse.Inventory.StoredMassGrams),
+                WarehouseMassUiFormatter.FormatKilograms(
+                    warehouse.Inventory.MaxMassGrams));
         }
 
         if (building is IStockedFacility stocked)
@@ -302,7 +296,9 @@ public sealed class BuildingSummaryFormatter : IBuildingSummaryFormatter
 
     private IReadOnlyList<string> BuildConstructionDetailLines(ConstructionSite site)
     {
-        List<string> lines = new List<string>
+        List<string> lines = new List<string>();
+        AddFacilityNarrative(lines, site.TargetBuilding);
+        lines.AddRange(new[]
         {
             BuildingSummaryUiTextQuery.Get(
                 "BuildingSummary.Construction.Target",
@@ -311,7 +307,7 @@ public sealed class BuildingSummaryFormatter : IBuildingSummaryFormatter
                 "BuildingSummary.Construction.Location",
                 site.centerPos.x,
                 site.centerPos.y)
-        };
+        });
 
         ConstructionSafetyResult safety = site.GetConstructionSafetyState(null, forced: false);
         lines.Add(BuildingSummaryUiTextQuery.Get(
@@ -408,6 +404,23 @@ public sealed class BuildingSummaryFormatter : IBuildingSummaryFormatter
         }
 
         return lines;
+    }
+
+    private void AddFacilityNarrative(
+        ICollection<string> lines,
+        BuildingSO definition)
+    {
+        if (definition == null
+            || definition.id <= 0)
+        {
+            return;
+        }
+
+        lines.Add(narrativeText.GetRequired(
+            InGameNarrativeTextKind.Facility,
+            InGameNarrativeTextCatalogSO.ComposeFacilityStableId(
+                definition.ContentDefinitionId,
+                definition.id)));
     }
 
     private static string FormatWorkOrderStatus(BuildingWorkOrderSummaryStatus status)

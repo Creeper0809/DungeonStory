@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "fiber-mire-reed",
+    "spoiler_tier": "none",
+    "title": "습지 갈대 원섬유"
+  },
+  "edges": [
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-spin-mire-canvas",
+      "label": "필요 조건",
+      "to": "item/fiber-mire-reed",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-spin-powered-mire-canvas",
+      "label": "필요 조건",
+      "to": "item/fiber-mire-reed",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

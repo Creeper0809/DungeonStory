@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "guest-request-coronation-feast",
+    "spoiler_tier": "none",
+    "title": "몰락 귀족의 대관 만찬"
+  },
+  "edges": [
+    {
+      "amount": "4",
+      "from": "event/guest-request-coronation-feast",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "food-lavish-meat",
+      "target_spoiler_tier": "none",
+      "target_title": "핏빛 호화식",
+      "to": "item/food-lavish-meat",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

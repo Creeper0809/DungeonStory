@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "trait-102",
+    "spoiler_tier": "none",
+    "title": "절약가"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/character-archetype-1",
+      "label": "관련",
+      "to": "character/trait-102",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/character-archetype-1101",
+      "label": "관련",
+      "to": "character/trait-102",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

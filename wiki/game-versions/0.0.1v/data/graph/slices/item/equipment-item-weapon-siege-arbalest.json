@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "equipment-item-weapon-siege-arbalest",
+    "spoiler_tier": "none",
+    "title": "공성 쇠뇌"
+  },
+  "edges": [],
+  "schema_version": 1
+}

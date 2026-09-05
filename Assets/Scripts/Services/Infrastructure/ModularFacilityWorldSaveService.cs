@@ -483,6 +483,14 @@ public sealed class ModularFacilityWorldSaveService :
             }
 
             ValidateStateModules(entry, report);
+            if (!ModularFacilityRelocationTopologyValidator.TryValidate(
+                    entry,
+                    out string relocationFailure))
+            {
+                report.AddError(
+                    $"Building id={entry.buildingId} relocation topology is invalid: "
+                    + relocationFailure);
+            }
         }
 
         foreach (IGrouping<string, ModularFacilityBuildingSaveData> duplicate in
@@ -558,11 +566,20 @@ public sealed class ModularFacilityWorldSaveService :
         foreach (BuildingStateModuleSaveData module in
                  modules.Where(module => module != null))
         {
-            string moduleId = module.moduleId?.Trim() ?? string.Empty;
+            string rawModuleId = module.moduleId ?? string.Empty;
+            string moduleId = rawModuleId.Trim();
             if (moduleId.Length == 0)
             {
                 report.AddError(
                     $"Building id={entry.buildingId} contains a state module with no ID.");
+            }
+            else if (!string.Equals(
+                         rawModuleId,
+                         moduleId,
+                         StringComparison.Ordinal))
+            {
+                report.AddError(
+                    $"Building id={entry.buildingId} contains non-canonical state module ID '{rawModuleId}'.");
             }
             else if (!moduleIds.Add(moduleId))
             {
@@ -1291,6 +1308,15 @@ public sealed class ModularFacilityBuildingSaveData
             stateModules = BuildingStateModulePersistence.Capture(building)
         };
 
+        if (!ModularFacilityRelocationTopologyValidator.TryValidate(
+                result,
+                out string relocationFailure))
+        {
+            throw new InvalidOperationException(
+                $"Building '{building.name}' relocation topology cannot be captured: "
+                + relocationFailure);
+        }
+
         return result;
     }
 
@@ -1324,6 +1350,173 @@ public sealed class ModularFacilityBuildingSaveData
         return order != null
             && order.phase != FacilityRelocationPhase.Dismantling;
     }
+}
+
+public static class ModularFacilityRelocationTopologyValidator
+{
+    public static bool TryValidate(
+        ModularFacilityBuildingSaveData entry,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (entry == null)
+        {
+            failureReason = "relocation-save-entry-missing";
+            return false;
+        }
+
+        BuildingStateModuleSaveData[] modules = (entry.stateModules
+                ?? new List<BuildingStateModuleSaveData>())
+            .Where(value => value != null
+                && string.Equals(
+                    value.moduleId,
+                    BuildingStateModuleIds.FacilityEvolution,
+                    StringComparison.Ordinal))
+            .ToArray();
+        if (modules.Length > 1)
+        {
+            failureReason = "relocation-evolution-module-duplicate";
+            return false;
+        }
+        if (modules.Length == 0)
+        {
+            if (entry.relocationPacked)
+            {
+                failureReason = "relocation-packed-without-evolution-state";
+                return false;
+            }
+            return true;
+        }
+
+        FacilityEvolutionStateSnapshot snapshot;
+        try
+        {
+            snapshot = JsonUtility.FromJson<FacilityEvolutionStateSnapshot>(
+                modules[0].payload ?? string.Empty);
+        }
+        catch (Exception exception)
+        {
+            failureReason = "relocation-evolution-payload-invalid:"
+                + exception.GetType().Name;
+            return false;
+        }
+        if (snapshot == null)
+        {
+            failureReason = "relocation-evolution-payload-empty";
+            return false;
+        }
+        return TryValidate(entry, snapshot, out failureReason);
+    }
+
+    public static bool TryValidate(
+        ModularFacilityBuildingSaveData entry,
+        FacilityEvolutionStateSnapshot snapshot,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (entry == null || snapshot == null)
+        {
+            failureReason = "relocation-topology-input-invalid";
+            return false;
+        }
+
+        FacilityEvolutionState state = snapshot.instanceEvolution;
+        FacilityRelocationOrder order = state?.relocationOrder;
+        if (order == null || string.IsNullOrEmpty(order.orderId))
+        {
+            if (entry.relocationPacked)
+            {
+                failureReason = "relocation-packed-without-order";
+                return false;
+            }
+            return true;
+        }
+
+        if (!Canonical(order.orderId))
+        {
+            failureReason = "relocation-order-id-noncanonical";
+            return false;
+        }
+        if (!Canonical(entry.persistentInstanceId)
+            || !Canonical(state.facilityPersistentId)
+            || !Canonical(order.facilityPersistentId)
+            || !string.Equals(
+                state.facilityPersistentId,
+                entry.persistentInstanceId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                order.facilityPersistentId,
+                entry.persistentInstanceId,
+                StringComparison.Ordinal))
+        {
+            failureReason = "relocation-facility-id-binding-mismatch";
+            return false;
+        }
+        if (!Enum.IsDefined(typeof(FacilityRelocationPhase), order.phase))
+        {
+            failureReason = "relocation-phase-invalid";
+            return false;
+        }
+        if (order.SourcePosition == order.DestinationPosition)
+        {
+            failureReason = "relocation-source-equals-destination";
+            return false;
+        }
+        if (!entry.hasRuntimeLayer)
+        {
+            failureReason = "relocation-runtime-layer-missing";
+            return false;
+        }
+
+        Vector2Int center = new(entry.centerX, entry.centerY);
+        bool sourceTopology = !entry.relocationPacked
+            && entry.runtimeLayer == entry.layer
+            && center == order.SourcePosition;
+        bool destinationTopology = entry.relocationPacked
+            && entry.runtimeLayer == GridLayer.Construction
+            && center == order.DestinationPosition;
+
+        switch (order.phase)
+        {
+            case FacilityRelocationPhase.Dismantling:
+                if (!sourceTopology || order.packageConsumed)
+                {
+                    failureReason = "relocation-dismantling-topology-mismatch";
+                    return false;
+                }
+                break;
+            case FacilityRelocationPhase.WaitingForPackage:
+                if (!destinationTopology || order.packageConsumed)
+                {
+                    failureReason = "relocation-waiting-topology-mismatch";
+                    return false;
+                }
+                break;
+            case FacilityRelocationPhase.Reinstalling:
+                if (!destinationTopology || !order.packageConsumed)
+                {
+                    failureReason = "relocation-reinstalling-topology-mismatch";
+                    return false;
+                }
+                break;
+            case FacilityRelocationPhase.Blocked:
+                if (!sourceTopology && !destinationTopology)
+                {
+                    failureReason = "relocation-blocked-topology-mismatch";
+                    return false;
+                }
+                break;
+            default:
+                failureReason = "relocation-phase-invalid";
+                return false;
+        }
+
+        return true;
+    }
+
+    private static bool Canonical(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
 }
 
 [Serializable]

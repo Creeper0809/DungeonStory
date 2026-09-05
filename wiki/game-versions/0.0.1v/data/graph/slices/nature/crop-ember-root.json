@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "crop-ember-root",
+    "spoiler_tier": "none",
+    "title": "잿불뿌리"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/crop-ember-root",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "genome-ember-root-base",
+      "target_spoiler_tier": "none",
+      "target_title": "Genome_ember-root",
+      "to": "nature/genome-ember-root-base",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/crop-ember-root",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-field",
+      "target_spoiler_tier": "none",
+      "target_title": "외부 경작",
+      "to": "research/research-agriculture-field",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

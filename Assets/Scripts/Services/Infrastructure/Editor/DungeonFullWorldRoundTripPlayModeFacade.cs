@@ -258,7 +258,7 @@ public static class DungeonFullWorldRoundTripPlayModeFacade
 
 public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
 {
-    private const int ExpectedSectionCount = 68;
+    private const int ExpectedSectionCount = 74;
     private const float RuntimeReadyTimeoutSeconds = 45f;
 
     private readonly List<string> warnings = new();
@@ -320,6 +320,16 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
             {
                 throw new InvalidOperationException(
                     "DungeonRuntimeLifetimeScope was not ready before timeout.");
+            }
+
+            if (!StartPartyPreparationPlayModeVerifier
+                    .TryReconcileTierZeroForDirectGameplayFixture(
+                        scope,
+                        out string tierZeroDetail))
+            {
+                throw new InvalidOperationException(
+                    "Full-world direct-entry Tier-0 reconciliation failed: "
+                    + tierZeroDetail);
             }
 
             IDungeonSaveSectionRegistry registry =
@@ -461,7 +471,7 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
                 && warnings.Count == 0
                 && errors.Count == 0;
             detail = passed
-                ? "Live 68-section full-world round trip and baseline restoration passed."
+                ? "Live 74-section full-world round trip and baseline restoration passed."
                 : "The round trip emitted Console warnings or errors.";
         }
         catch (Exception exception)

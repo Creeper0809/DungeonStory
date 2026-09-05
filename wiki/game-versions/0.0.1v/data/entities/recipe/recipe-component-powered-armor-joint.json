@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "20"
+    },
+    {
+      "label": "필요 연구",
+      "value": "동력 보조 갑주"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-powered-armor-joint",
+      "target_spoiler_tier": "none",
+      "target_title": "동력 갑주 관절",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-machine-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "기계 부품",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-powered-armor",
+      "target_spoiler_tier": "none",
+      "target_title": "동력 보조 갑주",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-blacksteel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "흑강",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-component-powered-armor-joint",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 동력 갑주 관절을(를) 생산한다.",
+  "title": "동력 갑주 관절"
+}

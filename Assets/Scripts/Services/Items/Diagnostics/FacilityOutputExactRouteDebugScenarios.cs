@@ -17,6 +17,7 @@ public static class FacilityOutputExactRouteDebugScenarios
         VerifyExactSplitReplayAndAcknowledgement();
         VerifyPreparedFingerprintMismatchFailsClosed();
         VerifyStatefulSplitAndUniquePartialRejection();
+        VerifyPerishableFreshnessRouteIdentityAndRestoreGuards();
         VerifyMultiStepPartialRouteRestore();
         VerifyRoutableDescendantPartitionRestore();
         VerifyDeliveryRevisionOverlayRoundTripAndTamperGuards();
@@ -183,6 +184,159 @@ public static class FacilityOutputExactRouteDebugScenarios
                 FacilityOutputExactRouteFailureCode.UniquePartialForbidden
             && unique.Repository.Records.Single().quantity == 2,
             "Unique partial route was not rejected without mutation.");
+    }
+
+    private static void VerifyPerishableFreshnessRouteIdentityAndRestoreGuards()
+    {
+        Fixture fixture = new();
+        fixture.Publish(
+            quantity: 2,
+            runtimeComponents: new[]
+            {
+                FoodFreshnessComponentCodec.Create(180d, false)
+            });
+        WorldItemStackRecord source = fixture.Repository.Records.Single();
+        source.components = ReplaceFreshness(
+            source.components,
+            FoodFreshnessComponentCodec.Create(119.375d, false));
+        fixture.Repository.MarkChanged();
+
+        FacilityOutputExactRouteRequest request = fixture.Request(
+            "route:qa:perishable-freshness",
+            quantity: 1,
+            targetDestinationId: "warehouse:qa:food",
+            targetPosition: new Vector2Int(17, 5),
+            ComponentFingerprint);
+        Require(
+            fixture.Route.TryRoute(
+                request,
+                out FacilityOutputExactRouteReceipt receipt,
+                out FacilityOutputExactRouteFailure failure),
+            "Canonical freshness aging changed exact-route identity: "
+            + failure.Reason);
+        WorldItemStackRecord routed = fixture.Repository.RecordsById[
+            receipt.Slices.Single().RoutedStackId];
+        Require(
+            FoodFreshnessComponentCodec.TryRead(
+                routed.components,
+                out double routedFreshness,
+                out bool routedPreserved)
+            && routedFreshness == 119.375d
+            && !routedPreserved,
+            "Exact route did not preserve the current canonical freshness value.");
+        Require(
+            fixture.Route.TryAcknowledge(
+                receipt.RouteOperationId,
+                receipt.PhysicalReceiptFingerprint,
+                out _,
+                out failure),
+            "Perishable exact-route acknowledgement failed: " + failure.Reason);
+
+        IReadOnlyList<FacilityOutputExactRouteOutboxSaveData> outbox =
+            fixture.Route.CaptureOutbox();
+        IReadOnlyList<WorldItemStackSaveData> physical = fixture.CapturePhysical();
+        FacilityOutputExactRouteService restored = fixture.CreateRouteService();
+        FacilityOutputExactRouteRestoreCandidate candidate =
+            restored.BuildRestoreCandidate(outbox, physical);
+        restored.BeginRestoreCandidate();
+        restored.RestoreCandidate(candidate);
+        restored.PublishRestoreCandidate();
+        restored.CompleteRestoreCandidate();
+        Require(
+            restored.CaptureOutbox().Single().phase ==
+                FacilityOutputExactRoutePhase.Routable
+            && FoodFreshnessComponentCodec.TryRead(
+                physical.Single(value =>
+                    value.stackId == routed.stackId).components,
+                out double restoredFreshness,
+                out bool restoredPreserved)
+            && restoredFreshness == 119.375d
+            && !restoredPreserved,
+            "Exact-route restore did not retain canonical perishable freshness.");
+
+        Fixture malformedRoute = new();
+        malformedRoute.Publish(
+            quantity: 1,
+            runtimeComponents: new[]
+            {
+                FoodFreshnessComponentCodec.Create(180d, false)
+            });
+        WorldItemStackRecord malformedSource =
+            malformedRoute.Repository.Records.Single();
+        ItemInstanceComponentSaveData malformedFreshness =
+            FoodFreshnessComponentCodec.Create(119.375d, false);
+        malformedFreshness.values.Add(new ItemStateValueSaveData
+        {
+            key = "unexpected",
+            kind = ItemStateValueKind.Integer,
+            integerValue = 1L
+        });
+        Require(
+            !FoodFreshnessComponentCodec.TryRead(
+                new[] { malformedFreshness },
+                out _,
+                out _),
+            "Malformed freshness fixture was unexpectedly canonical.");
+        malformedSource.components = ReplaceFreshness(
+            malformedSource.components,
+            malformedFreshness);
+        malformedRoute.Repository.MarkChanged();
+        Require(
+            !malformedRoute.Route.TryRoute(
+                malformedRoute.Request(
+                    "route:qa:perishable-malformed",
+                    1,
+                    "warehouse:qa:food",
+                    new Vector2Int(17, 6),
+                    ComponentFingerprint),
+                out _,
+                out FacilityOutputExactRouteFailure malformedFailure)
+            && malformedFailure.Code ==
+                FacilityOutputExactRouteFailureCode.PublicationAuthorityInvalid
+            && malformedRoute.Repository.Records.Single().state ==
+                WorldItemStackState.FacilityOutputBuffer,
+            "Malformed freshness crossed exact-route publication authority.");
+
+        List<WorldItemStackSaveData> malformedRestore = physical
+            .Select(ClonePhysical)
+            .ToList();
+        WorldItemStackSaveData malformedRouted = malformedRestore.Single(
+            value => value.stackId == routed.stackId);
+        malformedRouted.components = ReplaceFreshness(
+            malformedRouted.components,
+            malformedFreshness);
+        bool restoreRejected = false;
+        try
+        {
+            fixture.CreateRouteService().BuildRestoreCandidate(
+                outbox,
+                malformedRestore);
+        }
+        catch (InvalidOperationException)
+        {
+            restoreRejected = true;
+        }
+        Require(
+            restoreRejected,
+            "Malformed freshness crossed exact-route restore validation.");
+    }
+
+    private static List<ItemInstanceComponentSaveData> ReplaceFreshness(
+        IEnumerable<ItemInstanceComponentSaveData> components,
+        ItemInstanceComponentSaveData freshness)
+    {
+        List<ItemInstanceComponentSaveData> result = (components
+                ?? Array.Empty<ItemInstanceComponentSaveData>())
+            .Where(value => value != null
+                && !string.Equals(
+                    value.componentTypeId,
+                    ItemInstanceComponentIds.Freshness,
+                    StringComparison.Ordinal))
+            .Select(value => value.Clone())
+            .ToList();
+        result.Add(freshness?.Clone()
+            ?? throw new ArgumentNullException(nameof(freshness)));
+        return result;
     }
 
     private static void VerifyRestoreAcknowledgementAndRollback()

@@ -17,6 +17,8 @@ public interface IProductionOutputExecutionService
         ProductionWorkerHandle worker,
         float batchIntegrity);
 
+    DomainFailure ValidateOne(ProductionResolvedOutputSaveData output);
+
     DomainFailure ProduceOne(
         ProductionRecipeSO recipe,
         ProductionFacilityHandle facility,
@@ -24,11 +26,18 @@ public interface IProductionOutputExecutionService
         ProductionResolvedOutputSaveData output,
         string outputDestinationId,
         string commitId,
-        out long committedMassGrams);
+        out ProductionCommittedOutputSnapshot committedOutput,
+        out ProductionOutputPublicationExposure publicationExposure);
 
     DomainFailure AcknowledgeOne(
-        string itemId,
+        ProductionResolvedOutputSaveData output,
         string commitId);
+}
+
+public enum ProductionOutputPublicationExposure
+{
+    None = 0,
+    PhysicalCommitMayExist = 1
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -76,6 +85,35 @@ public sealed class ProductionOutputExecutionService :
             return Array.Empty<ProductionResolvedOutputSaveData>();
         }
 
+        ProductionOutputDefinition[] physical = recipe
+            .CaptureCanonicalOutputs()
+            .Where(output => output != null
+                && ProductionOutputRoleRules.IsPhysical(output.Role)
+                && output.Amount > 0
+                && output.Probability > 0f)
+            .OrderBy(output => output.OutputLineId, StringComparer.Ordinal)
+            .ToArray();
+        ProductionOutputCapabilityDescriptor[] capabilities =
+            new ProductionOutputCapabilityDescriptor[physical.Length];
+        for (int i = 0; i < physical.Length; i++)
+        {
+            capabilities[i] = bridge.CaptureOutputCapability(
+                physical[i].OutputLineId,
+                physical[i].ItemId);
+        }
+        ProductionOutputCapabilityRoute route =
+            ProductionPreparedOutputCapabilitySelection
+                .ClassifyPhysicalCapabilities(
+                    capabilities,
+                    bridge.OutputCapabilityContracts);
+        if (route != ProductionOutputCapabilityRoute.ExactCapability)
+        {
+            throw new InvalidOperationException(
+                route == ProductionOutputCapabilityRoute.PreparedBatch
+                    ? "materialized-output-requires-prepared-batch"
+                    : "production-output-capability-route-empty");
+        }
+
         List<ProductionResolvedOutputSaveData> resolved = new();
         float qualityModifier = outputPlanning.ResolveSupportModifier(
             facility,
@@ -87,9 +125,10 @@ public sealed class ProductionOutputExecutionService :
             bridge.GetRelevantCraftSkill(worker, recipe) / 58f,
             0.7f,
             1.25f);
-        foreach (ProductionOutputDefinition output in recipe.Outputs)
+        for (int i = 0; i < physical.Length; i++)
         {
-            if (output == null || !random.Chance(output.Probability))
+            ProductionOutputDefinition output = physical[i];
+            if (!random.Chance(output.Probability))
             {
                 continue;
             }
@@ -113,25 +152,23 @@ public sealed class ProductionOutputExecutionService :
                     Mathf.FloorToInt(outputAmount * 0.5f));
             }
 
+            ProductionOutputCapabilityDescriptor capability = capabilities[i];
             resolved.Add(new ProductionResolvedOutputSaveData
             {
+                outputLineId = output.OutputLineId,
                 itemId = output.ItemId,
+                outputCapabilityId = capability.CapabilityId,
+                outputCapabilityVersion = capability.CapabilityVersion,
+                outputComponentCodecId = capability.ComponentCodecId,
+                outputComponentCodecVersion = capability.ComponentCodecVersion,
+                outputCapabilityFingerprint = capability.Fingerprint,
                 amount = outputAmount,
                 qualityModifier = qualityModifier,
                 workerQuality = workerQuality
             });
         }
         return resolved
-            .GroupBy(output => output.itemId, StringComparer.Ordinal)
-            .Select(group => new ProductionResolvedOutputSaveData
-            {
-                itemId = group.Key,
-                amount = checked(group.Sum(output => output.amount)),
-                committedAmount = 0,
-                qualityModifier = group.First().qualityModifier,
-                workerQuality = group.First().workerQuality
-            })
-            .OrderBy(output => output.itemId, StringComparer.Ordinal)
+            .OrderBy(output => output.outputLineId, StringComparer.Ordinal)
             .ToArray();
     }
 
@@ -142,9 +179,11 @@ public sealed class ProductionOutputExecutionService :
         ProductionResolvedOutputSaveData output,
         string outputDestinationId,
         string commitId,
-        out long committedMassGrams)
+        out ProductionCommittedOutputSnapshot committedOutput,
+        out ProductionOutputPublicationExposure publicationExposure)
     {
-        committedMassGrams = 0L;
+        committedOutput = null;
+        publicationExposure = ProductionOutputPublicationExposure.None;
         if (recipe == null
             || facility == null
             || output == null
@@ -153,12 +192,14 @@ public sealed class ProductionOutputExecutionService :
         {
             return new DomainFailure(FailureCode.ProductionOutputUnavailable);
         }
+        ProductionOutputCapabilityDescriptor capability = ToDescriptor(output);
         if (!bridge.TryHandleOutput(
                 recipe,
                 facility,
                 worker,
-                output.itemId,
+                capability,
                 1,
+                outputDestinationId,
                 output.qualityModifier,
                 output.workerQuality,
                 commitId,
@@ -171,29 +212,33 @@ public sealed class ProductionOutputExecutionService :
                     FailureCode.ProductionOutputUnavailable,
                     output.itemId);
         }
-        if (!handled && !bridge.TryCommitBufferedOutput(
-                commitId,
-                output.itemId,
-                1,
-                facility.Position,
-                outputDestinationId,
-                out DomainFailure bufferedFailure))
+        if (!handled)
         {
-            return bufferedFailure.IsFailure
-                ? bufferedFailure
-                : new DomainFailure(
-                    FailureCode.ProductionOutputUnavailable,
-                    output.itemId);
+            return new DomainFailure(
+                FailureCode.ProductionOutputUnavailable,
+                output.itemId,
+                "frozen-output-capability-not-handled");
         }
 
-        if (!bridge.TryGetCommittedOutputMassGrams(
-                output.itemId,
+        publicationExposure =
+            ProductionOutputPublicationExposure.PhysicalCommitMayExist;
+
+        if (!bridge.TryCaptureCommittedOutput(
+                recipe,
+                facility,
+                worker,
+                capability,
+                1,
+                outputDestinationId,
+                output.qualityModifier,
+                output.workerQuality,
                 commitId,
-                out committedMassGrams,
+                out committedOutput,
                 out DomainFailure massFailure)
-            || committedMassGrams <= 0L)
+            || committedOutput == null
+            || committedOutput.ExactMassGrams <= 0L)
         {
-            committedMassGrams = 0L;
+            committedOutput = null;
             return massFailure.IsFailure
                 ? massFailure
                 : new DomainFailure(
@@ -205,12 +250,30 @@ public sealed class ProductionOutputExecutionService :
         return DomainFailure.None;
     }
 
+    public DomainFailure ValidateOne(ProductionResolvedOutputSaveData output)
+    {
+        if (output == null)
+            return new DomainFailure(FailureCode.ProductionOutputUnavailable);
+        return bridge.TryValidateOutputCapability(
+            ToDescriptor(output),
+            out DomainFailure failure)
+            ? DomainFailure.None
+            : failure.IsFailure
+                ? failure
+                : new DomainFailure(
+                    FailureCode.ProductionOutputUnavailable,
+                    output.itemId,
+                    "output-capability-validation-failed");
+    }
+
     public DomainFailure AcknowledgeOne(
-        string itemId,
+        ProductionResolvedOutputSaveData output,
         string commitId)
     {
+        if (output == null)
+            return new DomainFailure(FailureCode.ProductionOutputUnavailable);
         bool succeeded = bridge.AcknowledgeHandledOutput(
-            itemId,
+            ToDescriptor(output),
             commitId,
             out DomainFailure failure);
         return succeeded
@@ -219,9 +282,19 @@ public sealed class ProductionOutputExecutionService :
                 ? failure
                 : new DomainFailure(
                     FailureCode.ProductionOutputUnavailable,
-                    itemId,
+                    output.itemId,
                     "commit-ack-failed");
     }
+
+    private static ProductionOutputCapabilityDescriptor ToDescriptor(
+        ProductionResolvedOutputSaveData output) => new(
+        output.outputLineId,
+        output.itemId,
+        output.outputCapabilityId,
+        output.outputCapabilityVersion,
+        output.outputComponentCodecId,
+        output.outputComponentCodecVersion,
+        output.outputCapabilityFingerprint);
 
     private int ResolveOutputAmount(
         int baseAmount,

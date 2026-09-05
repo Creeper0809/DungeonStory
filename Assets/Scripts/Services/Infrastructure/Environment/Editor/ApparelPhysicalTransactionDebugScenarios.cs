@@ -23,11 +23,15 @@ public static class ApparelPhysicalTransactionDebugScenarios
     {
         VerifyCapacityFailurePreservesMaterialSource();
         VerifySuccessfulUniqueOutputAndTerminalAcknowledgements();
+        VerifyPendingPublicationRetryReleasesForNaturalHaul();
         VerifyCompletedReplayIsIdempotent();
+        VerifyCapabilityDriftRejectsBeforeMutation();
+        VerifyMaximumMassProofDriftRejectsBeforeMutation();
         VerifyRejectedSaleRouteRemainsPhysicalFacilityOutput();
         Debug.Log(
             "[V27 Apparel Physical Transaction] PASS: capacity/source, "
-            + "unique component/mass, pending acknowledgements, replay, market route.");
+            + "declared capability freeze/drift, unique component/mass, "
+            + "pending acknowledgements, replay, market route.");
     }
 
     private static void VerifyCapacityFailurePreservesMaterialSource()
@@ -85,6 +89,8 @@ public static class ApparelPhysicalTransactionDebugScenarios
         WorldItemStackSnapshot output = fixture.OutputStacks.Single();
         Require(
             output.Quantity == 1
+            && output.State == WorldItemStackState.Loose
+            && string.IsNullOrEmpty(output.DestinationId)
             && output.ItemInstanceId.Length > 0
             && output.ItemInstanceId == result.OutputInstanceId
             && output.StackId == result.OutputStackId,
@@ -116,6 +122,11 @@ public static class ApparelPhysicalTransactionDebugScenarios
             && measuredMass == 2_000L,
             "Unique apparel output mass disagreed with the physical mass authority.");
         Require(
+            order.craftMaximumMassProofDigest?.Length == 64
+            && order.craftMaximumBatchMassGrams == 4_000L
+            && order.craftRequiredMinimumCapacityGrams == 16_000L,
+            "Apparel craft did not freeze the declared one-batch maximum and four-cycle capacity proof.");
+        Require(
             fixture.Repository.GetEditorTestQuantity(sourceStackId) == 2,
             "Successful craft did not debit the exact material quantity.");
         Require(
@@ -126,7 +137,122 @@ public static class ApparelPhysicalTransactionDebugScenarios
             && order.craftOutputAcknowledged
             && fixture.Repository.GetEditorPendingBatchDispositionCount() == 0,
             "Successful craft did not close material/output pending receipts.");
+        RequireFrozenCapability(order);
         RequireNoRawSpawnOrDeleteRollback();
+    }
+
+    private static void VerifyCapabilityDriftRejectsBeforeMutation()
+    {
+        using Fixture fixture = new("capability-drift");
+        string sourceStackId = fixture.AddMaterialSource(quantity: 4);
+        ApparelWorkOrderSaveData order = fixture.CreateOrder(sourceStackId, quantity: 2);
+        ItemInstanceComponentSaveData component = CreateApparelComponent();
+        ApparelPhysicalTransactionResult first = fixture.Transaction
+            .ExecuteCraftOrResume(
+                order,
+                fixture.Facility,
+                OutputItemId,
+                component,
+                markForSale: false);
+        Require(first.IsCompleted, "Capability drift fixture did not complete.");
+
+        int materialBefore = fixture.Repository.GetEditorTestQuantity(sourceStackId);
+        string outputStackId = first.OutputStackId;
+        order.craftOutputCapability.capabilityVersion++;
+        ApparelPhysicalTransactionResult replay = fixture.Transaction
+            .ExecuteCraftOrResume(
+                order,
+                fixture.Facility,
+                OutputItemId,
+                component,
+                markForSale: false);
+
+        Require(
+            replay.Status == ApparelPhysicalTransactionStatus.Conflict
+            && replay.FailureReason.Contains(
+                "output-capability",
+                StringComparison.Ordinal),
+            "Capability version drift was not rejected before replay.");
+        Require(
+            fixture.Repository.GetEditorTestQuantity(sourceStackId) == materialBefore
+            && fixture.OutputStacks.Single().StackId == outputStackId,
+            "Capability drift mutated physical input or output authority.");
+    }
+
+    private static void VerifyPendingPublicationRetryReleasesForNaturalHaul()
+    {
+        OneShotAcknowledgementFault fault = new();
+        using Fixture fixture = new("pending-release-retry", fault);
+        string sourceStackId = fixture.AddMaterialSource(quantity: 4);
+        ApparelWorkOrderSaveData order = fixture.CreateOrder(sourceStackId, quantity: 2);
+        ItemInstanceComponentSaveData component = CreateApparelComponent();
+
+        ApparelPhysicalTransactionResult first = fixture.Transaction
+            .ExecuteCraftOrResume(
+                order,
+                fixture.Facility,
+                OutputItemId,
+                component,
+                markForSale: false);
+        Require(
+            first.Status == ApparelPhysicalTransactionStatus.PendingFinalization
+            && order.craftOutputPublished
+            && order.craftAdmissionCommitted
+            && !order.craftOutputAcknowledged
+            && fixture.OutputStacks.Single().State
+                == WorldItemStackState.FacilityOutputBuffer,
+            "Injected acknowledgement interruption did not preserve the exact pending output batch.");
+
+        ApparelPhysicalTransactionResult retry = fixture.Transaction
+            .ExecuteCraftOrResume(
+                order,
+                fixture.Facility,
+                OutputItemId,
+                component,
+                markForSale: false);
+        WorldItemStackSnapshot released = fixture.OutputStacks.Single();
+        Require(
+            retry.IsCompleted
+            && order.craftOutputAcknowledged
+            && released.StackId == retry.OutputStackId
+            && released.State == WorldItemStackState.Loose
+            && string.IsNullOrEmpty(released.DestinationId)
+            && fixture.Repository.GetEditorTestQuantity(sourceStackId) == 2,
+            "Pending publication retry did not atomically release the original output for natural haul.");
+    }
+
+    private static void VerifyMaximumMassProofDriftRejectsBeforeMutation()
+    {
+        using Fixture fixture = new("maximum-proof-drift");
+        string sourceStackId = fixture.AddMaterialSource(quantity: 4);
+        ApparelWorkOrderSaveData order = fixture.CreateOrder(sourceStackId, quantity: 2);
+        ItemInstanceComponentSaveData component = CreateApparelComponent();
+        ApparelPhysicalTransactionResult first = fixture.Transaction.ExecuteCraftOrResume(
+            order,
+            fixture.Facility,
+            OutputItemId,
+            component,
+            markForSale: false);
+        Require(first.IsCompleted, "Maximum-proof drift fixture did not complete.");
+
+        int materialBefore = fixture.Repository.GetEditorTestQuantity(sourceStackId);
+        string outputStackId = first.OutputStackId;
+        order.craftMaximumMassProofDigest = new string('0', 64);
+        ApparelPhysicalTransactionResult replay = fixture.Transaction.ExecuteCraftOrResume(
+            order,
+            fixture.Facility,
+            OutputItemId,
+            component,
+            markForSale: false);
+
+        Require(
+            replay.Status == ApparelPhysicalTransactionStatus.Conflict
+            && replay.FailureReason.Contains("frozen-output-drift", StringComparison.Ordinal),
+            "Apparel maximum-mass proof drift was not rejected before replay.");
+        Require(
+            fixture.Repository.GetEditorTestQuantity(sourceStackId) == materialBefore
+            && fixture.OutputStacks.Single().StackId == outputStackId,
+            "Apparel maximum-mass proof drift mutated physical authority.");
     }
 
     private static void VerifyCompletedReplayIsIdempotent()
@@ -208,6 +334,34 @@ public static class ApparelPhysicalTransactionDebugScenarios
             deterministicBatchHash = 0xA771UL
         });
 
+    private static void RequireFrozenCapability(ApparelWorkOrderSaveData order)
+    {
+        ProductionOutputCapabilitySaveData capability =
+            order?.craftOutputCapability;
+        Require(
+            capability != null
+            && !capability.IsEmpty
+            && capability.outputLineId == ApparelPhysicalTransaction.OutputLineId
+            && capability.itemId == OutputItemId
+            && capability.capabilityId
+                == ProductionOutputCapabilityIds.ApparelWorkOrder
+            && capability.capabilityVersion
+                == ProductionOutputCapabilityIds.ApparelWorkOrderVersion
+            && capability.componentCodecId
+                == ProductionOutputCapabilityIds.ApparelStateCodec
+            && capability.componentCodecVersion
+                == ProductionOutputCapabilityIds.ApparelStateCodecVersion
+            && capability.fingerprint
+                == ProductionOutputCapabilityDescriptorFingerprint.Capture(
+                    capability.outputLineId,
+                    capability.itemId,
+                    capability.capabilityId,
+                    capability.capabilityVersion,
+                    capability.componentCodecId,
+                    capability.componentCodecVersion),
+            "Apparel output did not freeze the exact declared capability.");
+    }
+
     private static void RequireNoRawSpawnOrDeleteRollback()
     {
         string path = Path.GetFullPath(Path.Combine(
@@ -231,7 +385,10 @@ public static class ApparelPhysicalTransactionDebugScenarios
         private readonly GameObject facilityObject;
         private readonly ProductionFacilityHandle handle;
 
-        internal Fixture(string suffix)
+        internal Fixture(
+            string suffix,
+            IFacilityBufferPlannedOutputAcknowledgementFaultInjector
+                acknowledgementFaultInjector = null)
         {
             Catalog = new FixedCatalog();
             WorldItems = PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture(
@@ -268,7 +425,8 @@ public static class ApparelPhysicalTransactionDebugScenarios
                 repository,
                 Catalog,
                 WorldItems.MassQuery,
-                admission);
+                admission,
+                acknowledgementFaultInjector: acknowledgementFaultInjector);
 
             facilityObject = new GameObject("Apparel Physical Transaction " + suffix)
             {
@@ -285,8 +443,32 @@ public static class ApparelPhysicalTransactionDebugScenarios
                 overflowOffset: default,
                 definitionId: FacilityDefinitionId,
                 workstationTag: WorkstationTag,
-                outputBufferCycleCapacity: 4);
+                outputBufferCycleCapacity: 4,
+                workstationLaneProfile:
+                    ProductionFacilityWorkstationLaneCapacityProfile
+                        .SingleManualWithDetachedBatchProcessors);
             StaticFacilityHandleQuery handles = new(handle);
+            ApparelFixtureStandardOutputHandler standardCapability = new();
+            FixedApparelOutputCapability apparelCapability = new();
+            ProductionOutputMaximumMassRegistry maximumMassRegistry = new(
+                new IProductionOutputMaximumMassCapability[]
+                {
+                    standardCapability,
+                    apparelCapability
+                },
+                WorldItems.MassQuery);
+            ProductionOutputHandlerRegistry outputCapabilityRegistry = new(
+                new IProductionOutputCapability[]
+                {
+                    standardCapability,
+                    apparelCapability
+                });
+            ProductionFacilityOutputCapacityContributorRegistry contributors = new(
+                new IProductionFacilityOutputCapacityContributor[]
+                {
+                    new ApparelFixtureFacilityOutputCapacityContributor()
+                },
+                maximumMassRegistry);
             ProductionOutputBufferCapacityProjector capacity = new(
                 new EmptyEconomyCatalog(),
                 new ProductionMaximumOutputFactorCatalog(Array.Empty<BuildingSO>()),
@@ -296,9 +478,19 @@ public static class ApparelPhysicalTransactionDebugScenarios
                 (_, recipe) => string.Equals(
                     recipe?.WorkstationTag,
                     handle.WorkstationTag,
-                    StringComparison.Ordinal));
+                    StringComparison.Ordinal),
+                maximumMassRegistry.CaptureAutomatic,
+                maximumMassRegistry.CaptureDeclared,
+                contributors,
+                clearanceProfiles:
+                    new ProductionOutputClearanceNaturalBootstrapProfileSource());
             CapacityProjector = capacity;
             Destinations = destinations;
+            MaximumMassRegistry = maximumMassRegistry;
+            ApparelDescriptor = outputCapabilityRegistry.CaptureDeclaredDescriptor(
+                ApparelPhysicalTransaction.OutputLineId,
+                OutputItemId,
+                ProductionOutputCapabilityIds.ApparelWorkOrder);
             Transaction = new ApparelPhysicalTransaction(
                 WorldItems,
                 dispositions,
@@ -309,7 +501,9 @@ public static class ApparelPhysicalTransactionDebugScenarios
                 capacity,
                 admission,
                 publication,
-                repository);
+                repository,
+                outputCapabilityRegistry,
+                maximumMassRegistry);
         }
 
         internal FixedCatalog Catalog { get; }
@@ -319,12 +513,13 @@ public static class ApparelPhysicalTransactionDebugScenarios
         internal ApparelPhysicalTransaction Transaction { get; }
         internal ProductionOutputBufferCapacityProjector CapacityProjector { get; }
         internal ProductionOutputDestinationAuthorityRuntime Destinations { get; }
+        internal ProductionOutputMaximumMassRegistry MaximumMassRegistry { get; }
+        internal ProductionOutputCapabilityDescriptor ApparelDescriptor { get; }
         internal string DestinationId => ProductionBillRuntime.OutputDestinationPrefix + FacilityId;
         internal IReadOnlyList<WorldItemStackSnapshot> OutputStacks => WorldItems
             .GetAllStacks()
             .Where(value => value != null
-                && value.ItemId == OutputItemId
-                && value.State == WorldItemStackState.FacilityOutputBuffer)
+                && value.ItemId == OutputItemId)
             .OrderBy(value => value.StackId, StringComparer.Ordinal)
             .ToArray();
 
@@ -358,16 +553,25 @@ public static class ApparelPhysicalTransactionDebugScenarios
                 (ItemDefinitionId)OutputItemId,
                 instanceId,
                 new[] { component });
-            long outputMass = WorldItems.MassQuery.GetQuantityMass(
-                (ItemDefinitionId)OutputItemId,
-                subject,
-                1).Value;
+            _ = subject;
+            ProductionOutputBatchMaximumMassProof proof = new(
+                new[]
+                {
+                    MaximumMassRegistry.CaptureDeclared(ApparelDescriptor, 1)
+                });
             ProductionOutputBufferCapacitySourceSnapshot source =
-                CapacityProjector.CaptureSource(handle, outputMass);
+                CapacityProjector.CaptureSource(handle, proof);
             Require(
-                Destinations.TryEnsure(
+                source.MaximumBatchMassGrams == 4_000L
+                && source.RequiredMinimumCapacityGrams == 16_000L
+                && IsLowercaseSha256(source.ClearanceProfileDigest)
+                && IsLowercaseSha256(source.ClearanceGateDigest)
+                && IsLowercaseSha256(source.ClearanceAuthorityDigest),
+                "Capacity fixture did not bind its exact maximum and clearance authority.");
+            Require(
+                Destinations.TryEnsureCapacitySource(
                     handle,
-                    source.RequiredMinimumCapacityGrams,
+                    source,
                     out FacilityBufferCapacityProfile profile,
                     out string failure),
                 "Capacity fixture could not publish authority: " + failure);
@@ -389,6 +593,20 @@ public static class ApparelPhysicalTransactionDebugScenarios
             WorldItems?.Dispose();
             if (facilityObject != null)
                 UnityEngine.Object.DestroyImmediate(facilityObject);
+        }
+    }
+
+    private sealed class OneShotAcknowledgementFault :
+        IFacilityBufferPlannedOutputAcknowledgementFaultInjector
+    {
+        private bool fired;
+
+        public bool FailBeforeRepositoryMutation(int mutationIndex)
+        {
+            if (fired || mutationIndex != 0)
+                return false;
+            fired = true;
+            return true;
         }
     }
 
@@ -501,5 +719,125 @@ public static class ApparelPhysicalTransactionDebugScenarios
             return false;
         }
     }
+
+    private sealed class ApparelFixtureFacilityOutputCapacityContributor :
+        IProductionFacilityOutputCapacityContributor
+    {
+        private const string ContributorIdValue =
+            "production-facility-output-capacity:qa-apparel";
+
+        public string ContributorId => ContributorIdValue;
+        public int ContractVersion => 1;
+
+        public ProductionFacilityOutputCapacityContribution Capture(
+            ProductionFacilityCapacitySubject subject)
+        {
+            bool applies = string.Equals(
+                    subject.DefinitionId,
+                    FacilityDefinitionId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    subject.WorkstationTag,
+                    WorkstationTag,
+                    StringComparison.Ordinal);
+            if (!applies)
+            {
+                return new ProductionFacilityOutputCapacityContribution(
+                    ContributorIdValue,
+                    1,
+                    false,
+                    Array.Empty<ProductionFacilityOutputCapacityBranch>());
+            }
+
+            return new ProductionFacilityOutputCapacityContribution(
+                ContributorIdValue,
+                1,
+                true,
+                new[]
+                {
+                    new ProductionFacilityOutputCapacityBranch(
+                        "qa-apparel:craft",
+                        new[]
+                        {
+                            new ProductionFacilityOutputMaximumMassRequest(
+                                ApparelPhysicalTransaction.OutputLineId,
+                                OutputItemId,
+                                ProductionOutputCapabilityIds.ApparelWorkOrder,
+                                1)
+                        })
+                });
+        }
+    }
+
+    private static bool IsLowercaseSha256(string value)
+    {
+        if (string.IsNullOrEmpty(value) || value.Length != 64)
+            return false;
+        for (int index = 0; index < value.Length; index++)
+        {
+            char c = value[index];
+            if (!(c is >= '0' and <= '9') && !(c is >= 'a' and <= 'f'))
+                return false;
+        }
+        return true;
+    }
+
+    private sealed class FixedApparelOutputCapability :
+        IProductionOutputCapability,
+        IProductionOutputMaximumMassCapability
+    {
+        public string CapabilityId =>
+            ProductionOutputCapabilityIds.ApparelWorkOrder;
+        public int ContractVersion =>
+            ProductionOutputCapabilityIds.ApparelWorkOrderVersion;
+        public string ComponentCodecId =>
+            ProductionOutputCapabilityIds.ApparelStateCodec;
+        public int ComponentCodecVersion =>
+            ProductionOutputCapabilityIds.ApparelStateCodecVersion;
+        public bool SupportsAutomaticSelection => false;
+        public bool CanHandle(string itemId) => string.Equals(
+            itemId,
+            OutputItemId,
+            StringComparison.Ordinal);
+
+        public ProductionOutputMaximumMassProjection CaptureDefinitionMaximum(
+            ProductionOutputCapabilityDescriptor descriptor,
+            int maximumQuantity,
+            IPhysicalItemMassQuery massQuery) => new(
+                descriptor,
+                maximumQuantity,
+                4_000L,
+                checked(4_000L * maximumQuantity),
+                massQuery.AuthorityRevision,
+                new string('a', 64));
+    }
+}
+
+internal sealed class ApparelFixtureStandardOutputHandler :
+    IProductionOutputCapability,
+    IProductionOutputMaximumMassCapability
+{
+    public string CapabilityId =>
+        ProductionOutputCapabilityIds.StandardDefinition;
+    public int ContractVersion =>
+        ProductionOutputCapabilityIds.StandardDefinitionVersion;
+    public string ComponentCodecId =>
+        ProductionOutputCapabilityIds.DefinitionOnlyCodec;
+    public int ComponentCodecVersion =>
+        ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion;
+    public bool SupportsAutomaticSelection => true;
+    public bool CanHandle(string itemId) => !string.IsNullOrEmpty(itemId)
+        && string.Equals(itemId, itemId.Trim(), StringComparison.Ordinal);
+
+    public ProductionOutputMaximumMassProjection CaptureDefinitionMaximum(
+        ProductionOutputCapabilityDescriptor descriptor,
+        int maximumQuantity,
+        IPhysicalItemMassQuery massQuery) =>
+        ProductionOutputDefinitionMaximumMassProjection.Capture(
+            this,
+            descriptor,
+            maximumQuantity,
+            massQuery);
+
 }
 #endif

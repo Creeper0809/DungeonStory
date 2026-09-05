@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-medical-rejuvenation-serum",
+    "spoiler_tier": "none",
+    "title": "회춘 혈청"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-rejuvenation-serum",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "medical-rejuvenation-serum",
+      "target_spoiler_tier": "none",
+      "target_title": "회춘 혈청",
+      "to": "item/medical-rejuvenation-serum",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-rejuvenation-serum",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-sterile-composite",
+      "target_spoiler_tier": "none",
+      "target_title": "무균 복합재",
+      "to": "item/material-sterile-composite",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-rejuvenation-serum",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-mana-crystal",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 결정",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-medical-rejuvenation-serum",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-standard",
+      "target_spoiler_tier": "none",
+      "target_title": "표준 약품",
+      "to": "item/medicine-standard",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-medical-rejuvenation-serum",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-blood-rejuvenation",
+      "target_spoiler_tier": "none",
+      "target_title": "혈액 회춘",
+      "to": "research/research-medical-blood-rejuvenation",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

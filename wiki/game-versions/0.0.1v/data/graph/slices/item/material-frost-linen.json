@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-frost-linen",
+    "spoiler_tier": "none",
+    "title": "서리 린넨"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-weave-frost-linen",
+      "label": "생산·해금",
+      "to": "item/material-frost-linen",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

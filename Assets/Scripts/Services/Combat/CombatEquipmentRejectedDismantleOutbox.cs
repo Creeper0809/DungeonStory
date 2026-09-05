@@ -55,6 +55,10 @@ public static class CombatEquipmentRejectedDismantleOutbox
                         stack.ItemInstanceId,
                         order.rejectedInstanceId,
                         StringComparison.Ordinal)
+                    && string.Equals(
+                        stack.ItemId,
+                        PhysicalItemIds.ForEquipment(order.definitionId),
+                        StringComparison.Ordinal)
                     && stack.State == WorldItemStackState.FacilityOutputBuffer
                     && stack.Quantity == 1
                     && stack.ReservedQuantity == 0

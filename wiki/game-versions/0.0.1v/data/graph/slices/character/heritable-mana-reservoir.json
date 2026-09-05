@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "heritable-mana-reservoir",
+    "spoiler_tier": "none",
+    "title": "마나 저장낭"
+  },
+  "edges": [],
+  "schema_version": 1
+}

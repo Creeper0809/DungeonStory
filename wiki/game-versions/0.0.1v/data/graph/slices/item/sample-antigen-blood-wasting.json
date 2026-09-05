@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "sample-antigen-blood-wasting",
+    "spoiler_tier": "none",
+    "title": "혈액소모병 항원 표본"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medicine-vaccine-blood-wasting",
+      "label": "필요 조건",
+      "to": "item/sample-antigen-blood-wasting",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

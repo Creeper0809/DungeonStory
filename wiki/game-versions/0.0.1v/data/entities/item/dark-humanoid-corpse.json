@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "28kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "0"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "이름과 죽음의 흔적이 남아 있다. 비상 도축은 명시적으로 허용해야 한다. 오르데나 수호원은 인간형 사체의 군복과 상처를 조사하기 전에 하르나크가 훼손한 전사자로 등록한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "dark-humanoid-corpse",
+  "spoiler_tier": "none",
+  "summary": "이름과 죽음의 흔적이 남아 있다. 비상 도축은 명시적으로 허용해야 한다.",
+  "title": "인간형 사체"
+}

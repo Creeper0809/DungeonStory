@@ -1,0 +1,49 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-myconid-shared-mist",
+      "target_spoiler_tier": "none",
+      "target_title": "공유 안개",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "resource-cave-mushroom",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴버섯",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "supply-fungicide",
+      "target_spoiler_tier": "none",
+      "target_title": "살균제",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-myconid-spore-return",
+      "target_spoiler_tier": "none",
+      "target_title": "포자 귀환",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "culture-myconid-grove",
+  "spoiler_tier": "none",
+  "summary": "대화와 기억을 향과 포자 리듬으로 나누며 습한 공동 정원을 지킨다.",
+  "title": "포자정원 문화"
+}

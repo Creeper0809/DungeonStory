@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.7kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "15개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "75"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "점액역병 백신은 특정 감염에 대비해 면역 반응을 준비시키는 의료 물자다. 하르나크의 맑은물 합류 치료사는 점액역병 백신을 맑은 물에 한 방울 풀어 색이 핵 쪽으로 번지는지 먼저 본다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "medicine-vaccine-slime-blight",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 점액역병 백신.",
+  "title": "점액역병 백신"
+}

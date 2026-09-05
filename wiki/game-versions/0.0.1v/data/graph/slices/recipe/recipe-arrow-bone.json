@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-arrow-bone",
+    "spoiler_tier": "none",
+    "title": "뼈촉 화살"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-arrow-bone",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "목재",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-arrow-bone",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-bone",
+      "target_spoiler_tier": "none",
+      "target_title": "뼈",
+      "to": "item/resource-bone",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-arrow-bone",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-feather",
+      "target_spoiler_tier": "none",
+      "target_title": "깃털",
+      "to": "item/resource-feather",
+      "type": "requires"
+    },
+    {
+      "amount": "10",
+      "from": "recipe/recipe-arrow-bone",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "ammo-arrow-bone",
+      "target_spoiler_tier": "none",
+      "target_title": "뼈촉 화살",
+      "to": "item/ammo-arrow-bone",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-arrow-bone",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-defense-ranged-positions",
+      "target_spoiler_tier": "none",
+      "target_title": "사격 방책",
+      "to": "research/research-defense-ranged-positions",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

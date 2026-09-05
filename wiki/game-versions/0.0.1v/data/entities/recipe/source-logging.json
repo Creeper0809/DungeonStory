@@ -1,0 +1,49 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "18"
+    },
+    {
+      "label": "필요 연구",
+      "value": "벌목"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "resource-dark-resin",
+      "target_spoiler_tier": "none",
+      "target_title": "암흑수액",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "5",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "resource-log",
+      "target_spoiler_tier": "none",
+      "target_title": "원목",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-forestry-logging",
+      "target_spoiler_tier": "none",
+      "target_title": "벌목",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "source-logging",
+  "spoiler_tier": "none",
+  "summary": "벌목 수확 자원 산출",
+  "title": "벌목 수확"
+}

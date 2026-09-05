@@ -1,0 +1,39 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "tool-administrative-seal",
+    "spoiler_tier": "none",
+    "title": "행정 인장"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-administrative-seal",
+      "label": "생산·해금",
+      "to": "item/tool-administrative-seal",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "18",
+      "from": "event/faction-contract-demon-strategic",
+      "label": "필요 조건",
+      "to": "item/tool-administrative-seal",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "from": "event/faction-chapter-demon-6",
+      "label": "필요 조건",
+      "to": "item/tool-administrative-seal",
+      "type": "requires"
+    },
+    {
+      "amount": "9",
+      "from": "event/faction-chapter-demon-6",
+      "label": "필요 조건",
+      "to": "item/tool-administrative-seal",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

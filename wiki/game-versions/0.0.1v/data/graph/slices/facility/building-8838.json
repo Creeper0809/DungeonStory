@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-8838",
+    "spoiler_tier": "none",
+    "title": "사슬 조립틀"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-equipment-mail-weaving",
+      "label": "시설 해금",
+      "to": "facility/building-8838",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "prisoner-convoy",
+    "spoiler_tier": "none",
+    "title": "포로 수송대"
+  },
+  "edges": [],
+  "schema_version": 1
+}

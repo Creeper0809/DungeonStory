@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.085kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "100개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "17"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "강철촉을 단단히 고정해 중장갑의 틈을 노리는 고관통 화살이다. 아일라세라 사수는 강철촉 화살을 쏘기 전 바람의 방향을 짧게 노래한다. 마지막 음이 발사 신호다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ammo-arrow-steel",
+  "spoiler_tier": "none",
+  "summary": "높은 관통을 가진 고급 화살.",
+  "title": "강철촉 화살"
+}

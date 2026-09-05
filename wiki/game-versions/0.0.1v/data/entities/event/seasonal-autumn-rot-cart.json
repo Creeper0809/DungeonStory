@@ -1,0 +1,35 @@
+{
+  "facts": [
+    {
+      "label": "최소 지속 기간",
+      "value": "1일"
+    },
+    {
+      "label": "최대 지속 기간",
+      "value": "2일"
+    },
+    {
+      "label": "종료 효과",
+      "value": "1개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "9",
+      "label": "연결",
+      "target_kind": "medical",
+      "target_slug": "disease-gut-rot",
+      "target_spoiler_tier": "none",
+      "target_title": "장부패증",
+      "type": "adds-disease-exposure"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "seasonal-autumn-rot-cart",
+  "spoiler_tier": "warning",
+  "summary": "오염된 교역 식품이 창고와 식당으로 들어올 위험이 생긴다.",
+  "title": "썩은 수레"
+}

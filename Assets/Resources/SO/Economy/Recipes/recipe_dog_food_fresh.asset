@@ -59,8 +59,8 @@ MonoBehaviour:
   - itemId: resource:twilight-grain
     amount: 1
   outputs:
-  - outputLineId: output:main
+  - outputLineId: output:recipe:dog-food-fresh/000/main/feed:dog-food-fresh
     role: 0
-    itemId: feed:dog-food
+    itemId: feed:dog-food-fresh
     amount: 2
     probability: 1

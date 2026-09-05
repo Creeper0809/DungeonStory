@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-grape-syrup",
+    "spoiler_tier": "none",
+    "title": "포도 시럽"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-grape-syrup",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-grape-juice",
+      "target_spoiler_tier": "none",
+      "target_title": "포도즙",
+      "to": "item/material-grape-juice",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-grape-syrup",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "food-grape-syrup",
+      "target_spoiler_tier": "none",
+      "target_title": "포도 시럽",
+      "to": "item/food-grape-syrup",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-grape-syrup",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-fermentation",
+      "target_spoiler_tier": "none",
+      "target_title": "발효",
+      "to": "research/research-cuisine-fermentation",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

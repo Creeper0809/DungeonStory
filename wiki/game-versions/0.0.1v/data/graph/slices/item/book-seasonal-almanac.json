@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "book-seasonal-almanac",
+    "spoiler_tier": "none",
+    "title": "계절력 책자"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-book-seasonal-almanac",
+      "label": "생산·해금",
+      "to": "item/book-seasonal-almanac",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

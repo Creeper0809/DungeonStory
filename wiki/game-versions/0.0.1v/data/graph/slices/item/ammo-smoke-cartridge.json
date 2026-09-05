@@ -1,0 +1,67 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "ammo-smoke-cartridge",
+    "spoiler_tier": "none",
+    "title": "연막 탄약"
+  },
+  "edges": [
+    {
+      "amount": "6",
+      "from": "recipe/recipe-ammo-smoke-cartridge",
+      "label": "생산·해금",
+      "to": "item/ammo-smoke-cartridge",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-arquebus",
+      "label": "관련",
+      "to": "item/ammo-smoke-cartridge",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-handgonne",
+      "label": "관련",
+      "to": "item/ammo-smoke-cartridge",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-heavy-matchlock",
+      "label": "관련",
+      "to": "item/ammo-smoke-cartridge",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-matchlock-long-gun",
+      "label": "관련",
+      "to": "item/ammo-smoke-cartridge",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-matchlock-pistol",
+      "label": "관련",
+      "to": "item/ammo-smoke-cartridge",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-shotgun",
+      "label": "관련",
+      "to": "item/ammo-smoke-cartridge",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-sniper-arquebus",
+      "label": "관련",
+      "to": "item/ammo-smoke-cartridge",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

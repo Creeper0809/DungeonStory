@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "180"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "손상되거나 잃은 핵의 기능을 대신하도록 신체에 연결하는 보철 부품이다. 제4주조도시의 기억판 안치에서는 핵 보철을 손보기 전에 기억판부터 떼어 낸다. 몸보다 사람이 먼저라는 오래된 순서다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "surgery-prosthetic-core",
+  "spoiler_tier": "none",
+  "summary": "수술로 설치하는 고유 보철 부품",
+  "title": "핵 보철"
+}

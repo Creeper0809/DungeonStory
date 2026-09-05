@@ -24,38 +24,6 @@ public sealed class BuildingItemStackPortAdapter : IBuildingItemStackPort
             out spawned);
     }
 
-    public bool SpawnFacilityBufferItem(
-        string itemId,
-        int amount,
-        Vector2Int position,
-        string destinationId,
-        out int spawned)
-    {
-        return items.SpawnItemAt(
-            itemId,
-            amount,
-            position,
-            WorldItemStackState.FacilityBuffer,
-            destinationId,
-            out spawned);
-    }
-
-    public bool SpawnExistingFacilityBufferUniqueItem(
-        string itemId,
-        ItemInstanceId itemInstanceId,
-        Vector2Int position,
-        string destinationId,
-        out string stackId)
-    {
-        return items.SpawnExistingUniqueItemAt(
-            itemId,
-            itemInstanceId,
-            position,
-            WorldItemStackState.FacilityBuffer,
-            destinationId,
-            out stackId);
-    }
-
     private static IWarehouseFacility RequireWarehouse(
         IBuildingWorldEntryPort warehouse)
     {

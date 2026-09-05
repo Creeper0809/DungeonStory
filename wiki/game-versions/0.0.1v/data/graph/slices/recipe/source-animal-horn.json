@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "source-animal-horn",
+    "spoiler_tier": "none",
+    "title": "가축 뿔 수확"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/source-animal-horn",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "resource-horn",
+      "target_spoiler_tier": "none",
+      "target_title": "뿔",
+      "to": "item/resource-horn",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "recipe/source-animal-horn",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-selective",
+      "target_spoiler_tier": "none",
+      "target_title": "선별 사육",
+      "to": "research/research-husbandry-selective",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "world",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "battlefield-narrow-bridge",
+  "spoiler_tier": "none",
+  "summary": "전열 교대가 어렵고 밀집 공격의 가치가 커진다.",
+  "title": "좁은 교량"
+}

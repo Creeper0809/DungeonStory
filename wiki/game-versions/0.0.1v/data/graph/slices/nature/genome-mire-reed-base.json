@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "genome-mire-reed-base",
+    "spoiler_tier": "none",
+    "title": "genome_mire-reed_base"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/crop-mire-reed",
+      "label": "관련",
+      "to": "nature/genome-mire-reed-base",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

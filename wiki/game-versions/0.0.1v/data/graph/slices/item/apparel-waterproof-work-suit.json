@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "apparel-waterproof-work-suit",
+    "spoiler_tier": "none",
+    "title": "방수 작업복"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-waterproof-work-suit",
+      "label": "생산·해금",
+      "to": "item/apparel-waterproof-work-suit",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

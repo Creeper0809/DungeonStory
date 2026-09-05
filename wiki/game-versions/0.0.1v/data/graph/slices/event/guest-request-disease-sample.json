@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "guest-request-disease-sample",
+    "spoiler_tier": "none",
+    "title": "희귀 병원체 공동연구"
+  },
+  "edges": [
+    {
+      "amount": "3",
+      "from": "event/guest-request-disease-sample",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "sample-antigen-cave-flu",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴 독감 항원 표본",
+      "to": "item/sample-antigen-cave-flu",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

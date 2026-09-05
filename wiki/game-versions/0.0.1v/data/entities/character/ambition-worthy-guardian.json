@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Family"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ambition-worthy-guardian",
+  "spoiler_tier": "none",
+  "summary": "보호받지 못한 아이가 성년이 될 때까지 곁을 지키려 한다.",
+  "title": "믿을 만한 보호자"
+}

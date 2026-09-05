@@ -1,0 +1,39 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "철제 가공"
+    },
+    {
+      "label": "제작 작업",
+      "value": "72"
+    },
+    {
+      "label": "무게",
+      "value": "2.8kg"
+    },
+    {
+      "label": "최대 사거리",
+      "value": "1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "combat",
+  "relations": [
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "equipment-item-weapon-mace",
+  "spoiler_tier": "none",
+  "summary": "철퇴 전투 장비",
+  "title": "철퇴"
+}

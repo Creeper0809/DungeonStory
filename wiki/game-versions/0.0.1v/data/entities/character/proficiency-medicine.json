@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "proficiency-medicine",
+  "spoiler_tier": "none",
+  "summary": "구조, 진단, 치료와 수술의 숙련이다.",
+  "title": "의료"
+}

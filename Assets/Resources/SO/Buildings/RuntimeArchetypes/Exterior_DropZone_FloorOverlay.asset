@@ -31,9 +31,9 @@ MonoBehaviour:
   objectName: "\uD558\uCC28\uC7A5"
   sprite: {fileID: 0}
   icon: {fileID: 0}
-  contentDefinitionId: 
+  contentDefinitionId: building:runtime:exterior-zone:1:5
   authoringRevision: 1
-  sourceNote: 
+  sourceNote: Generated immutable runtime building archetype authority.
   deprecatedCompatibilityAsset: 0
   useClassification: 0
   researchFacilityCommand: 0

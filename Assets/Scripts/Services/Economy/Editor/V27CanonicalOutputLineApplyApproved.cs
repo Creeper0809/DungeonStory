@@ -17,6 +17,8 @@ public static class V27CanonicalOutputLineApplyApproved
 {
     public const string ManifestPath =
         "Artifacts/QA/v27-canonical-output-line-apply-manifest.txt";
+    public const string CurrentAuthorityManifestPath =
+        "Artifacts/QA/v27-canonical-output-line-current-authority.txt";
 
     private const int ExpectedRows = 357;
     private const int ExpectedOutputLineIdChanges = 353;
@@ -32,6 +34,16 @@ public static class V27CanonicalOutputLineApplyApproved
         "source:quarry|4|resource:mana-crystal|0.01",
         "source:saltstone|1|resource:saltstone|0.25"
     };
+
+    private static readonly IReadOnlyDictionary<string, string>
+        ExpectedPostApprovalOutputItemByKey =
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["recipe:dog-food|0"] = "feed:dog-food",
+                ["recipe:dog-food-fresh|0"] = "feed:dog-food-fresh",
+                ["recipe:hay-feed|0"] = "feed:hay",
+                ["recipe:silage|0"] = "feed:silage"
+            };
 
     private static readonly string[] ExpectedHeader =
     {
@@ -69,6 +81,15 @@ public static class V27CanonicalOutputLineApplyApproved
         string approvedAfterHash = ComputeSemanticHash(
             approved.Rows,
             useProposed: true);
+
+        if (IsFullyCanonicalCurrentAuthority(current.Rows))
+        {
+            VerifyAndWriteCurrentAuthority(
+                approved,
+                current,
+                currentSemanticHash);
+            return new ApplyResult(0, 0, 0, 0, true);
+        }
 
         if (string.Equals(
                 currentSemanticHash,
@@ -175,7 +196,7 @@ public static class V27CanonicalOutputLineApplyApproved
                     row.ProposedOutputLineId),
                 "Approved proposal contains a non-canonical line ID: "
                 + row.ProposedOutputLineId + ".");
-            Require(row.ProposedRole != ProductionOutputRole.DeclaredLoss,
+            Require(ProductionOutputRoleRules.IsPhysical(row.ProposedRole),
                 "Approved proposal routes DeclaredLoss as a physical output.");
             V27CanonicalOutputLineBackfillProposalRow currentRow =
                 currentByKey[RowKey(row.RecipeId, row.AuthoredOutputOrdinal)];
@@ -424,6 +445,133 @@ public static class V27CanonicalOutputLineApplyApproved
             manifest,
             "outputRoleChanges",
             ExpectedOutputRoleChanges.ToString(CultureInfo.InvariantCulture));
+    }
+
+    private static bool IsFullyCanonicalCurrentAuthority(
+        IReadOnlyList<V27CanonicalOutputLineBackfillProposalRow> rows)
+    {
+        if (rows == null || rows.Count != ExpectedRows)
+            return false;
+
+        HashSet<string> lineIds = new(StringComparer.Ordinal);
+        foreach (V27CanonicalOutputLineBackfillProposalRow row in rows)
+        {
+            if (!row.HasCanonicalAuthoredLine
+                || !ProductionOutputRoleRules.IsPhysical(row.AuthoredRole))
+            {
+                return false;
+            }
+
+            string expected = ProductionOutputLineAuthoring.BuildStableId(
+                row.RecipeId,
+                row.AuthoredOutputOrdinal,
+                row.ItemId,
+                row.AuthoredRole);
+            if (!string.Equals(
+                    row.AuthoredOutputLineId,
+                    expected,
+                    StringComparison.Ordinal)
+                || !lineIds.Add(row.AuthoredOutputLineId))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static void VerifyAndWriteCurrentAuthority(
+        ApprovedArtifact approved,
+        V27CanonicalOutputLineBackfillProposalSnapshot current,
+        string currentSemanticHash)
+    {
+        Require(approved.Rows.Count == ExpectedRows,
+            "Historical output-line approval row count drifted.");
+        Require(approved.Rows.Count(value => !string.Equals(
+                    value.AuthoredOutputLineId,
+                    value.ProposedOutputLineId,
+                    StringComparison.Ordinal)) == ExpectedOutputLineIdChanges,
+            "Historical output-line approval no longer proves 353 ID changes.");
+        Require(approved.Rows.Count(value =>
+                    value.AuthoredRole != value.ProposedRole)
+                == ExpectedOutputRoleChanges,
+            "Historical output-line approval no longer proves six role changes.");
+
+        Dictionary<string, ApprovedRow> approvedByKey = UniqueRows(
+            approved.Rows,
+            "historical approved output-line");
+        Require(approvedByKey.Count == current.Rows.Count,
+            "Current output-line row count differs from the reviewed approval.");
+        foreach (V27CanonicalOutputLineBackfillProposalRow row in current.Rows)
+        {
+            string key = RowKey(row.RecipeId, row.AuthoredOutputOrdinal);
+            Require(approvedByKey.TryGetValue(key, out ApprovedRow reviewed),
+                "Current output-line row was not present in the reviewed approval: "
+                + key + ".");
+            string expectedItemId = ExpectedPostApprovalOutputItemByKey
+                .TryGetValue(key, out string migratedItemId)
+                    ? migratedItemId
+                    : reviewed.ItemId;
+            string expectedLineId = ExpectedPostApprovalOutputItemByKey
+                .ContainsKey(key)
+                    ? ProductionOutputLineAuthoring.BuildStableId(
+                        row.RecipeId,
+                        row.AuthoredOutputOrdinal,
+                        expectedItemId,
+                        reviewed.ProposedRole)
+                    : reviewed.ProposedOutputLineId;
+            Require(string.Equals(row.ItemId, expectedItemId,
+                        StringComparison.Ordinal)
+                    && row.Amount == reviewed.Amount
+                    && BitConverter.SingleToInt32Bits(row.Probability)
+                        == BitConverter.SingleToInt32Bits(reviewed.Probability)
+                    && row.AuthoredRole == reviewed.ProposedRole
+                    && string.Equals(row.AuthoredOutputLineId, expectedLineId,
+                        StringComparison.Ordinal),
+                "Current output-line authority differs from the reviewed approval "
+                + "and its four explicit post-approval migrations: " + key + ".");
+        }
+        Require(current.Rows.Count(value =>
+                    value.AuthoredRole == ProductionOutputRole.Main) == 351
+                && current.Rows.Count(value =>
+                    value.AuthoredRole == ProductionOutputRole.Byproduct) == 6
+                && current.Rows.All(value => value.AuthoredRole is
+                    ProductionOutputRole.Main or ProductionOutputRole.Byproduct),
+            "Current output role distribution differs from the reviewed 351/6 authority.");
+
+        HashSet<string> currentAuditedSecondaryKeys = current.Rows
+            .Where(value => value.AuthoredRole == ProductionOutputRole.Byproduct)
+            .Select(RoleChangeKey)
+            .Where(ExpectedRoleChangeKeys.Contains)
+            .ToHashSet(StringComparer.Ordinal);
+        Require(currentAuditedSecondaryKeys.SetEquals(ExpectedRoleChangeKeys),
+            "The six audited probabilistic Source outputs are not authored as Byproduct.");
+
+        StringBuilder report = new StringBuilder(1024);
+        report.Append("RESULT=PASS; phase=canonical-output-line-current-authority; ")
+            .Append("assetMutations=0\n")
+            .Append("recipes=355\n")
+            .Append("physicalOutputLines=").Append(current.Rows.Count).Append('\n')
+            .Append("canonicalOutputLines=").Append(current.Rows.Count).Append('\n')
+            .Append("missingOutputLines=0\n")
+            .Append("duplicateOutputLines=0\n")
+            .Append("auditedSecondaryRoleCorrections=")
+            .Append(ExpectedOutputRoleChanges).Append('\n')
+            .Append("reviewedPostApprovalMigrations=")
+            .Append(ExpectedPostApprovalOutputItemByKey.Count).Append('\n')
+            .Append("historicalOutputLineIdChanges=")
+            .Append(ExpectedOutputLineIdChanges).Append('\n')
+            .Append("currentSemanticHash=").Append(currentSemanticHash).Append('\n')
+            .Append("currentSourceDigest=").Append(current.SourceDigest).Append('\n')
+            .Append("currentInspectedAssetDigest=")
+            .Append(current.InspectedAssetDigest).Append('\n')
+            .Append("approvalCsvDigest=").Append(approved.CsvByteDigest).Append('\n')
+            .Append("approvalReportDigest=").Append(approved.ReportByteDigest).Append('\n')
+            .Append("secondApplyChanges=0\n");
+        byte[] bytes = new UTF8Encoding(false).GetBytes(report.ToString());
+        V27BalanceArtifactWriter.WriteIfDifferent(
+            CurrentAuthorityManifestPath,
+            stream => stream.Write(bytes, 0, bytes.Length));
     }
 
     private static ApprovedArtifact LoadApprovedArtifact()
@@ -843,6 +991,13 @@ public static class V27CanonicalOutputLineApplyApproved
         recipeId + "|" + ordinal.ToString(CultureInfo.InvariantCulture);
 
     private static string RoleChangeKey(ApprovedRow row) =>
+        row.RecipeId + "|"
+        + row.AuthoredOutputOrdinal.ToString(CultureInfo.InvariantCulture)
+        + "|" + row.ItemId + "|"
+        + row.Probability.ToString("R", CultureInfo.InvariantCulture);
+
+    private static string RoleChangeKey(
+        V27CanonicalOutputLineBackfillProposalRow row) =>
         row.RecipeId + "|"
         + row.AuthoredOutputOrdinal.ToString(CultureInfo.InvariantCulture)
         + "|" + row.ItemId + "|"

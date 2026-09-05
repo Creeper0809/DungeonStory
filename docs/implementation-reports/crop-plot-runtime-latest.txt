@@ -1,0 +1,16 @@
+# Crop Plot Runtime Verification
+utc=2026-09-04T15:52:10.6044465Z
+playMode=True
+PASS CROP_OUTPUT_FACILITY_BUFFER_WAIT_RESTORE_RETRY_EXACT_ONCE plot=building:096abdbeaf0f46e986cdf63b471fdd59;harvest=0->6;capacityWait=true;frozenRestore=true;replayDelta=0;executionReceipt=true;physicalBatchJoin=true;terminalRestore=true;ackRetention=true
+plot=building:096abdbeaf0f46e986cdf63b471fdd59
+crop=crop:twilight-grain
+materials=resource:clean-waterx1,seed-lot:twilight-grainx1,supply:nitrate-fertilizerx1
+harvest=0->6
+indoorPlot=building:d09b52ae73464f689de80add2ead8eda
+indoorMaterials=material:charcoalx1,material:compostx1,resource:clean-waterx1,seed-lot:cave-mushroomx1,supply:mushroom-substratex1,supply:nitrate-fertilizerx1
+indoorPhase=Growing
+fungalPlot=building:0ef070c8ff4f430eb2708884d241f651
+fungalMaterials=material:compostx1,resource:clean-waterx1,seed-lot:cave-mushroomx1,supply:inoculated-logx1
+inoculatedLog=700g;consumed=1
+fungalPhase=Growing
+valid=true

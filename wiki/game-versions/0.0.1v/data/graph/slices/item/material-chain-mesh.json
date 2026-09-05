@@ -1,0 +1,53 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-chain-mesh",
+    "spoiler_tier": "none",
+    "title": "사슬 망"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-mail-coif",
+      "label": "필요 조건",
+      "to": "item/material-chain-mesh",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-mail-shirt",
+      "label": "필요 조건",
+      "to": "item/material-chain-mesh",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-rune-ward-mail",
+      "label": "필요 조건",
+      "to": "item/material-chain-mesh",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-scale-coat",
+      "label": "필요 조건",
+      "to": "item/material-chain-mesh",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-reinforced-restraint",
+      "label": "필요 조건",
+      "to": "item/material-chain-mesh",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-chain-mesh",
+      "label": "생산·해금",
+      "to": "item/material-chain-mesh",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

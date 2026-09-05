@@ -26,13 +26,14 @@ public static class ResourceStockPolicySaleOutbox
 {
     public const string OperationPrefix = "stock-policy-sale:";
     public const string TransferReason = "stock-policy-market-export";
-    public const string DestinationPrefix = "stock-policy:sell:";
+    public const string DestinationPrefix =
+        "facility-input:exact:economy.stock-policy:";
 
     public static string FormatOperationId(string itemId, int sequence) =>
         $"{OperationPrefix}{sequence:D8}:{itemId}";
 
     public static string FormatDestinationId(string itemId) =>
-        DestinationPrefix + itemId;
+        EconomyProjectInputOwnerAuthority.BuildStockPolicyDestinationId(itemId);
 
     public static ResourceStockPolicyPendingSale CreatePending(
         int sequence,

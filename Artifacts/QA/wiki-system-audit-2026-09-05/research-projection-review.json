@@ -1,0 +1,7593 @@
+{
+  "status": "partial-system-audit",
+  "scope": "현재 작성 연구180개와 공개 연구180개, 연구능력시설8개, 청사진7개/공개문서14개. 실행·저장 전수 검증과 전체 시스템 감사는 미완료.",
+  "checks": {
+    "projects": 180,
+    "projectIdsUnique": 180,
+    "inGameContentCatalog": 180,
+    "workValuesMatched": 180,
+    "maximumResearchersValues": [
+      1
+    ],
+    "blueprintRules": {
+      "none": 173,
+      "required": 4,
+      "shortcut": 3
+    },
+    "capabilityNames": [
+      "기초",
+      "기록",
+      "표본",
+      "설계",
+      "시약",
+      "비전",
+      "고급"
+    ],
+    "publicResearchFactLabels": [
+      "필요 작업",
+      "연구 분야"
+    ],
+    "facilityDefinitions": 8,
+    "publicFacilityMatches": 7,
+    "blueprintDocuments": 14,
+    "immediateUnlockIncorrectDefinitions": 4,
+    "recipeIncorrectDefinitions": 3,
+    "itemBlueprintRelations": 0
+  },
+  "exceptions": [
+    "building:16 연구실은 GameDomainContentCatalog 및 GameplayScene GUID 참조를 확인했으나 공개 도감/이름변환·제외 원인 미검토. 미사용 또는 위키 삭제대상으로 단정하지 않음.",
+    "연구 예상기간 UI99WU/일과 가이드 기준45WU/일은 의미·용도와 표시 계약 추가 대조 필요.",
+    "연구 속도/금단의 도약/모든 해금효과/저장 왕복과 도감 중복 관계의 전체 검토는 미완료."
+  ],
+  "rules": {
+    "facilityAggregation": "운영 가능한 시설의 능력을 정착지 전체에서 합산. 닫힌 공간·문·Research 역할을 요구하고 자체완결 방, 비활성·파손·전원 미공급(전력소비능력이 있는 경우) 시설 제외.",
+    "archive": "연구 보관대 목적지 FacilityBuffer의 해당 물리 청사진1개가 보관조건. 연구용책장 보관량8. 최대청사진질량×보관량을 한도로 점유+예약+새실물질량 검사. 현재7개청사진 단위무게0.15kg.",
+    "queue": "한 활성 프로젝트, 미완료 선행 자동등록/중복등록차단, 조건부중단항목 건너뜀, 제거진척보존, 활성항목이동불가/선행역전거부. UI예약버튼은 Locked상태에서 비활성.",
+    "memoryResidue": "1개/24WU. 고정순서의 도감단서8개 또는 지역정보망피해+10(최대100). 활성 일반연구 없을 때 처리. 도감분석1건/동일지역정찰 중복예약 불가, 대상무효 시 실물 반환."
+  },
+  "projects": [
+    {
+      "id": "research:agriculture:compost",
+      "title": "퇴비·윤작",
+      "source": "Assets/Resources/SO/Research/Projects/agriculture_compost.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-agriculture-compost.json",
+      "work": 28,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "28"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Agriculture"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:agriculture:cultivar-breeding",
+      "title": "품종 개량",
+      "source": "Assets/Resources/SO/Research/Projects/agriculture_cultivar_breeding.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-agriculture-cultivar-breeding.json",
+      "work": 546,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "546"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Agriculture"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:agriculture:field",
+      "title": "외부 경작",
+      "source": "Assets/Resources/SO/Research/Projects/agriculture_field.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-agriculture-field.json",
+      "work": 28,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "28"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Agriculture"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:agriculture:gathering",
+      "title": "야생 채집",
+      "source": "Assets/Resources/SO/Research/Projects/agriculture_gathering.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-agriculture-gathering.json",
+      "work": 17,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "17"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Agriculture"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:agriculture:greenhouse-horticulture",
+      "title": "온실 원예",
+      "source": "Assets/Resources/SO/Research/Projects/agriculture_greenhouse_horticulture.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-agriculture-greenhouse-horticulture.json",
+      "work": 255,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "255"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Agriculture"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:agriculture:indoor",
+      "title": "실내 재배",
+      "source": "Assets/Resources/SO/Research/Projects/agriculture_indoor.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-agriculture-indoor.json",
+      "work": 60,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "60"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Agriculture"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:agriculture:irrigation",
+      "title": "관개",
+      "source": "Assets/Resources/SO/Research/Projects/agriculture_irrigation.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-agriculture-irrigation.json",
+      "work": 42,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "42"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Agriculture"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:agriculture:phenology",
+      "title": "생물계절학과 종자 선별",
+      "source": "Assets/Resources/SO/Research/Projects/agriculture_phenology.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-agriculture-phenology.json",
+      "work": 268,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "268"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Agriculture"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:agriculture:soil-cycles",
+      "title": "토양 순환과 작물 보호",
+      "source": "Assets/Resources/SO/Research/Projects/agriculture_soil_cycles.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-agriculture-soil-cycles.json",
+      "work": 697,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "697"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Agriculture"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:agriculture:subterranean",
+      "title": "지하 자급",
+      "source": "Assets/Resources/SO/Research/Projects/agriculture_subterranean.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-agriculture-subterranean.json",
+      "work": 84,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "84"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Agriculture"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:arcane:advanced",
+      "title": "비전 연구",
+      "source": "Assets/Resources/SO/Research/Projects/arcane_advanced.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-arcane-advanced.json",
+      "work": 42,
+      "max": 1,
+      "rule": 1,
+      "blueprint": "fe9e5fe8bcceb9e7caf7c3733c6bf4d6",
+      "requirements": [
+        "0:1",
+        "1:1",
+        "5:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "42"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Records And Arcane"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 1,
+          "name": "기록",
+          "requiredCount": 1
+        },
+        {
+          "capability": 5,
+          "name": "비전",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:arcane:alchemy",
+      "title": "연금 가공",
+      "source": "Assets/Resources/SO/Research/Projects/arcane_alchemy.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-arcane-alchemy.json",
+      "work": 28,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "1:1",
+        "5:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "28"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Records And Arcane"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 1,
+          "name": "기록",
+          "requiredCount": 1
+        },
+        {
+          "capability": 5,
+          "name": "비전",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:arcane:records",
+      "title": "기록 체계",
+      "source": "Assets/Resources/SO/Research/Projects/arcane_records.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-arcane-records.json",
+      "work": 17,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "1:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "17"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Records And Arcane"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 1,
+          "name": "기록",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:arcane:resonance",
+      "title": "비전 공명",
+      "source": "Assets/Resources/SO/Research/Projects/arcane_resonance.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-arcane-resonance.json",
+      "work": 60,
+      "max": 1,
+      "rule": 2,
+      "blueprint": "af5d82288efb85c4fa51a626075e7cb4",
+      "requirements": [
+        "0:1",
+        "1:1",
+        "5:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "60"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Records And Arcane"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 1,
+          "name": "기록",
+          "requiredCount": 1
+        },
+        {
+          "capability": 5,
+          "name": "비전",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:authority:office",
+      "title": "영주 집무",
+      "source": "Assets/Resources/SO/Research/Projects/authority_office.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-authority-office.json",
+      "work": 42,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "1:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "42"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Authority And Housing"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 1,
+          "name": "기록",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:authority:prestige",
+      "title": "장식과 위신",
+      "source": "Assets/Resources/SO/Research/Projects/authority_prestige.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-authority-prestige.json",
+      "work": 28,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "28"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Authority And Housing"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:authority:quarters",
+      "title": "기본 숙소",
+      "source": "Assets/Resources/SO/Research/Projects/authority_quarters.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-authority-quarters.json",
+      "work": 17,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "17"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Authority And Housing"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:authority:ritual",
+      "title": "의식 장식",
+      "source": "Assets/Resources/SO/Research/Projects/authority_ritual.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-authority-ritual.json",
+      "work": 60,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "1:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "60"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Authority And Housing"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 1,
+          "name": "기록",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:bath-business",
+      "title": "목욕 영업",
+      "source": "Assets/Resources/SO/Research/Projects/bath_business.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-bath-business.json",
+      "work": 42,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "42"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Water And Sanitation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:climate:environment-control",
+      "title": "기후 제어",
+      "source": "Assets/Resources/SO/Research/Projects/climate_environment_control.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-climate-environment-control.json",
+      "work": 437,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "437"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:climate:regional-climatology",
+      "title": "지역 기후학과 시각 항법",
+      "source": "Assets/Resources/SO/Research/Projects/climate_regional_climatology.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-climate-regional-climatology.json",
+      "work": 3819,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "1:1",
+        "5:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "3819"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Records And Arcane"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 1,
+          "name": "기록",
+          "requiredCount": 1
+        },
+        {
+          "capability": 5,
+          "name": "비전",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:climate:weather-observation",
+      "title": "기상 관측",
+      "source": "Assets/Resources/SO/Research/Projects/climate_weather_observation.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-climate-weather-observation.json",
+      "work": 153,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "1:1",
+        "5:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "153"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Records And Arcane"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 1,
+          "name": "기록",
+          "requiredCount": 1
+        },
+        {
+          "capability": 5,
+          "name": "비전",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:commerce:expansion",
+      "title": "상업 확장",
+      "source": "Assets/Resources/SO/Research/Projects/commerce_expansion.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-commerce-expansion.json",
+      "work": 42,
+      "max": 1,
+      "rule": 1,
+      "blueprint": "75a99e92193be87e2a49bdbb00980764",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "42"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Commerce And Craft"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:commerce:logistics",
+      "title": "창고 구획",
+      "source": "Assets/Resources/SO/Research/Projects/commerce_logistics.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-commerce-logistics.json",
+      "work": 17,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "17"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Commerce And Craft"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:commerce:retail",
+      "title": "상업 진열",
+      "source": "Assets/Resources/SO/Research/Projects/commerce_retail.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-commerce-retail.json",
+      "work": 28,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "28"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Commerce And Craft"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:commerce:secure-trade",
+      "title": "상권 통합",
+      "source": "Assets/Resources/SO/Research/Projects/commerce_secure_trade.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-commerce-secure-trade.json",
+      "work": 60,
+      "max": 1,
+      "rule": 2,
+      "blueprint": "901cfda63d5374489861ef1b9dd59e32",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "60"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Commerce And Craft"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:control:blood-show",
+      "title": "피의 흥행",
+      "source": "Assets/Resources/SO/Research/Projects/control_blood_show.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-control-blood-show.json",
+      "work": 60,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "1:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "60"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Captivity And Entertainment"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 1,
+          "name": "기록",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:control:labor",
+      "title": "노역 감독",
+      "source": "Assets/Resources/SO/Research/Projects/control_labor.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-control-labor.json",
+      "work": 28,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "28"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Captivity And Entertainment"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:control:restraints",
+      "title": "구속 관리",
+      "source": "Assets/Resources/SO/Research/Projects/control_restraints.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-control-restraints.json",
+      "work": 17,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "17"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Captivity And Entertainment"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:control:show",
+      "title": "흥행 운영",
+      "source": "Assets/Resources/SO/Research/Projects/control_show.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-control-show.json",
+      "work": 42,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "1:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "42"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Captivity And Entertainment"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 1,
+          "name": "기록",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:cuisine:baking",
+      "title": "제빵",
+      "source": "Assets/Resources/SO/Research/Projects/cuisine_baking.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-cuisine-baking.json",
+      "work": 60,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "60"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Cuisine"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:cuisine:controlled-fermentation",
+      "title": "제어 발효",
+      "source": "Assets/Resources/SO/Research/Projects/cuisine_controlled_fermentation.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-cuisine-controlled-fermentation.json",
+      "work": 84,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "84"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Cuisine"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:cuisine:crops",
+      "title": "농산 조리",
+      "source": "Assets/Resources/SO/Research/Projects/cuisine_crops.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-cuisine-crops.json",
+      "work": 17,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "17"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Cuisine"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:cuisine:distilling-aging",
+      "title": "주류 증류·숙성",
+      "source": "Assets/Resources/SO/Research/Projects/cuisine_distilling_aging.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-cuisine-distilling-aging.json",
+      "work": 115,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "115"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Cuisine"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:cuisine:fermentation",
+      "title": "발효",
+      "source": "Assets/Resources/SO/Research/Projects/cuisine_fermentation.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-cuisine-fermentation.json",
+      "work": 60,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "60"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Cuisine"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:cuisine:kitchen-hygiene",
+      "title": "주방 위생",
+      "source": "Assets/Resources/SO/Research/Projects/cuisine_kitchen_hygiene.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-cuisine-kitchen-hygiene.json",
+      "work": 84,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "84"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Cuisine"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:cuisine:lavish",
+      "title": "호화·보존식",
+      "source": "Assets/Resources/SO/Research/Projects/cuisine_lavish.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-cuisine-lavish.json",
+      "work": 84,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "84"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Cuisine"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:cuisine:livestock",
+      "title": "축산 조리",
+      "source": "Assets/Resources/SO/Research/Projects/cuisine_livestock.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-cuisine-livestock.json",
+      "work": 42,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "42"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Cuisine"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:cuisine:milling",
+      "title": "제분·제빵",
+      "source": "Assets/Resources/SO/Research/Projects/cuisine_milling.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-cuisine-milling.json",
+      "work": 28,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "28"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Cuisine"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:cuisine:vegan",
+      "title": "채식 조리",
+      "source": "Assets/Resources/SO/Research/Projects/cuisine_vegan.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-cuisine-vegan.json",
+      "work": 42,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "42"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Cuisine"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:defense:alliance-signals",
+      "title": "동맹 신호학",
+      "source": "Assets/Resources/SO/Research/Projects/defense_alliance_signals.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-defense-alliance-signals.json",
+      "work": 153,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "153"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Defense And Tactics"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:defense:corridor-mechanisms",
+      "title": "복도 기구학",
+      "source": "Assets/Resources/SO/Research/Projects/defense_corridor_mechanisms.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-defense-corridor-mechanisms.json",
+      "work": 60,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "60"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Defense And Tactics"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:defense:fortification",
+      "title": "요새화",
+      "source": "Assets/Resources/SO/Research/Projects/defense_fortification.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-defense-fortification.json",
+      "work": 28,
+      "max": 1,
+      "rule": 1,
+      "blueprint": "c76eaccbfce6f46d89c14c3af6bb3433",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "28"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Defense And Tactics"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:defense:ranged-positions",
+      "title": "사격 방책",
+      "source": "Assets/Resources/SO/Research/Projects/defense_ranged_positions.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-defense-ranged-positions.json",
+      "work": 42,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "42"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Defense And Tactics"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:defense:remote-control",
+      "title": "원격 통제",
+      "source": "Assets/Resources/SO/Research/Projects/defense_remote_control.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-defense-remote-control.json",
+      "work": 84,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "84"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Defense And Tactics"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:defense:rune-identification",
+      "title": "룬 식별",
+      "source": "Assets/Resources/SO/Research/Projects/defense_rune_identification.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-defense-rune-identification.json",
+      "work": 84,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "84"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Defense And Tactics"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:defense:siege-fortification",
+      "title": "공성 요새화",
+      "source": "Assets/Resources/SO/Research/Projects/defense_siege_fortification.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-defense-siege-fortification.json",
+      "work": 115,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "115"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Defense And Tactics"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:defense:supply",
+      "title": "방어 보급학",
+      "source": "Assets/Resources/SO/Research/Projects/defense_supply.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-defense-supply.json",
+      "work": 42,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "42"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Defense And Tactics"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:defense:tactical-command",
+      "title": "전술 지휘",
+      "source": "Assets/Resources/SO/Research/Projects/defense_tactical_command.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-defense-tactical-command.json",
+      "work": 60,
+      "max": 1,
+      "rule": 2,
+      "blueprint": "74711e8d7994655e884e29ceb31c6100",
+      "requirements": [
+        "0:2",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "60"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Defense And Tactics"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:defense:watch",
+      "title": "경계 근무",
+      "source": "Assets/Resources/SO/Research/Projects/defense_watch.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-defense-watch.json",
+      "work": 17,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "17"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Defense And Tactics"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:environment:cold-work",
+      "title": "저온 작업 보호",
+      "source": "Assets/Resources/SO/Research/Projects/environment_cold_work.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-environment-cold-work.json",
+      "work": 42,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "42"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Life And Survival"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:environment:rune-insulation",
+      "title": "룬 단열학",
+      "source": "Assets/Resources/SO/Research/Projects/environment_rune_insulation.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-environment-rune-insulation.json",
+      "work": 84,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "84"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Life And Survival"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:equipment:armor-tailoring",
+      "title": "방어구 재단",
+      "source": "Assets/Resources/SO/Research/Projects/equipment_armor_tailoring.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-equipment-armor-tailoring.json",
+      "work": 60,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "60"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Textiles"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:equipment:articulated-plate",
+      "title": "관절식 판금",
+      "source": "Assets/Resources/SO/Research/Projects/equipment_articulated_plate.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-equipment-articulated-plate.json",
+      "work": 115,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "115"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Metallurgy"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:equipment:ballistics",
+      "title": "탄도학",
+      "source": "Assets/Resources/SO/Research/Projects/equipment_ballistics.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-equipment-ballistics.json",
+      "work": 255,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "255"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Defense And Tactics"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:equipment:black-powder",
+      "title": "흑색화약 배합",
+      "source": "Assets/Resources/SO/Research/Projects/equipment_black_powder.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-equipment-black-powder.json",
+      "work": 191,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "191"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:equipment:bowyery",
+      "title": "궁시 제작학",
+      "source": "Assets/Resources/SO/Research/Projects/equipment_bowyery.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-equipment-bowyery.json",
+      "work": 60,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "60"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Commerce And Craft"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:equipment:field-maintenance",
+      "title": "야전 정비학",
+      "source": "Assets/Resources/SO/Research/Projects/equipment_field_maintenance.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-equipment-field-maintenance.json",
+      "work": 84,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "84"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Defense And Tactics"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:equipment:ignition-mechanisms",
+      "title": "점화 기구학",
+      "source": "Assets/Resources/SO/Research/Projects/equipment_ignition_mechanisms.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-equipment-ignition-mechanisms.json",
+      "work": 255,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "255"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:equipment:industrial-metrology",
+      "title": "산업 계측학",
+      "source": "Assets/Resources/SO/Research/Projects/equipment_industrial_metrology.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-equipment-industrial-metrology.json",
+      "work": 437,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "437"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:equipment:lineage-binding",
+      "title": "장비 계보 결속",
+      "source": "Assets/Resources/SO/Research/Projects/equipment_lineage_binding.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-equipment-lineage-binding.json",
+      "work": 546,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "1:1",
+        "5:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "546"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Records And Arcane"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 1,
+          "name": "기록",
+          "requiredCount": 1
+        },
+        {
+          "capability": 5,
+          "name": "비전",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:equipment:mail-weaving",
+      "title": "사슬 편조",
+      "source": "Assets/Resources/SO/Research/Projects/equipment_mail_weaving.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-equipment-mail-weaving.json",
+      "work": 84,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "84"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Metallurgy"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:equipment:material-testing",
+      "title": "재료 시험학",
+      "source": "Assets/Resources/SO/Research/Projects/equipment_material_testing.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-equipment-material-testing.json",
+      "work": 255,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "255"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:equipment:mechanical-projectiles",
+      "title": "기계식 투사",
+      "source": "Assets/Resources/SO/Research/Projects/equipment_mechanical_projectiles.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-equipment-mechanical-projectiles.json",
+      "work": 84,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "84"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Defense And Tactics"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:equipment:modular-frames",
+      "title": "모듈식 장비 골격",
+      "source": "Assets/Resources/SO/Research/Projects/equipment_modular_frames.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-equipment-modular-frames.json",
+      "work": 437,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "437"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:equipment:powered-armor",
+      "title": "동력 보조 갑주",
+      "source": "Assets/Resources/SO/Research/Projects/equipment_powered_armor.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-equipment-powered-armor.json",
+      "work": 546,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "546"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:equipment:precision-fitting",
+      "title": "정밀 부품 장착",
+      "source": "Assets/Resources/SO/Research/Projects/equipment_precision_fitting.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-equipment-precision-fitting.json",
+      "work": 328,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "328"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:equipment:pressure-barrels",
+      "title": "내압 화기와 방폭",
+      "source": "Assets/Resources/SO/Research/Projects/equipment_pressure_barrels.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-equipment-pressure-barrels.json",
+      "work": 655,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "655"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:equipment:prototype-engineering",
+      "title": "시제품 공학",
+      "source": "Assets/Resources/SO/Research/Projects/equipment_prototype_engineering.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-equipment-prototype-engineering.json",
+      "work": 328,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "328"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:equipment:relic-appraisal",
+      "title": "유물 부품 감정과 복원",
+      "source": "Assets/Resources/SO/Research/Projects/equipment_relic_appraisal.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-equipment-relic-appraisal.json",
+      "work": 306,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "1:1",
+        "5:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "306"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Records And Arcane"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 1,
+          "name": "기록",
+          "requiredCount": 1
+        },
+        {
+          "capability": 5,
+          "name": "비전",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:equipment:rune-module-tuning",
+      "title": "룬 부품 조율",
+      "source": "Assets/Resources/SO/Research/Projects/equipment_rune_module_tuning.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-equipment-rune-module-tuning.json",
+      "work": 546,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "546"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:equipment:standard-ammunition",
+      "title": "탄약 규격화",
+      "source": "Assets/Resources/SO/Research/Projects/equipment_standard_ammunition.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-equipment-standard-ammunition.json",
+      "work": 328,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "328"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:equipment:weapon-patterns",
+      "title": "무기 형식학",
+      "source": "Assets/Resources/SO/Research/Projects/equipment_weapon_patterns.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-equipment-weapon-patterns.json",
+      "work": 42,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "42"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Commerce And Craft"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:forestry:charcoal",
+      "title": "숯가마",
+      "source": "Assets/Resources/SO/Research/Projects/forestry_charcoal.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-forestry-charcoal.json",
+      "work": 42,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "42"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Forestry"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:forestry:fungal",
+      "title": "실내 균목림",
+      "source": "Assets/Resources/SO/Research/Projects/forestry_fungal.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-forestry-fungal.json",
+      "work": 84,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "84"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Forestry"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:forestry:logging",
+      "title": "벌목",
+      "source": "Assets/Resources/SO/Research/Projects/forestry_logging.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-forestry-logging.json",
+      "work": 28,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "28"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Forestry"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:forestry:sawmill",
+      "title": "제재",
+      "source": "Assets/Resources/SO/Research/Projects/forestry_sawmill.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-forestry-sawmill.json",
+      "work": 28,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "28"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Forestry"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:forestry:tools",
+      "title": "벌목 도구",
+      "source": "Assets/Resources/SO/Research/Projects/forestry_tools.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-forestry-tools.json",
+      "work": 17,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "17"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Forestry"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:forestry:treated",
+      "title": "목재 처리",
+      "source": "Assets/Resources/SO/Research/Projects/forestry_treated.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-forestry-treated.json",
+      "work": 60,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "60"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Forestry"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:genetics:controlled-heredity",
+      "title": "통제 유전",
+      "source": "Assets/Resources/SO/Research/Projects/genetics_controlled_heredity.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-genetics-controlled-heredity.json",
+      "work": 819,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "819"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:genetics:cross-lineage-stabilization",
+      "title": "교차계통 안정화",
+      "source": "Assets/Resources/SO/Research/Projects/genetics_cross_lineage_stabilization.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-genetics-cross-lineage-stabilization.json",
+      "work": 4364,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "4364"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:genetics:hereditary-records",
+      "title": "유전 기록과 형질 분석",
+      "source": "Assets/Resources/SO/Research/Projects/genetics_hereditary_records.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-genetics-hereditary-records.json",
+      "work": 691,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "1:1",
+        "5:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "691"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Records And Arcane"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 1,
+          "name": "기록",
+          "requiredCount": 1
+        },
+        {
+          "capability": 5,
+          "name": "비전",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:health:isolation-medicine",
+      "title": "격리 의학",
+      "source": "Assets/Resources/SO/Research/Projects/health_isolation_medicine.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-health-isolation-medicine.json",
+      "work": 255,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "255"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:health:pathogen-observation",
+      "title": "병원체 관찰과 면역 혈청학",
+      "source": "Assets/Resources/SO/Research/Projects/health_pathogen_observation.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-health-pathogen-observation.json",
+      "work": 519,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "519"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:health:vaccination",
+      "title": "예방접종과 유행병 통제",
+      "source": "Assets/Resources/SO/Research/Projects/health_vaccination.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-health-vaccination.json",
+      "work": 982,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "982"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:hospitality-operations",
+      "title": "환대 운영",
+      "source": "Assets/Resources/SO/Research/Projects/hospitality_operations.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-hospitality-operations.json",
+      "work": 42,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "1:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "42"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Authority And Housing"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 1,
+          "name": "기록",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:housing:room-assignment",
+      "title": "방 배정과 가족 생활구획",
+      "source": "Assets/Resources/SO/Research/Projects/housing_room_assignment.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-housing-room-assignment.json",
+      "work": 237,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "1:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "237"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Authority And Housing"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 1,
+          "name": "기록",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:husbandry:breeding",
+      "title": "번식 관리",
+      "source": "Assets/Resources/SO/Research/Projects/husbandry_breeding.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-husbandry-breeding.json",
+      "work": 60,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "60"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Husbandry"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:husbandry:capture",
+      "title": "야생 포획",
+      "source": "Assets/Resources/SO/Research/Projects/husbandry_capture.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-husbandry-capture.json",
+      "work": 17,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "17"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Husbandry"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:husbandry:feed",
+      "title": "사료·깔짚",
+      "source": "Assets/Resources/SO/Research/Projects/husbandry_feed.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-husbandry-feed.json",
+      "work": 42,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "42"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Husbandry"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:husbandry:seasonal-breeding",
+      "title": "계절 번식",
+      "source": "Assets/Resources/SO/Research/Projects/husbandry_seasonal_breeding.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-husbandry-seasonal-breeding.json",
+      "work": 191,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "191"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Husbandry"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:husbandry:selective",
+      "title": "선별 사육",
+      "source": "Assets/Resources/SO/Research/Projects/husbandry_selective.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-husbandry-selective.json",
+      "work": 84,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "84"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Husbandry"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:husbandry:stable",
+      "title": "축사 관리",
+      "source": "Assets/Resources/SO/Research/Projects/husbandry_stable.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-husbandry-stable.json",
+      "work": 28,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "28"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Husbandry"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:husbandry:taming",
+      "title": "길들이기",
+      "source": "Assets/Resources/SO/Research/Projects/husbandry_taming.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-husbandry-taming.json",
+      "work": 42,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "42"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Husbandry"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:industry:assisted-processing",
+      "title": "동력 보조 가공",
+      "source": "Assets/Resources/SO/Research/Projects/industry_assisted_processing.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-industry-assisted-processing.json",
+      "work": 328,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "328"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:industry:automatic-bills",
+      "title": "자동 주문과 재고 감지",
+      "source": "Assets/Resources/SO/Research/Projects/industry_automatic_bills.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-industry-automatic-bills.json",
+      "work": 873,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "873"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:industry:automatic-sanitation",
+      "title": "자동 위생과 산업 안전",
+      "source": "Assets/Resources/SO/Research/Projects/industry_automatic_sanitation.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-industry-automatic-sanitation.json",
+      "work": 873,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "873"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:industry:breakers",
+      "title": "차단기와 산업 정비",
+      "source": "Assets/Resources/SO/Research/Projects/industry_breakers.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-industry-breakers.json",
+      "work": 582,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "582"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:industry:conveyor",
+      "title": "컨베이어와 물류 포트",
+      "source": "Assets/Resources/SO/Research/Projects/industry_conveyor.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-industry-conveyor.json",
+      "work": 582,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "582"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:industry:dark-foundry",
+      "title": "심연 공장",
+      "source": "Assets/Resources/SO/Research/Projects/industry_dark_foundry.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-industry-dark-foundry.json",
+      "work": 546,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "546"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:industry:electric-lighting",
+      "title": "산업 조명",
+      "source": "Assets/Resources/SO/Research/Projects/industry_electric_lighting.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-industry-electric-lighting.json",
+      "work": 328,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "328"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:industry:electric-smelting",
+      "title": "전기 제련과 산업 냉각",
+      "source": "Assets/Resources/SO/Research/Projects/industry_electric_smelting.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-industry-electric-smelting.json",
+      "work": 655,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "655"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:industry:junctions",
+      "title": "분기·필터·우선순위 제어",
+      "source": "Assets/Resources/SO/Research/Projects/industry_junctions.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-industry-junctions.json",
+      "work": 910,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "910"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:industry:lifts",
+      "title": "승강·오버플로·고속 운송",
+      "source": "Assets/Resources/SO/Research/Projects/industry_lifts.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-industry-lifts.json",
+      "work": 1200,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "1200"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:industry:line-balancing",
+      "title": "라인 균형과 방어 보급",
+      "source": "Assets/Resources/SO/Research/Projects/industry_line_balancing.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-industry-line-balancing.json",
+      "work": 873,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "873"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:industry:mana-power",
+      "title": "마나 동력과 룬 전력망",
+      "source": "Assets/Resources/SO/Research/Projects/industry_mana_power.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-industry-mana-power.json",
+      "work": 764,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "764"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:industry:powered-tools",
+      "title": "공장 공학",
+      "source": "Assets/Resources/SO/Research/Projects/industry_powered_tools.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-industry-powered-tools.json",
+      "work": 700,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "700"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:industry:precision",
+      "title": "정밀 자동화",
+      "source": "Assets/Resources/SO/Research/Projects/industry_precision.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-industry-precision.json",
+      "work": 437,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "437"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:industry:rune-automation",
+      "title": "룬 자동화",
+      "source": "Assets/Resources/SO/Research/Projects/industry_rune_automation.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-industry-rune-automation.json",
+      "work": 546,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "546"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:industry:steam-power",
+      "title": "증기 동력과 배전",
+      "source": "Assets/Resources/SO/Research/Projects/industry_steam_power.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-industry-steam-power.json",
+      "work": 446,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "446"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:industry:storage",
+      "title": "산업 저장과 변압",
+      "source": "Assets/Resources/SO/Research/Projects/industry_storage.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-industry-storage.json",
+      "work": 582,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "582"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:industry:waterwheel",
+      "title": "수차 발전",
+      "source": "Assets/Resources/SO/Research/Projects/industry_waterwheel.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-industry-waterwheel.json",
+      "work": 255,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "255"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:life:seasonal-calendar",
+      "title": "계절 역법",
+      "source": "Assets/Resources/SO/Research/Projects/life_seasonal_calendar.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-life-seasonal-calendar.json",
+      "work": 84,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "1:1",
+        "5:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "84"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Records And Arcane"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 1,
+          "name": "기록",
+          "requiredCount": 1
+        },
+        {
+          "capability": 5,
+          "name": "비전",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:medical:aberrant-augmentation",
+      "title": "이형 개조",
+      "source": "Assets/Resources/SO/Research/Projects/medical_aberrant_augmentation.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-medical-aberrant-augmentation.json",
+      "work": 153,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "153"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:medical:anatomy",
+      "title": "해부학",
+      "source": "Assets/Resources/SO/Research/Projects/medical_anatomy.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-medical-anatomy.json",
+      "work": 42,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "42"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:medical:avian-prosthetics",
+      "title": "조류 보철학",
+      "source": "Assets/Resources/SO/Research/Projects/medical_avian_prosthetics.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-medical-avian-prosthetics.json",
+      "work": 84,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "84"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:medical:blood-rejuvenation",
+      "title": "혈액 회춘",
+      "source": "Assets/Resources/SO/Research/Projects/medical_blood_rejuvenation.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-medical-blood-rejuvenation.json",
+      "work": 2182,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "2182"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:medical:bloodcraft-augmentation",
+      "title": "혈술 개조",
+      "source": "Assets/Resources/SO/Research/Projects/medical_bloodcraft_augmentation.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-medical-bloodcraft-augmentation.json",
+      "work": 115,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "115"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:medical:construct-core-engineering",
+      "title": "구성체 핵 공학",
+      "source": "Assets/Resources/SO/Research/Projects/medical_construct_core_engineering.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-medical-construct-core-engineering.json",
+      "work": 115,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "115"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:medical:construct-core-maintenance",
+      "title": "구성체 핵 정비",
+      "source": "Assets/Resources/SO/Research/Projects/medical_construct_core_maintenance.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-medical-construct-core-maintenance.json",
+      "work": 84,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "84"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:medical:geriatric-medicine",
+      "title": "노인의학과 만성 관리",
+      "source": "Assets/Resources/SO/Research/Projects/medical_geriatric_medicine.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-medical-geriatric-medicine.json",
+      "work": 582,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "582"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:medical:gerontology",
+      "title": "노인학과 생물학적 연령 계측",
+      "source": "Assets/Resources/SO/Research/Projects/medical_gerontology.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-medical-gerontology.json",
+      "work": 519,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "519"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:medical:mana-core-engineering",
+      "title": "마핵 공학",
+      "source": "Assets/Resources/SO/Research/Projects/medical_mana_core_engineering.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-medical-mana-core-engineering.json",
+      "work": 115,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "115"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:medical:mycelial-grafting",
+      "title": "균사 접목학",
+      "source": "Assets/Resources/SO/Research/Projects/medical_mycelial_grafting.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-medical-mycelial-grafting.json",
+      "work": 84,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "84"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:medical:organ-preservation",
+      "title": "장기 보존",
+      "source": "Assets/Resources/SO/Research/Projects/medical_organ_preservation.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-medical-organ-preservation.json",
+      "work": 84,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "84"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:medical:organ-regeneration",
+      "title": "장기 재생",
+      "source": "Assets/Resources/SO/Research/Projects/medical_organ_regeneration.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-medical-organ-regeneration.json",
+      "work": 3273,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "3273"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:medical:prosthetics",
+      "title": "보철 공학",
+      "source": "Assets/Resources/SO/Research/Projects/medical_prosthetics.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-medical-prosthetics.json",
+      "work": 84,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "84"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:medical-reception",
+      "title": "의료 접수",
+      "source": "Assets/Resources/SO/Research/Projects/medical_reception.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-medical-reception.json",
+      "work": 42,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "42"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:medical:regenerative-culture",
+      "title": "재생 배양",
+      "source": "Assets/Resources/SO/Research/Projects/medical_regenerative_culture.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-medical-regenerative-culture.json",
+      "work": 2182,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "2182"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:medical:reproductive-medicine",
+      "title": "생식 의학",
+      "source": "Assets/Resources/SO/Research/Projects/medical_reproductive_medicine.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-medical-reproductive-medicine.json",
+      "work": 255,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "255"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:medical:rune-hibernation",
+      "title": "룬 동면",
+      "source": "Assets/Resources/SO/Research/Projects/medical_rune_hibernation.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-medical-rune-hibernation.json",
+      "work": 2182,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "1:1",
+        "5:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "2182"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Records And Arcane"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 1,
+          "name": "기록",
+          "requiredCount": 1
+        },
+        {
+          "capability": 5,
+          "name": "비전",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:medical:slime-bioengineering",
+      "title": "점액 생체공학",
+      "source": "Assets/Resources/SO/Research/Projects/medical_slime_bioengineering.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-medical-slime-bioengineering.json",
+      "work": 84,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "84"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:medical:surgery",
+      "title": "외과술",
+      "source": "Assets/Resources/SO/Research/Projects/medical_surgery.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-medical-surgery.json",
+      "work": 60,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "60"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:medical:temporal-stasis",
+      "title": "시간 고정",
+      "source": "Assets/Resources/SO/Research/Projects/medical_temporal_stasis.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-medical-temporal-stasis.json",
+      "work": 5455,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "1:1",
+        "5:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "5455"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Records And Arcane"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 1,
+          "name": "기록",
+          "requiredCount": 1
+        },
+        {
+          "capability": 5,
+          "name": "비전",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:medical:trauma-medicine",
+      "title": "트라우마 의학",
+      "source": "Assets/Resources/SO/Research/Projects/medical_trauma_medicine.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-medical-trauma-medicine.json",
+      "work": 255,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "255"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:medical:whole-body-regeneration",
+      "title": "전신 재생",
+      "source": "Assets/Resources/SO/Research/Projects/medical_whole_body_regeneration.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-medical-whole-body-regeneration.json",
+      "work": 5455,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "5455"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:medical:xenotransplant",
+      "title": "이종 이식",
+      "source": "Assets/Resources/SO/Research/Projects/medical_xenotransplant.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-medical-xenotransplant.json",
+      "work": 115,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "115"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Surgery And Transplant"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:metallurgy:advanced",
+      "title": "고급 단조",
+      "source": "Assets/Resources/SO/Research/Projects/metallurgy_advanced.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-metallurgy-advanced.json",
+      "work": 60,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "60"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Metallurgy"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:metallurgy:blacksteel",
+      "title": "흑강",
+      "source": "Assets/Resources/SO/Research/Projects/metallurgy_blacksteel.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-metallurgy-blacksteel.json",
+      "work": 84,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "84"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Metallurgy"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:metallurgy:iron",
+      "title": "철제 가공",
+      "source": "Assets/Resources/SO/Research/Projects/metallurgy_iron.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-metallurgy-iron.json",
+      "work": 28,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "28"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Metallurgy"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:metallurgy:precious",
+      "title": "귀금 세공",
+      "source": "Assets/Resources/SO/Research/Projects/metallurgy_precious.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-metallurgy-precious.json",
+      "work": 84,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "84"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Metallurgy"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:metallurgy:primitive",
+      "title": "원시 단조",
+      "source": "Assets/Resources/SO/Research/Projects/metallurgy_primitive.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-metallurgy-primitive.json",
+      "work": 17,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "17"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Metallurgy"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:metallurgy:steel",
+      "title": "제강",
+      "source": "Assets/Resources/SO/Research/Projects/metallurgy_steel.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-metallurgy-steel.json",
+      "work": 42,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "42"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Metallurgy"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:mining:deep",
+      "title": "심부 채굴",
+      "source": "Assets/Resources/SO/Research/Projects/mining_deep.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-mining-deep.json",
+      "work": 60,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "60"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Mining"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:mining:mana",
+      "title": "마나 시추",
+      "source": "Assets/Resources/SO/Research/Projects/mining_mana.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-mining-mana.json",
+      "work": 84,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "84"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Mining"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:mining:quarry",
+      "title": "채석장",
+      "source": "Assets/Resources/SO/Research/Projects/mining_quarry.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-mining-quarry.json",
+      "work": 28,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "28"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Mining"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:mining:sorting",
+      "title": "광석 선별",
+      "source": "Assets/Resources/SO/Research/Projects/mining_sorting.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-mining-sorting.json",
+      "work": 42,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "42"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Mining"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:mining:stonecutting",
+      "title": "석재 가공",
+      "source": "Assets/Resources/SO/Research/Projects/mining_stonecutting.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-mining-stonecutting.json",
+      "work": 42,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "42"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Mining"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:mining:surface",
+      "title": "노천 채석",
+      "source": "Assets/Resources/SO/Research/Projects/mining_surface.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-mining-surface.json",
+      "work": 17,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "17"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Mining"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:pharmacology:advanced",
+      "title": "고급 약리",
+      "source": "Assets/Resources/SO/Research/Projects/pharmacology_advanced.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-pharmacology-advanced.json",
+      "work": 84,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "4:1",
+        "5:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "84"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Pharmacology"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 4,
+          "name": "시약",
+          "requiredCount": 1
+        },
+        {
+          "capability": 5,
+          "name": "비전",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:pharmacology:anesthesia",
+      "title": "진통·마취",
+      "source": "Assets/Resources/SO/Research/Projects/pharmacology_anesthesia.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-pharmacology-anesthesia.json",
+      "work": 60,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "4:1",
+        "5:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "60"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Pharmacology"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 4,
+          "name": "시약",
+          "requiredCount": 1
+        },
+        {
+          "capability": 5,
+          "name": "비전",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:pharmacology:antiseptic",
+      "title": "소독·붕대",
+      "source": "Assets/Resources/SO/Research/Projects/pharmacology_antiseptic.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-pharmacology-antiseptic.json",
+      "work": 28,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "4:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "28"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Pharmacology"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 4,
+          "name": "시약",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:pharmacology:distillation",
+      "title": "증류",
+      "source": "Assets/Resources/SO/Research/Projects/pharmacology_distillation.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-pharmacology-distillation.json",
+      "work": 42,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "4:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "42"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Pharmacology"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 4,
+          "name": "시약",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:pharmacology:herbalism",
+      "title": "약초학",
+      "source": "Assets/Resources/SO/Research/Projects/pharmacology_herbalism.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-pharmacology-herbalism.json",
+      "work": 17,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "4:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "17"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Pharmacology"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 4,
+          "name": "시약",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:pharmacology:stimulants",
+      "title": "각성제",
+      "source": "Assets/Resources/SO/Research/Projects/pharmacology_stimulants.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-pharmacology-stimulants.json",
+      "work": 60,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "4:1",
+        "5:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "60"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Pharmacology"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 4,
+          "name": "시약",
+          "requiredCount": 1
+        },
+        {
+          "capability": 5,
+          "name": "비전",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:plumbing:basics",
+      "title": "기초 배관과 펌프 급수",
+      "source": "Assets/Resources/SO/Research/Projects/plumbing_basics.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-plumbing-basics.json",
+      "work": 130,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "130"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Water And Sanitation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:plumbing:reuse",
+      "title": "정수와 재이용",
+      "source": "Assets/Resources/SO/Research/Projects/plumbing_reuse.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-plumbing-reuse.json",
+      "work": 115,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "115"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Water And Sanitation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:plumbing:rune-purification",
+      "title": "룬 정화 순환",
+      "source": "Assets/Resources/SO/Research/Projects/plumbing_rune_purification.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-plumbing-rune-purification.json",
+      "work": 153,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "153"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Water And Sanitation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:plumbing:sewer",
+      "title": "하수 처리와 수세 위생",
+      "source": "Assets/Resources/SO/Research/Projects/plumbing_sewer.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-plumbing-sewer.json",
+      "work": 228,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "228"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Water And Sanitation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:service-automation",
+      "title": "서비스 자동화",
+      "source": "Assets/Resources/SO/Research/Projects/service_automation.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-service-automation.json",
+      "work": 328,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:2",
+        "3:1",
+        "6:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "328"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Industry And Automation"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 2
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:service:dining-operations",
+      "title": "식당 운영학",
+      "source": "Assets/Resources/SO/Research/Projects/service_dining_operations.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-service-dining-operations.json",
+      "work": 84,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "84"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Commerce And Craft"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:service-flow",
+      "title": "서비스 동선",
+      "source": "Assets/Resources/SO/Research/Projects/service_flow.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-service-flow.json",
+      "work": 28,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "28"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Commerce And Craft"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:society:career-records",
+      "title": "경력 기록",
+      "source": "Assets/Resources/SO/Research/Projects/society_career_records.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-society-career-records.json",
+      "work": 115,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "1:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "115"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Authority And Housing"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 1,
+          "name": "기록",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:society:child-education",
+      "title": "아동 교육과 도제 제도",
+      "source": "Assets/Resources/SO/Research/Projects/society_child_education.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-society-child-education.json",
+      "work": 408,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "1:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "408"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Authority And Housing"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 1,
+          "name": "기록",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:society:corpse-care",
+      "title": "시신 관리와 장례 의식",
+      "source": "Assets/Resources/SO/Research/Projects/society_corpse_care.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-society-corpse-care.json",
+      "work": 306,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "306"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Life And Survival"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:society:generation-management",
+      "title": "세대 관리와 보호자 승계",
+      "source": "Assets/Resources/SO/Research/Projects/society_generation_management.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-society-generation-management.json",
+      "work": 691,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "1:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "691"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Authority And Housing"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 1,
+          "name": "기록",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:society:household-records",
+      "title": "가구 기록과 영아 돌봄",
+      "source": "Assets/Resources/SO/Research/Projects/society_household_records.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-society-household-records.json",
+      "work": 199,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "1:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "199"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Authority And Housing"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 1,
+          "name": "기록",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:society:retirement",
+      "title": "은퇴와 멘토 제도",
+      "source": "Assets/Resources/SO/Research/Projects/society_retirement.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-society-retirement.json",
+      "work": 628,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "1:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "628"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Authority And Housing"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 1,
+          "name": "기록",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:survival:field-rations",
+      "title": "야전 식량학",
+      "source": "Assets/Resources/SO/Research/Projects/survival_field_rations.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-survival-field-rations.json",
+      "work": 60,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "60"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Life And Survival"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:survival:medical",
+      "title": "의료 회복",
+      "source": "Assets/Resources/SO/Research/Projects/survival_medical.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-survival-medical.json",
+      "work": 60,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "2:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "60"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Life And Survival"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 2,
+          "name": "표본",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:survival:preservation",
+      "title": "식량 보존",
+      "source": "Assets/Resources/SO/Research/Projects/survival_preservation.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-survival-preservation.json",
+      "work": 42,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "42"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Life And Survival"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:survival:sanitation",
+      "title": "기초 위생",
+      "source": "Assets/Resources/SO/Research/Projects/survival_sanitation.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-survival-sanitation.json",
+      "work": 17,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "17"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Life And Survival"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:survival:seasonal-storage",
+      "title": "계절 저장",
+      "source": "Assets/Resources/SO/Research/Projects/survival_seasonal_storage.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-survival-seasonal-storage.json",
+      "work": 153,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "153"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Life And Survival"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:survival:support",
+      "title": "생활 지원",
+      "source": "Assets/Resources/SO/Research/Projects/survival_support.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-survival-support.json",
+      "work": 28,
+      "max": 1,
+      "rule": 1,
+      "blueprint": "b791025255c3809d782186d5f1c52415",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "28"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Life And Survival"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:textile:dreamweave",
+      "title": "몽직물",
+      "source": "Assets/Resources/SO/Research/Projects/textile_dreamweave.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-textile-dreamweave.json",
+      "work": 84,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "84"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Textiles"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:textile:fiber",
+      "title": "섬유 가공",
+      "source": "Assets/Resources/SO/Research/Projects/textile_fiber.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-textile-fiber.json",
+      "work": 17,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "17"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Textiles"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:textile:layered",
+      "title": "층상 방어구",
+      "source": "Assets/Resources/SO/Research/Projects/textile_layered.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-textile-layered.json",
+      "work": 60,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "60"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Textiles"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:textile:rune-leather",
+      "title": "룬가죽",
+      "source": "Assets/Resources/SO/Research/Projects/textile_rune_leather.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-textile-rune-leather.json",
+      "work": 60,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "60"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Textiles"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:textile:tailoring",
+      "title": "재봉",
+      "source": "Assets/Resources/SO/Research/Projects/textile_tailoring.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-textile-tailoring.json",
+      "work": 42,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1",
+        "3:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "42"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Textiles"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        },
+        {
+          "capability": 3,
+          "name": "설계",
+          "requiredCount": 1
+        }
+      ]
+    },
+    {
+      "id": "research:textile:tanning",
+      "title": "무두질",
+      "source": "Assets/Resources/SO/Research/Projects/textile_tanning.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/research/research-textile-tanning.json",
+      "work": 28,
+      "max": 1,
+      "rule": 0,
+      "blueprint": "",
+      "requirements": [
+        "0:1"
+      ],
+      "facts": [
+        {
+          "label": "필요 작업",
+          "value": "28"
+        },
+        {
+          "label": "연구 분야",
+          "value": "Textiles"
+        }
+      ],
+      "facilityRequirements": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "requiredCount": 1
+        }
+      ]
+    }
+  ],
+  "facilities": [
+    {
+      "id": 16,
+      "title": "연구실",
+      "source": "Assets/Resources/SO/Building/P1/P1_ResearchLab.asset",
+      "wiki": null,
+      "wikiExists": false,
+      "contributions": [
+        "0:2",
+        "1:1",
+        "6:1"
+      ],
+      "archiveCapacity": 0,
+      "facts": null,
+      "summary": null,
+      "relations": null,
+      "expectedWiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-16.json",
+      "capacityContributions": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "capacity": 2
+        },
+        {
+          "capability": 1,
+          "name": "기록",
+          "capacity": 1
+        },
+        {
+          "capability": 6,
+          "name": "고급",
+          "capacity": 1
+        }
+      ]
+    },
+    {
+      "id": 1035,
+      "title": "설계판",
+      "source": "Assets/Resources/SO/Building/Modular/Q06_설계판.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1035.json",
+      "wikiExists": true,
+      "contributions": [
+        "3:1"
+      ],
+      "archiveCapacity": 0,
+      "facts": [
+        {
+          "label": "분류",
+          "value": "제작"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ],
+      "summary": "시설의 고유 역할은 연구 수용력이다. 건설에는 작업량 81, 재료 처리 목재×5, 공학 도면×1이 필요하다.",
+      "relations": [],
+      "expectedWiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1035.json",
+      "capacityContributions": [
+        {
+          "capability": 3,
+          "name": "설계",
+          "capacity": 1
+        }
+      ]
+    },
+    {
+      "id": 1034,
+      "title": "표본보관장",
+      "source": "Assets/Resources/SO/Building/Modular/Q05_표본보관장.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1034.json",
+      "wikiExists": true,
+      "contributions": [
+        "2:1"
+      ],
+      "archiveCapacity": 0,
+      "facts": [
+        {
+          "label": "분류",
+          "value": "제작"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ],
+      "summary": "시설의 고유 역할은 연구 수용력, 재고 보관이다. 건설에는 작업량 102, 재료 처리 목재×4, 철괴×2이 필요하다.",
+      "relations": [],
+      "expectedWiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1034.json",
+      "capacityContributions": [
+        {
+          "capability": 2,
+          "name": "표본",
+          "capacity": 1
+        }
+      ]
+    },
+    {
+      "id": 1033,
+      "title": "시약선반",
+      "source": "Assets/Resources/SO/Building/Modular/Q04_시약선반.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1033.json",
+      "wikiExists": true,
+      "contributions": [
+        "4:1"
+      ],
+      "archiveCapacity": 0,
+      "facts": [
+        {
+          "label": "분류",
+          "value": "제작"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ],
+      "summary": "시설의 고유 역할은 연구 수용력, 재고 보관이다. 건설에는 작업량 134, 재료 목재×6, 룬 도체×1이 필요하다.",
+      "relations": [],
+      "expectedWiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1033.json",
+      "capacityContributions": [
+        {
+          "capability": 4,
+          "name": "시약",
+          "capacity": 1
+        }
+      ]
+    },
+    {
+      "id": 1032,
+      "title": "연구용책장",
+      "source": "Assets/Resources/SO/Building/Modular/Q03_연구용책장.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1032.json",
+      "wikiExists": true,
+      "contributions": [
+        "1:1"
+      ],
+      "archiveCapacity": 8,
+      "facts": [
+        {
+          "label": "분류",
+          "value": "제작"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ],
+      "summary": "시설의 고유 역할은 연구 수용력, 재고 보관이다. 건설에는 작업량 125, 재료 목재×6이 필요하다.",
+      "relations": [],
+      "expectedWiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1032.json",
+      "capacityContributions": [
+        {
+          "capability": 1,
+          "name": "기록",
+          "capacity": 1
+        }
+      ]
+    },
+    {
+      "id": 1031,
+      "title": "연금술작업대",
+      "source": "Assets/Resources/SO/Building/Modular/Q02_연금술작업대.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1031.json",
+      "wikiExists": true,
+      "contributions": [
+        "0:1",
+        "5:1"
+      ],
+      "archiveCapacity": 0,
+      "facts": [
+        {
+          "label": "분류",
+          "value": "제작"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ],
+      "summary": "시설의 고유 역할은 욕구 회복, 생산 공정, 생산 작업대, 연구 수용력이다. 건설에는 작업량 312, 재료 처리 목재×6, 철괴×2, 석재 블록×2, 룬 도체×2, 외 1개이 필요하다.",
+      "relations": [],
+      "expectedWiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1031.json",
+      "capacityContributions": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "capacity": 1
+        },
+        {
+          "capability": 5,
+          "name": "비전",
+          "capacity": 1
+        }
+      ]
+    },
+    {
+      "id": 1030,
+      "title": "연구책상",
+      "source": "Assets/Resources/SO/Building/Modular/Q01_연구책상.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1030.json",
+      "wikiExists": true,
+      "contributions": [
+        "0:1"
+      ],
+      "archiveCapacity": 0,
+      "facts": [
+        {
+          "label": "분류",
+          "value": "제작"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ],
+      "summary": "시설의 고유 역할은 욕구 회복, 연구 수용력이다. 건설에는 작업량 387, 재료 처리 목재×8, 철괴×1, 공학 도면×2이 필요하다.",
+      "relations": [],
+      "expectedWiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1030.json",
+      "capacityContributions": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "capacity": 1
+        }
+      ]
+    },
+    {
+      "id": 1091,
+      "title": "연금대",
+      "source": "Assets/Resources/SO/Building/Modular/P19_연금대.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1091.json",
+      "wikiExists": true,
+      "contributions": [
+        "0:1",
+        "4:1",
+        "5:1"
+      ],
+      "archiveCapacity": 0,
+      "facts": [
+        {
+          "label": "분류",
+          "value": "제작"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ],
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대, 연구 수용력이다. 건설에는 작업량 486, 재료 석재 블록×6, 룬 도체×3, 철괴×2, 기계 부품×2, 외 1개이 필요하다.",
+      "relations": [],
+      "expectedWiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1091.json",
+      "capacityContributions": [
+        {
+          "capability": 0,
+          "name": "기초",
+          "capacity": 1
+        },
+        {
+          "capability": 4,
+          "name": "시약",
+          "capacity": 1
+        },
+        {
+          "capability": 5,
+          "name": "비전",
+          "capacity": 1
+        }
+      ]
+    }
+  ],
+  "blueprints": [
+    {
+      "source": "Assets/Resources/SO/Blueprint/P1/BP_ArcaneBasics.asset",
+      "meta": "Assets/Resources/SO/Blueprint/P1/BP_ArcaneBasics.asset.meta",
+      "guid": "fe9e5fe8bcceb9e7caf7c3733c6bf4d6",
+      "id": 6104,
+      "title": "비전 연구 설계도",
+      "project": "research:arcane:advanced",
+      "cost": 130,
+      "rule": 1,
+      "physicalItemId": "research-blueprint:6104",
+      "projection": {
+        "id": 6104,
+        "facilityPath": "wiki/game-versions/0.0.1v/data/entities/facility/facility-blueprint-6104.json",
+        "itemPath": "wiki/game-versions/0.0.1v/data/entities/item/research-blueprint-6104.json",
+        "facility": {
+          "facts": [],
+          "game_version": "0.0.1v",
+          "group": "production-facilities",
+          "kind": "facility",
+          "relations": [
+            {
+              "amount": null,
+              "label": "관련",
+              "target_kind": "research",
+              "target_slug": "research-arcane-advanced",
+              "target_spoiler_tier": "none",
+              "target_title": "비전 연구",
+              "type": "references"
+            }
+          ],
+          "schema_version": 1,
+          "slug": "facility-blueprint-6104",
+          "spoiler_tier": "none",
+          "summary": "전문 연구와 의식·마력 물류를 위한 2단계 비전 파츠를 즉시 해금한다.",
+          "title": "비전 연구 설계도"
+        },
+        "item": {
+          "facts": [
+            {
+              "label": "무게",
+              "value": "0.15kg"
+            },
+            {
+              "label": "한 칸 적재",
+              "value": "1개"
+            },
+            {
+              "label": "기준 가격",
+              "value": "130"
+            }
+          ],
+          "game_version": "0.0.1v",
+          "group": "items",
+          "in_game_description": "전문 연구와 의식·마력 물류를 위한 2단계 비전 파츠를 즉시 해금한다. 베르사디온의 비전 연구 설계도에는 발견의 소유권과 마나 사고의 배상 책임을 적는 빈칸이 있다.",
+          "kind": "item",
+          "relations": [],
+          "schema_version": 1,
+          "slug": "research-blueprint-6104",
+          "spoiler_tier": "none",
+          "summary": "전문 연구와 의식·마력 물류를 위한 2단계 비전 파츠를 즉시 해금한다.",
+          "title": "비전 연구 설계도"
+        }
+      }
+    },
+    {
+      "source": "Assets/Resources/SO/Blueprint/P1/BP_BattleDining.asset",
+      "meta": "Assets/Resources/SO/Blueprint/P1/BP_BattleDining.asset.meta",
+      "guid": "901cfda63d5374489861ef1b9dd59e32",
+      "id": 6191,
+      "title": "상권 통합 설계도",
+      "project": "research:commerce:secure-trade",
+      "cost": 260,
+      "rule": 2,
+      "physicalItemId": "research-blueprint:6191",
+      "projection": {
+        "id": 6191,
+        "facilityPath": "wiki/game-versions/0.0.1v/data/entities/facility/facility-blueprint-6191.json",
+        "itemPath": "wiki/game-versions/0.0.1v/data/entities/item/research-blueprint-6191.json",
+        "facility": {
+          "facts": [],
+          "game_version": "0.0.1v",
+          "group": "production-facilities",
+          "kind": "facility",
+          "relations": [
+            {
+              "amount": null,
+              "label": "관련",
+              "target_kind": "research",
+              "target_slug": "research-commerce-secure-trade",
+              "target_spoiler_tier": "none",
+              "target_title": "상권 통합",
+              "type": "references"
+            }
+          ],
+          "schema_version": 1,
+          "slug": "facility-blueprint-6191",
+          "spoiler_tier": "none",
+          "summary": "진열과 보관 부품을 결합해 잠금진열장으로 개조하는 희귀 조합식이다.",
+          "title": "상권 통합 설계도"
+        },
+        "item": {
+          "facts": [
+            {
+              "label": "무게",
+              "value": "0.15kg"
+            },
+            {
+              "label": "한 칸 적재",
+              "value": "1개"
+            },
+            {
+              "label": "기준 가격",
+              "value": "260"
+            }
+          ],
+          "game_version": "0.0.1v",
+          "group": "items",
+          "in_game_description": "진열과 보관 부품을 결합해 잠금진열장으로 개조하는 희귀 조합식이다. 라카쉬 세갈래길의 상권 통합 설계도는 상인 조합과 난민 배급소가 같은 창고를 쓰는 시간을 나눈다.",
+          "kind": "item",
+          "relations": [],
+          "schema_version": 1,
+          "slug": "research-blueprint-6191",
+          "spoiler_tier": "none",
+          "summary": "진열과 보관 부품을 결합해 잠금진열장으로 개조하는 희귀 조합식이다.",
+          "title": "상권 통합 설계도"
+        }
+      }
+    },
+    {
+      "source": "Assets/Resources/SO/Blueprint/P1/BP_CommercialBasics.asset",
+      "meta": "Assets/Resources/SO/Blueprint/P1/BP_CommercialBasics.asset.meta",
+      "guid": "75a99e92193be87e2a49bdbb00980764",
+      "id": 6101,
+      "title": "상업 확장 설계도",
+      "project": "research:commerce:expansion",
+      "cost": 120,
+      "rule": 1,
+      "physicalItemId": "research-blueprint:6101",
+      "projection": {
+        "id": 6101,
+        "facilityPath": "wiki/game-versions/0.0.1v/data/entities/facility/facility-blueprint-6101.json",
+        "itemPath": "wiki/game-versions/0.0.1v/data/entities/item/research-blueprint-6101.json",
+        "facility": {
+          "facts": [],
+          "game_version": "0.0.1v",
+          "group": "production-facilities",
+          "kind": "facility",
+          "relations": [
+            {
+              "amount": null,
+              "label": "관련",
+              "target_kind": "research",
+              "target_slug": "research-commerce-expansion",
+              "target_spoiler_tier": "none",
+              "target_title": "상업 확장",
+              "type": "references"
+            }
+          ],
+          "schema_version": 1,
+          "slug": "facility-blueprint-6101",
+          "spoiler_tier": "none",
+          "summary": "연회 식당과 전문 제작을 위한 2단계 상업 파츠를 즉시 해금한다.",
+          "title": "상업 확장 설계도"
+        },
+        "item": {
+          "facts": [
+            {
+              "label": "무게",
+              "value": "0.15kg"
+            },
+            {
+              "label": "한 칸 적재",
+              "value": "1개"
+            },
+            {
+              "label": "기준 가격",
+              "value": "120"
+            }
+          ],
+          "game_version": "0.0.1v",
+          "group": "items",
+          "in_game_description": "연회 식당과 전문 제작을 위한 2단계 상업 파츠를 즉시 해금한다. 라카쉬 세갈래길의 상업 확장 설계도는 고정 상점보다 피난 행렬과 이동 장터가 먼저 지나갈 자리를 남긴다.",
+          "kind": "item",
+          "relations": [],
+          "schema_version": 1,
+          "slug": "research-blueprint-6101",
+          "spoiler_tier": "none",
+          "summary": "연회 식당과 전문 제작을 위한 2단계 상업 파츠를 즉시 해금한다.",
+          "title": "상업 확장 설계도"
+        }
+      }
+    },
+    {
+      "source": "Assets/Resources/SO/Blueprint/P1/BP_TrapChain.asset",
+      "meta": "Assets/Resources/SO/Blueprint/P1/BP_TrapChain.asset.meta",
+      "guid": "74711e8d7994655e884e29ceb31c6100",
+      "id": 6192,
+      "title": "전술 지휘 설계도",
+      "project": "research:defense:tactical-command",
+      "cost": 280,
+      "rule": 2,
+      "physicalItemId": "research-blueprint:6192",
+      "projection": {
+        "id": 6192,
+        "facilityPath": "wiki/game-versions/0.0.1v/data/entities/facility/facility-blueprint-6192.json",
+        "itemPath": "wiki/game-versions/0.0.1v/data/entities/item/research-blueprint-6192.json",
+        "facility": {
+          "facts": [],
+          "game_version": "0.0.1v",
+          "group": "production-facilities",
+          "kind": "facility",
+          "relations": [
+            {
+              "amount": null,
+              "label": "관련",
+              "target_kind": "research",
+              "target_slug": "research-defense-tactical-command",
+              "target_spoiler_tier": "none",
+              "target_title": "전술 지휘",
+              "type": "references"
+            }
+          ],
+          "schema_version": 1,
+          "slug": "facility-blueprint-6192",
+          "spoiler_tier": "none",
+          "summary": "순찰 체계와 세력 표식을 결합해 전투깃발을 만드는 희귀 조합식이다.",
+          "title": "전술 지휘 설계도"
+        },
+        "item": {
+          "facts": [
+            {
+              "label": "무게",
+              "value": "0.15kg"
+            },
+            {
+              "label": "한 칸 적재",
+              "value": "1개"
+            },
+            {
+              "label": "기준 가격",
+              "value": "280"
+            }
+          ],
+          "game_version": "0.0.1v",
+          "group": "items",
+          "in_game_description": "순찰 체계와 세력 표식을 결합해 전투깃발을 만드는 희귀 조합식이다. 오르데나의 전술 지휘 설계도는 수호원, 개척원과 용병대가 서로 다른 명령을 내릴 때의 우선권을 표시한다.",
+          "kind": "item",
+          "relations": [],
+          "schema_version": 1,
+          "slug": "research-blueprint-6192",
+          "spoiler_tier": "none",
+          "summary": "순찰 체계와 세력 표식을 결합해 전투깃발을 만드는 희귀 조합식이다.",
+          "title": "전술 지휘 설계도"
+        }
+      }
+    },
+    {
+      "source": "Assets/Resources/SO/Blueprint/P1/BP_SupportBasics.asset",
+      "meta": "Assets/Resources/SO/Blueprint/P1/BP_SupportBasics.asset.meta",
+      "guid": "b791025255c3809d782186d5f1c52415",
+      "id": 6103,
+      "title": "생활 지원 설계도",
+      "project": "research:survival:support",
+      "cost": 130,
+      "rule": 1,
+      "physicalItemId": "research-blueprint:6103",
+      "projection": {
+        "id": 6103,
+        "facilityPath": "wiki/game-versions/0.0.1v/data/entities/facility/facility-blueprint-6103.json",
+        "itemPath": "wiki/game-versions/0.0.1v/data/entities/item/research-blueprint-6103.json",
+        "facility": {
+          "facts": [],
+          "game_version": "0.0.1v",
+          "group": "production-facilities",
+          "kind": "facility",
+          "relations": [
+            {
+              "amount": null,
+              "label": "관련",
+              "target_kind": "research",
+              "target_slug": "research-survival-support",
+              "target_spoiler_tier": "none",
+              "target_title": "생활 지원",
+              "type": "references"
+            }
+          ],
+          "schema_version": 1,
+          "slug": "facility-blueprint-6103",
+          "spoiler_tier": "none",
+          "summary": "숙소·위생·식재료 물류를 개선하는 2단계 생활 파츠를 즉시 해금한다.",
+          "title": "생활 지원 설계도"
+        },
+        "item": {
+          "facts": [
+            {
+              "label": "무게",
+              "value": "0.15kg"
+            },
+            {
+              "label": "한 칸 적재",
+              "value": "1개"
+            },
+            {
+              "label": "기준 가격",
+              "value": "130"
+            }
+          ],
+          "game_version": "0.0.1v",
+          "group": "items",
+          "in_game_description": "숙소·위생·식재료 물류를 개선하는 2단계 생활 파츠를 즉시 해금한다. 하르나크의 생활 지원 설계도는 서로 다른 몸이 같은 물과 침상을 쓰지 못할 때의 우회 설비를 함께 그린다.",
+          "kind": "item",
+          "relations": [],
+          "schema_version": 1,
+          "slug": "research-blueprint-6103",
+          "spoiler_tier": "none",
+          "summary": "숙소·위생·식재료 물류를 개선하는 2단계 생활 파츠를 즉시 해금한다.",
+          "title": "생활 지원 설계도"
+        }
+      }
+    },
+    {
+      "source": "Assets/Resources/SO/Blueprint/P1/BP_StormFireTrap.asset",
+      "meta": "Assets/Resources/SO/Blueprint/P1/BP_StormFireTrap.asset.meta",
+      "guid": "af5d82288efb85c4fa51a626075e7cb4",
+      "id": 6193,
+      "title": "비전 공명 설계도",
+      "project": "research:arcane:resonance",
+      "cost": 340,
+      "rule": 2,
+      "physicalItemId": "research-blueprint:6193",
+      "projection": {
+        "id": 6193,
+        "facilityPath": "wiki/game-versions/0.0.1v/data/entities/facility/facility-blueprint-6193.json",
+        "itemPath": "wiki/game-versions/0.0.1v/data/entities/item/research-blueprint-6193.json",
+        "facility": {
+          "facts": [],
+          "game_version": "0.0.1v",
+          "group": "production-facilities",
+          "kind": "facility",
+          "relations": [
+            {
+              "amount": null,
+              "label": "관련",
+              "target_kind": "research",
+              "target_slug": "research-arcane-resonance",
+              "target_spoiler_tier": "none",
+              "target_title": "비전 공명",
+              "type": "references"
+            }
+          ],
+          "schema_version": 1,
+          "slug": "facility-blueprint-6193",
+          "spoiler_tier": "none",
+          "summary": "룬 안정과 의식 조명을 결합해 의식초점석을 조율하는 희귀 조합식이다.",
+          "title": "비전 공명 설계도"
+        },
+        "item": {
+          "facts": [
+            {
+              "label": "무게",
+              "value": "0.15kg"
+            },
+            {
+              "label": "한 칸 적재",
+              "value": "1개"
+            },
+            {
+              "label": "기준 가격",
+              "value": "340"
+            }
+          ],
+          "game_version": "0.0.1v",
+          "group": "items",
+          "in_game_description": "룬 안정과 의식 조명을 결합해 의식초점석을 조율하는 희귀 조합식이다. 베르사디온의 비전 공명 설계도는 여러 계약자의 마나가 한 시설에서 충돌할 때 끊을 회로를 따로 둔다.",
+          "kind": "item",
+          "relations": [],
+          "schema_version": 1,
+          "slug": "research-blueprint-6193",
+          "spoiler_tier": "none",
+          "summary": "룬 안정과 의식 조명을 결합해 의식초점석을 조율하는 희귀 조합식이다.",
+          "title": "비전 공명 설계도"
+        }
+      }
+    },
+    {
+      "source": "Assets/Resources/SO/Blueprint/P1/BP_DefenseBasics.asset",
+      "meta": "Assets/Resources/SO/Blueprint/P1/BP_DefenseBasics.asset.meta",
+      "guid": "c76eaccbfce6f46d89c14c3af6bb3433",
+      "id": 6102,
+      "title": "요새화 설계도",
+      "project": "research:defense:fortification",
+      "cost": 140,
+      "rule": 1,
+      "physicalItemId": "research-blueprint:6102",
+      "projection": {
+        "id": 6102,
+        "facilityPath": "wiki/game-versions/0.0.1v/data/entities/facility/facility-blueprint-6102.json",
+        "itemPath": "wiki/game-versions/0.0.1v/data/entities/item/research-blueprint-6102.json",
+        "facility": {
+          "facts": [],
+          "game_version": "0.0.1v",
+          "group": "production-facilities",
+          "kind": "facility",
+          "relations": [
+            {
+              "amount": null,
+              "label": "관련",
+              "target_kind": "research",
+              "target_slug": "research-defense-fortification",
+              "target_spoiler_tier": "none",
+              "target_title": "요새화",
+              "type": "references"
+            }
+          ],
+          "schema_version": 1,
+          "slug": "facility-blueprint-6102",
+          "spoiler_tier": "none",
+          "summary": "경비 동선과 병영을 강화하는 전술·보안 파츠를 즉시 해금한다.",
+          "title": "요새화 설계도"
+        },
+        "item": {
+          "facts": [
+            {
+              "label": "무게",
+              "value": "0.15kg"
+            },
+            {
+              "label": "한 칸 적재",
+              "value": "1개"
+            },
+            {
+              "label": "기준 가격",
+              "value": "140"
+            }
+          ],
+          "game_version": "0.0.1v",
+          "group": "items",
+          "in_game_description": "경비 동선과 병영을 강화하는 전술·보안 파츠를 즉시 해금한다. 오르데나의 요새화 설계도는 방어선 안쪽의 주민보다 우르단 관문에서 들어오는 적의 동선을 먼저 그린다.",
+          "kind": "item",
+          "relations": [],
+          "schema_version": 1,
+          "slug": "research-blueprint-6102",
+          "spoiler_tier": "none",
+          "summary": "경비 동선과 병영을 강화하는 전술·보안 파츠를 즉시 해금한다.",
+          "title": "요새화 설계도"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "combat",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "module-armor-rune-ward",
+  "spoiler_tier": "none",
+  "summary": "원정에서 회수하는 룬 수호편 개량 부품",
+  "title": "룬 수호편"
+}

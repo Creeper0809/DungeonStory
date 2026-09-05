@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "service-bathing-wash",
+    "spoiler_tier": "none",
+    "title": "목욕 서비스"
+  },
+  "edges": [],
+  "schema_version": 1
+}

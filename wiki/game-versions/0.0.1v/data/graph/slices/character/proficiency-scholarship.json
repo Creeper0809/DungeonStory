@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "proficiency-scholarship",
+    "spoiler_tier": "none",
+    "title": "학술"
+  },
+  "edges": [],
+  "schema_version": 1
+}

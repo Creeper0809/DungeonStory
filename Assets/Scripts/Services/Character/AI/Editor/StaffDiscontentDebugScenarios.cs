@@ -572,7 +572,8 @@ public static class StaffDiscontentDebugScenarios
             Runtime.Construct(
                 CharacterAiEditorTestDependencies.WorldRegistry,
                 CharacterAiEditorTestDependencies.GameEvents,
-                RootStore);
+                RootStore,
+                CharacterAiEditorTestDependencies.SettlementStandings);
         }
 
         public StaffDiscontentRuntime Runtime { get; }

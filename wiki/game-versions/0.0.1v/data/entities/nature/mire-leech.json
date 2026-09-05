@@ -1,0 +1,49 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "nature",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "rune-deer",
+      "target_spoiler_tier": "none",
+      "target_title": "룬사슴",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "deep-goat",
+      "target_spoiler_tier": "none",
+      "target_title": "심층염소",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "spore-elk",
+      "target_spoiler_tier": "none",
+      "target_title": "포자큰사슴",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-blood-wasting",
+      "target_spoiler_tier": "none",
+      "target_title": "혈액소모병",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "mire-leech",
+  "spoiler_tier": "none",
+  "summary": "오염된 물에서 번식해 가축과 직원을 흡혈한다.",
+  "title": "진흙거머리"
+}

@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-ritual-reagent",
+    "spoiler_tier": "none",
+    "title": "혈액 의식재"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-ritual-reagent",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "craft-ritual-reagent",
+      "target_spoiler_tier": "none",
+      "target_title": "혈액 의식재",
+      "to": "item/craft-ritual-reagent",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-ritual-reagent",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-rot-toxin",
+      "target_spoiler_tier": "none",
+      "target_title": "부패 독소",
+      "to": "item/material-rot-toxin",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-ritual-reagent",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-blood",
+      "target_spoiler_tier": "none",
+      "target_title": "피",
+      "to": "item/resource-blood",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-ritual-reagent",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-control-blood-show",
+      "target_spoiler_tier": "none",
+      "target_title": "피의 흥행",
+      "to": "research/research-control-blood-show",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

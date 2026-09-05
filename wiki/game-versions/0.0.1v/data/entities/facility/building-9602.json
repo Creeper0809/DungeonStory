@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "특수"
+    },
+    {
+      "label": "크기",
+      "value": "1×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-9602",
+  "spoiler_tier": "none",
+  "summary": "시설 동작은 BuildingCoverAbility, BuildingEconomyAbility, BuildingFacilityAbility, BuildingWorkAmountAbility 모듈로 구성된다. 건설에는 작업량 458, 재료 천×6이 필요하다.",
+  "title": "자루 방책"
+}

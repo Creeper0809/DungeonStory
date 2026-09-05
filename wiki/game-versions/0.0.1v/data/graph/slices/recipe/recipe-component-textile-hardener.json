@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-component-textile-hardener",
+    "spoiler_tier": "none",
+    "title": "직물 경화제"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-textile-hardener",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-dark-resin",
+      "target_spoiler_tier": "none",
+      "target_title": "암흑수액",
+      "to": "item/resource-dark-resin",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-textile-hardener",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-textile-hardener",
+      "target_spoiler_tier": "none",
+      "target_title": "직물 경화제",
+      "to": "item/component-textile-hardener",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-textile-hardener",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-starch",
+      "target_spoiler_tier": "none",
+      "target_title": "전분",
+      "to": "item/material-starch",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-component-textile-hardener",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-clean-water",
+      "target_spoiler_tier": "none",
+      "target_title": "깨끗한 물",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-textile-hardener",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

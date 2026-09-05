@@ -485,9 +485,8 @@ public class OperatingDaySettlementApplicationAdapter : MonoBehaviour
                 warehouseStocks.Add(new WarehouseStockSummary(
                     GetFacilityName(building),
                     warehouse.Inventory.TotalStock,
-                    warehouse.Inventory.HasCapacityLimit
-                        ? warehouse.Inventory.MaxCapacity
-                        : 0,
+                    warehouse.Inventory.StoredMassGrams,
+                    warehouse.Inventory.MaxMassGrams,
                     warehouse.Inventory.EnumerateStock()
                         .Select(pair => new StockConsumptionSummary(
                             pair.Key,

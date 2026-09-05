@@ -1,0 +1,71 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+CharacterFunctionalCapacityDefinitionSO|capacity:arcane-conduction,capacity:arcane-conduction,m_Name,capacity_arcane-conduction,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:arcane-conduction,capacity:arcane-conduction,capacityId,12,CharacterFunctionalCapacityId,Arcane Conduction,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:arcane-conduction,capacity:arcane-conduction,stableId,capacity:arcane-conduction,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:arcane-conduction,capacity:arcane-conduction,displayName,마력 전도,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:arcane-conduction,capacity:arcane-conduction,description,주문·마나 회복·과충전 안정성,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:auditory-sensing,capacity:auditory-sensing,m_Name,capacity_auditory-sensing,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:auditory-sensing,capacity:auditory-sensing,capacityId,2,CharacterFunctionalCapacityId,Auditory Sensing,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:auditory-sensing,capacity:auditory-sensing,stableId,capacity:auditory-sensing,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:auditory-sensing,capacity:auditory-sensing,displayName,음향 감지,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:auditory-sensing,capacity:auditory-sensing,description,경보·은폐·대화 수신,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:communication,capacity:communication,m_Name,capacity_communication,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:communication,capacity:communication,capacityId,11,CharacterFunctionalCapacityId,Communication,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:communication,capacity:communication,stableId,capacity:communication,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:communication,capacity:communication,displayName,의사 전달,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:communication,capacity:communication,description,발성·몸짓·정신 교신,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:immune-defense,capacity:immune-defense,m_Name,capacity_immune-defense,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:immune-defense,capacity:immune-defense,capacityId,13,CharacterFunctionalCapacityId,Immune Defense,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:immune-defense,capacity:immune-defense,stableId,capacity:immune-defense,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:immune-defense,capacity:immune-defense,displayName,면역 방어,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:immune-defense,capacity:immune-defense,description,감염·병원체·부식성 오염에 대한 방어 반응,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:intake-processing,capacity:intake-processing,m_Name,capacity_intake-processing,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:intake-processing,capacity:intake-processing,capacityId,5,CharacterFunctionalCapacityId,Intake Processing,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:intake-processing,capacity:intake-processing,stableId,capacity:intake-processing,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:intake-processing,capacity:intake-processing,displayName,섭취 처리,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:intake-processing,capacity:intake-processing,description,음식·약물 흡수,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:mental-maintenance,capacity:mental-maintenance,m_Name,capacity_mental-maintenance,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:mental-maintenance,capacity:mental-maintenance,capacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:mental-maintenance,capacity:mental-maintenance,stableId,capacity:mental-maintenance,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:mental-maintenance,capacity:mental-maintenance,displayName,정신 유지,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:mental-maintenance,capacity:mental-maintenance,description,각성·집중·행동 지속,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:physical-mobility,capacity:physical-mobility,m_Name,capacity_physical-mobility,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:physical-mobility,capacity:physical-mobility,capacityId,10,CharacterFunctionalCapacityId,Physical Mobility,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:physical-mobility,capacity:physical-mobility,stableId,capacity:physical-mobility,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:physical-mobility,capacity:physical-mobility,displayName,신체 기동,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:physical-mobility,capacity:physical-mobility,description,보행·비행·점액 이동,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:physical-power,capacity:physical-power,m_Name,capacity_physical-power,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:physical-power,capacity:physical-power,capacityId,8,CharacterFunctionalCapacityId,Physical Power,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:physical-power,capacity:physical-power,stableId,capacity:physical-power,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:physical-power,capacity:physical-power,displayName,근력 출력,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:physical-power,capacity:physical-power,description,근육·구조체·점액질의 물리적 힘 출력,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:power-circulation,capacity:power-circulation,m_Name,capacity_power-circulation,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:power-circulation,capacity:power-circulation,capacityId,4,CharacterFunctionalCapacityId,Power Circulation,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:power-circulation,capacity:power-circulation,stableId,capacity:power-circulation,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:power-circulation,capacity:power-circulation,displayName,동력 순환,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:power-circulation,capacity:power-circulation,description,혈류·골렘 회로·슬라임 핵 순환,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:precision-manipulation,capacity:precision-manipulation,m_Name,capacity_precision-manipulation,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:precision-manipulation,capacity:precision-manipulation,capacityId,9,CharacterFunctionalCapacityId,Precision Manipulation,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:precision-manipulation,capacity:precision-manipulation,stableId,capacity:precision-manipulation,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:precision-manipulation,capacity:precision-manipulation,displayName,정밀 조작,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:precision-manipulation,capacity:precision-manipulation,description,손·촉수·도구 조작,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:purification-processing,capacity:purification-processing,m_Name,capacity_purification-processing,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:purification-processing,capacity:purification-processing,capacityId,6,CharacterFunctionalCapacityId,Purification Processing,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:purification-processing,capacity:purification-processing,stableId,capacity:purification-processing,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:purification-processing,capacity:purification-processing,displayName,정화 처리,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:purification-processing,capacity:purification-processing,description,독소·질병 부산물·약물 배출,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:respiratory-exchange,capacity:respiratory-exchange,m_Name,capacity_respiratory-exchange,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:respiratory-exchange,capacity:respiratory-exchange,capacityId,3,CharacterFunctionalCapacityId,Respiratory Exchange,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:respiratory-exchange,capacity:respiratory-exchange,stableId,capacity:respiratory-exchange,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:respiratory-exchange,capacity:respiratory-exchange,displayName,호흡 교환,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:respiratory-exchange,capacity:respiratory-exchange,description,가스 교환·연기 대응,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:visual-discernment,capacity:visual-discernment,m_Name,capacity_visual-discernment,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:visual-discernment,capacity:visual-discernment,capacityId,1,CharacterFunctionalCapacityId,Visual Discernment,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:visual-discernment,capacity:visual-discernment,stableId,capacity:visual-discernment,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:visual-discernment,capacity:visual-discernment,displayName,시야 판별,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:visual-discernment,capacity:visual-discernment,description,거리·형상·세부 판독,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:vitality-response,capacity:vitality-response,m_Name,capacity_vitality-response,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:vitality-response,capacity:vitality-response,capacityId,7,CharacterFunctionalCapacityId,Vitality Response,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:vitality-response,capacity:vitality-response,stableId,capacity:vitality-response,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:vitality-response,capacity:vitality-response,displayName,활력 반응,,,explicit-serialized
+CharacterFunctionalCapacityDefinitionSO|capacity:vitality-response,capacity:vitality-response,description,회복·피로 회수 속도,,,explicit-serialized

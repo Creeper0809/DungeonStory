@@ -1,0 +1,65 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "service-incident-contamination",
+    "spoiler_tier": "warning",
+    "title": "객실 오염"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "event/service-incident-contamination",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-contamination",
+      "target_spoiler_tier": "warning",
+      "target_title": "객실 오염",
+      "to": "event/service-incident-contamination",
+      "type": "adds-work-delay"
+    },
+    {
+      "amount": "5",
+      "from": "event/service-incident-contamination",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-contamination",
+      "target_spoiler_tier": "warning",
+      "target_title": "객실 오염",
+      "to": "event/service-incident-contamination",
+      "type": "changes-health"
+    },
+    {
+      "amount": "6",
+      "from": "event/service-incident-contamination",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-contamination",
+      "target_spoiler_tier": "warning",
+      "target_title": "객실 오염",
+      "to": "event/service-incident-contamination",
+      "type": "changes-threat"
+    },
+    {
+      "amount": "2",
+      "from": "event/service-incident-contamination",
+      "label": "연결",
+      "to": "event/service-incident-contamination",
+      "type": "adds-work-delay"
+    },
+    {
+      "amount": "5",
+      "from": "event/service-incident-contamination",
+      "label": "연결",
+      "to": "event/service-incident-contamination",
+      "type": "changes-health"
+    },
+    {
+      "amount": "6",
+      "from": "event/service-incident-contamination",
+      "label": "연결",
+      "to": "event/service-incident-contamination",
+      "type": "changes-threat"
+    }
+  ],
+  "schema_version": 1
+}

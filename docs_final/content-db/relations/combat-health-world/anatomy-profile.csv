@@ -1,0 +1,19 @@
+﻿source_type,source_id,source_record_key,kind,target_id,amount,duration,field_path,semantic_label,target_category,resolution_status,target_record_keys,source_path
+AnatomyProfileSO,anatomy:avian,AnatomyProfileSO|anatomy:avian,references,Harpy,,,speciesIds,species Ids,protocol-id,non-content-protocol,,Assets/Resources/SO/Medical/Anatomy/anatomy_avian.asset
+AnatomyProfileSO,anatomy:beastkin,AnatomyProfileSO|anatomy:beastkin,references,Beastkin,,,speciesIds,species Ids,protocol-id,non-content-protocol,,Assets/Resources/SO/Medical/Anatomy/anatomy_beastkin.asset
+AnatomyProfileSO,anatomy:construct,AnatomyProfileSO|anatomy:construct,references,Golem,,,speciesIds,species Ids,protocol-id,non-content-protocol,,Assets/Resources/SO/Medical/Anatomy/anatomy_construct.asset
+AnatomyProfileSO,anatomy:demon,AnatomyProfileSO|anatomy:demon,references,Demon,,,speciesIds,species Ids,protocol-id,non-content-protocol,,Assets/Resources/SO/Medical/Anatomy/anatomy_demon.asset
+AnatomyProfileSO,anatomy:fungal,AnatomyProfileSO|anatomy:fungal,references,Myconid,,,speciesIds,species Ids,protocol-id,non-content-protocol,,Assets/Resources/SO/Medical/Anatomy/anatomy_fungal.asset
+AnatomyProfileSO,anatomy:human,AnatomyProfileSO|anatomy:human,references,Human,,,speciesIds,species Ids,protocol-id,non-content-protocol,,Assets/Resources/SO/Medical/Anatomy/anatomy_human.asset
+AnatomyProfileSO,anatomy:humanoid,AnatomyProfileSO|anatomy:humanoid,references,Goblin,,,speciesIds,species Ids,protocol-id,non-content-protocol,,Assets/Resources/SO/Medical/Anatomy/anatomy_humanoid.asset
+AnatomyProfileSO,anatomy:humanoid,AnatomyProfileSO|anatomy:humanoid,references,LegacyHumanoid,,,speciesIds,species Ids,protocol-id,non-content-protocol,,Assets/Resources/SO/Medical/Anatomy/anatomy_humanoid.asset
+AnatomyProfileSO,anatomy:kobold,AnatomyProfileSO|anatomy:kobold,references,Kobold,,,speciesIds,species Ids,protocol-id,non-content-protocol,,Assets/Resources/SO/Medical/Anatomy/anatomy_kobold.asset
+AnatomyProfileSO,anatomy:orc,AnatomyProfileSO|anatomy:orc,references,Orc,,,speciesIds,species Ids,protocol-id,non-content-protocol,,Assets/Resources/SO/Medical/Anatomy/anatomy_orc.asset
+AnatomyProfileSO,anatomy:quadruped,AnatomyProfileSO|anatomy:quadruped,references,ash_goat,,,speciesIds,species Ids,protocol-id,non-content-protocol,,Assets/Resources/SO/Medical/Anatomy/anatomy_quadruped.asset
+AnatomyProfileSO,anatomy:quadruped,AnatomyProfileSO|anatomy:quadruped,references,cave_rat,,,speciesIds,species Ids,protocol-id,non-content-protocol,,Assets/Resources/SO/Medical/Anatomy/anatomy_quadruped.asset
+AnatomyProfileSO,anatomy:quadruped,AnatomyProfileSO|anatomy:quadruped,references,moss_boar,,,speciesIds,species Ids,protocol-id,non-content-protocol,,Assets/Resources/SO/Medical/Anatomy/anatomy_quadruped.asset
+AnatomyProfileSO,anatomy:quadruped,AnatomyProfileSO|anatomy:quadruped,references,rune_deer,,,speciesIds,species Ids,protocol-id,non-content-protocol,,Assets/Resources/SO/Medical/Anatomy/anatomy_quadruped.asset
+AnatomyProfileSO,anatomy:quadruped,AnatomyProfileSO|anatomy:quadruped,references,shadow_hare,,,speciesIds,species Ids,protocol-id,non-content-protocol,,Assets/Resources/SO/Medical/Anatomy/anatomy_quadruped.asset
+AnatomyProfileSO,anatomy:quadruped,AnatomyProfileSO|anatomy:quadruped,references,shadow_wolf,,,speciesIds,species Ids,protocol-id,non-content-protocol,,Assets/Resources/SO/Medical/Anatomy/anatomy_quadruped.asset
+AnatomyProfileSO,anatomy:slime,AnatomyProfileSO|anatomy:slime,references,Slime,,,speciesIds,species Ids,protocol-id,non-content-protocol,,Assets/Resources/SO/Medical/Anatomy/anatomy_slime.asset
+AnatomyProfileSO,anatomy:vampire,AnatomyProfileSO|anatomy:vampire,references,Vampire,,,speciesIds,species Ids,protocol-id,non-content-protocol,,Assets/Resources/SO/Medical/Anatomy/anatomy_vampire.asset

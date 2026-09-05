@@ -1,0 +1,45 @@
+---
+import BaseLayout from '../components/BaseLayout.astro';
+import DirectoryBoard from '../components/DirectoryBoard.astro';
+import Icon from '../components/Icon.astro';
+import { getCurrentVersion } from '../lib/wiki-data';
+
+const version = getCurrentVersion();
+---
+
+<BaseLayout title="홈" version={version}>
+  <section class="home-hero" data-pagefind-body>
+    <div class="home-hero__main">
+      <h1>DungeonStory<span>공식 위키</span></h1>
+      <p>여러 종족이 모여 사는 던전을 꾸리고, 방과 생산 시설을 세운다. 주민에게 일을 맡기고 무엇을 생산하고 비축할지 고르며, 밖에서 찾아오는 손님과 세력은 거래 상대로 맞거나 침입자로 막아선다. 이야기가 깊어지면 원정과 전투는 인간 세력의 중심을 무너뜨리는 싸움으로 이어진다.</p>
+      <div class="home-hero__actions">
+        <a class="home-action home-action--primary" href="/guide/overview/"><Icon name="compass" />게임 알아보기</a>
+        <a class="home-action" href="/directory/"><Icon name="grid" />문서 둘러보기</a>
+      </div>
+    </div>
+    <aside class="home-hero__rail" aria-label="빠른 시작">
+      <section class="home-explore">
+        <p>바로 시작하기</p>
+        <div class="home-explore__links">
+          <a href="/guide/starting-party/"><Icon name="camp" /><span><strong>시작 인원과 역할</strong><small>첫 세 명과 정착의 출발 조건</small></span><b>›</b></a>
+          <a href="/guide/inventory-and-carrying/"><Icon name="flow" /><span><strong>재고와 운반</strong><small>실제로 쓸 수 있는 물자의 흐름</small></span><b>›</b></a>
+          <a href="/guide/combat-and-equipment/"><Icon name="sword" /><span><strong>전투와 장비</strong><small>방어와 원정에 쓰는 공통 규칙</small></span><b>›</b></a>
+        </div>
+      </section>
+      <a class="download-dock" href="/download/">
+        <Icon name="signal" />
+        <span><small>게임 받기</small><strong>다운로드</strong><em>출시처 안내 준비 중</em></span>
+        <b>›</b>
+      </a>
+    </aside>
+  </section>
+  <DirectoryBoard version={version} compact />
+  <section class="home-next" aria-labelledby="home-next-title">
+    <div class="section-heading"><div><p class="eyebrow">빠른 탐색</p><h2 id="home-next-title">자주 찾는 문서</h2></div></div>
+    <div class="home-next__grid">
+      <a class="home-next__card" href="/search/"><span aria-hidden="true">⌕</span><strong>정확한 이름 검색</strong><small>현재 공개 문서만 검색</small></a>
+      <a class="home-next__card" href="/category/facilities/"><span aria-hidden="true">↝</span><strong>시설과 방 보기</strong><small>건설과 운영 공간</small></a>
+      <a class="home-next__card" href="/category/research/"><span aria-hidden="true">⌘</span><strong>연구 해금 확인</strong><small>선행과 해금 보기</small></a>
+    </div>
+  </section>
+</BaseLayout>

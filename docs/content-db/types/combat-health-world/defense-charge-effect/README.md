@@ -1,0 +1,18 @@
+# DefenseChargeEffectSO
+
+방어 시설의 충전과 임계 방전 효과를 정의한다
+
+총 3개 항목이며, 비교군은 실제 대체 가능성을 검토하기 위한 후보군이다.
+
+## 데이터
+
+- [유형별 콘텐츠 CSV](../../../csv/combat-health-world/defense-charge-effect.csv)
+- [중첩 작성 필드 CSV](../../../fields/combat-health-world/defense-charge-effect.csv)
+- [정방향 관계 CSV](../../../relations/combat-health-world/defense-charge-effect.csv)
+- [역방향 관계 CSV](../../../incoming/combat-health-world/defense-charge-effect.csv)
+
+| 안정 ID | 이름 | 전략적 역할 | 비용·위험 | 런타임 상태 | 수명주기 | 역참조 | 구현 권위 |
+|---|---|---|---|---|---|---:|---|
+| `asset:P1_AlarmCoil_2_Charge` | P1_AlarmCoil_2_Charge | 방어 시설의 충전과 임계 방전 효과를 정의한다 | duration=10; dischargeThreshold=3 | resources-authored-consumer-unverified | active-authored | 1 | [P1_AlarmCoil_2_Charge.asset](../../../../../Assets/Resources/SO/Defense/Effects/P1/Synthesis/P1_AlarmCoil_2_Charge.asset) |
+| `asset:P1_LightningPillar_2_Charge` | P1_LightningPillar_2_Charge | 방어 시설의 충전과 임계 방전 효과를 정의한다 | duration=10; dischargeThreshold=3 | resources-authored-consumer-unverified | active-authored | 2 | [P1_LightningPillar_2_Charge.asset](../../../../../Assets/Resources/SO/Defense/Effects/P1/P1_LightningPillar_2_Charge.asset) |
+| `asset:P1_StormFireTrap_3_Charge` | P1_StormFireTrap_3_Charge | 방어 시설의 충전과 임계 방전 효과를 정의한다 | duration=10; dischargeThreshold=3 | resources-authored-consumer-unverified | active-authored | 1 | [P1_StormFireTrap_3_Charge.asset](../../../../../Assets/Resources/SO/Defense/Effects/P1/Synthesis/P1_StormFireTrap_3_Charge.asset) |

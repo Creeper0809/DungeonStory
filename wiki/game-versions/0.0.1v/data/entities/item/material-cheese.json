@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.4kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "21"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "보존성이 좋은 채식 단백질 식재료이다. 하르나크 장터의 치즈 값은 사르베니아 내해의 수위와 밀로세아 가도의 통행세에 따라 먼저 움직인다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-cheese",
+  "spoiler_tier": "none",
+  "summary": "보존성이 좋은 채식 단백질 식재료.",
+  "title": "치즈"
+}

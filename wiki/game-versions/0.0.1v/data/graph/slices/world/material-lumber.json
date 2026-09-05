@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "material-lumber",
+    "spoiler_tier": "none",
+    "title": "목재"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/material-lumber",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-forestry-sawmill",
+      "target_spoiler_tier": "none",
+      "target_title": "제재",
+      "to": "research/research-forestry-sawmill",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

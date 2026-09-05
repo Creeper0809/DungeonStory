@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-lavish-meat",
+    "spoiler_tier": "none",
+    "title": "핏빛 호화식"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-lavish-meat",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cheese",
+      "target_spoiler_tier": "none",
+      "target_title": "치즈",
+      "to": "item/material-cheese",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-lavish-meat",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "food-lavish-meat",
+      "target_spoiler_tier": "none",
+      "target_title": "핏빛 호화식",
+      "to": "item/food-lavish-meat",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-lavish-meat",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-meat",
+      "target_spoiler_tier": "none",
+      "target_title": "생고기",
+      "to": "item/resource-meat",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-lavish-meat",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-night-grape",
+      "target_spoiler_tier": "none",
+      "target_title": "밤포도",
+      "to": "item/resource-night-grape",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-lavish-meat",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-lavish",
+      "target_spoiler_tier": "none",
+      "target_title": "호화·보존식",
+      "to": "research/research-cuisine-lavish",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

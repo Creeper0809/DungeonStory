@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "제작"
+    },
+    {
+      "label": "크기",
+      "value": "1×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-8852",
+  "spoiler_tier": "none",
+  "summary": "시설의 고유 역할은 생산 작업대이다. 건설에는 작업량 522, 재료 석재 블록×8, 처리 목재×6, 철괴×4, 기계 부품×2, 외 1개이 필요하다.",
+  "title": "토양 검사대"
+}

@@ -1,0 +1,88 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-laminated-lumber",
+    "spoiler_tier": "none",
+    "title": "적층 목재"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-composite-bow",
+      "label": "필요 조건",
+      "to": "item/material-laminated-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-crossbow",
+      "label": "필요 조건",
+      "to": "item/material-laminated-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-repeating-crossbow",
+      "label": "필요 조건",
+      "to": "item/material-laminated-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-rune-bow",
+      "label": "필요 조건",
+      "to": "item/material-laminated-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-windlass-crossbow",
+      "label": "필요 조건",
+      "to": "item/material-laminated-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-ammo-blacksteel-bolt",
+      "label": "필요 조건",
+      "to": "item/material-laminated-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "combat/equipment-item-shield-pavise",
+      "label": "필요 조건",
+      "to": "item/material-laminated-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-sealed-seasonal-container",
+      "label": "필요 조건",
+      "to": "item/material-laminated-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-waterwheel-drive-shaft",
+      "label": "필요 조건",
+      "to": "item/material-laminated-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-laminated-lumber",
+      "label": "생산·해금",
+      "to": "item/material-laminated-lumber",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-tool-banquet-cart",
+      "label": "필요 조건",
+      "to": "item/material-laminated-lumber",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

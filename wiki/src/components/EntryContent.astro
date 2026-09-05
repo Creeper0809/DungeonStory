@@ -1,0 +1,77 @@
+---
+import FactInfobox from './FactInfobox.astro';
+import RelatedRecipeTable from './RelatedRecipeTable.astro';
+import RecipeSection from './RecipeSection.astro';
+import RelationGraph from './RelationGraph.astro';
+import RelationTable from './RelationTable.astro';
+import SpoilerBlock from './SpoilerBlock.astro';
+import { categoryHref, categoryIdForKind, categoryLabel, getBacklinks, getCategoryGuides, getEntity, guideHref, type WikiEntity } from '../lib/wiki-data';
+
+interface Props { entity: WikiEntity; version: string; historical?: boolean }
+const { entity, version, historical = false } = Astro.props;
+const archiveVersion = historical ? version : undefined;
+const categoryId = categoryIdForKind(entity.kind);
+const kindLabel = categoryLabel(categoryId, version);
+const backlinks = getBacklinks(version, entity);
+const hasFacts = entity.facts.length > 0;
+const producedEntityKinds = new Set(['item', 'world']);
+const producingRecipeBacklinks = producedEntityKinds.has(entity.kind)
+  ? backlinks.filter((backlink) => backlink.from_kind === 'recipe' && backlink.type === 'produces-or-unlocks')
+  : [];
+const recipeSlugs = new Set<string>(
+  entity.kind === 'recipe' ? [entity.slug] : producingRecipeBacklinks.map((backlink) => backlink.from_slug),
+);
+const recipes = [...recipeSlugs].map((slug) => {
+  const recipe = getEntity(version, 'recipe', slug);
+  if (!recipe) throw new Error(`Recipe relation points to a missing entity: recipe/${slug}`);
+  return recipe;
+});
+const generalRelations = entity.kind === 'recipe'
+  ? []
+  : entity.relations;
+const producingRecipeKeys = new Set(producingRecipeBacklinks.map((backlink) => `${backlink.from_slug}/${backlink.type}`));
+const consumingRecipeBacklinks = entity.kind === 'item'
+  ? backlinks.filter((backlink) => backlink.from_kind === 'recipe' && backlink.type === 'requires')
+  : [];
+const consumingRecipeKeys = new Set(consumingRecipeBacklinks.map((backlink) => `${backlink.from_slug}/${backlink.type}`));
+const generalBacklinks = backlinks.filter((backlink) =>
+  !producingRecipeKeys.has(`${backlink.from_slug}/${backlink.type}`)
+  && !consumingRecipeKeys.has(`${backlink.from_slug}/${backlink.type}`)
+);
+const graphEntity = { ...entity, relations: generalRelations };
+const hasVisibleRelations = generalRelations.some((relation) => relation.target_spoiler_tier === 'none');
+const hasDirectConnections = recipes.length > 0 || generalRelations.length > 0 || generalBacklinks.length > 0;
+const systemGuides = hasDirectConnections ? [] : getCategoryGuides(version, categoryId).slice(0, 3);
+---
+
+{entity.spoiler_tier === 'warning' ? <SpoilerBlock entity={entity} version={version} /> : (
+  <article class="entry-page" data-pagefind-body={historical ? undefined : 'true'}>
+    <nav class="breadcrumbs" aria-label="현재 위치"><a href="/directory/">둘러보기</a><span>/</span><a href={categoryHref(categoryId, archiveVersion)}>{kindLabel}</a><span>/</span><span aria-current="page">{entity.title}</span></nav>
+    <header class="page-header">
+      <p class="eyebrow">{kindLabel}</p>
+      <h1>{entity.title}</h1>
+      <p>{entity.summary}</p>
+    </header>
+    <div class={hasFacts ? 'entry-layout' : 'entry-layout entry-layout--single'}>
+      <div class="entry-main">
+        {entity.kind === 'item' && entity.in_game_description && <section class="entry-narrative" aria-labelledby="entry-narrative-title">
+          <h2 id="entry-narrative-title">게임 내 설명</h2>
+          <p>{entity.in_game_description}</p>
+        </section>}
+        {recipes.length > 0 && <RecipeSection recipes={recipes} context={entity} version={archiveVersion} />}
+        {consumingRecipeBacklinks.length > 0 && <RelatedRecipeTable backlinks={consumingRecipeBacklinks} version={version} historical={historical} />}
+        {(generalRelations.length > 0 || generalBacklinks.length > 0) && <RelationTable relations={generalRelations} backlinks={generalBacklinks} version={archiveVersion} />}
+        {hasVisibleRelations && <RelationGraph entity={graphEntity} version={archiveVersion} />}
+        {systemGuides.length > 0 && <section class="entry-context" aria-labelledby="entry-context-title">
+          <h2 id="entry-context-title">관련 문서</h2>
+          <div class="entry-context__links">
+            {systemGuides.map((guide) => <a href={guideHref(guide.id, archiveVersion)}><strong>{guide.title}</strong><span>{guide.summary}</span></a>)}
+          </div>
+        </section>}
+      </div>
+      {hasFacts && <aside class="entry-rail">
+        <FactInfobox facts={entity.facts} />
+      </aside>}
+    </div>
+  </article>
+)}

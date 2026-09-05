@@ -1,0 +1,177 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-medical-regenerative-culture",
+    "spoiler_tier": "none",
+    "title": "재생 배양"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-medical-regenerative-culture",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-gerontology",
+      "target_spoiler_tier": "none",
+      "target_title": "노인학과 생물학적 연령 계측",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-regenerative-culture",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-gerontology",
+      "target_spoiler_tier": "none",
+      "target_title": "노인학과 생물학적 연령 계측",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-regenerative-culture",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-gerontology",
+      "target_spoiler_tier": "none",
+      "target_title": "노인학과 생물학적 연령 계측",
+      "to": "research/research-medical-gerontology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-regenerative-culture",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-mycelial-grafting",
+      "target_spoiler_tier": "none",
+      "target_title": "균사 접목학",
+      "to": "research/research-medical-mycelial-grafting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-regenerative-culture",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-mycelial-grafting",
+      "target_spoiler_tier": "none",
+      "target_title": "균사 접목학",
+      "to": "research/research-medical-mycelial-grafting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-regenerative-culture",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-mycelial-grafting",
+      "target_spoiler_tier": "none",
+      "target_title": "균사 접목학",
+      "to": "research/research-medical-mycelial-grafting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-regenerative-culture",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-organ-preservation",
+      "target_spoiler_tier": "none",
+      "target_title": "장기 보존",
+      "to": "research/research-medical-organ-preservation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-regenerative-culture",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-organ-preservation",
+      "target_spoiler_tier": "none",
+      "target_title": "장기 보존",
+      "to": "research/research-medical-organ-preservation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-regenerative-culture",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-organ-preservation",
+      "target_spoiler_tier": "none",
+      "target_title": "장기 보존",
+      "to": "research/research-medical-organ-preservation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-regenerative-culture",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8867",
+      "target_spoiler_tier": "none",
+      "target_title": "재생 배양조",
+      "to": "facility/building-8867",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-material-sterile-composite",
+      "label": "필요 조건",
+      "to": "research/research-medical-regenerative-culture",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-medical-regenerative-medium",
+      "label": "필요 조건",
+      "to": "research/research-medical-regenerative-culture",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-cross-lineage-stabilization",
+      "label": "선행 연구",
+      "to": "research/research-medical-regenerative-culture",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-cross-lineage-stabilization",
+      "label": "선행 연구",
+      "to": "research/research-medical-regenerative-culture",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-cross-lineage-stabilization",
+      "label": "선행 연구",
+      "to": "research/research-medical-regenerative-culture",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-organ-regeneration",
+      "label": "선행 연구",
+      "to": "research/research-medical-regenerative-culture",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-organ-regeneration",
+      "label": "선행 연구",
+      "to": "research/research-medical-regenerative-culture",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-organ-regeneration",
+      "label": "선행 연구",
+      "to": "research/research-medical-regenerative-culture",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

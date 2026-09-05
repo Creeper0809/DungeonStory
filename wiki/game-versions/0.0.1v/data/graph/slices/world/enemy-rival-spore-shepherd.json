@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "enemy-rival-spore-shepherd",
+    "spoiler_tier": "none",
+    "title": "경쟁 던전 포자목자"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/enemy-rival-spore-shepherd",
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-poison-cloud",
+      "target_spoiler_tier": "none",
+      "target_title": "독성 구름",
+      "to": "world/enemy-ability-poison-cloud",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-rival-spore-shepherd",
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-summon-minion",
+      "target_spoiler_tier": "none",
+      "target_title": "지원체 소환",
+      "to": "world/enemy-ability-summon-minion",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-rival-spore-shepherd",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "offense-unappraised-loot",
+      "target_spoiler_tier": "none",
+      "target_title": "미감정 전리품",
+      "to": "item/offense-unappraised-loot",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,51 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "spore-elk",
+    "spoiler_tier": "none",
+    "title": "포자큰사슴"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/spore-elk",
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-white-spore",
+      "target_spoiler_tier": "none",
+      "target_title": "백색포자병",
+      "to": "medical/disease-white-spore",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/spore-elk",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "mire-leech",
+      "target_spoiler_tier": "none",
+      "target_title": "진흙거머리",
+      "to": "nature/mire-leech",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/spore-elk",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "shadow-wolf",
+      "target_spoiler_tier": "none",
+      "target_title": "그림자늑대",
+      "to": "nature/shadow-wolf",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/mire-leech",
+      "label": "관련",
+      "to": "nature/spore-elk",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

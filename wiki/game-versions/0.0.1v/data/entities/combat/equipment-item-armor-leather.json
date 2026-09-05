@@ -1,0 +1,35 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "무두질"
+    },
+    {
+      "label": "제작 작업",
+      "value": "124"
+    },
+    {
+      "label": "무게",
+      "value": "4.2kg"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "combat",
+  "relations": [
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-tanning",
+      "target_spoiler_tier": "none",
+      "target_title": "무두질",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "equipment-item-armor-leather",
+  "spoiler_tier": "none",
+  "summary": "가죽 갑옷 전투 장비",
+  "title": "가죽 갑옷"
+}

@@ -27,8 +27,8 @@ public sealed class SurgeryRuntime :
     private readonly ICaptivityRuntime captivity;
     private readonly IBuildingWorldQuery buildings;
     private readonly IWorldItemStackRuntime items;
-    private readonly IFacilityBufferDestinationClaimQuery destinationClaims;
-    private readonly IFacilityBufferDestinationClaimCommand destinationClaimCommands;
+    private readonly ISurgeryMaterialDestinationRuntime materialDestinations;
+    private readonly ISurgeryMaterialTerminalRuntime materialTerminal;
     private readonly ICharacterBodyHealthQuery bodyHealth;
     private readonly IAnatomyHealthRuntime anatomy;
     private readonly IWildlifeAnatomyHealthRuntime wildlifeAnatomy;
@@ -94,8 +94,8 @@ public sealed class SurgeryRuntime :
         patientTransport = requiredWorld.PatientTransport;
         bodyHealth = requiredWorld.BodyHealthQuery;
         items = requiredResources.Items;
-        destinationClaims = requiredResources.DestinationClaims;
-        destinationClaimCommands = requiredResources.DestinationClaimCommands;
+        materialDestinations = requiredResources.MaterialDestinations;
+        materialTerminal = requiredResources.MaterialTerminal;
         anatomy = requiredResources.Anatomy;
         wildlifeAnatomy = requiredResources.WildlifeAnatomy;
         workforce = requiredResources.Workforce;
@@ -149,6 +149,14 @@ public sealed class SurgeryRuntime :
                      .Where(candidate => candidate != null && candidate.IsActive)
                      .ToArray())
         {
+            if (order.state == SurgeryOrderState.TerminalDraining)
+            {
+                DriveMaterialTerminal(
+                    order,
+                    order.materialTerminalTargetState);
+                continue;
+            }
+
             if (!string.IsNullOrWhiteSpace(order.doctorId))
             {
                 CharacterActor assignedDoctor =
@@ -173,7 +181,7 @@ public sealed class SurgeryRuntime :
             if (!TryResolveFacility(order.facilityId, out BuildableObject facility)
                 || !procedures.TryGet(order.procedureId, out SurgicalProcedureSO procedure))
             {
-                CancelInternal(order);
+                BeginCancellation(order);
                 continue;
             }
 
@@ -214,10 +222,9 @@ public sealed class SurgeryRuntime :
             {
                 if (clock.Time >= order.recoveryUntil)
                 {
-                    ReleaseMaterialDestination(order);
-                    order.state = SurgeryOrderState.Completed;
-                    order.statusData.Set(SurgeryStatusCode.RecoveryCompleted);
-                    ReleasePatient(order);
+                    DriveMaterialTerminal(
+                        order,
+                        SurgeryOrderState.Completed);
                 }
 
                 continue;
@@ -784,7 +791,10 @@ public sealed class SurgeryRuntime :
         order.resultRolled = true;
         completed = ResolveOutcome(order, procedure, facility, out failure);
         order.doctorId = string.Empty;
-        return completed || order.state == SurgeryOrderState.Failed;
+        // The clinical outcome is now final even when the physical terminal
+        // drain must continue on subsequent ticks. The doctor action must not
+        // rerun the RNG/effect/consequence boundary while that drain recovers.
+        return completed || order.resultRolled;
     }
 
     public void ReleaseDoctor(
@@ -1016,13 +1026,9 @@ public sealed class SurgeryRuntime :
             },
             createdAt = clock.Time
         };
-        FacilityBufferDestinationClaim destinationClaim =
-            SurgeryMaterialDestinationAuthority.CreateClaim(
+        if (!materialDestinations.TryClaim(
                 order,
-                facility.PrimaryFacility.centerPos);
-        if (!destinationClaimCommands.TryClaim(
-                destinationClaim,
-                out FacilityBufferDestinationClaimFailureCode claimFailure,
+                facility.PrimaryFacility,
                 out string claimReason))
         {
             if (!string.IsNullOrWhiteSpace(order.selectedPartInstanceId))
@@ -1034,7 +1040,7 @@ public sealed class SurgeryRuntime :
 
             failure = new DomainFailure(
                 FailureCode.SurgeryMaterialUnavailable,
-                $"destination-claim:{claimFailure}:{claimReason}");
+                "destination-authority:" + claimReason);
             order = null;
             return false;
         }
@@ -1063,7 +1069,22 @@ public sealed class SurgeryRuntime :
             return false;
         }
 
-        CancelInternal(order);
+        if (order.state == SurgeryOrderState.TerminalDraining)
+        {
+            if (order.materialTerminalTargetState !=
+                SurgeryOrderState.Cancelled)
+            {
+                failure = new DomainFailure(
+                    FailureCode.SurgeryOrderMissing,
+                    orderId,
+                    "terminal-drain-in-progress");
+                return false;
+            }
+            DriveMaterialTerminal(order, SurgeryOrderState.Cancelled);
+            return true;
+        }
+
+        BeginCancellation(order);
         return true;
     }
 
@@ -1177,9 +1198,8 @@ public sealed class SurgeryRuntime :
                     failure = new DomainFailure(
                         FailureCode.SurgeryEffectHandlerMissing,
                         effect?.GetType().Name ?? string.Empty);
-                    ReleaseMaterialDestination(order);
-                    order.state = SurgeryOrderState.Failed;
                     order.statusData.Set(SurgeryStatusCode.ProcedurePaused);
+                    DriveMaterialTerminal(order, SurgeryOrderState.Failed);
                     return false;
                 }
 
@@ -1189,9 +1209,8 @@ public sealed class SurgeryRuntime :
                         facility,
                         out failure))
                 {
-                    ReleaseMaterialDestination(order);
-                    order.state = SurgeryOrderState.Failed;
                     order.statusData.Set(SurgeryStatusCode.ProcedurePaused);
+                    DriveMaterialTerminal(order, SurgeryOrderState.Failed);
                     return false;
                 }
             }
@@ -1231,8 +1250,6 @@ public sealed class SurgeryRuntime :
         }
         ApplyFailureConsequences(order);
         order.incisionOpen = false;
-        ReleaseMaterialDestination(order);
-        order.state = SurgeryOrderState.Failed;
         order.statusData.Set(order.failureSeverity switch
         {
             SurgeryFailureSeverity.Minor =>
@@ -1242,7 +1259,7 @@ public sealed class SurgeryRuntime :
             SurgeryFailureSeverity.Fatal => SurgeryStatusCode.FailedFatal,
             _ => SurgeryStatusCode.CompletedWithMajorFailure
         });
-        ReleasePatient(order);
+        DriveMaterialTerminal(order, SurgeryOrderState.Failed);
         failure = new DomainFailure(
             FailureCode.SurgeryOutcomeFailed,
             order.failureSeverity.ToString());
@@ -1337,50 +1354,79 @@ public sealed class SurgeryRuntime :
         }
     }
 
-    private void CancelInternal(SurgeryOrder order)
+    private void BeginCancellation(SurgeryOrder order)
     {
         if (order == null)
         {
             return;
         }
 
-        ReleaseMaterialDestination(order);
-        if (!string.IsNullOrWhiteSpace(order.selectedPartInstanceId))
-        {
-            parts.ReleaseReservation(order.selectedPartInstanceId, order.orderId);
-        }
-
-        order.state = SurgeryOrderState.Cancelled;
         order.statusData.Set(SurgeryStatusCode.Cancelled);
         order.doctorId = string.Empty;
-        ReleasePatient(order);
+        DriveMaterialTerminal(order, SurgeryOrderState.Cancelled);
     }
 
-    private void ReleaseMaterialDestination(SurgeryOrder order)
+    private bool DriveMaterialTerminal(
+        SurgeryOrder order,
+        SurgeryOrderState terminalTarget)
     {
-        if (!SurgeryMaterialDestinationAuthority.TryGetOwnedClaim(
-                destinationClaims,
+        if (order == null)
+        {
+            return false;
+        }
+        if (order?.materialsConsumed == true
+            && !surgeryLogistics.TryFinalizeConsumedMaterials(
                 order,
-                out FacilityBufferDestinationClaim claim))
+                out DomainFailure sinkFailure))
         {
             throw new InvalidOperationException(
-                $"Active surgery order '{order?.orderId ?? "<missing>"}' "
-                + "has no exact material destination claim.");
+                $"Could not finalize surgery material sink for "
+                + $"'{order.orderId}': {sinkFailure}");
         }
 
-        items.ReleaseStacksByDestination(
-            order.materialDestinationId,
-            claim.DropPosition);
-        if (!destinationClaimCommands.TryRevoke(
-                claim,
-                out FacilityBufferDestinationClaimFailureCode failureCode,
-                out string failureReason))
+        SurgeryMaterialTerminalAdvanceResult result =
+            materialTerminal.TryBeginOrResume(order, terminalTarget);
+        if (result.Status == SurgeryMaterialTerminalAdvanceStatus.Conflict)
         {
             throw new InvalidOperationException(
-                $"Could not revoke surgery material destination "
-                + $"'{order.materialDestinationId}': {failureCode}: "
-                + failureReason);
+                $"Could not close surgery material destination "
+                + $"'{order.materialDestinationId}': {result.FailureReason}");
         }
+        if (!result.IsReadyForOwnerClosure)
+        {
+            return false;
+        }
+
+        FinalizeMaterialTerminalOwner(order, terminalTarget);
+        return true;
+    }
+
+    private void FinalizeMaterialTerminalOwner(
+        SurgeryOrder order,
+        SurgeryOrderState terminalTarget)
+    {
+        if (!string.IsNullOrWhiteSpace(order.selectedPartInstanceId)
+            && terminalTarget != SurgeryOrderState.Completed)
+        {
+            parts.ReleaseReservation(
+                order.selectedPartInstanceId,
+                order.orderId);
+        }
+
+        order.doctorId = string.Empty;
+        order.state = terminalTarget;
+        switch (terminalTarget)
+        {
+            case SurgeryOrderState.Completed:
+                order.statusData.Set(SurgeryStatusCode.RecoveryCompleted);
+                break;
+            case SurgeryOrderState.Cancelled:
+                order.statusData.Set(SurgeryStatusCode.Cancelled);
+                break;
+        }
+        ReleasePatient(order);
+        order.materialTerminalDrainPhase =
+            SurgeryMaterialTerminalDrainPhase.ClosedAwaitingCheckpointGc;
     }
 
     private void ReleasePatient(SurgeryOrder order)
@@ -1408,7 +1454,7 @@ public sealed class SurgeryRuntime :
             && captivity.TryGetCaptive(
                 order.subject.subjectId,
                 out CaptiveState captive)
-            && captive.IsActive
+            && captive.IsInCustody
             && !patient.IsDead
             && !bodyHealth.GetSnapshot(patient).Downed
             && (order.patientAdmitted || order.admissionMoveRequested))

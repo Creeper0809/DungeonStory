@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.85kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "19"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "허리끈 하나로 여미는 넉넉한 로브로, 정착지 안에서 오래 입기 편하다. 하르나크에서 만든 일상 로브는 날개와 넓은 어깨에 맞춰 등솔기를 고치기 쉽도록 여유 천을 남긴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "apparel-daily-robe",
+  "spoiler_tier": "none",
+  "summary": "일상 로브 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다.",
+  "title": "일상 로브"
+}

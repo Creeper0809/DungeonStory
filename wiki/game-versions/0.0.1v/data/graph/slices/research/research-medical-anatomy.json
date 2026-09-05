@@ -1,0 +1,167 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-medical-anatomy",
+    "spoiler_tier": "none",
+    "title": "해부학"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-medical-anatomy",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-medical",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 회복",
+      "to": "research/research-survival-medical",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-anatomy",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-medical",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 회복",
+      "to": "research/research-survival-medical",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-anatomy",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-medical",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 회복",
+      "to": "research/research-survival-medical",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-anatomy",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9502",
+      "target_spoiler_tier": "none",
+      "target_title": "해부대",
+      "to": "facility/building-9502",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-corpse-organ-extraction",
+      "label": "필요 조건",
+      "to": "research/research-medical-anatomy",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "선행 연구",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "선행 연구",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "선행 연구",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-mycelial-grafting",
+      "label": "선행 연구",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-mycelial-grafting",
+      "label": "선행 연구",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-mycelial-grafting",
+      "label": "선행 연구",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-reproductive-medicine",
+      "label": "선행 연구",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-reproductive-medicine",
+      "label": "선행 연구",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-reproductive-medicine",
+      "label": "선행 연구",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-slime-bioengineering",
+      "label": "선행 연구",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-slime-bioengineering",
+      "label": "선행 연구",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-slime-bioengineering",
+      "label": "선행 연구",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-surgery",
+      "label": "선행 연구",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-surgery",
+      "label": "선행 연구",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-surgery",
+      "label": "선행 연구",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

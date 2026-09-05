@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "culture-slime-confluence",
+    "spoiler_tier": "none",
+    "title": "합류수 문화"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/culture-slime-confluence",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-slime-clear-water",
+      "target_spoiler_tier": "none",
+      "target_title": "맑은물 합류",
+      "to": "event/practice-slime-clear-water",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-slime-confluence",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-slime-core-ring",
+      "target_spoiler_tier": "none",
+      "target_title": "핵고리 성년식",
+      "to": "event/practice-slime-core-ring",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-slime-confluence",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "resource-clean-water",
+      "target_spoiler_tier": "none",
+      "target_title": "깨끗한 물",
+      "to": "item/resource-clean-water",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-component-precision-optics",
+    "spoiler_tier": "none",
+    "title": "정밀 광학계"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-precision-optics",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-precision-optics",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 광학계",
+      "to": "item/component-precision-optics",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-precision-optics",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-gold-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "금괴",
+      "to": "item/material-gold-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-component-precision-optics",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-mana-crystal",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 결정",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-precision-optics",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-industrial-metrology",
+      "target_spoiler_tier": "none",
+      "target_title": "산업 계측학",
+      "to": "research/research-equipment-industrial-metrology",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

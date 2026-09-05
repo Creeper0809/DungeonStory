@@ -1,0 +1,7 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+FacilitySynthesisRecipeSO,content-type,,type-reference; save-restore-reference,services:codex,runtime,structural-type-consumer,Assets/Scripts/Services/Codex/CodexRuntimeApplicationAdapter.cs
+FacilitySynthesisRecipeSO,content-type,,type-reference,services:infrastructure,content-loading,structural-type-consumer,Assets/Scripts/Services/Infrastructure/FacilityRecipeCatalogServices.cs
+FacilitySynthesisRecipeSO,content-type,,type-reference; save-restore-reference,services:synthesis,runtime,structural-type-consumer,Assets/Scripts/Services/Synthesis/FacilitySynthesisRuntime.cs
+FacilitySynthesisRecipeSO,content-type,,type-reference,services:synthesis,runtime,structural-type-consumer,Assets/Scripts/Services/Synthesis/FacilitySynthesisSystem.cs
+FacilitySynthesisRecipeSO,content-type,,type-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/Synthesis/UI/FacilitySynthesisPanel.cs
+FacilitySynthesisRecipeSO,content-type,,type-reference; save-restore-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/UI/BuildingFeatureSurfacePresenter.cs

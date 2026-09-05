@@ -55,6 +55,8 @@ public static class V27BalanceLedgerDebugScenarios
         passed.Add("PASS V27_MEWU_BATCH_PARTITION_MONOTONICITY");
         VerifyAttributionCollapseEnvelope();
         passed.Add("PASS V27_ATTRIBUTION_COLLAPSE_EPSILON_ISOLATED");
+        VerifyItemMetricRootAttribution();
+        passed.Add("PASS V27_ITEM_METRIC_ROOT_ATTRIBUTION");
         VerifySccProof();
         passed.Add("PASS V27_SCC_ZERO_TOLERANCE");
         VerifyCanonicalCaptureAndOrdering();
@@ -65,6 +67,8 @@ public static class V27BalanceLedgerDebugScenarios
         passed.Add("PASS V27_CSV_BYTE_DETERMINISM");
         VerifyApprovalExpiry();
         passed.Add("PASS V27_APPROVAL_EXACT_KEY_EXPIRY");
+        VerifyApprovalOnlyDerivedItemRows();
+        passed.Add("PASS V27_APPROVAL_ONLY_DERIVED_ITEM_NO_ASSET_PATCH");
         VerifyRuntimeLaborAuthority();
         passed.Add("PASS V27_VERTICAL_SLICE_RUNTIME_WORK_SCALE");
         passed.Add("PASS V27_VERTICAL_SLICE_AUTHORITY_ALIGNMENT");
@@ -154,6 +158,39 @@ public static class V27BalanceLedgerDebugScenarios
             "changed local fingerprint was incorrectly collapsed");
     }
 
+    private static void VerifyItemMetricRootAttribution()
+    {
+        HashSet<string> semanticRoots = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "recipe:plank",
+            "crop:wheat"
+        };
+        Require(V27BalanceAudit.ResolveItemMetricRootCauseIds(
+                "item:plank",
+                "acquisition-cost",
+                "recipe:plank",
+                semanticRoots,
+                acquisitionEmitsRootCritical: false)
+            .SequenceEqual(new[] { "recipe:plank" }),
+            "registered semantic source did not remain the causal root");
+        Require(V27BalanceAudit.ResolveItemMetricRootCauseIds(
+                "equipment-item:shield:mana-buckler",
+                "acquisition-cost",
+                "equipment:shield:mana-buckler",
+                semanticRoots,
+                acquisitionEmitsRootCritical: true)
+            .Length == 0,
+            "unregistered source alias incorrectly became a non-ledger root");
+        Require(V27BalanceAudit.ResolveItemMetricRootCauseIds(
+                "equipment-item:shield:mana-buckler",
+                "recoverable-value",
+                "equipment:shield:mana-buckler",
+                semanticRoots,
+                acquisitionEmitsRootCritical: true)
+            .SequenceEqual(new[] { "equipment-item:shield:mana-buckler" }),
+            "recoverable value did not collapse under its approvable acquisition root");
+    }
+
     private static void VerifySccProof()
     {
         BalanceTransform[] safe =
@@ -174,6 +211,48 @@ public static class V27BalanceLedgerDebugScenarios
         Require(!failed.Passed
                 && failed.ViolatingTransformIds.SequenceEqual(new[] { "transform:free-loop" }),
             "zero-margin SCC transform passed without the required 1 mEWU loss");
+    }
+
+    private static void VerifyApprovalOnlyDerivedItemRows()
+    {
+        BalanceMetricCaptureRequest request = CreateRequest(
+            "items",
+            "item",
+            "equipment-item:shield:mana-buckler",
+            "acquisition-cost",
+            "derived acquisition root");
+        request.ExactFormula =
+            "ceil(inputs+directWU+logistics+utility+loss / expectedOutput)";
+        request.SourcePropertyPath = "recipe graph";
+        request.SaveAuthority = "ScriptableObject catalog";
+        request.VerificationEvidence = "V23-before|V27-fixed-point";
+        request.AnomalyDisposition = "root-critical";
+        request.ReasonCode = "v27-duration-preserving-first-candidate";
+        request.ReviewStatus = "pending";
+        request.ApprovalKey = new string('e', 64);
+        request.BalanceBaselineRecordId =
+            "architecture:v27-whitebox-ledger-pipeline";
+        request.AssetApplied = "false";
+        BalanceCaptureFactory factory = new BalanceCaptureFactory();
+        factory.Capture(request);
+        CanonicalBalanceMetricRecord record = factory.Freeze().Records.Single();
+        Require(V27BalanceAssetApplication.IsApprovalOnlyLedgerRecord(record),
+            "derived acquisition root was treated as a SerializedProperty patch");
+
+        request.SourcePropertyPath = "salvageRetention";
+        BalanceCaptureFactory patchableFactory = new BalanceCaptureFactory();
+        patchableFactory.Capture(request);
+        Require(!V27BalanceAssetApplication.IsApprovalOnlyLedgerRecord(
+                patchableFactory.Freeze().Records.Single()),
+            "real item SerializedProperty was incorrectly treated as approval-only");
+
+        request.SourcePropertyPath = "recipe graph";
+        request.ExactFormula = "ceil(inputs / expectedOutput)";
+        BalanceCaptureFactory malformedFactory = new BalanceCaptureFactory();
+        malformedFactory.Capture(request);
+        Require(!V27BalanceAssetApplication.IsApprovalOnlyLedgerRecord(
+                malformedFactory.Freeze().Records.Single()),
+            "malformed derived row escaped the exact approval-only contract");
     }
 
     private static void VerifyCanonicalCaptureAndOrdering()

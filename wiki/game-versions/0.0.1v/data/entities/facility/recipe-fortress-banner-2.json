@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1068",
+      "target_spoiler_tier": "none",
+      "target_title": "세력깃발",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1046",
+      "target_spoiler_tier": "none",
+      "target_title": "순찰상황판",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1048",
+      "target_spoiler_tier": "none",
+      "target_title": "전투깃발",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-fortress-banner-2",
+  "spoiler_tier": "none",
+  "summary": "완성된 순찰 체계에 세력 표식을 더해 전투 집중도를 높이는 깃발을 만든다.",
+  "title": "전투깃발 제작"
+}

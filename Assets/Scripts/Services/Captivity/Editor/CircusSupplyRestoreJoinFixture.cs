@@ -7,7 +7,8 @@ public static class CircusSupplyRestoreJoinFixture
     {
         const string orderId = "circus:1", source = "stack:prop:1";
         string operation = $"circus-show-supplies:{orderId}:00000001";
-        const long grams = 1250;
+        const long grams =
+            CircusPerformanceSupplyContracts.PerformancePropBoxMassGrams;
         string commit = $"physical-batch-disposition:3:{operation}:1:{grams}";
         CircusShowOrder owner = new CircusShowOrder {
             orderId=orderId, nextSupplyOperationSequence=1, pendingSupplyOperationSequence=1,

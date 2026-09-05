@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Reproduction"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "heritable-slow-fertility",
+  "spoiler_tier": "none",
+  "summary": "성공률은 낮지만 성공한 배아·알·포자의 안정성이 높다.",
+  "title": "느린 가임 주기"
+}

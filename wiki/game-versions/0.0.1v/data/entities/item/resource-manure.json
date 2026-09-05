@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.5kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "2"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "퇴비, 실내 재배 영양제와 저급 연료의 원료이다. 므네실라에서는 분뇨를 바로 밭에 쓰지 않고, 열이 가라앉을 때까지 마른 풀과 번갈아 쌓아 발효시킨다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "resource-manure",
+  "spoiler_tier": "none",
+  "summary": "퇴비, 실내 재배 영양제와 저급 연료의 원료.",
+  "title": "분뇨"
+}

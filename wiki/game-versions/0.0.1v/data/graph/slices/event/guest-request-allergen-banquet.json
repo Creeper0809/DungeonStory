@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "guest-request-allergen-banquet",
+    "spoiler_tier": "none",
+    "title": "금기 없는 화합식"
+  },
+  "edges": [
+    {
+      "amount": "8",
+      "from": "event/guest-request-allergen-banquet",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "food-lavish-vegan",
+      "target_spoiler_tier": "none",
+      "target_title": "월야 비건 만찬",
+      "to": "item/food-lavish-vegan",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

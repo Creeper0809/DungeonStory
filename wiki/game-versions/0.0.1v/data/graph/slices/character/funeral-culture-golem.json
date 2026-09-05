@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "funeral-culture-golem",
+    "spoiler_tier": "none",
+    "title": "Funeral_Golem"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/characterspecies-9",
+      "label": "관련",
+      "to": "character/funeral-culture-golem",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

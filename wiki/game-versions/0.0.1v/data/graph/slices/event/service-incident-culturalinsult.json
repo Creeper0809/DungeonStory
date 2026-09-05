@@ -1,0 +1,47 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "service-incident-culturalinsult",
+    "spoiler_tier": "warning",
+    "title": "문화적 모욕"
+  },
+  "edges": [
+    {
+      "amount": "4",
+      "from": "event/service-incident-culturalinsult",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-culturalinsult",
+      "target_spoiler_tier": "warning",
+      "target_title": "문화적 모욕",
+      "to": "event/service-incident-culturalinsult",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "5",
+      "from": "event/service-incident-culturalinsult",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-culturalinsult",
+      "target_spoiler_tier": "warning",
+      "target_title": "문화적 모욕",
+      "to": "event/service-incident-culturalinsult",
+      "type": "changes-relationship"
+    },
+    {
+      "amount": "4",
+      "from": "event/service-incident-culturalinsult",
+      "label": "연결",
+      "to": "event/service-incident-culturalinsult",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "5",
+      "from": "event/service-incident-culturalinsult",
+      "label": "연결",
+      "to": "event/service-incident-culturalinsult",
+      "type": "changes-relationship"
+    }
+  ],
+  "schema_version": 1
+}

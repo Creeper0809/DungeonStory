@@ -161,6 +161,13 @@ public interface IWarehouseMassAdmissionService : IWarehouseMassAdmissionLedgerQ
         out WarehouseMassAdmissionToken token,
         out DomainFailure failure);
 
+    bool TryRestoreReserved(
+        string tokenId,
+        WarehouseMassAdmissionRequest request,
+        long expectedReservedMassGrams,
+        out WarehouseMassAdmissionToken token,
+        out DomainFailure failure);
+
     bool TryRenew(
         string tokenId,
         long expectedWarehouseCapacityRevision,
@@ -505,6 +512,70 @@ public sealed class WarehouseMassAdmissionService :
         return true;
     }
 
+    public bool TryRestoreReserved(
+        string tokenId,
+        WarehouseMassAdmissionRequest request,
+        long expectedReservedMassGrams,
+        out WarehouseMassAdmissionToken token,
+        out DomainFailure failure)
+    {
+        token = default;
+        failure = DomainFailure.None;
+        if (!restoreActive
+            || !restorePublished
+            || !TryParseTokenSequence(tokenId, out long restoredSequence)
+            || expectedReservedMassGrams <= 0L
+            || statesByTokenId.ContainsKey(tokenId))
+        {
+            failure = new DomainFailure(
+                FailureCode.WarehouseMassAdmissionRequestInvalid,
+                tokenId ?? string.Empty,
+                "reserved-token-restore-invalid");
+            return false;
+        }
+
+        if (!TryReserve(request, out WarehouseMassAdmissionToken allocated, out failure))
+            return false;
+        if (allocated.ReservedMassGrams != expectedReservedMassGrams)
+        {
+            TryRelease(
+                allocated.TokenId,
+                WarehouseMassAdmissionReleaseReason.RestoreRollback,
+                out _);
+            failure = new DomainFailure(
+                FailureCode.WarehouseMassAdmissionFingerprintMismatch,
+                request.OwnerOperationId,
+                expectedReservedMassGrams.ToString(CultureInfo.InvariantCulture));
+            token = default;
+            return false;
+        }
+
+        if (!string.Equals(allocated.TokenId, tokenId, StringComparison.Ordinal))
+        {
+            TokenState state = statesByTokenId[allocated.TokenId];
+            statesByTokenId.Remove(allocated.TokenId);
+            state.Token = new WarehouseMassAdmissionToken(
+                tokenId,
+                state.Request,
+                allocated.AcceptedQuantity,
+                allocated.ReservedMassGrams,
+                allocated.WarehouseCapacityRevision,
+                allocated.ExpiresAtGameSeconds);
+            statesByTokenId.Add(tokenId, state);
+            tokenIdByOperationId[state.Request.OwnerOperationId] = tokenId;
+            token = state.Token;
+        }
+        else
+        {
+            token = allocated;
+        }
+
+        nextTokenSequence = Math.Max(
+            nextTokenSequence,
+            checked(restoredSequence + 1L));
+        return true;
+    }
+
     public bool TryRenew(
         string tokenId,
         long expectedWarehouseCapacityRevision,
@@ -563,9 +634,14 @@ public sealed class WarehouseMassAdmissionService :
                 state.MaximumExpiresAtGameSeconds,
                 now + MaximumLeaseSeconds);
         }
+        double renewalWindowSeconds = state.Request.OwnerOperationId.StartsWith(
+                "haul:",
+                StringComparison.Ordinal)
+            ? MaximumLeaseSeconds
+            : DefaultLeaseSeconds;
         double expiresAt = Math.Min(
             state.MaximumExpiresAtGameSeconds,
-            now + DefaultLeaseSeconds);
+            now + renewalWindowSeconds);
         state.Token = new WarehouseMassAdmissionToken(
             state.Token.TokenId,
             state.Request,
@@ -1290,6 +1366,21 @@ public sealed class WarehouseMassAdmissionService :
         long sequence = nextTokenSequence;
         nextTokenSequence = checked(sequence + 1L);
         return $"warehouse-mass:{sequence:D16}";
+    }
+
+    private static bool TryParseTokenSequence(string tokenId, out long sequence)
+    {
+        const string prefix = "warehouse-mass:";
+        sequence = 0L;
+        string canonical = RequireCanonicalOrEmpty(tokenId);
+        return canonical.Length == prefix.Length + 16
+            && canonical.StartsWith(prefix, StringComparison.Ordinal)
+            && long.TryParse(
+                canonical.Substring(prefix.Length),
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out sequence)
+            && sequence > 0L;
     }
 
     private void AdvanceWarehouseRevision(WarehouseAuthorityState authority)

@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Status"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ambition-cultural-voice",
+  "spoiler_tier": "none",
+  "summary": "자신의 관습이 조롱받지 않고 공동체의 규칙에 반영되길 바란다.",
+  "title": "문화의 대변자"
+}

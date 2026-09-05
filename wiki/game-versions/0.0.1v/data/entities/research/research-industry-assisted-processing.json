@@ -1,0 +1,175 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "328"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Industry And Automation"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-powered-tools",
+      "target_spoiler_tier": "none",
+      "target_title": "공장 공학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-powered-tools",
+      "target_spoiler_tier": "none",
+      "target_title": "공장 공학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-powered-tools",
+      "target_spoiler_tier": "none",
+      "target_title": "공장 공학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8821",
+      "target_spoiler_tier": "none",
+      "target_title": "동력 공구날 연마대",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9313",
+      "target_spoiler_tier": "none",
+      "target_title": "동력 방적기",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9314",
+      "target_spoiler_tier": "none",
+      "target_title": "동력 직조기",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1609",
+      "target_spoiler_tier": "none",
+      "target_title": "전기 오븐",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-powered-shade-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "그늘천 동력 방적",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-powered-cave-silk",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴 비단 동력 방적",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-powered-dreamweave",
+      "target_spoiler_tier": "none",
+      "target_title": "몽직물 동력 방적",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-powered-frost-linen",
+      "target_spoiler_tier": "none",
+      "target_title": "서리 린넨 동력 방적",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-powered-frost-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "서리 양모직 동력 방적",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-powered-mire-canvas",
+      "target_spoiler_tier": "none",
+      "target_title": "습지 캔버스 동력 방적",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-powered-deep-goat-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "심층 염소모직 동력 방적",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-powered-common-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "일반 모직 동력 방적",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-powered-ember-cotton",
+      "target_spoiler_tier": "none",
+      "target_title": "잿불 면직물 동력 방적",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-powered-spore-hemp",
+      "target_spoiler_tier": "none",
+      "target_title": "포자 삼베 동력 방적",
+      "type": "unlocks-recipe"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-industry-assisted-processing",
+  "spoiler_tier": "none",
+  "summary": "기존 생산 시설에 전동 모듈을 부착해 작업 속도를 높인다.",
+  "title": "동력 보조 가공"
+}

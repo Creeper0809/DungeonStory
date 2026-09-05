@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "enemy-crown-marshal",
+    "spoiler_tier": "none",
+    "title": "왕령 원수"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/enemy-crown-marshal",
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-armor-break",
+      "target_spoiler_tier": "none",
+      "target_title": "갑주 파쇄",
+      "to": "world/enemy-ability-armor-break",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-crown-marshal",
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-armor-break",
+      "target_spoiler_tier": "none",
+      "target_title": "갑주 파쇄",
+      "to": "world/enemy-ability-armor-break",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-crown-marshal",
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-rally",
+      "target_spoiler_tier": "none",
+      "target_title": "전열 재정비",
+      "to": "world/enemy-ability-rally",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-crown-marshal",
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-rally",
+      "target_spoiler_tier": "none",
+      "target_title": "전열 재정비",
+      "to": "world/enemy-ability-rally",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-crown-marshal",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "offense-unappraised-loot",
+      "target_spoiler_tier": "none",
+      "target_title": "미감정 전리품",
+      "to": "item/offense-unappraised-loot",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

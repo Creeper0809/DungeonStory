@@ -1,0 +1,53 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-lead-shot",
+    "spoiler_tier": "none",
+    "title": "납탄"
+  },
+  "edges": [
+    {
+      "amount": "12",
+      "from": "recipe/recipe-material-lead-shot",
+      "label": "생산·해금",
+      "to": "item/material-lead-shot",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-ammo-armor-piercing-cartridge",
+      "label": "필요 조건",
+      "to": "item/material-lead-shot",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "recipe/recipe-ammo-paper-cartridge",
+      "label": "필요 조건",
+      "to": "item/material-lead-shot",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "recipe/recipe-ammo-scatter-cartridge",
+      "label": "필요 조건",
+      "to": "item/material-lead-shot",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "recipe/recipe-ammo-trap-canister",
+      "label": "필요 조건",
+      "to": "item/material-lead-shot",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "from": "recipe/recipe-supply-defense-mixed-ammo-box",
+      "label": "필요 조건",
+      "to": "item/material-lead-shot",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

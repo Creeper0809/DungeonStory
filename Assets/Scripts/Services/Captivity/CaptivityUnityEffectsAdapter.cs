@@ -4,20 +4,16 @@ using UnityEngine;
 
 internal sealed class CaptivityUnityEffectsAdapter :
     ICaptivityActorEffectsPort,
-    ICaptivityPerformerSupplyPort,
     ICaptivityEventEffectsPort
 {
     private readonly Func<string, CharacterActor> findActor;
-    private readonly IWorldItemStackRuntime itemRuntime;
     private readonly IGameEventBus events;
 
     internal CaptivityUnityEffectsAdapter(
         Func<string, CharacterActor> findActor,
-        IWorldItemStackRuntime itemRuntime,
         IGameEventBus events)
     {
         this.findActor = findActor ?? throw new ArgumentNullException(nameof(findActor));
-        this.itemRuntime = itemRuntime ?? throw new ArgumentNullException(nameof(itemRuntime));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
     }
 
@@ -40,28 +36,6 @@ internal sealed class CaptivityUnityEffectsAdapter :
         actor.SetLifecycleState(
             assigned ? CharacterLifecycleState.Active : CharacterLifecycleState.Downed);
     }
-
-    public bool TryRequestFacilityDelivery(
-        CaptivityFacilitySupplyKind supplyKind,
-        int amount,
-        Vector2Int destination,
-        string destinationId,
-        out int requested,
-        out string failureReason) =>
-        itemRuntime.TryRequestFacilityDelivery(
-            ToStockCategory(supplyKind),
-            amount,
-            destination,
-            destinationId,
-            out requested,
-            out failureReason);
-
-    private static StockCategory ToStockCategory(CaptivityFacilitySupplyKind supplyKind) =>
-        supplyKind switch
-        {
-            CaptivityFacilitySupplyKind.Food => StockCategory.Food,
-            _ => throw new ArgumentOutOfRangeException(nameof(supplyKind), supplyKind, null)
-        };
 
     public void Publish(CaptivePerformerMilestoneEvent gameEvent) =>
         events.Publish(gameEvent);

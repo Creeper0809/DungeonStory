@@ -61,6 +61,8 @@ MonoBehaviour:
     - rid: 1013
     - rid: 7737211857806557804
     - rid: 1014
+    - rid: 1016
+    - rid: 1017
     - rid: 1015
   width: 2
   height: 1
@@ -138,7 +140,24 @@ MonoBehaviour:
         abilityId: BuildingProstheticAssemblyAbility
         assemblySpeedMultiplier: 1.1
         qualityBonus: 0.06
-        outputCapacity: 3
+    - rid: 1016
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: m06
+        stockSensorInstallationItemId: component:stock-sensor-panel
+        lanePolicy: 1
+        manualWorkLaneCount: 1
+        automaticWorkLaneCount: 0
+    - rid: 1017
+      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionBufferAbility
+        defaultBatchCapacity: 4
+        physicalOutputBufferCycleCapacity: 4
+        outputCapacities: []
+        allowOverflowDump: 0
+        overflowOffset: {x: 1, y: 0}
     - rid: 7737211857806557804
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:

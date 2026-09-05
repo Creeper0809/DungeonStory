@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.95kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "5개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "30"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "공연의 장면 전환과 연기에 쓰는 소도구를 순서대로 담은 상자다. 아일라세라 공연단은 공연 소품 상자 하나가 사라져도 새벽 합창에서 마지막 사용 장면과 배우를 알린다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "supply-performance-prop-box",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 공연 소품 상자.",
+  "title": "공연 소품 상자"
+}

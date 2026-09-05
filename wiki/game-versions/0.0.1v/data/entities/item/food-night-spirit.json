@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.45kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "32"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "밤포도를 발효한 뒤 다시 증류해 향은 남기고 도수를 높인 술이다. 베르사디온의 밤 증류주는 동의의 잔을 맞댄 뒤에야 피와 섞인다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "food-night-spirit",
+  "spoiler_tier": "none",
+  "summary": "작업실의 다음 공정으로 실제 운반되는 물리 중간재.",
+  "title": "밤 증류주"
+}

@@ -18,12 +18,21 @@ public interface IRestoreWorldCandidatePublisher
         IReadOnlyList<BuildableObject> buildings);
     void ClearFacilityCandidate();
     void SetCharacterCandidate(IReadOnlyList<CharacterActor> characters);
+    void SetCharacterCandidate(
+        IReadOnlyList<CharacterActor> characters,
+        IReadOnlyList<HaulDeliveryIntentSaveData> haulDeliveryIntents);
     void ClearCharacterCandidate();
     void SetWildlifeCandidate(IReadOnlyList<WildlifeActor> wildlife);
     void ClearWildlifeCandidate();
     void SetExteriorZoneCandidate(
         IReadOnlyList<ExteriorZoneMarker> zones);
     void ClearExteriorZoneCandidate();
+}
+
+public interface IRestoreHaulDeliveryIntentCandidateQuery
+{
+    bool TryGetHaulDeliveryIntents(
+        out IReadOnlyList<HaulDeliveryIntentSaveData> intents);
 }
 
 /// <summary>
@@ -33,11 +42,13 @@ public interface IRestoreWorldCandidatePublisher
 /// </summary>
 public sealed class RestoreWorldCandidateIndex :
     IRestoreWorldCandidateQuery,
-    IRestoreWorldCandidatePublisher
+    IRestoreWorldCandidatePublisher,
+    IRestoreHaulDeliveryIntentCandidateQuery
 {
     private Grid facilityGrid;
     private IReadOnlyList<BuildableObject> facilityBuildings;
     private IReadOnlyList<CharacterActor> characters;
+    private IReadOnlyList<HaulDeliveryIntentSaveData> haulDeliveryIntents;
     private IReadOnlyList<WildlifeActor> wildlife;
     private IReadOnlyList<ExteriorZoneMarker> exteriorZones;
 
@@ -59,6 +70,13 @@ public sealed class RestoreWorldCandidateIndex :
     {
         candidateCharacters = characters;
         return candidateCharacters != null;
+    }
+
+    public bool TryGetHaulDeliveryIntents(
+        out IReadOnlyList<HaulDeliveryIntentSaveData> intents)
+    {
+        intents = haulDeliveryIntents;
+        return intents != null;
     }
 
     public bool TryGetWildlife(
@@ -105,7 +123,16 @@ public sealed class RestoreWorldCandidateIndex :
 
     public void SetCharacterCandidate(IReadOnlyList<CharacterActor> candidateCharacters)
     {
-        if (characters != null)
+        SetCharacterCandidate(
+            candidateCharacters,
+            Array.Empty<HaulDeliveryIntentSaveData>());
+    }
+
+    public void SetCharacterCandidate(
+        IReadOnlyList<CharacterActor> candidateCharacters,
+        IReadOnlyList<HaulDeliveryIntentSaveData> candidateHaulDeliveryIntents)
+    {
+        if (characters != null || haulDeliveryIntents != null)
         {
             throw new InvalidOperationException(
                 "A character-world restore candidate is already indexed.");
@@ -113,17 +140,20 @@ public sealed class RestoreWorldCandidateIndex :
 
         characters = candidateCharacters
             ?? throw new ArgumentNullException(nameof(candidateCharacters));
+        haulDeliveryIntents = candidateHaulDeliveryIntents
+            ?? throw new ArgumentNullException(nameof(candidateHaulDeliveryIntents));
         AdvanceRevision();
     }
 
     public void ClearCharacterCandidate()
     {
-        if (characters == null)
+        if (characters == null && haulDeliveryIntents == null)
         {
             return;
         }
 
         characters = null;
+        haulDeliveryIntents = null;
         AdvanceRevision();
     }
 

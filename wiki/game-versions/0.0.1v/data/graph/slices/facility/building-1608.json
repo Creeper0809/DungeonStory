@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1608",
+    "spoiler_tier": "none",
+    "title": "벽돌 오븐"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-cuisine-baking",
+      "label": "시설 해금",
+      "to": "facility/building-1608",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

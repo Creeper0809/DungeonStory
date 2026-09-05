@@ -2,6 +2,7 @@
   "name": "DungeonStory.Economy",
   "rootNamespace": "DungeonStory.Economy",
   "references": [
+    "DungeonStory.Automation",
     "DungeonStory.Buildings",
     "DungeonStory.Combat",
     "DungeonStory.Environment",

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "120"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "수술로 적출한 뇌이다. 기증자 정보와 신선도가 남아 있어 이식 전까지 보존해야 한다. 므네실라의 적출 뇌 용기는 빛을 막는 균사막으로 감싸며, 신경 연결 방향은 막 바깥의 흰 점으로 표시한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "surgery-organ-brain",
+  "spoiler_tier": "none",
+  "summary": "기증자와 신선도가 보존되는 고유 수술 장기",
+  "title": "적출 뇌"
+}

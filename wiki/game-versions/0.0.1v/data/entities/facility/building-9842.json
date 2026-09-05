@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "생산"
+    },
+    {
+      "label": "크기",
+      "value": "1×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-9842",
+  "spoiler_tier": "none",
+  "summary": "시설의 고유 역할은 컨베이어 운송, 전력 소비이다. 건설에는 작업량 618, 재료 강철×4, 철괴×3, 기계 부품×1이 필요하다.",
+  "title": "컨베이어 상향"
+}

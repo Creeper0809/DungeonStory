@@ -1,0 +1,14 @@
+---
+import BaseLayout from '../../../../components/BaseLayout.astro';
+import NeedReferenceContent from '../../../../components/NeedReferenceContent.astro';
+import { getNeedReference, hasGameVersion } from '../../../../lib/wiki-data';
+
+const version = Astro.params.version ?? '';
+if (!hasGameVersion(version)) return new Response(null, { status: 404 });
+const reference = getNeedReference(version, Astro.params.id ?? '');
+if (!reference) return new Response(null, { status: 404 });
+---
+
+<BaseLayout title={reference.title} version={version} historical currentHref={`/needs/${reference.id}/`}>
+  <NeedReferenceContent reference={reference} version={version} historical />
+</BaseLayout>

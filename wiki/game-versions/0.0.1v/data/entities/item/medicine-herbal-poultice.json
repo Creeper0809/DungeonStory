@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "14"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "가벼운 부상에 쓰는 기본 약품이다. 므네실라 치료사는 약초 찜질약을 쓴 뒤 통증이 가라앉아도 환자가 스스로 걷기 전에는 회복됐다고 말하지 않는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "medicine-herbal-poultice",
+  "spoiler_tier": "none",
+  "summary": "가벼운 부상에 쓰는 기본 약품.",
+  "title": "약초 찜질약"
+}

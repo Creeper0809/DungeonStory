@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Anatomy"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "heritable-reinforced-joints",
+  "spoiler_tier": "none",
+  "summary": "관절 지지조직이 튼튼해 운반과 착지 충격에 강하다.",
+  "title": "강화 관절"
+}

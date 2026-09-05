@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.9kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "24"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "무기와 방어구의 기존 결합부에 끼워 성능 조율을 바꾸는 규격화된 개량 부품이다. 제4주조도시는 개량 부품을 바꾼 뒤에도 원래 장비의 제작자와 수리 계보를 기억판에 이어 적는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "item-equipment-module",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 개량 부품.",
+  "title": "개량 부품"
+}

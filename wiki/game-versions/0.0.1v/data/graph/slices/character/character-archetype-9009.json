@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "character-archetype-9009",
+    "spoiler_tier": "none",
+    "title": "바살트-7"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/character-archetype-9009",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "characterspecies-9",
+      "target_spoiler_tier": "none",
+      "target_title": "골렘",
+      "to": "character/characterspecies-9",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

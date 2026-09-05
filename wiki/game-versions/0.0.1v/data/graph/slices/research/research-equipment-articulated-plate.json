@@ -1,0 +1,144 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-equipment-articulated-plate",
+    "spoiler_tier": "none",
+    "title": "관절식 판금"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-equipment-articulated-plate",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-mail-weaving",
+      "target_spoiler_tier": "none",
+      "target_title": "사슬 편조",
+      "to": "research/research-equipment-mail-weaving",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-articulated-plate",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-mail-weaving",
+      "target_spoiler_tier": "none",
+      "target_title": "사슬 편조",
+      "to": "research/research-equipment-mail-weaving",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-articulated-plate",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-mail-weaving",
+      "target_spoiler_tier": "none",
+      "target_title": "사슬 편조",
+      "to": "research/research-equipment-mail-weaving",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-articulated-plate",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 단조",
+      "to": "research/research-metallurgy-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-articulated-plate",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 단조",
+      "to": "research/research-metallurgy-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-articulated-plate",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 단조",
+      "to": "research/research-metallurgy-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-articulated-plate",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8839",
+      "target_spoiler_tier": "none",
+      "target_title": "관절 지그",
+      "to": "facility/building-8839",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-armor-articulated-plate",
+      "label": "필요 조건",
+      "to": "research/research-equipment-articulated-plate",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-armor-breastplate",
+      "label": "필요 조건",
+      "to": "research/research-equipment-articulated-plate",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-armor-closed-plate-helm",
+      "label": "필요 조건",
+      "to": "research/research-equipment-articulated-plate",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-armor-iron-helmet",
+      "label": "필요 조건",
+      "to": "research/research-equipment-articulated-plate",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-material-plate-blank",
+      "label": "필요 조건",
+      "to": "research/research-equipment-articulated-plate",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-powered-armor",
+      "label": "선행 연구",
+      "to": "research/research-equipment-articulated-plate",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-powered-armor",
+      "label": "선행 연구",
+      "to": "research/research-equipment-articulated-plate",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-powered-armor",
+      "label": "선행 연구",
+      "to": "research/research-equipment-articulated-plate",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

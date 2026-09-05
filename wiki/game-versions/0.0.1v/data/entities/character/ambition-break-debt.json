@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Faction"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ambition-break-debt",
+  "spoiler_tier": "none",
+  "summary": "가구를 옭아맨 오래된 세력 의무를 끝내려 한다.",
+  "title": "물려받은 빚 청산"
+}

@@ -1,0 +1,27 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "재봉"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "combat",
+  "relations": [
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "apparel-23011",
+  "spoiler_tier": "none",
+  "summary": "튜닉. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.",
+  "title": "튜닉"
+}

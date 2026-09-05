@@ -1,0 +1,13 @@
+{
+  "approved_at": "2026-09-02",
+  "content_digest": "5a0678c26f73c41dd294755a6927dc5edcfa60d2196dbacf693a8d968910eddc",
+  "game_version": "0.0.1v",
+  "parent_game_version": null,
+  "published_at": null,
+  "schema_version": 1,
+  "source_digests": {
+    "content_db": "0d056bfc94fd886cdb347345bddcf5884e9a5867dc88180fcef54a3cf6e99fff",
+    "knowledge_base": "e13ca4c6dfe5ba821b19ebec9532f9216d2ed021112f202aa9ac7e535272e934"
+  },
+  "status": "planned"
+}

@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "service-bathing-wash",
+  "spoiler_tier": "none",
+  "summary": "목욕 서비스는 세 가지 방식을 제공하며, 1회 처리마다 깨끗한 물 0.45를 소비하고 폐수 0.45를 배출한다. 결제와 청소 조건을 같은 공정에 묶는다.",
+  "title": "목욕 서비스"
+}

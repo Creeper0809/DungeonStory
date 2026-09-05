@@ -1,0 +1,1 @@
+creeper0809 ALL=(root) NOPASSWD: /usr/local/sbin/dungeonstory-wiki-deploy *

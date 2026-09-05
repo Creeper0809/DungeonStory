@@ -8,6 +8,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using VContainer;
 
@@ -18,6 +19,12 @@ public static class FirstRunObjectivePlayModeVerifier
     public const string ReportPath = "Temp/first-run-objective-report.txt";
     public const string ScreenshotPath = "Temp/first-run-objective.png";
     public const string PhysicalFlowScreenshotPath = "Artifacts/QA/research-blueprint-physical-flow.png";
+    private const string TitleScenePath = "Assets/Scenes/TitleScene.unity";
+    private const string PersistenceSnapshotId = "first-run-objective";
+    private const string StartSceneLeaseOwnerId =
+        "qa:first-run-objective";
+    private const string PersistenceOwnedKey =
+        "DungeonStory.FirstRunObjective.PersistenceOwned";
 
     private static bool runnerCreated;
 
@@ -27,23 +34,53 @@ public static class FirstRunObjectivePlayModeVerifier
         EditorApplication.update += OnEditorUpdate;
         EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
         EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        EditorApplication.delayCall -= RecoverStaleStartSceneLeaseIfOrphaned;
+        EditorApplication.delayCall += RecoverStaleStartSceneLeaseIfOrphaned;
     }
 
     [MenuItem("DungeonStory/Debug/QA/Request First Run Objective Verification")]
     public static void RequestRunFromMenu()
     {
-        // Enter Play Mode may keep static fields when domain reload is disabled.
-        // Every explicit request owns a fresh runner lifecycle.
+        PlayModeVerificationInputCleanup.CleanupStaleVerificationMice();
         runnerCreated = false;
         Directory.CreateDirectory("Temp");
+        Directory.CreateDirectory("Artifacts/QA");
+        File.Delete(ReportPath);
         File.WriteAllText(RequestPath, DateTime.UtcNow.ToString("O"));
     }
 
     private static void OnEditorUpdate()
     {
-        if (File.Exists(RequestPath) && !EditorApplication.isPlayingOrWillChangePlaymode)
+        if (!File.Exists(RequestPath)
+            || EditorApplication.isPlayingOrWillChangePlaymode)
         {
+            return;
+        }
+
+        try
+        {
+            if (SessionState.GetBool(PersistenceOwnedKey, false)
+                && !PlayModeVerificationPersistenceSnapshot.Exists(
+                    PersistenceSnapshotId))
+            {
+                SessionState.EraseBool(PersistenceOwnedKey);
+            }
+
+            if (!DungeonFinalPlayModeAcceptanceRequestFacade
+                    .IsPersistenceCoordinatorActive
+                && !SessionState.GetBool(PersistenceOwnedKey, false))
+            {
+                PlayModeVerificationPersistenceSnapshot.CaptureCurrent(
+                    PersistenceSnapshotId);
+                SessionState.SetBool(PersistenceOwnedKey, true);
+            }
+
+            ApplyTitleStartSceneOverride();
             EditorApplication.EnterPlaymode();
+        }
+        catch (Exception exception)
+        {
+            FailBeforePlay("EDITOR_BOOT_PREPARE_FAILED: " + exception);
         }
     }
 
@@ -52,6 +89,22 @@ public static class FirstRunObjectivePlayModeVerifier
         if (change == PlayModeStateChange.EnteredEditMode)
         {
             runnerCreated = false;
+            RestoreTitleStartSceneOverride();
+            RestoreOwnedPersistence();
+            PlayModeVerificationInputCleanup.CleanupStaleVerificationMice();
+            if (File.Exists(RequestPath))
+            {
+                File.WriteAllText(
+                    ReportPath,
+                    "FIRST_RUN_OBJECTIVE FAIL\n"
+                    + "[FAIL] PLAYMODE_ABORTED verifier returned to EditMode before completion\n");
+                File.Delete(RequestPath);
+            }
+            return;
+        }
+
+        if (change == PlayModeStateChange.ExitingPlayMode)
+        {
             return;
         }
 
@@ -59,26 +112,131 @@ public static class FirstRunObjectivePlayModeVerifier
             && !runnerCreated
             && File.Exists(RequestPath))
         {
+            RestoreTitleStartSceneOverride();
+            if (!string.Equals(
+                    SceneManager.GetActiveScene().path,
+                    TitleScenePath,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                File.WriteAllText(
+                    ReportPath,
+                    "FIRST_RUN_OBJECTIVE FAIL\n"
+                    + "[FAIL] BOOT_TITLE_SCENE active="
+                    + SceneManager.GetActiveScene().path
+                    + "\n");
+                File.Delete(RequestPath);
+                EditorApplication.ExitPlaymode();
+                return;
+            }
+
             runnerCreated = true;
             GameObject runnerObject = new GameObject("First Run Objective Verification Runner");
             UnityEngine.Object.DontDestroyOnLoad(runnerObject);
             runnerObject.AddComponent<FirstRunObjectiveVerificationRunner>();
         }
     }
+
+    private static void ApplyTitleStartSceneOverride()
+    {
+        string[] requiredSceneNames =
+        {
+            DungeonSceneNavigator.TitleSceneName,
+            DungeonSceneNavigator.PreparationSceneName,
+            DungeonSceneNavigator.GameplaySceneName
+        };
+        HashSet<string> enabledScenes = EditorBuildSettings.scenes
+            .Where(scene => scene.enabled)
+            .Select(scene => Path.GetFileNameWithoutExtension(scene.path))
+            .ToHashSet(StringComparer.Ordinal);
+        string[] missing = requiredSceneNames
+            .Where(sceneName => !enabledScenes.Contains(sceneName))
+            .ToArray();
+        if (missing.Length > 0)
+        {
+            throw new InvalidOperationException(
+                "Required product boot scenes are not enabled: "
+                + string.Join(", ", missing));
+        }
+
+        PlayModeVerificationStartSceneLease.Acquire(
+            StartSceneLeaseOwnerId,
+            TitleScenePath);
+    }
+
+    private static void RestoreTitleStartSceneOverride()
+    {
+        if (PlayModeVerificationStartSceneLease.IsOwnedBy(
+                StartSceneLeaseOwnerId))
+        {
+            PlayModeVerificationStartSceneLease.RestoreOwned(
+                StartSceneLeaseOwnerId);
+        }
+    }
+
+    private static void RestoreOwnedPersistence()
+    {
+        if (!SessionState.GetBool(PersistenceOwnedKey, false))
+        {
+            return;
+        }
+
+        PlayModeVerificationPersistenceSnapshot.Restore(
+            PersistenceSnapshotId);
+        SessionState.EraseBool(PersistenceOwnedKey);
+    }
+
+    private static void FailBeforePlay(string detail)
+    {
+        RestoreTitleStartSceneOverride();
+        try
+        {
+            RestoreOwnedPersistence();
+        }
+        catch (Exception restoreException)
+        {
+            detail += " | PERSISTENCE_RESTORE_FAILED: " + restoreException;
+        }
+
+        Directory.CreateDirectory("Temp");
+        File.WriteAllText(
+            ReportPath,
+            "FIRST_RUN_OBJECTIVE FAIL\n"
+            + "[FAIL] EDITOR_BOOT_GUARD " + detail + "\n");
+        File.Delete(RequestPath);
+        Debug.LogError(detail);
+    }
+
+    private static void RecoverStaleStartSceneLeaseIfOrphaned()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode
+            || File.Exists(RequestPath)
+            || !PlayModeVerificationStartSceneLease.IsOwnedBy(
+                StartSceneLeaseOwnerId))
+        {
+            return;
+        }
+
+        try
+        {
+            PlayModeVerificationStartSceneLease.RestoreOwned(
+                StartSceneLeaseOwnerId);
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError(
+                "Failed to recover an orphaned first-run start-scene lease: "
+                + exception);
+        }
+    }
 }
 
 public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
 {
-    private sealed class FileBackup
-    {
-        public string Path;
-        public byte[] Bytes;
-    }
-
     private readonly List<string> report = new List<string>();
     private readonly List<string> errors = new List<string>();
     private readonly List<string> warnings = new List<string>();
-    private readonly List<FileBackup> backups = new List<FileBackup>();
+    private const float RuntimeReadyTimeoutSeconds = 45f;
+    private const float PartyReadyTimeoutSeconds = 20f;
 
     private InputSettings.EditorInputBehaviorInPlayMode originalInputBehavior;
     private Mouse originalMouse;
@@ -100,7 +258,8 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
 
         try
         {
-            yield return new WaitForSecondsRealtime(2f);
+            yield return EnsureProductBoot();
+            yield return WaitForSceneTransitionInputRelease();
             DungeonRuntimeLifetimeScope scope = FindScope();
             Check(scope != null, "DI_SCOPE", "active game container resolved");
             if (scope == null)
@@ -108,23 +267,15 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
                 yield break;
             }
 
-            BackupPersistentFiles(scope);
-            ResetFirstRunMilestones(scope);
+            ResetFirstRunMetaForVerification(scope);
             IFirstRunObjectiveRuntime objective = scope.Container.Resolve<IFirstRunObjectiveRuntime>();
             Check(objective != null, "OBJECTIVE_RUNTIME", "runtime resolved");
             objective?.RefreshNow();
             Check(
-                objective != null && objective.CurrentObjective == FirstRunObjectiveId.ChooseOwner,
+                objective != null && objective.CurrentObjective == FirstRunObjectiveId.AcquireBlueprint,
                 "INITIAL_OBJECTIVE",
                 objective != null ? objective.CurrentObjective.ToString() : "missing");
             CheckNonBlocking(objective);
-
-            yield return StartFreshRun();
-            objective.RefreshNow();
-            Check(
-                objective.CurrentObjective == FirstRunObjectiveId.AcquireBlueprint,
-                "POST_OWNER_OBJECTIVE",
-                objective.CurrentObjective.ToString());
             CheckPanelBounds(objective);
 
             ProgressionSceneRuntimeReferences progressionRuntimes =
@@ -216,7 +367,6 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
             Time.timeScale = originalTimeScale;
             Application.logMessageReceived -= CaptureLog;
             TeardownInput();
-            RestoreFiles();
 
             report.Add($"capturedErrors={errors.Count}; capturedWarnings={warnings.Count}");
             foreach (string error in errors) report.Add("[CONSOLE ERROR] " + error.Replace('\n', ' '));
@@ -249,6 +399,20 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
             scope.Container.Resolve<IWorldItemHaulPlanningService>();
         IFacilityBufferDestinationClaimQuery destinationClaims =
             scope.Container.Resolve<IFacilityBufferDestinationClaimQuery>();
+        IFacilityBufferMassCapacityQuery archiveCapacities =
+            scope.Container.Resolve<IFacilityBufferMassCapacityQuery>();
+        IFacilityBufferPhysicalOccupancyQuery archiveOccupancy =
+            scope.Container.Resolve<IFacilityBufferPhysicalOccupancyQuery>();
+        IPhysicalItemMassQuery physicalMass =
+            scope.Container.Resolve<IPhysicalItemMassQuery>();
+        IResearchDurableEquipmentWorkPolicyQuery durableResearchPolicies =
+            scope.Container.Resolve<IResearchDurableEquipmentWorkPolicyQuery>();
+        IDurableFacilityEquipmentPolicyQuery durableEquipmentPolicies =
+            scope.Container.Resolve<IDurableFacilityEquipmentPolicyQuery>();
+        IDurableFacilityEquipmentSlotCommand durableEquipmentSlots =
+            scope.Container.Resolve<IDurableFacilityEquipmentSlotCommand>();
+        IDurableFacilityEquipmentSlotQuery durableEquipmentSlotQuery =
+            scope.Container.Resolve<IDurableFacilityEquipmentSlotQuery>();
         IRoomLayoutCache roomLayoutCache =
             scope.Container.Resolve<IRoomLayoutCache>();
         IReadOnlyList<BuildableObject> archives = archiveQuery.GetValidArchives();
@@ -322,7 +486,9 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
                 archives[0].RequirePersistentInstanceId().Value,
                 StringComparison.Ordinal)
             && archiveClaim.AnchorKind
-                == FacilityBufferDestinationAnchorKind.LiveBuilding;
+                == FacilityBufferDestinationAnchorKind.LiveBuilding
+            && archiveClaim.AdmissionPolicy
+                == FacilityBufferDestinationAdmissionPolicy.ExactGramRequired;
         Check(
             exactDestinationClaim,
             "BLUEPRINT_ARCHIVE_DESTINATION_CLAIM_EXACT",
@@ -333,6 +499,43 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
         {
             yield break;
         }
+        bool exactCapacity = archiveCapacities.TryGetCapacity(
+                expectedDestination,
+                archives[0].centerPos,
+                out FacilityBufferMassCapacitySnapshot archiveCapacity)
+            && archiveCapacity.Profile.MaxMassGrams == 1_200L
+            && archiveCapacity.Profile.CapacityRevision
+                == ResearchBlueprintArchiveDestinationAuthority
+                    .CapacitySchemaRevision
+            && string.Equals(
+                archiveCapacity.Profile.OwnerDomain,
+                archiveClaim.OwnerDomain,
+                StringComparison.Ordinal)
+            && string.Equals(
+                archiveCapacity.Profile.OwnerOperationId,
+                archiveClaim.OwnerOperationId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                archiveCapacity.Profile.OwnerFacilityId,
+                archiveClaim.OwnerFacilityId,
+                StringComparison.Ordinal)
+            && archiveCapacity.Profile.DropPosition == archiveClaim.DropPosition;
+        Check(
+            exactCapacity,
+            "BLUEPRINT_ARCHIVE_CAPACITY_EXACT",
+            exactCapacity
+                ? $"max={archiveCapacity.Profile.MaxMassGrams}g; revision={archiveCapacity.Profile.CapacityRevision}; reserved={archiveCapacity.ReservedMassGrams}g"
+                : $"destination={expectedDestination}; profile=missing-or-mismatched");
+        if (!exactCapacity)
+        {
+            yield break;
+        }
+        long blueprintUnitMass = physicalMass.GetDefinitionUnitMass(
+            (ItemDefinitionId)blueprint.PhysicalItemId).Value;
+        Check(
+            blueprintUnitMass == 150L,
+            "BLUEPRINT_UNIT_MASS_EXACT",
+            $"item={blueprint.PhysicalItemId}; mass={blueprintUnitMass}g");
         ResearchBlueprintArchiveStatus assignmentStatus = archiveQuery.GetStatus(blueprint);
         bool deliveryAssigned = assignmentStatus.IsArchived
             || assignmentStatus.IsInTransit
@@ -396,6 +599,7 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
         Time.timeScale = 8f;
         float haulStartedAt = Time.realtimeSinceStartup;
         bool exactHaulOwnershipObserved = false;
+        bool committedCarriedMassObserved = false;
         while (Time.realtimeSinceStartup - haulStartedAt < 24f)
         {
             ResearchBlueprintArchiveStatus status = archiveQuery.GetStatus(blueprint);
@@ -417,6 +621,17 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
                     || itemRuntime.GetCommittedHaulDeliveryQuantity(
                         expectedDestination,
                         blueprint.PhysicalItemId) > 0);
+            int committedQuantity = itemRuntime.GetCommittedHaulDeliveryQuantity(
+                expectedDestination,
+                blueprint.PhysicalItemId);
+            if (committedQuantity > 0)
+            {
+                FacilityBufferPhysicalOccupancySnapshot inTransit =
+                    archiveOccupancy.Capture(expectedDestination);
+                committedCarriedMassObserved |=
+                    inTransit.CommittedCarriedMassGrams == blueprintUnitMass
+                    && inTransit.TotalMassGrams == blueprintUnitMass;
+            }
             if (!exactPlanReady && exactHaulOwnershipObserved)
             {
                 planDetail = "production AIHaul ownership committed for "
@@ -466,6 +681,10 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
             exactHaulOwnershipObserved,
             "BLUEPRINT_AI_HAUL_OWNERSHIP_OBSERVED",
             $"destination={expectedDestination}; stack={blueprintStackId}");
+        Check(
+            committedCarriedMassObserved,
+            "BLUEPRINT_ARCHIVE_COMMITTED_CARRIED_MASS",
+            $"destination={expectedDestination}; expected={blueprintUnitMass}g");
         bool archived = archiveQuery.GetStatus(blueprint).IsArchived;
         Check(
             archived,
@@ -492,14 +711,19 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
         int committedAfterArchive = itemRuntime.GetCommittedHaulDeliveryQuantity(
             expectedDestination,
             blueprint.PhysicalItemId);
+        FacilityBufferPhysicalOccupancySnapshot archivedOccupancy =
+            archiveOccupancy.Capture(expectedDestination);
         Check(
             archivedStack != null
                 && archivedStack.State == WorldItemStackState.FacilityBuffer
                 && !archivedStack.HasReservations
-                && committedAfterArchive == 0,
+                && committedAfterArchive == 0
+                && archivedOccupancy.NonCarriedMassGrams == blueprintUnitMass
+                && archivedOccupancy.CommittedCarriedMassGrams == 0L
+                && archivedOccupancy.TotalMassGrams == blueprintUnitMass,
             "BLUEPRINT_AI_HAUL_OWNERSHIP_CLEAN",
             archivedStack != null
-                ? $"state={archivedStack.State}; reserved={archivedStack.ReservedQuantity}; committed={committedAfterArchive}"
+                ? $"state={archivedStack.State}; reserved={archivedStack.ReservedQuantity}; committed={committedAfterArchive}; mass={archivedOccupancy.TotalMassGrams}g"
                 : $"stack missing; committed={committedAfterArchive}");
         // Keep the bounded first-run flow ahead of unrelated operating-day
         // defense commands; approved-WU accounting remains game-clock based.
@@ -601,6 +825,167 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
             yield break;
         }
 
+        string researchFacilityId =
+            researchFacility.RequirePersistentInstanceId().Value;
+        bool durableWorkPolicyReady = durableResearchPolicies.TryResolve(
+            researchFacility,
+            out ResearchDurableEquipmentWorkPolicy durableWorkPolicy,
+            out string durablePolicyFailure);
+        DurableFacilityEquipmentPolicy durablePolicy = null;
+        bool durablePolicyReady = durableWorkPolicyReady
+            && durableEquipmentPolicies.TryGetPolicy(
+                durableWorkPolicy.EquipmentPolicyId,
+                out durablePolicy);
+        DurableFacilityEquipmentAssignment arcaneAssignment = durablePolicyReady
+            ? durablePolicy.CreateAssignment(
+                researchFacilityId,
+                researchFacility.RequirePersistentInstanceId(),
+                researchFacility.centerPos)
+            : null;
+        DurableFacilityEquipmentSlotResult arcaneReconcile =
+            arcaneAssignment != null
+                ? durableEquipmentSlots.TryReconcile(arcaneAssignment)
+                : default;
+        DurableFacilityEquipmentSlotSnapshot arcaneSequenceOne = null;
+        bool arcaneSlotReady = arcaneAssignment != null
+            && arcaneReconcile.Succeeded
+            && durableEquipmentSlotQuery.TryCapture(
+                arcaneAssignment.Key,
+                out arcaneSequenceOne)
+            && arcaneSequenceOne.AssignmentSequence == 1L
+            && arcaneSequenceOne.Capacity.Value == 1300L
+            && !string.Equals(
+                arcaneSequenceOne.DestinationId,
+                researchFacilityId,
+                StringComparison.Ordinal)
+            && destinationClaims.TryGetClaim(
+                arcaneSequenceOne.DestinationId,
+                researchFacility.centerPos,
+                out FacilityBufferDestinationClaim arcaneClaim)
+            && string.Equals(
+                arcaneClaim.OwnerDomain,
+                DurableFacilityEquipmentSlotIdentity.AuthorityOwnerDomain,
+                StringComparison.Ordinal)
+            && string.Equals(
+                arcaneClaim.OwnerFacilityId,
+                researchFacilityId,
+                StringComparison.Ordinal);
+        Check(
+            durableWorkPolicyReady && durablePolicyReady && arcaneSlotReady,
+            "RESEARCH_ARCANE_INDEX_SEQUENCE_AUTHORITY",
+            arcaneSlotReady
+                ? $"destination={arcaneSequenceOne.DestinationId}; sequence={arcaneSequenceOne.AssignmentSequence}; capacity={arcaneSequenceOne.Capacity.Value}g"
+                : $"workPolicy={durableWorkPolicyReady}; equipmentPolicy={durablePolicyReady}; failure={durablePolicyFailure}");
+        Check(
+            brain != null,
+            "RESEARCH_ARCANE_INDEX_HAULER_BRAIN",
+            brain != null ? hauler.name : "research hauler brain missing");
+        if (!arcaneSlotReady || brain == null)
+        {
+            RestoreResearchWorkerAi(
+                hauler,
+                brain,
+                brainWasEnabled,
+                haulerWasAiPaused);
+            yield break;
+        }
+
+        bool arcaneSpawned = itemRuntime.SpawnUniqueItemAt(
+            DurableToolItemRules.ArcaneIndex,
+            hauler.GetNowXY(),
+            WorldItemStackState.Loose,
+            string.Empty,
+            out string arcaneStackId);
+        bool lowDurabilityApplied = arcaneSpawned
+            && itemRuntime.TrySetInstanceComponent(
+                arcaneStackId,
+                DurableToolItemRules.CreateDurability(
+                    DurableToolItemRules.ArcaneIndex,
+                    0.0001f));
+        DurableFacilityEquipmentSlotResult arcaneSupply = lowDurabilityApplied
+            ? durableEquipmentSlots.TryEnsureSupply(arcaneAssignment.Key)
+            : default;
+        bool exactArcaneSupplyRequested = lowDurabilityApplied
+            && arcaneSupply.Succeeded
+            && itemRuntime.GetAllStacks().Any(stack => stack != null
+                && string.Equals(
+                    stack.StackId,
+                    arcaneStackId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    stack.DestinationId,
+                    arcaneSequenceOne.DestinationId,
+                    StringComparison.Ordinal));
+        Check(
+            exactArcaneSupplyRequested,
+            "RESEARCH_ARCANE_INDEX_EXACT_SUPPLY_REQUEST",
+            $"spawned={arcaneSpawned}; durability={lowDurabilityApplied}; status={arcaneSupply.Status}; failure={arcaneSupply.FailureReason}");
+        if (!exactArcaneSupplyRequested)
+        {
+            RestoreResearchWorkerAi(
+                hauler,
+                brain,
+                brainWasEnabled,
+                haulerWasAiPaused);
+            yield break;
+        }
+
+        AbilityHaul researchHaul = hauler.GetComponent<AbilityHaul>();
+        long initialHaulStartsBefore = researchHaul?.RuntimeHaulStartCount ?? 0L;
+        bool initialHaulActionObserved = false;
+        bool initialArcaneDelivered = false;
+        brain.enabled = true;
+        hauler.SetAiPaused(false);
+        bool initialHaulPreferred = brain.PreferActionOnNextDecision<AIHaul>(90f);
+        brain.RequestImmediateReplan(clearFailures: true);
+        float initialArcaneDeadline = Time.realtimeSinceStartup + 24f;
+        while (!initialArcaneDelivered
+               && Time.realtimeSinceStartup < initialArcaneDeadline)
+        {
+            WorldItemStackSnapshot current = itemRuntime.GetAllStacks()
+                .FirstOrDefault(stack => stack != null
+                    && string.Equals(
+                        stack.StackId,
+                        arcaneStackId,
+                        StringComparison.Ordinal));
+            initialHaulActionObserved |=
+                brain.bestAction?.actionset is AIHaul
+                && researchHaul?.IsHauling == true;
+            initialArcaneDelivered = current != null
+                && current.State == WorldItemStackState.FacilityBuffer
+                && string.Equals(
+                    current.DestinationId,
+                    arcaneSequenceOne.DestinationId,
+                    StringComparison.Ordinal)
+                && !current.HasReservations
+                && itemRuntime.GetCommittedHaulDeliveryQuantity(
+                    arcaneSequenceOne.DestinationId,
+                    DurableToolItemRules.ArcaneIndex) == 0;
+            if (!initialArcaneDelivered)
+                yield return null;
+        }
+        hauler.SetAiPaused(true);
+        brain.StopCurrentActionForReplan(
+            "first-run arcane-index delivery verification");
+        yield return null;
+        Check(
+            initialHaulPreferred
+                && initialHaulActionObserved
+                && researchHaul != null
+                && researchHaul.RuntimeHaulStartCount > initialHaulStartsBefore
+                && initialArcaneDelivered,
+            "RESEARCH_ARCANE_INDEX_AI_HAUL_TO_SEQUENCE",
+            $"preferred={initialHaulPreferred}; action={initialHaulActionObserved}; starts={initialHaulStartsBefore}->{researchHaul?.RuntimeHaulStartCount}; delivered={initialArcaneDelivered}; destination={arcaneSequenceOne.DestinationId}");
+        if (!initialArcaneDelivered)
+        {
+            RestoreResearchWorkerAi(
+                hauler,
+                brain,
+                brainWasEnabled,
+                haulerWasAiPaused);
+            yield break;
+        }
+
         StabilizeResearchWorker(hauler, deprivationRuntime);
         Check(
             !deprivationRuntime.HasActiveBreakdown(hauler),
@@ -689,20 +1074,33 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
                         researcherId.Value);
             });
 
-        string researchFacilityId =
-            researchFacility.RequirePersistentInstanceId().Value;
-        bool arcaneIndexPresentBefore = itemRuntime.GetAllStacks().Any(stack =>
-            stack != null
-            && stack.Quantity > 0
-            && stack.State == WorldItemStackState.FacilityBuffer
+        WorldItemStackSnapshot arcaneAtResearchStart = itemRuntime.GetAllStacks()
+            .FirstOrDefault(stack => stack != null
+                && string.Equals(
+                    stack.StackId,
+                    arcaneStackId,
+                    StringComparison.Ordinal));
+        bool arcaneSequenceReadyBefore = arcaneAtResearchStart != null
+            && arcaneAtResearchStart.Quantity == 1
+            && arcaneAtResearchStart.State == WorldItemStackState.FacilityBuffer
             && string.Equals(
-                stack.DestinationId,
-                researchFacilityId,
+                arcaneAtResearchStart.DestinationId,
+                arcaneSequenceOne.DestinationId,
                 StringComparison.Ordinal)
-            && string.Equals(
-                stack.ItemId,
-                DurableToolItemRules.ArcaneIndex,
-                StringComparison.Ordinal));
+            && DurableToolItemRules.ReadCurrentDurability(
+                arcaneAtResearchStart.ItemId,
+                arcaneAtResearchStart.Components) > 0f;
+        bool rawArcaneDestinationPresentBefore = itemRuntime.GetAllStacks().Any(
+            stack => stack != null
+                && stack.Quantity > 0
+                && string.Equals(
+                    stack.ItemId,
+                    DurableToolItemRules.ArcaneIndex,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    stack.DestinationId,
+                    researchFacilityId,
+                    StringComparison.Ordinal));
         bool knowledgeResiduePresentBefore = itemRuntime.GetAllStacks().Any(stack =>
             stack != null
             && stack.Quantity > 0
@@ -788,12 +1186,168 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
         }
 
         researchProgressSubscription.Dispose();
+        DurableFacilityEquipmentSlotSnapshot arcaneSequenceOneAfter =
+            durableEquipmentSlotQuery.CaptureAll()
+                .FirstOrDefault(value => value != null
+                    && value.AssignmentSequence
+                        == arcaneSequenceOne.AssignmentSequence
+                    && value.Key.Equals(arcaneAssignment.Key));
+        WorldItemStackSnapshot depletedArcane = itemRuntime.GetAllStacks()
+            .FirstOrDefault(stack => stack != null
+                && string.Equals(
+                    stack.StackId,
+                    arcaneStackId,
+                    StringComparison.Ordinal));
+        bool arcaneDrainExact = firstResearchProgressEvent.HasValue
+            && arcaneSequenceOneAfter != null
+            && arcaneSequenceOneAfter.LifecyclePhase ==
+                DurableFacilityEquipmentSlotLifecyclePhase
+                    .ClosedAwaitingCheckpointGc
+            && arcaneSequenceOneAfter.AuthoritiesRevoked
+            && arcaneSequenceOneAfter.Drain?.OwnerAcknowledged == true
+            && arcaneSequenceOneAfter.Drain.InputQuantity == 1
+            && arcaneSequenceOneAfter.Drain.InputMassGrams == 1300L
+            && arcaneSequenceOneAfter.Drain.ReleasedQuantity == 1
+            && arcaneSequenceOneAfter.Drain.ReleasedMassGrams == 1300L
+            && depletedArcane != null
+            && depletedArcane.Quantity == 1
+            && DurableToolItemRules.ReadCurrentDurability(
+                depletedArcane.ItemId,
+                depletedArcane.Components) <= 0f
+            && !string.Equals(
+                depletedArcane.DestinationId,
+                arcaneSequenceOne.DestinationId,
+                StringComparison.Ordinal)
+            && !itemRuntime.GetAllStacks().Any(stack => stack != null
+                && string.Equals(
+                    stack.DestinationId,
+                    researchFacilityId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    stack.ItemId,
+                    DurableToolItemRules.ArcaneIndex,
+                    StringComparison.Ordinal))
+            && itemRuntime.CaptureHaulDeliveryIntentsByDestination(
+                    researchFacilityId)
+                .Count == 0;
+        Check(
+            arcaneDrainExact,
+            "RESEARCH_ARCANE_INDEX_DEPLETION_DRAIN_EXACT",
+            arcaneSequenceOneAfter != null
+                ? $"phase={arcaneSequenceOneAfter.LifecyclePhase}; revoked={arcaneSequenceOneAfter.AuthoritiesRevoked}; input={arcaneSequenceOneAfter.Drain?.InputQuantity}/{arcaneSequenceOneAfter.Drain?.InputMassGrams}g; released={arcaneSequenceOneAfter.Drain?.ReleasedQuantity}/{arcaneSequenceOneAfter.Drain?.ReleasedMassGrams}g; stack={depletedArcane?.State}/{depletedArcane?.DestinationId}"
+                : "sequence-1 slot missing after first research commit");
+
+        bool replacementDelivered = false;
+        bool replacementHaulObserved = false;
+        string replacementStackId = string.Empty;
+        DurableFacilityEquipmentSlotSnapshot arcaneSequenceTwo = null;
+        if (arcaneDrainExact)
+        {
+            hauler.SetAiPaused(true);
+            brain.StopCurrentActionForReplan(
+                "first-run arcane-index replacement verification");
+            yield return null;
+
+            bool replacementSpawned = itemRuntime.SpawnUniqueItemAt(
+                DurableToolItemRules.ArcaneIndex,
+                hauler.GetNowXY(),
+                WorldItemStackState.Loose,
+                string.Empty,
+                out replacementStackId);
+            DurableFacilityEquipmentSlotResult replacementReconcile =
+                replacementSpawned
+                    ? durableEquipmentSlots.TryReconcile(arcaneAssignment)
+                    : default;
+            bool replacementSequenceOpened = replacementReconcile.Succeeded
+                && durableEquipmentSlotQuery.TryCapture(
+                    arcaneAssignment.Key,
+                    out arcaneSequenceTwo)
+                && arcaneSequenceTwo.AssignmentSequence == 2L
+                && !string.Equals(
+                    arcaneSequenceTwo.DestinationId,
+                    arcaneSequenceOne.DestinationId,
+                    StringComparison.Ordinal);
+            DurableFacilityEquipmentSlotResult replacementSupply =
+                replacementSequenceOpened
+                    ? durableEquipmentSlots.TryEnsureSupply(arcaneAssignment.Key)
+                    : default;
+            bool replacementRequested = replacementSequenceOpened
+                && replacementSupply.Succeeded
+                && itemRuntime.GetAllStacks().Any(stack => stack != null
+                    && string.Equals(
+                        stack.StackId,
+                        replacementStackId,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        stack.DestinationId,
+                        arcaneSequenceTwo.DestinationId,
+                        StringComparison.Ordinal));
+            long replacementHaulStartsBefore =
+                researchHaul.RuntimeHaulStartCount;
+            if (replacementRequested)
+            {
+                brain.enabled = true;
+                hauler.SetAiPaused(false);
+                brain.PreferActionOnNextDecision<AIHaul>(90f);
+                brain.RequestImmediateReplan(clearFailures: true);
+                float replacementDeadline = Time.realtimeSinceStartup + 24f;
+                while (!replacementDelivered
+                       && Time.realtimeSinceStartup < replacementDeadline)
+                {
+                    WorldItemStackSnapshot replacement = itemRuntime.GetAllStacks()
+                        .FirstOrDefault(stack => stack != null
+                            && string.Equals(
+                                stack.StackId,
+                                replacementStackId,
+                                StringComparison.Ordinal));
+                    replacementHaulObserved |=
+                        brain.bestAction?.actionset is AIHaul
+                        && researchHaul.IsHauling;
+                    replacementDelivered = replacement != null
+                        && replacement.State ==
+                            WorldItemStackState.FacilityBuffer
+                        && string.Equals(
+                            replacement.DestinationId,
+                            arcaneSequenceTwo.DestinationId,
+                            StringComparison.Ordinal)
+                        && !replacement.HasReservations
+                        && itemRuntime.GetCommittedHaulDeliveryQuantity(
+                            arcaneSequenceTwo.DestinationId,
+                            DurableToolItemRules.ArcaneIndex) == 0;
+                    if (!replacementDelivered)
+                        yield return null;
+                }
+            }
+            hauler.SetAiPaused(true);
+            brain.StopCurrentActionForReplan(
+                "first-run arcane-index replacement delivered");
+            yield return null;
+            bool replacementSlotReady = arcaneSequenceTwo != null
+                && durableEquipmentSlotQuery.TryCapture(
+                    arcaneAssignment.Key,
+                    out DurableFacilityEquipmentSlotSnapshot liveSequenceTwo)
+                && liveSequenceTwo.AssignmentSequence == 2L
+                && liveSequenceTwo.SupplyReady;
+            Check(
+                replacementSpawned
+                    && replacementSequenceOpened
+                    && replacementRequested
+                    && replacementHaulObserved
+                    && researchHaul.RuntimeHaulStartCount
+                        > replacementHaulStartsBefore
+                    && replacementDelivered
+                    && replacementSlotReady,
+                "RESEARCH_ARCANE_INDEX_REPLACEMENT_AI_HAUL",
+                $"spawned={replacementSpawned}; sequence={arcaneSequenceTwo?.AssignmentSequence}; requested={replacementRequested}; action={replacementHaulObserved}; starts={replacementHaulStartsBefore}->{researchHaul.RuntimeHaulStartCount}; delivered={replacementDelivered}; ready={replacementSlotReady}");
+        }
+
         float expectedFirstCommittedWork =
             BlueprintResearchService.CalculateApprovedResearchWork(
                 hauler,
                 researchCycleWork
                 * Mathf.Max(0f, firstContributionAtCommit)
-                * metaResearchMultiplier);
+                * metaResearchMultiplier)
+            * (arcaneSequenceReadyBefore ? 1.1f : 1f);
         bool approvedWuGate = firstApprovedWuObserved
             && work.ApprovedWorkProgressRevisionForDiagnostics
                 > approvedRevisionBefore
@@ -824,7 +1378,8 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
         Check(
             firstCommitObserved
                 && !debugRules.IsEnabled(DungeonDebugCheat.InstantWork)
-                && !arcaneIndexPresentBefore
+                && arcaneSequenceReadyBefore
+                && !rawArcaneDestinationPresentBefore
                 && !knowledgeResiduePresentBefore
                 && Mathf.Abs(
                     firstCommit.ApprovedWork - expectedFirstCommittedWork)
@@ -833,7 +1388,7 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
             firstCommitObserved
                 ? $"actual={firstCommit.ApprovedWork:0.###}; expected={expectedFirstCommittedWork:0.###}; "
                   + $"cycle={researchCycleWork:0.###}; contribution={firstContributionAtCommit:0.###}; meta={metaResearchMultiplier:0.###}; "
-                  + $"index={arcaneIndexPresentBefore}; residue={knowledgeResiduePresentBefore}; instant={debugRules.IsEnabled(DungeonDebugCheat.InstantWork)}"
+                  + $"sequenceIndex={arcaneSequenceReadyBefore}; rawIndex={rawArcaneDestinationPresentBefore}; residue={knowledgeResiduePresentBefore}; instant={debugRules.IsEnabled(DungeonDebugCheat.InstantWork)}"
                 : "first research progress event missing");
         Check(
             firstCommitObserved
@@ -925,7 +1480,8 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
         deprivationRuntime?.DebugClearBreakdown(actor);
     }
 
-    private static void ResetFirstRunMilestones(DungeonRuntimeLifetimeScope scope)
+    private static void ResetFirstRunMetaForVerification(
+        DungeonRuntimeLifetimeScope scope)
     {
         MetaProgressionRuntime meta = scope.Container
             .Resolve<ProgressionSceneRuntimeReferences>()
@@ -941,68 +1497,191 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
                 completedRunCount: 0);
             meta.StartNewRun();
         }
-
-        IDungeonRunFlowRuntime runFlow =
-            scope.Container.Resolve<IDungeonRunFlowRuntime>();
-        runFlow.RestoreState(
-            DungeonRunPhase.Preparation,
-            DungeonRunOutcome.None,
-            currentDay: 1,
-            bossArmed: false,
-            bossActive: false,
-            bossCycle: 0);
     }
 
-    private IEnumerator StartFreshRun()
+    private IEnumerator EnsureProductBoot()
     {
-        Button startNew = FindButton("StartNewRunButton");
-        if (startNew != null && startNew.gameObject.activeInHierarchy)
+        float titleDeadline = Time.realtimeSinceStartup
+            + RuntimeReadyTimeoutSeconds;
+        DungeonTitleLifetimeScope titleScope = null;
+        IDungeonSceneNavigator navigator = null;
+        while (Time.realtimeSinceStartup < titleDeadline)
         {
-            yield return Click(startNew, "new game");
-            if (startNew.gameObject.activeInHierarchy)
+            titleScope = FindFirstObjectByType<DungeonTitleLifetimeScope>(
+                FindObjectsInactive.Include);
+            if (titleScope?.Container != null)
             {
-                yield return Click(startNew, "confirm new game");
+                try
+                {
+                    navigator = titleScope.Container.Resolve<
+                        IDungeonSceneNavigator>();
+                }
+                catch (Exception exception)
+                {
+                    errors.Add("[BOOT-DI-ERROR] " + exception);
+                }
             }
-        }
-
-        OwnerRunManager ownerManager = FindFirstObjectByType<OwnerRunManager>();
-        for (int ownerAttempt = 0;
-             ownerAttempt < 4
-             && (ownerManager == null || ownerManager.CurrentOwnerActor == null);
-             ownerAttempt++)
-        {
-            Button ownerButton = Resources.FindObjectsOfTypeAll<Button>()
-                .FirstOrDefault(button => button != null
-                    && button.gameObject.scene.IsValid()
-                    && button.gameObject.activeInHierarchy
-                    && button.name.StartsWith("OwnerOption_", StringComparison.Ordinal));
-            yield return Click(
-                ownerButton,
-                $"owner option attempt {ownerAttempt + 1}");
-            yield return new WaitForSecondsRealtime(0.25f);
-            yield return StartPartyPlayModeTestDriver.CompleteIfVisible();
-            yield return new WaitForSecondsRealtime(0.25f);
-            ownerManager = FindFirstObjectByType<OwnerRunManager>();
-        }
-
-        Check(
-            ownerManager != null && ownerManager.CurrentOwnerActor != null,
-            "PUBLIC_NEW_RUN",
-            "new game and owner selected with pointer input");
-
-        float worldReadyDeadline = Time.realtimeSinceStartup + 12f;
-        CharacterActor worldActor = FindWorldReadyActor();
-        while (worldActor == null && Time.realtimeSinceStartup < worldReadyDeadline)
-        {
+            if (navigator != null
+                && string.Equals(
+                    SceneManager.GetActiveScene().name,
+                    DungeonSceneNavigator.TitleSceneName,
+                    StringComparison.Ordinal))
+            {
+                break;
+            }
             yield return null;
-            worldActor = FindWorldReadyActor();
         }
+
+        bool titleReady = navigator != null
+            && string.Equals(
+                SceneManager.GetActiveScene().name,
+                DungeonSceneNavigator.TitleSceneName,
+                StringComparison.Ordinal);
         Check(
-            worldActor != null,
-            "START_PARTY_WORLD_READY",
-            worldActor != null
-                ? $"{worldActor.name}@{worldActor.GetNowXY()}"
-                : DescribeCharacterPublicationState());
+            titleReady,
+            "BOOT_TITLE_READY",
+            titleReady
+                ? "Title scope and production scene navigator are ready."
+                : "Title scope or production scene navigator was not ready.");
+        if (!titleReady
+            || !navigator.StartNewGame(
+                DungeonDifficulty.Normal,
+                DungeonSurvivalPressure.Standard))
+        {
+            Check(
+                false,
+                "BOOT_PREPARATION_REQUESTED",
+                "Production StartNewGame request was rejected.");
+            yield break;
+        }
+
+        float preparationDeadline = Time.realtimeSinceStartup
+            + RuntimeReadyTimeoutSeconds;
+        Button owner = null;
+        Button next = null;
+        while (Time.realtimeSinceStartup < preparationDeadline)
+        {
+            owner = Resources.FindObjectsOfTypeAll<Button>()
+                .Where(candidate => candidate != null
+                    && candidate.gameObject.scene.IsValid()
+                    && candidate.gameObject.activeInHierarchy
+                    && candidate.interactable
+                    && candidate.name.StartsWith(
+                        "OwnerCandidate_",
+                        StringComparison.Ordinal))
+                .OrderBy(candidate => candidate.name, StringComparer.Ordinal)
+                .FirstOrDefault();
+            next = StartPartyPlayModeTestDriver.FindButton(
+                "PreparationOwnerNextButton",
+                requireInteractable: false);
+            if (owner != null
+                && next != null
+                && string.Equals(
+                    SceneManager.GetActiveScene().name,
+                    DungeonSceneNavigator.PreparationSceneName,
+                    StringComparison.Ordinal))
+            {
+                break;
+            }
+            yield return null;
+        }
+
+        bool preparationReady = owner != null
+            && next != null
+            && string.Equals(
+                SceneManager.GetActiveScene().name,
+                DungeonSceneNavigator.PreparationSceneName,
+                StringComparison.Ordinal);
+        Check(
+            preparationReady,
+            "BOOT_PREPARATION_READY",
+            preparationReady
+                ? "Preparation owner selection is ready."
+                : "Preparation owner selection did not become ready.");
+        if (!preparationReady)
+        {
+            yield break;
+        }
+
+        yield return Click(owner, "preparation owner");
+        yield return null;
+        next = StartPartyPlayModeTestDriver.FindButton(
+            "PreparationOwnerNextButton",
+            requireInteractable: true);
+        if (next == null)
+        {
+            Check(
+                false,
+                "BOOT_PREPARATION_OWNER_SELECTED",
+                "Owner selection did not enable the next command.");
+            yield break;
+        }
+
+        yield return Click(next, "preparation owner next");
+
+        float startDeadline = Time.realtimeSinceStartup
+            + PartyReadyTimeoutSeconds;
+        Button start = null;
+        while (Time.realtimeSinceStartup < startDeadline)
+        {
+            start = StartPartyPlayModeTestDriver.FindButton(
+                "PreparationStartRunButton",
+                requireInteractable: true);
+            if (start != null)
+            {
+                break;
+            }
+            yield return null;
+        }
+
+        Check(
+            start != null,
+            "BOOT_PREPARED_START_READY",
+            start != null
+                ? "Prepared start command is interactable."
+                : "Prepared start command did not become interactable.");
+        if (start == null)
+        {
+            yield break;
+        }
+
+        yield return StartPartyPlayModeTestDriver.CompleteIfVisible(
+            RuntimeReadyTimeoutSeconds);
+
+        float gameplayDeadline = Time.realtimeSinceStartup
+            + RuntimeReadyTimeoutSeconds;
+        while (Time.realtimeSinceStartup < gameplayDeadline)
+        {
+            DungeonRuntimeLifetimeScope scope = FindScope();
+            OwnerRunManager ownerManager = FindFirstObjectByType<OwnerRunManager>();
+            CharacterActor worldActor = FindWorldReadyActor();
+            if (string.Equals(
+                    SceneManager.GetActiveScene().name,
+                    DungeonSceneNavigator.GameplaySceneName,
+                    StringComparison.Ordinal)
+                && scope?.Container != null
+                && ownerManager?.CurrentOwnerActor != null
+                && worldActor != null)
+            {
+                Check(
+                    true,
+                    "BOOT_PREPARED_START_REQUESTED",
+                    "PreparedNewRun reached Gameplay through the production preparation UI.");
+                Check(
+                    true,
+                    "BOOT_GAMEPLAY_READY",
+                    $"owner={ownerManager.CurrentOwnerActor.name}; "
+                    + $"actor={worldActor.name}@{worldActor.GetNowXY()}");
+                yield break;
+            }
+            yield return null;
+        }
+
+        Check(
+            false,
+            "BOOT_GAMEPLAY_READY",
+            "PreparedNewRun did not reach a ready Gameplay world before timeout. "
+            + DescribeCharacterPublicationState());
     }
 
     private static string DescribeCharacterPublicationState()
@@ -1075,6 +1754,30 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
         InputSystem.QueueStateEvent(verificationMouse, new MouseState { position = point });
         yield return null;
         yield return null;
+    }
+
+    private IEnumerator WaitForSceneTransitionInputRelease()
+    {
+        float deadline = Time.realtimeSinceStartup + 5f;
+        GameObject blocker;
+        do
+        {
+            blocker = GameObject.Find("SceneTransitionInputBlocker");
+            if (blocker == null)
+            {
+                break;
+            }
+
+            yield return null;
+        }
+        while (Time.realtimeSinceStartup < deadline);
+
+        Check(
+            blocker == null,
+            "SCENE_TRANSITION_INPUT_RELEASED",
+            blocker == null
+                ? "transition blocker destroyed before product UI interaction"
+                : "transition blocker remained active after 5 realtime seconds");
     }
 
     private IEnumerator ScrollIntoView(Button button)
@@ -1470,48 +2173,6 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
         }
 
         InputSystem.settings.editorInputBehaviorInPlayMode = originalInputBehavior;
-    }
-
-    private void BackupPersistentFiles(DungeonRuntimeLifetimeScope scope)
-    {
-        IMetaProfileStore profile = scope.Container.Resolve<IMetaProfileStore>();
-        BackupFile(profile.ProfilePath);
-        IDungeonGameSaveSlotService slots = scope.Container.Resolve<IDungeonGameSaveSlotService>();
-        foreach (DungeonSaveSlotInfo slot in slots.GetSlots())
-        {
-            BackupFile(slot.Path);
-        }
-    }
-
-    private void BackupFile(string path)
-    {
-        if (string.IsNullOrWhiteSpace(path)
-            || backups.Any(backup => string.Equals(backup.Path, path, StringComparison.OrdinalIgnoreCase)))
-        {
-            return;
-        }
-
-        backups.Add(new FileBackup
-        {
-            Path = path,
-            Bytes = File.Exists(path) ? File.ReadAllBytes(path) : null
-        });
-    }
-
-    private void RestoreFiles()
-    {
-        foreach (FileBackup backup in backups)
-        {
-            if (backup.Bytes == null)
-            {
-                if (File.Exists(backup.Path)) File.Delete(backup.Path);
-                continue;
-            }
-
-            string directory = Path.GetDirectoryName(backup.Path);
-            if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory);
-            File.WriteAllBytes(backup.Path, backup.Bytes);
-        }
     }
 
     private void CaptureLog(string condition, string stackTrace, LogType type)

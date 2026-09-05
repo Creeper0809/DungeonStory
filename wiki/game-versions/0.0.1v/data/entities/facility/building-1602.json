@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "생산"
+    },
+    {
+      "label": "크기",
+      "value": "1×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-1602",
+  "spoiler_tier": "none",
+  "summary": "시설의 고유 역할은 생산 보조이다. 건설에는 작업량 67, 재료 목재×3이 필요하다.",
+  "title": "수동 발효조"
+}

@@ -15,6 +15,46 @@ public interface ICharacterEquipmentGameplayEffectSourceQuery
     IReadOnlyList<IGameplayEffectSource> GetEquipmentSources(CharacterActor actor);
 }
 
+public static class CharacterIncrementalGameplayEffectAuthority
+{
+    public const string Schema =
+        "character-incremental-gameplay-effect-authority@1";
+    public const float EmbeddedNeutralThreshold = 0.0001f;
+
+    public static float Resolve(float complete, float embedded)
+    {
+        if (float.IsNaN(complete)
+            || float.IsInfinity(complete)
+            || float.IsNaN(embedded)
+            || float.IsInfinity(embedded))
+        {
+            throw new InvalidOperationException(
+                "Incremental gameplay-effect projection must be finite.");
+        }
+        float result = Mathf.Abs(embedded) <= EmbeddedNeutralThreshold
+            ? complete
+            : complete / embedded;
+        if (float.IsNaN(result) || float.IsInfinity(result))
+            throw new InvalidOperationException(
+                "Incremental gameplay-effect multiplier is not finite.");
+        return result;
+    }
+
+    public static double ResolveAbsoluteMaximum(double completeAbsoluteMaximum)
+    {
+        if (double.IsNaN(completeAbsoluteMaximum)
+            || double.IsInfinity(completeAbsoluteMaximum)
+            || completeAbsoluteMaximum < 0d)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(completeAbsoluteMaximum));
+        }
+        return Math.Max(
+            completeAbsoluteMaximum,
+            completeAbsoluteMaximum / EmbeddedNeutralThreshold);
+    }
+}
+
 public sealed class CharacterEquipmentGameplayEffectSourceQuery :
     ICharacterEquipmentGameplayEffectSourceQuery
 {
@@ -322,9 +362,9 @@ public sealed class CharacterDerivedStatsSnapshotProjector
                 is GameplayEffectSourceKind.Trait
                 or GameplayEffectSourceKind.Species),
             new GameplayEffectContext()).Value;
-        return Mathf.Abs(embedded) <= .0001f
-            ? complete
-            : complete / embedded;
+        return CharacterIncrementalGameplayEffectAuthority.Resolve(
+            complete,
+            embedded);
     }
 
     /// <summary>

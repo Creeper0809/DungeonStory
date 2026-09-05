@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.4kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "1281"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "활몸의 룬이 당겨진 시위의 힘을 고르게 받쳐 주는 비전 활이다. 베르사디온의 룬 활 손잡이에는 사용자와 마나 제공자가 하나씩 누른 쌍인장이 남는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-weapon-rune-bow",
+  "spoiler_tier": "none",
+  "summary": "룬 활 전투 장비",
+  "title": "룬 활"
+}

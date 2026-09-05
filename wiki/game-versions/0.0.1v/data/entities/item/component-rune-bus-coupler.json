@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "509"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "룬 버스 결합기로 동력과 마나가 끊기지 않도록 장치 사이의 연결부를 잇는다. 베르사디온의 룬 버스 결합기에는 마나를 댄 손 두 개의 인장이 서로 마주 보고 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "component-rune-bus-coupler",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 룬 버스 결합기.",
+  "title": "룬 버스 결합기"
+}

@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-grape-juice",
+    "spoiler_tier": "none",
+    "title": "밤포도 착즙"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-grape-juice",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-grape-juice",
+      "target_spoiler_tier": "none",
+      "target_title": "포도즙",
+      "to": "item/material-grape-juice",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-grape-juice",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-night-grape",
+      "target_spoiler_tier": "none",
+      "target_title": "밤포도",
+      "to": "item/resource-night-grape",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-grape-juice",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-fermentation",
+      "target_spoiler_tier": "none",
+      "target_title": "발효",
+      "to": "research/research-cuisine-fermentation",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,112 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "437"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Industry And Automation"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-environment-rune-insulation",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 단열학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-environment-rune-insulation",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 단열학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-environment-rune-insulation",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 단열학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-greenhouse-horticulture",
+      "target_spoiler_tier": "none",
+      "target_title": "온실 원예",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-greenhouse-horticulture",
+      "target_spoiler_tier": "none",
+      "target_title": "온실 원예",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-greenhouse-horticulture",
+      "target_spoiler_tier": "none",
+      "target_title": "온실 원예",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-electric-smelting",
+      "target_spoiler_tier": "none",
+      "target_title": "전기 제련과 산업 냉각",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-electric-smelting",
+      "target_spoiler_tier": "none",
+      "target_title": "전기 제련과 산업 냉각",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-electric-smelting",
+      "target_spoiler_tier": "none",
+      "target_title": "전기 제련과 산업 냉각",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8856",
+      "target_spoiler_tier": "none",
+      "target_title": "기후 제어실",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-climate-environment-control",
+  "spoiler_tier": "none",
+  "summary": "관측·온실·냉각·단열 기술을 능동 환경 제어로 결합한다.",
+  "title": "기후 제어"
+}

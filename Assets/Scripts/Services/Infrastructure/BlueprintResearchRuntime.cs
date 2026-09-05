@@ -20,11 +20,12 @@ public class BlueprintResearchRuntime : MonoBehaviour
     private IWorldDropZoneQuery worldDropZoneQuery;
     private BlueprintResearchApplicationAdapter applicationAdapter;
     private IFacilityBufferDestinationClaimQuery archiveDestinationClaimQuery;
-    private IFacilityBufferDestinationClaimCommand archiveDestinationClaims;
+    private IFacilityBufferMassCapacityQuery archiveCapacityQuery;
+    private IFacilityBufferDestinationLifecycleCommand archiveDestinations;
+    private IFacilityBufferDestinationReleaseService archiveReleases;
+    private IPhysicalItemMassQuery physicalMass;
     private float nextArchiveDeliveryRefresh;
     private int projectedRestoreRevision;
-    private readonly HashSet<string> pendingKnowledgeDeliveries =
-        new HashSet<string>(StringComparer.Ordinal);
     private IDisposable shopPurchasedSubscription;
     private ExtremeTraitRuntime extremeTraits;
     private IRunSeedProvider runSeedProvider;
@@ -97,12 +98,21 @@ public class BlueprintResearchRuntime : MonoBehaviour
     [Inject]
     public void ConstructArchiveDestinationAuthority(
         IFacilityBufferDestinationClaimQuery destinationClaimQuery,
-        IFacilityBufferDestinationClaimCommand destinationClaims)
+        IFacilityBufferMassCapacityQuery capacityQuery,
+        IFacilityBufferDestinationLifecycleCommand destinations,
+        IFacilityBufferDestinationReleaseService releases,
+        IPhysicalItemMassQuery mass)
     {
         archiveDestinationClaimQuery = destinationClaimQuery
             ?? throw new ArgumentNullException(nameof(destinationClaimQuery));
-        archiveDestinationClaims = destinationClaims
-            ?? throw new ArgumentNullException(nameof(destinationClaims));
+        archiveCapacityQuery = capacityQuery
+            ?? throw new ArgumentNullException(nameof(capacityQuery));
+        archiveDestinations = destinations
+            ?? throw new ArgumentNullException(nameof(destinations));
+        archiveReleases = releases
+            ?? throw new ArgumentNullException(nameof(releases));
+        physicalMass = mass
+            ?? throw new ArgumentNullException(nameof(mass));
     }
 
     public bool EnqueueBlueprint(FacilityBlueprintSO blueprint)
@@ -171,7 +181,6 @@ public class BlueprintResearchRuntime : MonoBehaviour
                         researcher,
                         researchFacility,
                         amount);
-            projectWork += TryConsumeKnowledgeResidue(researchFacility);
             float projectAdded = projectProgress.Add(projectWork, project);
             PublishResearchProgress(
                 researcher,
@@ -221,7 +230,6 @@ public class BlueprintResearchRuntime : MonoBehaviour
                     researcher,
                     researchFacility,
                     amount);
-        work += TryConsumeKnowledgeResidue(researchFacility);
         float added = task.AddProgress(work);
         PublishResearchProgress(
             researcher,
@@ -480,111 +488,6 @@ public class BlueprintResearchRuntime : MonoBehaviour
     }
 #endif
 
-    public int EnsureAcquiredBlueprintItemsMaterialized()
-    {
-        if (itemStackRuntime == null || facilityShopCatalog == null)
-        {
-            return 0;
-        }
-
-        int materialized = 0;
-        HashSet<string> existingItemIds = itemStackRuntime.GetAllStacks()
-            .Where(stack => stack != null && stack.Quantity > 0)
-            .Select(stack => stack.ItemId)
-            .ToHashSet(StringComparer.Ordinal);
-
-        foreach (int blueprintId in ShopUnlockState.AcquiredBlueprintIds)
-        {
-            FacilityBlueprintSO blueprint = facilityShopCatalog.Blueprints
-                .FirstOrDefault(candidate => candidate != null && candidate.id == blueprintId);
-            if (blueprint == null || existingItemIds.Contains(blueprint.PhysicalItemId))
-            {
-                continue;
-            }
-
-            bool spawned = false;
-            if (blueprintArchiveQuery.TryGetPreferredArchive(
-                    blueprint,
-                    out BuildableObject archive,
-                    out string destinationId))
-            {
-                spawned = itemStackRuntime.SpawnUniqueItemAt(
-                    blueprint.PhysicalItemId,
-                    archive.centerPos,
-                    WorldItemStackState.FacilityBuffer,
-                    destinationId,
-                    out _);
-            }
-            else if (worldDropZoneQuery != null
-                     && worldDropZoneQuery.TryGetDeliveryDropoff(out Vector2Int dropoff))
-            {
-                spawned = itemStackRuntime.SpawnUniqueItemAt(
-                    blueprint.PhysicalItemId,
-                    dropoff,
-                    WorldItemStackState.Loose,
-                    string.Empty,
-                    out _);
-            }
-
-            if (spawned)
-            {
-                existingItemIds.Add(blueprint.PhysicalItemId);
-                materialized++;
-            }
-        }
-
-        return materialized;
-    }
-
-    private float TryConsumeKnowledgeResidue(BuildableObject researchFacility)
-    {
-        if (itemStackRuntime == null || researchFacility == null)
-        {
-            return 0f;
-        }
-
-        string destinationId =
-            $"research:{researchFacility.RequirePersistentInstanceId().Value}";
-        Dictionary<StockCategory, int> cost = new Dictionary<StockCategory, int>
-        {
-            [StockCategory.Knowledge] = 1
-        };
-        if (itemStackRuntime.TryConsumeFacilityBuffer(
-                destinationId,
-                cost,
-                out _))
-        {
-            pendingKnowledgeDeliveries.Remove(destinationId);
-            return 12f;
-        }
-
-        bool hasOutstandingDelivery = itemStackRuntime.GetAllStacks().Any(stack =>
-            stack != null
-            && stack.Quantity > 0
-            && stack.StockCategory == StockCategory.Knowledge
-            && string.Equals(stack.DestinationId, destinationId, StringComparison.Ordinal));
-        if (hasOutstandingDelivery)
-        {
-            pendingKnowledgeDeliveries.Add(destinationId);
-            return 0f;
-        }
-
-        pendingKnowledgeDeliveries.Remove(destinationId);
-        if (itemStackRuntime.TryRequestFacilityDelivery(
-                StockCategory.Knowledge,
-                1,
-                researchFacility.centerPos,
-                destinationId,
-                out int requested,
-                out _)
-            && requested > 0)
-        {
-            pendingKnowledgeDeliveries.Add(destinationId);
-        }
-
-        return 0f;
-    }
-
     public bool TryCancelBlueprint(FacilityBlueprintSO blueprint, out string message)
     {
         if (blueprint == null)
@@ -648,6 +551,50 @@ public class BlueprintResearchRuntime : MonoBehaviour
 
         return completedCount;
     }
+
+#if UNITY_EDITOR
+    /// <summary>
+    /// Completes one authored project through the same unlock publication path
+    /// as normal research. Verification fixtures must not call the low-level
+    /// restore mutator because that can leave completed-project and unlock state
+    /// inconsistent before a save checkpoint is captured.
+    /// </summary>
+    public bool TryCompleteProjectImmediatelyForVerification(
+        ResearchProjectId projectId,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (!projectId.IsValid)
+        {
+            failureReason = "research-project-id-invalid";
+            return false;
+        }
+        if (projectCatalog == null
+            || !projectCatalog.TryGet(projectId, out ResearchProjectSO project)
+            || project == null)
+        {
+            failureReason = "research-project-not-authored:" + projectId.Value;
+            return false;
+        }
+
+        CompleteProject(project, notifyAvailability: false, emitAlert: false);
+        bool buildingUnlocksExact = project.Unlocks
+            .OfType<BlueprintBuildingUnlock>()
+            .All(unlock => state.IsBuildingUnlocked(unlock.buildingId));
+        bool recipeUnlocksExact = project.Unlocks
+            .OfType<BlueprintRecipeUnlock>()
+            .All(unlock => state.UnlockedRecipeIds.Contains(unlock.recipeId));
+        if (!state.Projects.IsCompleted(projectId)
+            || !buildingUnlocksExact
+            || !recipeUnlocksExact)
+        {
+            failureReason = "research-project-completion-not-exact:"
+                + projectId.Value;
+            return false;
+        }
+        return true;
+    }
+#endif
 
     public void OnTriggerEvent(FacilityShopPurchasedEvent eventType)
     {
@@ -829,7 +776,10 @@ public class BlueprintResearchRuntime : MonoBehaviour
     private void ReconcileArchiveDestinationClaims()
     {
         if (archiveDestinationClaimQuery == null
-            || archiveDestinationClaims == null)
+            || archiveCapacityQuery == null
+            || archiveDestinations == null
+            || archiveReleases == null
+            || physicalMass == null)
         {
             throw new InvalidOperationException(
                 $"{nameof(BlueprintResearchRuntime)} requires exact research archive destination authority injection.");
@@ -838,6 +788,11 @@ public class BlueprintResearchRuntime : MonoBehaviour
         FacilityBufferDestinationClaim[] desiredClaims =
             ResearchBlueprintArchiveDestinationAuthority.BuildClaims(
                 blueprintArchiveQuery.GetValidArchives());
+        FacilityBufferCapacityProfile[] desiredProfiles =
+            ResearchBlueprintArchiveDestinationAuthority.BuildProfiles(
+                blueprintArchiveQuery.GetValidArchives(),
+                facilityShopCatalog.Blueprints,
+                physicalMass);
         FacilityBufferDestinationClaim[] existingClaims =
             archiveDestinationClaimQuery.CaptureClaims()
             .Where(claim => claim != null
@@ -847,25 +802,28 @@ public class BlueprintResearchRuntime : MonoBehaviour
                     StringComparison.Ordinal))
             .OrderBy(claim => claim.DestinationId, StringComparer.Ordinal)
             .ToArray();
+        FacilityBufferCapacityProfile[] existingProfiles =
+            archiveCapacityQuery.CaptureProfiles()
+            .Where(profile => profile != null
+                && string.Equals(
+                    profile.OwnerDomain,
+                    ResearchBlueprintArchiveDestinationAuthority.OwnerDomain,
+                    StringComparison.Ordinal))
+            .OrderBy(profile => profile.DestinationId, StringComparer.Ordinal)
+            .ToArray();
         bool unchanged = existingClaims.Length == desiredClaims.Length
+            && existingProfiles.Length == desiredProfiles.Length
             && existingClaims.Zip(
                     desiredClaims,
                     ResearchBlueprintArchiveDestinationAuthority.ClaimsMatch)
+                .All(matches => matches)
+            && existingProfiles.Zip(
+                    desiredProfiles,
+                    ResearchBlueprintArchiveDestinationAuthority.ProfilesMatch)
                 .All(matches => matches);
         if (unchanged)
         {
             return;
-        }
-
-        if (!archiveDestinationClaims.TryReplaceOwnedClaims(
-                ResearchBlueprintArchiveDestinationAuthority.OwnerDomain,
-                desiredClaims,
-                out FacilityBufferDestinationClaimFailureCode failureCode,
-                out string failureReason))
-        {
-            throw new InvalidOperationException(
-                "Research archive destination reconciliation failed: "
-                + $"{failureCode}: {failureReason}");
         }
 
         Dictionary<string, FacilityBufferDestinationClaim> desiredById =
@@ -881,10 +839,29 @@ public class BlueprintResearchRuntime : MonoBehaviour
                     previous,
                     current))
             {
-                itemStackRuntime.ReleaseStacksByDestination(
+                if (!archiveReleases.TryReleaseAtOwnerPosition(
                     previous.DestinationId,
-                    previous.DropPosition);
+                    previous.DropPosition,
+                    "research-blueprint-archive-authority-retired",
+                    out _,
+                    out string releaseFailure))
+                {
+                    throw new InvalidOperationException(
+                        "Research archive physical release failed before authority retirement: "
+                        + releaseFailure);
+                }
             }
+        }
+
+        if (!archiveDestinations.TryReplaceOwnedAuthorities(
+                ResearchBlueprintArchiveDestinationAuthority.OwnerDomain,
+                desiredClaims,
+                desiredProfiles,
+                out string failureReason))
+        {
+            throw new InvalidOperationException(
+                "Research archive destination reconciliation failed: "
+                + failureReason);
         }
     }
 

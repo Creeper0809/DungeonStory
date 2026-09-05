@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.27kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "100개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "17"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "습지 캔버스는 의복과 안감, 생활용 천을 재단하는 직물 재료다. 노르칸드라의 습지 캔버스에는 물이 스며든 높이를 가늠할 수 있도록 가장자리에 푸른 눈금실을 넣는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-mire-canvas",
+  "spoiler_tier": "none",
+  "summary": "습지 캔버스 물리 원단. 품질 등급과 Ready/Wet/Contaminated 상태로 병합된다.",
+  "title": "습지 캔버스"
+}

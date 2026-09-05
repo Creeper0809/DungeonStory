@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -9,10 +10,40 @@ using UnityEngine;
 /// maintenance aggregate replacement.
 /// </summary>
 public sealed class CombatEquipmentRepairTerminalAuthority :
-    ICombatEquipmentTerminalSourceAuthority
+    ICombatEquipmentTerminalSourceAuthority,
+    ICombatEquipmentTerminalSourceCheckpointGcAuthority
 {
+    private sealed class CheckpointGcRow
+    {
+        internal CheckpointGcRow(
+            CombatEquipmentTerminalReceiptGcRow request,
+            CombatEquipmentRepairTerminalEffectSaveData receiptRow)
+        {
+            Request = request ?? throw new ArgumentNullException(nameof(request));
+            ReceiptRow = receiptRow?.Clone()
+                ?? throw new ArgumentNullException(nameof(receiptRow));
+        }
+
+        internal CombatEquipmentTerminalReceiptGcRow Request { get; }
+        internal CombatEquipmentRepairTerminalEffectSaveData ReceiptRow { get; }
+    }
+
+    private sealed class CheckpointGcCandidate :
+        ICombatEquipmentTerminalSourceCheckpointGcCandidate
+    {
+        internal CheckpointGcCandidate(IReadOnlyList<CheckpointGcRow> rows)
+        {
+            Rows = rows ?? throw new ArgumentNullException(nameof(rows));
+        }
+
+        internal IReadOnlyList<CheckpointGcRow> Rows { get; }
+        internal bool Published { get; set; }
+        internal bool Completed { get; set; }
+    }
+
     private readonly EquipmentMaintenancePolicyRuntime runtime;
     private readonly IProductionInputDestinationCustodyDrainService inputDrain;
+    private CheckpointGcCandidate activeCheckpointGcCandidate;
 
     public CombatEquipmentRepairTerminalAuthority(
         EquipmentMaintenancePolicyRuntime runtime,
@@ -164,6 +195,8 @@ public sealed class CombatEquipmentRepairTerminalAuthority :
         CombatEquipmentTerminalWipLossReceiptSaveData receipt,
         CombatEquipmentTerminalInputDispositionEvidence inputEvidence)
     {
+        if (activeCheckpointGcCandidate != null)
+            return Conflict("combat-repair-terminal-checkpoint-gc-active");
         string failureReason = string.Empty;
         if (!CombatEquipmentTerminalDrainCanonical.IsValidWipLossReceipt(receipt)
             || receipt.sourceKind != CombatEquipmentTerminalSourceKind.RepairOrder
@@ -218,6 +251,8 @@ public sealed class CombatEquipmentRepairTerminalAuthority :
         CombatEquipmentTerminalSourceRemovalReceiptSaveData receipt,
         CombatEquipmentTerminalInputDispositionEvidence inputEvidence)
     {
+        if (activeCheckpointGcCandidate != null)
+            return Conflict("combat-repair-terminal-checkpoint-gc-active");
         if (source == null
             || source.SourceKind != CombatEquipmentTerminalSourceKind.RepairOrder
             || !CombatEquipmentTerminalDrainCanonical
@@ -342,6 +377,8 @@ public sealed class CombatEquipmentRepairTerminalAuthority :
         string wipReceiptFingerprint,
         string removalReceiptFingerprint)
     {
+        if (activeCheckpointGcCandidate != null)
+            return Conflict("combat-repair-terminal-checkpoint-gc-active");
         EquipmentMaintenanceAggregateState state = runtime.CaptureTerminalState();
         if (source == null
             || source.SourceKind != CombatEquipmentTerminalSourceKind.RepairOrder
@@ -362,6 +399,121 @@ public sealed class CombatEquipmentRepairTerminalAuthority :
         return runtime.TryPublishTerminalState(state, out string failureReason)
             ? Applied(removalReceiptFingerprint)
             : Deferred("combat-repair-terminal-gc-deferred:" + failureReason);
+    }
+
+    bool ICombatEquipmentTerminalSourceCheckpointGcAuthority
+        .TryPrepareCheckpointGarbageCollection(
+            IReadOnlyList<CombatEquipmentTerminalReceiptGcRow> rows,
+            out ICombatEquipmentTerminalSourceCheckpointGcCandidate candidate,
+            out string failureReason)
+    {
+        candidate = null;
+        failureReason = string.Empty;
+        if (activeCheckpointGcCandidate != null)
+        {
+            failureReason = "combat-repair-terminal-checkpoint-gc-already-active";
+            return false;
+        }
+
+        CombatEquipmentTerminalReceiptGcRow[] ordered = (rows
+                ?? Array.Empty<CombatEquipmentTerminalReceiptGcRow>())
+            .OrderBy(value => value?.Source?.SourceId, StringComparer.Ordinal)
+            .ToArray();
+        if (ordered.Any(value => value?.Source == null
+                || value.Source.SourceKind !=
+                    CombatEquipmentTerminalSourceKind.RepairOrder)
+            || ordered.Select(value => value.Source.SourceId)
+                .Distinct(StringComparer.Ordinal).Count() != ordered.Length)
+        {
+            failureReason = "combat-repair-terminal-checkpoint-gc-request-invalid";
+            return false;
+        }
+
+        List<CheckpointGcRow> prepared = new(ordered.Length);
+        foreach (CombatEquipmentTerminalReceiptGcRow request in ordered)
+        {
+            if (!TryCaptureCheckpointGcRow(request,
+                    out CombatEquipmentRepairTerminalEffectSaveData row,
+                    out failureReason))
+            {
+                return false;
+            }
+            prepared.Add(new CheckpointGcRow(request, row));
+        }
+
+        CheckpointGcCandidate exact = new(Array.AsReadOnly(prepared.ToArray()));
+        activeCheckpointGcCandidate = exact;
+        candidate = exact;
+        return true;
+    }
+
+    CombatEquipmentTerminalEffectResult
+        ICombatEquipmentTerminalSourceCheckpointGcAuthority
+            .PublishCheckpointGarbageCollection(
+                ICombatEquipmentTerminalSourceCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        if (exact.Published)
+            return Replay(CheckpointGcReceipt(exact));
+
+        foreach (CheckpointGcRow expected in exact.Rows)
+        {
+            if (!TryCaptureCheckpointGcRow(expected.Request,
+                    out CombatEquipmentRepairTerminalEffectSaveData live,
+                    out string failureReason)
+                || !ExactCheckpointGcRow(live, expected.ReceiptRow))
+            {
+                return Conflict(string.IsNullOrEmpty(failureReason)
+                    ? "combat-repair-terminal-checkpoint-gc-live-row-changed"
+                    : failureReason);
+            }
+        }
+
+        EquipmentMaintenanceAggregateState next = runtime.CaptureTerminalState();
+        foreach (CheckpointGcRow row in exact.Rows)
+            next.TerminalEffects.Remove(row.Request.Source.SourceId);
+        if (!runtime.TryPublishTerminalState(next, out string publishFailure))
+            return Deferred("combat-repair-terminal-checkpoint-gc-deferred:"
+                + publishFailure);
+        exact.Published = true;
+        return Applied(CheckpointGcReceipt(exact));
+    }
+
+    void ICombatEquipmentTerminalSourceCheckpointGcAuthority
+        .RollbackCheckpointGarbageCollection(
+            ICombatEquipmentTerminalSourceCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        if (!exact.Published)
+            return;
+
+        EquipmentMaintenanceAggregateState next = runtime.CaptureTerminalState();
+        foreach (CheckpointGcRow row in exact.Rows)
+        {
+            string sourceId = row.Request.Source.SourceId;
+            if (next.TerminalEffects.ContainsKey(sourceId))
+            {
+                throw new InvalidOperationException(
+                    "combat-repair-terminal-checkpoint-gc-rollback-conflict");
+            }
+            next.TerminalEffects.Add(sourceId, row.ReceiptRow.Clone());
+        }
+        if (!runtime.TryPublishTerminalState(next, out string rollbackFailure))
+        {
+            throw new InvalidOperationException(
+                "combat-repair-terminal-checkpoint-gc-rollback-deferred:"
+                + rollbackFailure);
+        }
+        exact.Published = false;
+    }
+
+    void ICombatEquipmentTerminalSourceCheckpointGcAuthority
+        .CompleteCheckpointGarbageCollection(
+            ICombatEquipmentTerminalSourceCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        exact.Completed = true;
+        activeCheckpointGcCandidate = null;
     }
 
     private bool TryCaptureExactOrder(
@@ -604,6 +756,62 @@ public sealed class CombatEquipmentRepairTerminalAuthority :
         }
         return true;
     }
+
+    private bool TryCaptureCheckpointGcRow(
+        CombatEquipmentTerminalReceiptGcRow request,
+        out CombatEquipmentRepairTerminalEffectSaveData row,
+        out string failureReason)
+    {
+        row = null;
+        failureReason = string.Empty;
+        CombatEquipmentTerminalFrozenSubject source = request?.Source;
+        EquipmentMaintenanceAggregateState state = runtime.CaptureTerminalState();
+        if (source == null
+            || source.SourceKind != CombatEquipmentTerminalSourceKind.RepairOrder
+            || state.Orders.ContainsKey(source.SourceId)
+            || !state.TerminalEffects.TryGetValue(source.SourceId,
+                out CombatEquipmentRepairTerminalEffectSaveData live)
+            || live.phase != CombatEquipmentRepairTerminalEffectPhase.SourceRemoved
+            || !string.Equals(live.sourceFingerprint, source.SourceFingerprint,
+                StringComparison.Ordinal)
+            || !string.Equals(live.wipLossReceiptFingerprint,
+                request.WipReceiptFingerprint, StringComparison.Ordinal)
+            || !string.Equals(live.sourceRemovalReceiptFingerprint,
+                request.RemovalReceiptFingerprint, StringComparison.Ordinal))
+        {
+            failureReason = "combat-repair-terminal-checkpoint-gc-row-conflict";
+            return false;
+        }
+        row = live.Clone();
+        return true;
+    }
+
+    private CheckpointGcCandidate RequireCheckpointGcCandidate(
+        ICombatEquipmentTerminalSourceCheckpointGcCandidate candidate)
+    {
+        if (candidate is not CheckpointGcCandidate exact
+            || exact.Completed
+            || !ReferenceEquals(activeCheckpointGcCandidate, exact))
+        {
+            throw new InvalidOperationException(
+                "Combat repair terminal checkpoint GC candidate is invalid.");
+        }
+        return exact;
+    }
+
+    private static bool ExactCheckpointGcRow(
+        CombatEquipmentRepairTerminalEffectSaveData live,
+        CombatEquipmentRepairTerminalEffectSaveData expected) =>
+        live != null
+        && expected != null
+        && string.Equals(JsonUtility.ToJson(live), JsonUtility.ToJson(expected),
+            StringComparison.Ordinal);
+
+    private static string CheckpointGcReceipt(CheckpointGcCandidate candidate) =>
+        candidate.Rows.Count == 0
+            ? string.Empty
+            : candidate.Rows[candidate.Rows.Count - 1]
+                .Request.RemovalReceiptFingerprint;
 
     private static bool SameOrder(
         CombatEquipmentRepairOrder left,

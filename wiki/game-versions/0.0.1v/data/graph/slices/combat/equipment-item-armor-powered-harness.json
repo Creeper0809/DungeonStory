@@ -1,0 +1,77 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "equipment-item-armor-powered-harness",
+    "spoiler_tier": "none",
+    "title": "동력 보조 갑주"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-powered-harness",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-growth-frame",
+      "target_spoiler_tier": "none",
+      "target_title": "성장형 장비 골격",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-powered-harness",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-prototype-package",
+      "target_spoiler_tier": "none",
+      "target_title": "시제품 설계 묶음",
+      "to": "item/component-prototype-package",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "combat/equipment-item-armor-powered-harness",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-machine-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "기계 부품",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "combat/equipment-item-armor-powered-harness",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-powered-armor-joint",
+      "target_spoiler_tier": "none",
+      "target_title": "동력 갑주 관절",
+      "to": "item/component-powered-armor-joint",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "combat/equipment-item-armor-powered-harness",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-precision-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품",
+      "to": "item/component-precision-parts",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-armor-powered-harness",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-powered-armor",
+      "target_spoiler_tier": "none",
+      "target_title": "동력 보조 갑주",
+      "to": "research/research-equipment-powered-armor",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

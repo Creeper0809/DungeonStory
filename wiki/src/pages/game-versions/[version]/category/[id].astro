@@ -1,0 +1,15 @@
+---
+import BaseLayout from '../../../../components/BaseLayout.astro';
+import CategoryContent from '../../../../components/CategoryContent.astro';
+import { canonicalCategoryId, categoryHref, getCategory, getEntities, hasGameVersion } from '../../../../lib/wiki-data';
+const version = Astro.params.version ?? '';
+if (!hasGameVersion(version)) return new Response(null, { status: 404 });
+const requestedCategoryId = Astro.params.id ?? '';
+const categoryId = canonicalCategoryId(requestedCategoryId);
+if (categoryId !== requestedCategoryId) return Astro.redirect(categoryHref(categoryId, version), 301);
+const category = getCategory(version, categoryId);
+if (!category) return new Response(null, { status: 404 });
+const entities = getEntities(version);
+---
+
+<BaseLayout title={category.label} version={version} historical currentHref={`/category/${category.id}/`}><CategoryContent category={category} entities={entities} version={version} historical /></BaseLayout>

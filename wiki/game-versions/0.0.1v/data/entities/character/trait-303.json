@@ -1,0 +1,29 @@
+{
+  "facts": [
+    {
+      "label": "희귀도",
+      "value": "특별"
+    },
+    {
+      "label": "성향",
+      "value": "극단"
+    },
+    {
+      "label": "효과",
+      "value": "1개"
+    },
+    {
+      "label": "정체성 규칙",
+      "value": "1개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "trait-303",
+  "spoiler_tier": "none",
+  "summary": "치명 수술에서 기적과 중증 합병증을 함께 건다.",
+  "title": "기적의 집도"
+}

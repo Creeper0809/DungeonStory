@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.35kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "443"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "검사 게이지로 생산품의 두께와 간격이 작업 규격에 맞는지 빠르게 가린다. 크릭 제7굴의 첫 도구 이름짓기를 마친 검사 게이지에는 첫 측정값과 도제의 별명이 나란히 새겨진다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "tool-inspection-gauge",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 검사 게이지.",
+  "title": "검사 게이지"
+}

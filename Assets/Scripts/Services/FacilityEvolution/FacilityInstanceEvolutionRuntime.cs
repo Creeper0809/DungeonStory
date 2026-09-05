@@ -26,6 +26,7 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
     private readonly IWorldItemStackRuntime worldItems;
     private readonly IFacilityRelocationWorldService relocationWorld;
     private readonly IPhysicalItemBatchDispositionService batchDispositions;
+    private readonly IFacilityEvolutionInputOwnerRuntime inputOwners;
 
     public FacilityInstanceEvolutionRuntime(
         IFacilityEvolutionStateComponentFactory stateFactory,
@@ -51,6 +52,7 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         this.runSeedProvider = runSeedProvider
             ?? throw new ArgumentNullException(nameof(runSeedProvider));
         batchDispositions = null;
+        inputOwners = null;
     }
 
     [VContainer.Inject]
@@ -63,7 +65,8 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         IWorldItemStackRuntime worldItems,
         IFacilityRelocationWorldService relocationWorld,
         IRunSeedProvider runSeedProvider,
-        IPhysicalItemBatchDispositionService batchDispositions)
+        IPhysicalItemBatchDispositionService batchDispositions,
+        IFacilityEvolutionInputOwnerRuntime inputOwners = null)
     {
         this.stateFactory = stateFactory
             ?? throw new ArgumentNullException(nameof(stateFactory));
@@ -80,6 +83,7 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
             ?? throw new ArgumentNullException(nameof(runSeedProvider));
         this.batchDispositions = batchDispositions
             ?? throw new ArgumentNullException(nameof(batchDispositions));
+        this.inputOwners = inputOwners;
     }
 
     public FacilityEvolutionState GetState(BuildableObject facility)
@@ -226,7 +230,8 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         }
 
         string orderId = $"facility-modification:{Guid.NewGuid():N}";
-        string destinationId = $"facility-evolution:{orderId}";
+        string destinationId = FacilityEvolutionInputOwnerAuthority
+            .DestinationFor(FacilityEvolutionInputKind.Modification, orderId);
         Vector2Int position = facility.centerPos;
         FacilityModificationOrder created = new FacilityModificationOrder
         {
@@ -248,10 +253,17 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
             destinationX = position.x,
             destinationY = position.y
         };
-        if (!RequestMaterials(
-                position,
-                destinationId,
-                FacilityEvolutionRules.BuildRequirements(created),
+        if (!TryOpenInputOwner(
+                ToInputDescriptor(created),
+                projection =>
+                {
+                    created.inputCapacityGrams = projection.CapacityGrams;
+                    created.inputMassAuthorityRevision =
+                        projection.MassAuthorityRevision;
+                    created.inputCapacityFingerprint =
+                        projection.CapacityFingerprint;
+                },
+                requestMaterials: true,
                 out failureReason))
         {
             return false;
@@ -316,7 +328,8 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         }
 
         string orderId = $"facility-recalibration:{Guid.NewGuid():N}";
-        string destinationId = $"facility-evolution:{orderId}";
+        string destinationId = FacilityEvolutionInputOwnerAuthority
+            .DestinationFor(FacilityEvolutionInputKind.Recalibration, orderId);
         Vector2Int position = facility.centerPos;
         FacilityRecalibrationOrder created = new FacilityRecalibrationOrder
         {
@@ -336,13 +349,17 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
             destinationX = position.x,
             destinationY = position.y
         };
-        if (!RequestMaterials(
-                position,
-                destinationId,
-                new Dictionary<string, int>(StringComparer.Ordinal)
+        if (!TryOpenInputOwner(
+                ToInputDescriptor(created),
+                projection =>
                 {
-                    [created.catalystItemId] = 1
+                    created.inputCapacityGrams = projection.CapacityGrams;
+                    created.inputMassAuthorityRevision =
+                        projection.MassAuthorityRevision;
+                    created.inputCapacityFingerprint =
+                        projection.CapacityFingerprint;
                 },
+                requestMaterials: true,
                 out failureReason))
         {
             return false;
@@ -415,10 +432,8 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
             facilityPersistentId = state.facilityPersistentId,
             packageItemId =
                 EvolutionCatalystItemDefinitions.FacilityPackageItemId,
-            destinationId =
-                WorldItemStackRuntime.FacilityInputDestinationPrefix
-                + "relocation:"
-                + orderId,
+            destinationId = FacilityEvolutionInputOwnerAuthority
+                .DestinationFor(FacilityEvolutionInputKind.Relocation, orderId),
             sourceX = facility.centerPos.x,
             sourceY = facility.centerPos.y,
             destinationX = destination.x,
@@ -431,6 +446,21 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
                     baseWork),
             phase = FacilityRelocationPhase.Dismantling
         };
+        if (!TryOpenInputOwner(
+                ToInputDescriptor(created),
+                projection =>
+                {
+                    created.inputCapacityGrams = projection.CapacityGrams;
+                    created.inputMassAuthorityRevision =
+                        projection.MassAuthorityRevision;
+                    created.inputCapacityFingerprint =
+                        projection.CapacityFingerprint;
+                },
+                requestMaterials: false,
+                out failureReason))
+        {
+            return false;
+        }
         state.relocationOrder = created;
         component.ReplaceInstanceEvolution(state);
         facilityCandidateCache?.MarkDynamicStateDirty();
@@ -518,6 +548,18 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
                 return true;
             }
 
+            FacilityEvolutionInputOwnerDescriptor modificationInput =
+                ToInputDescriptor(order);
+            if (!TryPrepareTerminalInput(
+                    modificationInput,
+                    "facility-evolution-modification-completed",
+                    out failureReason))
+            {
+                order.state = EvolutionReforgeOrderState.Blocked;
+                component.ReplaceInstanceEvolution(state);
+                return false;
+            }
+
             if (!TryApplyCandidateNow(
                     facility,
                     component,
@@ -535,7 +577,7 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
             completedState.modificationOrder = null;
             component.ReplaceInstanceEvolution(completedState);
             completed = true;
-            ReleaseDestination(order.destinationId, facility.centerPos);
+            RevokeCommittedInputOrThrow(modificationInput);
             return true;
         }
 
@@ -573,6 +615,19 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
                 return false;
             }
 
+
+            FacilityEvolutionInputOwnerDescriptor recalibrationInput =
+                ToInputDescriptor(order);
+            if (!TryPrepareTerminalInput(
+                    recalibrationInput,
+                    "facility-evolution-recalibration-completed",
+                    out failureReason))
+            {
+                order.state = EvolutionReforgeOrderState.Blocked;
+                component.ReplaceInstanceEvolution(state);
+                return false;
+            }
+
             node.activationRule = order.targetRule?.Clone()
                 ?? new EvolutionModuleActivationRule();
             completedNode = node.Clone();
@@ -583,7 +638,7 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
             RefreshRoomActivation(facility);
             facilityCandidateCache?.MarkDynamicStateDirty();
             completed = true;
-            ReleaseDestination(order.destinationId, facility.centerPos);
+            RevokeCommittedInputOrThrow(recalibrationInput);
             return true;
         }
 
@@ -681,6 +736,18 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
             return true;
         }
 
+        FacilityEvolutionInputOwnerDescriptor relocationInput =
+            ToInputDescriptor(order);
+        if (!TryPrepareTerminalInput(
+                relocationInput,
+                "facility-evolution-relocation-completed",
+                out failureReason))
+        {
+            order.phase = FacilityRelocationPhase.Blocked;
+            component.ReplaceInstanceEvolution(state);
+            return false;
+        }
+
         state.relocationOrder = null;
         state.roomStructureVersion = -1;
         state.facilityStateVersion = -1;
@@ -699,6 +766,7 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         RefreshRoomActivation(relocatedFacility);
         facilityCandidateCache?.MarkDynamicStateDirty();
         completed = true;
+        RevokeCommittedInputOrThrow(relocationInput);
         return true;
     }
 
@@ -723,6 +791,16 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
                 return false;
             }
 
+            FacilityEvolutionInputOwnerDescriptor relocationInput =
+                ToInputDescriptor(state.relocationOrder);
+            if (!TryPrepareTerminalInput(
+                    relocationInput,
+                    "facility-evolution-relocation-cancelled",
+                    out failureReason)
+                || !inputOwners.TryRevoke(relocationInput, out failureReason))
+            {
+                return false;
+            }
             state.relocationOrder = null;
             component.ReplaceInstanceEvolution(state);
             facilityCandidateCache?.MarkDynamicStateDirty();
@@ -735,7 +813,16 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
             return false;
         }
 
-        ReleaseDestination(destinationId, facility.centerPos);
+        FacilityEvolutionInputOwnerDescriptor input =
+            state.modificationOrder != null
+                ? ToInputDescriptor(state.modificationOrder)
+                : ToInputDescriptor(state.recalibrationOrder);
+        if (!TryPrepareTerminalInput(input,
+                "facility-evolution-work-cancelled", out failureReason)
+            || !inputOwners.TryRevoke(input, out failureReason))
+        {
+            return false;
+        }
         state.modificationOrder = null;
         state.recalibrationOrder = null;
         component.ReplaceInstanceEvolution(state);
@@ -818,36 +905,109 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         return true;
     }
 
-    private bool RequestMaterials(
-        Vector2Int position,
-        string destinationId,
-        IReadOnlyDictionary<string, int> requirements,
+    private bool TryOpenInputOwner(
+        FacilityEvolutionInputOwnerDescriptor descriptor,
+        Action<FacilityEvolutionInputOwnerProjection> applyProjection,
+        bool requestMaterials,
         out string failureReason)
     {
-        failureReason = string.Empty;
-        foreach (KeyValuePair<string, int> requirement in requirements)
+        if (inputOwners == null)
         {
-            string requestFailure = string.Empty;
-            if (worldItems == null
-                || !worldItems.TryRequestItemDelivery(
-                    requirement.Key,
-                    requirement.Value,
-                    position,
-                    destinationId,
-                    out int requested,
-                    out requestFailure)
-                || requested < requirement.Value)
-            {
-                ReleaseDestination(destinationId, position);
-                failureReason = string.IsNullOrWhiteSpace(requestFailure)
-                    ? $"개조 재료가 부족합니다: {requirement.Key}"
-                    : requestFailure;
-                return false;
-            }
+            failureReason = "facility-evolution-input-owner-runtime-missing";
+            return false;
         }
-
+        if (!inputOwners.TryOpen(descriptor,
+                out FacilityEvolutionInputOwnerProjection projection,
+                out failureReason))
+            return false;
+        applyProjection?.Invoke(projection);
+        FacilityEvolutionInputOwnerDescriptor projected = new(
+            descriptor.Kind, descriptor.OrderId, descriptor.DestinationId,
+            descriptor.FacilityPersistentId, descriptor.Position,
+            descriptor.Requirements, projection.CapacityGrams,
+            projection.MassAuthorityRevision, projection.CapacityFingerprint);
+        if (requestMaterials
+            && !inputOwners.TryRequest(projected, out failureReason))
+        {
+            if (!inputOwners.TryPrepareTerminalRelease(projected,
+                    "facility-evolution-input-request-failed", out _)
+                || !inputOwners.TryRevoke(projected, out _))
+            {
+                failureReason = "facility-evolution-input-request-rollback-failed:"
+                    + failureReason;
+            }
+            return false;
+        }
         return true;
     }
+
+    private bool TryPrepareTerminalInput(
+        FacilityEvolutionInputOwnerDescriptor descriptor,
+        string reasonCode,
+        out string failureReason)
+    {
+        if (inputOwners == null)
+        {
+            failureReason = "facility-evolution-input-owner-runtime-missing";
+            return false;
+        }
+        return inputOwners.TryPrepareTerminalRelease(descriptor,
+            reasonCode, out failureReason);
+    }
+
+    private void RevokeCommittedInputOrThrow(
+        FacilityEvolutionInputOwnerDescriptor descriptor)
+    {
+        string failureReason = string.Empty;
+        if (inputOwners == null
+            || !inputOwners.TryRevoke(descriptor, out failureReason))
+            throw new InvalidOperationException(
+                "Facility evolution committed but its exact input owner could not retire: "
+                + (inputOwners == null
+                    ? "owner-runtime-missing" : failureReason));
+    }
+
+    internal static FacilityEvolutionInputOwnerDescriptor ToInputDescriptor(
+        FacilityModificationOrder order) => new(
+        FacilityEvolutionInputKind.Modification,
+        order.orderId,
+        order.destinationId,
+        order.facilityPersistentId,
+        new Vector2Int(order.destinationX, order.destinationY),
+        FacilityEvolutionRules.BuildRequirements(order),
+        order.inputCapacityGrams,
+        order.inputMassAuthorityRevision,
+        order.inputCapacityFingerprint);
+
+    internal static FacilityEvolutionInputOwnerDescriptor ToInputDescriptor(
+        FacilityRecalibrationOrder order) => new(
+        FacilityEvolutionInputKind.Recalibration,
+        order.orderId,
+        order.destinationId,
+        order.facilityPersistentId,
+        new Vector2Int(order.destinationX, order.destinationY),
+        new Dictionary<string, int>(StringComparer.Ordinal)
+        {
+            [order.catalystItemId] = 1
+        },
+        order.inputCapacityGrams,
+        order.inputMassAuthorityRevision,
+        order.inputCapacityFingerprint);
+
+    internal static FacilityEvolutionInputOwnerDescriptor ToInputDescriptor(
+        FacilityRelocationOrder order) => new(
+        FacilityEvolutionInputKind.Relocation,
+        order.orderId,
+        order.destinationId,
+        order.facilityPersistentId,
+        order.DestinationPosition,
+        new Dictionary<string, int>(StringComparer.Ordinal)
+        {
+            [order.packageItemId] = 1
+        },
+        order.inputCapacityGrams,
+        order.inputMassAuthorityRevision,
+        order.inputCapacityFingerprint);
 
     private bool EnsureMaterialsReady(
         FacilityModificationOrder order,
@@ -890,13 +1050,6 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         }
 
         return true;
-    }
-
-    private void ReleaseDestination(
-        string destinationId,
-        Vector2Int position)
-    {
-        worldItems?.ReleaseStacksByDestination(destinationId, position);
     }
 
     public bool RefreshRoomActivation(BuildableObject facility)

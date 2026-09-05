@@ -1,0 +1,121 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-demon-4",
+      "target_spoiler_tier": "warning",
+      "target_title": "계약을 고치는 손",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-demon-3",
+      "target_spoiler_tier": "warning",
+      "target_title": "돌맥 주조소의 담보",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "relic-faction-demon-3",
+      "target_spoiler_tier": "none",
+      "target_title": "무효조항 두루마리",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-demon-5",
+      "target_spoiler_tier": "warning",
+      "target_title": "불타지 않는 조항",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "relic-faction-demon-1",
+      "target_spoiler_tier": "none",
+      "target_title": "삼중계약 인장",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-demon-2",
+      "target_spoiler_tier": "warning",
+      "target_title": "서명 없는 채무",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-demon-1",
+      "target_spoiler_tier": "warning",
+      "target_title": "세 번 접힌 계약",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-demon-6",
+      "target_spoiler_tier": "warning",
+      "target_title": "재 위의 새 인장",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "relic-faction-demon-2",
+      "target_spoiler_tier": "none",
+      "target_title": "재판관의 불씨",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-contract-demon-crisis",
+      "target_spoiler_tier": "none",
+      "target_title": "잿빛 계약정 위기 대응 계약",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-contract-demon-strategic",
+      "target_spoiler_tier": "none",
+      "target_title": "잿빛 계약정 장기 전략 계약",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-contract-demon-supply",
+      "target_spoiler_tier": "none",
+      "target_title": "잿빛 계약정 정기 물자 계약",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "faction-arc-demon",
+  "spoiler_tier": "warning",
+  "summary": "불완전한 계약과 계승 분쟁을 이용해 세력을 재편하려 한다.",
+  "title": "잿빛 계약정"
+}

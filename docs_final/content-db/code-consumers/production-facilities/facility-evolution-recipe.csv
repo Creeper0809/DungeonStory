@@ -1,0 +1,10 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+FacilityEvolutionRecipeSO,content-type,,type-reference,services:facilityevolution,runtime,structural-type-consumer,Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionIdentity.cs
+FacilityEvolutionRecipeSO,content-type,,type-reference,services:facilityevolution,runtime,structural-type-consumer,Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionLlmProposalProvider.cs
+FacilityEvolutionRecipeSO,content-type,,type-reference,services:facilityevolution,runtime,structural-type-consumer,Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionMutations.cs
+FacilityEvolutionRecipeSO,content-type,,type-reference; save-restore-reference,services:facilityevolution,runtime,structural-type-consumer,Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionPendingMaterialProjection.cs
+FacilityEvolutionRecipeSO,content-type,,type-reference; save-restore-reference,services:facilityevolution,runtime,structural-type-consumer,Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRuntime.cs
+FacilityEvolutionRecipeSO,content-type,,type-reference; save-restore-reference,services:facilityevolution,runtime,structural-type-consumer,Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionService.cs
+FacilityEvolutionRecipeSO,content-type,,type-reference; save-restore-reference,services:facilityevolution,runtime,structural-type-consumer,Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionStateComponent.cs
+FacilityEvolutionRecipeSO,content-type,,type-reference,services:infrastructure,content-loading,structural-type-consumer,Assets/Scripts/Services/Infrastructure/FacilityRecipeCatalogServices.cs
+FacilityEvolutionRecipeSO,content-type,,type-reference; save-restore-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/UI/BuildingFeatureSurfacePresenter.cs

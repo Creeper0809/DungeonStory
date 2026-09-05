@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-medical-organ-preservation-canister",
+    "spoiler_tier": "none",
+    "title": "장기 보존 용기"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-organ-preservation-canister",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "medical-organ-preservation-canister",
+      "target_spoiler_tier": "none",
+      "target_title": "장기 보존 용기",
+      "to": "item/medical-organ-preservation-canister",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-organ-preservation-canister",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-machine-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "기계 부품",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-organ-preservation-canister",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-sterile-composite",
+      "target_spoiler_tier": "none",
+      "target_title": "무균 복합재",
+      "to": "item/material-sterile-composite",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-medical-organ-preservation-canister",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-organ-preservation",
+      "target_spoiler_tier": "none",
+      "target_title": "장기 보존",
+      "to": "research/research-medical-organ-preservation",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

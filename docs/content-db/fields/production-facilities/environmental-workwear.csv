@@ -1,0 +1,57 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+EnvironmentalWorkwearSO|workwear:cold-work-suit,workwear:cold-work-suit,m_Name,ColdWorkSuit,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:cold-work-suit,workwear:cold-work-suit,id,852633,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:cold-work-suit,workwear:cold-work-suit,workwearId,workwear:cold-work-suit,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:cold-work-suit,workwear:cold-work-suit,itemDefinitionId,equipment:cold-work-suit,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:cold-work-suit,workwear:cold-work-suit,displayName,방한 작업복,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:cold-work-suit,workwear:cold-work-suit,description,전투 방어력 없이 8°C 냉장실 상시 근무를 지원한다.,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:cold-work-suit,workwear:cold-work-suit,allowedSpecies,[],,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:cold-work-suit,workwear:cold-work-suit,protection.comfortMinimumOffset,-8,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:cold-work-suit,workwear:cold-work-suit,protection.comfortMaximumOffset,0,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:cold-work-suit,workwear:cold-work-suit,protection.safeMinimumOffset,-8,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:cold-work-suit,workwear:cold-work-suit,protection.safeMaximumOffset,0,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:cold-work-suit,workwear:cold-work-suit,protection.coldExposureMultiplier,0.35,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:cold-work-suit,workwear:cold-work-suit,protection.heatExposureMultiplier,1,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:cold-work-suit,workwear:cold-work-suit,requiredResearchId,research:environment:cold-work,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:hauling-harness,workwear:hauling-harness,m_Name,HaulingHarness,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:hauling-harness,workwear:hauling-harness,id,812206,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:hauling-harness,workwear:hauling-harness,workwearId,workwear:hauling-harness,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:hauling-harness,workwear:hauling-harness,itemDefinitionId,tool:hauling-harness,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:hauling-harness,workwear:hauling-harness,displayName,운반 멜빵,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:hauling-harness,workwear:hauling-harness,description,운반 작업 중 적재 한도를 25% 늘리고 완료 시 내구도를 소모하는 물리 작업 장비.,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:hauling-harness,workwear:hauling-harness,allowedSpecies,[],,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:hauling-harness,workwear:hauling-harness,protection.comfortMinimumOffset,0,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:hauling-harness,workwear:hauling-harness,protection.comfortMaximumOffset,0,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:hauling-harness,workwear:hauling-harness,protection.safeMinimumOffset,0,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:hauling-harness,workwear:hauling-harness,protection.safeMaximumOffset,0,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:hauling-harness,workwear:hauling-harness,protection.coldExposureMultiplier,1,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:hauling-harness,workwear:hauling-harness,protection.heatExposureMultiplier,1,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:hauling-harness,workwear:hauling-harness,requiredResearchId,research:commerce:logistics,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:rune-cold-suit,workwear:rune-cold-suit,m_Name,RuneColdSuit,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:rune-cold-suit,workwear:rune-cold-suit,id,875194,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:rune-cold-suit,workwear:rune-cold-suit,workwearId,workwear:rune-cold-suit,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:rune-cold-suit,workwear:rune-cold-suit,itemDefinitionId,equipment:rune-cold-suit,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:rune-cold-suit,workwear:rune-cold-suit,displayName,룬 방한복,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:rune-cold-suit,workwear:rune-cold-suit,description,후기 2°C 냉장 근무용 룬 단열 작업복. 치명선은 바꾸지 않는다.,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:rune-cold-suit,workwear:rune-cold-suit,allowedSpecies,[],,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:rune-cold-suit,workwear:rune-cold-suit,protection.comfortMinimumOffset,-10,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:rune-cold-suit,workwear:rune-cold-suit,protection.comfortMaximumOffset,0,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:rune-cold-suit,workwear:rune-cold-suit,protection.safeMinimumOffset,-10,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:rune-cold-suit,workwear:rune-cold-suit,protection.safeMaximumOffset,0,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:rune-cold-suit,workwear:rune-cold-suit,protection.coldExposureMultiplier,0.2,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:rune-cold-suit,workwear:rune-cold-suit,protection.heatExposureMultiplier,1,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:rune-cold-suit,workwear:rune-cold-suit,requiredResearchId,research:environment:rune-insulation,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:slime-warming-pad,workwear:slime-warming-pad,m_Name,SlimeWarmingPad,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:slime-warming-pad,workwear:slime-warming-pad,id,899207,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:slime-warming-pad,workwear:slime-warming-pad,workwearId,workwear:slime-warming-pad,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:slime-warming-pad,workwear:slime-warming-pad,itemDefinitionId,equipment:slime-warming-pad,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:slime-warming-pad,workwear:slime-warming-pad,displayName,보온 점액 패드,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:slime-warming-pad,workwear:slime-warming-pad,description,슬라임의 짧은 냉장 운반을 돕는 탈착식 보온 패드.,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:slime-warming-pad,workwear:slime-warming-pad,allowedSpecies.0,Slime,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:slime-warming-pad,workwear:slime-warming-pad,protection.comfortMinimumOffset,-4,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:slime-warming-pad,workwear:slime-warming-pad,protection.comfortMaximumOffset,0,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:slime-warming-pad,workwear:slime-warming-pad,protection.safeMinimumOffset,-4,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:slime-warming-pad,workwear:slime-warming-pad,protection.safeMaximumOffset,0,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:slime-warming-pad,workwear:slime-warming-pad,protection.coldExposureMultiplier,0.6,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:slime-warming-pad,workwear:slime-warming-pad,protection.heatExposureMultiplier,1,,,explicit-serialized
+EnvironmentalWorkwearSO|workwear:slime-warming-pad,workwear:slime-warming-pad,requiredResearchId,research:environment:cold-work,,,explicit-serialized

@@ -107,13 +107,31 @@ InitTestScene*.unity*
 # Auto-generated scenes by play mode tests
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
 
-# Design documents are local by default, except the two authoritative balance sources.
+# Design documents are local by default; explicitly listed authorities and curated guides are shared.
 docs/*
+!docs/README.md
+!docs/system-implementation-checklist.md
+!docs/handbook/
+!docs/handbook/*.md
+!docs/wiki/
+!docs/wiki/**
+!docs/content-db/
+!docs/content-db/**
+!docs/architecture/
+!docs/architecture/**
 !docs/DungeonStory_Game_Design_and_Implementation.md
 !docs/game-design/
 docs/game-design/*
 !docs/game-design/whole-game-balance-baseline.md
 !docs/game-design/v27-balance-critical-approvals.json
+!docs/game-design/v27-balance-market-review-decisions.json
+!docs/game-design/systemic-content-integration-design.md
+!docs/game-design/systemic-content-event-catalog.md
+!docs/game-design/strategic-build-and-progression-design.md
+!docs/game-design/reference-game-design-synthesis.md
+!docs/game-design/content/
+docs/game-design/content/*
+!docs/game-design/content/item-in-game-descriptions.ko.json
 !docs/generated/
 docs/generated/*
 !docs/generated/V27_Balance_Before_After.md
@@ -126,3 +144,10 @@ docs/generated/*
 # Python bytecode caches
 __pycache__/
 *.py[cod]
+
+# Generated local Astro state and deployment artifacts.
+/wiki/node_modules/
+/wiki/.astro/
+/wiki/dist/
+/wiki/public/spoiler-data/
+/wiki/.generated/

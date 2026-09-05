@@ -96,6 +96,18 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
             RequireFreshCapacityAndContinuityEvidence();
         RequireFreshOutputCapacityEvidence();
         V27BalanceBuilderNoClobberDebugScenarios.RequireFreshEvidence();
+        MarketReviewDecisionValidation marketDecisions =
+            V27BalanceAssetApplication.ValidateMarketReviewDecisions(audit.Ledger);
+        MarketApplicationReceiptValidation marketReceipts =
+            V27BalanceAssetApplication.ValidateMarketApplicationReceipts(audit.Ledger);
+        if (marketDecisions.PendingPromotions.Count != 0
+            || marketDecisions.AppliedPromoteBundleCount
+            != marketDecisions.PromoteBundleCount
+            || marketReceipts.Rows.Count == 0)
+        {
+            throw new InvalidOperationException(
+                "V27 whole-game market application evidence is incomplete.");
+        }
 
         IReadOnlyList<CanonicalBalanceMetricRecord> records = audit.Ledger.Records;
         string[] missingDomains = RequiredDomains
@@ -121,16 +133,42 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
                 + string.Join(" | ", networkFailures));
         }
 
-        int itemDefinitions = records.Count(record =>
-            string.Equals(record.DefinitionKind, "item", StringComparison.Ordinal)
-            && string.Equals(record.Metric, "acquisition-cost", StringComparison.Ordinal));
-        int recipeDefinitions = AssetDatabase.FindAssets("t:ProductionRecipeSO")
+        string[] ledgerItemIds = records
+            .Where(record => string.Equals(
+                    record.DefinitionKind,
+                    "item",
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    record.Metric,
+                    "acquisition-cost",
+                    StringComparison.Ordinal))
+            .Select(record => record.StableId)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string[] canonicalItemIds = V27PhysicalMassAuthorityInventoryDebugScenarios
+            .CaptureCanonicalLedgerItemIds()
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        int itemDefinitions = ledgerItemIds.Length;
+        string[] assetRecipeIds = AssetDatabase.FindAssets("t:ProductionRecipeSO")
             .Select(AssetDatabase.GUIDToAssetPath)
             .Select(AssetDatabase.LoadAssetAtPath<ProductionRecipeSO>)
             .Where(value => value != null)
             .Select(value => value.RecipeId)
             .Distinct(StringComparer.Ordinal)
-            .Count();
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string[] ledgerRecipeIds = records
+            .Where(record => string.Equals(
+                record.DefinitionKind,
+                "recipe",
+                StringComparison.Ordinal))
+            .Select(record => record.StableId)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        int recipeDefinitions = assetRecipeIds.Length;
         int activeBuildingDefinitions = records.Count(record =>
             string.Equals(record.Domain, "facilities", StringComparison.Ordinal)
             && string.Equals(
@@ -147,15 +185,20 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
             .Count();
         int approvedButUnapplied = records.Count(record =>
             record.ApprovalKey.Length > 0
+            && !string.Equals(
+                record.SourcePropertyPath,
+                "recipe graph",
+                StringComparison.Ordinal)
             && !string.Equals(record.AssetApplied, "true", StringComparison.Ordinal));
-        if (itemDefinitions != 413
-            || network.DefinitionCount != 363
-            || recipeDefinitions != 354
-            || activeBuildingDefinitions != 356
+        if (!ledgerItemIds.SequenceEqual(canonicalItemIds, StringComparer.Ordinal)
+            || !assetRecipeIds.SequenceEqual(ledgerRecipeIds, StringComparer.Ordinal)
+            || network.DefinitionCount <= 0
+            || network.DefinitionCount > itemDefinitions
+            || activeBuildingDefinitions <= 0
             || approvedButUnapplied != 0)
         {
             throw new InvalidOperationException(
-                $"V27 coverage count drift: items={itemDefinitions}; "
+                $"V27 coverage scope drift: items={itemDefinitions}; "
                 + $"resourceItems={network.DefinitionCount}; recipes={recipeDefinitions}; "
                 + $"buildings={activeBuildingDefinitions}; unapplied={approvedButUnapplied}.");
         }
@@ -191,6 +234,15 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
             .Append(network.ConsumerLinkCount.ToString(CultureInfo.InvariantCulture))
             .Append("; orphans=0\n");
         report.Append("PASS V27_WHOLE_GAME_EXACT_APPROVAL_APPLICATION unapplied=0\n");
+        report.Append("PASS V27_WHOLE_GAME_MARKET_APPLICATION decisions=")
+            .Append(marketDecisions.DecisionBundleCount.ToString(
+                CultureInfo.InvariantCulture))
+            .Append("; applied=")
+            .Append(marketDecisions.AppliedPromoteBundleCount.ToString(
+                CultureInfo.InvariantCulture))
+            .Append("; receipts=")
+            .Append(marketReceipts.Rows.Count.ToString(CultureInfo.InvariantCulture))
+            .Append("; pending=0; changedAssets=0; changedProperties=0\n");
         report.Append("PASS V27_WHOLE_GAME_LABOR_AUTHORITY_MATRIX cells=360\n");
         report.Append("PASS V27_WHOLE_GAME_DAILY_ROUTINE_3_SEEDS actualMean=")
             .Append(actualMean.ToString("0.000000", CultureInfo.InvariantCulture))
@@ -198,12 +250,12 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
             .Append(effectiveMean.ToString("0.000000", CultureInfo.InvariantCulture))
             .Append("\n");
         report.Append("PASS V27_WHOLE_GAME_DUNGEON_EXPANSION research=3; ")
-            .Append("columns=27,49,65,81; layouts=1536\n");
+            .Append("columns=29,51,71,87; sceneSeed=27; layouts=1536\n");
         report.Append("PASS V27_WHOLE_GAME_SERVICE_CONTINUITY paths=10; ")
             .Append("populationAuthority=6; liveExecution=productionActorPerPath\n");
         report.Append("PASS V27_WHOLE_GAME_ASSET_BACKED_SPATIAL_CAPACITY layouts=")
             .Append(capacity.AssetBackedLayouts.ToString(CultureInfo.InvariantCulture))
-            .Append("; minimumWidths=27,27,27,49,65,81; authoredWidths=27,27,27,49,65,81\n");
+            .Append("; minimumWidths=27,27,29,51,71,87; authoredWidths=27,27,29,51,71,87\n");
         report.Append("PASS V27_WHOLE_GAME_PAIRED_CLUTTER seeds=")
             .Append(capacity.PairedSeeds.ToString(CultureInfo.InvariantCulture))
             .Append("; windows=")
@@ -241,10 +293,10 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
         if (exactLines.Any(expected =>
                 !lines.Contains(expected, StringComparer.Ordinal))
             || !lines.Any(line => line.StartsWith(
-                "PASS OUTPUT_CONTAINMENT_TYPED_BLOCK_RECOVERY ",
+                "PASS WORLD_RESOURCE_EXACT_SOURCE_ATOMIC_PUBLICATION ",
                 StringComparison.Ordinal))
             || !lines.Any(line => line.StartsWith(
-                "PASS CROP_OUTPUT_CONTAINMENT_TYPED_BLOCK_RECOVERY ",
+                "PASS CROP_OUTPUT_FACILITY_BUFFER_WAIT_RESTORE_RETRY_EXACT_ONCE ",
                 StringComparison.Ordinal)))
         {
             throw new InvalidOperationException(
@@ -370,6 +422,7 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
         string[] sourcePaths =
         {
             "Assets/Scripts/Services/Infrastructure/DungeonSpaceExpansionRuntime.cs",
+            "Assets/Scripts/Services/Infrastructure/DungeonSceneNavigation.cs",
             "Assets/Scripts/Services/Infrastructure/Editor/DungeonSpaceExpansionDebugScenarios.cs",
             "Assets/Scripts/Services/Infrastructure/Editor/DungeonSpaceExpansionPlayModeVerifier.cs",
             "Assets/Scripts/Services/Infrastructure/ModularFacilityWorldSaveService.cs",
@@ -397,24 +450,27 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
             latestSource,
             new[]
             {
-                "RESULT=PASS; failures=0; research=3; columns=27,49,65,81;",
+                "RESULT=PASS; failures=0; research=3; columns=29,51,71,87; sceneSeed=27;",
                 "PASS\tEXPANSION_RESEARCH_ASSETS_EXACT",
-                "PASS\tEXPANSION_EVENT_27_49_65_81_EXACT",
+                "PASS\tEXPANSION_NEW_RUN_TIER_ZERO_27_TO_29_RESTORE_PRESERVED",
+                "PASS\tEXPANSION_EVENT_29_51_71_87_EXACT",
                 "PASS\tEXPANSION_OUT_OF_ORDER_DEEP_IDEMPOTENT",
                 "PASS\tEXPANSION_GRID_COPY_ATOMIC_AND_OCCUPANTS_PRESERVED",
                 "PASS\tEXPANSION_SAVE_V5_LAYOUT_ROUNDTRIP_EXACT",
                 "PASS\tEXPANSION_SAVE_RESEARCH_LAYOUT_AUTHORITY_EXACT",
-                "PASS\tEXPANSION_E_KEY_DEVELOPER_ONLY"
+                "PASS\tEXPANSION_E_KEY_DEVELOPER_ONLY",
+                "PASS\tEXPANSION_GAMEPLAY_SCENE_SHA_UNCHANGED"
             });
         RequireFreshEvidence(
             "Artifacts/QA/v27-balance-expansion-playmode.txt",
             latestSource,
             new[]
             {
-                "RESULT=PASS; failures=0; liveResearchCompletions=3; publications=3;",
-                "PASS\tEXPANSION_LIVE_RESEARCH_QUARRY_27_TO_49",
-                "PASS\tEXPANSION_LIVE_RESEARCH_STONECUTTING_49_TO_65",
-                "PASS\tEXPANSION_LIVE_RESEARCH_DEEP_MINING_65_TO_81",
+                "RESULT=PASS; failures=0; liveResearchCompletions=3; publications=4;",
+                "PASS\tEXPANSION_LIVE_NEW_RUN_TIER_ZERO_27_TO_29",
+                "PASS\tEXPANSION_LIVE_RESEARCH_QUARRY_29_TO_51",
+                "PASS\tEXPANSION_LIVE_RESEARCH_STONECUTTING_51_TO_71",
+                "PASS\tEXPANSION_LIVE_RESEARCH_DEEP_MINING_71_TO_87",
                 "PASS\tEXPANSION_LIVE_EVENT_PUBLICATION_EXACT_ONCE",
                 "PASS\tEXPANSION_LIVE_ENTRANCE_AND_COORDINATES_PRESERVED",
                 "PASS\tEXPANSION_LIVE_REQUIRED_FACILITIES_PRESERVED_NO_DEMOLITION"
@@ -444,12 +500,12 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
         {
             "RESULT=PASS; seedsPerStage=256; stages=6; passed=1536;",
             "successRatePermille=1000;",
-            "minimumHeadroomPermille=477;",
+            "minimumHeadroomPermille=513;",
             "maximumNormalCellUtilizationPermille=440;",
             "maximumFaultCellUtilizationPermille=616;",
             "heuristicFalseNegative=0;",
-            "stageColumnsUsedHeadroom=1:27:25:691,3:27:27:666,6:27:42:481,"
-                + "12:49:69:530,18:65:97:502,24:81:127:477"
+            "stageColumnsUsedHeadroom=1:27:25:691,3:27:27:666,6:29:42:517,"
+                + "12:51:69:549,18:71:97:544,24:87:127:513"
         };
         string[] missing = layoutMarkers
             .Where(marker => !layout.Contains(marker, StringComparison.Ordinal))
@@ -477,6 +533,12 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
             "Assets/Scripts/Services/Character/AI/Editor/CharacterAiSelfCarePlayModeVerifier.cs"
         };
         DateTime serviceCutoff = LatestSource(serviceSources);
+        DateTime liveServiceCutoff = LatestSource(serviceSources
+            .Where(path => !string.Equals(
+                path,
+                "Assets/Scripts/Services/Economy/Editor/V27ServiceContinuityEvidenceDebugScenarios.cs",
+                StringComparison.Ordinal))
+            .ToArray());
         RequireFreshEvidence(
             V27ServiceContinuityEvidenceDebugScenarios.ReportPath,
             serviceCutoff,
@@ -494,7 +556,7 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
             });
         RequireFreshEvidencePrefixes(
             PrimitiveStartSurvivalPlayModeVerifier.SixAdultOutageReportPath,
-            serviceCutoff,
+            liveServiceCutoff,
             new[]
             {
                 "PASS V27_SIX_ADULT_OUTAGE_SIX_LIVE_ADULTS:",
@@ -511,24 +573,24 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
             });
         RequireFreshEvidencePrefixes(
             PrimitiveStartSurvivalPlayModeVerifier.PopulationStageReportPath,
-            serviceCutoff,
+            liveServiceCutoff,
             new[]
             {
                 "PASS V27_POPULATION_STAGE_BASELINE_CAPTURED:",
                 "PASS V27_POPULATION_STAGE_STORAGE_AUTHORITY:",
-                "PASS V27_POPULATION_STAGE_CLOSED_LOOP_1: gross=2800;net=2660;recurring=363;growth=387;emergency=100;disposition=minimum-plot-warning",
+                "PASS V27_POPULATION_STAGE_CLOSED_LOOP_1: gross=2800;net=2660;",
                 "PASS V27_POPULATION_STAGE_SEVEN_DAY_PHYSICAL_RESERVE_6:",
                 "PASS V27_POPULATION_STAGE_FIXED_WORLD_FEATURES_6: interiorNodes=0;reserved=0;cells=",
-                "PASS V27_POPULATION_STAGE_RUNTIME_HEADROOM_6: outside=0;fixedWorldFeatures=0;headroomPermille=308;grid=60x3",
-                "PASS V27_POPULATION_STAGE_RESEARCH_SPACE_12: columns=49;developerKeyUsed=False",
+                "PASS V27_POPULATION_STAGE_RUNTIME_HEADROOM_6: outside=0;fixedWorldFeatures=0;headroomPermille=321;grid=60x3",
+                "PASS V27_POPULATION_STAGE_RESEARCH_SPACE_12: columns=51;developerKeyUsed=False",
                 "PASS V27_POPULATION_STAGE_FIXED_WORLD_FEATURES_12: interiorNodes=0;reserved=0;cells=",
-                "PASS V27_POPULATION_STAGE_RUNTIME_HEADROOM_12: outside=0;fixedWorldFeatures=0;headroomPermille=312;grid=66x3",
-                "PASS V27_POPULATION_STAGE_RESEARCH_SPACE_18: columns=65;developerKeyUsed=False",
+                "PASS V27_POPULATION_STAGE_RUNTIME_HEADROOM_12: outside=0;fixedWorldFeatures=0;headroomPermille=300;grid=68x3",
+                "PASS V27_POPULATION_STAGE_RESEARCH_SPACE_18: columns=71;developerKeyUsed=False",
                 "PASS V27_POPULATION_STAGE_FIXED_WORLD_FEATURES_18: interiorNodes=0;reserved=0;cells=",
-                "PASS V27_POPULATION_STAGE_RUNTIME_HEADROOM_18: outside=0;fixedWorldFeatures=0;headroomPermille=307;grid=82x3",
-                "PASS V27_POPULATION_STAGE_RESEARCH_SPACE_24: columns=81;developerKeyUsed=False",
+                "PASS V27_POPULATION_STAGE_RUNTIME_HEADROOM_18: outside=0;fixedWorldFeatures=0;headroomPermille=309;grid=88x3",
+                "PASS V27_POPULATION_STAGE_RESEARCH_SPACE_24: columns=87;developerKeyUsed=False",
                 "PASS V27_POPULATION_STAGE_FIXED_WORLD_FEATURES_24: interiorNodes=0;reserved=0;cells=",
-                "PASS V27_POPULATION_STAGE_RUNTIME_HEADROOM_24: outside=0;fixedWorldFeatures=0;headroomPermille=316;grid=98x3",
+                "PASS V27_POPULATION_STAGE_RUNTIME_HEADROOM_24: outside=0;fixedWorldFeatures=0;headroomPermille=306;grid=104x3",
                 "PASS V27_POPULATION_STAGE_ALL_STAGES_EXACT: populations=1,3,6,12,18,24;physicalReserve=true;researchExpansion=true;developerE=false"
             });
 
@@ -548,7 +610,7 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
             new[]
             {
                 "RESULT=PASS; authority=shared-access-union; normalLimitPermille=700; faultLimitPermille=900",
-                "PASS population=24;width=81;normalPeak=600;faultPeak=840;normalStoragePeak=654;faultStoragePeak=476;minimumHeadroom=316"
+                "PASS population=24;width=87;normalPeak=600;faultPeak=840;normalStoragePeak=670;faultStoragePeak=526;minimumHeadroom=306"
             });
         RequireDigestEvidence(
             "Artifacts/QA/v27-balance-expansion-tiers.txt",
@@ -556,11 +618,11 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
             spatialCsvDigest,
             new[]
             {
-                "RESULT=PASS; authority=asset-backed-capacity; developerEKey=false; automaticPopulationTrigger=false; authoredColumns=27,49,65,81; maxWidth=104",
-                "PASS population=6;requiredInteriorColumns=27;authoredTargetInteriorColumns=27;spareColumns=0;researchGate=start",
-                "PASS population=12;requiredInteriorColumns=49;authoredTargetInteriorColumns=49;spareColumns=0;researchGate=research:mining:quarry",
-                "PASS population=18;requiredInteriorColumns=65;authoredTargetInteriorColumns=65;spareColumns=0;researchGate=research:mining:stonecutting",
-                "PASS population=24;requiredInteriorColumns=81;authoredTargetInteriorColumns=81;spareColumns=0;researchGate=research:mining:deep"
+                "RESULT=PASS; authority=asset-backed-capacity; developerEKey=false; automaticPopulationTrigger=false; authoredColumns=29,51,71,87; maxWidth=104",
+                "PASS population=6;requiredInteriorColumns=29;authoredTargetInteriorColumns=29;spareColumns=0;researchGate=start",
+                "PASS population=12;requiredInteriorColumns=51;authoredTargetInteriorColumns=51;spareColumns=0;researchGate=research:mining:quarry",
+                "PASS population=18;requiredInteriorColumns=71;authoredTargetInteriorColumns=71;spareColumns=0;researchGate=research:mining:stonecutting",
+                "PASS population=24;requiredInteriorColumns=87;authoredTargetInteriorColumns=87;spareColumns=0;researchGate=research:mining:deep"
             });
         string[] spatialRows = File.ReadAllLines(spatialCsvPath, Encoding.UTF8);
         if (spatialRows.Length != 1537

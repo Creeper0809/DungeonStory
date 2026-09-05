@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.5kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "93"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "절연 배선 묶음으로 동력과 마나가 끊기지 않도록 장치 사이의 연결부를 잇는다. 크릭 제7굴에서는 절연 배선 묶음의 치수와 맞물림 상태를 조립 전에 검사한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "component-insulated-wiring",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 절연 배선 묶음.",
+  "title": "절연 배선 묶음"
+}

@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "wild-rot",
+    "spoiler_tier": "none",
+    "title": "부패물"
+  },
+  "edges": [],
+  "schema_version": 1
+}

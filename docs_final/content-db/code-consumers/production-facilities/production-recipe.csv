@@ -1,0 +1,56 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+ProductionRecipeSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/EmptyResourceEconomyContentCatalog.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionAssemblyBridge.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionBillRuntime.cs
+ProductionRecipeSO,content-type,,type-reference,models:economy,persistence,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionBillSnapshotProjector.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,persistence,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionBillStateCodec.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionDistributionRuntime.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionMassExplanationAuthoring.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionOutputCostAllocationAuthoring.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionOutputExecutionService.cs
+ProductionRecipeSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionOutputPlanningService.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionPreparedOutputExecutionPort.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionRecipeSemanticDigest.cs
+ProductionRecipeSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionRuinedBatchExecutionPort.cs
+ProductionRecipeSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ResourceEconomyModels.cs
+ProductionRecipeSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/V23CraftingContracts.cs
+ProductionRecipeSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/WasteProcessingPorts.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/WasteProcessingRuntime.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/WorldResourceRuntime.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,runtime,structural-type-consumer,Assets/Scripts/Models/Economy/Core/ProductionRuntimeContracts.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/CharacterMedicalSupplyDestinationRuntimeDebugScenarios.cs
+ProductionRecipeSO,content-type,,type-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/CharacterMedicalSupplyOutboxDebugScenarios.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/Planning/ResourceStockPolicyRuntime.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionAssemblyBridgeAdapter.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionAuthoredThroughputEnvelopeAuthority.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionAuthoredThroughputFacilityScopeAuthority.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionConsumerDemandAdapters.cs
+ProductionRecipeSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionCycleUtilityService.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionFacilityOutputCensus.cs
+ProductionRecipeSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionInputLogisticsService.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:economy,content-loading,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionMaximumOutputFactorCatalog.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionOutputBufferCapacityProjector.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionOutputClearanceExecutableDescriptorRegistry.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionOutputClearanceMeasurementScopeAuthority.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionPassiveBatchOutputPortfolioAuthority.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionPreparedOutputExecutionAdapter.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionRecipeThroughputBranchAuthority.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionRecipeWorkRateMaximumAuthority.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionSpecialThroughputContributorRegistry.cs
+ProductionRecipeSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionWorkshopAbilities.cs
+ProductionRecipeSO,content-type,,type-reference,services:economy,content-loading,structural-type-consumer,Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs
+ProductionRecipeSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/V23BalanceWorkCalculator.cs
+ProductionRecipeSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/V23EmbeddedWorkValueCalculator.cs
+ProductionRecipeSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/V27BalanceWorkCalculator.cs
+ProductionRecipeSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/V27EmbeddedWorkValueCalculator.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/Waste/WasteProcessingPortAdapters.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/WorldResourceOutputMaximumEnvelopeAuthority.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearProductionOutputHandler.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:infrastructure,persistence,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearProductionOutputRestoreCapabilityValidator.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:infrastructure,persistence,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearProductionOutputRestoreCapabilityValidatorDebugScenarios.cs
+ProductionRecipeSO,content-type,,type-reference,services:infrastructure,content-loading,structural-type-consumer,Assets/Scripts/Services/Infrastructure/ResearchRewardCatalogAdapter.cs
+ProductionRecipeSO,content-type,,type-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/Buildings/UI/ProductionBuildingPanelPresenter.cs
+ProductionRecipeSO,content-type,,type-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/UI/Core/ProductionRoutePanelPresenter.cs
+ProductionRecipeSO,stable-id,source:grass,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/WorldResourceOutputContracts.cs
+ProductionRecipeSO,stable-id,source:logging,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/WorldResourceOutputContracts.cs
+ProductionRecipeSO,stable-id,source:saltstone,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/WorldResourceOutputContracts.cs

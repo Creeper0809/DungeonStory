@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-stuffed-mushroom",
+    "spoiler_tier": "none",
+    "title": "속 채운 버섯"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-stuffed-mushroom",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-seasoned-filling",
+      "target_spoiler_tier": "none",
+      "target_title": "양념 속재료",
+      "to": "item/material-seasoned-filling",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-stuffed-mushroom",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "food-stuffed-mushroom",
+      "target_spoiler_tier": "none",
+      "target_title": "속 채운 버섯",
+      "to": "item/food-stuffed-mushroom",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-stuffed-mushroom",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-cave-mushroom",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴버섯",
+      "to": "item/resource-cave-mushroom",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-stuffed-mushroom",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-kitchen-hygiene",
+      "target_spoiler_tier": "none",
+      "target_title": "주방 위생",
+      "to": "research/research-cuisine-kitchen-hygiene",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

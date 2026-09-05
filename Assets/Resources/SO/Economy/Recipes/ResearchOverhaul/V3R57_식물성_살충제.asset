@@ -54,13 +54,21 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=ExtractionResidue|reason=botanical-pesticide-steeping-and-filter-residue|physicalByproduct=false
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: material:rot-toxin
     amount: 1
   - itemId: material:alcohol
     amount: 1
   - itemId: resource:clean-water
-    amount: 2
+    amount: 4
   outputs:
   - outputLineId: output:recipe:supply:botanical-pesticide/000/main/supply:botanical-pesticide
     role: 0

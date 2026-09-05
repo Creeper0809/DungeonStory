@@ -16,6 +16,8 @@ public static class PreparedOutputHaulPlannerGateDebugScenarios
     public static void RunAll()
     {
         VerifyOrdinaryHaulIsIndependent();
+        VerifyAcknowledgedPublicationProvenanceIsHaulable();
+        VerifyAcknowledgedProvenanceAggregationIsolated();
         VerifyWarehouseSelectionPendingIsExcluded();
         VerifyUnconfirmedRevisionIsExcluded();
         VerifyExactTargetRequiresMatchingOverlay();
@@ -24,6 +26,146 @@ public static class PreparedOutputHaulPlannerGateDebugScenarios
         VerifyPickupBoundaryRejectsInjectedInvalidation();
         VerifyCrossRouteOpportunisticAggregationIsExcluded();
         Debug.Log("Prepared-output haul planner gates PASS.");
+    }
+
+    private static void VerifyAcknowledgedPublicationProvenanceIsHaulable()
+    {
+        ItemInstanceComponentSaveData pending =
+            PlannedOutputPublicationComponentCodec.CreatePublication(
+                "batch:qa:acknowledged-provenance",
+                "outcome:qa:acknowledged-provenance",
+                "planned:qa:acknowledged-provenance",
+                "output:qa:acknowledged-provenance",
+                stackOrdinal: 0,
+                batchStackCount: 1,
+                batchQuantity: 1,
+                batchMassGrams: 1800L,
+                lineStackCount: 1,
+                lineQuantity: 1,
+                lineMassGrams: 1800L,
+                itemId: "surgery:prosthetic:arm:left",
+                quantity: 1,
+                massGrams: 1800L,
+                componentSignature: "",
+                preparedComponentFingerprint: "prepared:qa");
+        Require(PlannedOutputPublicationComponentCodec.TryRead(
+                new[] { pending },
+                out PlannedOutputPublicationMetadata metadata),
+            "Valid planned-output publication marker did not parse.");
+        ItemInstanceComponentSaveData provenance =
+            PlannedOutputPublicationComponentCodec.CreateProvenance(metadata);
+
+        Require(FacilityOutputExactRouteCustodyCodec.IsRouteBlocked(
+                new[] { pending }),
+            "Unacknowledged planned-output publication became haulable.");
+        Require(!FacilityOutputExactRouteCustodyCodec.IsRouteBlocked(
+                new[] { provenance }),
+            "Acknowledged planned-output provenance remained a haul lock.");
+
+        provenance.schemaVersion++;
+        Require(FacilityOutputExactRouteCustodyCodec.IsRouteBlocked(
+                new[] { provenance }),
+            "Malformed acknowledged provenance became haulable.");
+    }
+
+    private static void VerifyAcknowledgedProvenanceAggregationIsolated()
+    {
+        WorldItemRepository repository = new(
+            new GuidPersistentIdGenerator(),
+            new DungeonRuntimeAggregateRootStore());
+        ProvenanceAggregationCatalogProvider catalog = new();
+        ItemQuantityReservationService reservations = new(
+            repository,
+            EditorNullItemMarkerPresenter.Instance,
+            new UnityGameClock());
+        BufferStackAggregationService aggregation = new(
+            catalog,
+            repository,
+            EditorNullItemMarkerPresenter.Instance,
+            reservations,
+            reservations);
+        const string destination = "facility:test-provenance-buffer";
+        const string cohort = "production:test:provenance";
+        CharacterCarriedItemSaveData ordinary = new()
+        {
+            carriedStackId = "item-stack:ordinary",
+            sourceStackId = "item-stack:ordinary-source",
+            ownerOperationId = "production:test:ordinary",
+            itemId = "item:buffer",
+            quantity = 5,
+            components = new List<ItemInstanceComponentSaveData>()
+        };
+        Require(aggregation.TryDepositAndAggregate(
+                ordinary,
+                ItemReservationPurpose.ProductionInput,
+                cohort,
+                destination,
+                new Vector2Int(8, 4),
+                out BufferAggregationReceipt ordinaryReceipt,
+                out DomainFailure ordinaryFailure),
+            $"ordinary provenance-isolation seed failed: {ordinaryFailure}");
+
+        ItemInstanceComponentSaveData pending =
+            PlannedOutputPublicationComponentCodec.CreatePublication(
+                "batch:test:provenance",
+                "outcome:test:provenance",
+                "plan:test:provenance",
+                "line:test:provenance",
+                0,
+                1,
+                1,
+                100L,
+                1,
+                1,
+                100L,
+                "item:buffer",
+                1,
+                100L,
+                string.Empty,
+                string.Empty);
+        Require(PlannedOutputPublicationComponentCodec.TryRead(
+                new[] { pending },
+                out PlannedOutputPublicationMetadata metadata),
+            "planned-output publication fixture did not decode");
+        CharacterCarriedItemSaveData provenance = new()
+        {
+            carriedStackId = "item-stack:provenance",
+            sourceStackId = "item-stack:provenance-source",
+            ownerOperationId = "production:test:provenance",
+            itemId = "item:buffer",
+            quantity = 1,
+            components = new List<ItemInstanceComponentSaveData>
+            {
+                PlannedOutputPublicationComponentCodec.CreateProvenance(metadata)
+            }
+        };
+        Require(aggregation.TryDepositAndAggregate(
+                provenance,
+                ItemReservationPurpose.ProductionInput,
+                cohort,
+                destination,
+                new Vector2Int(8, 4),
+                out BufferAggregationReceipt provenanceReceipt,
+                out DomainFailure provenanceFailure),
+            $"provenance-preserving deposit failed: {provenanceFailure}");
+
+        WorldItemStackRecord[] stored = repository.Records
+            .Where(value => value != null
+                && value.state == WorldItemStackState.FacilityBuffer
+                && string.Equals(value.destinationId, destination,
+                    StringComparison.Ordinal))
+            .OrderBy(value => value.stackId, StringComparer.Ordinal)
+            .ToArray();
+        Require(stored.Length == 2
+            && stored.Sum(value => value.quantity) == 6
+            && !string.Equals(
+                ordinaryReceipt.CanonicalStackId,
+                provenanceReceipt.CanonicalStackId,
+                StringComparison.Ordinal)
+            && stored.Count(value =>
+                (value.components ?? new List<ItemInstanceComponentSaveData>())
+                .Any(PlannedOutputPublicationComponentCodec.IsAnyMarker)) == 1,
+            "Acknowledged planned-output provenance was merged into an ordinary buffer stack.");
     }
 
     private static void VerifyOrdinaryHaulIsIndependent()
@@ -157,16 +299,27 @@ public static class PreparedOutputHaulPlannerGateDebugScenarios
                 destinationAdmission: null)
             && missing.Code == FacilityOutputExactRouteFailureCode.ReceiptMismatch,
             "Concrete warehouse custody was accepted without live authority.");
-        Require(!WorldItemHaulPlanningService.IsExactRouteDeliveryCandidate(
+        Require(WorldItemHaulPlanningService.IsExactRouteDeliveryCandidate(
                 valid.Stack,
                 query,
-                out FacilityOutputExactRouteFailure stale,
+                out FacilityOutputExactRouteFailure advancedRevision,
                 FixedAdmissionAuthority.Matching(
                     TargetId,
                     TargetPosition,
                     Sha('9')))
-            && stale.Code == FacilityOutputExactRouteFailureCode.ReceiptMismatch,
-            "Stale warehouse authority fingerprint was accepted.");
+            && !advancedRevision.IsFailure,
+            "A live warehouse whose admission revision advanced was rejected. "
+                + advancedRevision);
+        Require(!WorldItemHaulPlanningService.IsExactRouteDeliveryCandidate(
+                valid.Stack,
+                query,
+                out FacilityOutputExactRouteFailure malformed,
+                FixedAdmissionAuthority.Matching(
+                    TargetId,
+                    TargetPosition,
+                    " "))
+            && malformed.Code == FacilityOutputExactRouteFailureCode.ReceiptMismatch,
+            "A non-canonical live warehouse authority was accepted.");
         Require(!WorldItemHaulPlanningService.IsExactRouteDeliveryCandidate(
                 valid.Stack,
                 query,
@@ -677,6 +830,42 @@ public static class PreparedOutputHaulPlannerGateDebugScenarios
 
         internal WorldItemStackRecord Stack { get; }
         internal FacilityOutputExactRoutePendingSnapshot Snapshot { get; }
+    }
+
+    private sealed class ProvenanceAggregationCatalogProvider :
+        IDungeonItemCatalogProvider
+    {
+        private readonly DungeonItemDefinition definition = new(
+            "item:buffer",
+            "Buffer Item",
+            "Prepared-output provenance aggregation fixture",
+            StockCategory.General,
+            5,
+            null,
+            1f,
+            75);
+
+        public IReadOnlyList<DungeonItemDefinition> All =>
+            new[] { definition };
+
+        public DungeonItemDefinition GetDefinition(string itemId) =>
+            TryGetDefinition(itemId, out DungeonItemDefinition resolved)
+                ? resolved
+                : throw new KeyNotFoundException(
+                    $"Unknown provenance aggregation item '{itemId}'.");
+
+        public bool TryGetDefinition(
+            string itemId,
+            out DungeonItemDefinition resolved)
+        {
+            resolved = string.Equals(
+                itemId,
+                definition.ItemId,
+                StringComparison.Ordinal)
+                ? definition
+                : null;
+            return resolved != null;
+        }
     }
 
     private sealed class FixedQuery : IFacilityOutputExactRouteOutboxQuery

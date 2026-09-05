@@ -606,7 +606,10 @@ public static class OffenseRewardDebugScenarios
     {
         public TestWarehouse(int capacity)
         {
-            Inventory = new WarehouseInventory(capacity);
+            Inventory = new WarehouseInventory(
+                checked((long)capacity * 1000L),
+                StockCategory.General,
+                restrictCategory: false);
             Inventory.BindPhysicalStock(
                 EmptyStockQuery.Instance,
                 PersistentInstanceId,

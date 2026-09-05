@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-bowstring-sinew",
+    "spoiler_tier": "none",
+    "title": "뿔 보강 활시위"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bowstring-sinew",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-bowstring",
+      "target_spoiler_tier": "none",
+      "target_title": "활시위",
+      "to": "item/material-bowstring",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bowstring-sinew",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-hide",
+      "target_spoiler_tier": "none",
+      "target_title": "생가죽",
+      "to": "item/resource-hide",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bowstring-sinew",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-horn",
+      "target_spoiler_tier": "none",
+      "target_title": "뿔",
+      "to": "item/resource-horn",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-bowstring-sinew",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-selective",
+      "target_spoiler_tier": "none",
+      "target_title": "선별 사육",
+      "to": "research/research-husbandry-selective",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

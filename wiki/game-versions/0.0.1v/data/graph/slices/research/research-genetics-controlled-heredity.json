@@ -1,0 +1,109 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-genetics-controlled-heredity",
+    "spoiler_tier": "none",
+    "title": "통제 유전"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-genetics-controlled-heredity",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-genetics-hereditary-records",
+      "target_spoiler_tier": "none",
+      "target_title": "유전 기록과 형질 분석",
+      "to": "research/research-genetics-hereditary-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-controlled-heredity",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-genetics-hereditary-records",
+      "target_spoiler_tier": "none",
+      "target_title": "유전 기록과 형질 분석",
+      "to": "research/research-genetics-hereditary-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-controlled-heredity",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-genetics-hereditary-records",
+      "target_spoiler_tier": "none",
+      "target_title": "유전 기록과 형질 분석",
+      "to": "research/research-genetics-hereditary-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-controlled-heredity",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-reproductive-medicine",
+      "target_spoiler_tier": "none",
+      "target_title": "생식 의학",
+      "to": "research/research-medical-reproductive-medicine",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-controlled-heredity",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-reproductive-medicine",
+      "target_spoiler_tier": "none",
+      "target_title": "생식 의학",
+      "to": "research/research-medical-reproductive-medicine",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-controlled-heredity",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-reproductive-medicine",
+      "target_spoiler_tier": "none",
+      "target_title": "생식 의학",
+      "to": "research/research-medical-reproductive-medicine",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-controlled-heredity",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8880",
+      "target_spoiler_tier": "none",
+      "target_title": "유전 상담실",
+      "to": "facility/building-8880",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-cross-lineage-stabilization",
+      "label": "선행 연구",
+      "to": "research/research-genetics-controlled-heredity",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-cross-lineage-stabilization",
+      "label": "선행 연구",
+      "to": "research/research-genetics-controlled-heredity",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-cross-lineage-stabilization",
+      "label": "선행 연구",
+      "to": "research/research-genetics-controlled-heredity",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

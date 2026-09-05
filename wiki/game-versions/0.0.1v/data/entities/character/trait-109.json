@@ -1,0 +1,29 @@
+{
+  "facts": [
+    {
+      "label": "희귀도",
+      "value": "희귀"
+    },
+    {
+      "label": "성향",
+      "value": "이점"
+    },
+    {
+      "label": "효과",
+      "value": "3개"
+    },
+    {
+      "label": "정체성 규칙",
+      "value": "2개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "trait-109",
+  "spoiler_tier": "none",
+  "summary": "슬라임의 최저 쾌적선 -4°C, 최저 안전선 -2°C, 냉기 노출 ×0.6. 치명 온도는 바꾸지 않는다.",
+  "title": "내한성 점액"
+}

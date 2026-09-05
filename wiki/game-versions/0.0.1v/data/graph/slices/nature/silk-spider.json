@@ -1,0 +1,73 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "silk-spider",
+    "spoiler_tier": "none",
+    "title": "동굴명주거미"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "nature/silk-spider",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "fiber-cave-silk",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴 비단 원섬유",
+      "to": "item/fiber-cave-silk",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/silk-spider",
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-dream-mold",
+      "target_spoiler_tier": "none",
+      "target_title": "꿈곰팡이증",
+      "to": "medical/disease-dream-mold",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/silk-spider",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-hound",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴사냥개",
+      "to": "nature/cave-hound",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/silk-spider",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-rat",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴쥐",
+      "to": "nature/cave-rat",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/silk-spider",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "glow-moth",
+      "target_spoiler_tier": "none",
+      "target_title": "발광나방",
+      "to": "nature/glow-moth",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/glow-moth",
+      "label": "관련",
+      "to": "nature/silk-spider",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

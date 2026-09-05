@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "숙련 보너스",
+      "value": "2개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "origin-temple-hospice",
+  "spoiler_tier": "none",
+  "summary": "신전 구호소에서 살아온 경험이 기초 숙련으로 남았다.",
+  "title": "신전 구호소"
+}

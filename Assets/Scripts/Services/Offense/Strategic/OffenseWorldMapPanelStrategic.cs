@@ -13,15 +13,19 @@ public partial class OffenseWorldMapPanel
     {
         public StrategicPresentationServices(
             ITmpKoreanFontService font,
-            IDomainFailureLocalizer failures)
+            IDomainFailureLocalizer failures,
+            IInGameNarrativeTextQuery narrativeText)
         {
             Font = font ?? throw new ArgumentNullException(nameof(font));
             Failures = failures
                 ?? throw new ArgumentNullException(nameof(failures));
+            NarrativeText = narrativeText
+                ?? throw new ArgumentNullException(nameof(narrativeText));
         }
 
         public ITmpKoreanFontService Font { get; }
         public IDomainFailureLocalizer Failures { get; }
+        public IInGameNarrativeTextQuery NarrativeText { get; }
     }
 
     private enum StrategicSurfaceKind
@@ -57,6 +61,7 @@ public partial class OffenseWorldMapPanel
     private OffenseExpeditionRuntime strategicExpedition;
     private ITmpKoreanFontService strategicFont;
     private IDomainFailureLocalizer strategicFailureLocalizer;
+    private IInGameNarrativeTextQuery strategicNarrativeText;
     private IExternalInfluenceRuntime strategicExternalInfluence;
     private IFactionRuntime strategicFactions;
     private IInvasionCampaignRuntime strategicCampaign;
@@ -128,6 +133,7 @@ public partial class OffenseWorldMapPanel
             ?? throw new ArgumentNullException(nameof(presentation));
         strategicFont = presentation.Font;
         strategicFailureLocalizer = presentation.Failures;
+        strategicNarrativeText = presentation.NarrativeText;
         strategicExternalInfluence = externalInfluence
             ?? throw new ArgumentNullException(nameof(externalInfluence));
         strategicFactions = factions

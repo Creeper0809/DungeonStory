@@ -1,0 +1,193 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-equipment-rune-module-tuning",
+    "spoiler_tier": "none",
+    "title": "룬 부품 조율"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-equipment-rune-module-tuning",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-precision-fitting",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품 장착",
+      "to": "research/research-equipment-precision-fitting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-rune-module-tuning",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-precision-fitting",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품 장착",
+      "to": "research/research-equipment-precision-fitting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-rune-module-tuning",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-precision-fitting",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품 장착",
+      "to": "research/research-equipment-precision-fitting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-rune-module-tuning",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-mana-power",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 동력과 룬 전력망",
+      "to": "research/research-industry-mana-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-rune-module-tuning",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-mana-power",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 동력과 룬 전력망",
+      "to": "research/research-industry-mana-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-rune-module-tuning",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-mana-power",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 동력과 룬 전력망",
+      "to": "research/research-industry-mana-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-rune-module-tuning",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9826",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 조율실",
+      "to": "facility/building-9826",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-armor-rune-ward-mail",
+      "label": "필요 조건",
+      "to": "research/research-equipment-rune-module-tuning",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-shield-mana-buckler",
+      "label": "필요 조건",
+      "to": "research/research-equipment-rune-module-tuning",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-shield-rune",
+      "label": "필요 조건",
+      "to": "research/research-equipment-rune-module-tuning",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-mana-lance",
+      "label": "필요 조건",
+      "to": "research/research-equipment-rune-module-tuning",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-rune-blade",
+      "label": "필요 조건",
+      "to": "research/research-equipment-rune-module-tuning",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-rune-bow",
+      "label": "필요 조건",
+      "to": "research/research-equipment-rune-module-tuning",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-ammo-rune-cartridge",
+      "label": "필요 조건",
+      "to": "research/research-equipment-rune-module-tuning",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-rune-leather-strap",
+      "label": "필요 조건",
+      "to": "research/research-equipment-rune-module-tuning",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-rune-tuning-shield",
+      "label": "필요 조건",
+      "to": "research/research-equipment-rune-module-tuning",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-lineage-binding",
+      "label": "선행 연구",
+      "to": "research/research-equipment-rune-module-tuning",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-lineage-binding",
+      "label": "선행 연구",
+      "to": "research/research-equipment-rune-module-tuning",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-lineage-binding",
+      "label": "선행 연구",
+      "to": "research/research-equipment-rune-module-tuning",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-temporal-stasis",
+      "label": "선행 연구",
+      "to": "research/research-equipment-rune-module-tuning",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-temporal-stasis",
+      "label": "선행 연구",
+      "to": "research/research-equipment-rune-module-tuning",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-temporal-stasis",
+      "label": "선행 연구",
+      "to": "research/research-equipment-rune-module-tuning",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

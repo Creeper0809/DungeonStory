@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "encounter-35",
+    "spoiler_tier": "warning",
+    "title": "유랑 태엽구성체"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/encounter-35",
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "battlefield-spore-bloom",
+      "target_spoiler_tier": "none",
+      "target_title": "포자 개화",
+      "to": "world/battlefield-spore-bloom",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-35",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "offense-unappraised-loot",
+      "target_spoiler_tier": "none",
+      "target_title": "미감정 전리품",
+      "to": "item/offense-unappraised-loot",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

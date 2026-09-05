@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "reproduction-slime",
+    "spoiler_tier": "none",
+    "title": "Reproduction_Slime"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/characterspecies-1",
+      "label": "관련",
+      "to": "character/reproduction-slime",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

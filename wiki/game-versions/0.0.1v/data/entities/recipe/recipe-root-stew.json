@@ -1,0 +1,53 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "28"
+    },
+    {
+      "label": "필요 연구",
+      "value": "농산 조리"
+    },
+    {
+      "label": "사이클당 깨끗한 물",
+      "value": "1.3"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "food-root-stew",
+      "target_spoiler_tier": "none",
+      "target_title": "잿불뿌리 스튜",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-crops",
+      "target_spoiler_tier": "none",
+      "target_title": "농산 조리",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-ember-root",
+      "target_spoiler_tier": "none",
+      "target_title": "잿불뿌리",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-root-stew",
+  "spoiler_tier": "none",
+  "summary": "잿불뿌리 스튜 생산 주문",
+  "title": "잿불뿌리 스튜"
+}

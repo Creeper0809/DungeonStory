@@ -1,0 +1,88 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "tool-weather-observation-kit",
+    "spoiler_tier": "none",
+    "title": "기상 관측 도구함"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-weather-observation-kit",
+      "label": "생산·해금",
+      "to": "item/tool-weather-observation-kit",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "3",
+      "from": "event/faction-chapter-harpy-3",
+      "label": "필요 조건",
+      "to": "item/tool-weather-observation-kit",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "event/faction-chapter-myconid-3",
+      "label": "필요 조건",
+      "to": "item/tool-weather-observation-kit",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "from": "event/faction-chapter-harpy-6",
+      "label": "필요 조건",
+      "to": "item/tool-weather-observation-kit",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "from": "event/faction-chapter-myconid-6",
+      "label": "필요 조건",
+      "to": "item/tool-weather-observation-kit",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "event/faction-chapter-harpy-3",
+      "label": "필요 조건",
+      "to": "item/tool-weather-observation-kit",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "event/faction-chapter-myconid-3",
+      "label": "필요 조건",
+      "to": "item/tool-weather-observation-kit",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "event/faction-contract-harpy-strategic",
+      "label": "필요 조건",
+      "to": "item/tool-weather-observation-kit",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "event/faction-contract-myconid-strategic",
+      "label": "필요 조건",
+      "to": "item/tool-weather-observation-kit",
+      "type": "requires"
+    },
+    {
+      "amount": "9",
+      "from": "event/faction-chapter-harpy-6",
+      "label": "필요 조건",
+      "to": "item/tool-weather-observation-kit",
+      "type": "requires"
+    },
+    {
+      "amount": "9",
+      "from": "event/faction-chapter-myconid-6",
+      "label": "필요 조건",
+      "to": "item/tool-weather-observation-kit",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

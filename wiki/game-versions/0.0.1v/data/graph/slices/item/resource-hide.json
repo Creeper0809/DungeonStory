@@ -1,0 +1,53 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-hide",
+    "spoiler_tier": "none",
+    "title": "생가죽"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bedding-animal",
+      "label": "필요 조건",
+      "to": "item/resource-hide",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bowstring-sinew",
+      "label": "필요 조건",
+      "to": "item/resource-hide",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "nature/moss-boar",
+      "label": "관련",
+      "to": "item/resource-hide",
+      "type": "references"
+    },
+    {
+      "amount": "2",
+      "from": "nature/shadow-wolf",
+      "label": "관련",
+      "to": "item/resource-hide",
+      "type": "references"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-leather",
+      "label": "필요 조건",
+      "to": "item/resource-hide",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/source-animal-hide",
+      "label": "생산·해금",
+      "to": "item/resource-hide",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

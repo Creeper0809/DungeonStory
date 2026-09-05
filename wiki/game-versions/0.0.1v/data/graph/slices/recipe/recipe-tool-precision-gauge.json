@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-tool-precision-gauge",
+    "spoiler_tier": "none",
+    "title": "정밀 게이지"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-precision-gauge",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "tool-precision-gauge",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 게이지",
+      "to": "item/tool-precision-gauge",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-precision-gauge",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-engineering-drawing",
+      "target_spoiler_tier": "none",
+      "target_title": "공학 도면",
+      "to": "item/component-engineering-drawing",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-precision-gauge",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-precision-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품",
+      "to": "item/component-precision-parts",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-tool-precision-gauge",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-industrial-metrology",
+      "target_spoiler_tier": "none",
+      "target_title": "산업 계측학",
+      "to": "research/research-equipment-industrial-metrology",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

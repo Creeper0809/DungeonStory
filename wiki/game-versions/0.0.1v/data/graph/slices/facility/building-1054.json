@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1054",
+    "spoiler_tier": "none",
+    "title": "식재료저장함"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-survival-support",
+      "label": "시설 해금",
+      "to": "facility/building-1054",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

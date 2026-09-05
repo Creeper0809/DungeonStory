@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-landmark-sealed-garden",
+    "spoiler_tier": "none",
+    "title": "봉인 생태정원"
+  },
+  "edges": [],
+  "schema_version": 1
+}

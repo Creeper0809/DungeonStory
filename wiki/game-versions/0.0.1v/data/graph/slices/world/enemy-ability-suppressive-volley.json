@@ -1,0 +1,60 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "enemy-ability-suppressive-volley",
+    "spoiler_tier": "none",
+    "title": "제압 사격"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/enemy-crown-longbow",
+      "label": "관련",
+      "to": "world/enemy-ability-suppressive-volley",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-inquisition-rune-sniper",
+      "label": "관련",
+      "to": "world/enemy-ability-suppressive-volley",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-legion-captain",
+      "label": "관련",
+      "to": "world/enemy-ability-suppressive-volley",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-merchant-crossbow",
+      "label": "관련",
+      "to": "world/enemy-ability-suppressive-volley",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-rival-stormcaller",
+      "label": "관련",
+      "to": "world/enemy-ability-suppressive-volley",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-settler-hunter",
+      "label": "관련",
+      "to": "world/enemy-ability-suppressive-volley",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-settler-ranger-chief",
+      "label": "관련",
+      "to": "world/enemy-ability-suppressive-volley",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

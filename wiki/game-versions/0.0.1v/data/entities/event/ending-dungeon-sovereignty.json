@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ending-dungeon-sovereignty",
+  "spoiler_tier": "warning",
+  "summary": "인구·경제·생산·방어 체계를 갖춘 독립 국가로서 던전을 선포한다.",
+  "title": "던전 주권국"
+}

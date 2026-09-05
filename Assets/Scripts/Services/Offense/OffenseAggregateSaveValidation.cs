@@ -653,12 +653,34 @@ public static class OffenseAggregateSaveValidation
                 $"mitigation order '{order.orderId}' definition ID");
             RequireId(order.destinationId,
                 $"mitigation order '{order.orderId}' destination ID");
+            Require(string.Equals(
+                    order.destinationId,
+                    OffenseUrgentMitigationInputOwnerAuthority
+                        .BuildDestinationId(order.orderId),
+                    StringComparison.Ordinal),
+                $"Mitigation order '{order.orderId}' has a non-canonical exact input destination.");
             Require(mitigationSiteIds.Add(order.siteId),
                 $"More than one mitigation order targets site '{order.siteId}'.");
             Require(order.requiredWork > 0f
                     && order.completedWork >= 0f
                     && order.completedWork <= order.requiredWork,
                 $"Mitigation order '{order.orderId}' has invalid work progress.");
+            bool hasFacility = !string.IsNullOrEmpty(
+                order.facilityPersistentId);
+            bool hasProjection = order.inputBufferCapacityGrams > 0L
+                && order.inputMassAuthorityRevision > 0L
+                && !string.IsNullOrEmpty(order.inputCapacityFingerprint)
+                && order.inputCapacityFingerprint.Length == 64;
+            Require(hasFacility == hasProjection,
+                $"Mitigation order '{order.orderId}' has a torn facility/input-capacity owner join.");
+            if (!hasFacility)
+            {
+                Require(order.status
+                        == OffenseUrgentMitigationOrderStatus.WaitingForFacility
+                        && OffenseUrgentMitigationInputOwnerAuthority
+                            .StoredProjectionIsEmpty(order),
+                    $"Mitigation order '{order.orderId}' has invalid unbound input ownership.");
+            }
             ValidateMitigationPhysicalState(order);
         }
 

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "14.5kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "1443"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "전신 재생 배지는 심한 조직 손상과 장기 회복을 지원하는 고급 의료 재료다. 므네실라의 전신 재생 배지 병에는 사람의 종족보다 몸이 보인 반응을 먼저 표시하는 색점이 찍혀 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "medical-whole-body-regeneration-medium",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 전신 재생 배지.",
+  "title": "전신 재생 배지"
+}

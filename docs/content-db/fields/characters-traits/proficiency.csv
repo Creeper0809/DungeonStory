@@ -1,0 +1,64 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+ProficiencyDefinitionSO|proficiency:construction-engineering,proficiency:construction-engineering,m_Name,proficiency_construction-engineering,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:construction-engineering,proficiency:construction-engineering,stableId,proficiency:construction-engineering,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:construction-engineering,proficiency:construction-engineering,displayName,건설·공학,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:construction-engineering,proficiency:construction-engineering,description,"건설, 수리, 배관, 해체, 기반 시설과 대형 건설의 숙련이다.",,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:construction-engineering,proficiency:construction-engineering,authoringRevision,1,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:construction-engineering,proficiency:construction-engineering,sourceNote,V25 9종 숙련 체계 권위,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:construction-engineering,proficiency:construction-engineering,displayOrder,1,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:crafting,proficiency:crafting,m_Name,proficiency_crafting,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:crafting,proficiency:crafting,stableId,proficiency:crafting,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:crafting,proficiency:crafting,displayName,제작,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:crafting,proficiency:crafting,description,"일반 제작, 의복, 무기·방어구, 목공·단조, 수선과 개조의 숙련이다.",,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:crafting,proficiency:crafting,authoringRevision,1,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:crafting,proficiency:crafting,sourceNote,V25 9종 숙련 체계 권위,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:crafting,proficiency:crafting,displayOrder,2,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:fieldwork,proficiency:fieldwork,m_Name,proficiency_fieldwork,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:fieldwork,proficiency:fieldwork,stableId,proficiency:fieldwork,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:fieldwork,proficiency:fieldwork,displayName,현장 작업,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:fieldwork,proficiency:fieldwork,description,"운반, 보급, 채집, 벌목, 채광·채석, 급수와 연료 보급의 숙련이다.",,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:fieldwork,proficiency:fieldwork,authoringRevision,1,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:fieldwork,proficiency:fieldwork,sourceNote,V25 9종 숙련 체계 권위,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:fieldwork,proficiency:fieldwork,displayOrder,0,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:food-production,proficiency:food-production,m_Name,proficiency_food-production,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:food-production,proficiency:food-production,stableId,proficiency:food-production,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:food-production,proficiency:food-production,displayName,식량 생산,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:food-production,proficiency:food-production,description,"농업, 사냥, 도축, 축산과 요리를 잇는 식량 생산 숙련이다.",,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:food-production,proficiency:food-production,authoringRevision,1,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:food-production,proficiency:food-production,sourceNote,V25 9종 숙련 체계 권위,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:food-production,proficiency:food-production,displayOrder,3,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:medicine,proficiency:medicine,m_Name,proficiency_medicine,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:medicine,proficiency:medicine,stableId,proficiency:medicine,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:medicine,proficiency:medicine,displayName,의료,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:medicine,proficiency:medicine,description,"구조, 진단, 치료와 수술의 숙련이다.",,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:medicine,proficiency:medicine,authoringRevision,1,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:medicine,proficiency:medicine,sourceNote,V25 9종 숙련 체계 권위,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:medicine,proficiency:medicine,displayOrder,5,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:melee-combat,proficiency:melee-combat,m_Name,proficiency_melee-combat,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:melee-combat,proficiency:melee-combat,stableId,proficiency:melee-combat,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:melee-combat,proficiency:melee-combat,displayName,근접 전투,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:melee-combat,proficiency:melee-combat,description,"근접 공격, 방패 방어와 근접 제압의 숙련이다.",,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:melee-combat,proficiency:melee-combat,authoringRevision,1,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:melee-combat,proficiency:melee-combat,sourceNote,V25 9종 숙련 체계 권위,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:melee-combat,proficiency:melee-combat,displayOrder,7,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:ranged-combat,proficiency:ranged-combat,m_Name,proficiency_ranged-combat,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:ranged-combat,proficiency:ranged-combat,stableId,proficiency:ranged-combat,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:ranged-combat,proficiency:ranged-combat,displayName,원거리 전투,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:ranged-combat,proficiency:ranged-combat,description,"활, 석궁, 화기 공격과 원거리 엄호의 숙련이다.",,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:ranged-combat,proficiency:ranged-combat,authoringRevision,1,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:ranged-combat,proficiency:ranged-combat,sourceNote,V25 9종 숙련 체계 권위,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:ranged-combat,proficiency:ranged-combat,displayOrder,8,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:scholarship,proficiency:scholarship,m_Name,proficiency_scholarship,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:scholarship,proficiency:scholarship,stableId,proficiency:scholarship,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:scholarship,proficiency:scholarship,displayName,학술,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:scholarship,proficiency:scholarship,description,"연구, 비전 분석, 기록과 검증의 숙련이다.",,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:scholarship,proficiency:scholarship,authoringRevision,1,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:scholarship,proficiency:scholarship,sourceNote,V25 9종 숙련 체계 권위,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:scholarship,proficiency:scholarship,displayOrder,4,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:social,proficiency:social,m_Name,proficiency_social,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:social,proficiency:social,stableId,proficiency:social,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:social,proficiency:social,displayName,사교,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:social,proficiency:social,description,"접객, 외교, 공연, 포로 설득과 관리의 숙련이다.",,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:social,proficiency:social,authoringRevision,1,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:social,proficiency:social,sourceNote,V25 9종 숙련 체계 권위,,,explicit-serialized
+ProficiencyDefinitionSO|proficiency:social,proficiency:social,displayOrder,6,,,explicit-serialized

@@ -1,0 +1,193 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+TextileMaterialDefinitionSO|textilematerial:23101,textilematerial:23101,m_Name,textile_shade_cloth,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23101,textilematerial:23101,id,23101,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23101,textilematerial:23101,materialId,textile:shade-cloth,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23101,textilematerial:23101,physicalItemId,material:cloth,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23101,textilematerial:23101,displayName,그늘천,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23101,textilematerial:23101,description,그늘천의 V22 주원단 정의. 등급과 상태 밴드만 물리 스택 병합 키에 사용한다.,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23101,textilematerial:23101,tags,5,TextileMaterialTag,알 수 없음 (5),explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23101,textilematerial:23101,warmth,0.45,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23101,textilematerial:23101,heatResistance,0.35,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23101,textilematerial:23101,waterResistance,0.25,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23101,textilematerial:23101,airborneResistance,0.2,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23101,textilematerial:23101,sterility,0.15,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23101,textilematerial:23101,durability,60,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23101,textilematerial:23101,weightMultiplier,1,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23101,textilematerial:23101,dryingRate,1,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23101,textilematerial:23101,requiredResearchId,research:textile:fiber,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23102,textilematerial:23102,m_Name,textile_frost_linen,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23102,textilematerial:23102,id,23102,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23102,textilematerial:23102,materialId,textile:frost-linen,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23102,textilematerial:23102,physicalItemId,material:frost-linen,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23102,textilematerial:23102,displayName,서리 린넨,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23102,textilematerial:23102,description,서리 린넨의 V22 주원단 정의. 등급과 상태 밴드만 물리 스택 병합 키에 사용한다.,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23102,textilematerial:23102,tags,1061,TextileMaterialTag,알 수 없음 (1061),explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23102,textilematerial:23102,warmth,0.62,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23102,textilematerial:23102,heatResistance,0.32,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23102,textilematerial:23102,waterResistance,0.3,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23102,textilematerial:23102,airborneResistance,0.25,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23102,textilematerial:23102,sterility,0.25,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23102,textilematerial:23102,durability,65,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23102,textilematerial:23102,weightMultiplier,0.82,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23102,textilematerial:23102,dryingRate,1.25,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23102,textilematerial:23102,requiredResearchId,research:textile:fiber,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23103,textilematerial:23103,m_Name,textile_ember_cotton,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23103,textilematerial:23103,id,23103,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23103,textilematerial:23103,materialId,textile:ember-cotton,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23103,textilematerial:23103,physicalItemId,material:ember-cotton,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23103,textilematerial:23103,displayName,잿불 면직물,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23103,textilematerial:23103,description,잿불 면직물의 V22 주원단 정의. 등급과 상태 밴드만 물리 스택 병합 키에 사용한다.,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23103,textilematerial:23103,tags,69,TextileMaterialTag,알 수 없음 (69),explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23103,textilematerial:23103,warmth,0.25,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23103,textilematerial:23103,heatResistance,0.68,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23103,textilematerial:23103,waterResistance,0.22,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23103,textilematerial:23103,airborneResistance,0.18,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23103,textilematerial:23103,sterility,0.3,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23103,textilematerial:23103,durability,58,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23103,textilematerial:23103,weightMultiplier,0.88,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23103,textilematerial:23103,dryingRate,0.45,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23103,textilematerial:23103,requiredResearchId,research:textile:fiber,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23104,textilematerial:23104,m_Name,textile_mire_canvas,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23104,textilematerial:23104,id,23104,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23104,textilematerial:23104,materialId,textile:mire-canvas,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23104,textilematerial:23104,physicalItemId,material:mire-canvas,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23104,textilematerial:23104,displayName,습지 캔버스,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23104,textilematerial:23104,description,습지 캔버스의 V22 주원단 정의. 등급과 상태 밴드만 물리 스택 병합 키에 사용한다.,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23104,textilematerial:23104,tags,645,TextileMaterialTag,알 수 없음 (645),explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23104,textilematerial:23104,warmth,0.38,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23104,textilematerial:23104,heatResistance,0.38,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23104,textilematerial:23104,waterResistance,0.72,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23104,textilematerial:23104,airborneResistance,0.3,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23104,textilematerial:23104,sterility,0.2,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23104,textilematerial:23104,durability,92,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23104,textilematerial:23104,weightMultiplier,1.35,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23104,textilematerial:23104,dryingRate,0.75,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23104,textilematerial:23104,requiredResearchId,research:textile:layered,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23105,textilematerial:23105,m_Name,textile_spore_hemp,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23105,textilematerial:23105,id,23105,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23105,textilematerial:23105,materialId,textile:spore-hemp,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23105,textilematerial:23105,physicalItemId,material:spore-hemp,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23105,textilematerial:23105,displayName,포자 삼베,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23105,textilematerial:23105,description,포자 삼베의 V22 주원단 정의. 등급과 상태 밴드만 물리 스택 병합 키에 사용한다.,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23105,textilematerial:23105,tags,2053,TextileMaterialTag,알 수 없음 (2053),explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23105,textilematerial:23105,warmth,0.35,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23105,textilematerial:23105,heatResistance,0.45,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23105,textilematerial:23105,waterResistance,0.35,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23105,textilematerial:23105,airborneResistance,0.68,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23105,textilematerial:23105,sterility,0.25,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23105,textilematerial:23105,durability,78,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23105,textilematerial:23105,weightMultiplier,1.05,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23105,textilematerial:23105,dryingRate,1.1,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23105,textilematerial:23105,requiredResearchId,research:textile:layered,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23106,textilematerial:23106,m_Name,textile_common_wool,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23106,textilematerial:23106,id,23106,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23106,textilematerial:23106,materialId,textile:common-wool,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23106,textilematerial:23106,physicalItemId,material:common-wool,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23106,textilematerial:23106,displayName,일반 모직,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23106,textilematerial:23106,description,일반 모직의 V22 주원단 정의. 등급과 상태 밴드만 물리 스택 병합 키에 사용한다.,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23106,textilematerial:23106,tags,41,TextileMaterialTag,알 수 없음 (41),explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23106,textilematerial:23106,warmth,0.75,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23106,textilematerial:23106,heatResistance,0.22,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23106,textilematerial:23106,waterResistance,0.28,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23106,textilematerial:23106,airborneResistance,0.3,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23106,textilematerial:23106,sterility,0.2,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23106,textilematerial:23106,durability,70,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23106,textilematerial:23106,weightMultiplier,1.2,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23106,textilematerial:23106,dryingRate,0.4,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23106,textilematerial:23106,requiredResearchId,research:textile:fiber,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23107,textilematerial:23107,m_Name,textile_frost_wool,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23107,textilematerial:23107,id,23107,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23107,textilematerial:23107,materialId,textile:frost-wool,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23107,textilematerial:23107,physicalItemId,material:frost-wool,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23107,textilematerial:23107,displayName,서리 양모직,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23107,textilematerial:23107,description,서리 양모직의 V22 주원단 정의. 등급과 상태 밴드만 물리 스택 병합 키에 사용한다.,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23107,textilematerial:23107,tags,553,TextileMaterialTag,알 수 없음 (553),explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23107,textilematerial:23107,warmth,0.92,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23107,textilematerial:23107,heatResistance,0.18,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23107,textilematerial:23107,waterResistance,0.38,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23107,textilematerial:23107,airborneResistance,0.35,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23107,textilematerial:23107,sterility,0.2,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23107,textilematerial:23107,durability,84,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23107,textilematerial:23107,weightMultiplier,1.28,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23107,textilematerial:23107,dryingRate,0.55,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23107,textilematerial:23107,requiredResearchId,research:textile:layered,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23108,textilematerial:23108,m_Name,textile_deep_goat_wool,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23108,textilematerial:23108,id,23108,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23108,textilematerial:23108,materialId,textile:deep-goat-wool,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23108,textilematerial:23108,physicalItemId,material:deep-goat-wool,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23108,textilematerial:23108,displayName,심층 염소모직,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23108,textilematerial:23108,description,심층 염소모직의 V22 주원단 정의. 등급과 상태 밴드만 물리 스택 병합 키에 사용한다.,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23108,textilematerial:23108,tags,521,TextileMaterialTag,알 수 없음 (521),explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23108,textilematerial:23108,warmth,0.78,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23108,textilematerial:23108,heatResistance,0.42,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23108,textilematerial:23108,waterResistance,0.42,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23108,textilematerial:23108,airborneResistance,0.4,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23108,textilematerial:23108,sterility,0.25,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23108,textilematerial:23108,durability,96,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23108,textilematerial:23108,weightMultiplier,1.3,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23108,textilematerial:23108,dryingRate,0.65,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23108,textilematerial:23108,requiredResearchId,research:textile:layered,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23109,textilematerial:23109,m_Name,textile_cave_silk,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23109,textilematerial:23109,id,23109,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23109,textilematerial:23109,materialId,textile:cave-silk,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23109,textilematerial:23109,physicalItemId,material:cave-silk,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23109,textilematerial:23109,displayName,동굴 비단,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23109,textilematerial:23109,description,동굴 비단의 V22 주원단 정의. 등급과 상태 밴드만 물리 스택 병합 키에 사용한다.,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23109,textilematerial:23109,tags,1289,TextileMaterialTag,알 수 없음 (1289),explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23109,textilematerial:23109,warmth,0.48,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23109,textilematerial:23109,heatResistance,0.55,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23109,textilematerial:23109,waterResistance,0.45,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23109,textilematerial:23109,airborneResistance,0.5,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23109,textilematerial:23109,sterility,0.72,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23109,textilematerial:23109,durability,74,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23109,textilematerial:23109,weightMultiplier,0.55,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23109,textilematerial:23109,dryingRate,1.35,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23109,textilematerial:23109,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23110,textilematerial:23110,m_Name,textile_dreamweave,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23110,textilematerial:23110,id,23110,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23110,textilematerial:23110,materialId,textile:dreamweave,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23110,textilematerial:23110,physicalItemId,material:dreamweave,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23110,textilematerial:23110,displayName,몽직물,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23110,textilematerial:23110,description,몽직물의 V22 주원단 정의. 등급과 상태 밴드만 물리 스택 병합 키에 사용한다.,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23110,textilematerial:23110,tags,1041,TextileMaterialTag,알 수 없음 (1041),explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23110,textilematerial:23110,warmth,0.58,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23110,textilematerial:23110,heatResistance,0.58,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23110,textilematerial:23110,waterResistance,0.5,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23110,textilematerial:23110,airborneResistance,0.62,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23110,textilematerial:23110,sterility,0.55,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23110,textilematerial:23110,durability,88,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23110,textilematerial:23110,weightMultiplier,0.62,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23110,textilematerial:23110,dryingRate,1.05,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23110,textilematerial:23110,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23111,textilematerial:23111,m_Name,textile_leather,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23111,textilematerial:23111,id,23111,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23111,textilematerial:23111,materialId,textile:leather,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23111,textilematerial:23111,physicalItemId,material:leather,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23111,textilematerial:23111,displayName,가죽,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23111,textilematerial:23111,description,가죽의 V22 주원단 정의. 등급과 상태 밴드만 물리 스택 병합 키에 사용한다.,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23111,textilematerial:23111,tags,522,TextileMaterialTag,알 수 없음 (522),explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23111,textilematerial:23111,warmth,0.52,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23111,textilematerial:23111,heatResistance,0.48,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23111,textilematerial:23111,waterResistance,0.62,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23111,textilematerial:23111,airborneResistance,0.42,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23111,textilematerial:23111,sterility,0.18,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23111,textilematerial:23111,durability,105,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23111,textilematerial:23111,weightMultiplier,1.45,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23111,textilematerial:23111,dryingRate,0.6,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23111,textilematerial:23111,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23112,textilematerial:23112,m_Name,textile_rune_leather,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23112,textilematerial:23112,id,23112,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23112,textilematerial:23112,materialId,textile:rune-leather,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23112,textilematerial:23112,physicalItemId,material:rune-leather,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23112,textilematerial:23112,displayName,룬가죽,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23112,textilematerial:23112,description,룬가죽의 V22 주원단 정의. 등급과 상태 밴드만 물리 스택 병합 키에 사용한다.,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23112,textilematerial:23112,tags,538,TextileMaterialTag,알 수 없음 (538),explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23112,textilematerial:23112,warmth,0.72,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23112,textilematerial:23112,heatResistance,0.7,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23112,textilematerial:23112,waterResistance,0.74,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23112,textilematerial:23112,airborneResistance,0.68,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23112,textilematerial:23112,sterility,0.52,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23112,textilematerial:23112,durability,125,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23112,textilematerial:23112,weightMultiplier,1.38,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23112,textilematerial:23112,dryingRate,0.75,,,explicit-serialized
+TextileMaterialDefinitionSO|textilematerial:23112,textilematerial:23112,requiredResearchId,research:textile:tailoring,,,explicit-serialized

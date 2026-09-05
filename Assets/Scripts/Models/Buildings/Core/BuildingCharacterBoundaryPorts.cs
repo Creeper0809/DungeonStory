@@ -24,6 +24,14 @@ public interface IBuildingWorldRegistryPort
     IReadOnlyList<IBuildingWorldEntryPort> Buildings { get; }
     void RegisterBuilding(IBuildingWorldEntryPort building);
     void UnregisterBuilding(IBuildingWorldEntryPort building);
+    bool TryReplaceBuilding(
+        IBuildingWorldEntryPort expectedCurrent,
+        IBuildingWorldEntryPort replacement,
+        out string failureReason);
+    bool TryRollbackBuildingReplacement(
+        IBuildingWorldEntryPort expectedReplacement,
+        IBuildingWorldEntryPort original,
+        out string failureReason);
     void TrackTransientCharacterOwnership(
         IBuildingWorldEntryPort building,
         CharacterId characterId,
@@ -39,6 +47,16 @@ public interface IBuildingWorldRegistryPort
 public interface IBuildingFacilityStateChangePort
 {
     void MarkDynamicStateDirty();
+}
+
+/// <summary>
+/// Read-only facility ownership boundary used by mode and mutation admission.
+/// Implementations expose actual allocated-worker ownership, not a forecast
+/// inferred from reservations or bill state.
+/// </summary>
+public interface IAllocatedWorkerOccupancyQuery
+{
+    bool HasAllocatedWorker { get; }
 }
 
 public interface IBuildingCharacterPort

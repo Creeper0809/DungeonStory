@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "guest-request-memorial-performance",
+    "spoiler_tier": "none",
+    "title": "전사자 추모 공연"
+  },
+  "edges": [
+    {
+      "amount": "10",
+      "from": "event/guest-request-memorial-performance",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "craft-candle",
+      "target_spoiler_tier": "none",
+      "target_title": "양초",
+      "to": "item/craft-candle",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1094",
+    "spoiler_tier": "none",
+    "title": "심부 채석장"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-mining-quarry",
+      "label": "시설 해금",
+      "to": "facility/building-1094",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

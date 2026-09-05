@@ -47,15 +47,19 @@ public static class CharacterWorldPersistenceRules
     public static bool IsPersistentActor(CharacterActor actor)
     {
         CharacterIdentity identity = actor != null ? actor.Identity : null;
-        return actor != null
-            && actor.gameObject.activeInHierarchy
-            && identity != null
-            && identity.Data != null
-            && !actor.IsDead
-            && actor.CurrentLifecycleState != CharacterLifecycleState.Despawned
-            && (actor.IsOwner
-                || (identity.CharacterType == CharacterType.NPC
-                    && actor.TryGetAbility(out AbilityWork _)));
+        if (actor == null
+            || !actor.gameObject.activeInHierarchy
+            || identity == null
+            || identity.Data == null
+            || actor.CurrentLifecycleState == CharacterLifecycleState.Despawned)
+        {
+            return false;
+        }
+
+        bool hasPersistentRole = actor.IsOwner
+            || identity.CharacterType == CharacterType.NPC
+                && actor.TryGetAbility(out AbilityWork _);
+        return hasPersistentRole && !actor.IsDead;
     }
 }
 
@@ -157,6 +161,7 @@ public sealed class CharacterWorldSpawnDependencies
 public sealed class CharacterWorldSaveService :
     ICharacterWorldSaveService,
     ICharacterWorldPersistenceIdentityQuery,
+    ICharacterConsumablesPersistentActorQuery,
     ICharacterHaulDeliveryRestoreQuery,
     IDungeonRestoreTransactionParticipant
 {
@@ -505,7 +510,10 @@ public sealed class CharacterWorldSaveService :
                 continue;
             }
 
-            actor.GetAbility<AbilityWork>()?.ReleaseAssignedWorkTarget();
+            if (actor.TryGetAbility(out AbilityWork work))
+            {
+                work.ReleaseAssignedWorkTarget();
+            }
             string persistentId = actor.Identity?.PersistentId?.Trim()
                 ?? string.Empty;
             CharacterActor replacement = !string.IsNullOrWhiteSpace(persistentId)
@@ -687,9 +695,12 @@ public sealed class CharacterWorldSaveService :
             foreach (DungeonCharacterSaveData staffSave in staffSaves)
             {
                 CharacterSO staffData = charactersById[staffSave.dataId];
+                CharacterId canonicalStaffId = canonicalActorIds[staffSave];
                 GameObject staffObject = characterObjectFactory.CreateDetached(
                     spawner.characterPrefab,
-                    EnsureRestoredStaffWorkAbility);
+                    candidate => PrepareRestoredStaffComposition(
+                        candidate,
+                        canonicalStaffId));
                 CharacterActor staff = CharacterActorCollection.GetCanonical(
                     staffObject.GetComponent<CharacterActor>());
                 if (staff == null)
@@ -717,7 +728,7 @@ public sealed class CharacterWorldSaveService :
                     candidateActorsById,
                     candidateLegacyActorIds,
                     staffSave,
-                    canonicalActorIds[staffSave],
+                    canonicalStaffId,
                     staff);
             }
 
@@ -741,7 +752,15 @@ public sealed class CharacterWorldSaveService :
                     socialReputation.BuildRestoreCandidate(
                         source.globalFacilityReputation));
             restoreWorldCandidates.SetCharacterCandidate(
-                BuildCandidateCharacterView(worldCandidate));
+                BuildCandidateCharacterView(worldCandidate),
+                worldCandidate.Characters
+                    .Where(value => value?.SaveData?.haulDeliveryIntent != null
+                        && !value.SaveData.haulDeliveryIntent
+                            .IsDefaultEmptyProjection)
+                    .Select(value => HaulDeliveryIntentRuntime.CloneForProjection(
+                        value.SaveData.haulDeliveryIntent))
+                    .OrderBy(value => value.operationId, StringComparer.Ordinal)
+                    .ToArray());
             preparedCandidate = worldCandidate;
             return new CharacterWorldRestoreCandidate(
                 this,
@@ -928,13 +947,14 @@ public sealed class CharacterWorldSaveService :
                 publication.PopulationTransaction);
         }
 
-        IEnumerable<CharacterActor> retiringActors =
+        IEnumerable<CharacterActor> persistentRetiringActors =
             candidate.ExistingStaff.Concat(
-                candidate.ExistingVisitors).Concat(
                 publication.OwnerPublication?.PreviousOwner != null
                     ? new[] { publication.OwnerPublication.PreviousOwner }
                     : Array.Empty<CharacterActor>());
-        PrepareForWorldRetirement(retiringActors, candidate.ActorsById);
+        PrepareForWorldRetirement(
+            persistentRetiringActors,
+            candidate.ActorsById);
 
         foreach (CharacterActor oldStaff in candidate.ExistingStaff)
         {
@@ -959,6 +979,7 @@ public sealed class CharacterWorldSaveService :
 
             foreach (CharacterActor visitor in candidate.ExistingVisitors)
             {
+                PrepareTransientVisitorForWorldRetirement(visitor);
                 if (!spawner.RetireVisitorForWorldRestore(
                         visitor,
                         out string retirementFailure))
@@ -996,9 +1017,56 @@ public sealed class CharacterWorldSaveService :
 
     }
 
-    private static void EnsureRestoredStaffWorkAbility(GameObject staffObject)
+    private static void PrepareTransientVisitorForWorldRetirement(
+        CharacterActor visitor)
     {
-        if (staffObject != null && staffObject.GetComponent<AbilityWork>() == null)
+        if (visitor == null)
+        {
+            return;
+        }
+
+        AbilityHaul haul = visitor.GetComponent<AbilityHaul>();
+        if (haul != null)
+        {
+            // The restored physical-item aggregate is already authoritative.
+            // Forget the replaced world's carried slice and leases before the
+            // lifecycle callback can run ordinary interruption/drop behavior.
+            haul.PrepareForRestoreRetirementWithoutReplacement();
+            return;
+        }
+
+        visitor.CarryInventory?
+            .DiscardAllItemsForRestoredWorldReplacement();
+        visitor.GetComponent<AbilityMove>()?.CancelActiveMovement();
+    }
+
+    private static void PrepareRestoredStaffComposition(
+        GameObject staffObject,
+        CharacterId canonicalId)
+    {
+        if (staffObject == null)
+        {
+            throw new ArgumentNullException(nameof(staffObject));
+        }
+        if (!canonicalId.IsValid)
+        {
+            throw new InvalidOperationException(
+                "A staff restore candidate requires a canonical CharacterId before composition.");
+        }
+
+        CharacterIdentity identity = staffObject.GetComponent<CharacterIdentity>();
+        if (identity == null)
+        {
+            throw new InvalidOperationException(
+                "A staff restore candidate has no CharacterIdentity before composition.");
+        }
+
+        // Character DI configures actor-scoped RNG and transient state using the
+        // current persistent ID. Install the saved canonical identity before any
+        // component is added or ComposeDetached performs injection so provisional
+        // generated IDs can never become aggregate keys.
+        identity.SetPersistentId(canonicalId);
+        if (staffObject.GetComponent<AbilityWork>() == null)
         {
             staffObject.AddComponent<AbilityWork>();
         }
@@ -1121,12 +1189,12 @@ public sealed class CharacterWorldSaveService :
             .Where(actor => actor != null
                 && actor.gameObject.activeInHierarchy
                 && !actor.IsOwner
-                && !actor.IsDead
                 && actor.CurrentLifecycleState
                     != CharacterLifecycleState.Despawned
                 && actor.Identity != null
                 && actor.Identity.Data != null
-                && actor.Identity.CharacterType == CharacterType.Customer)
+                && actor.Identity.CharacterType == CharacterType.Customer
+                && !actor.IsDead)
             .OrderBy(actor => actor.Identity.PersistentId, StringComparer.Ordinal)
             .ThenBy(actor => actor.GetInstanceID())
             .ToList();

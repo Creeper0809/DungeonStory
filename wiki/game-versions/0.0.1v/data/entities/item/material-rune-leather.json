@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.4kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "40개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "216"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "고방어와 마법 저항을 제공하는 가죽이다. 라카쉬 세갈래길의 룬가죽은 무늬가 흐르는 방향을 가장자리에 표시해 재단할 때 마나 결을 끊지 않게 한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-rune-leather",
+  "spoiler_tier": "none",
+  "summary": "고방어와 마법 저항을 제공하는 가죽.",
+  "title": "룬가죽"
+}

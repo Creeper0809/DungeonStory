@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -107,6 +108,95 @@ public static class ProductionWorkshopContentAssetBuilder
             + $"{ExpectedWorkshopRecipeCount} staged/work recipes.");
     }
 
+    [MenuItem("Tools/DungeonStory/Economy/Patch Output Disposition Markers")]
+    public static void PatchOutputDispositionMarkersFromMenu()
+    {
+        PatchOutputDispositionMarkers();
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+    }
+
+    [MenuItem("Tools/DungeonStory/Economy/Patch Finite Production Lanes")]
+    public static void PatchFiniteProductionLanesFromMenu()
+    {
+        string[] changedPaths = PatchFiniteProductionLanes();
+        if (changedPaths.Length == 0)
+        {
+            Debug.Log("Production lane authority already canonical; changed=0.");
+            return;
+        }
+
+        AssetDatabase.SaveAssets();
+        AssetDatabase.ForceReserializeAssets(
+            changedPaths,
+            ForceReserializeAssetsOptions.ReserializeAssets);
+        byte[][] firstPass = changedPaths
+            .Select(ReadProjectAssetBytes)
+            .ToArray();
+        AssetDatabase.ForceReserializeAssets(
+            changedPaths,
+            ForceReserializeAssetsOptions.ReserializeAssets);
+        for (int index = 0; index < changedPaths.Length; index++)
+        {
+            if (!firstPass[index].SequenceEqual(
+                    ReadProjectAssetBytes(changedPaths[index])))
+            {
+                throw new InvalidOperationException(
+                    "Production lane asset was not byte-stable after its "
+                    + $"second ForceReserialize pass: {changedPaths[index]}");
+            }
+        }
+        AssetDatabase.Refresh();
+        Debug.Log(
+            $"Production lane authority patched deterministically; changed={changedPaths.Length}.");
+    }
+
+    public static string[] PatchFiniteProductionLanes()
+    {
+        List<string> changed = new();
+        foreach (BuildingSO building in LoadAll<BuildingSO>(
+                     "Assets/Resources/SO/Building")
+                 .OrderBy(AssetDatabase.GetAssetPath, StringComparer.Ordinal))
+        {
+            bool dirty = false;
+            BuildingProductionWorkstationAbility workstation =
+                building.GetAbility<BuildingProductionWorkstationAbility>();
+            if (workstation != null)
+            {
+                dirty |= ConfigureFiniteWorkstationLanes(
+                    building,
+                    workstation);
+            }
+
+            BuildingProductionSupportAbility support =
+                building.GetAbility<BuildingProductionSupportAbility>();
+            if (support != null
+                && support.maximumLinkedInstancesPerWorkstation != 1)
+            {
+                support.maximumLinkedInstancesPerWorkstation = 1;
+                dirty = true;
+            }
+
+            if (!dirty)
+                continue;
+            EditorUtility.SetDirty(building);
+            changed.Add(AssetDatabase.GetAssetPath(building));
+        }
+
+        return changed
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    private static byte[] ReadProjectAssetBytes(string assetPath)
+    {
+        string root = Directory.GetParent(Application.dataPath)?.FullName
+            ?? throw new InvalidOperationException(
+                "Unity project root could not be resolved.");
+        return File.ReadAllBytes(Path.Combine(root, assetPath));
+    }
+
     public static void EnsureAssets()
     {
         EnsureFolder(ItemRoot);
@@ -115,6 +205,7 @@ public static class ProductionWorkshopContentAssetBuilder
         BuildItems();
         BuildSupportBuildings();
         PatchWorkstations();
+        PatchOutputDispositionMarkers();
         PatchLegacyRecipes();
         BuildNewRecipes();
         V23RecipeProcessClassAuthoring.NormalizeRecipeWorkUnder(
@@ -477,8 +568,9 @@ public static class ProductionWorkshopContentAssetBuilder
             supportId = $"production-support:{spec.Code.ToLowerInvariant()}",
             featureTags = new[] { spec.Feature },
             compatibleWorkstationTags = spec.Workstations,
-            kind = spec.Kind,
-            batchCapacity = spec.Capacity,
+             kind = spec.Kind,
+             batchCapacity = spec.Capacity,
+             maximumLinkedInstancesPerWorkstation = 1,
             requiresPower = spec.Power,
             cleanWaterPerCycle = spec.Water,
             wastewaterPerCycle = spec.Wastewater,
@@ -488,6 +580,31 @@ public static class ProductionWorkshopContentAssetBuilder
             fuelItemId = "resource:log",
             fuelPerCycle = 1
         });
+        UtilityChannel utilityChannels = UtilityChannel.None;
+        if (spec.Power)
+            utilityChannels |= UtilityChannel.Power;
+        if (spec.Water > 0f)
+            utilityChannels |= UtilityChannel.CleanWater;
+        if (spec.Wastewater > 0f)
+            utilityChannels |= UtilityChannel.Wastewater;
+        if (utilityChannels != UtilityChannel.None)
+        {
+            abilities.Add(new BuildingUtilityConnectionAbility
+            {
+                channels = utilityChannels,
+                maxThroughput = 100f,
+                normallyOpen = true
+            });
+        }
+        if (spec.Power)
+        {
+            abilities.Add(new BuildingPowerConsumerAbility
+            {
+                demandPerSecond = 1f,
+                priority = PowerPriority.Production,
+                minimumSupplyFraction = 1f
+            });
+        }
         if (spec.Fuel)
         {
             abilities.Add(new BuildingFacilitySupplyAbility
@@ -554,6 +671,7 @@ public static class ProductionWorkshopContentAssetBuilder
                 workstation.workstationTag = tag;
                 workstation.stockSensorInstallationItemId =
                     "component:stock-sensor-panel";
+                ConfigureFiniteWorkstationLanes(target, workstation);
 
                 BuildingProductionBufferAbility buffer =
                     target.GetAbility<BuildingProductionBufferAbility>();
@@ -580,6 +698,41 @@ public static class ProductionWorkshopContentAssetBuilder
             if (!WouldChange(building, ConfigureWorkstation))
                 continue;
             ConfigureWorkstation(building);
+            EditorUtility.SetDirty(building);
+        }
+    }
+
+    private static void PatchOutputDispositionMarkers()
+    {
+        foreach (BuildingSO building in LoadAll<BuildingSO>(
+                     "Assets/Resources/SO/Building"))
+        {
+            string code = building
+                .GetAbility<BuildingFacilityPartAbility>()?.code;
+            if (!string.Equals(code, "P06", StringComparison.Ordinal))
+                continue;
+
+            void Configure(BuildingSO target)
+            {
+                BuildingProductionOutputDispositionAbility disposition =
+                    target.GetAbility<BuildingProductionOutputDispositionAbility>();
+                if (disposition == null)
+                {
+                    disposition = new BuildingProductionOutputDispositionAbility();
+                    target.AbilityModules.Add(disposition);
+                }
+                disposition.dispositionKind =
+                    ProductionOutputDispositionAuthoringKind.DeclaredNoOutput;
+                disposition.ownerCapabilityId =
+                    "production:recipe-driven-output";
+                disposition.reasonCode =
+                    "content-gap:missing-authored-recipe";
+                target.AbilityModules.EnsureStableIds();
+            }
+
+            if (!WouldChange(building, Configure))
+                continue;
+            Configure(building);
             EditorUtility.SetDirty(building);
         }
     }
@@ -659,28 +812,35 @@ public static class ProductionWorkshopContentAssetBuilder
         ReconfigureExisting(
             "recipe:preserved-ration", "보존 배급식 훈연", "smoker",
             "work:craft", "research:cuisine:lavish", 8f,
-            A("material:ration-mixture", 2),
+            new[]
+            {
+                A("material:ration-mixture", 2),
+                A("material:starch", 2)
+            },
             O("food:preserved-ration", 3),
             W("support:smoke-hood"));
         ConfigureExistingRequirements(
             "recipe:grain-porridge",
-            W("support:hearth"), 0.25f, 0.1f, true);
+            W("support:hearth"), 3.4f, 0.2f, true);
         ConfigureExistingRequirements(
             "recipe:root-stew",
-            W("support:hearth"), 0.25f, 0.1f, true);
+            W("support:hearth"), 1.3f, 0.2f, true);
         ConfigureExistingRequirements(
             "recipe:mushroom-soup",
-            W("support:hearth"), 0.25f, 0.1f, true);
+            W("support:hearth"), 1.9f, 0.2f, true);
         ConfigureExistingRequirements(
             "recipe:moonflower-tea",
-            W("support:hearth"), 0.25f, 0.1f, true);
+            W("support:hearth"), 1.1f, 0.2f, true);
         ConfigureExistingRequirements(
             "recipe:roasted-meat",
-            W("support:hearth"));
+            W("support:hearth"), 0.3f, 0f, true);
         ConfigureExistingRequirements(
             "recipe:garden-meal",
             W("support:prep-sink", "support:hearth"),
-            0.25f, 0.2f);
+            1.4f, 0.4f, true);
+        ConfigureExistingRequirements(
+            "recipe:herbal-poultice",
+            Array.Empty<string>(), 0.5f, 0f, true);
         ConfigureExistingRequirements(
             "recipe:egg-pancake",
             W("support:prep-sink", "support:hearth"),
@@ -744,7 +904,7 @@ public static class ProductionWorkshopContentAssetBuilder
                 A("resource:saltstone", 1)
             },
             O("material:curd", 2), W("support:cheese-vat"),
-            0.2f, 4.2f, true);
+            0.4f, 4.2f, true);
         CreateRecipe("recipe:brined-vegetable", "채소 염지", "cookbench",
             "work:cook", "research:survival:preservation", 5f,
             new[]
@@ -753,7 +913,7 @@ public static class ProductionWorkshopContentAssetBuilder
                 A("resource:saltstone", 1)
             },
             O("material:brined-vegetable", 2),
-            W("support:pickling-vat"), 0.2f, 1f, true);
+            W("support:pickling-vat"), 1.4f, 2f, true);
         CreateBatch("recipe:fermented-pickle", "발효 절임", "cookbench",
             "research:survival:preservation", 2f, 1f, 12f,
             new[]
@@ -762,7 +922,7 @@ public static class ProductionWorkshopContentAssetBuilder
                 A("craft:fermented-vinegar", 1)
             },
             O("food:fermented-pickle", 2), "support:pickling-vat",
-            0f, 1f);
+            1.2f, 2f, true);
         CreateBatch("recipe:silage", "사일리지 발효", "feedbench",
             "research:husbandry:feed", 3f, 1f, 12f,
             new[]
@@ -785,7 +945,7 @@ public static class ProductionWorkshopContentAssetBuilder
                 A("resource:egg", 1)
             },
             O("material:dough", 2),
-            W("support:prep-sink"), 0.15f, 0.1f, true);
+            W("support:prep-sink"), 0.6f, 0.2f, true);
         CreateRecipe("recipe:seasoned-filling", "양념 속재료", "cookbench",
             "work:cook", "research:cuisine:kitchen-hygiene", 6f,
             new[]
@@ -839,12 +999,18 @@ public static class ProductionWorkshopContentAssetBuilder
             O("food:stuffed-mushroom", 2), W("support:hearth"));
         CreateRecipe("recipe:expedition-ration-pack", "원정 배급 꾸러미", "smoker", "work:craft",
             "research:survival:field-rations", 8f,
-            new[] { A("material:ration-mixture", 1), A("material:salted-meat", 1) },
+            new[]
+            {
+                A("material:ration-mixture", 1),
+                A("material:salted-meat", 1),
+                A("material:starch", 2)
+            },
             O("food:expedition-ration-pack", 2), W("support:smoke-hood"));
         CreateRecipe("recipe:salted-meat-stew", "염장육 스튜", "cookbench", "work:cook",
             "research:cuisine:livestock", 7f,
             new[] { A("material:salted-meat", 1), A("resource:ember-root", 1) },
-            O("food:salted-meat-stew", 2), W("support:hearth"));
+            O("food:salted-meat-stew", 2), W("support:hearth"),
+            1.2f, 0f, true);
         CreateRecipe("recipe:preserved-vegetable", "보존 채식", "cookbench", "work:cook",
             "research:cuisine:vegan", 7f,
             new[]
@@ -898,31 +1064,48 @@ public static class ProductionWorkshopContentAssetBuilder
         float? preservedRequiredWork = existing != null
             ? existing.RequiredWork
             : null;
-        ProductionRecipeSO recipe = GetOrCreate<ProductionRecipeSO>(assetPath);
-        recipe.id = ResolveWorkshopRecipeNumericId(id);
-        recipe.Configure(
-            id, name, "준비와 마감 사이에 게임 시간으로 처리되는 배치 공정.",
-            facility, "work:craft", research, prepare, inputs,
-            new[] { output });
-        recipe.ConfigureWorkshop(
-            WorkstationTagForFacility(facility),
-            new[] { batchSupport },
-            ProductionProcessKind.PassiveBatch,
-            batchSupport,
-            prepare,
-            finish,
-            hours,
-            12f,
-            24f,
-            4f,
-            32f,
-            water,
-            wastewater,
-            manualWater,
-            ResolveSpoilage(inputs),
-            ResolveRecipeWastewaterComposition(id));
-        ApplyRecipeBalanceAuthority(recipe, preservedRequiredWork);
-        EditorUtility.SetDirty(recipe);
+        ProductionOutputDefinition[] stableOutputs =
+            ProductionOutputLineAuthoring.ResolveStableOutputs(
+                id,
+                existing?.Outputs,
+                new[] { output });
+        string stableSpoilage = existing != null
+            && !string.IsNullOrEmpty(existing.SpoilageItemId)
+                ? existing.SpoilageItemId
+                : ResolveSpoilage(inputs);
+        ProductionRecipeSO recipe = existing
+            ?? GetOrCreate<ProductionRecipeSO>(assetPath);
+        void ConfigureBatch(ProductionRecipeSO target)
+        {
+            target.id = ResolveWorkshopRecipeNumericId(id);
+            target.Configure(
+                id, name, "준비와 마감 사이에 게임 시간으로 처리되는 배치 공정.",
+                facility, "work:craft", research, prepare, inputs,
+                stableOutputs);
+            target.ConfigureWorkshop(
+                WorkstationTagForFacility(facility),
+                new[] { batchSupport },
+                ProductionProcessKind.PassiveBatch,
+                batchSupport,
+                prepare,
+                finish,
+                hours,
+                12f,
+                24f,
+                4f,
+                32f,
+                water,
+                wastewater,
+                manualWater,
+                stableSpoilage,
+                ResolveRecipeWastewaterComposition(id));
+            ApplyRecipeBalanceAuthority(target, preservedRequiredWork);
+        }
+        if (existing == null || WouldChange(recipe, ConfigureBatch))
+        {
+            ConfigureBatch(recipe);
+            EditorUtility.SetDirty(recipe);
+        }
     }
 
     private static void CreateRecipe(
@@ -965,21 +1148,34 @@ public static class ProductionWorkshopContentAssetBuilder
         float? preservedRequiredWork = existing != null
             ? existing.RequiredWork
             : null;
-        ProductionRecipeSO recipe = GetOrCreate<ProductionRecipeSO>(assetPath);
-        recipe.id = ResolveWorkshopRecipeNumericId(id);
-        recipe.Configure(
-            id, name, "같은 방의 연결 시설을 사용하는 수동 생산 단계.",
-            facility, workType, research, work, inputs, new[] { output });
-        recipe.ConfigureWorkshop(
-            WorkstationTagForFacility(facility),
-            supports,
-            ProductionProcessKind.WorkOnly,
-            cleanWater: water,
-            wastewater: wastewater,
-            allowManualWater: manualWater,
-            wastewaterKind: ResolveRecipeWastewaterComposition(id));
-        ApplyRecipeBalanceAuthority(recipe, preservedRequiredWork);
-        EditorUtility.SetDirty(recipe);
+        ProductionOutputDefinition[] stableOutputs =
+            ProductionOutputLineAuthoring.ResolveStableOutputs(
+                id,
+                existing?.Outputs,
+                new[] { output });
+        ProductionRecipeSO recipe = existing
+            ?? GetOrCreate<ProductionRecipeSO>(assetPath);
+        void ConfigureWorkRecipe(ProductionRecipeSO target)
+        {
+            target.id = ResolveWorkshopRecipeNumericId(id);
+            target.Configure(
+                id, name, "같은 방의 연결 시설을 사용하는 수동 생산 단계.",
+                facility, workType, research, work, inputs, stableOutputs);
+            target.ConfigureWorkshop(
+                WorkstationTagForFacility(facility),
+                supports,
+                ProductionProcessKind.WorkOnly,
+                cleanWater: water,
+                wastewater: wastewater,
+                allowManualWater: manualWater,
+                wastewaterKind: ResolveRecipeWastewaterComposition(id));
+            ApplyRecipeBalanceAuthority(target, preservedRequiredWork);
+        }
+        if (existing == null || WouldChange(recipe, ConfigureWorkRecipe))
+        {
+            ConfigureWorkRecipe(recipe);
+            EditorUtility.SetDirty(recipe);
+        }
     }
 
     private static int ResolveWorkshopRecipeNumericId(string recipeId) =>
@@ -1049,14 +1245,25 @@ public static class ProductionWorkshopContentAssetBuilder
         }
 
         float preservedRequiredWork = recipe.RequiredWork;
-        recipe.Configure(
-            id, name, recipe.Description, facility, workType,
-            research, work, inputs, new[] { output });
-        recipe.ConfigureWorkshop(
-            WorkstationTagForFacility(facility),
-            supports,
-            ProductionProcessKind.WorkOnly);
-        ApplyRecipeBalanceAuthority(recipe, preservedRequiredWork);
+        ProductionOutputDefinition[] stableOutputs =
+            ProductionOutputLineAuthoring.ResolveStableOutputs(
+                id,
+                recipe.Outputs,
+                new[] { output });
+        void ConfigureRecipe(ProductionRecipeSO target)
+        {
+            target.Configure(
+                id, name, target.Description, facility, workType,
+                research, work, inputs, stableOutputs);
+            target.ConfigureWorkshop(
+                WorkstationTagForFacility(facility),
+                supports,
+                ProductionProcessKind.WorkOnly);
+            ApplyRecipeBalanceAuthority(target, preservedRequiredWork);
+        }
+        if (!WouldChange(recipe, ConfigureRecipe))
+            return;
+        ConfigureRecipe(recipe);
         EditorUtility.SetDirty(recipe);
     }
 
@@ -1080,19 +1287,33 @@ public static class ProductionWorkshopContentAssetBuilder
         }
 
         float preservedRequiredWork = recipe.RequiredWork;
-        recipe.Configure(
-            id, name, recipe.Description, facility, workType,
-            research, prepare, new[] { input }, new[] { output });
-        recipe.ConfigureWorkshop(
-            WorkstationTagForFacility(facility),
-            new[] { batchSupport },
-            ProductionProcessKind.PassiveBatch,
-            batchSupport,
-            prepare,
-            finish,
-            hours,
-            failedBatchItemId: ResolveSpoilage(new[] { input }));
-        ApplyRecipeBalanceAuthority(recipe, preservedRequiredWork);
+        ProductionOutputDefinition[] stableOutputs =
+            ProductionOutputLineAuthoring.ResolveStableOutputs(
+                id,
+                recipe.Outputs,
+                new[] { output });
+        string stableSpoilage = !string.IsNullOrEmpty(recipe.SpoilageItemId)
+            ? recipe.SpoilageItemId
+            : ResolveSpoilage(new[] { input });
+        void ConfigureBatch(ProductionRecipeSO target)
+        {
+            target.Configure(
+                id, name, target.Description, facility, workType,
+                research, prepare, new[] { input }, stableOutputs);
+            target.ConfigureWorkshop(
+                WorkstationTagForFacility(facility),
+                new[] { batchSupport },
+                ProductionProcessKind.PassiveBatch,
+                batchSupport,
+                prepare,
+                finish,
+                hours,
+                failedBatchItemId: stableSpoilage);
+            ApplyRecipeBalanceAuthority(target, preservedRequiredWork);
+        }
+        if (!WouldChange(recipe, ConfigureBatch))
+            return;
+        ConfigureBatch(recipe);
         EditorUtility.SetDirty(recipe);
     }
 
@@ -1107,21 +1328,28 @@ public static class ProductionWorkshopContentAssetBuilder
             return;
         }
 
-        recipe.Configure(
-            recipe.RecipeId,
-            recipe.DisplayName,
-            recipe.Description,
-            facility,
-            workType,
-            recipe.RequiredResearchId,
-            recipe.RequiredWork,
-            recipe.Inputs,
-            recipe.Outputs);
-        recipe.ConfigureWorkshop(
-            WorkstationTagForFacility(facility),
-            Array.Empty<string>(),
-            ProductionProcessKind.WorkOnly);
-        ApplyRecipeBalanceAuthority(recipe, recipe.RequiredWork);
+        void ConfigureRecipe(ProductionRecipeSO target)
+        {
+            float approvedWork = target.RequiredWork;
+            target.Configure(
+                target.RecipeId,
+                target.DisplayName,
+                target.Description,
+                facility,
+                workType,
+                target.RequiredResearchId,
+                approvedWork,
+                target.Inputs,
+                target.Outputs);
+            target.ConfigureWorkshop(
+                WorkstationTagForFacility(facility),
+                Array.Empty<string>(),
+                ProductionProcessKind.WorkOnly);
+            ApplyRecipeBalanceAuthority(target, approvedWork);
+        }
+        if (!WouldChange(recipe, ConfigureRecipe))
+            return;
+        ConfigureRecipe(recipe);
         EditorUtility.SetDirty(recipe);
     }
 
@@ -1138,15 +1366,22 @@ public static class ProductionWorkshopContentAssetBuilder
             return;
         }
 
-        recipe.ConfigureWorkshop(
-            recipe.WorkstationTag,
-            supports,
-            ProductionProcessKind.WorkOnly,
-            cleanWater: water,
-            wastewater: wastewater,
-            allowManualWater: manualWater,
-            wastewaterKind: ResolveRecipeWastewaterComposition(id));
-        ApplyRecipeBalanceAuthority(recipe, recipe.RequiredWork);
+        void ConfigureRecipe(ProductionRecipeSO target)
+        {
+            float approvedWork = target.RequiredWork;
+            target.ConfigureWorkshop(
+                target.WorkstationTag,
+                supports,
+                ProductionProcessKind.WorkOnly,
+                cleanWater: water,
+                wastewater: wastewater,
+                allowManualWater: manualWater,
+                wastewaterKind: ResolveRecipeWastewaterComposition(id));
+            ApplyRecipeBalanceAuthority(target, approvedWork);
+        }
+        if (!WouldChange(recipe, ConfigureRecipe))
+            return;
+        ConfigureRecipe(recipe);
         EditorUtility.SetDirty(recipe);
     }
 
@@ -1171,6 +1406,7 @@ public static class ProductionWorkshopContentAssetBuilder
             ?? V23BalanceWorkCalculator.CalculateRecipeBaseWork(
                 recipe,
                 processClass));
+        V27ReviewedProductionMassExplanationCatalog.ApplyIfReviewed(recipe);
     }
 
     private static ProcessWastewaterComposition
@@ -1317,6 +1553,29 @@ public static class ProductionWorkshopContentAssetBuilder
             id,
             amount);
 
+    private static bool ConfigureFiniteWorkstationLanes(
+        BuildingSO building,
+        BuildingProductionWorkstationAbility workstation)
+    {
+        BuildingAutomationAbility automation =
+            building.GetAbility<BuildingAutomationAbility>();
+        bool hasAutomaticLane = automation != null
+            && automation.maximumMode == AutomationMode.Automatic;
+        ProductionWorkstationLanePolicy expectedPolicy = hasAutomaticLane
+            ? ProductionWorkstationLanePolicy
+                .ModeExclusiveManualOrAutomaticWithDetachedBatchProcessors
+            : ProductionWorkstationLanePolicy
+                .ManualWithDetachedBatchProcessors;
+        int expectedAutomaticLanes = hasAutomaticLane ? 1 : 0;
+        bool changed = workstation.lanePolicy != expectedPolicy
+            || workstation.manualWorkLaneCount != 1
+            || workstation.automaticWorkLaneCount != expectedAutomaticLanes;
+        workstation.lanePolicy = expectedPolicy;
+        workstation.manualWorkLaneCount = 1;
+        workstation.automaticWorkLaneCount = expectedAutomaticLanes;
+        return changed;
+    }
+
     private static string[] W(params string[] values) => values;
 
     private static bool WouldChange<T>(T asset, Action<T> configure)
@@ -1333,6 +1592,13 @@ public static class ProductionWorkshopContentAssetBuilder
         {
             candidate.name = asset.name;
             configure(candidate);
+            if (asset is ProductionRecipeSO beforeRecipe
+                && candidate is ProductionRecipeSO afterRecipe)
+            {
+                return !ProductionRecipeAuthoringComparison.AreEquivalent(
+                    beforeRecipe,
+                    afterRecipe);
+            }
             return !string.Equals(
                 CanonicalizeSemanticJson(before),
                 CanonicalizeSemanticJson(EditorJsonUtility.ToJson(candidate)),
@@ -1344,12 +1610,29 @@ public static class ProductionWorkshopContentAssetBuilder
         }
     }
 
-    private static string CanonicalizeSemanticJson(string json) =>
-        System.Text.RegularExpressions.Regex.Replace(
+    private static string CanonicalizeSemanticJson(string json)
+    {
+        const System.Text.RegularExpressions.RegexOptions options =
+            System.Text.RegularExpressions.RegexOptions.CultureInvariant;
+        string canonical = System.Text.RegularExpressions.Regex.Replace(
             json ?? string.Empty,
+            "\\\"(?:massExplanation|outputCostAllocation)\\\"\\s*:\\s*"
+            + "(?:null|\\{\\s*\\\"capabilityId\\\"\\s*:\\s*\\\"\\\"\\s*,\\s*"
+            + "\\\"contractVersion\\\"\\s*:\\s*0\\s*,\\s*"
+            + "\\\"canonicalPayload\\\"\\s*:\\s*\\\"\\\"\\s*\\})\\s*,?",
+            string.Empty,
+            options);
+        canonical = System.Text.RegularExpressions.Regex.Replace(
+            canonical,
+            ",(?=\\s*[}\\]])",
+            string.Empty,
+            options);
+        return System.Text.RegularExpressions.Regex.Replace(
+            canonical,
             "\\\"rid\\\"\\s*:\\s*-?[0-9]+",
             "\\\"rid\\\":0",
-            System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+            options);
+    }
 
     private static T[] LoadAll<T>(string root)
         where T : UnityEngine.Object

@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1029",
+    "spoiler_tier": "none",
+    "title": "침실용책장"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-authority-quarters",
+      "label": "시설 해금",
+      "to": "facility/building-1029",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

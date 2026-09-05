@@ -54,6 +54,10 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=CuttingWaste|reason=artificial-eye-lens-grinding-and-arcane-calibration-residue|physicalByproduct=false
   inputs:
   - itemId: material:steel-ingot
     amount: 1

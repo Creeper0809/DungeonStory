@@ -1,0 +1,11 @@
+schemaVersion=v27.market-review-application.1
+result=PASS
+decisionBundles=236
+promoteBundles=236
+retainBundles=0
+reworkBundles=0
+appliedPromoteBundles=236
+pendingPromotionMembers=0
+changedAssets=0
+changedProperties=0
+remainingCritical=0

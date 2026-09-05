@@ -1,0 +1,43 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+SaleItem|sale-item:0,sale-item:0,m_Name,도란검,,,explicit-serialized
+SaleItem|sale-item:0,sale-item:0,id,0,,,explicit-serialized
+SaleItem|sale-item:0,sale-item:0,itemName,도란검,,,explicit-serialized
+SaleItem|sale-item:0,sale-item:0,itemDefinitionId,equipment-item:weapon:longsword,,,explicit-serialized
+SaleItem|sale-item:0,sale-item:0,category,2,StockCategory,Weapon (무기),explicit-serialized
+SaleItem|sale-item:0,sale-item:0,cost,1031,,,explicit-serialized
+SaleItem|sale-item:0,sale-item:0,itemSprite.fileID,21300000,,,explicit-serialized
+SaleItem|sale-item:0,sale-item:0,itemSprite.guid,6e35769ef6f215238a4221527f73d537,,,explicit-serialized
+SaleItem|sale-item:0,sale-item:0,itemSprite.type,3,,,explicit-serialized
+SaleItem|sale-item:0,sale-item:0,buyevent,[],,,explicit-serialized
+SaleItem|sale-item:1,sale-item:1,m_Name,도란방패,,,explicit-serialized
+SaleItem|sale-item:1,sale-item:1,id,1,,,explicit-serialized
+SaleItem|sale-item:1,sale-item:1,itemName,도란방패,,,explicit-serialized
+SaleItem|sale-item:1,sale-item:1,itemDefinitionId,equipment-item:shield:wood,,,explicit-serialized
+SaleItem|sale-item:1,sale-item:1,category,2,StockCategory,Weapon (무기),explicit-serialized
+SaleItem|sale-item:1,sale-item:1,cost,103,,,explicit-serialized
+SaleItem|sale-item:1,sale-item:1,itemSprite.fileID,21300000,,,explicit-serialized
+SaleItem|sale-item:1,sale-item:1,itemSprite.guid,6e35769ef6f215238a4221527f73d537,,,explicit-serialized
+SaleItem|sale-item:1,sale-item:1,itemSprite.type,3,,,explicit-serialized
+SaleItem|sale-item:1,sale-item:1,buyevent,[],,,explicit-serialized
+SaleItem|sale-item:2,sale-item:2,m_Name,햄버거,,,explicit-serialized
+SaleItem|sale-item:2,sale-item:2,id,2,,,explicit-serialized
+SaleItem|sale-item:2,sale-item:2,itemName,햄버거,,,explicit-serialized
+SaleItem|sale-item:2,sale-item:2,itemDefinitionId,food:meat-pie,,,explicit-serialized
+SaleItem|sale-item:2,sale-item:2,category,0,StockCategory,Food (식량),explicit-serialized
+SaleItem|sale-item:2,sale-item:2,cost,23,,,explicit-serialized
+SaleItem|sale-item:2,sale-item:2,itemSprite.fileID,21300000,,,explicit-serialized
+SaleItem|sale-item:2,sale-item:2,itemSprite.guid,ca5e703cacd7ac4429c534cdfcbe3e95,,,explicit-serialized
+SaleItem|sale-item:2,sale-item:2,itemSprite.type,3,,,explicit-serialized
+SaleItem|sale-item:2,sale-item:2,buyevent.0.fileID,11400000,,,explicit-serialized
+SaleItem|sale-item:2,sale-item:2,buyevent.0.guid,24fb677b8951acb4d90a3fe397c2dbb2,,,explicit-serialized
+SaleItem|sale-item:2,sale-item:2,buyevent.0.type,2,,,explicit-serialized
+SaleItem|sale-item:4000,sale-item:4000,m_Name,모험용품,,,explicit-serialized
+SaleItem|sale-item:4000,sale-item:4000,id,4000,,,explicit-serialized
+SaleItem|sale-item:4000,sale-item:4000,itemName,모험용품,,,explicit-serialized
+SaleItem|sale-item:4000,sale-item:4000,itemDefinitionId,tool:field-repair-kit,,,explicit-serialized
+SaleItem|sale-item:4000,sale-item:4000,category,1,StockCategory,General (일반),explicit-serialized
+SaleItem|sale-item:4000,sale-item:4000,cost,188,,,explicit-serialized
+SaleItem|sale-item:4000,sale-item:4000,itemSprite.fileID,21300000,,,explicit-serialized
+SaleItem|sale-item:4000,sale-item:4000,itemSprite.guid,049a0a22c520b8543bd678fb224541ce,,,explicit-serialized
+SaleItem|sale-item:4000,sale-item:4000,itemSprite.type,3,,,explicit-serialized
+SaleItem|sale-item:4000,sale-item:4000,buyevent,[],,,explicit-serialized

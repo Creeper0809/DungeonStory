@@ -1,0 +1,58 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "characterspecies-3",
+    "spoiler_tier": "none",
+    "title": "뱀파이어"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/characterspecies-3",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "funeral-culture-vampire",
+      "target_spoiler_tier": "none",
+      "target_title": "Funeral_Vampire",
+      "to": "character/funeral-culture-vampire",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/characterspecies-3",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "life-history-vampire",
+      "target_spoiler_tier": "none",
+      "target_title": "Life_Vampire",
+      "to": "character/life-history-vampire",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/characterspecies-3",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "reproduction-vampire",
+      "target_spoiler_tier": "none",
+      "target_title": "Reproduction_Vampire",
+      "to": "character/reproduction-vampire",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/character-archetype-1003",
+      "label": "관련",
+      "to": "character/characterspecies-3",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/character-archetype-3",
+      "label": "관련",
+      "to": "character/characterspecies-3",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

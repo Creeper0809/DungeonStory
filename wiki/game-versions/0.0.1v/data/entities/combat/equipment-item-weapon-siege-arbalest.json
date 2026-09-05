@@ -1,0 +1,165 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "내압 화기와 방폭"
+    },
+    {
+      "label": "제작 작업",
+      "value": "248"
+    },
+    {
+      "label": "무게",
+      "value": "8.5kg"
+    },
+    {
+      "label": "최대 사거리",
+      "value": "26"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "combat",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-bolt-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "강철촉 볼트",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-bolt-rune",
+      "target_spoiler_tier": "none",
+      "target_title": "룬촉 볼트",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-mana-disruptor-bolt",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 차단 볼트",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-bolt",
+      "target_spoiler_tier": "none",
+      "target_title": "볼트",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-bolt-bone",
+      "target_spoiler_tier": "none",
+      "target_title": "뼈촉 볼트",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-incendiary-bolt",
+      "target_spoiler_tier": "none",
+      "target_title": "소이 볼트",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-tranquilizer-dart",
+      "target_spoiler_tier": "none",
+      "target_title": "진정 다트",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-bolt-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철촉 볼트",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-blacksteel-bolt",
+      "target_spoiler_tier": "none",
+      "target_title": "흑강 볼트",
+      "type": "references"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-siege-counterweight",
+      "target_spoiler_tier": "none",
+      "target_title": "공성 균형추 조립품",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-engineering-drawing",
+      "target_spoiler_tier": "none",
+      "target_title": "공학 도면",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-pressure-barrels",
+      "target_spoiler_tier": "none",
+      "target_title": "내압 화기와 방폭",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-growth-frame",
+      "target_spoiler_tier": "none",
+      "target_title": "성장형 장비 골격",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-prototype-package",
+      "target_spoiler_tier": "none",
+      "target_title": "시제품 설계 묶음",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-bowstring",
+      "target_spoiler_tier": "none",
+      "target_title": "활시위",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "equipment-item-weapon-siege-arbalest",
+  "spoiler_tier": "none",
+  "summary": "공성 쇠뇌 전투 장비",
+  "title": "공성 쇠뇌"
+}

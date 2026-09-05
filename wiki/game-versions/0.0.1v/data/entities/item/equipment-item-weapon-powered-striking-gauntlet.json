@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "7.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "838"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "관절 구동부가 주먹의 순간 충격을 키우는 근접 전투용 장갑이다. 특히 제4주조도시산 동력 타격장갑에는 충격 시험 자국을 일부러 남긴다. 흠집이 없는 물건은 아직 검사를 마치지 못한 것이다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-weapon-powered-striking-gauntlet",
+  "spoiler_tier": "none",
+  "summary": "동력 타격장갑 전투 장비",
+  "title": "동력 타격장갑"
+}

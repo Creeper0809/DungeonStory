@@ -1,0 +1,84 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-survival-field-rations",
+    "spoiler_tier": "none",
+    "title": "야전 식량학"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-survival-field-rations",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-logistics",
+      "target_spoiler_tier": "none",
+      "target_title": "창고 구획",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-field-rations",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-logistics",
+      "target_spoiler_tier": "none",
+      "target_title": "창고 구획",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-field-rations",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-logistics",
+      "target_spoiler_tier": "none",
+      "target_title": "창고 구획",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-field-rations",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-preservation",
+      "target_spoiler_tier": "none",
+      "target_title": "식량 보존",
+      "to": "research/research-survival-preservation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-field-rations",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-preservation",
+      "target_spoiler_tier": "none",
+      "target_title": "식량 보존",
+      "to": "research/research-survival-preservation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-field-rations",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-preservation",
+      "target_spoiler_tier": "none",
+      "target_title": "식량 보존",
+      "to": "research/research-survival-preservation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-expedition-ration-pack",
+      "label": "필요 조건",
+      "to": "research/research-survival-field-rations",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

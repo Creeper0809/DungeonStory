@@ -334,9 +334,22 @@ internal static class FacilityOutputExactRouteCustodyCodec
     internal static bool IsRouteBlocked(
         IEnumerable<ItemInstanceComponentSaveData> components)
     {
-        if ((components ?? Array.Empty<ItemInstanceComponentSaveData>())
-            .Any(PlannedOutputPublicationComponentCodec.IsAnyMarker))
+        ItemInstanceComponentSaveData[] publicationMarkers = (components
+                ?? Array.Empty<ItemInstanceComponentSaveData>())
+            .Where(PlannedOutputPublicationComponentCodec.IsAnyMarker)
+            .ToArray();
+        if (publicationMarkers.Length > 0
+            && (!PlannedOutputPublicationComponentCodec.TryRead(
+                    publicationMarkers,
+                    out PlannedOutputPublicationMetadata publication)
+                || !publication.Acknowledged))
+        {
+            // The publication marker fences the in-flight materialization.
+            // Once it is atomically converted to validated provenance, the
+            // physical lot is acknowledged and ordinary/exact hauling may
+            // consume that immutable evidence without treating it as a lock.
             return true;
+        }
         if (!HasAnyCustody(components))
             return false;
         return !TryRead(
@@ -658,3 +671,48 @@ internal static class FacilityOutputExactRouteCustodyCodec
             || character is >= 'a' and <= 'f');
     }
 }
+
+#if UNITY_EDITOR
+public readonly struct FacilityOutputExactRouteCustodyDiagnosticSnapshot
+{
+    internal FacilityOutputExactRouteCustodyDiagnosticSnapshot(
+        FacilityOutputExactRouteCustodyMetadata value)
+    {
+        IsRoutable = value.Phase
+            == FacilityOutputExactRouteCustodyPhase.Routable;
+        RouteOperationId = value.RouteOperationId;
+        ItemId = value.ItemId;
+        Quantity = value.Quantity;
+        MassGrams = value.MassGrams;
+        CurrentTargetDestinationId = value.CurrentTargetDestinationId;
+        CurrentTargetPosition = value.CurrentTargetPosition;
+    }
+
+    public bool IsRoutable { get; }
+    public string RouteOperationId { get; }
+    public string ItemId { get; }
+    public int Quantity { get; }
+    public long MassGrams { get; }
+    public string CurrentTargetDestinationId { get; }
+    public Vector2Int CurrentTargetPosition { get; }
+}
+
+public static class FacilityOutputExactRouteCustodyDiagnostics
+{
+    public static bool TryCapture(
+        IReadOnlyList<ItemInstanceComponentSaveData> components,
+        out FacilityOutputExactRouteCustodyDiagnosticSnapshot snapshot)
+    {
+        if (FacilityOutputExactRouteCustodyCodec.TryRead(
+                components,
+                out FacilityOutputExactRouteCustodyMetadata value))
+        {
+            snapshot = new FacilityOutputExactRouteCustodyDiagnosticSnapshot(value);
+            return true;
+        }
+
+        snapshot = default;
+        return false;
+    }
+}
+#endif

@@ -260,7 +260,8 @@ internal sealed class CaptivityRestoreCoordinator
         foreach (CaptiveState captive in restored)
         {
             characters.TryGetValue(captive.captiveId, out CharacterActor actor);
-            if (captive.IsActive && (actor == null || actor.IsDead))
+            if ((captive.IsInCustody || captive.IsMinion)
+                && (actor == null || actor.IsDead))
             {
                 report.AddError(
                     $"Active captive '{captive.captiveId}' references a missing or dead character.");
@@ -298,6 +299,17 @@ internal sealed class CaptivityRestoreCoordinator
                         out int count);
                     housingOccupancy[captive.housingBuildingId] = count + 1;
                 }
+            }
+
+            if (captive.rehabilitationFacilityBuildingId.Length > 0
+                && (!buildings.TryGetValue(
+                        captive.rehabilitationFacilityBuildingId,
+                        out BuildableObject rehabilitationFacility)
+                    || rehabilitationFacility.BuildingData
+                        .GetCaptiveHousingAbility()?.IsValid != true))
+            {
+                report.AddError(
+                    $"Minion '{captive.captiveId}' references invalid rehabilitation facility '{captive.rehabilitationFacilityBuildingId}'.");
             }
 
             if (captive.currentInteractionId.Length > 0

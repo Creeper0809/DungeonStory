@@ -1,0 +1,45 @@
+{
+  "facts": [
+    {
+      "label": "효과",
+      "value": "14개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "funeral-culture-harpy",
+      "target_spoiler_tier": "none",
+      "target_title": "Funeral_Harpy",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "life-history-harpy",
+      "target_spoiler_tier": "none",
+      "target_title": "Life_Harpy",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "reproduction-harpy",
+      "target_spoiler_tier": "none",
+      "target_title": "Reproduction_Harpy",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "characterspecies-8",
+  "spoiler_tier": "none",
+  "summary": "하피은(는) 폭풍 둥지을 대표하는 종족이다. 손님·모집 직원·상인·포로·동맹 지원군으로 등장한다.",
+  "title": "하피"
+}

@@ -1,0 +1,102 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "medicine-advanced",
+    "spoiler_tier": "none",
+    "title": "고급 약품"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-advanced-medicine",
+      "label": "생산·해금",
+      "to": "item/medicine-advanced",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-regenerative-medium",
+      "label": "필요 조건",
+      "to": "item/medicine-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-trauma-care-kit",
+      "label": "필요 조건",
+      "to": "item/medicine-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medicine-vaccine-blood-wasting",
+      "label": "필요 조건",
+      "to": "item/medicine-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medicine-vaccine-cave-flu",
+      "label": "필요 조건",
+      "to": "item/medicine-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medicine-vaccine-gut-rot",
+      "label": "필요 조건",
+      "to": "item/medicine-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medicine-vaccine-mana-pox",
+      "label": "필요 조건",
+      "to": "item/medicine-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medicine-vaccine-red-fever",
+      "label": "필요 조건",
+      "to": "item/medicine-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medicine-vaccine-slime-blight",
+      "label": "필요 조건",
+      "to": "item/medicine-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medicine-vaccine-spore-lung",
+      "label": "필요 조건",
+      "to": "item/medicine-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-artificial-eye",
+      "label": "필요 조건",
+      "to": "item/medicine-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "event/guest-request-emergency-surgery",
+      "label": "필요 조건",
+      "to": "item/medicine-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-medical-whole-body-regeneration-medium",
+      "label": "필요 조건",
+      "to": "item/medicine-advanced",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

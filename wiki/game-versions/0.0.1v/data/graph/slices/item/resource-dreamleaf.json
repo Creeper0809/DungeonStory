@@ -1,0 +1,46 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-dreamleaf",
+    "spoiler_tier": "none",
+    "title": "몽엽"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-anesthetic",
+      "label": "필요 조건",
+      "to": "item/resource-dreamleaf",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-dreamleaf-analgesic",
+      "label": "필요 조건",
+      "to": "item/resource-dreamleaf",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-dreamweave",
+      "label": "필요 조건",
+      "to": "item/resource-dreamleaf",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-spin-dreamweave",
+      "label": "필요 조건",
+      "to": "item/resource-dreamleaf",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-spin-powered-dreamweave",
+      "label": "필요 조건",
+      "to": "item/resource-dreamleaf",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

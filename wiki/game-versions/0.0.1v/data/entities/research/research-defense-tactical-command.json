@@ -1,0 +1,85 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "60"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Defense And Tactics"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "facility-blueprint-6192",
+      "target_spoiler_tier": "none",
+      "target_title": "전술 지휘 설계도",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-ranged-positions",
+      "target_spoiler_tier": "none",
+      "target_title": "사격 방책",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-ranged-positions",
+      "target_spoiler_tier": "none",
+      "target_title": "사격 방책",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-ranged-positions",
+      "target_spoiler_tier": "none",
+      "target_title": "사격 방책",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9961",
+      "target_spoiler_tier": "none",
+      "target_title": "금고각인 쇠뇌대",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1040",
+      "target_spoiler_tier": "none",
+      "target_title": "훈련허수아비",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "facility",
+      "target_slug": "recipe-fortress-banner-2",
+      "target_spoiler_tier": "none",
+      "target_title": "전투깃발 제작",
+      "type": "unlocks-recipe"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-defense-tactical-command",
+  "spoiler_tier": "none",
+  "summary": "다중 경비의 전선과 교대를 통합 지휘한다.",
+  "title": "전술 지휘"
+}

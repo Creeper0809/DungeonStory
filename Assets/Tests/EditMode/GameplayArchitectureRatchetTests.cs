@@ -3878,6 +3878,62 @@ namespace DungeonStory.Tests.Architecture
         }
 
         [Test]
+        public void PrimitiveSurvivalVerifierOwnsADurableSourceBoundRequestLifecycle()
+        {
+            SourceFile verifier = SourceBySuffixIncludingEditor(
+                "Services/Survival/Editor/PrimitiveStartSurvivalPlayModeVerifier.cs");
+            SourceFile requestRunner = SourceBySuffixIncludingEditor(
+                "Services/Survival/Editor/PrimitiveStartSurvivalPlayModeRequestRunner.cs");
+
+            Assert.That(requestRunner.Text, Does.Contain(
+                "Temp/v27-primitive-survival-playmode.request.json"));
+            Assert.That(requestRunner.Text, Does.Contain(
+                "internal const string FocusedMode = \"focused\""));
+            Assert.That(requestRunner.Text, Does.Contain(
+                "internal const string SixAdultOutageMode = \"six-adult-outage\""));
+            Assert.That(requestRunner.Text, Does.Contain(
+                "V27CurrentSourceEvidenceDigest.ComputeAllScriptsDigest()"));
+            Assert.That(requestRunner.Text, Does.Contain(
+                "V27CurrentSourceEvidenceDigest.ComputeGameplaySceneDigest()"));
+            Assert.That(requestRunner.Text, Does.Contain(
+                "V27CurrentSourceEvidenceDigest.OfficialGameplaySceneSha256"));
+            Assert.That(requestRunner.Text, Does.Contain(
+                "PlayModeVerificationStartSceneLease.Acquire("));
+            Assert.That(requestRunner.Text, Does.Contain(
+                "PlayModeVerificationStartSceneLease.RestoreOwned("));
+            Assert.That(requestRunner.Text, Does.Contain(
+                "PlayModeVerificationPersistenceSnapshot.CaptureCurrent("));
+            Assert.That(requestRunner.Text, Does.Contain(
+                "PlayModeVerificationPersistenceSnapshot.Restore("));
+            Assert.That(requestRunner.Text, Does.Contain(
+                "[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]"));
+            Assert.That(requestRunner.Text, Does.Contain(
+                "EditorApplication.EnterPlaymode()"));
+            Assert.That(requestRunner.Text, Does.Contain(
+                "EditorApplication.ExitPlaymode()"));
+            Assert.That(requestRunner.Text, Does.Contain(
+                "PLAYMODE_ABORTED verifier returned to EditMode before completion"));
+            Assert.That(requestRunner.Text, Does.Contain(
+                "JsonUtility.ToJson(request) + \"\\n\""));
+            Assert.That(requestRunner.Text, Does.Not.Contain(
+                "EditorSceneManager.OpenScene("));
+
+            int reportWrite = verifier.Text.IndexOf(
+                "File.WriteAllLines(ActiveReportPath, report);",
+                StringComparison.Ordinal);
+            int durableCompletion = verifier.Text.IndexOf(
+                "PrimitiveStartSurvivalPlayModeRequestRunner.CompleteRun(",
+                StringComparison.Ordinal);
+            Assert.That(reportWrite, Is.GreaterThanOrEqualTo(0));
+            Assert.That(durableCompletion, Is.GreaterThan(reportWrite),
+                "The durable request must remain present until terminal evidence is published.");
+            Assert.That(verifier.Text, Does.Contain(
+                "yield return RunVerificationGuarded();"));
+            Assert.That(verifier.Text, Does.Contain(
+                "UNHANDLED_VERIFIER_EXCEPTION"));
+        }
+
+        [Test]
         public void CodexFeatureOwnsQueryCommandAndPresentation()
         {
             SourceFile panel = SourceBySuffix("Views/UI/Core/P0FeatureSurfacePanel.cs");

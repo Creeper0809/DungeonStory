@@ -1,0 +1,5 @@
+﻿source_path,code_system,layer,domain,scope,namespace,declared_symbol_count,declared_symbols,symbol_kinds,architectural_roles,optimization_techniques,architecture_system_ids
+Assets/Scripts/Models/Run/Core/DungeonDifficulty.cs,models:run,Models,Run,runtime,,2,DungeonDifficultyMultipliers; DungeonDifficultyRules,class; struct,runtime-support,,
+Assets/Scripts/Models/Run/Core/OwnerDoctrineCatalog.cs,models:run,Models,Run,runtime,,2,OwnerDoctrineIds; OwnerDoctrineDefinition,class,runtime-support,,
+Assets/Scripts/Models/Run/Core/RunVariableCatalog.cs,models:run,Models,Run,runtime,,1,RunVariableIds,class,runtime-support,,
+Assets/Scripts/Models/Run/Core/RunVariableEvents.cs,models:run,Models,Run,runtime,,5,ActiveRunVariableSnapshot; RunStartVariablesSelectedEvent; RunVariableActivatedEvent; RunVariableExpiredEvent; InvasionVariableSelectedEvent,class; struct,event-or-transaction; read-projection,,

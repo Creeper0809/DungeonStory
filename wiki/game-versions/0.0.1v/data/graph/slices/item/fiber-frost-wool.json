@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "fiber-frost-wool",
+    "spoiler_tier": "none",
+    "title": "서리 양모직 원섬유"
+  },
+  "edges": [
+    {
+      "amount": "3",
+      "from": "nature/frost-ram",
+      "label": "관련",
+      "to": "item/fiber-frost-wool",
+      "type": "references"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-spin-frost-wool",
+      "label": "필요 조건",
+      "to": "item/fiber-frost-wool",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-spin-powered-frost-wool",
+      "label": "필요 조건",
+      "to": "item/fiber-frost-wool",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

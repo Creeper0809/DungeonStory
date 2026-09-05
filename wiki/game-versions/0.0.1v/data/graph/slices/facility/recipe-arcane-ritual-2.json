@@ -1,0 +1,51 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "recipe-arcane-ritual-2",
+    "spoiler_tier": "none",
+    "title": "의식초점석 조율"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/recipe-arcane-ritual-2",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1038",
+      "target_spoiler_tier": "none",
+      "target_title": "룬안정기",
+      "to": "facility/building-1038",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/recipe-arcane-ritual-2",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1039",
+      "target_spoiler_tier": "none",
+      "target_title": "의식초점석",
+      "to": "facility/building-1039",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/recipe-arcane-ritual-2",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1070",
+      "target_spoiler_tier": "none",
+      "target_title": "촛대",
+      "to": "facility/building-1070",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "research/research-arcane-resonance",
+      "label": "제작식 해금",
+      "to": "facility/recipe-arcane-ritual-2",
+      "type": "unlocks-recipe"
+    }
+  ],
+  "schema_version": 1
+}

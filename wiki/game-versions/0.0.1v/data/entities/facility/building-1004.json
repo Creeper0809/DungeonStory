@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "상점"
+    },
+    {
+      "label": "크기",
+      "value": "2×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-1004",
+  "spoiler_tier": "none",
+  "summary": "시설 동작은 BuildingEconomyAbility, BuildingEvolutionAbility, BuildingFacilityPartAbility, BuildingTableAbility, BuildingWorkAmountAbility 모듈로 구성된다. 건설에는 작업량 463, 재료 목재×9이 필요하다.",
+  "title": "소형식탁"
+}

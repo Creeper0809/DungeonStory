@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1050",
+    "spoiler_tier": "none",
+    "title": "대형보관선반"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/recipe-logistics-shelf-1",
+      "label": "관련",
+      "to": "facility/building-1050",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

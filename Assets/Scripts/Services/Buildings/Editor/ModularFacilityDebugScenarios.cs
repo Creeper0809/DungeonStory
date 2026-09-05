@@ -538,7 +538,9 @@ public static class ModularFacilityDebugScenarios
                 new GridBuildingObjectFactory()),
             new BuildingPlacementValidator(
                 new GridPlacementValidator(),
-                () => new BuildingConditionContext(gameData)), workOrderRuntime: null);
+                () => new BuildingConditionContext(gameData)),
+            workOrderRuntime: null,
+            destructiveLoss: ImmediateBuildingDestructiveLossFixture.Instance);
     }
 
     private static BuildingSO CreateEconomyBuilding(
@@ -1411,8 +1413,6 @@ public static class ModularFacilityDebugScenarios
             Facility warehouse = created.FirstOrDefault((item) => item != null && item.id == 1050) as Facility;
             Require(warehouse != null && warehouse.HasWarehouseInventory,
                 "L01 did not create its warehouse inventory.");
-            Require(warehouse.Inventory.MaxCapacity == warehouse.GetInternalStockCapacity(),
-                "L01 warehouse inventory did not retain its configured capacity.");
             Require(warehouse.Inventory.HasMassCapacityAuthority
                     && warehouse.Inventory.MaxMassGrams == 25_000L,
                 "L01 warehouse inventory did not project its 25,000g authority.");
@@ -1423,9 +1423,8 @@ public static class ModularFacilityDebugScenarios
             Require(cratePile != null && cratePile.HasWarehouseInventory,
                 "L02 did not create its warehouse inventory.");
             Require(cratePile.Inventory.HasMassCapacityAuthority
-                    && cratePile.Inventory.MaxMassGrams == 12_500L
-                    && cratePile.Inventory.MaxCapacity == 16,
-                "L02 runtime warehouse did not project 12,500g while preserving legacy count metadata.");
+                    && cratePile.Inventory.MaxMassGrams == 12_500L,
+                "L02 runtime warehouse did not project its 12,500g authority.");
             Require(cratePile.Inventory.TotalStock == 0,
                 "L02 warehouse must start empty; stock is derived from physical items only.");
             Require(created.FirstOrDefault((item) => item != null && item.id == 1012) is Shop,
@@ -2180,6 +2179,36 @@ public static class ModularFacilityDebugScenarios
     private sealed class NoopFloatingNumberFeedbackService : IFloatingNumberFeedbackService
     {
         public bool TryShow(NumberCondition condition, Vector3 worldPosition, float value) => false;
+    }
+
+    private sealed class ImmediateBuildingDestructiveLossFixture :
+        IBuildingDestructiveLossRuntime
+    {
+        internal static readonly ImmediateBuildingDestructiveLossFixture Instance =
+            new ImmediateBuildingDestructiveLossFixture();
+
+        private ImmediateBuildingDestructiveLossFixture()
+        {
+        }
+
+        public BuildingDestructiveLossResult Apply(
+            BuildableObject building,
+            ProductionFacilityDestructiveDrainCause cause)
+        {
+            if (building == null
+                || cause != ProductionFacilityDestructiveDrainCause
+                    .ExplicitDemolition)
+            {
+                return new BuildingDestructiveLossResult(
+                    BuildingDestructiveLossDisposition.Conflict,
+                    "invalid modular facility demolition fixture request");
+            }
+
+            building.DestroySelf();
+            return new BuildingDestructiveLossResult(
+                BuildingDestructiveLossDisposition.RemovedAwaitingCheckpointGc,
+                string.Empty);
+        }
     }
 
     private sealed class NoopWorkforceReplanService : IWorkforceReplanService

@@ -1,0 +1,27 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Elder Retirement"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "3",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-elder-birthday",
+      "target_spoiler_tier": "warning",
+      "target_title": "노년의 생일상",
+      "type": "changes-mood"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "life-event-elder-birthday",
+  "spoiler_tier": "warning",
+  "summary": "여러 세대가 한 자리에 모여 노년 구성원의 생일을 축하했다.",
+  "title": "노년의 생일상"
+}

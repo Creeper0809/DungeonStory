@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "340"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "룬 안정과 의식 조명을 결합해 의식초점석을 조율하는 희귀 조합식이다. 베르사디온의 비전 공명 설계도는 여러 계약자의 마나가 한 시설에서 충돌할 때 끊을 회로를 따로 둔다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "research-blueprint-6193",
+  "spoiler_tier": "none",
+  "summary": "룬 안정과 의식 조명을 결합해 의식초점석을 조율하는 희귀 조합식이다.",
+  "title": "비전 공명 설계도"
+}

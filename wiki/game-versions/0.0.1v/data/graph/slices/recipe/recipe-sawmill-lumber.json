@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-sawmill-lumber",
+    "spoiler_tier": "none",
+    "title": "목재 제재"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-sawmill-lumber",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-log",
+      "target_spoiler_tier": "none",
+      "target_title": "원목",
+      "to": "item/resource-log",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-sawmill-lumber",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "목재",
+      "to": "item/material-lumber",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-sawmill-lumber",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-forestry-sawmill",
+      "target_spoiler_tier": "none",
+      "target_title": "제재",
+      "to": "research/research-forestry-sawmill",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

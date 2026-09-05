@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-young-wine",
+    "spoiler_tier": "none",
+    "title": "어린 포도주"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-night-spirit",
+      "label": "필요 조건",
+      "to": "item/material-young-wine",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-night-wine",
+      "label": "필요 조건",
+      "to": "item/material-young-wine",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-young-wine",
+      "label": "생산·해금",
+      "to": "item/material-young-wine",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

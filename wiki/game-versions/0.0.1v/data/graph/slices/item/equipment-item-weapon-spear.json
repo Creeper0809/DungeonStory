@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "equipment-item-weapon-spear",
+    "spoiler_tier": "none",
+    "title": "창"
+  },
+  "edges": [],
+  "schema_version": 1
+}

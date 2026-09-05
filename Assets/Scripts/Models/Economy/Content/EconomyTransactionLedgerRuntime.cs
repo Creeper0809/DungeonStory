@@ -20,6 +20,10 @@ public interface IEconomyTransactionLedger
         string reason,
         int balanceAfter);
     int SumSince(float gameTime, bool income);
+    bool TryGetSuccessfulBySource(
+        EconomyTransactionKind kind,
+        string sourceId,
+        out EconomyTransactionRecord record);
     EconomyTransactionLedgerSaveData Capture();
 }
 
@@ -225,6 +229,21 @@ public sealed class EconomyTransactionLedgerRuntime :
                 && record.gameTime >= gameTime
                 && (income ? record.amount > 0 : record.amount < 0))
             .Sum(record => income ? record.amount : -record.amount);
+    }
+
+    public bool TryGetSuccessfulBySource(
+        EconomyTransactionKind kind,
+        string sourceId,
+        out EconomyTransactionRecord record)
+    {
+        string canonical = sourceId ?? string.Empty;
+        EconomyTransactionRecord match = records.LastOrDefault(value =>
+            value != null
+            && value.succeeded
+            && value.kind == kind
+            && string.Equals(value.sourceId, canonical, StringComparison.Ordinal));
+        record = match?.Clone();
+        return record != null;
     }
 
     public EconomyTransactionLedgerSaveData Capture()

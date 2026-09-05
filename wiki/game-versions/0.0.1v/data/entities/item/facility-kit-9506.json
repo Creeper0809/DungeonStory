@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "165"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "보철 조립대에서 보철 부품을 맞추고 조립해 수술에 넘기도록 만든 설치 부품이다. 제4주조도시의 보철 조립대에서 나온 물건은 마지막 수리자가 누른 네모 손자국을 하나씩 달고 나온다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "facility-kit-9506",
+  "spoiler_tier": "none",
+  "summary": "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.",
+  "title": "보철 조립대 설치 키트"
+}

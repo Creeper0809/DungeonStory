@@ -73,7 +73,7 @@ public static class V20NarrativeContentAssetBuilder
         A("ambition:restore-lineage", "끊긴 계보 복원", "잃어버린 가문의 기록과 유산을 다음 세대에 잇고자 한다.", CharacterAmbitionCategory.Family, 260, "life-event:lineage-relic", V20ContentEffectKind.WorldFlag, "flag:lineage-restored"),
         A("ambition:worthy-guardian", "믿을 만한 보호자", "보호받지 못한 아이가 성년이 될 때까지 곁을 지키려 한다.", CharacterAmbitionCategory.Family, 240, "life-event:guardian-oath", V20ContentEffectKind.Relationship, "guardian"),
         A("ambition:become-steward", "관리인의 자리", "던전의 혼란을 정리하는 공식 관리인이 되려 한다.", CharacterAmbitionCategory.Status, 250, "life-event:position-rivalry", V20ContentEffectKind.WorldFlag, "flag:earned-stewardship"),
-        A("ambition:guard-captain", "경비대의 신뢰", "승리가 아니라 모두를 귀환시키는 지휘관으로 인정받으려 한다.", CharacterAmbitionCategory.Status, 280, "life-event:captains-test", V20ContentEffectKind.Relationship, "guards"),
+        A("ambition:guard-captain", "경비대의 신뢰", "모두를 귀환시키는 지휘관으로 인정받으려 한다.", CharacterAmbitionCategory.Status, 280, "life-event:captains-test", V20ContentEffectKind.Relationship, "guards"),
         A("ambition:cultural-voice", "문화의 대변자", "자신의 관습이 조롱받지 않고 공동체의 규칙에 반영되길 바란다.", CharacterAmbitionCategory.Status, 230, "life-event:cultural-petition", V20ContentEffectKind.Mood, "cultural-pride"),
         A("ambition:build-clinic", "모두를 위한 진료소", "신분과 종족에 관계없이 치료받는 시설을 세우려 한다.", CharacterAmbitionCategory.Community, 280, "life-event:clinic-shortage", V20ContentEffectKind.WorldFlag, "flag:public-clinic"),
         A("ambition:end-hunger", "빈 식탁 없는 겨울", "한겨울에도 모든 가구가 충분히 먹는 생산망을 만들려 한다.", CharacterAmbitionCategory.Community, 260, "life-event:winter-pantry", V20ContentEffectKind.WorldFlag, "flag:winter-fed"),

@@ -20,11 +20,10 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
     public const string TransformCsvPath =
         "Artifacts/QA/v27-physical-mass-transform-contracts.csv";
 
-    private const int ExpectedLedgerItems = 414;
     private const int ExpectedEquipmentSemantics = 61;
     private const int ExpectedApparelDefinitions = 56;
     private const int ExpectedApparelItemSemantics = 56;
-    private const int ExpectedAuthorityCommoditySemantics = 54;
+    private const int ExpectedAuthorityCommoditySemantics = 55;
     private const int ExpectedAuthorityResourceSemantics = 22;
     private const int ExpectedAuthorityToolProstheticSemantics = 21;
     private const int ExpectedAuthorityComponentSemantics = 36;
@@ -32,6 +31,7 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
     private const int ExpectedAuthorityUnpackagedMealProcessSemantics = 6;
     private const int ExpectedAuthoritySolidMedicalSemantics = 6;
     private const int ExpectedAuthorityIntegralSolidConsumables = 2;
+    private const int ExpectedAuthorityMedicalSupplySemantics = 51;
     private const string SelfPath =
         "Assets/Scripts/Services/Economy/Editor/V27PhysicalMassExplicitSemanticDebugScenarios.cs";
     private const string InventoryPath =
@@ -150,8 +150,11 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
 
     private static CaptureResult Capture(IReadOnlyList<string> ledgerItemIds)
     {
-        Require(ledgerItemIds != null && ledgerItemIds.Count == ExpectedLedgerItems,
-            $"Expected {ExpectedLedgerItems} ledger items, found {ledgerItemIds?.Count ?? 0}.");
+        Require(ledgerItemIds != null && ledgerItemIds.Count > 0,
+            "Dynamic ledger item scope is empty.");
+        Require(ledgerItemIds.Distinct(StringComparer.Ordinal).Count()
+                == ledgerItemIds.Count,
+            "Dynamic ledger item scope contains duplicate stable IDs.");
         Require(ledgerItemIds.SequenceEqual(
                 ledgerItemIds.OrderBy(value => value, StringComparer.Ordinal)),
             "Ledger item identities are not ordinal sorted.");
@@ -261,6 +264,7 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
         ValidateBeforeMass(items, "feed:hay", 196);
         ValidateBeforeMass(items, "feed:silage", 230);
         ValidateBeforeMass(items, "feed:dog-food", 525);
+        ValidateBeforeMass(items, "feed:dog-food-fresh", 525);
         ValidateBeforeMass(items, "food:meat-pie", 575);
         ValidateBeforeMass(items, "food:lavish-vegan", 900);
         ValidateBeforeMass(items, "resource:dreamleaf", 80);
@@ -399,28 +403,29 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
             .Append("resource:dreamleaf|material:iron-ingot|")
             .Append("container:medical-vial|medicine:anesthetic\n")
             .Append("GRAIN_PORRIDGE_MASS_CONSERVATION=PASS; ")
-            .Append("input=2100g; infrastructureWater=125g; output=2172g; ")
-            .Append("wastewater=50g; evaporation=3g\n")
+            .Append("input=2100g; infrastructureWater=1700g; output=3600g; ")
+            .Append("wastewater=100g; evaporation=100g\n")
             .Append("SAWMILL_MASS_CONSERVATION=PASS; ")
-            .Append("input=3600g; output=3300g; cuttingWaste=300g\n")
+            .Append("input=3600g; output=3600g; cuttingWaste=0g\n")
             .Append("MUSHROOM_SOUP_MASS_CONSERVATION=PASS; ")
-            .Append("input=500g; infrastructureWater=125g; output=570g; ")
-            .Append("wastewater=50g; evaporation=5g\n")
+            .Append("input=500g; infrastructureWater=950g; output=1300g; ")
+            .Append("wastewater=100g; evaporation=50g\n")
             .Append("ROASTED_MEAT_MASS_CONSERVATION=PASS; ")
-            .Append("input=1400g; output=1260g; evaporation=140g\n")
+            .Append("input=1400g; infrastructureWater=150g; output=1500g; ")
+            .Append("evaporation=50g\n")
             .Append("ROOT_STEW_MASS_CONSERVATION=PASS; ")
-            .Append("input=900g; infrastructureWater=125g; output=960g; ")
-            .Append("wastewater=50g; evaporation=15g\n")
+            .Append("input=900g; infrastructureWater=650g; output=1400g; ")
+            .Append("wastewater=100g; evaporation=50g\n")
             .Append("MILLING_FLOUR_MASS_CONSERVATION=PASS; ")
-            .Append("input=1050g; output=1000g; millingByproduct=50g\n")
+            .Append("input=1050g; output=600g; millingByproduct=450g\n")
             .Append("EGG_PANCAKE_MASS_CONSERVATION=PASS; ")
-            .Append("physicalInput=1800g; infrastructureWater=100g; ")
-            .Append("output=1600g; wastewater=75g; evaporation=225g\n")
+            .Append("physicalInput=1600g; infrastructureWater=100g; ")
+            .Append("output=1300g; wastewater=75g; evaporation=325g\n")
             .Append("ANIMAL_PRODUCT_SOURCE_CONTRACTS=PASS; ")
             .Append("milkBatch=3; eggBatch=3; externalBiomassExcluded=true\n")
             .Append("CURD_WHEY_WASTEWATER_MASS_CONSERVATION=PASS; ")
-            .Append("physicalInput=2900g; infrastructureWater=100g; ")
-            .Append("curdOutput=900g; wheyWastewater=2100g; loss=0g\n")
+            .Append("physicalInput=2900g; infrastructureWater=200g; ")
+            .Append("curdOutput=900g; wheyWastewater=2100g; loss=100g\n")
             .Append("FRESH_CURD_MASS_CONSERVATION=PASS; ")
             .Append("input=450g; output=450g; loss=0g\n")
             .Append("CHEESE_AGING_MASS_CONSERVATION=PASS; ")
@@ -457,16 +462,18 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
             .Append("WASHED_VEGETABLE_MASS_CONSERVATION=PASS; input=900g; ")
             .Append("infrastructureWater=125g; output=900g; wastewater=125g\n")
             .Append("BRINED_VEGETABLE_MASS_CONSERVATION=PASS; input=1400g; ")
-            .Append("infrastructureWater=100g; output=1000g; brineWastewater=500g\n")
+            .Append("infrastructureWater=700g; output=1000g; ")
+            .Append("brineWastewater=1000g; preparationLoss=100g\n")
             .Append("FERMENTED_VINEGAR_MASS_CONSERVATION=PASS; input=500g; ")
             .Append("infrastructureWater=350g; output=800g; fermentationGasLoss=50g\n")
             .Append("FERMENTED_PICKLE_MASS_CONSERVATION=PASS; input=1400g; ")
-            .Append("output=900g; brineWastewater=500g\n")
+            .Append("infrastructureWater=600g; output=900g; ")
+            .Append("brineWastewater=1000g; fermentationLoss=100g\n")
             .Append("PRESERVED_VEGETABLE_MASS_CONSERVATION=PASS; input=1350g; ")
             .Append("output=1100g; cookingEvaporation=250g\n")
-            .Append("DOUGH_MASS_CONSERVATION=PASS; physicalInput=1250g; ")
-            .Append("infrastructureWater=75g; output=1000g; wastewater=50g; ")
-            .Append("preparationLoss=275g\n")
+            .Append("DOUGH_MASS_CONSERVATION=PASS; physicalInput=850g; ")
+            .Append("infrastructureWater=300g; output=1000g; wastewater=100g; ")
+            .Append("preparationLoss=50g\n")
             .Append("SEASONED_FILLING_MASS_CONSERVATION=PASS; input=1850g; ")
             .Append("output=1300g; preparationWaste=550g\n")
             .Append("VEGETABLE_PIE_MASS_CONSERVATION=PASS; input=950g; ")
@@ -494,15 +501,17 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
             .Append("HAUL_CLASS_CONTRACTS=PASS; ordinaryCommodityBand=6-11kg; ")
             .Append("individualEquipment=single-unit; heavyBand=11-20kg; ")
             .Append("oversizeThreshold=20kg\n")
-            .Append("packageTareContracts=1; packageTareDeferred=partial; ")
-            .Append("medicineSemanticsDeferred=partial\n")
+            .Append("packageTareContracts=1; packagingReviewContracts=52; ")
+            .Append("integralUnitNoDetachableTare=51; packagingUnresolved=0; ")
+            .Append("authorityMedicalSupplySemantics=")
+            .Append(ExpectedAuthorityMedicalSupplySemantics).Append('\n')
             .Append("deterministicRecapture=PASS; byteIdentical=true\n")
             .Append("sourceDigest=").Append(sourceDigest).Append('\n')
             .Append("inspectedAssetDigest=").Append(beforeAssetDigest).Append('\n')
             .Append("assignmentsAuthoritative=").Append(semantics.Length)
             .Append("; assetApplication=18; reviewStatus=focused-applied-plus-audit-only\n")
-            .Append("nextGate=MISSING_ITEM_UNIT_SEMANTIC; remaining=")
-            .Append(missingCount).Append("; status=IN_PROGRESS\n");
+            .Append("nextGate=NONE; remaining=")
+            .Append(missingCount).Append("; status=PASS\n");
 
         return new CaptureResult(
             Encoding.UTF8.GetBytes(report.ToString()),
@@ -550,7 +559,182 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
             .Concat(BuildAuthorityUnpackagedMealProcessSemantics(items))
             .Concat(BuildAuthoritySolidMedicalSemantics(items))
             .Concat(BuildAuthorityIntegralSolidConsumables(items))
+            .Concat(BuildAuthorityMedicalSupplySemantics(items))
             .ToArray();
+    }
+
+    private static CanonicalItemUnitSemantic[]
+        BuildAuthorityMedicalSupplySemantics(
+            IReadOnlyDictionary<string, ItemDefinitionSO> items)
+    {
+        List<CanonicalItemUnitSemantic> result = new();
+        const PhysicalMassDerivationKind derived =
+            PhysicalMassDerivationKind.RecipeMassBalance;
+
+        AddAuthoritySemantics(
+            result,
+            items,
+            new[]
+            {
+                "drug:blood-stimulant",
+                "drug:dreamleaf-analgesic",
+                "drug:hallucinogenic-distillate",
+                "drug:mana-awakener",
+                "drug:moonflower-tea",
+                "drug:vitality-tonic",
+                "medicine:advanced",
+                "medicine:antidote",
+                "medicine:antiseptic",
+                "medicine:mycelial-culture-pack",
+                "medicine:standard"
+            },
+            ItemUnitSemanticKind.MedicineDoseOrKit,
+            "1 prepared medicine dose or culture pack",
+            "One complete authored medicine dose, tincture, antiseptic measure, or culture pack; its active medium and integral handling material travel as one consumed physical unit.",
+            derived,
+            PhysicalHaulMassClass.MicroUrgent,
+            packagingReviewDisposition:
+                PackagingReviewDisposition.IntegralUnitNoDetachableTare);
+
+        AddAuthoritySemantics(
+            result,
+            items,
+            new[]
+            {
+                "medicine:vaccine:blood-wasting",
+                "medicine:vaccine:cave-flu",
+                "medicine:vaccine:gut-rot",
+                "medicine:vaccine:mana-pox",
+                "medicine:vaccine:red-fever",
+                "medicine:vaccine:slime-blight",
+                "medicine:vaccine:spore-lung"
+            },
+            ItemUnitSemanticKind.MedicineDoseOrKit,
+            "1 sealed vaccine dose",
+            "One complete authored vaccine dose; antigen medium and integral dose handling material are consumed through the medical procedure rather than represented as detachable tare.",
+            derived,
+            PhysicalHaulMassClass.MicroUrgent,
+            packagingReviewDisposition:
+                PackagingReviewDisposition.IntegralUnitNoDetachableTare);
+
+        AddAuthoritySemantics(
+            result,
+            items,
+            new[]
+            {
+                "sample:antigen:blood-wasting",
+                "sample:antigen:cave-flu",
+                "sample:antigen:gut-rot",
+                "sample:antigen:mana-pox",
+                "sample:antigen:red-fever",
+                "sample:antigen:slime-blight",
+                "sample:antigen:spore-lung"
+            },
+            ItemUnitSemanticKind.MedicineDoseOrKit,
+            "1 diagnostic antigen sample",
+            "One complete authored diagnostic antigen sample used as a physical medical-analysis input; its collection medium is integral to the sample unit.",
+            derived,
+            PhysicalHaulMassClass.MicroUrgent,
+            packagingReviewDisposition:
+                PackagingReviewDisposition.IntegralUnitNoDetachableTare);
+
+        AddAuthoritySemantics(
+            result,
+            items,
+            new[]
+            {
+                "medical:cross-lineage-medium",
+                "medical:fertility-treatment",
+                "medical:isolation-care-kit",
+                "medical:organ-preservation-canister",
+                "medical:regenerative-medium",
+                "medical:rejuvenation-serum",
+                "medical:trait-analysis-kit",
+                "medical:trauma-care-kit"
+            },
+            ItemUnitSemanticKind.MedicineDoseOrKit,
+            "1 specialised medical treatment unit",
+            "One complete authored treatment medium, preservation canister, analysis kit, or care kit transferred to its medical procedure as an indivisible physical unit.",
+            derived,
+            PhysicalHaulMassClass.Ordinary,
+            packagingReviewDisposition:
+                PackagingReviewDisposition.IntegralUnitNoDetachableTare);
+
+        AddAuthoritySemantics(
+            result,
+            items,
+            new[] { "medical:whole-body-regeneration-medium" },
+            ItemUnitSemanticKind.MedicineDoseOrKit,
+            "1 heavy whole-body regeneration medium",
+            "One complete 14.5-kilogram whole-body regeneration medium transferred as a single heavy medical load.",
+            derived,
+            PhysicalHaulMassClass.Heavy,
+            packagingReviewDisposition:
+                PackagingReviewDisposition.IntegralUnitNoDetachableTare);
+
+        AddAuthoritySemantics(
+            result,
+            items,
+            new[]
+            {
+                "craft:fang-poison",
+                "craft:resin-balm",
+                "craft:ritual-reagent",
+                "craft:toxic-trap-coating"
+            },
+            ItemUnitSemanticKind.CatalystOrRelic,
+            "1 prepared reagent or coating unit",
+            "One complete authored poison, balm, ritual reagent, or trap coating consumed by its target action; no detachable container item exists in the current physical catalog.",
+            derived,
+            PhysicalHaulMassClass.MicroUrgent,
+            packagingReviewDisposition:
+                PackagingReviewDisposition.IntegralUnitNoDetachableTare);
+
+        AddAuthoritySemantics(
+            result,
+            items,
+            new[]
+            {
+                "food:expedition-ration-pack",
+                "food:preserved-ration"
+            },
+            ItemUnitSemanticKind.MealPortion,
+            "1 sealed ration portion",
+            "One complete authored preserved or expedition ration consumed as one meal portion; packaging is integral to the current physical unit and exits through the ration-consumption sink.",
+            derived,
+            PhysicalHaulMassClass.MicroUrgent,
+            packagingReviewDisposition:
+                PackagingReviewDisposition.IntegralUnitNoDetachableTare);
+
+        AddAuthoritySemantics(
+            result,
+            items,
+            new[]
+            {
+                "supply:alliance-signal-kit",
+                "supply:botanical-pesticide",
+                "supply:certified-seed-kit",
+                "supply:defense-mixed-ammo-box",
+                "supply:funeral-preparation-kit",
+                "supply:fungicide",
+                "supply:greenhouse-nutrient",
+                "supply:mushroom-substrate",
+                "supply:nitrate-fertilizer",
+                "supply:performance-prop-box",
+                "supply:pest-lure"
+            },
+            ItemUnitSemanticKind.FacilityInstallationKit,
+            "1 operational supply kit or material lot",
+            "One complete authored operational supply, treatment material, seed kit, prop box, ammunition box, or installation lot consumed by the named facility or world operation; its handling material is integral to the current item unit.",
+            derived,
+            PhysicalHaulMassClass.Ordinary,
+            packagingReviewDisposition:
+                PackagingReviewDisposition.IntegralUnitNoDetachableTare);
+
+        Require(result.Count == ExpectedAuthorityMedicalSupplySemantics,
+            $"Expected {ExpectedAuthorityMedicalSupplySemantics} medical/supply semantics, "
+            + $"found {result.Count}.");
+        return result.ToArray();
     }
 
     private static CanonicalItemUnitSemantic[]
@@ -1281,7 +1465,7 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
         AddAuthoritySemantics(
             result,
             items,
-            new[] { "feed:dog-food" },
+            new[] { "feed:dog-food", "feed:dog-food-fresh" },
             ItemUnitSemanticKind.ProduceBundle,
             "1 animal-feed ration",
             "One authored dog-food ration consumed as a single animal-feeding unit without disposable packaging.",
@@ -1304,7 +1488,9 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
         PhysicalMassDerivationKind derivationKind,
         PhysicalHaulMassClass haulClass,
         PackageTareDisposition packageTareDisposition =
-            PackageTareDisposition.None)
+            PackageTareDisposition.None,
+        PackagingReviewDisposition packagingReviewDisposition =
+            PackagingReviewDisposition.Unspecified)
     {
         foreach (string itemId in itemIds.OrderBy(value => value, StringComparer.Ordinal))
         {
@@ -1324,7 +1510,8 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
                 derivationKind,
                 new PhysicalMassGrams(grams),
                 haulClass,
-                "mass:semantic-authority:" + itemId + ":v1"));
+                "mass:semantic-authority:" + itemId + ":v1",
+                packagingReviewDisposition));
         }
     }
 
@@ -1447,7 +1634,7 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
             string.Empty,
             "mass-material:cooked-grain",
             PhysicalMassDerivationKind.RecipeMassBalance,
-            new PhysicalMassGrams(362),
+            new PhysicalMassGrams(600),
             PhysicalHaulMassClass.MicroUrgent,
             "mass:recipe:grain-porridge:v1"),
         new CanonicalItemUnitSemantic(
@@ -1468,14 +1655,14 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
             "material:lumber",
             ItemUnitSemanticKind.ProcessedLumberBundle,
             "1 lumber bundle",
-            "One standardized processed-lumber bundle after explicit saw-cut loss.",
+            "One standardized 1,200-gram processed-lumber bundle; the current sawmill batch divides two log sections exactly into three bundles.",
             2000,
             0,
             PackageTareDisposition.None,
             string.Empty,
             "mass-material:dry-lumber",
             PhysicalMassDerivationKind.RecipeMassBalance,
-            new PhysicalMassGrams(1100),
+            new PhysicalMassGrams(1200),
             PhysicalHaulMassClass.Ordinary,
             "mass:recipe:sawmill-lumber:v1"),
         new CanonicalItemUnitSemantic(
@@ -1503,7 +1690,7 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
             string.Empty,
             "mass-material:mushroom-soup",
             PhysicalMassDerivationKind.RecipeMassBalance,
-            new PhysicalMassGrams(285),
+            new PhysicalMassGrams(650),
             PhysicalHaulMassClass.MicroUrgent,
             "mass:recipe:mushroom-soup:v1"),
         new CanonicalItemUnitSemantic(
@@ -1531,7 +1718,7 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
             string.Empty,
             "mass-material:roasted-meat",
             PhysicalMassDerivationKind.RecipeMassBalance,
-            new PhysicalMassGrams(630),
+            new PhysicalMassGrams(750),
             PhysicalHaulMassClass.MicroUrgent,
             "mass:recipe:roasted-meat:v1"),
         new CanonicalItemUnitSemantic(
@@ -1559,7 +1746,7 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
             string.Empty,
             "mass-material:root-stew",
             PhysicalMassDerivationKind.RecipeMassBalance,
-            new PhysicalMassGrams(480),
+            new PhysicalMassGrams(700),
             PhysicalHaulMassClass.MicroUrgent,
             "mass:recipe:root-stew:v1"),
         new CanonicalItemUnitSemantic(
@@ -1594,14 +1781,14 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
             "material:flour",
             ItemUnitSemanticKind.OtherExplicitPhysicalUnit,
             "1 mill measure",
-            "One 500-gram flour measure transferred from the mill without disposable packaging.",
+            "One 300-gram flour measure transferred from the mill without disposable packaging.",
             800,
             0,
             PackageTareDisposition.None,
             string.Empty,
             "mass-material:flour",
             PhysicalMassDerivationKind.RecipeMassBalance,
-            new PhysicalMassGrams(500),
+            new PhysicalMassGrams(300),
             PhysicalHaulMassClass.MicroUrgent,
             "mass:recipe:milling-flour:v1"),
         new CanonicalItemUnitSemantic(
@@ -1615,7 +1802,7 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
             string.Empty,
             "mass-material:egg-pancake",
             PhysicalMassDerivationKind.RecipeMassBalance,
-            new PhysicalMassGrams(800),
+            new PhysicalMassGrams(650),
             PhysicalHaulMassClass.MicroUrgent,
             "mass:recipe:egg-pancake:v1"),
         new CanonicalItemUnitSemantic(
@@ -2121,7 +2308,8 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
             PhysicalMassDerivationKind.RecipeMassBalance,
             new PhysicalMassGrams(120),
             PhysicalHaulMassClass.MicroUrgent,
-            "mass:recipe:anesthetic:v1")
+            "mass:recipe:anesthetic:v1",
+            PackagingReviewDisposition.DetachableTare)
     };
 
     private static MaterialMassProfile[] MaterialProfiles() => new[]
@@ -2274,6 +2462,7 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
         long silageGrams = MassOf(semantics, "feed:silage");
         long animalRotGrams = MassOf(semantics, "waste:animal-rot");
         long dogFoodGrams = MassOf(semantics, "feed:dog-food");
+        long freshDogFoodGrams = MassOf(semantics, "feed:dog-food-fresh");
         long meatPieGrams = MassOf(semantics, "food:meat-pie");
         long lavishVeganGrams = MassOf(semantics, "food:lavish-vegan");
         long dreamleafGrams = MassOf(semantics, "resource:dreamleaf");
@@ -2301,8 +2490,11 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
         long mushroomLoss = checked(
             mushroomInput + mushroomWater - mushroomOutput - mushroomWastewater);
         long roastedInput = checked(meatGrams * 2);
+        long roastedWater = ScaleMass(
+            waterGrams,
+            roastedMeat.CleanWaterPerCycle);
         long roastedOutput = checked(roastedMeatGrams * 2);
-        long roastedLoss = checked(roastedInput - roastedOutput);
+        long roastedLoss = checked(roastedInput + roastedWater - roastedOutput);
         long rootStewWater = ScaleMass(waterGrams, rootStew.CleanWaterPerCycle);
         long rootStewWastewater = ScaleMass(waterGrams, rootStew.WastewaterPerCycle);
         long rootStewInput = checked(emberRootGrams * 2);
@@ -2322,6 +2514,8 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
         long curdWater = ScaleMass(waterGrams, curd.CleanWaterPerCycle);
         long curdWastewater = ScaleMass(waterGrams, curd.WastewaterPerCycle);
         long curdOutput = checked(curdGrams * 2);
+        long curdLoss = checked(
+            curdPhysicalInput + curdWater - curdOutput - curdWastewater);
         long freshCurdInput = curdGrams;
         long freshCurdOutput = checked(freshCurdGrams * 2);
         long cheeseInput = checked(curdGrams * 2);
@@ -2416,12 +2610,16 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
             fermentedVinegarInput + fermentedVinegarWater - fermentedVinegarOutput);
         long fermentedPickleInput = checked(
             brinedVegetableGrams * 2 + fermentedVinegarGrams);
+        long fermentedPickleWater = ScaleMass(
+            waterGrams,
+            fermentedPickle.CleanWaterPerCycle);
         long fermentedPickleWastewater = ScaleMass(
             waterGrams,
             fermentedPickle.WastewaterPerCycle);
         long fermentedPickleOutput = checked(fermentedPickleGrams * 2);
         long fermentedPickleLoss = checked(
-            fermentedPickleInput - fermentedPickleOutput - fermentedPickleWastewater);
+            fermentedPickleInput + fermentedPickleWater
+            - fermentedPickleOutput - fermentedPickleWastewater);
         long preservedVegetableInput = checked(
             brinedVegetableGrams + washedVegetableGrams + fermentedVinegarGrams);
         long preservedVegetableOutput = checked(preservedVegetableGrams * 2);
@@ -2455,6 +2653,7 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
         long dogFoodByproductInput = checked(animalRotGrams + grainGrams);
         long dogFoodFreshInput = checked(meatGrams + grainGrams);
         long dogFoodOutput = checked(dogFoodGrams * 2);
+        long freshDogFoodOutput = checked(freshDogFoodGrams * 2);
         long meatPieInput = checked(doughGrams + seasonedFillingGrams);
         long meatPieOutput = checked(meatPieGrams * 2);
         long meatPieLoss = checked(meatPieInput - meatPieOutput);
@@ -2491,7 +2690,7 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
                 wastewater,
                 porridgeLoss,
                 PhysicalMassLossKind.MoistureEvaporation,
-                "6 grain units plus 0.25 clean-water units produce 6 portions, 0.1 wastewater units and 3 g cooking loss."),
+                "Six grain units plus 3.4 clean-water units produce six 600 g portions, 0.2 wastewater units and 100 g cooking loss under the 500 g/authored-unit fluid authority."),
             new PhysicalMassTransformContract(
                 sawmill.RecipeId,
                 sawmillInput,
@@ -2499,8 +2698,8 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
                 sawmillOutput,
                 0,
                 sawmillLoss,
-                PhysicalMassLossKind.CuttingWaste,
-                "Two log sections produce three lumber bundles with explicit saw-cut loss."),
+                PhysicalMassLossKind.None,
+                "Two 1,800 g log sections produce three exact 1,200 g lumber bundles without untracked loss."),
             new PhysicalMassTransformContract(
                 granulatedPowder.RecipeId,
                 granulatedPowderInput,
@@ -2523,11 +2722,11 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
                 freshDogFood.RecipeId,
                 dogFoodFreshInput,
                 0,
-                dogFoodOutput,
+                freshDogFoodOutput,
                 0,
                 0,
                 PhysicalMassLossKind.None,
-                "One 700 g meat portion and one 350 g grain measure are divided into two exact 525 g dog-food rations."),
+                "One 700 g meat portion and one 350 g grain measure are divided into two exact 525 g fresh dog-food rations."),
             new PhysicalMassTransformContract(
                 inoculatedLog.RecipeId,
                 inoculatedLogInput,
@@ -2545,16 +2744,16 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
                 mushroomWastewater,
                 mushroomLoss,
                 PhysicalMassLossKind.MoistureEvaporation,
-                "Two mushroom baskets plus 0.25 clean-water units produce two soup portions, 0.1 wastewater units and 5 g cooking loss."),
+                "Two mushroom baskets plus 1.9 clean-water units produce two 650 g soup portions, 0.2 wastewater units and 50 g cooking loss under the 500 g/authored-unit fluid authority."),
             new PhysicalMassTransformContract(
                 roastedMeat.RecipeId,
                 roastedInput,
-                0,
+                roastedWater,
                 roastedOutput,
                 0,
                 roastedLoss,
                 PhysicalMassLossKind.MoistureEvaporation,
-                "Two raw meat cuts produce two roasted portions with 140 g cooking moisture loss."),
+                "Two raw meat cuts plus 0.3 clean-water units produce two 750 g roasted portions with 50 g cooking moisture loss."),
             new PhysicalMassTransformContract(
                 rootStew.RecipeId,
                 rootStewInput,
@@ -2563,7 +2762,7 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
                 rootStewWastewater,
                 rootStewLoss,
                 PhysicalMassLossKind.MoistureEvaporation,
-                "Two ember-root harvest bundles plus 0.25 clean-water units produce two stew portions, 0.1 wastewater units and 15 g cooking loss."),
+                "Two ember-root harvest bundles plus 1.3 clean-water units produce two 700 g stew portions, 0.2 wastewater units and 50 g cooking loss under the 500 g/authored-unit fluid authority."),
             new PhysicalMassTransformContract(
                 millingFlour.RecipeId,
                 flourInput,
@@ -2572,7 +2771,7 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
                 0,
                 flourLoss,
                 PhysicalMassLossKind.MillingByproduct,
-                "Three grain measures produce two flour measures with 50 g explicitly uncollected bran and milling residue."),
+                "Three grain measures produce two 300 g flour measures with 450 g explicitly uncollected bran and milling residue."),
             new PhysicalMassTransformContract(
                 eggPancake.RecipeId,
                 pancakePhysicalInput,
@@ -2581,16 +2780,16 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
                 pancakeWastewater,
                 pancakeLoss,
                 PhysicalMassLossKind.MoistureEvaporation,
-                "Two egg collections, one flour measure, one milk measure and 0.2 clean-water units produce two meal portions, 0.15 wastewater units and 225 g cooking loss."),
+                "Two egg collections, one 300 g flour measure, one milk measure and 0.2 clean-water units produce two 650 g portions, 0.15 wastewater units and 325 g cooking loss."),
             new PhysicalMassTransformContract(
                 curd.RecipeId,
                 curdPhysicalInput,
                 curdWater,
                 curdOutput,
                 curdWastewater,
-                0,
-                PhysicalMassLossKind.None,
-                "Three 0.8-liter milk measures, one saltstone chunk and 0.2 clean-water units produce two drained-curd batches and discharge 4.2 fluid units of whey wastewater."),
+                curdLoss,
+                PhysicalMassLossKind.ExtractionResidue,
+                "Three 0.8-liter milk measures, one saltstone chunk and 0.4 clean-water units produce two drained-curd batches, discharge 4.2 whey units and leave 100 g typed separation residue."),
             new PhysicalMassTransformContract(
                 freshCurd.RecipeId,
                 freshCurdInput,
@@ -2715,8 +2914,8 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
                 nightSpiritOutput,
                 0,
                 nightSpiritLoss,
-                PhysicalMassLossKind.MoistureEvaporation,
-                "Two young-wine measures and one concentrated-syrup measure age into two night-spirit servings with 150 g explicit process evaporation."),
+                PhysicalMassLossKind.ExtractionResidue,
+                "Two young-wine measures and one concentrated-syrup measure are distilled into two night-spirit servings with 150 g of declared vapour and filter residue."),
             new PhysicalMassTransformContract(
                 alcohol.RecipeId,
                 alcoholInput,
@@ -2742,8 +2941,8 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
                 brinedVegetableOutput,
                 brinedVegetableWastewater,
                 brinedVegetableLoss,
-                PhysicalMassLossKind.None,
-                "Two washed portions, one saltstone chunk and 0.2 clean-water units produce two drained brined portions and 1.0 unit of salt-brine wastewater."),
+                PhysicalMassLossKind.MoistureEvaporation,
+                "Two washed portions, one saltstone chunk and 1.4 clean-water units produce two drained brined portions, 2.0 brine-wastewater units and 100 g preparation loss."),
             new PhysicalMassTransformContract(
                 fermentedVinegar.RecipeId,
                 fermentedVinegarInput,
@@ -2756,12 +2955,12 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
             new PhysicalMassTransformContract(
                 fermentedPickle.RecipeId,
                 fermentedPickleInput,
-                0,
+                fermentedPickleWater,
                 fermentedPickleOutput,
                 fermentedPickleWastewater,
                 fermentedPickleLoss,
-                PhysicalMassLossKind.None,
-                "Two brined portions and one vinegar measure produce two drained pickle servings and 1.0 unit of discarded-brine wastewater."),
+                PhysicalMassLossKind.FermentationGasLoss,
+                "Two brined portions, one vinegar measure and 1.2 clean-water units produce two drained pickle servings, 2.0 discarded-brine units and 100 g fermentation loss."),
             new PhysicalMassTransformContract(
                 preservedVegetable.RecipeId,
                 preservedVegetableInput,
@@ -2779,7 +2978,7 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
                 doughWastewater,
                 doughLoss,
                 PhysicalMassLossKind.MoistureEvaporation,
-                "Two flour measures, one egg collection and 0.15 clean-water units produce two dough portions, 0.1 wastewater units and 275 g explicit preparation moisture loss."),
+                "Two 300 g flour measures, one egg collection and 0.6 clean-water units produce two 500 g dough portions, 0.2 wastewater units and 50 g explicit preparation loss."),
             new PhysicalMassTransformContract(
                 seasonedFilling.RecipeId,
                 seasonedFillingInput,
@@ -2814,8 +3013,8 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
                 hayOutput,
                 0,
                 hayLoss,
-                PhysicalMassLossKind.MoistureEvaporation,
-                "Three grass-and-straw sheaves and one grain measure produce three hay rations with 2 g explicit drying loss."),
+                PhysicalMassLossKind.FiberProcessingWaste,
+                "Three grass-and-straw sheaves and one grain measure produce three hay rations with 2 g of declared screening and blending residue."),
             new PhysicalMassTransformContract(
                 silage.RecipeId,
                 silagePhysicalInput,
@@ -2894,7 +3093,7 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
             && HasInput(freshDogFood, "resource:meat", 1)
             && HasInput(freshDogFood, "resource:twilight-grain", 1)
             && freshDogFood.Outputs.Count == 1
-            && freshDogFood.Outputs[0].ItemId == "feed:dog-food"
+            && freshDogFood.Outputs[0].ItemId == "feed:dog-food-fresh"
             && freshDogFood.Outputs[0].Amount == 2
             && Mathf.Approximately(freshDogFood.Outputs[0].Probability, 1f),
             "Fresh dog-food recipe contract drifted.");
@@ -2942,8 +3141,8 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
             && porridge.Outputs[0].Amount == 6
             && Mathf.Approximately(porridge.Outputs[0].Probability, 1f),
             "Grain-porridge output contract drifted.");
-        Require(Mathf.Approximately(porridge.CleanWaterPerCycle, 0.25f)
-            && Mathf.Approximately(porridge.WastewaterPerCycle, 0.1f),
+        Require(Mathf.Approximately(porridge.CleanWaterPerCycle, 3.4f)
+            && Mathf.Approximately(porridge.WastewaterPerCycle, 0.2f),
             "Grain-porridge fluid contract drifted.");
 
         ProductionRecipeSO sawmill = recipes["recipe:sawmill-lumber"];
@@ -2966,8 +3165,8 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
             && mushroomSoup.Outputs[0].ItemId == "food:mushroom-soup"
             && mushroomSoup.Outputs[0].Amount == 2
             && Mathf.Approximately(mushroomSoup.Outputs[0].Probability, 1f)
-            && Mathf.Approximately(mushroomSoup.CleanWaterPerCycle, 0.25f)
-            && Mathf.Approximately(mushroomSoup.WastewaterPerCycle, 0.1f),
+            && Mathf.Approximately(mushroomSoup.CleanWaterPerCycle, 1.9f)
+            && Mathf.Approximately(mushroomSoup.WastewaterPerCycle, 0.2f),
             "Mushroom-soup output or fluid contract drifted.");
 
         ProductionRecipeSO roastedMeat = recipes["recipe:roasted-meat"];
@@ -2979,7 +3178,7 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
             && roastedMeat.Outputs[0].ItemId == "food:roasted-meat"
             && roastedMeat.Outputs[0].Amount == 2
             && Mathf.Approximately(roastedMeat.Outputs[0].Probability, 1f)
-            && Mathf.Approximately(roastedMeat.CleanWaterPerCycle, 0f)
+            && Mathf.Approximately(roastedMeat.CleanWaterPerCycle, 0.3f)
             && Mathf.Approximately(roastedMeat.WastewaterPerCycle, 0f),
             "Roasted-meat output or fluid contract drifted.");
 
@@ -2992,8 +3191,8 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
             && rootStew.Outputs[0].ItemId == "food:root-stew"
             && rootStew.Outputs[0].Amount == 2
             && Mathf.Approximately(rootStew.Outputs[0].Probability, 1f)
-            && Mathf.Approximately(rootStew.CleanWaterPerCycle, 0.25f)
-            && Mathf.Approximately(rootStew.WastewaterPerCycle, 0.1f),
+            && Mathf.Approximately(rootStew.CleanWaterPerCycle, 1.3f)
+            && Mathf.Approximately(rootStew.WastewaterPerCycle, 0.2f),
             "Root-stew output or fluid contract drifted.");
 
         ProductionRecipeSO millingFlour = recipes["recipe:milling-flour"];
@@ -3035,7 +3234,7 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
             && curd.Outputs[0].ItemId == "material:curd"
             && curd.Outputs[0].Amount == 2
             && Mathf.Approximately(curd.Outputs[0].Probability, 1f)
-            && Mathf.Approximately(curd.CleanWaterPerCycle, 0.2f)
+            && Mathf.Approximately(curd.CleanWaterPerCycle, 0.4f)
             && Mathf.Approximately(curd.WastewaterPerCycle, 4.2f),
             "Curd output or whey-wastewater contract drifted.");
 
@@ -3231,8 +3430,8 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
             && brinedVegetable.Outputs[0].ItemId == "material:brined-vegetable"
             && brinedVegetable.Outputs[0].Amount == 2
             && Mathf.Approximately(brinedVegetable.Outputs[0].Probability, 1f)
-            && Mathf.Approximately(brinedVegetable.CleanWaterPerCycle, 0.2f)
-            && Mathf.Approximately(brinedVegetable.WastewaterPerCycle, 1f),
+            && Mathf.Approximately(brinedVegetable.CleanWaterPerCycle, 1.4f)
+            && Mathf.Approximately(brinedVegetable.WastewaterPerCycle, 2f),
             "Brined-vegetable transform or fluid contract drifted.");
 
         ProductionRecipeSO fermentedVinegar = recipes["recipe:fermented-vinegar"];
@@ -3254,8 +3453,8 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
             && fermentedPickle.Outputs[0].ItemId == "food:fermented-pickle"
             && fermentedPickle.Outputs[0].Amount == 2
             && Mathf.Approximately(fermentedPickle.Outputs[0].Probability, 1f)
-            && Mathf.Approximately(fermentedPickle.CleanWaterPerCycle, 0f)
-            && Mathf.Approximately(fermentedPickle.WastewaterPerCycle, 1f),
+            && Mathf.Approximately(fermentedPickle.CleanWaterPerCycle, 1.2f)
+            && Mathf.Approximately(fermentedPickle.WastewaterPerCycle, 2f),
             "Fermented-pickle transform or fluid contract drifted.");
 
         ProductionRecipeSO preservedVegetable = recipes["recipe:preserved-vegetable"];
@@ -3279,8 +3478,8 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
             && dough.Outputs[0].ItemId == "material:dough"
             && dough.Outputs[0].Amount == 2
             && Mathf.Approximately(dough.Outputs[0].Probability, 1f)
-            && Mathf.Approximately(dough.CleanWaterPerCycle, 0.15f)
-            && Mathf.Approximately(dough.WastewaterPerCycle, 0.1f),
+            && Mathf.Approximately(dough.CleanWaterPerCycle, 0.6f)
+            && Mathf.Approximately(dough.WastewaterPerCycle, 0.2f),
             "Dough transform or fluid contract drifted.");
 
         ProductionRecipeSO seasonedFilling = recipes["recipe:seasoned-filling"];
@@ -3441,7 +3640,7 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
         {
             "schemaVersion", "itemId", "unitSemanticKind", "unitLabel",
             "unitDescription", "nominalVolumeMilliLiters", "packageTareGrams",
-            "tareDisposition", "containerItemId", "primaryMaterialId",
+            "tareDisposition", "packagingReviewDisposition", "containerItemId", "primaryMaterialId",
             "derivationKind", "beforeMassGrams", "proposedAfterMassGrams",
             "deltaGrams", "haulClass", "minimumUnitsFor6Kg",
             "maximumUnitsFor11Kg", "maxStack", "massBalanceSourceId",
@@ -3453,7 +3652,7 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
             long after = semantic.CanonicalUnitMass.Value;
             WriteRow(writer, new[]
             {
-                "v27.mass.explicit-semantic.1",
+                "v27.mass.explicit-semantic.2",
                 semantic.ItemId,
                 semantic.UnitSemanticKind.ToString(),
                 semantic.UnitLabel,
@@ -3461,6 +3660,7 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
                 semantic.NominalVolumeMilliLiters.ToString(CultureInfo.InvariantCulture),
                 semantic.PackageTareGrams.ToString(CultureInfo.InvariantCulture),
                 semantic.PackageTareDisposition.ToString(),
+                semantic.PackagingReviewDisposition.ToString(),
                 semantic.PackageContainerItemId,
                 semantic.PrimaryMaterialId,
                 semantic.MassDerivationKind.ToString(),

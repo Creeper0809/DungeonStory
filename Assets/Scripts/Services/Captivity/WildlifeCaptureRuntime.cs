@@ -1103,7 +1103,10 @@ public sealed partial class WildlifeCaptureRuntime :
             return;
         }
 
-        RefreshDeliveryPending(state);
+        string careDestinationId = WildlifeCareInputOwnerAuthority
+            .FormatDestinationId(state.penId);
+        Vector2Int carePosition = pen.centerPos;
+        RefreshDeliveryPending(state, careDestinationId);
         state.feedSicknessSeverity = Mathf.Max(
             0f,
             state.feedSicknessSeverity - 1.5f);
@@ -1112,6 +1115,8 @@ public sealed partial class WildlifeCaptureRuntime :
             actor,
             ability.dailyFood,
             actor.Hunger,
+            carePosition,
+            careDestinationId,
             ref state.foodDeliveryPending);
         bool watered = TrySatisfyNeed(
             state,
@@ -1120,6 +1125,8 @@ public sealed partial class WildlifeCaptureRuntime :
             ability.dailyWater,
             actor.Thirst,
             WaterCost,
+            carePosition,
+            careDestinationId,
             ref state.waterDeliveryPending);
         bool insecure = !rooms.TryGetRoom(pen, out RoomInstance room)
             || !room.IsUsable
@@ -1168,6 +1175,8 @@ public sealed partial class WildlifeCaptureRuntime :
         float dailyNeed,
         float currentNeed,
         IReadOnlyDictionary<StockCategory, int> cost,
+        Vector2Int carePosition,
+        string careDestinationId,
         ref bool deliveryPending)
     {
         if (dailyNeed <= 0f || currentNeed < 0.45f)
@@ -1176,7 +1185,7 @@ public sealed partial class WildlifeCaptureRuntime :
         }
 
         if (itemRuntime.TryConsumeFacilityBuffer(
-                state.penId,
+                careDestinationId,
                 cost,
                 out _))
         {
@@ -1199,8 +1208,8 @@ public sealed partial class WildlifeCaptureRuntime :
             deliveryPending = itemRuntime.TryRequestFacilityDelivery(
                 category,
                 amount,
-                state.penPosition,
-                state.penId,
+                carePosition,
+                careDestinationId,
                 out int requested,
                 out _)
                 && requested > 0;
@@ -1214,6 +1223,8 @@ public sealed partial class WildlifeCaptureRuntime :
         WildlifeActor actor,
         float dailyNeed,
         float currentNeed,
+        Vector2Int carePosition,
+        string careDestinationId,
         ref bool deliveryPending)
     {
         if (CapturedWildlifeFeedOutbox.HasPending(state))
@@ -1242,9 +1253,10 @@ public sealed partial class WildlifeCaptureRuntime :
             : WildlifeDietType.Omnivore;
         ResourceItemDefinitionSO[] candidates = contentCatalog.Items
             .Where(item => item != null
-                && item.StockCategory == StockCategory.Food
-                && IsFoodAllowed(diet, item.IngredientTags))
-            .OrderBy(item => GetFeedPreference(diet, item))
+                && WildlifeFeedSelectionRules.IsAllowed(diet, item))
+            .OrderBy(item => WildlifeFeedSelectionRules.GetPreference(
+                diet,
+                item))
             .ThenBy(item => item.UnitPrice)
             .ThenBy(item => item.ItemId, StringComparer.Ordinal)
             .ToArray();
@@ -1256,7 +1268,7 @@ public sealed partial class WildlifeCaptureRuntime :
                     && stack.State == WorldItemStackState.FacilityBuffer
                     && string.Equals(
                         stack.DestinationId,
-                        state.penId,
+                        careDestinationId,
                         StringComparison.Ordinal)
                     && string.Equals(
                         stack.ItemId,
@@ -1292,7 +1304,7 @@ public sealed partial class WildlifeCaptureRuntime :
 
         if (wasteFeedCandidates.TryGetDirectFeedCandidate(
                 diet,
-                state.penId,
+                careDestinationId,
                 out WasteDirectFeedCandidate wasteFeed,
                 out _))
         {
@@ -1320,13 +1332,14 @@ public sealed partial class WildlifeCaptureRuntime :
         {
             int amount = Mathf.Max(1, Mathf.CeilToInt(dailyNeed));
             foreach (ResourceItemDefinitionSO candidate in candidates
-                         .Where(candidate => GetFeedPreference(diet, candidate) <= 1))
+                         .Where(candidate => WildlifeFeedSelectionRules
+                             .GetPreference(diet, candidate) <= 1))
             {
                 if (!itemRuntime.TryRequestItemDelivery(
                         candidate.ItemId,
                         amount,
-                        state.penPosition,
-                        state.penId,
+                        carePosition,
+                        careDestinationId,
                         out int requested,
                         out _)
                     || requested <= 0)
@@ -1344,8 +1357,8 @@ public sealed partial class WildlifeCaptureRuntime :
                 WasteFeedRequestResult wasteRequest =
                     wasteProcessing.RequestDirectFeed(
                         diet,
-                        state.penPosition,
-                        state.penId);
+                        carePosition,
+                        careDestinationId);
                 if (wasteRequest.Succeeded)
                 {
                     state.lastFeedItemId = wasteRequest.ItemId;
@@ -1356,13 +1369,14 @@ public sealed partial class WildlifeCaptureRuntime :
             if (!deliveryPending)
             {
                 foreach (ResourceItemDefinitionSO candidate in candidates
-                             .Where(candidate => GetFeedPreference(diet, candidate) > 1))
+                             .Where(candidate => WildlifeFeedSelectionRules
+                                 .GetPreference(diet, candidate) > 1))
                 {
                     if (!itemRuntime.TryRequestItemDelivery(
                             candidate.ItemId,
                             amount,
-                            state.penPosition,
-                            state.penId,
+                            carePosition,
+                            careDestinationId,
                             out int requested,
                             out _)
                         || requested <= 0)
@@ -1467,7 +1481,9 @@ public sealed partial class WildlifeCaptureRuntime :
         }
     }
 
-    private void RefreshDeliveryPending(CapturedWildlifeState state)
+    private void RefreshDeliveryPending(
+        CapturedWildlifeState state,
+        string careDestinationId)
     {
         bool hasFood = false;
         bool hasWater = false;
@@ -1475,7 +1491,7 @@ public sealed partial class WildlifeCaptureRuntime :
         {
             if (!string.Equals(
                     stack.DestinationId,
-                    state.penId,
+                    careDestinationId,
                     StringComparison.Ordinal))
             {
                 continue;
@@ -1494,56 +1510,6 @@ public sealed partial class WildlifeCaptureRuntime :
 
         state.foodDeliveryPending &= hasFood;
         state.waterDeliveryPending &= hasWater;
-    }
-
-    private static bool IsFoodAllowed(
-        WildlifeDietType diet,
-        ResourceIngredientTag tags)
-    {
-        bool plant = (tags & (ResourceIngredientTag.Plant
-            | ResourceIngredientTag.Fungus)) != 0;
-        bool animal = (tags & (ResourceIngredientTag.Meat
-            | ResourceIngredientTag.Blood
-            | ResourceIngredientTag.Fat
-            | ResourceIngredientTag.Egg
-            | ResourceIngredientTag.Milk)) != 0;
-        bool spoiled = (tags & ResourceIngredientTag.Spoiled) != 0;
-        return diet switch
-        {
-            WildlifeDietType.Herbivore => plant && !animal,
-            WildlifeDietType.Carnivore => animal,
-            WildlifeDietType.Scavenger => animal || spoiled,
-            _ => plant || animal
-        };
-    }
-
-    private static int GetFeedPreference(
-        WildlifeDietType diet,
-        ResourceItemDefinitionSO item)
-    {
-        if (diet == WildlifeDietType.Herbivore
-            && string.Equals(item.ItemId, "feed:hay", StringComparison.Ordinal))
-        {
-            return 0;
-        }
-
-        if (diet is WildlifeDietType.Carnivore
-                or WildlifeDietType.Omnivore
-                or WildlifeDietType.Scavenger
-            && string.Equals(
-                item.ItemId,
-                "feed:dog-food",
-                StringComparison.Ordinal))
-        {
-            return 0;
-        }
-
-        if (item.Kind == ResourceItemKind.FinishedGood)
-        {
-            return 1;
-        }
-
-        return item.Kind == ResourceItemKind.Food ? 3 : 2;
     }
 
     private void TryBeginEscape(

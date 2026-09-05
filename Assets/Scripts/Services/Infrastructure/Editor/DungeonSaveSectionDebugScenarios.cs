@@ -29,6 +29,11 @@ public static class DungeonSaveSectionDebugScenarios
         Verify("capture and restore", VerifyCaptureRestore, failures);
         Verify("aggregate restore publishes one root", VerifyAggregateRestorePublishesOneRoot, failures);
         Verify("failed staging leaves live state untouched", VerifyFailedStageLeavesLiveStateUntouched, failures);
+        Verify("topological staged validation retains dependency candidates", VerifyTopologicalStagedValidationRetainsDependencyCandidates, failures);
+        Verify("pre-stage participant receives staged writes", VerifyPreStageParticipantReceivesStagedWrites, failures);
+        Verify("pre-stage participant discards after later stage failure", VerifyPreStageParticipantDiscardsAfterLaterStageFailure, failures);
+        Verify("post-stage physical lifetime begins after candidate index", VerifyPostStagePhysicalLifetimeBeginsAfterCandidateIndex, failures);
+        Verify("rollback image is captured before pre-stage begin", VerifyRollbackImageCapturedBeforePreStageBegin, failures);
         Verify("failed commit rolls back live state", VerifyFailedCommitRollsBack, failures);
         Verify("failed commit discards aggregate candidate", VerifyFailedCommitDiscardsAggregateCandidate, failures);
         Verify("copy-on-write mutation leaves live root untouched", VerifyCopyOnWriteMutationLeavesLiveRootUntouched, failures);
@@ -402,6 +407,232 @@ public static class DungeonSaveSectionDebugScenarios
             && first.Value == 10
             && second.Value == 20
             && last.Value == 30;
+    }
+
+    private static bool VerifyTopologicalStagedValidationRetainsDependencyCandidates()
+    {
+        TopologicalCandidateIndex validIndex = new();
+        TopologicalSourceSection validSource = new(validIndex, 17);
+        TopologicalDependentSection validDependent = new(validIndex, 17);
+
+        // Standalone validation remains a full semantic check and must release
+        // the temporary candidate it creates.
+        DungeonGameRestoreReport standaloneReport = new();
+        validSource.ValidatePayload(
+            validSource.Capture(),
+            validSource.SectionVersion,
+            standaloneReport);
+        if (!standaloneReport.Success || validIndex.IsAvailable)
+        {
+            return false;
+        }
+
+        DungeonSaveSectionRegistry validRegistry = new(
+            new IDungeonSaveSection[] { validDependent, validSource },
+            new DungeonRuntimeAggregateRootStore());
+        DungeonGameRestoreReport validReport = new();
+        bool validRestored = validRegistry.RestoreAll(
+            validRegistry.CaptureAll(),
+            validReport);
+        if (!validRestored
+            || !validReport.Success
+            || validSource.PublishedValue != 17
+            || validDependent.PublishedValue != 17
+            || validSource.LocalValidationCount != 2
+            || validDependent.LocalValidationCount != 1
+            || validIndex.IsAvailable)
+        {
+            return false;
+        }
+
+        // A dependent mismatch fails while staging, publishes nothing, and
+        // discards the already retained source candidate.
+        TopologicalCandidateIndex invalidIndex = new();
+        TopologicalSourceSection invalidSource = new(invalidIndex, 23);
+        TopologicalDependentSection invalidDependent = new(invalidIndex, 24);
+        DungeonSaveSectionRegistry invalidRegistry = new(
+            new IDungeonSaveSection[] { invalidDependent, invalidSource },
+            new DungeonRuntimeAggregateRootStore());
+        DungeonGameRestoreReport invalidReport = new();
+        bool invalidRestored = invalidRegistry.RestoreAll(
+            invalidRegistry.CaptureAll(),
+            invalidReport);
+        return !invalidRestored
+            && !invalidReport.Success
+            && invalidSource.PublishedValue == 0
+            && invalidDependent.PublishedValue == 0
+            && !invalidIndex.IsAvailable;
+    }
+
+    private static bool VerifyPreStageParticipantReceivesStagedWrites()
+    {
+        List<string> events = new();
+        PreStageAuthorityParticipant authority = new(10, events);
+        PreStageAuthoritySection section = new(
+            "qa.prestage-write",
+            authority,
+            capturedValue: 20,
+            events: events);
+        DungeonSaveSectionRegistry registry = new(
+            new IDungeonSaveSection[] { section },
+            new DungeonRuntimeAggregateRootStore(),
+            new IDungeonRestoreTransactionParticipant[] { authority });
+        DungeonGameRestoreReport report = new();
+
+        bool restored = registry.RestoreAll(registry.CaptureAll(), report);
+        bool passed = restored
+            && report.Success
+            && section.ObservedLiveValueDuringStage == 10
+            && section.ObservedLiveValueDuringCommit == 10
+            && section.PublishedValue == 20
+            && authority.LiveValue == 20
+            && authority.BeginCount == 1
+            && authority.PublishCount == 1
+            && authority.CompleteCount == 1
+            && authority.DiscardCount == 0
+            && !authority.HasCandidate
+            && string.Join(",", events) ==
+                "begin:220.world.facility-buffer-destinations,"
+                + "stage:qa.prestage-write,commit:qa.prestage-write,"
+                + "publish:220.world.facility-buffer-destinations,"
+                + "complete:220.world.facility-buffer-destinations";
+        if (passed)
+        {
+            Debug.Log("SAVE_PRESTAGE_PARTICIPANT_STAGE_WRITE_PASS");
+        }
+        return passed;
+    }
+
+    private static bool VerifyPreStageParticipantDiscardsAfterLaterStageFailure()
+    {
+        List<string> events = new();
+        PreStageAuthorityParticipant authority = new(10, events);
+        PreStageAuthoritySection writer = new(
+            "qa.prestage-source",
+            authority,
+            capturedValue: 20,
+            events: events);
+        PreStageFailingSection failing = new(
+            "qa.prestage-dependent-failure",
+            writer.SectionId,
+            events);
+        DungeonSaveSectionRegistry registry = new(
+            new IDungeonSaveSection[] { failing, writer },
+            new DungeonRuntimeAggregateRootStore(),
+            new IDungeonRestoreTransactionParticipant[] { authority });
+        DungeonGameRestoreReport report = new();
+
+        bool restored = registry.RestoreAll(registry.CaptureAll(), report);
+        bool passed = !restored
+            && !report.Success
+            && authority.LiveValue == 10
+            && authority.BeginCount == 1
+            && authority.PublishCount == 0
+            && authority.CompleteCount == 0
+            && authority.DiscardCount == 1
+            && !authority.HasCandidate
+            && writer.PublishedValue == 0
+            && string.Join(",", events) ==
+                "begin:220.world.facility-buffer-destinations,"
+                + "stage:qa.prestage-source,"
+                + "stage-fail:qa.prestage-dependent-failure,"
+                + "discard:220.world.facility-buffer-destinations";
+        if (passed)
+        {
+            Debug.Log("SAVE_PRESTAGE_PARTICIPANT_FAILURE_DISCARD_PASS");
+        }
+        return passed;
+    }
+
+    private static bool VerifyPostStagePhysicalLifetimeBeginsAfterCandidateIndex()
+    {
+        List<string> events = new();
+        PreStageAuthorityParticipant authority = new(10, events);
+        StagedCandidateIndex index = new();
+        PostStageCandidateLifetimeParticipant physicalLifetime = new(
+            index,
+            events);
+        PostStageCandidateIndexSection section = new(
+            authority,
+            index,
+            events);
+        DungeonSaveSectionRegistry registry = new(
+            new IDungeonSaveSection[] { section },
+            new DungeonRuntimeAggregateRootStore(),
+            new IDungeonRestoreTransactionParticipant[]
+            {
+                physicalLifetime,
+                authority
+            });
+        DungeonGameRestoreReport report = new();
+
+        bool restored = registry.RestoreAll(registry.CaptureAll(), report);
+        bool passed = restored
+            && report.Success
+            && authority.LiveValue == 20
+            && physicalLifetime.BeginCount == 1
+            && physicalLifetime.PublishCount == 1
+            && physicalLifetime.CompleteCount == 1
+            && physicalLifetime.DiscardCount == 0
+            && !authority.HasCandidate
+            && !physicalLifetime.HasCandidate
+            && !index.IsAvailable
+            && string.Join(",", events) ==
+                "begin:220.world.facility-buffer-destinations,"
+                + "stage:physical-index,"
+                + "begin:999.world.physical-item-restore-candidate-lifetime,"
+                + "commit:physical-index,"
+                + "publish:220.world.facility-buffer-destinations,"
+                + "publish:999.world.physical-item-restore-candidate-lifetime,"
+                + "complete:999.world.physical-item-restore-candidate-lifetime,"
+                + "complete:220.world.facility-buffer-destinations";
+        if (passed)
+        {
+            Debug.Log("SAVE_POSTSTAGE_PHYSICAL_INDEX_ORDER_PASS");
+        }
+        return passed;
+    }
+
+    private static bool VerifyRollbackImageCapturedBeforePreStageBegin()
+    {
+        List<string> events = new();
+        PreStageAuthorityParticipant authority = new(10, events);
+        RollbackCaptureAuthoritySection section = new(authority, events)
+        {
+            FailNextCommit = true
+        };
+        DungeonSaveSectionRegistry registry = new(
+            new IDungeonSaveSection[] { section },
+            new DungeonRuntimeAggregateRootStore(),
+            new IDungeonRestoreTransactionParticipant[] { authority });
+        DungeonSaveSectionEnvelope incoming = new()
+        {
+            sectionId = section.SectionId,
+            sectionVersion = section.SectionVersion,
+            restorePhase = section.RestorePhase,
+            payloadJson = JsonUtility.ToJson(new TransactionPayload { value = 20 })
+        };
+        DungeonGameRestoreReport report = new();
+
+        bool restored = registry.RestoreAll(
+            new[] { incoming },
+            report);
+        bool passed = !restored
+            && !report.Success
+            && section.CapturedValues.SequenceEqual(new[] { 10 })
+            && section.StagedValues.SequenceEqual(new[] { 20, 10 })
+            && section.CommitAttempts.SequenceEqual(new[] { 20, 10 })
+            && authority.LiveValue == 10
+            && authority.BeginCount == 2
+            && authority.PublishCount == 1
+            && authority.CompleteCount == 1
+            && authority.DiscardCount == 1
+            && !authority.HasCandidate;
+        if (passed)
+        {
+            Debug.Log("SAVE_ROLLBACK_IMAGE_PREBEGIN_PASS");
+        }
+        return passed;
     }
 
     private static bool VerifyFailedCommitDiscardsAggregateCandidate()
@@ -1067,6 +1298,724 @@ public static class DungeonSaveSectionDebugScenarios
     private sealed class TransactionPayload
     {
         public int value;
+    }
+
+    [Serializable]
+    private sealed class TopologicalPayload
+    {
+        public int value;
+    }
+
+    private sealed class TopologicalCandidateIndex
+    {
+        private int value;
+
+        public bool IsAvailable { get; private set; }
+
+        public void Set(int next)
+        {
+            if (IsAvailable)
+            {
+                throw new InvalidOperationException(
+                    "Topological candidate index already contains a value.");
+            }
+            value = next;
+            IsAvailable = true;
+        }
+
+        public int Require()
+        {
+            if (!IsAvailable)
+            {
+                throw new InvalidOperationException(
+                    "Topological dependency candidate is unavailable.");
+            }
+            return value;
+        }
+
+        public void Clear(int expected)
+        {
+            if (!IsAvailable || value != expected)
+            {
+                throw new InvalidOperationException(
+                    "Topological candidate index ownership drifted.");
+            }
+            value = 0;
+            IsAvailable = false;
+        }
+    }
+
+    private sealed class TopologicalSourceCandidate :
+        IDungeonDiscardableRestoreCandidate
+    {
+        private TopologicalCandidateIndex index;
+
+        public TopologicalSourceCandidate(
+            TopologicalCandidateIndex index,
+            int value)
+        {
+            this.index = index ?? throw new ArgumentNullException(nameof(index));
+            Value = value;
+            index.Set(value);
+        }
+
+        public int Value { get; }
+
+        public void Discard()
+        {
+            if (index == null)
+            {
+                return;
+            }
+            index.Clear(Value);
+            index = null;
+        }
+    }
+
+    private sealed class TopologicalDependentCandidate
+    {
+        public TopologicalDependentCandidate(int value) => Value = value;
+        public int Value { get; }
+    }
+
+    private sealed class TopologicalSourceSection :
+        DungeonStrictJsonSaveSection<
+            TopologicalPayload,
+            TopologicalSourceCandidate>,
+        IDungeonRollbackFreeSaveSection
+    {
+        private readonly TopologicalCandidateIndex index;
+        private readonly int capturedValue;
+
+        public TopologicalSourceSection(
+            TopologicalCandidateIndex index,
+            int capturedValue)
+        {
+            this.index = index ?? throw new ArgumentNullException(nameof(index));
+            this.capturedValue = capturedValue;
+        }
+
+        public override string SectionId => "qa.topological-source";
+        public override int SectionVersion => 1;
+        public override DungeonSaveRestorePhase RestorePhase =>
+            DungeonSaveRestorePhase.Foundation;
+        public int LocalValidationCount { get; private set; }
+        public int PublishedValue { get; private set; }
+
+        protected override TopologicalPayload CapturePayload() =>
+            new() { value = capturedValue };
+
+        protected override void ValidateParsedPayload(
+            TopologicalPayload payload)
+        {
+            LocalValidationCount++;
+            if (payload == null || payload.value <= 0)
+            {
+                throw new InvalidOperationException(
+                    "Topological source payload is invalid.");
+            }
+        }
+
+        protected override TopologicalSourceCandidate BuildRestoreCandidate(
+            TopologicalPayload payload) =>
+            new(index, payload.value);
+
+        protected override void PublishRestoreCandidate(
+            TopologicalSourceCandidate candidate) =>
+            PublishedValue = candidate.Value;
+    }
+
+    private sealed class TopologicalDependentSection :
+        DungeonStrictJsonSaveSection<
+            TopologicalPayload,
+            TopologicalDependentCandidate>,
+        IDungeonRollbackFreeSaveSection
+    {
+        private readonly TopologicalCandidateIndex index;
+        private readonly int capturedValue;
+
+        public TopologicalDependentSection(
+            TopologicalCandidateIndex index,
+            int capturedValue)
+        {
+            this.index = index ?? throw new ArgumentNullException(nameof(index));
+            this.capturedValue = capturedValue;
+        }
+
+        public override string SectionId => "qa.topological-dependent";
+        public override int SectionVersion => 1;
+        public override DungeonSaveRestorePhase RestorePhase =>
+            DungeonSaveRestorePhase.RuntimeState;
+        public override IReadOnlyList<string> DependsOn =>
+            new[] { "qa.topological-source" };
+        public int LocalValidationCount { get; private set; }
+        public int PublishedValue { get; private set; }
+
+        protected override TopologicalPayload CapturePayload() =>
+            new() { value = capturedValue };
+
+        protected override void ValidateParsedPayload(
+            TopologicalPayload payload)
+        {
+            LocalValidationCount++;
+            if (payload == null || payload.value <= 0)
+            {
+                throw new InvalidOperationException(
+                    "Topological dependent payload is invalid.");
+            }
+        }
+
+        protected override TopologicalDependentCandidate BuildRestoreCandidate(
+            TopologicalPayload payload)
+        {
+            int sourceValue = index.Require();
+            if (sourceValue != payload.value)
+            {
+                throw new InvalidOperationException(
+                    "Topological dependency candidate value mismatched.");
+            }
+            return new TopologicalDependentCandidate(sourceValue);
+        }
+
+        protected override void PublishRestoreCandidate(
+            TopologicalDependentCandidate candidate)
+        {
+            PublishedValue = candidate.Value;
+            index.Clear(candidate.Value);
+        }
+    }
+
+    private sealed class PreStageAuthorityParticipant :
+        IDungeonPreStageRestoreTransactionParticipant
+    {
+        private readonly ICollection<string> events;
+        private int candidateValue;
+        private int previousLiveValue;
+        private bool hasStagedValue;
+        private bool published;
+
+        public PreStageAuthorityParticipant(
+            int initialValue,
+            ICollection<string> events)
+        {
+            LiveValue = initialValue;
+            this.events = events;
+        }
+
+        public string ParticipantId =>
+            "220.world.facility-buffer-destinations";
+        public int LiveValue { get; private set; }
+        public int AuthorityValue => HasCandidate && !published
+            ? candidateValue
+            : LiveValue;
+        public int BeginCount { get; private set; }
+        public int PublishCount { get; private set; }
+        public int CompleteCount { get; private set; }
+        public int DiscardCount { get; private set; }
+        public bool HasCandidate { get; private set; }
+
+        public void BeginRestoreCandidate()
+        {
+            if (HasCandidate)
+            {
+                throw new InvalidOperationException(
+                    "A pre-stage authority candidate is already active.");
+            }
+
+            previousLiveValue = LiveValue;
+            candidateValue = 0;
+            hasStagedValue = false;
+            published = false;
+            HasCandidate = true;
+            BeginCount++;
+            events?.Add($"begin:{ParticipantId}");
+        }
+
+        public void StageValue(int value)
+        {
+            if (!HasCandidate || published || value <= 0)
+            {
+                throw new InvalidOperationException(
+                    "Pre-stage authority write requires an active unpublished candidate.");
+            }
+
+            candidateValue = value;
+            hasStagedValue = true;
+        }
+
+        public void PublishRestoreCandidate()
+        {
+            if (!HasCandidate || published || !hasStagedValue)
+            {
+                throw new InvalidOperationException(
+                    "Pre-stage authority candidate is not ready to publish.");
+            }
+
+            LiveValue = candidateValue;
+            published = true;
+            PublishCount++;
+            events?.Add($"publish:{ParticipantId}");
+        }
+
+        public void RollbackPublishedRestoreCandidate()
+        {
+            if (published)
+            {
+                LiveValue = previousLiveValue;
+            }
+            ResetCandidate();
+            events?.Add($"rollback:{ParticipantId}");
+        }
+
+        public void CompleteRestoreCandidate()
+        {
+            if (!HasCandidate || !published)
+            {
+                throw new InvalidOperationException(
+                    "Pre-stage authority candidate cannot complete.");
+            }
+
+            CompleteCount++;
+            events?.Add($"complete:{ParticipantId}");
+            ResetCandidate();
+        }
+
+        public void DiscardRestoreCandidate()
+        {
+            if (!HasCandidate)
+            {
+                return;
+            }
+
+            if (published)
+            {
+                LiveValue = previousLiveValue;
+            }
+            DiscardCount++;
+            events?.Add($"discard:{ParticipantId}");
+            ResetCandidate();
+        }
+
+        private void ResetCandidate()
+        {
+            candidateValue = 0;
+            previousLiveValue = 0;
+            hasStagedValue = false;
+            published = false;
+            HasCandidate = false;
+        }
+    }
+
+    private sealed class PreStageAuthoritySection :
+        IDungeonSaveSection,
+        IDungeonSaveSectionPreflight,
+        IDungeonStagedSaveSection,
+        IDungeonRollbackFreeSaveSection
+    {
+        private readonly PreStageAuthorityParticipant authority;
+        private readonly int capturedValue;
+        private readonly ICollection<string> events;
+
+        public PreStageAuthoritySection(
+            string sectionId,
+            PreStageAuthorityParticipant authority,
+            int capturedValue,
+            ICollection<string> events)
+        {
+            SectionId = sectionId;
+            this.authority = authority
+                ?? throw new ArgumentNullException(nameof(authority));
+            this.capturedValue = capturedValue;
+            this.events = events;
+        }
+
+        public string SectionId { get; }
+        public int SectionVersion => 1;
+        public DungeonSaveRestorePhase RestorePhase =>
+            DungeonSaveRestorePhase.RuntimeState;
+        public IReadOnlyList<string> DependsOn => Array.Empty<string>();
+        public int ObservedLiveValueDuringStage { get; private set; }
+        public int ObservedLiveValueDuringCommit { get; private set; }
+        public int PublishedValue { get; private set; }
+
+        public string Capture() => JsonUtility.ToJson(
+            new TransactionPayload { value = capturedValue });
+
+        public void ValidatePayload(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report) =>
+            _ = Parse(payloadJson, sectionVersion);
+
+        public IDungeonSaveRestoreStage StageRestore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            int value = Parse(payloadJson, sectionVersion);
+            authority.StageValue(value);
+            ObservedLiveValueDuringStage = authority.LiveValue;
+            events?.Add($"stage:{SectionId}");
+            return new DungeonDelegateSaveRestoreStage(SectionId, _ =>
+            {
+                ObservedLiveValueDuringCommit = authority.LiveValue;
+                PublishedValue = value;
+                events?.Add($"commit:{SectionId}");
+            });
+        }
+
+        public void Restore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report) =>
+            StageRestore(payloadJson, sectionVersion, report).Commit(report);
+
+        private int Parse(string payloadJson, int sectionVersion)
+        {
+            TransactionPayload payload = sectionVersion == SectionVersion
+                ? JsonUtility.FromJson<TransactionPayload>(payloadJson)
+                : null;
+            if (payload == null || payload.value <= 0)
+            {
+                throw new InvalidOperationException(
+                    "Invalid pre-stage authority payload.");
+            }
+            return payload.value;
+        }
+    }
+
+    private sealed class PreStageFailingSection :
+        IDungeonSaveSection,
+        IDungeonSaveSectionPreflight,
+        IDungeonStagedSaveSection,
+        IDungeonRollbackFreeSaveSection
+    {
+        private readonly string dependency;
+        private readonly ICollection<string> events;
+
+        public PreStageFailingSection(
+            string sectionId,
+            string dependency,
+            ICollection<string> events)
+        {
+            SectionId = sectionId;
+            this.dependency = dependency;
+            this.events = events;
+        }
+
+        public string SectionId { get; }
+        public int SectionVersion => 1;
+        public DungeonSaveRestorePhase RestorePhase =>
+            DungeonSaveRestorePhase.RuntimeState;
+        public IReadOnlyList<string> DependsOn => new[] { dependency };
+        public string Capture() => "{}";
+
+        public void ValidatePayload(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            if (sectionVersion != SectionVersion
+                || string.IsNullOrWhiteSpace(payloadJson))
+            {
+                throw new InvalidOperationException(
+                    "Invalid injected stage-failure payload.");
+            }
+        }
+
+        public IDungeonSaveRestoreStage StageRestore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            ValidatePayload(payloadJson, sectionVersion, report);
+            events?.Add($"stage-fail:{SectionId}");
+            throw new InvalidOperationException(
+                "injected failure after pre-stage authority write");
+        }
+
+        public void Restore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report) =>
+            StageRestore(payloadJson, sectionVersion, report).Commit(report);
+    }
+
+    private sealed class StagedCandidateIndex
+    {
+        public bool IsAvailable { get; private set; }
+
+        public void Stage()
+        {
+            if (IsAvailable)
+            {
+                throw new InvalidOperationException(
+                    "Post-stage candidate index is already available.");
+            }
+            IsAvailable = true;
+        }
+
+        public void Clear()
+        {
+            if (!IsAvailable)
+            {
+                throw new InvalidOperationException(
+                    "Post-stage candidate index is unavailable.");
+            }
+            IsAvailable = false;
+        }
+    }
+
+    private sealed class PostStageCandidateIndexSection :
+        IDungeonSaveSection,
+        IDungeonSaveSectionPreflight,
+        IDungeonStagedSaveSection,
+        IDungeonRollbackFreeSaveSection
+    {
+        private readonly PreStageAuthorityParticipant authority;
+        private readonly StagedCandidateIndex index;
+        private readonly ICollection<string> events;
+
+        public PostStageCandidateIndexSection(
+            PreStageAuthorityParticipant authority,
+            StagedCandidateIndex index,
+            ICollection<string> events)
+        {
+            this.authority = authority;
+            this.index = index;
+            this.events = events;
+        }
+
+        public string SectionId => "qa.physical-index-source";
+        public int SectionVersion => 1;
+        public DungeonSaveRestorePhase RestorePhase =>
+            DungeonSaveRestorePhase.Items;
+        public IReadOnlyList<string> DependsOn => Array.Empty<string>();
+        public string Capture() =>
+            JsonUtility.ToJson(new TransactionPayload { value = 20 });
+
+        public void ValidatePayload(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            if (sectionVersion != SectionVersion
+                || JsonUtility.FromJson<TransactionPayload>(payloadJson)?.value != 20)
+            {
+                throw new InvalidOperationException(
+                    "Invalid physical-index test payload.");
+            }
+        }
+
+        public IDungeonSaveRestoreStage StageRestore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            ValidatePayload(payloadJson, sectionVersion, report);
+            authority.StageValue(20);
+            index.Stage();
+            events?.Add("stage:physical-index");
+            return new PostStageCandidateIndexStage(index, events);
+        }
+
+        public void Restore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report) =>
+            StageRestore(payloadJson, sectionVersion, report).Commit(report);
+    }
+
+    private sealed class PostStageCandidateIndexStage :
+        IDungeonSaveRestoreStage,
+        IDungeonDiscardableSaveRestoreStage
+    {
+        private readonly StagedCandidateIndex index;
+        private readonly ICollection<string> events;
+        private bool committed;
+
+        public PostStageCandidateIndexStage(
+            StagedCandidateIndex index,
+            ICollection<string> events)
+        {
+            this.index = index;
+            this.events = events;
+        }
+
+        public string SectionId => "qa.physical-index-source";
+
+        public void Commit(DungeonGameRestoreReport report)
+        {
+            committed = true;
+            events?.Add("commit:physical-index");
+        }
+
+        public void Discard()
+        {
+            if (!committed && index.IsAvailable)
+            {
+                index.Clear();
+            }
+        }
+    }
+
+    private sealed class PostStageCandidateLifetimeParticipant :
+        IDungeonRestoreTransactionParticipant
+    {
+        private readonly StagedCandidateIndex index;
+        private readonly ICollection<string> events;
+        private bool published;
+
+        public PostStageCandidateLifetimeParticipant(
+            StagedCandidateIndex index,
+            ICollection<string> events)
+        {
+            this.index = index;
+            this.events = events;
+        }
+
+        public string ParticipantId =>
+            "999.world.physical-item-restore-candidate-lifetime";
+        public int BeginCount { get; private set; }
+        public int PublishCount { get; private set; }
+        public int CompleteCount { get; private set; }
+        public int DiscardCount { get; private set; }
+        public bool HasCandidate { get; private set; }
+
+        public void BeginRestoreCandidate()
+        {
+            if (HasCandidate || !index.IsAvailable)
+            {
+                throw new InvalidOperationException(
+                    "Physical lifetime requires a staged candidate index.");
+            }
+            HasCandidate = true;
+            BeginCount++;
+            events?.Add($"begin:{ParticipantId}");
+        }
+
+        public void PublishRestoreCandidate()
+        {
+            if (!HasCandidate || published || !index.IsAvailable)
+            {
+                throw new InvalidOperationException(
+                    "Physical lifetime is not ready to publish.");
+            }
+            published = true;
+            PublishCount++;
+            events?.Add($"publish:{ParticipantId}");
+        }
+
+        public void CompleteRestoreCandidate()
+        {
+            if (!HasCandidate || !published || !index.IsAvailable)
+            {
+                throw new InvalidOperationException(
+                    "Physical lifetime cannot complete.");
+            }
+            index.Clear();
+            HasCandidate = false;
+            published = false;
+            CompleteCount++;
+            events?.Add($"complete:{ParticipantId}");
+        }
+
+        public void DiscardRestoreCandidate()
+        {
+            if (!HasCandidate)
+            {
+                return;
+            }
+            if (index.IsAvailable)
+            {
+                index.Clear();
+            }
+            HasCandidate = false;
+            published = false;
+            DiscardCount++;
+            events?.Add($"discard:{ParticipantId}");
+        }
+    }
+
+    private sealed class RollbackCaptureAuthoritySection :
+        IDungeonSaveSection,
+        IDungeonSaveSectionPreflight,
+        IDungeonStagedSaveSection
+    {
+        private readonly PreStageAuthorityParticipant authority;
+        private readonly ICollection<string> events;
+
+        public RollbackCaptureAuthoritySection(
+            PreStageAuthorityParticipant authority,
+            ICollection<string> events)
+        {
+            this.authority = authority;
+            this.events = events;
+        }
+
+        public string SectionId => "qa.rollback-capture-authority";
+        public int SectionVersion => 1;
+        public DungeonSaveRestorePhase RestorePhase =>
+            DungeonSaveRestorePhase.RuntimeState;
+        public IReadOnlyList<string> DependsOn => Array.Empty<string>();
+        public bool FailNextCommit { get; set; }
+        public List<int> CapturedValues { get; } = new();
+        public List<int> StagedValues { get; } = new();
+        public List<int> CommitAttempts { get; } = new();
+
+        public string Capture()
+        {
+            int value = authority.AuthorityValue;
+            CapturedValues.Add(value);
+            return JsonUtility.ToJson(new TransactionPayload { value = value });
+        }
+
+        public void ValidatePayload(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report) =>
+            _ = Parse(payloadJson, sectionVersion);
+
+        public IDungeonSaveRestoreStage StageRestore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            int value = Parse(payloadJson, sectionVersion);
+            authority.StageValue(value);
+            StagedValues.Add(value);
+            events?.Add($"stage:rollback:{value}");
+            return new DungeonDelegateSaveRestoreStage(SectionId, _ =>
+            {
+                CommitAttempts.Add(value);
+                events?.Add($"commit:rollback:{value}");
+                if (FailNextCommit)
+                {
+                    FailNextCommit = false;
+                    throw new InvalidOperationException(
+                        "injected commit failure for rollback-image audit");
+                }
+            });
+        }
+
+        public void Restore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report) =>
+            StageRestore(payloadJson, sectionVersion, report).Commit(report);
+
+        private int Parse(string payloadJson, int sectionVersion)
+        {
+            TransactionPayload payload = sectionVersion == SectionVersion
+                ? JsonUtility.FromJson<TransactionPayload>(payloadJson)
+                : null;
+            if (payload == null || payload.value <= 0)
+            {
+                throw new InvalidOperationException(
+                    "Invalid rollback authority payload.");
+            }
+            return payload.value;
+        }
     }
 
     private sealed class TransactionFakeSection :

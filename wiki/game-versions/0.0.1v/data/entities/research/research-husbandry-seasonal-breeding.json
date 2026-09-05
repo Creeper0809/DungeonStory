@@ -1,0 +1,85 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "191"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Husbandry"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-breeding",
+      "target_spoiler_tier": "none",
+      "target_title": "번식 관리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-breeding",
+      "target_spoiler_tier": "none",
+      "target_title": "번식 관리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-breeding",
+      "target_spoiler_tier": "none",
+      "target_title": "번식 관리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-phenology",
+      "target_spoiler_tier": "none",
+      "target_title": "생물계절학과 종자 선별",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-phenology",
+      "target_spoiler_tier": "none",
+      "target_title": "생물계절학과 종자 선별",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-phenology",
+      "target_spoiler_tier": "none",
+      "target_title": "생물계절학과 종자 선별",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8855",
+      "target_spoiler_tier": "none",
+      "target_title": "번식 일정 축사",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-husbandry-seasonal-breeding",
+  "spoiler_tier": "none",
+  "summary": "생물계절 기록을 번식 일정과 회복 주기에 반영한다.",
+  "title": "계절 번식"
+}

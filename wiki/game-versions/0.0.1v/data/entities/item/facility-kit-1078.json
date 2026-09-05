@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "135"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "광석 선별대에서 생산 주문을 처리하는 공정을 맡기 위해 준비한 설치 부품이다. 크릭 제7굴산 광석 선별대의 작업면에는 재료를 처음 완성한 도제의 손높이에 맞춘 긁힘이 남아 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "facility-kit-1078",
+  "spoiler_tier": "none",
+  "summary": "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.",
+  "title": "광석 선별대 설치 키트"
+}

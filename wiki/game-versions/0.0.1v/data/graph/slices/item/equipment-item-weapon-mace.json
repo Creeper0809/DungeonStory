@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "equipment-item-weapon-mace",
+    "spoiler_tier": "none",
+    "title": "철퇴"
+  },
+  "edges": [],
+  "schema_version": 1
+}

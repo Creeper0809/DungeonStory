@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Immunity Longevity"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "heritable-broad-immunity",
+  "spoiler_tier": "none",
+  "summary": "여러 감염병의 발병 확률을 조금씩 낮춘다.",
+  "title": "광범위 면역"
+}

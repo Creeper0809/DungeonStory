@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -21,16 +22,20 @@ public static class CharacterAiWorkTypeLiveMatrixPlayModeVerifier
 {
     public const string ReportPath =
         "Artifacts/QA/character-ai-worktype-live-matrix.txt";
+    public const string P15AutomationModesReportPath =
+        "Artifacts/QA/v27-p15-production-execution-modes-playmode.txt";
     private const string GameplayScenePath = "Assets/Scenes/GameplayScene.unity";
     private const string PendingPath =
         "Temp/character-ai-worktype-live-matrix.flag";
+    private const string P15AutomationModesPendingPath =
+        "Temp/v27-p15-production-execution-modes.flag";
 
     [MenuItem("DungeonStory/Debug/QA/Run Character AI WorkType Live Matrix")]
     public static void RequestRun()
     {
         if (EditorApplication.isPlaying)
         {
-            StartRunner();
+            StartRunner(p15AutomationModesOnly: false);
             return;
         }
 
@@ -47,21 +52,46 @@ public static class CharacterAiWorkTypeLiveMatrixPlayModeVerifier
         EditorApplication.EnterPlaymode();
     }
 
+    [MenuItem("DungeonStory/Debug/QA/Run P15 Production Execution Modes")]
+    public static void RequestP15AutomationModesRun()
+    {
+        if (EditorApplication.isPlaying)
+        {
+            StartRunner(p15AutomationModesOnly: true);
+            return;
+        }
+
+        if (!File.Exists(GameplayScenePath))
+        {
+            throw new FileNotFoundException(
+                "P15 execution-mode verification requires the official gameplay scene.",
+                GameplayScenePath);
+        }
+
+        EditorSceneManager.OpenScene(GameplayScenePath, OpenSceneMode.Single);
+        Directory.CreateDirectory("Temp");
+        File.WriteAllText(P15AutomationModesPendingPath, DateTime.UtcNow.ToString("O"));
+        EditorApplication.EnterPlaymode();
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
     {
-        if (!File.Exists(PendingPath))
+        bool p15AutomationModesOnly = File.Exists(P15AutomationModesPendingPath);
+        if (!p15AutomationModesOnly && !File.Exists(PendingPath))
             return;
-        StartRunner();
+        StartRunner(p15AutomationModesOnly);
     }
 
     internal static void MarkRunCompleted()
     {
         if (File.Exists(PendingPath))
             File.Delete(PendingPath);
+        if (File.Exists(P15AutomationModesPendingPath))
+            File.Delete(P15AutomationModesPendingPath);
     }
 
-    private static void StartRunner()
+    private static void StartRunner(bool p15AutomationModesOnly)
     {
         if (UnityEngine.Object.FindFirstObjectByType<
                 CharacterAiWorkTypeLiveMatrixPlayModeRunner>() != null)
@@ -69,13 +99,17 @@ public static class CharacterAiWorkTypeLiveMatrixPlayModeVerifier
             return;
         }
 
-        new GameObject("Character AI WorkType Live Matrix Runner")
-            .AddComponent<CharacterAiWorkTypeLiveMatrixPlayModeRunner>();
+        CharacterAiWorkTypeLiveMatrixPlayModeRunner runner =
+            new GameObject("Character AI WorkType Live Matrix Runner")
+                .AddComponent<CharacterAiWorkTypeLiveMatrixPlayModeRunner>();
+        runner.P15AutomationModesOnly = p15AutomationModesOnly;
     }
 }
 
 public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
 {
+    public bool P15AutomationModesOnly { get; set; }
+
     private const float MinimumProgressObservationSeconds = 8f;
     private const float MaximumProgressObservationSeconds = 120f;
     private const float MaximumCompletionObservationSeconds = 240f;
@@ -146,6 +180,12 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
     private Grid grid;
     private IProductionBillQuery productionBills;
     private IProductionBillOrderCommand productionOrders;
+    private IProductionBillWorkExecution productionWork;
+    private IAutomationInfrastructureQuery automation;
+    private IAutomationInfrastructureCommand automationCommands;
+    private IAutomationInfrastructurePersistence automationPersistence;
+    private IPowerInfrastructureQuery power;
+    private ISettlementLaborAccountingService settlementLabor;
     private IResourceEconomyContentCatalog economyContent;
     private IWorldItemStackRuntime physicalItems;
     private WorldItemRepository itemRepository;
@@ -338,6 +378,13 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
 
         productionBills = scope.Container.Resolve<IProductionBillQuery>();
         productionOrders = scope.Container.Resolve<IProductionBillOrderCommand>();
+        productionWork = scope.Container.Resolve<IProductionBillWorkExecution>();
+        automation = scope.Container.Resolve<IAutomationInfrastructureQuery>();
+        automationCommands = scope.Container.Resolve<IAutomationInfrastructureCommand>();
+        automationPersistence = scope.Container.Resolve<
+            IAutomationInfrastructurePersistence>();
+        power = scope.Container.Resolve<IPowerInfrastructureQuery>();
+        settlementLabor = scope.Container.Resolve<ISettlementLaborAccountingService>();
         economyContent = scope.Container.Resolve<IResourceEconomyContentCatalog>();
         physicalItems = scope.Container.Resolve<IWorldItemStackRuntime>();
         itemRepository = scope.Container.Resolve<WorldItemRepository>();
@@ -418,6 +465,14 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
             + "; priorPauseStatesCaptured=" + actorPauseStates.Count));
         yield return null;
 
+        if (P15AutomationModesOnly)
+        {
+            IEnumerator focused = RunP15AutomationModesFocused();
+            while (focused.MoveNext())
+                yield return focused.Current;
+            yield break;
+        }
+
         foreach (WorkTypeId workTypeId in Rows)
         {
             if (abortRemainingRows)
@@ -426,6 +481,1199 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
             while (row.MoveNext())
                 yield return row.Current;
         }
+    }
+
+    private IEnumerator RunP15AutomationModesFocused()
+    {
+        IEnumerator manual = RunP15NaturalExecutionModeArm(
+            AutomationMode.Manual,
+            "p15:manual");
+        while (manual.MoveNext())
+            yield return manual.Current;
+
+        IEnumerator assisted = RunP15NaturalExecutionModeArm(
+            AutomationMode.PoweredAssist,
+            "p15:powered-assist");
+        while (assisted.MoveNext())
+            yield return assisted.Current;
+
+        IEnumerator occupied = RunP15AllocatedWorkerTransitionArm();
+        while (occupied.MoveNext())
+            yield return occupied.Current;
+
+        IEnumerator automatic = RunP15AutomaticExecutionArm();
+        while (automatic.MoveNext())
+            yield return automatic.Current;
+
+        IEnumerator utilityFailure = RunP15UtilityFailureAtomicArm();
+        while (utilityFailure.MoveNext())
+            yield return utilityFailure.Current;
+    }
+
+    private IEnumerator RunP15NaturalExecutionModeArm(
+        AutomationMode mode,
+        string rowId)
+    {
+        P15FocusedFixture focused = null;
+        string setupFailure = string.Empty;
+        IEnumerator setup = PrepareP15FocusedFixture(
+            value => focused = value,
+            value => setupFailure = value);
+        while (setup.MoveNext())
+            yield return setup.Current;
+        if (focused == null)
+        {
+            results.Add(new WorkTypeLiveRow(
+                rowId,
+                "FAIL",
+                "P15",
+                "fixture=" + setupFailure));
+            yield break;
+        }
+
+        InfrastructureCommandResult modeCommand = automationCommands.SetMode(
+            focused.Target,
+            mode);
+        float modeDeadline = Time.realtimeSinceStartup + 5f;
+        AutomationFacilitySnapshot modeSnapshot = null;
+        while (modeCommand.Succeeded
+               && Time.realtimeSinceStartup < modeDeadline)
+        {
+            if (automation.TryGetFacility(focused.Target, out modeSnapshot)
+                && modeSnapshot.Mode == mode
+                && modeSnapshot.Powered
+                && modeSnapshot.Operational)
+            {
+                break;
+            }
+            yield return null;
+        }
+
+        float speedMultiplier = automation.GetWorkSpeedMultiplier(focused.Target);
+        ProductionBillSnapshot billBefore = FindFocusedBill(focused);
+        SettlementLaborAccountingSnapshot laborBefore = settlementLabor.Capture();
+        PrepareActor(BuiltInWorkTypeIds.Cook);
+        WorkPhaseResult phase = null;
+        IEnumerator phaseRun = RunLivePhase(
+            BuiltInWorkTypeIds.Cook,
+            focused.Target,
+            WorkProbeFault.CancelAfterApprovedProgress,
+            fixture: null,
+            value => phase = value);
+        while (phaseRun.MoveNext())
+            yield return phaseRun.Current;
+        ProductionBillSnapshot billAfter = FindFocusedBill(focused);
+        SettlementLaborAccountingSnapshot laborAfter = settlementLabor.Capture();
+
+        long actualDelta = DeltaCounterAcrossReset(
+            laborBefore.ActualLaborMilliWu,
+            laborAfter.ActualLaborMilliWu);
+        long automaticDelta = DeltaCounterAcrossReset(
+            laborBefore.DomainAutomationMilliWu,
+            laborAfter.DomainAutomationMilliWu);
+        float completedDelta = billBefore != null && billAfter != null
+            ? billAfter.CompletedWork - billBefore.CompletedWork
+            : 0f;
+        bool modeReady = modeSnapshot != null
+            && modeSnapshot.Mode == mode
+            && modeSnapshot.Powered
+            && modeSnapshot.Operational;
+        bool multiplierValid = mode == AutomationMode.Manual
+            ? Mathf.Approximately(speedMultiplier, 1f)
+            : speedMultiplier > 1f;
+        bool passed = modeCommand.Succeeded
+            && modeReady
+            && multiplierValid
+            && phase?.Passed == true
+            && completedDelta > 0f
+            && actualDelta > 0L
+            && automaticDelta == 0L;
+
+        string detail = "modeCommand=" + modeCommand.Succeeded
+            + "; modeReady=" + modeReady
+            + "; multiplier=" + speedMultiplier.ToString("0.###")
+            + "; naturalPhasePass=" + (phase?.Passed == true)
+            + "; billProgress=" + (completedDelta > 0f)
+            + "; actualLaborPositive=" + (actualDelta > 0L)
+            + "; automaticLaborZero=" + (automaticDelta == 0L);
+        if (!CloseP15FocusedFixture(focused, out string cleanupFailure))
+        {
+            passed = false;
+            detail += "; cleanup=" + cleanupFailure;
+        }
+        results.Add(new WorkTypeLiveRow(
+            rowId,
+            passed ? "PASS" : "FAIL",
+            "P15",
+            detail));
+    }
+
+    private IEnumerator RunP15AllocatedWorkerTransitionArm()
+    {
+        const string RowId = "p15:allocated-worker-transition";
+        P15FocusedFixture focused = null;
+        string setupFailure = string.Empty;
+        IEnumerator setup = PrepareP15FocusedFixture(
+            value => focused = value,
+            value => setupFailure = value);
+        while (setup.MoveNext())
+            yield return setup.Current;
+        if (focused == null)
+        {
+            results.Add(new WorkTypeLiveRow(
+                RowId,
+                "FAIL",
+                "P15",
+                "fixture=" + setupFailure));
+            yield break;
+        }
+
+        InfrastructureCommandResult manual = automationCommands.SetMode(
+            focused.Target,
+            AutomationMode.Manual);
+        PrepareActor(BuiltInWorkTypeIds.Cook);
+        WorkPhaseResult phase = null;
+        bool occupancyOnlyObserved = false;
+        bool transitionAttempted = false;
+        InfrastructureCommandResult transition = default;
+        IEnumerator phaseRun = RunLivePhase(
+            BuiltInWorkTypeIds.Cook,
+            focused.Target,
+            WorkProbeFault.CancelAfterApprovedProgress,
+            fixture: null,
+            value => phase = value);
+        while (phaseRun.MoveNext())
+        {
+            if (!transitionAttempted
+                && focused.Target is IAllocatedWorkerOccupancyQuery occupancy
+                && occupancy.HasAllocatedWorker
+                && focused.Target.WorkerReservation == null
+                && productionBills.GetBills(focused.Target).All(value =>
+                    string.IsNullOrWhiteSpace(value.ReservedWorkerId)))
+            {
+                occupancyOnlyObserved = true;
+                transitionAttempted = true;
+                transition = automationCommands.SetMode(
+                    focused.Target,
+                    AutomationMode.Automatic);
+            }
+            yield return phaseRun.Current;
+        }
+
+        bool typedRejection = transitionAttempted
+            && !transition.Succeeded
+            && transition.Failure.Code == FailureCode.AutomationModeUnsupported
+            && DomainFailureContains(
+                transition.Failure,
+                "automatic-mode-manual-worker-active");
+        bool passed = manual.Succeeded
+            && occupancyOnlyObserved
+            && typedRejection
+            && phase?.Passed == true;
+        string detail = "manual=" + manual.Succeeded
+            + "; occupancyOnly=" + occupancyOnlyObserved
+            + "; transitionAttempted=" + transitionAttempted
+            + "; typedRejection=" + typedRejection
+            + "; naturalPhasePass=" + (phase?.Passed == true);
+        if (!CloseP15FocusedFixture(focused, out string cleanupFailure))
+        {
+            passed = false;
+            detail += "; cleanup=" + cleanupFailure;
+        }
+        results.Add(new WorkTypeLiveRow(
+            RowId,
+            passed ? "PASS" : "FAIL",
+            "P15",
+            detail));
+    }
+
+    private IEnumerator RunP15AutomaticExecutionArm()
+    {
+        const string RowId = "p15:automatic";
+        P15FocusedFixture focused = null;
+        string setupFailure = string.Empty;
+        IEnumerator setup = PrepareP15FocusedFixture(
+            value => focused = value,
+            value => setupFailure = value);
+        while (setup.MoveNext())
+            yield return setup.Current;
+        if (focused == null)
+        {
+            results.Add(new WorkTypeLiveRow(
+                RowId,
+                "FAIL",
+                "P15",
+                "fixture=" + setupFailure));
+            yield break;
+        }
+
+        InfrastructureCommandResult automatic = automationCommands.SetMode(
+            focused.Target,
+            AutomationMode.Automatic);
+        float modeDeadline = Time.realtimeSinceStartup + 5f;
+        AutomationFacilitySnapshot modeSnapshot = null;
+        while (automatic.Succeeded
+               && Time.realtimeSinceStartup < modeDeadline)
+        {
+            if (automation.TryGetFacility(focused.Target, out modeSnapshot)
+                && modeSnapshot.Mode == AutomationMode.Automatic
+                && modeSnapshot.Powered
+                && modeSnapshot.Operational)
+            {
+                break;
+            }
+            yield return null;
+        }
+
+        PrepareActor(BuiltInWorkTypeIds.Cook);
+        runtimeScope.Container.Resolve<IFacilityCandidateCache>()
+            .MarkDynamicStateDirty();
+        yield return null;
+        ProductionWorkAvailabilityResult availability =
+            productionWork.CheckWorkAvailability(
+                focused.Target,
+                BuiltInWorkTypeIds.Cook);
+        GridPathSearchResult search = grid.SearchPath(actor.GetNowXY());
+        bool foundCandidate = work.TryGetBestWorkCandidate(
+            BuiltInWorkTypeIds.Cook,
+            search,
+            out WorkTargetCandidate candidate);
+        BuildableObject candidateTarget = foundCandidate
+            ? WorkTargetCandidateRuntimeAdapter.ResolveBuilding(candidate)
+            : null;
+        bool priorityAccepted = work.TrySetPriorityWorkTarget(
+            focused.Target,
+            BuiltInWorkTypeIds.Cook,
+            search,
+            out string priorityFailure);
+        ProductionWorkBeginResult begin = productionWork.BeginWork(
+            actor,
+            focused.Target,
+            BuiltInWorkTypeIds.Cook);
+        ProductionWorkExecutionResult execute = productionWork.ExecuteWork(
+            actor,
+            focused.Target,
+            focused.BillId,
+            0.25f);
+        bool typedManualRejection = !availability.Available
+            && DomainFailureContains(
+                availability.Failure,
+                ProductionWorkstationExecutionModeRules
+                    .ManualDisabledByAutomaticMode)
+            && !begin.Succeeded
+            && DomainFailureContains(
+                begin.Failure,
+                ProductionWorkstationExecutionModeRules
+                    .ManualDisabledByAutomaticMode)
+            && !execute.Succeeded
+            && DomainFailureContains(
+                execute.Failure,
+                ProductionWorkstationExecutionModeRules
+                    .ManualDisabledByAutomaticMode)
+            && !priorityAccepted;
+        bool naturalTargetExcluded = !foundCandidate
+            || !ReferenceEquals(candidateTarget, focused.Target);
+
+        ProductionBillSnapshot billBefore = FindFocusedBill(focused);
+        SettlementLaborAccountingSnapshot laborBefore = settlementLabor.Capture();
+        long approvedBefore = work.ApprovedWorkProgressRevisionForDiagnostics;
+        actor.SetAiPaused(false);
+        brain.PreferWorkActionOnNextDecision(BuiltInWorkTypeIds.Cook, 2f);
+        brain.RequestImmediateReplan(clearFailures: true);
+        float progressDeadline = Time.realtimeSinceStartup + 12f;
+        bool automaticProgressed = false;
+        while (Time.realtimeSinceStartup < progressDeadline)
+        {
+            ProductionBillSnapshot current = FindFocusedBill(focused);
+            SettlementLaborAccountingSnapshot currentLabor = settlementLabor.Capture();
+            automaticProgressed = BillTokenChanged(billBefore, current)
+                || DeltaCounterAcrossReset(
+                    laborBefore.DomainAutomationMilliWu,
+                    currentLabor.DomainAutomationMilliWu) > 0L;
+            if (automaticProgressed)
+                break;
+            yield return null;
+        }
+        brain.StopCurrentActionForReplan(
+            "p15 automatic execution-mode exclusion observation complete");
+        actor.SetAiPaused(true);
+        for (int frame = 0; frame < 2; frame++)
+            yield return null;
+
+        SettlementLaborAccountingSnapshot laborAfter = settlementLabor.Capture();
+        long actualDelta = DeltaCounterAcrossReset(
+            laborBefore.ActualLaborMilliWu,
+            laborAfter.ActualLaborMilliWu);
+        long automaticDelta = DeltaCounterAcrossReset(
+            laborBefore.DomainAutomationMilliWu,
+            laborAfter.DomainAutomationMilliWu);
+        bool noNaturalProgress = work.ApprovedWorkProgressRevisionForDiagnostics
+            == approvedBefore
+            && !ReferenceEquals(work.assignedShop, focused.Target);
+        bool noManualOwnership = focused.Target.WorkerReservation == null
+            && (!(focused.Target is IAllocatedWorkerOccupancyQuery occupancy)
+                || !occupancy.HasAllocatedWorker)
+            && productionBills.GetBills(focused.Target).All(value =>
+                string.IsNullOrWhiteSpace(value.ReservedWorkerId));
+
+        DungeonAutomationSaveData savedMode = automationPersistence.Capture();
+        InfrastructureCommandResult switchedManual = automationCommands.SetMode(
+            focused.Target,
+            AutomationMode.Manual);
+        AutomationRestoreCandidate restoredMode = automationPersistence
+            .PrepareRestore(savedMode);
+        automationPersistence.Restore(restoredMode);
+        yield return null;
+        bool restoreExact = automation.TryGetFacility(
+                focused.Target,
+                out AutomationFacilitySnapshot restoredSnapshot)
+            && restoredSnapshot.Mode == AutomationMode.Automatic
+            && !productionWork.CheckWorkAvailability(
+                focused.Target,
+                BuiltInWorkTypeIds.Cook).Available;
+
+        bool modeReady = modeSnapshot != null
+            && modeSnapshot.Mode == AutomationMode.Automatic
+            && modeSnapshot.Powered
+            && modeSnapshot.Operational;
+        bool passed = automatic.Succeeded
+            && modeReady
+            && typedManualRejection
+            && naturalTargetExcluded
+            && noNaturalProgress
+            && automaticProgressed
+            && automaticDelta > 0L
+            && actualDelta == 0L
+            && noManualOwnership
+            && switchedManual.Succeeded
+            && restoreExact;
+        string detail = "modeCommand=" + automatic.Succeeded
+            + "; modeReady=" + modeReady
+            + "; typedManualRejection=" + typedManualRejection
+            + "; priorityAccepted=" + priorityAccepted
+            + "; naturalTargetExcluded=" + naturalTargetExcluded
+            + "; noNaturalProgress=" + noNaturalProgress
+            + "; automaticProgress=" + automaticProgressed
+            + "; actualLaborZero=" + (actualDelta == 0L)
+            + "; automaticLaborPositive=" + (automaticDelta > 0L)
+            + "; noManualOwnership=" + noManualOwnership
+            + "; restoreExact=" + restoreExact;
+        if (!CloseP15FocusedFixture(focused, out string cleanupFailure))
+        {
+            passed = false;
+            detail += "; cleanup=" + cleanupFailure;
+        }
+        results.Add(new WorkTypeLiveRow(
+            RowId,
+            passed ? "PASS" : "FAIL",
+            "P15",
+            detail));
+    }
+
+    private IEnumerator PrepareP15FocusedFixture(
+        Action<P15FocusedFixture> completed,
+        Action<string> failed)
+    {
+        if (!CleanupRowScopedFixtures(out string priorCleanupFailure))
+        {
+            failed("prior-cleanup=" + priorCleanupFailure);
+            yield break;
+        }
+        if (!CleanupRoomFixture(out string priorRoomCleanupFailure))
+        {
+            failed("prior-room-cleanup=" + priorRoomCleanupFailure);
+            yield break;
+        }
+        MaintainStableWorkSubject();
+        actor.SetAiPaused(true);
+        brain.StopCurrentActionForReplan(
+            "P15 focused fixture deterministic setup");
+        actor.GetAbility<AbilityMove>()?.CancelActiveMovement(
+            "P15 focused fixture deterministic setup");
+        yield return null;
+        yield return null;
+        if (!TryPlacePoweredP15Pair(
+                out BuildableObject target,
+                out string placementFailure))
+        {
+            failed("placement=" + placementFailure);
+            yield break;
+        }
+
+        float powerDeadline = Time.realtimeSinceStartup + 8f;
+        while (!power.IsPowered(target)
+               && Time.realtimeSinceStartup < powerDeadline)
+        {
+            yield return null;
+        }
+        if (!power.IsPowered(target))
+        {
+            failed("P15 did not join the adjacent fuel-free I02 power network");
+            yield break;
+        }
+
+        if (!TryPrepareProductionFixture(
+                BuiltInWorkTypeIds.Cook,
+                out MaterialWorkFixture fixture,
+                out string fixtureFailure,
+                target))
+        {
+            failed("bill=" + fixtureFailure);
+            yield break;
+        }
+        ProductionBillSnapshot bill = productionBills.GetBills(target)
+            .SingleOrDefault(value => value.RecipeId == "recipe:tallow");
+        if (bill == null)
+        {
+            failed("prepared P15 tallow bill is missing");
+            yield break;
+        }
+
+        runtimeScope.Container.Resolve<IFacilityCandidateCache>()
+            .MarkDynamicStateDirty();
+        yield return null;
+        completed(new P15FocusedFixture(target, fixture, bill.BillId));
+    }
+
+    private IEnumerator RunP15UtilityFailureAtomicArm()
+    {
+        const string RowId = "p15:utility-failure-atomic";
+        P15FocusedFixture focused = null;
+        string setupFailure = string.Empty;
+        IEnumerator setup = PrepareP15FocusedFixture(
+            value => focused = value,
+            value => setupFailure = value);
+        while (setup.MoveNext())
+            yield return setup.Current;
+        if (focused == null)
+        {
+            results.Add(new WorkTypeLiveRow(
+                RowId,
+                "FAIL",
+                "P15",
+                "fixture=" + setupFailure));
+            yield break;
+        }
+
+        InfrastructureCommandResult manual = automationCommands.SetMode(
+            focused.Target,
+            AutomationMode.Manual);
+        IFluidWastewaterTransaction wastewater =
+            runtimeScope.Container.Resolve<IFluidWastewaterTransaction>();
+        bool fullyAccepted = wastewater.TryAddWastewater(
+            focused.Target,
+            100000f,
+            out float acceptedWastewater,
+            out DomainFailure overflowFailure);
+        ProductionWorkAvailabilityResult availability =
+            productionWork.CheckWorkAvailability(
+                focused.Target,
+                BuiltInWorkTypeIds.Cook);
+        ProductionBillSnapshot billBefore = FindFocusedBill(focused);
+        string physicalBefore = CaptureP15PhysicalStackFingerprint();
+        int sludgeBefore = CaptureP15ItemQuantity(
+            IndustrialItemDefinitions.SludgeId);
+        int waterBefore = CaptureP15ItemQuantity("resource:clean-water");
+        bool delegatedWork = false;
+        IWorkExecutionHandlerRegistry handlers =
+            runtimeScope.Container.Resolve<IWorkExecutionHandlerRegistry>();
+        bool handlerResolved = handlers.TryGet(
+            BuiltInWorkTypeIds.Cook,
+            out IWorkExecutionHandler handler);
+        WorkExecutionResult executionResult = new();
+        if (handlerResolved)
+        {
+            WorkExecutionContext context = new(
+                0,
+                work,
+                actor,
+                focused.Target,
+                BuiltInWorkTypeIds.Cook,
+                (required, label, multiplier) =>
+                {
+                    delegatedWork = true;
+                    return EmptyP15FocusedCoroutine();
+                },
+                () => true,
+                (required, completed, label, multiplier, apply) =>
+                {
+                    delegatedWork = true;
+                    return EmptyP15FocusedCoroutine();
+                });
+            IEnumerator execution = handler.Execute(context, executionResult);
+            while (execution.MoveNext())
+                yield return execution.Current;
+        }
+
+        ProductionBillSnapshot billAfter = FindFocusedBill(focused);
+        string physicalAfter = CaptureP15PhysicalStackFingerprint();
+        int sludgeAfter = CaptureP15ItemQuantity(
+            IndustrialItemDefinitions.SludgeId);
+        int waterAfter = CaptureP15ItemQuantity("resource:clean-water");
+        bool utilityRejected = !availability.Available
+            && availability.Failure.Code
+                == FailureCode.ProductionUtilitiesUnavailable
+            && DomainFailureContains(
+                availability.Failure,
+                FailureCode.FluidWastewaterUnavailable.ToString());
+        bool billUnchanged = billBefore != null
+            && billAfter != null
+            && billAfter.BillId == billBefore.BillId
+            && billAfter.MaterialsConsumed == billBefore.MaterialsConsumed
+            && billAfter.ProcessFluidConsumed == billBefore.ProcessFluidConsumed
+            && Mathf.Approximately(
+                billAfter.CompletedWork,
+                billBefore.CompletedWork)
+            && billAfter.RemainingCycles == billBefore.RemainingCycles;
+        bool passed = manual.Succeeded
+            && !fullyAccepted
+            && acceptedWastewater > 0f
+            && overflowFailure.IsFailure
+            && utilityRejected
+            && handlerResolved
+            && !executionResult.CompletedSuccessfully
+            && !delegatedWork
+            && billUnchanged
+            && string.Equals(
+                physicalAfter,
+                physicalBefore,
+                StringComparison.Ordinal)
+            && sludgeAfter == sludgeBefore
+            && waterAfter == waterBefore;
+        string detail = "manual=" + manual.Succeeded
+            + "; tankFilled=" + (!fullyAccepted && acceptedWastewater > 0f)
+            + "; overflowTyped=" + overflowFailure.IsFailure
+            + "; utilityRejected=" + utilityRejected
+            + "; handlerResolved=" + handlerResolved
+            + "; handlerRejected=" + !executionResult.CompletedSuccessfully
+            + "; delegatedWork=" + delegatedWork
+            + "; billUnchanged=" + billUnchanged
+            + "; physicalUnchanged=" + string.Equals(
+                physicalAfter,
+                physicalBefore,
+                StringComparison.Ordinal)
+            + "; waterUnchanged=" + (waterAfter == waterBefore)
+            + "; sludgeUnchanged=" + (sludgeAfter == sludgeBefore);
+        if (!CloseP15FocusedFixture(focused, out string cleanupFailure))
+        {
+            passed = false;
+            detail += "; cleanup=" + cleanupFailure;
+        }
+        results.Add(new WorkTypeLiveRow(
+            RowId,
+            passed ? "PASS" : "FAIL",
+            "P15",
+            detail));
+    }
+
+    private static IEnumerator EmptyP15FocusedCoroutine()
+    {
+        yield break;
+    }
+
+    private string CaptureP15PhysicalStackFingerprint() => string.Join(
+        "|",
+        physicalItems.GetAllStacks()
+            .Where(value => value != null)
+            .OrderBy(value => value.StackId, StringComparer.Ordinal)
+            .Select(value => value.StackId + ":" + value.ItemId + ":"
+                + value.Quantity + ":" + value.AvailableQuantity + ":"
+                + (int)value.State + ":" + value.DestinationId));
+
+    private int CaptureP15ItemQuantity(string itemId) => physicalItems
+        .GetAllStacks()
+        .Where(value => value != null
+            && string.Equals(value.ItemId, itemId, StringComparison.Ordinal))
+        .Sum(value => value.Quantity);
+
+    private bool TryPlacePoweredP15Pair(
+        out BuildableObject target,
+        out string failureReason)
+    {
+        target = null;
+        failureReason = string.Empty;
+        BuildingSO generatorData = LoadAuthoredBuilding(value =>
+            string.Equals(
+                value.GetAbility<BuildingFacilityPartAbility>()?.code,
+                "I02",
+                StringComparison.Ordinal));
+        BuildingSO p15Data = LoadAuthoredBuilding(value =>
+            string.Equals(
+                value.GetAbility<BuildingFacilityPartAbility>()?.code,
+                "P15",
+                StringComparison.Ordinal));
+        BuildingSO wastewaterTankData = LoadAuthoredBuilding(value =>
+            string.Equals(
+                value.GetAbility<BuildingFacilityPartAbility>()?.code,
+                "I09",
+                StringComparison.Ordinal)
+            && value.GetAbility<BuildingWaterStorageAbility>() is
+            {
+                wastewaterCapacity: > 0f
+            } storage
+            && (storage.channels & UtilityChannel.Wastewater) != 0);
+        BuildingSO wastewaterDuctData = LoadAuthoredBuilding(value =>
+            string.Equals(
+                value.GetAbility<BuildingFacilityPartAbility>()?.code,
+                "U04",
+                StringComparison.Ordinal)
+            && (value.GetAbility<BuildingUtilityConnectionAbility>()?.channels
+                & UtilityChannel.Wastewater) != 0);
+        if (generatorData == null
+            || p15Data == null
+            || wastewaterTankData == null
+            || wastewaterDuctData == null)
+        {
+            failureReason = "I02, P15, I09, or U04 authored building is missing";
+            return false;
+        }
+
+        Vector2Int[] anchors = grid.GetCells()
+            .Where(cell => cell != null)
+            .Select(cell => cell.Position)
+            .OrderBy(position => position.y)
+            .ThenBy(position => position.x)
+            .ToArray();
+        foreach (Vector2Int generatorAnchor in anchors)
+        {
+            IReadOnlyList<Vector2Int> generatorCells =
+                generatorData.GetGridPosList(generatorAnchor);
+            if (generatorCells.Count == 0)
+                continue;
+            Vector2Int p15Anchor = new(
+                generatorCells.Max(position => position.x) + 1,
+                generatorCells.Min(position => position.y));
+            IReadOnlyList<Vector2Int> p15Cells = p15Data.GetGridPosList(p15Anchor);
+            Vector2Int wastewaterTankAnchor = new(
+                p15Cells.Max(position => position.x) + 1,
+                p15Cells.Min(position => position.y));
+            IReadOnlyList<Vector2Int> wastewaterTankCells =
+                wastewaterTankData.GetGridPosList(wastewaterTankAnchor);
+            HashSet<Vector2Int> infrastructureCells = generatorCells
+                .Concat(p15Cells)
+                .Concat(wastewaterTankCells)
+                .ToHashSet();
+            if (infrastructureCells.Count
+                    != generatorCells.Count + p15Cells.Count
+                        + wastewaterTankCells.Count
+                || generatorCells.Any(position =>
+                    grid.GetGridCell(position) is not GridCell cell
+                    || !cell.CanBuildInArea(generatorData)
+                    || !cell.CanOccupy(generatorData.Placement.Layer))
+                || p15Cells.Any(position =>
+                    grid.GetGridCell(position) is not GridCell cell
+                    || !cell.CanBuildInArea(p15Data)
+                    || !cell.CanOccupy(p15Data.Placement.Layer))
+                || wastewaterTankCells.Any(position =>
+                    grid.GetGridCell(position) is not GridCell cell
+                    || !cell.CanBuildInArea(wastewaterTankData)
+                    || !cell.CanOccupy(wastewaterTankData.Placement.Layer)))
+            {
+                continue;
+            }
+
+            BuildableObject generator = PlaceAuthoredBuildingAt(
+                generatorData,
+                generatorAnchor,
+                out string generatorFailure);
+            if (generator == null)
+                continue;
+            rowScopedFixtureBuildings.Add(generator);
+            BuildableObject p15 = PlaceAuthoredBuildingAt(
+                p15Data,
+                p15Anchor,
+                out string p15Failure);
+            if (p15 == null)
+            {
+                CleanupRowScopedFixtures(out _);
+                failureReason = "P15 exact placement failed:" + p15Failure;
+                continue;
+            }
+            rowScopedFixtureBuildings.Add(p15);
+            BuildableObject wastewaterTank = PlaceAuthoredBuildingAt(
+                wastewaterTankData,
+                wastewaterTankAnchor,
+                out string wastewaterTankFailure);
+            if (wastewaterTank == null)
+            {
+                CleanupRowScopedFixtures(out _);
+                failureReason = "I09 exact placement failed:"
+                    + wastewaterTankFailure;
+                continue;
+            }
+            rowScopedFixtureBuildings.Add(wastewaterTank);
+            if (!TryOverlayP15WastewaterDucts(
+                    p15,
+                    wastewaterDuctData,
+                    infrastructureCells,
+                    out string wastewaterFailure))
+            {
+                CleanupRowScopedFixtures(out _);
+                failureReason = "P15 wastewater overlay failed:"
+                    + wastewaterFailure;
+                continue;
+            }
+            GridPathSearchResult search = grid.SearchPath(actor.GetNowXY());
+            if (!WorkTargetSelectionRules.IsReachable(p15, search))
+            {
+                CleanupRowScopedFixtures(out _);
+                failureReason = "adjacent powered P15 has no reachable work access";
+                continue;
+            }
+
+            target = p15;
+            return true;
+        }
+
+        if (TryPlaceP15PairInVerifierSpan(
+                generatorData,
+                p15Data,
+                wastewaterTankData,
+                wastewaterDuctData,
+                out target,
+                out string spanFailure))
+        {
+            return true;
+        }
+
+        failureReason = "no reachable adjacent I02+P15 authored placement; span="
+            + spanFailure;
+        return false;
+    }
+
+    private bool TryPlaceP15PairInVerifierSpan(
+        BuildingSO generatorData,
+        BuildingSO p15Data,
+        BuildingSO wastewaterTankData,
+        BuildingSO wastewaterDuctData,
+        out BuildableObject target,
+        out string failureReason)
+    {
+        target = null;
+        failureReason = "no safe six-cell verifier span";
+        GridPathSearchResult preMutationSearch = grid.SearchPath(actor.GetNowXY());
+        for (int y = 0; y < grid.height; y++)
+        {
+            for (int x = 0; x <= grid.width - 6; x++)
+            {
+                // Dungeon y is a floor rather than north/south space. Reserve
+                // the reachable stand on the actor-facing left edge, then put
+                // P15 before I02 so the five-cell powered pair cannot cut the
+                // actor off from the workstation stand.
+                Vector2Int access = new(x, y);
+                if (!grid.IsValidGridPos(access)
+                    || !grid.IsWalkable(access)
+                    || !preMutationSearch.ContainsPosition(access))
+                {
+                    continue;
+                }
+
+                HashSet<BuildableObject> displacements = new();
+                bool safe = true;
+                for (int offset = 1; offset <= 5 && safe; offset++)
+                {
+                    Vector2Int position = new(x + offset, y);
+                    GridCell cell = grid.GetGridCell(position);
+                    if (cell == null)
+                    {
+                        safe = false;
+                        break;
+                    }
+                    foreach (GridLayer layer in Enum.GetValues(typeof(GridLayer)))
+                    {
+                        IGridOccupant occupant = cell.GetOccupant(layer);
+                        if (occupant == null)
+                            continue;
+                        if ((layer == GridLayer.Building
+                                || layer == GridLayer.Hallway)
+                            && occupant is BuildableObject movement
+                            && movement is not Facility
+                            && movement is not Door
+                            && movement.Facility == null
+                            && movement.IsGridMovement
+                            && !movement.BlocksGridMovement)
+                        {
+                            displacements.Add(movement);
+                            continue;
+                        }
+                        if (layer == generatorData.Placement.Layer
+                            || layer == p15Data.Placement.Layer
+                            || layer == wastewaterDuctData.Placement.Layer
+                            || layer == GridLayer.Character
+                            || layer == GridLayer.Wildlife)
+                        {
+                            safe = false;
+                            break;
+                        }
+                    }
+                }
+                if (!safe)
+                    continue;
+
+                for (int offset = 1; offset <= 5; offset++)
+                {
+                    Vector2Int position = new(x + offset, y);
+                    GridCell cell = grid.GetGridCell(position);
+                    roomAreaSnapshots.Add(new FixtureAreaSnapshot(
+                        position,
+                        cell.AreaType));
+                    grid.SetAreaType(position, GridCellAreaType.DungeonInterior);
+                }
+                bool displaced = true;
+                foreach (BuildableObject movement in displacements
+                             .OrderBy(value => value.centerPos.y)
+                             .ThenBy(value => value.centerPos.x)
+                             .ThenBy(value => value.GridId))
+                {
+                    GridLayer layer = movement.BuildingData.Placement.Layer;
+                    Vector2Int[] positions = movement.buildPoses.ToArray();
+                    if (!grid.RemoveOccupant(
+                            movement,
+                            layer,
+                            positions,
+                            movement.BuildingData.Placement.IsMovement))
+                    {
+                        displaced = false;
+                        failureReason = "movement displacement failed:"
+                            + movement.GridId;
+                        break;
+                    }
+                    displacedRoomMovements.Add(new DisplacedMovementSnapshot(
+                        movement,
+                        layer,
+                        positions,
+                        movement.BuildingData.Placement.IsMovement));
+                }
+                if (!displaced)
+                {
+                    CleanupRoomFixture(out _);
+                    continue;
+                }
+
+                // This focused verifier owns execution-mode admission, not a
+                // long-distance routing benchmark. Move the isolated subject
+                // onto the already-proven reachable stand before the five-cell
+                // pair closes the one-dimensional floor corridor; the whole
+                // save baseline restores the exact original actor position.
+                actor.transform.position = grid.GetWorldPos(access);
+                brain.ClearPathSearchCache();
+
+                Vector2Int p15Anchor = new(x + 1, y);
+                Vector2Int generatorAnchor = new(x + 3, y);
+                BuildableObject generator = PlaceAuthoredBuildingAt(
+                    generatorData,
+                    generatorAnchor,
+                    out string generatorFailure);
+                if (generator == null)
+                {
+                    failureReason = "span I02 placement failed:" + generatorFailure;
+                    CleanupRoomFixture(out _);
+                    continue;
+                }
+                rowScopedFixtureBuildings.Add(generator);
+                BuildableObject p15 = PlaceAuthoredBuildingAt(
+                    p15Data,
+                    p15Anchor,
+                    out string p15Failure);
+                if (p15 == null)
+                {
+                    failureReason = "span P15 placement failed:" + p15Failure;
+                    CleanupRowScopedFixtures(out _);
+                    CleanupRoomFixture(out _);
+                    continue;
+                }
+                rowScopedFixtureBuildings.Add(p15);
+                if (!TryPlaceP15WastewaterTankAndRoute(
+                        p15,
+                        wastewaterTankData,
+                        wastewaterDuctData,
+                        out string wastewaterFailure))
+                {
+                    failureReason = "span P15 wastewater route failed:"
+                        + wastewaterFailure;
+                    CleanupRowScopedFixtures(out _);
+                    CleanupRoomFixture(out _);
+                    continue;
+                }
+                GridPathSearchResult postSearch = grid.SearchPath(actor.GetNowXY());
+                if (!WorkTargetSelectionRules.IsReachable(p15, postSearch))
+                {
+                    failureReason = "span P15 work access is unreachable";
+                    CleanupRowScopedFixtures(out _);
+                    CleanupRoomFixture(out _);
+                    continue;
+                }
+
+                target = p15;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private bool TryPlaceP15WastewaterTankAndRoute(
+        BuildableObject p15,
+        BuildingSO wastewaterTankData,
+        BuildingSO wastewaterDuctData,
+        out string failureReason)
+    {
+        failureReason = "no same-floor I09 route";
+        IReadOnlyList<Vector2Int> p15Cells = p15.BuildingData.GetGridPosList(
+            p15.centerPos);
+        int p15MinX = p15Cells.Min(value => value.x);
+        int p15MaxX = p15Cells.Max(value => value.x);
+        int floor = p15Cells.Min(value => value.y);
+        Vector2Int[] anchors = Enumerable.Range(0, grid.width)
+            .Select(x => new Vector2Int(x, floor))
+            .OrderBy(value => Mathf.Min(
+                Mathf.Abs(value.x - p15MinX),
+                Mathf.Abs(value.x - p15MaxX)))
+            .ThenBy(value => value.x)
+            .ToArray();
+
+        foreach (Vector2Int tankAnchor in anchors)
+        {
+            IReadOnlyList<Vector2Int> tankCells =
+                wastewaterTankData.GetGridPosList(tankAnchor);
+            if (tankCells.Count == 0
+                || tankCells.Any(value => value.y != floor
+                    || grid.GetGridCell(value) == null))
+            {
+                continue;
+            }
+
+            int tankMinX = tankCells.Min(value => value.x);
+            int tankMaxX = tankCells.Max(value => value.x);
+            int routeMinX = Mathf.Min(p15MinX, tankMinX);
+            int routeMaxX = Mathf.Max(p15MaxX, tankMaxX);
+            Vector2Int[] routeCells = Enumerable
+                .Range(routeMinX, routeMaxX - routeMinX + 1)
+                .Select(x => new Vector2Int(x, floor))
+                .ToArray();
+            bool routeAvailable = routeCells.All(position =>
+            {
+                GridCell cell = grid.GetGridCell(position);
+                IGridOccupant utility = cell?.GetOccupant(GridLayer.Utility);
+                if (utility == null)
+                    return cell != null;
+                return utility is BuildableObject existing
+                    && (existing.BuildingData?.GetAbility<
+                            BuildingUtilityConnectionAbility>()?.channels
+                        & UtilityChannel.Wastewater) != 0;
+            });
+            if (!routeAvailable)
+                continue;
+
+            HashSet<BuildableObject> displacements = new();
+            bool tankAreaAvailable = true;
+            foreach (Vector2Int position in tankCells)
+            {
+                GridCell cell = grid.GetGridCell(position);
+                foreach (GridLayer layer in Enum.GetValues(typeof(GridLayer)))
+                {
+                    IGridOccupant occupant = cell.GetOccupant(layer);
+                    if (occupant == null)
+                        continue;
+                    if ((layer == GridLayer.Building
+                            || layer == GridLayer.Hallway)
+                        && occupant is BuildableObject movement
+                        && movement is not Facility
+                        && movement is not Door
+                        && movement.Facility == null
+                        && movement.IsGridMovement
+                        && !movement.BlocksGridMovement)
+                    {
+                        displacements.Add(movement);
+                        continue;
+                    }
+                    if (layer == wastewaterTankData.Placement.Layer
+                        || layer == GridLayer.Character
+                        || layer == GridLayer.Wildlife)
+                    {
+                        tankAreaAvailable = false;
+                        break;
+                    }
+                }
+                if (!tankAreaAvailable)
+                    break;
+            }
+            if (!tankAreaAvailable)
+                continue;
+
+            foreach (Vector2Int position in tankCells)
+            {
+                GridCell cell = grid.GetGridCell(position);
+                roomAreaSnapshots.Add(new FixtureAreaSnapshot(
+                    position,
+                    cell.AreaType));
+                grid.SetAreaType(position, GridCellAreaType.DungeonInterior);
+            }
+            bool displaced = true;
+            foreach (BuildableObject movement in displacements
+                         .OrderBy(value => value.centerPos.y)
+                         .ThenBy(value => value.centerPos.x)
+                         .ThenBy(value => value.GridId))
+            {
+                GridLayer layer = movement.BuildingData.Placement.Layer;
+                Vector2Int[] positions = movement.buildPoses.ToArray();
+                if (!grid.RemoveOccupant(
+                        movement,
+                        layer,
+                        positions,
+                        movement.BuildingData.Placement.IsMovement))
+                {
+                    displaced = false;
+                    failureReason = "I09 movement displacement failed:"
+                        + movement.GridId;
+                    break;
+                }
+                displacedRoomMovements.Add(new DisplacedMovementSnapshot(
+                    movement,
+                    layer,
+                    positions,
+                    movement.BuildingData.Placement.IsMovement));
+            }
+            if (!displaced)
+                return false;
+
+            BuildableObject tank = PlaceAuthoredBuildingAt(
+                wastewaterTankData,
+                tankAnchor,
+                out string tankFailure);
+            if (tank == null)
+            {
+                failureReason = "I09 placement failed:" + tankFailure;
+                return false;
+            }
+            rowScopedFixtureBuildings.Add(tank);
+
+            foreach (Vector2Int position in routeCells)
+            {
+                IGridOccupant existingUtility = grid.GetGridCell(position)
+                    ?.GetOccupant(GridLayer.Utility);
+                if (existingUtility != null)
+                    continue;
+                BuildableObject duct = PlaceAuthoredBuildingAt(
+                    wastewaterDuctData,
+                    position,
+                    out string ductFailure);
+                if (duct == null)
+                {
+                    failureReason = "U04 route placement failed at "
+                        + position + ":" + ductFailure;
+                    return false;
+                }
+                rowScopedFixtureBuildings.Add(duct);
+            }
+
+            IFluidWastewaterTransaction wastewater =
+                runtimeScope.Container.Resolve<IFluidWastewaterTransaction>();
+            if (wastewater.CanAcceptWastewater(
+                    p15,
+                    0.25f,
+                    out DomainFailure wastewaterFailure))
+            {
+                return true;
+            }
+            failureReason = wastewaterFailure.ToString();
+            return false;
+        }
+        return false;
+    }
+
+    private bool TryOverlayP15WastewaterDucts(
+        BuildableObject p15,
+        BuildingSO wastewaterDuctData,
+        IEnumerable<Vector2Int> infrastructureCells,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        foreach (Vector2Int position in infrastructureCells
+                     .Distinct()
+                     .OrderBy(value => value.y)
+                     .ThenBy(value => value.x))
+        {
+            BuildableObject duct = PlaceAuthoredBuildingAt(
+                wastewaterDuctData,
+                position,
+                out string ductFailure);
+            if (duct == null)
+            {
+                failureReason = "U04 placement failed at " + position
+                    + ":" + ductFailure;
+                return false;
+            }
+            rowScopedFixtureBuildings.Add(duct);
+        }
+
+        IFluidWastewaterTransaction wastewater =
+            runtimeScope.Container.Resolve<IFluidWastewaterTransaction>();
+        if (!wastewater.CanAcceptWastewater(
+                p15,
+                0.25f,
+                out DomainFailure wastewaterFailure))
+        {
+            failureReason = wastewaterFailure.IsFailure
+                ? wastewaterFailure.ToString()
+                : FailureCode.FluidWastewaterUnavailable.ToString();
+            return false;
+        }
+        return true;
+    }
+
+    private ProductionBillSnapshot FindFocusedBill(P15FocusedFixture focused) =>
+        focused == null
+            ? null
+            : productionBills.GetBills(focused.Target)
+                .FirstOrDefault(value => value.BillId == focused.BillId);
+
+    private bool CloseP15FocusedFixture(
+        P15FocusedFixture focused,
+        out string failureReason)
+    {
+        actor?.SetAiPaused(true);
+        brain?.StopCurrentActionForReplan("P15 focused fixture cleanup");
+        work?.ClearPriorityWorkTarget();
+        string billFailure = string.Empty;
+        bool billClosed = focused?.Fixture == null
+            || focused.Fixture.TryInvalidate(out billFailure);
+        bool fixturesClosed = CleanupRowScopedFixtures(out string fixtureFailure);
+        bool roomClosed = CleanupRoomFixture(out string roomFailure);
+        failureReason = string.Join(
+            ";",
+            new[]
+            {
+                billClosed ? string.Empty : "bill=" + billFailure,
+                fixturesClosed ? string.Empty : "fixtures=" + fixtureFailure,
+                roomClosed ? string.Empty : "room=" + roomFailure
+            }.Where(value => value.Length > 0));
+        return billClosed && fixturesClosed && roomClosed;
+    }
+
+    private static bool BillTokenChanged(
+        ProductionBillSnapshot before,
+        ProductionBillSnapshot after) =>
+        before != null
+        && (after == null
+            || after.CompletedWork > before.CompletedWork
+            || after.RemainingCycles < before.RemainingCycles);
+
+    private static long DeltaCounterAcrossReset(long before, long after) =>
+        after >= before ? after - before : Math.Max(0L, after);
+
+    private static bool DomainFailureContains(
+        DomainFailure failure,
+        string expected)
+    {
+        if (!failure.IsFailure || string.IsNullOrEmpty(expected))
+            return false;
+        ReadOnlySpan<string> parameters = failure.Parameters;
+        for (int index = 0; index < parameters.Length; index++)
+        {
+            if (string.Equals(parameters[index], expected, StringComparison.Ordinal))
+                return true;
+        }
+        return false;
     }
 
     private IEnumerator RunRow(WorkTypeId workTypeId)
@@ -3966,7 +5214,8 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
     private bool TryPrepareProductionFixture(
         WorkTypeId workTypeId,
         out MaterialWorkFixture fixture,
-        out string failureReason)
+        out string failureReason,
+        BuildableObject requiredTarget = null)
     {
         fixture = null;
         failureReason = string.Empty;
@@ -4028,20 +5277,53 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
         List<string> placementFailures = new List<string>();
         foreach (ProductionRecipeSO candidate in recipes)
         {
-            target = worldRegistry.Buildings
-                .Where(building => building != null
-                    && !building.isDestroy
-                    && building.gameObject.activeInHierarchy
-                    && string.Equals(
-                        building.BuildingData?.GetAbility<BuildingFacilityPartAbility>()?.code,
-                        requiredFacilityCode,
-                        StringComparison.Ordinal)
-                    && IsReachableFromSubject(building)
-                    && building.MatchesProductionWorkstation(candidate))
-                .OrderBy(building => building.PersistentInstanceId.Value, StringComparer.Ordinal)
-                .FirstOrDefault();
+            target = requiredTarget != null
+                && !requiredTarget.isDestroy
+                && requiredTarget.gameObject.activeInHierarchy
+                && string.Equals(
+                    requiredTarget.BuildingData?.GetAbility<
+                        BuildingFacilityPartAbility>()?.code,
+                    requiredFacilityCode,
+                    StringComparison.Ordinal)
+                && IsReachableFromSubject(requiredTarget)
+                && requiredTarget.MatchesProductionWorkstation(candidate)
+                    ? requiredTarget
+                    : requiredTarget == null
+                        ? worldRegistry.Buildings
+                            .Where(building => building != null
+                                && !building.isDestroy
+                                && building.gameObject.activeInHierarchy
+                                && string.Equals(
+                                    building.BuildingData?.GetAbility<
+                                        BuildingFacilityPartAbility>()?.code,
+                                    requiredFacilityCode,
+                                    StringComparison.Ordinal)
+                                && IsReachableFromSubject(building)
+                                && building.MatchesProductionWorkstation(candidate))
+                            .OrderBy(
+                                building => building.PersistentInstanceId.Value,
+                                StringComparer.Ordinal)
+                            .FirstOrDefault()
+                        : null;
             if (target == null)
             {
+                if (requiredTarget != null)
+                {
+                    string actualCode = requiredTarget.BuildingData?.GetAbility<
+                        BuildingFacilityPartAbility>()?.code ?? "missing";
+                    bool active = !requiredTarget.isDestroy
+                        && requiredTarget.gameObject.activeInHierarchy;
+                    bool reachable = IsReachableFromSubject(requiredTarget);
+                    bool matches = requiredTarget.MatchesProductionWorkstation(
+                        candidate);
+                    placementFailures.Add(
+                        candidate.RecipeId + "=required target mismatch: active="
+                        + active + "; code=" + actualCode + "; expectedCode="
+                        + requiredFacilityCode + "; reachable=" + reachable
+                        + "; matches=" + matches + "; actor="
+                        + actor.GetNowXY() + "; target=" + requiredTarget.centerPos);
+                    continue;
+                }
                 BuildingSO authored = LoadAuthoredBuilding(data =>
                     data.Facility?.SupportsWork(workTypeId) == true
                     && string.Equals(
@@ -4303,7 +5585,8 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
                 && value.HasWarehouseInventory
                 && !ReferenceEquals(value, shop)
                 && value.Inventory.Accepts(saleItem.category)
-                && value.Inventory.RemainingCapacity >= 2
+                && value.Inventory.CanStoreItem(
+                    saleItem.AuthoredItemDefinitionId, 2)
                 && value is BuildableObject building
                 && IsReachableFromSubject(building))
             .OrderBy(value => value.PersistentInstanceId.Value, StringComparer.Ordinal)
@@ -4525,7 +5808,7 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
             .Where(value => value?.Inventory != null
                 && value.HasWarehouseInventory
                 && value.Inventory.Accepts(StockCategory.Fuel)
-                && value.Inventory.RemainingCapacity >= 4)
+                && value.Inventory.RemainingMassGrams > 0L)
             .OrderBy(value => value.PersistentInstanceId.Value, StringComparer.Ordinal)
             .FirstOrDefault();
         if (warehouse == null)
@@ -5167,7 +6450,7 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
             || !warehouse.HasWarehouseInventory
             || warehouse.Inventory == null
             || !warehouse.Inventory.Accepts(category)
-            || warehouse.Inventory.RemainingCapacity < minimumCapacity)
+            || warehouse.Inventory.MaxMassGrams <= 0L)
         {
             if (string.IsNullOrEmpty(failureReason))
                 failureReason = "placed authored warehouse is incompatible with " + category;
@@ -5919,30 +7202,79 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
         int passed = results.Count(row => row.Status == "PASS");
         int blocked = results.Count(row => row.Status == "BLOCKED");
         int failed = results.Count(row => row.Status == "FAIL");
-        bool complete = consoleGatePassed && Rows.All(id =>
-            results.Any(row => row.WorkTypeId == id.Value && row.Status == "PASS"));
+        string[] focusedRows =
+        {
+            "p15:manual",
+            "p15:powered-assist",
+            "p15:allocated-worker-transition",
+            "p15:automatic",
+            "p15:utility-failure-atomic"
+        };
+        bool complete = consoleGatePassed
+            && (P15AutomationModesOnly
+                ? focusedRows.All(id => results.Any(row =>
+                    row.WorkTypeId == id && row.Status == "PASS"))
+                : Rows.All(id => results.Any(row =>
+                    row.WorkTypeId == id.Value && row.Status == "PASS")));
+        string reportPath = P15AutomationModesOnly
+            ? CharacterAiWorkTypeLiveMatrixPlayModeVerifier
+                .P15AutomationModesReportPath
+            : CharacterAiWorkTypeLiveMatrixPlayModeVerifier.ReportPath;
         List<string> lines = new List<string>(results.Count + 8)
         {
-            "# Character AI WorkType production-live matrix",
-            "authority=Brain -> AIWork -> AbilityWork -> WorkTaskExecutor",
+            P15AutomationModesOnly
+                ? "# P15 production execution-mode live matrix"
+                : "# Character AI WorkType production-live matrix",
+            P15AutomationModesOnly
+                ? "authority=Manual/PoweredAssist:Brain -> AIWork -> AbilityWork -> WorkTaskExecutor; Automatic:AutomationRuntime -> ProductionBillWorkExecution"
+                : "authority=Brain -> AIWork -> AbilityWork -> WorkTaskExecutor",
             "contract/direct-handler evidence is never accepted as PASS",
             "RESULT=" + (complete && failed == 0 && blocked == 0 ? "PASS" : "FAIL")
-                + "; rows=" + Rows.Length + "; passed=" + passed
+                + "; rows=" + (P15AutomationModesOnly
+                    ? focusedRows.Length
+                    : Rows.Length) + "; passed=" + passed
                 + "; blocked=" + blocked + "; failed=" + failed,
             "status\tworkType\ttarget\tdetail"
         };
-        lines.AddRange(results.Select(row =>
+        IEnumerable<WorkTypeLiveRow> reportRows = P15AutomationModesOnly
+            ? results.Where(row => focusedRows.Contains(
+                    row.WorkTypeId,
+                    StringComparer.Ordinal)
+                || row.Status == "FAIL"
+                || row.WorkTypeId == "info:console-warning-error-zero")
+            : results;
+        lines.AddRange(reportRows.Select(row =>
             row.Status + "\t" + row.WorkTypeId + "\t" + row.Target + "\t" + row.Detail));
         Directory.CreateDirectory(Path.GetDirectoryName(
-            CharacterAiWorkTypeLiveMatrixPlayModeVerifier.ReportPath)
+            reportPath)
             ?? "Artifacts/QA");
-        File.WriteAllLines(
-            CharacterAiWorkTypeLiveMatrixPlayModeVerifier.ReportPath,
-            lines);
-        Debug.Log(complete && failed == 0 && blocked == 0
-            ? "CHARACTER_AI_WORKTYPE_LIVE_MATRIX=PASS"
-            : "CHARACTER_AI_WORKTYPE_LIVE_MATRIX=FAIL; passed=" + passed
-              + "; blocked=" + blocked + "; failed=" + failed);
+        WriteUtf8LfIfChanged(reportPath, lines);
+        string resultPrefix = P15AutomationModesOnly
+            ? "P15_PRODUCTION_EXECUTION_MODES"
+            : "CHARACTER_AI_WORKTYPE_LIVE_MATRIX";
+        Debug.Log(resultPrefix + "="
+            + (complete && failed == 0 && blocked == 0 ? "PASS" : "FAIL")
+            + "; passed=" + passed
+            + "; blocked=" + blocked + "; failed=" + failed);
+    }
+
+    private static void WriteUtf8LfIfChanged(
+        string path,
+        IReadOnlyList<string> lines)
+    {
+        string contents = string.Join("\n", lines) + "\n";
+        if (File.Exists(path)
+            && string.Equals(
+                File.ReadAllText(path, Encoding.UTF8),
+                contents,
+                StringComparison.Ordinal))
+        {
+            return;
+        }
+        File.WriteAllText(
+            path,
+            contents,
+            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
     }
 
     private enum WorkProbeFault
@@ -5994,6 +7326,23 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
 
         public bool TryInvalidate(out string failureReason) =>
             invalidate(out failureReason);
+    }
+
+    private sealed class P15FocusedFixture
+    {
+        public P15FocusedFixture(
+            BuildableObject target,
+            MaterialWorkFixture fixture,
+            ProductionBillId billId)
+        {
+            Target = target ?? throw new ArgumentNullException(nameof(target));
+            Fixture = fixture ?? throw new ArgumentNullException(nameof(fixture));
+            BillId = billId;
+        }
+
+        public BuildableObject Target { get; }
+        public MaterialWorkFixture Fixture { get; }
+        public ProductionBillId BillId { get; }
     }
 
     private sealed class WorkPhaseResult

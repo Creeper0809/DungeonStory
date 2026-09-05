@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "material-steel-ingot",
+    "spoiler_tier": "none",
+    "title": "강철"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/material-steel-ingot",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "제강",
+      "to": "research/research-metallurgy-steel",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

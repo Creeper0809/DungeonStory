@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.6kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "25개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "병변이나 감염 부위에서 떼어 낸 오염 조직이다. 밀봉해 폐기하거나 검사 표본으로 넘겨야 한다. 므네실라의 격리실에서 쓰는 오염 조직에는 방마다 다른 포자색이 배어 있어 밖으로 섞이면 곧 드러난다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "surgery-contaminated-tissue",
+  "spoiler_tier": "none",
+  "summary": "부패한 장기 조직. 퇴비·연금·소각에 사용한다.",
+  "title": "오염 조직"
+}

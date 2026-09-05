@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Status"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ambition-guard-captain",
+  "spoiler_tier": "none",
+  "summary": "모두를 귀환시키는 지휘관으로 인정받으려 한다.",
+  "title": "경비대의 신뢰"
+}

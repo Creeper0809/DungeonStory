@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.7kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "15개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "75"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "혈액소모병 백신은 특정 감염에 대비해 면역 반응을 준비시키는 의료 물자다. 하르나크 밤궁정의 혈액소모병 백신에는 동의의 잔에서 떼어 낸 검은 실과 환자의 흰 실이 함께 묶인다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "medicine-vaccine-blood-wasting",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 혈액소모병 백신.",
+  "title": "혈액소모병 백신"
+}

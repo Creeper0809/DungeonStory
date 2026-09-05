@@ -54,11 +54,19 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=CuttingWaste|reason=laminated-lumber-resin-and-planing-residue|physicalByproduct=false
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: material:treated-lumber
     amount: 2
   - itemId: resource:dark-resin
-    amount: 1
+    amount: 5
   outputs:
   - outputLineId: output:recipe:material:laminated-lumber/000/main/material:laminated-lumber
     role: 0

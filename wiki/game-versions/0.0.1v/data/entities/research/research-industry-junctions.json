@@ -1,0 +1,85 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "910"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Industry And Automation"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-conveyor",
+      "target_spoiler_tier": "none",
+      "target_title": "컨베이어와 물류 포트",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-conveyor",
+      "target_spoiler_tier": "none",
+      "target_title": "컨베이어와 물류 포트",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-conveyor",
+      "target_spoiler_tier": "none",
+      "target_title": "컨베이어와 물류 포트",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9849",
+      "target_spoiler_tier": "none",
+      "target_title": "우선순위 게이트",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9846",
+      "target_spoiler_tier": "none",
+      "target_title": "컨베이어 분배기",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9848",
+      "target_spoiler_tier": "none",
+      "target_title": "컨베이어 필터",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9847",
+      "target_spoiler_tier": "none",
+      "target_title": "컨베이어 합류기",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-industry-junctions",
+  "spoiler_tier": "none",
+  "summary": "분기·필터·우선순위 제어에 필요한 이론, 제작 절차, 안전 기준과 운용 보상을 하나의 완결된 연구 패키지로 통합한다.",
+  "title": "분기·필터·우선순위 제어"
+}

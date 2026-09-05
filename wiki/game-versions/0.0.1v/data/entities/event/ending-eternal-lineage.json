@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ending-eternal-lineage",
+  "spoiler_tier": "warning",
+  "summary": "세 세대가 직업과 장비 계보를 이어 던전의 살아 있는 역사를 만든다.",
+  "title": "영원한 계보"
+}

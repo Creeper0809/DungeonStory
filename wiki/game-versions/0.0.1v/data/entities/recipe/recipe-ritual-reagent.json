@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "22"
+    },
+    {
+      "label": "필요 연구",
+      "value": "피의 흥행"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "craft-ritual-reagent",
+      "target_spoiler_tier": "none",
+      "target_title": "혈액 의식재",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-rot-toxin",
+      "target_spoiler_tier": "none",
+      "target_title": "부패 독소",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-blood",
+      "target_spoiler_tier": "none",
+      "target_title": "피",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-control-blood-show",
+      "target_spoiler_tier": "none",
+      "target_title": "피의 흥행",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-ritual-reagent",
+  "spoiler_tier": "none",
+  "summary": "혈액 의식재 생산 주문",
+  "title": "혈액 의식재"
+}

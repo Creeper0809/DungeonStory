@@ -1,0 +1,82 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+CharacterStartingHistorySO|history:caravan-broker,history:caravan-broker,m_Name,StartingHistory_caravan-broker,,,explicit-serialized
+CharacterStartingHistorySO|history:caravan-broker,history:caravan-broker,historyId,history:caravan-broker,,,explicit-serialized
+CharacterStartingHistorySO|history:caravan-broker,history:caravan-broker,displayName,상단 중개인,,,explicit-serialized
+CharacterStartingHistorySO|history:caravan-broker,history:caravan-broker,description,상단 중개인으로 일하며 주전문과 부전문을 익혔다.,,,explicit-serialized
+CharacterStartingHistorySO|history:caravan-broker,history:caravan-broker,primaryProficiencyId,proficiency:social,,,explicit-serialized
+CharacterStartingHistorySO|history:caravan-broker,history:caravan-broker,secondaryProficiencyId,proficiency:food-production,,,explicit-serialized
+CharacterStartingHistorySO|history:caravan-broker,history:caravan-broker,primaryBaseExperience,45,,,explicit-serialized
+CharacterStartingHistorySO|history:caravan-broker,history:caravan-broker,secondaryBaseExperience,25,,,explicit-serialized
+CharacterStartingHistorySO|history:caravan-broker,history:caravan-broker,proficiencyBonuses,[],,,explicit-serialized
+CharacterStartingHistorySO|history:cook,history:cook,m_Name,StartingHistory_cook,,,explicit-serialized
+CharacterStartingHistorySO|history:cook,history:cook,historyId,history:cook,,,explicit-serialized
+CharacterStartingHistorySO|history:cook,history:cook,displayName,조리 담당,,,explicit-serialized
+CharacterStartingHistorySO|history:cook,history:cook,description,조리 담당으로 일하며 주전문과 부전문을 익혔다.,,,explicit-serialized
+CharacterStartingHistorySO|history:cook,history:cook,primaryProficiencyId,proficiency:food-production,,,explicit-serialized
+CharacterStartingHistorySO|history:cook,history:cook,secondaryProficiencyId,proficiency:fieldwork,,,explicit-serialized
+CharacterStartingHistorySO|history:cook,history:cook,primaryBaseExperience,45,,,explicit-serialized
+CharacterStartingHistorySO|history:cook,history:cook,secondaryBaseExperience,25,,,explicit-serialized
+CharacterStartingHistorySO|history:cook,history:cook,proficiencyBonuses,[],,,explicit-serialized
+CharacterStartingHistorySO|history:field-medic,history:field-medic,m_Name,StartingHistory_field-medic,,,explicit-serialized
+CharacterStartingHistorySO|history:field-medic,history:field-medic,historyId,history:field-medic,,,explicit-serialized
+CharacterStartingHistorySO|history:field-medic,history:field-medic,displayName,야전 치료사,,,explicit-serialized
+CharacterStartingHistorySO|history:field-medic,history:field-medic,description,야전 치료사으로 일하며 주전문과 부전문을 익혔다.,,,explicit-serialized
+CharacterStartingHistorySO|history:field-medic,history:field-medic,primaryProficiencyId,proficiency:medicine,,,explicit-serialized
+CharacterStartingHistorySO|history:field-medic,history:field-medic,secondaryProficiencyId,proficiency:scholarship,,,explicit-serialized
+CharacterStartingHistorySO|history:field-medic,history:field-medic,primaryBaseExperience,45,,,explicit-serialized
+CharacterStartingHistorySO|history:field-medic,history:field-medic,secondaryBaseExperience,25,,,explicit-serialized
+CharacterStartingHistorySO|history:field-medic,history:field-medic,proficiencyBonuses,[],,,explicit-serialized
+CharacterStartingHistorySO|history:frontier-farmer,history:frontier-farmer,m_Name,StartingHistory_frontier-farmer,,,explicit-serialized
+CharacterStartingHistorySO|history:frontier-farmer,history:frontier-farmer,historyId,history:frontier-farmer,,,explicit-serialized
+CharacterStartingHistorySO|history:frontier-farmer,history:frontier-farmer,displayName,개척 농부,,,explicit-serialized
+CharacterStartingHistorySO|history:frontier-farmer,history:frontier-farmer,description,개척 농부으로 일하며 주전문과 부전문을 익혔다.,,,explicit-serialized
+CharacterStartingHistorySO|history:frontier-farmer,history:frontier-farmer,primaryProficiencyId,proficiency:fieldwork,,,explicit-serialized
+CharacterStartingHistorySO|history:frontier-farmer,history:frontier-farmer,secondaryProficiencyId,proficiency:construction-engineering,,,explicit-serialized
+CharacterStartingHistorySO|history:frontier-farmer,history:frontier-farmer,primaryBaseExperience,45,,,explicit-serialized
+CharacterStartingHistorySO|history:frontier-farmer,history:frontier-farmer,secondaryBaseExperience,25,,,explicit-serialized
+CharacterStartingHistorySO|history:frontier-farmer,history:frontier-farmer,proficiencyBonuses,[],,,explicit-serialized
+CharacterStartingHistorySO|history:garrison-guard,history:garrison-guard,m_Name,StartingHistory_garrison-guard,,,explicit-serialized
+CharacterStartingHistorySO|history:garrison-guard,history:garrison-guard,historyId,history:garrison-guard,,,explicit-serialized
+CharacterStartingHistorySO|history:garrison-guard,history:garrison-guard,displayName,수비대원,,,explicit-serialized
+CharacterStartingHistorySO|history:garrison-guard,history:garrison-guard,description,수비대원으로 일하며 주전문과 부전문을 익혔다.,,,explicit-serialized
+CharacterStartingHistorySO|history:garrison-guard,history:garrison-guard,primaryProficiencyId,proficiency:melee-combat,,,explicit-serialized
+CharacterStartingHistorySO|history:garrison-guard,history:garrison-guard,secondaryProficiencyId,proficiency:construction-engineering,,,explicit-serialized
+CharacterStartingHistorySO|history:garrison-guard,history:garrison-guard,primaryBaseExperience,45,,,explicit-serialized
+CharacterStartingHistorySO|history:garrison-guard,history:garrison-guard,secondaryBaseExperience,25,,,explicit-serialized
+CharacterStartingHistorySO|history:garrison-guard,history:garrison-guard,proficiencyBonuses,[],,,explicit-serialized
+CharacterStartingHistorySO|history:mason,history:mason,m_Name,StartingHistory_mason,,,explicit-serialized
+CharacterStartingHistorySO|history:mason,history:mason,historyId,history:mason,,,explicit-serialized
+CharacterStartingHistorySO|history:mason,history:mason,displayName,석공,,,explicit-serialized
+CharacterStartingHistorySO|history:mason,history:mason,description,석공으로 일하며 주전문과 부전문을 익혔다.,,,explicit-serialized
+CharacterStartingHistorySO|history:mason,history:mason,primaryProficiencyId,proficiency:construction-engineering,,,explicit-serialized
+CharacterStartingHistorySO|history:mason,history:mason,secondaryProficiencyId,proficiency:crafting,,,explicit-serialized
+CharacterStartingHistorySO|history:mason,history:mason,primaryBaseExperience,45,,,explicit-serialized
+CharacterStartingHistorySO|history:mason,history:mason,secondaryBaseExperience,25,,,explicit-serialized
+CharacterStartingHistorySO|history:mason,history:mason,proficiencyBonuses,[],,,explicit-serialized
+CharacterStartingHistorySO|history:records-clerk,history:records-clerk,m_Name,StartingHistory_records-clerk,,,explicit-serialized
+CharacterStartingHistorySO|history:records-clerk,history:records-clerk,historyId,history:records-clerk,,,explicit-serialized
+CharacterStartingHistorySO|history:records-clerk,history:records-clerk,displayName,기록 서기,,,explicit-serialized
+CharacterStartingHistorySO|history:records-clerk,history:records-clerk,description,기록 서기으로 일하며 주전문과 부전문을 익혔다.,,,explicit-serialized
+CharacterStartingHistorySO|history:records-clerk,history:records-clerk,primaryProficiencyId,proficiency:scholarship,,,explicit-serialized
+CharacterStartingHistorySO|history:records-clerk,history:records-clerk,secondaryProficiencyId,proficiency:social,,,explicit-serialized
+CharacterStartingHistorySO|history:records-clerk,history:records-clerk,primaryBaseExperience,45,,,explicit-serialized
+CharacterStartingHistorySO|history:records-clerk,history:records-clerk,secondaryBaseExperience,25,,,explicit-serialized
+CharacterStartingHistorySO|history:records-clerk,history:records-clerk,proficiencyBonuses,[],,,explicit-serialized
+CharacterStartingHistorySO|history:scout,history:scout,m_Name,StartingHistory_scout,,,explicit-serialized
+CharacterStartingHistorySO|history:scout,history:scout,historyId,history:scout,,,explicit-serialized
+CharacterStartingHistorySO|history:scout,history:scout,displayName,정찰수,,,explicit-serialized
+CharacterStartingHistorySO|history:scout,history:scout,description,정찰수으로 일하며 주전문과 부전문을 익혔다.,,,explicit-serialized
+CharacterStartingHistorySO|history:scout,history:scout,primaryProficiencyId,proficiency:ranged-combat,,,explicit-serialized
+CharacterStartingHistorySO|history:scout,history:scout,secondaryProficiencyId,proficiency:fieldwork,,,explicit-serialized
+CharacterStartingHistorySO|history:scout,history:scout,primaryBaseExperience,45,,,explicit-serialized
+CharacterStartingHistorySO|history:scout,history:scout,secondaryBaseExperience,25,,,explicit-serialized
+CharacterStartingHistorySO|history:scout,history:scout,proficiencyBonuses,[],,,explicit-serialized
+CharacterStartingHistorySO|history:workshop-artisan,history:workshop-artisan,m_Name,StartingHistory_workshop-artisan,,,explicit-serialized
+CharacterStartingHistorySO|history:workshop-artisan,history:workshop-artisan,historyId,history:workshop-artisan,,,explicit-serialized
+CharacterStartingHistorySO|history:workshop-artisan,history:workshop-artisan,displayName,공방 장인,,,explicit-serialized
+CharacterStartingHistorySO|history:workshop-artisan,history:workshop-artisan,description,공방 장인으로 일하며 주전문과 부전문을 익혔다.,,,explicit-serialized
+CharacterStartingHistorySO|history:workshop-artisan,history:workshop-artisan,primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+CharacterStartingHistorySO|history:workshop-artisan,history:workshop-artisan,secondaryProficiencyId,proficiency:scholarship,,,explicit-serialized
+CharacterStartingHistorySO|history:workshop-artisan,history:workshop-artisan,primaryBaseExperience,45,,,explicit-serialized
+CharacterStartingHistorySO|history:workshop-artisan,history:workshop-artisan,secondaryBaseExperience,25,,,explicit-serialized
+CharacterStartingHistorySO|history:workshop-artisan,history:workshop-artisan,proficiencyBonuses,[],,,explicit-serialized

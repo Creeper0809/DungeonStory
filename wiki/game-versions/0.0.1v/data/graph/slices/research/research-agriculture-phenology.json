@@ -1,0 +1,108 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-agriculture-phenology",
+    "spoiler_tier": "none",
+    "title": "생물계절학과 종자 선별"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-agriculture-phenology",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-life-seasonal-calendar",
+      "target_spoiler_tier": "none",
+      "target_title": "계절 역법",
+      "to": "research/research-life-seasonal-calendar",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-phenology",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-life-seasonal-calendar",
+      "target_spoiler_tier": "none",
+      "target_title": "계절 역법",
+      "to": "research/research-life-seasonal-calendar",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-phenology",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-life-seasonal-calendar",
+      "target_spoiler_tier": "none",
+      "target_title": "계절 역법",
+      "to": "research/research-life-seasonal-calendar",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-phenology",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8850",
+      "target_spoiler_tier": "none",
+      "target_title": "작물 달력대",
+      "to": "facility/building-8850",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-phenology",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8890",
+      "target_spoiler_tier": "none",
+      "target_title": "종자 선별대",
+      "to": "facility/building-8890",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-soil-cycles",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-phenology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-soil-cycles",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-phenology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-soil-cycles",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-phenology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-seasonal-breeding",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-phenology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-seasonal-breeding",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-phenology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-seasonal-breeding",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-phenology",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

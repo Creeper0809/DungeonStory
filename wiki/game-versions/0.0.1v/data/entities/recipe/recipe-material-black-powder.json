@@ -1,0 +1,67 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "86"
+    },
+    {
+      "label": "필요 연구",
+      "value": "흑색화약 배합"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "6",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-black-powder",
+      "target_spoiler_tier": "none",
+      "target_title": "흑색화약",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-niter",
+      "target_spoiler_tier": "none",
+      "target_title": "초석",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-sulfur",
+      "target_spoiler_tier": "none",
+      "target_title": "황",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-black-powder",
+      "target_spoiler_tier": "none",
+      "target_title": "흑색화약 배합",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-material-black-powder",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 흑색화약을(를) 생산한다.",
+  "title": "흑색화약"
+}

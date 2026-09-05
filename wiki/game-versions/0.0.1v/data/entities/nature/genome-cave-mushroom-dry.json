@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "nature",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "genome-cave-mushroom-dry",
+  "spoiler_tier": "none",
+  "summary": "습도 변동에 강하지만 포자 회수량이 적다.",
+  "title": "genome_cave-mushroom_dry"
+}

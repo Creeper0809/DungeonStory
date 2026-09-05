@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "4kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "4"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "발광나방을 잡고 채집 가능한 질긴 거미줄을 만든다. 죽은 동굴명주거미의 사체는 도축 시설로 옮겨 식량과 부산물로 나눈다. 라카쉬 세갈래길의 무리는 동굴명주거미 사체에서 얻은 고기와 가죽을 사냥한 사람보다 피난 행렬의 필요에 따라 나눈다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "wild-carcass-silk-spider",
+  "spoiler_tier": "none",
+  "summary": "도축 시설로 옮기면 식량과 부산물을 얻는다.",
+  "title": "동굴명주거미 사체"
+}

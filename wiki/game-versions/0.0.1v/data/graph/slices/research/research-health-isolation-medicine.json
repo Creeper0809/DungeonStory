@@ -1,0 +1,149 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-health-isolation-medicine",
+    "spoiler_tier": "none",
+    "title": "격리 의학"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-health-isolation-medicine",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-health-pathogen-observation",
+      "target_spoiler_tier": "none",
+      "target_title": "병원체 관찰과 면역 혈청학",
+      "to": "research/research-health-pathogen-observation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-isolation-medicine",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-health-pathogen-observation",
+      "target_spoiler_tier": "none",
+      "target_title": "병원체 관찰과 면역 혈청학",
+      "to": "research/research-health-pathogen-observation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-isolation-medicine",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-health-pathogen-observation",
+      "target_spoiler_tier": "none",
+      "target_title": "병원체 관찰과 면역 혈청학",
+      "to": "research/research-health-pathogen-observation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-isolation-medicine",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-reception",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 접수",
+      "to": "research/research-medical-reception",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-isolation-medicine",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-reception",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 접수",
+      "to": "research/research-medical-reception",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-isolation-medicine",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-reception",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 접수",
+      "to": "research/research-medical-reception",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-isolation-medicine",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-sewer",
+      "target_spoiler_tier": "none",
+      "target_title": "하수 처리와 수세 위생",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-isolation-medicine",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-sewer",
+      "target_spoiler_tier": "none",
+      "target_title": "하수 처리와 수세 위생",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-isolation-medicine",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-sewer",
+      "target_spoiler_tier": "none",
+      "target_title": "하수 처리와 수세 위생",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-isolation-medicine",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8874",
+      "target_spoiler_tier": "none",
+      "target_title": "격리 병동",
+      "to": "facility/building-8874",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-medical-isolation-care-kit",
+      "label": "필요 조건",
+      "to": "research/research-health-isolation-medicine",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-vaccination",
+      "label": "선행 연구",
+      "to": "research/research-health-isolation-medicine",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-vaccination",
+      "label": "선행 연구",
+      "to": "research/research-health-isolation-medicine",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-vaccination",
+      "label": "선행 연구",
+      "to": "research/research-health-isolation-medicine",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

@@ -10,27 +10,43 @@ public sealed class CharacterNarrativeRuntime :
     ICharacterNarrativeCommand,
     ICharacterNarrativePersistence,
     ICharacterProficiencyQuery,
-    ICharacterProficiencyCommand
+    ICharacterProficiencyCommand,
+    IDungeonRestoreTransactionParticipant
 {
     private readonly DungeonRuntimeAggregateRootStore rootStore;
     private readonly ICharacterNarrativeCatalog catalog;
     private readonly CharacterIdentityStateStore identityStates;
+    private readonly WorkCompletionIdentityDeliveryLedger completionDeliveries;
     private readonly IGameContentDefinitionSource content;
+    private CharacterIdentityRuntimeStateSaveData[] stagedIdentityStates;
+    private WorkCompletionIdentityDeliveryCursorSaveData[]
+        stagedCompletionDeliveries;
+    private CharacterIdentityRuntimeStateSaveData[] previousIdentityStates;
+    private WorkCompletionIdentityDeliveryCursorSaveData[]
+        previousCompletionDeliveries;
+    private int previousVersion;
+    private bool restoreTransactionActive;
+    private bool restoreCandidatePublished;
     private int version = 1;
 
     public CharacterNarrativeRuntime(
         DungeonRuntimeAggregateRootStore rootStore,
         ICharacterNarrativeCatalog catalog,
         CharacterIdentityStateStore identityStates = null,
-        IGameContentDefinitionSource content = null)
+        IGameContentDefinitionSource content = null,
+        WorkCompletionIdentityDeliveryLedger completionDeliveries = null)
     {
         this.rootStore = rootStore ?? throw new ArgumentNullException(nameof(rootStore));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         this.identityStates = identityStates ?? new CharacterIdentityStateStore();
         this.content = content;
+        this.completionDeliveries = completionDeliveries
+            ?? new WorkCompletionIdentityDeliveryLedger();
     }
 
     public int Version => version;
+    public string ParticipantId =>
+        "145.characters.narrative-external-state";
     public IReadOnlyCollection<CharacterNarrativeSnapshot> All => Current.Characters.Values.Select(value => value.Snapshot()).ToArray();
     public bool TryGet(CharacterId characterId, out CharacterNarrativeSnapshot snapshot)
     {
@@ -360,29 +376,166 @@ public sealed class CharacterNarrativeRuntime :
         CharacterNarrativeWorldSaveData data = Current.Capture();
         data.identityStates = identityStates.Capture()
             .Select(value => value.Clone()).ToList();
+        data.workCompletionDeliveries = completionDeliveries.Capture()
+            .Select(value => value.Clone()).ToList();
         return data;
     }
     public CharacterNarrativeAggregateState PrepareRestore(CharacterNarrativeWorldSaveData data) => CharacterNarrativeAggregateState.Restore(data, catalog);
     public void PublishRestore(CharacterNarrativeAggregateState candidate)
     {
         if (candidate == null) throw new ArgumentNullException(nameof(candidate));
-        if (candidate.IdentityStates.Count > 0)
+
+        CharacterIdentityRuntimeStateSaveData[] identityCandidate =
+            ValidateIdentityCandidate(candidate.IdentityStates);
+        WorkCompletionIdentityDeliveryCursorSaveData[] deliveryCandidate =
+            WorkCompletionIdentityDeliveryLedger.ValidateAndClone(
+                candidate.WorkCompletionDeliveries);
+
+        if (restoreTransactionActive)
         {
-            if (content == null)
+            if (stagedIdentityStates != null
+                || stagedCompletionDeliveries != null)
                 throw new InvalidOperationException(
-                    "Identity rule state restore requires the content definition source.");
-            identityStates.Restore(
-                candidate.IdentityStates,
-                content.GetAll<CharacterTraitSO>());
+                    "Character narrative restore candidate is already staged.");
+            stagedIdentityStates = identityCandidate;
+            stagedCompletionDeliveries = deliveryCandidate;
+            rootStore.Replace(candidate);
+            return;
         }
-        else
+
+        CharacterIdentityRuntimeStateSaveData[] identityBefore =
+            identityStates.Capture()
+                .Select(value => value.Clone())
+                .ToArray();
+        WorkCompletionIdentityDeliveryCursorSaveData[] deliveryBefore =
+            completionDeliveries.Capture()
+                .Select(value => value.Clone())
+                .ToArray();
+        try
         {
-            identityStates.Restore(
-                Array.Empty<CharacterIdentityRuntimeStateSaveData>(),
-                Array.Empty<CharacterTraitSO>());
+            ApplyExternalRestoreCandidate(
+                identityCandidate,
+                deliveryCandidate);
+            rootStore.Replace(candidate);
+            version = unchecked(version + 1);
         }
-        rootStore.Replace(candidate);
-        version = unchecked(version + 1);
+        catch
+        {
+            identityStates.RestoreTrustedTransactionSnapshot(identityBefore);
+            completionDeliveries.Restore(deliveryBefore);
+            throw;
+        }
+    }
+
+    public void BeginRestoreCandidate()
+    {
+        if (restoreTransactionActive)
+            throw new InvalidOperationException(
+                "Character narrative restore transaction is already active.");
+        previousIdentityStates = identityStates.Capture()
+            .Select(value => value.Clone())
+            .ToArray();
+        previousCompletionDeliveries = completionDeliveries.Capture()
+            .Select(value => value.Clone())
+            .ToArray();
+        previousVersion = version;
+        stagedIdentityStates = null;
+        stagedCompletionDeliveries = null;
+        restoreCandidatePublished = false;
+        restoreTransactionActive = true;
+    }
+
+    public void PublishRestoreCandidate()
+    {
+        RequireActiveRestoreCandidate();
+        restoreCandidatePublished = true;
+        ApplyExternalRestoreCandidate(
+            stagedIdentityStates,
+            stagedCompletionDeliveries);
+        version = unchecked(previousVersion + 1);
+    }
+
+    public void RollbackPublishedRestoreCandidate()
+    {
+        if (!restoreTransactionActive)
+            return;
+        if (restoreCandidatePublished)
+        {
+            identityStates.RestoreTrustedTransactionSnapshot(
+                previousIdentityStates);
+            completionDeliveries.Restore(previousCompletionDeliveries);
+            version = previousVersion;
+        }
+        ClearRestoreTransaction();
+    }
+
+    public void CompleteRestoreCandidate() => ClearRestoreTransaction();
+
+    public void DiscardRestoreCandidate()
+    {
+        if (restoreCandidatePublished)
+        {
+            RollbackPublishedRestoreCandidate();
+            return;
+        }
+        ClearRestoreTransaction();
+    }
+
+    private CharacterIdentityRuntimeStateSaveData[] ValidateIdentityCandidate(
+        IEnumerable<CharacterIdentityRuntimeStateSaveData> source)
+    {
+        CharacterIdentityRuntimeStateSaveData[] candidate =
+            (source ?? throw new ArgumentNullException(nameof(source)))
+            .Select(value => value?.Clone()
+                ?? throw new InvalidOperationException(
+                    "Character identity restore candidate contains null."))
+            .ToArray();
+        if (candidate.Length > 0 && content == null)
+            throw new InvalidOperationException(
+                "Identity rule state restore requires the content definition source.");
+
+        CharacterIdentityStateStore validator = new();
+        validator.Restore(
+            candidate,
+            content?.GetAll<CharacterTraitSO>()
+                ?? Array.Empty<CharacterTraitSO>());
+        return validator.Capture()
+            .Select(value => value.Clone())
+            .ToArray();
+    }
+
+    private void ApplyExternalRestoreCandidate(
+        IEnumerable<CharacterIdentityRuntimeStateSaveData> identityCandidate,
+        IEnumerable<WorkCompletionIdentityDeliveryCursorSaveData>
+            deliveryCandidate)
+    {
+        identityStates.RestoreTrustedTransactionSnapshot(
+            identityCandidate
+                ?? throw new InvalidOperationException(
+                    "Character identity restore candidate was not staged."));
+        completionDeliveries.Restore(
+            deliveryCandidate
+                ?? throw new InvalidOperationException(
+                    "Work-completion restore candidate was not staged."));
+    }
+
+    private void RequireActiveRestoreCandidate()
+    {
+        if (!restoreTransactionActive
+            || stagedIdentityStates == null
+            || stagedCompletionDeliveries == null)
+            throw new InvalidOperationException(
+                "Character narrative restore candidate was not staged.");
+    }
+
+    private void ClearRestoreTransaction()
+    {
+        stagedIdentityStates = null;
+        stagedCompletionDeliveries = null;
+        previousIdentityStates = null;
+        previousCompletionDeliveries = null;
+        restoreCandidatePublished = false;
+        restoreTransactionActive = false;
     }
 
     private void ResolveHeritableTraits(

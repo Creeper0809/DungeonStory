@@ -678,8 +678,9 @@ public static class BranchedProductionNetworkDebugScenarios
                     itemId = "component:stock-sensor-panel",
                     inputOperationId =
                         ProductionStockSensorRuntime.BuildPhysicalOperationId(
-                            "facility:test"),
-                    inputCommitId = "physical-batch-disposition:3:production-stock-sensor-install:facility:test:1:1000",
+                            "facility:test",
+                            1),
+                    inputCommitId = "physical-batch-disposition:3:production-stock-sensor-install:facility:test:1:1:1000",
                     inputSourceStackId = "stack:stock-sensor:fixture",
                     embeddedMassGrams = 1000L
                 }

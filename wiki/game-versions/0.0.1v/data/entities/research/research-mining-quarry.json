@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "28"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Mining"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-mining-surface",
+      "target_spoiler_tier": "none",
+      "target_title": "노천 채석",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-mining-surface",
+      "target_spoiler_tier": "none",
+      "target_title": "노천 채석",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-mining-surface",
+      "target_spoiler_tier": "none",
+      "target_title": "노천 채석",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1094",
+      "target_spoiler_tier": "none",
+      "target_title": "심부 채석장",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-mining-quarry",
+  "spoiler_tier": "none",
+  "summary": "석재를 지속적으로 캐며 희귀 광맥을 탐색한다.",
+  "title": "채석장"
+}

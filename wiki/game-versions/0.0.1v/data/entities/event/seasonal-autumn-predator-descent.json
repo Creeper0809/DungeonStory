@@ -1,0 +1,25 @@
+{
+  "facts": [
+    {
+      "label": "최소 지속 기간",
+      "value": "3일"
+    },
+    {
+      "label": "최대 지속 기간",
+      "value": "5일"
+    },
+    {
+      "label": "종료 효과",
+      "value": "1개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "seasonal-autumn-predator-descent",
+  "spoiler_tier": "warning",
+  "summary": "먹이를 쫓는 포식자가 축사와 외곽 운반로를 노린다.",
+  "title": "포식자 하산"
+}

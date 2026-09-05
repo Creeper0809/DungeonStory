@@ -1,0 +1,65 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "service-incident-sabotage",
+    "spoiler_tier": "warning",
+    "title": "내부 파괴 공작"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "event/service-incident-sabotage",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-sabotage",
+      "target_spoiler_tier": "warning",
+      "target_title": "내부 파괴 공작",
+      "to": "event/service-incident-sabotage",
+      "type": "sets-world-flag"
+    },
+    {
+      "amount": "2",
+      "from": "event/service-incident-sabotage",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-sabotage",
+      "target_spoiler_tier": "warning",
+      "target_title": "내부 파괴 공작",
+      "to": "event/service-incident-sabotage",
+      "type": "adds-work-delay"
+    },
+    {
+      "amount": "3",
+      "from": "event/service-incident-sabotage",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-sabotage",
+      "target_spoiler_tier": "warning",
+      "target_title": "내부 파괴 공작",
+      "to": "event/service-incident-sabotage",
+      "type": "changes-threat"
+    },
+    {
+      "amount": "1",
+      "from": "event/service-incident-sabotage",
+      "label": "연결",
+      "to": "event/service-incident-sabotage",
+      "type": "sets-world-flag"
+    },
+    {
+      "amount": "2",
+      "from": "event/service-incident-sabotage",
+      "label": "연결",
+      "to": "event/service-incident-sabotage",
+      "type": "adds-work-delay"
+    },
+    {
+      "amount": "3",
+      "from": "event/service-incident-sabotage",
+      "label": "연결",
+      "to": "event/service-incident-sabotage",
+      "type": "changes-threat"
+    }
+  ],
+  "schema_version": 1
+}

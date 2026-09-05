@@ -1,0 +1,54 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+StockInfo|asset:New Stock Info,asset:New Stock Info,m_Name,New Stock Info,,,explicit-serialized
+StockInfo|asset:New Stock Info,asset:New Stock Info,shopId,6,,,explicit-serialized
+StockInfo|asset:New Stock Info,asset:New Stock Info,multifly,1,,,explicit-serialized
+StockInfo|asset:New Stock Info,asset:New Stock Info,category,0,StockCategory,Food (식량),implicit-csharp-default
+StockInfo|asset:무기상점,asset:무기상점,m_Name,무기상점,,,explicit-serialized
+StockInfo|asset:무기상점,asset:무기상점,shopId,5,,,explicit-serialized
+StockInfo|asset:무기상점,asset:무기상점,multifly,1,,,explicit-serialized
+StockInfo|asset:무기상점,asset:무기상점,category,0,StockCategory,Food (식량),implicit-csharp-default
+StockInfo|shop-stock:10,shop-stock:10,m_Name,P1_LowFoodShopStock,,,explicit-serialized
+StockInfo|shop-stock:10,shop-stock:10,id,10,,,explicit-serialized
+StockInfo|shop-stock:10,shop-stock:10,shopId,10,,,explicit-serialized
+StockInfo|shop-stock:10,shop-stock:10,multifly,1,,,explicit-serialized
+StockInfo|shop-stock:10,shop-stock:10,category,0,StockCategory,Food (식량),implicit-csharp-default
+StockInfo|shop-stock:11,shop-stock:11,m_Name,P1_MeatRestaurantStock,,,explicit-serialized
+StockInfo|shop-stock:11,shop-stock:11,id,11,,,explicit-serialized
+StockInfo|shop-stock:11,shop-stock:11,shopId,11,,,explicit-serialized
+StockInfo|shop-stock:11,shop-stock:11,multifly,1,,,explicit-serialized
+StockInfo|shop-stock:11,shop-stock:11,category,0,StockCategory,Food (식량),implicit-csharp-default
+StockInfo|shop-stock:12,shop-stock:12,m_Name,P1_GeneralStoreStock,,,explicit-serialized
+StockInfo|shop-stock:12,shop-stock:12,id,12,,,explicit-serialized
+StockInfo|shop-stock:12,shop-stock:12,shopId,12,,,explicit-serialized
+StockInfo|shop-stock:12,shop-stock:12,multifly,1,,,explicit-serialized
+StockInfo|shop-stock:12,shop-stock:12,category,0,StockCategory,Food (식량),implicit-csharp-default
+StockInfo|shop-stock:13,shop-stock:13,m_Name,P1_WeaponShopStock,,,explicit-serialized
+StockInfo|shop-stock:13,shop-stock:13,id,13,,,explicit-serialized
+StockInfo|shop-stock:13,shop-stock:13,shopId,13,,,explicit-serialized
+StockInfo|shop-stock:13,shop-stock:13,multifly,1,,,explicit-serialized
+StockInfo|shop-stock:13,shop-stock:13,category,0,StockCategory,Food (식량),implicit-csharp-default
+StockInfo|shop-stock:3000,shop-stock:3000,m_Name,S01_SalesCounterStock,,,explicit-serialized
+StockInfo|shop-stock:3000,shop-stock:3000,id,3000,,,explicit-serialized
+StockInfo|shop-stock:3000,shop-stock:3000,shopId,1012,,,explicit-serialized
+StockInfo|shop-stock:3000,shop-stock:3000,multifly,1,,,explicit-serialized
+StockInfo|shop-stock:3000,shop-stock:3000,category,0,StockCategory,Food (식량),implicit-csharp-default
+StockInfo|shop-stock:50,shop-stock:50,m_Name,P1_BattleDiningStock,,,explicit-serialized
+StockInfo|shop-stock:50,shop-stock:50,id,50,,,explicit-serialized
+StockInfo|shop-stock:50,shop-stock:50,shopId,50,,,explicit-serialized
+StockInfo|shop-stock:50,shop-stock:50,multifly,1.1,,,explicit-serialized
+StockInfo|shop-stock:50,shop-stock:50,category,0,StockCategory,Food (식량),implicit-csharp-default
+StockInfo|shop-stock:51,shop-stock:51,m_Name,P1_PremiumMeatRestaurantStock,,,explicit-serialized
+StockInfo|shop-stock:51,shop-stock:51,id,51,,,explicit-serialized
+StockInfo|shop-stock:51,shop-stock:51,shopId,51,,,explicit-serialized
+StockInfo|shop-stock:51,shop-stock:51,multifly,1.1,,,explicit-serialized
+StockInfo|shop-stock:51,shop-stock:51,category,0,StockCategory,Food (식량),implicit-csharp-default
+StockInfo|shop-stock:55,shop-stock:55,m_Name,P1_BattlefieldDiningStock,,,explicit-serialized
+StockInfo|shop-stock:55,shop-stock:55,id,55,,,explicit-serialized
+StockInfo|shop-stock:55,shop-stock:55,shopId,55,,,explicit-serialized
+StockInfo|shop-stock:55,shop-stock:55,multifly,1.1,,,explicit-serialized
+StockInfo|shop-stock:55,shop-stock:55,category,0,StockCategory,Food (식량),implicit-csharp-default
+StockInfo|shop-stock:56,shop-stock:56,m_Name,P1_NobleDiningStock,,,explicit-serialized
+StockInfo|shop-stock:56,shop-stock:56,id,56,,,explicit-serialized
+StockInfo|shop-stock:56,shop-stock:56,shopId,56,,,explicit-serialized
+StockInfo|shop-stock:56,shop-stock:56,multifly,1.1,,,explicit-serialized
+StockInfo|shop-stock:56,shop-stock:56,category,0,StockCategory,Food (식량),implicit-csharp-default

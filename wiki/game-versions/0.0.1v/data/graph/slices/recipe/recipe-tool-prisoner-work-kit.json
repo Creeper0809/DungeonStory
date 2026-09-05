@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-tool-prisoner-work-kit",
+    "spoiler_tier": "none",
+    "title": "포로 작업 도구"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-prisoner-work-kit",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "tool-prisoner-work-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "포로 작업 도구",
+      "to": "item/tool-prisoner-work-kit",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-prisoner-work-kit",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-iron-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "철괴",
+      "to": "item/material-iron-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-prisoner-work-kit",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "목재",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-tool-prisoner-work-kit",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-dark-resin",
+      "target_spoiler_tier": "none",
+      "target_title": "암흑수액",
+      "to": "item/resource-dark-resin",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-tool-prisoner-work-kit",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-control-labor",
+      "target_spoiler_tier": "none",
+      "target_title": "노역 감독",
+      "to": "research/research-control-labor",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

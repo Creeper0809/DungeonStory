@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "650"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "교차계통 배양기에서 표본과 기록을 조사하는 공정을 맡기 위해 준비한 설치 부품이다. 베르사디온산 교차계통 배양기의 쌍인장은 마나를 댄 사람과 쓰는 사람의 손 모양이다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "facility-kit-8881",
+  "spoiler_tier": "none",
+  "summary": "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.",
+  "title": "교차계통 배양기 설치 키트"
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.85kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "2"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "납광석은 무기, 방어구와 정밀 부품의 형태를 잡는 금속 재료다. 노르칸드라 채굴대는 납광석을 실은 자루에 광맥보다 먼저 돌아갈 갱도의 방향을 그린다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "resource-lead-ore",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 납광석.",
+  "title": "납광석"
+}

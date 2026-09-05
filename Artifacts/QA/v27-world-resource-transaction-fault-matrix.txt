@@ -1,0 +1,15 @@
+# V27 World Resource Transaction Fault Matrix
+schemaVersion=1
+recipe=source:logging
+prepareCount=1
+commitCount=2
+sourceDebitCount=1
+saveBlockedDuringRetained=true
+retryReusedFrozenTransaction=true
+invalidTopologyLiveStateUnchanged=true
+validTopologyRetainedSequence=1
+rootSeedTamperRejected=true
+maximumMassTamperRejected=true
+maximumSourceDigestTamperRejected=true
+zeroPhysicalOutputCycleExact=true
+RESULT=PASS

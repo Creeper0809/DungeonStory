@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ending-truth-revealed",
+  "spoiler_tier": "warning",
+  "summary": "진실 코어와 원정 기록을 결합해 던전의 기원을 세계에 증명한다.",
+  "title": "진실의 폭로"
+}

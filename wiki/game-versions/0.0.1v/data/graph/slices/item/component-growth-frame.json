@@ -1,0 +1,172 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "component-growth-frame",
+    "spoiler_tier": "none",
+    "title": "성장형 장비 골격"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-articulated-plate",
+      "label": "필요 조건",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-blacksteel-carapace",
+      "label": "필요 조건",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-gambeson",
+      "label": "필요 조건",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-powered-harness",
+      "label": "필요 조건",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-rune-ward-mail",
+      "label": "필요 조건",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-scale-coat",
+      "label": "필요 조건",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-shield-buckler",
+      "label": "필요 조건",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-shield-iron",
+      "label": "필요 조건",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-shield-powered",
+      "label": "필요 조건",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-shield-rune",
+      "label": "필요 조건",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-blacksteel-poleaxe",
+      "label": "필요 조건",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-greatsword",
+      "label": "필요 조건",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-halberd",
+      "label": "필요 조건",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-heavy-matchlock",
+      "label": "필요 조건",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-longsword",
+      "label": "필요 조건",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-matchlock-pistol",
+      "label": "필요 조건",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-repeating-crossbow",
+      "label": "필요 조건",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-rune-blade",
+      "label": "필요 조건",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-rune-bow",
+      "label": "필요 조건",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-siege-arbalest",
+      "label": "필요 조건",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-sniper-arquebus",
+      "label": "필요 조건",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-windlass-crossbow",
+      "label": "필요 조건",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-growth-frame",
+      "label": "생산·해금",
+      "to": "item/component-growth-frame",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

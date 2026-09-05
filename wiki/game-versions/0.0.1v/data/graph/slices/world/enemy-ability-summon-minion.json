@@ -1,0 +1,46 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "enemy-ability-summon-minion",
+    "spoiler_tier": "none",
+    "title": "지원체 소환"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/enemy-merchant-factor",
+      "label": "관련",
+      "to": "world/enemy-ability-summon-minion",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-rival-pactbinder",
+      "label": "관련",
+      "to": "world/enemy-ability-summon-minion",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-rival-spore-shepherd",
+      "label": "관련",
+      "to": "world/enemy-ability-summon-minion",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-truth-archivist",
+      "label": "관련",
+      "to": "world/enemy-ability-summon-minion",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-truth-archivist",
+      "label": "관련",
+      "to": "world/enemy-ability-summon-minion",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "28"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Agriculture"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-gathering",
+      "target_spoiler_tier": "none",
+      "target_title": "야생 채집",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-gathering",
+      "target_spoiler_tier": "none",
+      "target_title": "야생 채집",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-gathering",
+      "target_spoiler_tier": "none",
+      "target_title": "야생 채집",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1095",
+      "target_spoiler_tier": "none",
+      "target_title": "야외 경작지",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-agriculture-field",
+  "spoiler_tier": "none",
+  "summary": "야외 밭에 작물을 파종하고 수확한다.",
+  "title": "외부 경작"
+}

@@ -24,6 +24,8 @@ public sealed class EquipmentModuleRuntime : IEquipmentModuleAppraisalRecovery
     private readonly CombatEquipmentPhysicalStateWriter physicalState;
     private readonly IEquipmentPhysicalItemGateway physicalItems;
     private readonly IFacilityCapabilityQuery facilities;
+    private readonly IPhysicalItemExactSourcePublicationService exactSources;
+    private readonly IEquipmentModuleInputOwnerRuntime inputOwners;
 
     private IDictionary<string, CombatEquipmentInstance> EquipmentInstances =>
         itemInstances.EquipmentInstances;
@@ -37,7 +39,9 @@ public sealed class EquipmentModuleRuntime : IEquipmentModuleAppraisalRecovery
         ProgressionSceneRuntimeReferences progressionRuntimes,
         CombatEquipmentPhysicalStateWriter physicalState,
         IEquipmentPhysicalItemGateway physicalItems,
-        IFacilityCapabilityQuery facilities)
+        IFacilityCapabilityQuery facilities,
+        IPhysicalItemExactSourcePublicationService exactSources,
+        IEquipmentModuleInputOwnerRuntime inputOwners = null)
     {
         this.itemInstances = itemInstances
             ?? throw new ArgumentNullException(nameof(itemInstances));
@@ -56,6 +60,9 @@ public sealed class EquipmentModuleRuntime : IEquipmentModuleAppraisalRecovery
             ?? throw new ArgumentNullException(nameof(physicalItems));
         this.facilities = facilities
             ?? throw new ArgumentNullException(nameof(facilities));
+        this.exactSources = exactSources
+            ?? throw new ArgumentNullException(nameof(exactSources));
+        this.inputOwners = inputOwners;
     }
 
     public IReadOnlyCollection<EquipmentModuleInstance> Snapshots =>
@@ -96,28 +103,47 @@ public sealed class EquipmentModuleRuntime : IEquipmentModuleAppraisalRecovery
                 ? EquipmentModuleProcessState.IdentifiedDamaged
                 : EquipmentModuleProcessState.Unidentified
         };
-        Modules.Add(created.instanceId, created);
-        if (!physicalItems.SpawnExistingUniqueItemAt(
-                PhysicalItemIds.ForEquipmentModule(),
-                (ItemInstanceId)created.instanceId,
-                deliveryPosition,
+        if (worldState is not WorldItemStackState.Loose
+            and not WorldItemStackState.FacilityBuffer)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(worldState),
                 worldState,
-                normalizedDestination,
-                out string stackId))
+                "Equipment module Source publication supports Loose output or a FacilityBuffer delivery intent.");
+        }
+        Modules.Add(created.instanceId, created);
+        EquipmentModuleInstance desired = created.Clone();
+        desired.sourceStackId = string.Empty;
+        desired.attachedEquipmentInstanceId = string.Empty;
+        if (!TryPrepareModuleSource(
+                desired,
+                "combat.module-create",
+                created.instanceId,
+                deliveryPosition,
+                out PhysicalItemExactSourcePublicationTransaction transaction,
+                out string stackId,
+                out string prepareFailure))
         {
             Modules.Remove(created.instanceId);
             throw new InvalidOperationException(
-                $"Failed to materialize equipment module '{created.instanceId}'.");
+                $"Failed to prepare equipment module '{created.instanceId}': {prepareFailure}");
         }
         created.sourceStackId = stackId;
-        if (!PersistModulePhysicalState(created))
+        FacilityBufferAcknowledgedOutputReleaseTarget target =
+            normalizedDestination.Length == 0
+                ? FacilityBufferAcknowledgedOutputReleaseTarget.Unassigned
+                : new FacilityBufferAcknowledgedOutputReleaseTarget(
+                    normalizedDestination,
+                    deliveryPosition);
+        if (!exactSources.TryCommitReleased(
+                transaction,
+                target,
+                "equipment-module-created",
+                out _,
+                out string commitFailure))
         {
-            physicalItems.TryAbsorbUniqueItemStack(
-                stackId,
-                (ItemInstanceId)created.instanceId);
-            Modules.Remove(created.instanceId);
             throw new InvalidOperationException(
-                $"Failed to persist equipment module '{created.instanceId}'.");
+                $"Failed to commit equipment module '{created.instanceId}': {commitFailure}");
         }
         return created.Clone();
     }
@@ -325,11 +351,10 @@ public sealed class EquipmentModuleRuntime : IEquipmentModuleAppraisalRecovery
             return;
         }
 
-        physicalItems.TryRequestItemDelivery(
+        inputOwners?.TryRequestItem(
+            facility,
             itemId,
             1,
-            facility.centerPos,
-            destinationId,
             out _,
             out _);
     }
@@ -885,76 +910,100 @@ public sealed class EquipmentModuleRuntime : IEquipmentModuleAppraisalRecovery
             slot = new EquipmentModuleSlotState { slotIndex = slotIndex };
             equipment.moduleSlots.Add(slot);
         }
-        if (!string.IsNullOrWhiteSpace(slot.moduleInstanceId)
-            && Modules.TryGetValue(slot.moduleInstanceId,
-                out EquipmentModuleInstance replaced))
+        string incomingStackId = module.sourceStackId;
+        string previousSlotModuleId = slot.moduleInstanceId;
+        EquipmentModuleInstance incomingBefore = module.Clone();
+        EquipmentModuleInstance replaced = null;
+        EquipmentModuleInstance replacedBefore = null;
+        PhysicalItemExactSourcePublicationTransaction returnedTransaction = default;
+        bool hasReturnedTransaction = false;
+
+        if (!string.IsNullOrWhiteSpace(previousSlotModuleId)
+            && Modules.TryGetValue(
+                previousSlotModuleId,
+                out replaced))
         {
-            EquipmentModuleInstance incomingBefore = module.Clone();
-            EquipmentModuleInstance replacedBefore = replaced.Clone();
-            if (!TryMaterializeReturnedModule(
-                    replaced,
-                    facility,
-                    destinationId,
-                    out string returnedStackId))
+            replacedBefore = replaced.Clone();
+            EquipmentModuleInstance desiredReturned = CreateReturnedModuleState(
+                replaced);
+            if (!TryPrepareModuleSource(
+                    desiredReturned,
+                    "combat.module-return",
+                    CreateModuleReturnOperationId(
+                        equipment.instanceId,
+                        slotIndex,
+                        replaced.instanceId),
+                    facility.centerPos,
+                    out returnedTransaction,
+                    out string returnedStackId,
+                    out _))
             {
                 failure = new DomainFailure(FailureCode.EquipmentModuleMissing);
                 return false;
             }
-            if (!physicalItems.TryAbsorbUniqueItemStack(
-                    module.sourceStackId,
-                    (ItemInstanceId)module.instanceId))
-            {
-                physicalItems.TryAbsorbUniqueItemStack(
-                    returnedStackId,
-                    (ItemInstanceId)replaced.instanceId);
-                failure = new DomainFailure(FailureCode.EquipmentModuleMissing);
-                return false;
-            }
-            replaced.attachedEquipmentInstanceId = string.Empty;
-            replaced.condition = Mathf.Min(replaced.condition, 0.7f);
-            replaced.state = EquipmentModuleProcessState.IdentifiedDamaged;
-            replaced.sourceStackId = returnedStackId;
-            if (!PersistModulePhysicalState(replaced))
-            {
-                physicalItems.TryAbsorbUniqueItemStack(
-                    returnedStackId,
-                    (ItemInstanceId)replaced.instanceId);
-                if (!physicalItems.SpawnExistingUniqueItemAt(
-                        PhysicalItemIds.ForEquipmentModule(),
-                        (ItemInstanceId)module.instanceId,
-                        facility.centerPos,
-                        WorldItemStackState.FacilityBuffer,
-                        destinationId,
-                        out string restoredIncomingStackId))
-                {
-                    throw new InvalidOperationException(
-                        $"Failed to roll back module '{module.instanceId}' after replacement persistence failed.");
-                }
-                RestoreModuleState(replaced, replacedBefore);
-                RestoreModuleState(module, incomingBefore);
-                module.sourceStackId = restoredIncomingStackId;
-                if (!PersistModulePhysicalState(module))
-                {
-                    throw new InvalidOperationException(
-                        $"Failed to persist rolled-back module '{module.instanceId}'.");
-                }
-                failure = new DomainFailure(FailureCode.EquipmentModuleMissing);
-                return false;
-            }
-        }
-        else if (!physicalItems.TryAbsorbUniqueItemStack(
-                     module.sourceStackId,
-                     (ItemInstanceId)module.instanceId))
-        {
-            failure = new DomainFailure(FailureCode.EquipmentModuleMissing);
-            return false;
+            desiredReturned.sourceStackId = returnedStackId;
+            RestoreModuleState(replaced, desiredReturned);
+            hasReturnedTransaction = true;
         }
 
         slot.moduleInstanceId = module.instanceId;
         module.sourceStackId = string.Empty;
         module.attachedEquipmentInstanceId = equipment.instanceId;
         module.state = EquipmentModuleProcessState.Installed;
-        physicalState.Persist(equipment);
+        try
+        {
+            physicalState.Persist(equipment);
+        }
+        catch
+        {
+            RestoreModuleInstallationState(
+                equipment,
+                slot,
+                previousSlotModuleId,
+                module,
+                incomingBefore,
+                replaced,
+                replacedBefore);
+            RollbackPreparedModuleSourceOrThrow(
+                hasReturnedTransaction,
+                returnedTransaction,
+                "equipment-module-install-host-persist-failed");
+            throw;
+        }
+        if (!physicalItems.TryAbsorbUniqueItemStack(
+                incomingStackId,
+                (ItemInstanceId)module.instanceId))
+        {
+            RestoreModuleInstallationState(
+                equipment,
+                slot,
+                previousSlotModuleId,
+                module,
+                incomingBefore,
+                replaced,
+                replacedBefore);
+            physicalState.Persist(equipment);
+            RollbackPreparedModuleSourceOrThrow(
+                hasReturnedTransaction,
+                returnedTransaction,
+                "equipment-module-install-incoming-absorb-failed");
+            failure = new DomainFailure(FailureCode.EquipmentModuleMissing);
+            return false;
+        }
+        if (hasReturnedTransaction
+            && !exactSources.TryCommitReleased(
+                returnedTransaction,
+                new FacilityBufferAcknowledgedOutputReleaseTarget(
+                    destinationId,
+                    facility.centerPos),
+                "equipment-module-replaced",
+                out _,
+                out string returnedCommitFailure))
+        {
+            throw new InvalidOperationException(
+                "Equipment module replacement reached its domain commit but exact Source acknowledgement failed: "
+                + returnedCommitFailure);
+        }
         failure = DomainFailure.None;
         return true;
     }
@@ -1000,33 +1049,56 @@ public sealed class EquipmentModuleRuntime : IEquipmentModuleAppraisalRecovery
                 slotIndex.ToString());
             return false;
         }
-        if (!TryMaterializeReturnedModule(
-                module,
-                facility,
-                destinationId,
-                out string returnedStackId))
+        EquipmentModuleInstance previous = module.Clone();
+        EquipmentModuleInstance desiredReturned = CreateReturnedModuleState(module);
+        if (!TryPrepareModuleSource(
+                desiredReturned,
+                "combat.module-return",
+                CreateModuleReturnOperationId(
+                    equipment.instanceId,
+                    slotIndex,
+                    module.instanceId),
+                facility.centerPos,
+                out PhysicalItemExactSourcePublicationTransaction transaction,
+                out string returnedStackId,
+                out _))
         {
             failure = new DomainFailure(FailureCode.EquipmentModuleMissing);
             return false;
         }
 
-        EquipmentModuleInstance previous = module.Clone();
-        module.sourceStackId = returnedStackId;
-        module.attachedEquipmentInstanceId = string.Empty;
-        module.condition = Mathf.Min(module.condition, 0.7f);
-        module.state = EquipmentModuleProcessState.IdentifiedDamaged;
-        if (!PersistModulePhysicalState(module))
-        {
-            physicalItems.TryAbsorbUniqueItemStack(
-                returnedStackId,
-                (ItemInstanceId)module.instanceId);
-            RestoreModuleState(module, previous);
-            failure = new DomainFailure(FailureCode.EquipmentModuleMissing);
-            return false;
-        }
+        desiredReturned.sourceStackId = returnedStackId;
+        RestoreModuleState(module, desiredReturned);
+        string previousSlotModuleId = slot.moduleInstanceId;
         slot.moduleInstanceId = string.Empty;
+        try
+        {
+            physicalState.Persist(equipment);
+        }
+        catch
+        {
+            RestoreModuleState(module, previous);
+            slot.moduleInstanceId = previousSlotModuleId;
+            RollbackPreparedModuleSourceOrThrow(
+                true,
+                transaction,
+                "equipment-module-remove-host-persist-failed");
+            throw;
+        }
+        if (!exactSources.TryCommitReleased(
+                transaction,
+                new FacilityBufferAcknowledgedOutputReleaseTarget(
+                    destinationId,
+                    facility.centerPos),
+                "equipment-module-removed",
+                out _,
+                out string commitFailure))
+        {
+            throw new InvalidOperationException(
+                "Equipment module removal reached its domain commit but exact Source acknowledgement failed: "
+                + commitFailure);
+        }
         removed = module.Clone();
-        physicalState.Persist(equipment);
         failure = DomainFailure.None;
         return true;
     }
@@ -1037,7 +1109,7 @@ public sealed class EquipmentModuleRuntime : IEquipmentModuleAppraisalRecovery
             || research.State.Projects.IsCompleted(new ResearchProjectId(researchId));
     }
 
-    private static bool TryRequireFacility(
+    private bool TryRequireFacility(
         BuildableObject facility,
         string requiredTag,
         out string destinationId,
@@ -1047,7 +1119,11 @@ public sealed class EquipmentModuleRuntime : IEquipmentModuleAppraisalRecovery
             .GetLocalBufferDestinationId(facility);
         if (!EquipmentProgressionFacilityContract.Matches(
                 facility,
-                requiredTag))
+                requiredTag)
+            || inputOwners == null
+            || !inputOwners.TryValidateFacility(
+                facility,
+                out _))
         {
             failure = new DomainFailure(
                 FailureCode.EquipmentProgressionFacilityUnavailable);
@@ -1109,22 +1185,134 @@ public sealed class EquipmentModuleRuntime : IEquipmentModuleAppraisalRecovery
                 StringComparison.Ordinal));
     }
 
-    private bool TryMaterializeReturnedModule(
-        EquipmentModuleInstance module,
-        BuildableObject facility,
-        string destinationId,
-        out string stackId)
+    private bool TryPrepareModuleSource(
+        EquipmentModuleInstance desired,
+        string ownerDomain,
+        string ownerOperationId,
+        Vector2Int position,
+        out PhysicalItemExactSourcePublicationTransaction transaction,
+        out string stackId,
+        out string failureReason)
     {
+        transaction = default;
         stackId = string.Empty;
-        return module != null
-            && string.IsNullOrWhiteSpace(module.sourceStackId)
-            && physicalItems.SpawnExistingUniqueItemAt(
-                PhysicalItemIds.ForEquipmentModule(),
-                (ItemInstanceId)module.instanceId,
-                facility.centerPos,
-                WorldItemStackState.FacilityBuffer,
-                destinationId,
-                out stackId);
+        failureReason = string.Empty;
+        try
+        {
+            ItemInstanceComponentSaveData prepared =
+                EquipmentModulePreparedOutputCodec.Encode(desired);
+            PhysicalItemMassSubject subject = new(
+                (ItemDefinitionId)PhysicalItemIds.ForEquipmentModule(),
+                desired.instanceId,
+                PhysicalItemMassSubjectKind.GenericDefinition,
+                Array.Empty<PhysicalItemComponentSnapshot>(),
+                string.Empty);
+            FacilityBufferPlannedOutputSlice slice = new(
+                "module",
+                subject,
+                1,
+                new[] { prepared },
+                EquipmentModulePreparedOutputCodec.CreateFingerprint(prepared),
+                EquipmentModulePreparedOutputCodec.CapabilityId);
+            PhysicalItemExactSourcePublicationPlan plan = new(
+                ownerDomain,
+                ownerOperationId,
+                position,
+                new[] { slice });
+            if (!exactSources.TryPrepare(
+                    plan,
+                    out transaction,
+                    out failureReason))
+                return false;
+            FacilityBufferPublishedOutputStackReceipt[] stacks = transaction
+                .PreparedStacks
+                .Where(value => string.Equals(
+                    value.OutputLineId,
+                    "module",
+                    StringComparison.Ordinal))
+                .ToArray();
+            if (stacks.Length == 1
+                && stacks[0].Quantity == 1
+                && string.Equals(
+                    stacks[0].ItemInstanceId,
+                    desired.instanceId,
+                    StringComparison.Ordinal))
+            {
+                stackId = stacks[0].StackId;
+                return true;
+            }
+            if (!exactSources.TryRollback(
+                    transaction,
+                    "equipment-module-prepared-receipt-invalid",
+                    out string rollbackFailure))
+            {
+                throw new InvalidOperationException(
+                    "Invalid module Source receipt could not be rolled back: "
+                    + rollbackFailure);
+            }
+            transaction = default;
+            failureReason = "equipment-module-prepared-receipt-invalid";
+            return false;
+        }
+        catch (Exception exception) when (exception is ArgumentException
+            or OverflowException)
+        {
+            failureReason = "equipment-module-source-prepare:" + exception.Message;
+            return false;
+        }
+    }
+
+    private static EquipmentModuleInstance CreateReturnedModuleState(
+        EquipmentModuleInstance module)
+    {
+        EquipmentModuleInstance desired = module?.Clone()
+            ?? throw new ArgumentNullException(nameof(module));
+        desired.sourceStackId = string.Empty;
+        desired.attachedEquipmentInstanceId = string.Empty;
+        desired.condition = Mathf.Min(desired.condition, 0.7f);
+        desired.state = EquipmentModuleProcessState.IdentifiedDamaged;
+        return desired;
+    }
+
+    private static string CreateModuleReturnOperationId(
+        string equipmentInstanceId,
+        int slotIndex,
+        string moduleInstanceId) =>
+        $"{equipmentInstanceId}:{slotIndex:D2}:{moduleInstanceId}";
+
+    private void RollbackPreparedModuleSourceOrThrow(
+        bool hasTransaction,
+        PhysicalItemExactSourcePublicationTransaction transaction,
+        string reasonCode)
+    {
+        if (!hasTransaction)
+            return;
+        if (!exactSources.TryRollback(
+                transaction,
+                reasonCode,
+                out string failureReason))
+        {
+            throw new InvalidOperationException(
+                "Prepared equipment module Source could not be rolled back: "
+                + failureReason);
+        }
+    }
+
+    private static void RestoreModuleInstallationState(
+        CombatEquipmentInstance equipment,
+        EquipmentModuleSlotState slot,
+        string previousSlotModuleId,
+        EquipmentModuleInstance incoming,
+        EquipmentModuleInstance incomingBefore,
+        EquipmentModuleInstance replaced,
+        EquipmentModuleInstance replacedBefore)
+    {
+        if (equipment == null || slot == null)
+            throw new ArgumentNullException(nameof(equipment));
+        slot.moduleInstanceId = previousSlotModuleId ?? string.Empty;
+        RestoreModuleState(incoming, incomingBefore);
+        if (replaced != null && replacedBefore != null)
+            RestoreModuleState(replaced, replacedBefore);
     }
 
     private bool PersistModulePhysicalState(EquipmentModuleInstance module)

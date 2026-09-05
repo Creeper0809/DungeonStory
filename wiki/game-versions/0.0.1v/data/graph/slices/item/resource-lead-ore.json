@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-lead-ore",
+    "spoiler_tier": "none",
+    "title": "납광석"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-lead-ingot",
+      "label": "필요 조건",
+      "to": "item/resource-lead-ore",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-resource-lead-ore",
+      "label": "생산·해금",
+      "to": "item/resource-lead-ore",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

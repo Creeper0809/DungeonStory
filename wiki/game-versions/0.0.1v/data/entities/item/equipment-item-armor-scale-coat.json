@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "1182"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "작은 비늘판을 아래로 겹쳐 베기와 찌르기를 흘려보내는 외투형 갑옷이다. 하르나크 무기 철야에서 이름을 얻은 비늘 외투는 새 주인이 들어도 옛 흠집을 갈아내지 않는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-armor-scale-coat",
+  "spoiler_tier": "none",
+  "summary": "비늘 외투 전투 장비",
+  "title": "비늘 외투"
+}

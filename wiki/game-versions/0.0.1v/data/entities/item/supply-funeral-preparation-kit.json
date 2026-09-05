@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "8개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "49"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "여러 종족의 장례 절차에 필요한 천, 표식과 세정 도구를 함께 챙긴 준비품이다. 제4주조도시의 기억판 안치는 종족 장례 준비품을 몸의 재료와 상관없이 한 사람의 생을 남기는 데 쓴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "supply-funeral-preparation-kit",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 종족 장례 준비품.",
+  "title": "종족 장례 준비품"
+}

@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "crop-shade-fiber",
+    "spoiler_tier": "none",
+    "title": "그늘섬유"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/crop-shade-fiber",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "genome-shade-fiber-base",
+      "target_spoiler_tier": "none",
+      "target_title": "Genome_shade-fiber",
+      "to": "nature/genome-shade-fiber-base",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/crop-shade-fiber",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-fiber",
+      "target_spoiler_tier": "none",
+      "target_title": "섬유 가공",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

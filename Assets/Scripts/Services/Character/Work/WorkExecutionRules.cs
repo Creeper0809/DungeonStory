@@ -31,7 +31,7 @@ internal static class WorkExecutionRules
             : 1f;
         float environment =
             1f / Mathf.Max(0.1f, environmentDurationMultiplier);
-        return Mathf.Clamp(workSpeed * environment, 0.05f, 8f);
+        return WorkRateBoundsAuthority.Clamp(workSpeed * environment);
     }
 
     public static EnvironmentalWorkKind ResolveEnvironmentWorkKind(

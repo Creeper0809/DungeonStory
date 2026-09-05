@@ -104,28 +104,78 @@ public sealed class CodexRuntime : MonoBehaviour
 
     public bool TryRecordMemoryResidueClue(out string message)
     {
-        const string entryId = "memory-residue";
-        CodexEntryRecord entry = state.GetOrCreate(
-            CodexEntryCategory.Invasion,
-            entryId,
-            "기억 잔재");
-        string clue = MemoryResidueClues.FirstOrDefault(candidate =>
-            !entry.Lines.Any(line => string.Equals(
-                line.Text,
-                candidate,
-                StringComparison.Ordinal)));
-        if (string.IsNullOrWhiteSpace(clue))
+        if (!TryGetNextMemoryResidueClue(out string clue))
         {
             message = "분석 가능한 기억 잔재 단서를 모두 정리했습니다.";
             return false;
         }
 
-        entry.AddInfo(clue, CodexInfoSource.Research);
+        return TryRecordMemoryResidueClue(clue, out message);
+    }
+
+    public bool TryGetNextMemoryResidueClue(out string clue)
+    {
+        const string entryId = "memory-residue";
+        CodexEntrySnapshot entry = state.GetSnapshot(
+            CodexEntryCategory.Invasion,
+            entryId);
+        clue = MemoryResidueClues.FirstOrDefault(candidate =>
+            entry?.lines == null
+            || !entry.lines.Any(line => string.Equals(
+                line.Text,
+                candidate,
+                StringComparison.Ordinal)));
+        return !string.IsNullOrWhiteSpace(clue);
+    }
+
+    public bool TryRecordMemoryResidueClue(
+        string expectedClue,
+        out string message)
+    {
+        const string entryId = "memory-residue";
+        if (string.IsNullOrWhiteSpace(expectedClue)
+            || !string.Equals(
+                expectedClue,
+                expectedClue.Trim(),
+                StringComparison.Ordinal)
+            || !MemoryResidueClues.Contains(
+                expectedClue,
+                StringComparer.Ordinal))
+        {
+            message = "기억 잔재 단서 식별자가 올바르지 않습니다.";
+            return false;
+        }
+
+        CodexEntryRecord entry = state.GetOrCreate(
+            CodexEntryCategory.Invasion,
+            entryId,
+            "기억 잔재");
+        if (entry.Lines.Any(line => string.Equals(
+                line.Text,
+                expectedClue,
+                StringComparison.Ordinal)))
+        {
+            message = $"월간 단서 정보: {expectedClue}";
+            return true;
+        }
+
+        string next = MemoryResidueClues.FirstOrDefault(candidate =>
+            !entry.Lines.Any(line => string.Equals(
+                line.Text,
+                candidate,
+                StringComparison.Ordinal)));
+        if (!string.Equals(next, expectedClue, StringComparison.Ordinal))
+        {
+            message = "기억 잔재 단서 순서가 현재 도감 상태와 일치하지 않습니다.";
+            return false;
+        }
+
+        entry.AddInfo(expectedClue, CodexInfoSource.Research);
         PublishUpdated(CodexEntryCategory.Invasion, entryId);
-        message = $"월간 단서 정보: {clue}";
+        message = $"월간 단서 정보: {expectedClue}";
         RequireApplicationPort().RaiseAlert(new CodexAlertRequest(
             "기억 잔재 분석",
-            clue,
+            expectedClue,
             "월간"));
         return true;
     }

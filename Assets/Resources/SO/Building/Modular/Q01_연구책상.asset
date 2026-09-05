@@ -113,7 +113,7 @@ MonoBehaviour:
           excludedTraitIds: []
         constructionMaterials:
         - itemId: material:treated-lumber
-          amount: 8
+          amount: 12
         - itemId: material:iron-ingot
           amount: 1
         - itemId: component:engineering-drawing

@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Faction"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ambition-faction-peacemaker",
+  "spoiler_tier": "none",
+  "summary": "적대 세력 사이에 지속 가능한 계약을 성립시키려 한다.",
+  "title": "두 깃발의 중재자"
+}

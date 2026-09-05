@@ -28,6 +28,28 @@ public sealed class ProductionOutputCapacityDurableProjection
     public string Fingerprint { get; }
 }
 
+internal sealed class ProductionExactDestinationCustodyProjection
+{
+    internal ProductionExactDestinationCustodyProjection(
+        IReadOnlyList<WorldItemStackSaveData> directStacks,
+        IReadOnlyList<HaulDeliveryIntentSaveData> intents,
+        IReadOnlyList<WorldItemStackSaveData> carriedStacks,
+        IReadOnlyList<CharacterCarriedItemSaveData> carriedItems)
+    {
+        DirectStacks = directStacks ?? Array.Empty<WorldItemStackSaveData>();
+        Intents = intents ?? Array.Empty<HaulDeliveryIntentSaveData>();
+        CarriedStacks = carriedStacks ?? Array.Empty<WorldItemStackSaveData>();
+        CarriedItems = carriedItems
+            ?? Array.Empty<CharacterCarriedItemSaveData>();
+    }
+
+    internal IReadOnlyList<WorldItemStackSaveData> DirectStacks { get; }
+    internal IReadOnlyList<HaulDeliveryIntentSaveData> Intents { get; }
+    internal IReadOnlyList<WorldItemStackSaveData> CarriedStacks { get; }
+    internal IReadOnlyList<CharacterCarriedItemSaveData> CarriedItems { get; }
+    internal bool HasAuthority => DirectStacks.Count > 0 || Intents.Count > 0;
+}
+
 /// <summary>
 /// Detached, save-DTO-only projection of the durable lifecycle owned by a
 /// production-capable facility. It must remain usable during aggregate
@@ -36,7 +58,7 @@ public sealed class ProductionOutputCapacityDurableProjection
 public static class ProductionOutputDestinationDurableSaveProjector
 {
     public const string AggregateSchemaToken =
-        "production-output-durable-lifecycle@1";
+        "production-output-durable-lifecycle@2";
     public const string GenericBillsContributorId =
         ProductionFacilityDestructiveDrainParticipantIds
             .GenericProductionBills;
@@ -52,6 +74,9 @@ public static class ProductionOutputDestinationDurableSaveProjector
     public const string PhysicalCustodyContributorId =
         ProductionFacilityDestructiveDrainParticipantIds
             .PhysicalCustodyCarryRecovery;
+    public const string StockSensorContributorId =
+        ProductionFacilityDestructiveDrainParticipantIds
+            .StockSensorEmbeddedSalvage;
 
     private static readonly string[] RequiredAggregateContributorIds =
     {
@@ -59,7 +84,8 @@ public static class ProductionOutputDestinationDurableSaveProjector
         CapacityRoutingContributorId,
         EquipmentContributorId,
         GenericBillsContributorId,
-        PhysicalCustodyContributorId
+        PhysicalCustodyContributorId,
+        StockSensorContributorId
     };
 
     public static string ProjectGenericBills(
@@ -74,6 +100,8 @@ public static class ProductionOutputDestinationDurableSaveProjector
                 "Production bill save payload has no current-format bill collection.");
 
         StringBuilder canonical = new StringBuilder(128)
+            .Append(ProductionBillRuntime.GenericBillLifecycleSchema)
+            .Append('|')
             .Append(facilityId.Value).Append('|');
         AppendOrdered(
             canonical,
@@ -84,6 +112,80 @@ public static class ProductionOutputDestinationDurableSaveProjector
                         facilityId.Value,
                         StringComparison.Ordinal))
                 .OrderBy(value => value.billId, StringComparer.Ordinal));
+        return ProductionLifecycleFingerprint.Compute(canonical.ToString());
+    }
+
+    public static string ProjectStockSensor(
+        BuildingInstanceId facilityId,
+        DungeonProductionBillSaveData payload,
+        DungeonPhysicalItemSaveData itemPayload,
+        DungeonCharacterWorldSaveData characterPayload)
+    {
+        RequireFacility(facilityId);
+        if (payload?.installedStockSensorFacilityIds == null
+            || payload.acknowledgedStockSensorFacilityIds == null
+            || payload.pendingStockSensorInstalls == null
+            || payload.installedStockSensors == null
+            || payload.pendingStockSensorRemovals == null)
+        {
+            throw new InvalidOperationException(
+                "Production stock-sensor save payload is not current-format.");
+        }
+
+        string id = facilityId.Value;
+        StringBuilder canonical = new StringBuilder(192)
+            .Append(StockSensorContributorId).Append('|')
+            .Append(id).Append('|')
+            .Append(payload.installedStockSensorFacilityIds.Count(value =>
+                string.Equals(value, id, StringComparison.Ordinal)))
+            .Append('|')
+            .Append(payload.acknowledgedStockSensorFacilityIds.Count(value =>
+                string.Equals(value, id, StringComparison.Ordinal)))
+            .Append('|');
+        AppendOrdered(
+            canonical,
+            payload.pendingStockSensorInstalls
+                .Where(value => value != null
+                    && string.Equals(
+                        value.facilityId,
+                        id,
+                        StringComparison.Ordinal))
+                .OrderBy(value => value.operationId, StringComparer.Ordinal));
+        AppendOrdered(
+            canonical,
+            payload.installedStockSensors
+                .Where(value => value != null
+                    && string.Equals(
+                        value.facilityId,
+                        id,
+                        StringComparison.Ordinal))
+                .OrderBy(value => value.inputOperationId, StringComparer.Ordinal));
+        AppendOrdered(
+            canonical,
+            payload.pendingStockSensorRemovals
+                .Where(value => value != null
+                    && string.Equals(
+                        value.facilityId,
+                        id,
+                        StringComparison.Ordinal))
+                .OrderBy(value => value.operationId, StringComparer.Ordinal));
+        ProductionExactDestinationCustodyProjection custody =
+            CaptureExactDestinationCustody(
+                ProductionStockSensorRuntime.BuildDestinationId(id),
+                itemPayload,
+                characterPayload);
+        canonical.Append("socket-custody@1|direct|")
+            .Append(custody.DirectStacks.Count).Append('|');
+        AppendOrdered(canonical, custody.DirectStacks);
+        canonical.Append("|intents|")
+            .Append(custody.Intents.Count).Append('|');
+        AppendOrdered(canonical, custody.Intents);
+        canonical.Append("|carried-stacks|")
+            .Append(custody.CarriedStacks.Count).Append('|');
+        AppendOrdered(canonical, custody.CarriedStacks);
+        canonical.Append("|carried-items|")
+            .Append(custody.CarriedItems.Count).Append('|');
+        AppendOrdered(canonical, custody.CarriedItems);
         return ProductionLifecycleFingerprint.Compute(canonical.ToString());
     }
 
@@ -164,6 +266,8 @@ public static class ProductionOutputDestinationDurableSaveProjector
         BuildingInstanceId facilityId,
         ModularFacilityWorldSaveData worldPayload,
         DungeonProductionBillSaveData productionPayload,
+        DungeonProductionGenericBillTerminalDrainSaveData
+            genericTerminalPayload,
         DungeonCombatEquipmentSaveData equipmentPayload,
         CombatEquipmentMaintenanceSaveData maintenancePayload,
         DungeonCharacterEnvironmentSaveData apparelPayload,
@@ -182,6 +286,7 @@ public static class ProductionOutputDestinationDurableSaveProjector
                 facilityId,
                 worldPayload,
                 productionPayload,
+                genericTerminalPayload,
                 itemPayload,
                 characterPayload,
                 routingPayload,
@@ -200,6 +305,11 @@ public static class ProductionOutputDestinationDurableSaveProjector
             new(GenericBillsContributorId, ProjectGenericBills(facilityId, productionPayload)),
             new(PhysicalCustodyContributorId, ProjectPhysicalCustody(
                 facilityId,
+                itemPayload,
+                characterPayload)),
+            new(StockSensorContributorId, ProjectStockSensor(
+                facilityId,
+                productionPayload,
                 itemPayload,
                 characterPayload))
         };
@@ -259,6 +369,11 @@ public static class ProductionOutputDestinationDurableSaveProjector
             new(PhysicalCustodyContributorId, ProjectPhysicalCustody(
                 facilityId,
                 itemPayload,
+                characterPayload)),
+            new(StockSensorContributorId, ProjectStockSensor(
+                facilityId,
+                productionPayload,
+                itemPayload,
                 characterPayload))
         };
         return ComposeAggregate(facilityId, contributors);
@@ -277,6 +392,11 @@ public static class ProductionOutputDestinationDurableSaveProjector
         string destination = ProductionOutputDestinationId
             .FromFacility(facilityId).Value;
         if (productionPayload?.bills == null
+            || productionPayload.installedStockSensorFacilityIds == null
+            || productionPayload.acknowledgedStockSensorFacilityIds == null
+            || productionPayload.pendingStockSensorInstalls == null
+            || productionPayload.installedStockSensors == null
+            || productionPayload.pendingStockSensorRemovals == null
             || equipmentPayload?.craftOrders == null
             || maintenancePayload?.orders == null
             || apparelPayload?.apparelWorkOrders == null
@@ -340,12 +460,43 @@ public static class ProductionOutputDestinationDurableSaveProjector
         });
         bool hasCarriedIntent = characterPayload.actors.Any(actor =>
             actor?.haulDeliveryIntent != null
+            && !actor.haulDeliveryIntent.IsDefaultEmptyProjection
             && string.Equals(
                 actor.haulDeliveryIntent.destinationId,
                 destination,
                 StringComparison.Ordinal));
+        bool hasStockSensorPhysical = CaptureExactDestinationCustody(
+            ProductionStockSensorRuntime.BuildDestinationId(facilityId.Value),
+            itemPayload,
+            characterPayload).HasAuthority;
+        bool hasActiveStockSensor =
+            productionPayload.installedStockSensorFacilityIds.Any(value =>
+                string.Equals(value, facilityId.Value, StringComparison.Ordinal))
+            || productionPayload.acknowledgedStockSensorFacilityIds.Any(value =>
+                string.Equals(value, facilityId.Value, StringComparison.Ordinal))
+            || productionPayload.pendingStockSensorInstalls.Any(value =>
+                value != null
+                && string.Equals(
+                    value.facilityId,
+                    facilityId.Value,
+                    StringComparison.Ordinal))
+            || productionPayload.installedStockSensors.Any(value =>
+                value != null
+                && string.Equals(
+                    value.facilityId,
+                    facilityId.Value,
+                    StringComparison.Ordinal))
+            || productionPayload.pendingStockSensorRemovals.Any(value =>
+                value != null
+                && value.phase != ProductionStockSensorRemovalPhase
+                    .OwnerAcknowledgedAwaitingCheckpointGc
+                && string.Equals(
+                    value.facilityId,
+                    facilityId.Value,
+                    StringComparison.Ordinal));
         if (hasBill || hasEquipment || hasRepair || hasApparel || hasRouting
-            || hasPhysical || hasCarriedIntent)
+            || hasPhysical || hasCarriedIntent || hasActiveStockSensor
+            || hasStockSensorPhysical)
         {
             throw new InvalidOperationException(
                 "production-destructive-drain-absent-lifecycle-has-owner: "
@@ -512,7 +663,8 @@ public static class ProductionOutputDestinationDurableSaveProjector
         }
 
         DungeonCharacterSaveData[] actors = characterPayload.actors
-            .Where(value => value?.haulDeliveryIntent != null)
+            .Where(value => value?.haulDeliveryIntent != null
+                && !value.haulDeliveryIntent.IsDefaultEmptyProjection)
             .OrderBy(value => value.haulDeliveryIntent.operationId, StringComparer.Ordinal)
             .ToArray();
         for (int index = 0; index < actors.Length; index++)
@@ -691,6 +843,8 @@ public static class ProductionOutputDestinationDurableSaveProjector
         BuildingInstanceId facilityId,
         ModularFacilityWorldSaveData worldPayload,
         DungeonProductionBillSaveData productionPayload,
+        DungeonProductionGenericBillTerminalDrainSaveData
+            genericTerminalPayload,
         DungeonPhysicalItemSaveData itemPayload,
         DungeonCharacterWorldSaveData characterPayload,
         ProductionPreparedOutputRoutingSaveData routingPayload,
@@ -704,6 +858,8 @@ public static class ProductionOutputDestinationDurableSaveProjector
             throw new ArgumentNullException(nameof(worldPayload));
         if (productionPayload?.bills == null)
             throw new ArgumentNullException(nameof(productionPayload));
+        ProductionGenericBillTerminalDrainSaveData[] terminalSources =
+            CaptureCurrentTerminalSources(genericTerminalPayload);
         if (itemPayload?.stacks == null)
             throw new ArgumentNullException(nameof(itemPayload));
         if (characterPayload?.actors == null)
@@ -735,7 +891,7 @@ public static class ProductionOutputDestinationDurableSaveProjector
                 matches[0],
                 buildingDefinitions);
         ProductionOutputBufferCapacitySourceSnapshot portfolio =
-            capacityProjector.CaptureSource(subject, 0L);
+            capacityProjector.CapturePortfolioSource(subject);
         long maximumCapacity = portfolio.ProjectedPortfolioCapacityGrams;
         foreach (ProductionBillSaveData bill in productionPayload.bills
                      .Where(value => value != null
@@ -748,12 +904,71 @@ public static class ProductionOutputDestinationDurableSaveProjector
                             ProductionPreparedOutputPhase.Unresolved)
                      .OrderBy(value => value.billId, StringComparer.Ordinal))
         {
-            ProductionOutputBufferCapacitySourceSnapshot current =
-                capacityProjector.CaptureSource(
-                    subject,
-                    bill.preparedOutput.totalPhysicalMassGrams);
+            ProductionPreparedOutputBatchSaveData prepared =
+                bill.preparedOutput;
+            ProductionPreparedOutputLineSaveData ruinedWaste = prepared.lines?
+                .SingleOrDefault(value => value != null
+                    && value.role == ProductionOutputRole.RecoverableWaste
+                    && string.Equals(
+                        value.outputLineId,
+                        ProductionRuinedBatchDispositionPlan
+                            .RecoverableWasteOutputLineId,
+                        StringComparison.Ordinal));
+            ProductionOutputBufferCapacitySourceSnapshot current;
+            if (ruinedWaste != null)
+            {
+                ProductionOutputCapabilityDescriptor descriptor = new(
+                    ruinedWaste.outputLineId,
+                    ruinedWaste.itemId,
+                    ruinedWaste.outputCapabilityId,
+                    ruinedWaste.outputCapabilityVersion,
+                    ruinedWaste.outputComponentCodecId,
+                    ruinedWaste.outputComponentCodecVersion,
+                    ruinedWaste.outputCapabilityFingerprint);
+                ProductionRuinedOutputCapacityClaim claim = capacityProjector
+                    .CaptureRuinedClaim(bill, descriptor);
+                if (!string.Equals(
+                        prepared.maximumMassProofDigest,
+                        claim.MaximumMassProof.SourceDigest,
+                        StringComparison.Ordinal)
+                    || prepared.maximumBatchMassGrams
+                        != claim.MaximumMassProof.MaximumBatchMassGrams
+                    || !string.Equals(
+                        prepared.capacityClaimDigest,
+                        claim.SourceDigest,
+                        StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        "Detached production capacity bill '"
+                        + bill.billId
+                        + "' has a stale ruined-output capacity proof.");
+                }
+                current = capacityProjector.CaptureSource(subject, claim);
+            }
+            else
+            {
+                ProductionPreparedOutputCapacityClaim claim = capacityProjector
+                    .CapturePreparedClaim(prepared);
+                if (!string.Equals(
+                        prepared.maximumMassProofDigest,
+                        claim.MaximumMassProof.SourceDigest,
+                        StringComparison.Ordinal)
+                    || prepared.maximumBatchMassGrams
+                        != claim.MaximumMassProof.MaximumBatchMassGrams
+                    || !string.Equals(
+                        prepared.capacityClaimDigest,
+                        claim.SourceDigest,
+                        StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        "Detached production capacity bill '"
+                        + bill.billId
+                        + "' has a stale maximum-mass proof.");
+                }
+                current = capacityProjector.CaptureSource(subject, claim);
+            }
             ProductionOutputBufferCapacitySourceGuard.ValidateSaved(
-                bill.preparedOutput,
+                prepared,
                 current,
                 "Detached production capacity bill '" + bill.billId + "'");
             maximumCapacity = Math.Max(
@@ -761,9 +976,9 @@ public static class ProductionOutputDestinationDurableSaveProjector
                 current.RequiredMinimumCapacityGrams);
         }
         // A destructive generic-bill terminalization may remove the bill while
-        // its independently owned routing batch remains. Reconstruct the same
-        // capacity floor from that batch so detached save projection does not
-        // shrink authority merely because the producer owner has retired.
+        // its independently owned routing batch remains. An exact terminal
+        // source is reprojected from its frozen bill; unrelated routing batches
+        // keep their routing-owned durability contract.
         foreach (ProductionPreparedOutputRoutingBatchSaveData batch in
                  (routingPayload.batches
                       ?? new List<
@@ -775,12 +990,91 @@ public static class ProductionOutputDestinationDurableSaveProjector
                          StringComparison.Ordinal))
                  .OrderBy(value => value.batchCommitId, StringComparer.Ordinal))
         {
+            ProductionGenericBillTerminalDrainSaveData[] sourceMatches =
+                terminalSources
+                    .Where(value => string.Equals(
+                            value.billId,
+                            batch.ownerBillId,
+                            StringComparison.Ordinal)
+                        && value.sourceBill.cycleSequence ==
+                            batch.cycleSequence)
+                    .ToArray();
+            if (sourceMatches.Length > 1)
+            {
+                throw new InvalidOperationException(
+                    "detached-terminal-routing-source-duplicate:"
+                    + (batch.batchCommitId ?? string.Empty));
+            }
+            int liveBillCount = productionPayload.bills.Count(value =>
+                value != null
+                && string.Equals(
+                    value.billId,
+                    batch.ownerBillId,
+                    StringComparison.Ordinal));
+            if (liveBillCount > 1)
+            {
+                throw new InvalidOperationException(
+                    "detached-terminal-routing-live-source-duplicate:"
+                    + (batch.ownerBillId ?? string.Empty));
+            }
+            if (sourceMatches.Length == 1 && liveBillCount == 0)
+            {
+                ProductionGenericBillTerminalDrainSaveData terminal =
+                    sourceMatches[0];
+                if (terminal.phase <
+                    ProductionGenericBillTerminalDrainPhase
+                        .InputDestinationAcknowledgedAwaitingBillTerminal)
+                {
+                    throw new InvalidOperationException(
+                        "detached-terminal-routing-source-ineligible:"
+                        + (batch.batchCommitId ?? string.Empty));
+                }
+                ProductionOutputBufferCapacitySourceSnapshot terminalSource =
+                    ReprojectTerminalRoutingSource(
+                        subject,
+                        batch,
+                        terminal,
+                        capacityProjector);
+                maximumCapacity = Math.Max(
+                    maximumCapacity,
+                    terminalSource.RequiredMinimumCapacityGrams);
+                continue;
+            }
+
             long batchPhysicalMass = checked((batch.lines
                     ?? new List<ProductionPreparedOutputRoutingLineSaveData>())
                 .Where(line => line != null
-                    && line.role != ProductionOutputRole.DeclaredLoss)
+                    && ProductionOutputRoleRules.IsPhysical(line.role))
                 .Sum(line => line.originalMassGrams));
-            maximumCapacity = Math.Max(maximumCapacity, batchPhysicalMass);
+            bool hasProof = IsSha256(batch.maximumMassProofDigest)
+                && batch.maximumBatchMassGrams > 0L
+                && IsSha256(batch.capacityClaimDigest);
+            bool hasNoProof = batch.maximumMassProofDigest != null
+                && batch.maximumMassProofDigest.Length == 0
+                && batch.maximumBatchMassGrams == 0L
+                && batch.capacityClaimDigest != null
+                && batch.capacityClaimDigest.Length == 0;
+            long capacityBatchMass = hasProof
+                ? batch.maximumBatchMassGrams
+                : batchPhysicalMass;
+            if (!IsSha256(batch.capacitySourceDigest)
+                || batch.outputBufferCycleCapacity is < 2 or > 4
+                || batch.projectedPortfolioCapacityGrams <= 0L
+                || !hasProof && !hasNoProof
+                || hasProof && batchPhysicalMass > batch.maximumBatchMassGrams
+                || batch.requiredMinimumCapacityGrams != Math.Max(
+                    batch.projectedPortfolioCapacityGrams,
+                    checked(
+                        capacityBatchMass
+                        * batch.outputBufferCycleCapacity)))
+            {
+                throw new InvalidOperationException(
+                    "Detached terminal routing batch has invalid capacity authority: "
+                    + (batch.batchCommitId ?? string.Empty));
+            }
+            maximumCapacity = Math.Max(
+                maximumCapacity,
+                batch.requiredMinimumCapacityGrams);
         }
 
         FacilityBufferPhysicalOccupancySnapshot occupancy =
@@ -813,47 +1107,349 @@ public static class ProductionOutputDestinationDurableSaveProjector
             fingerprint);
     }
 
-    public static FacilityBufferPhysicalOccupancySnapshot ProjectPhysicalOccupancy(
-        string destinationId,
-        DungeonPhysicalItemSaveData itemPayload,
-        DungeonCharacterWorldSaveData characterPayload,
-        IPhysicalItemMassQuery massQuery)
+    private static ProductionGenericBillTerminalDrainSaveData[]
+        CaptureCurrentTerminalSources(
+            DungeonProductionGenericBillTerminalDrainSaveData payload)
+    {
+        if (payload == null
+            || payload.version !=
+                DungeonProductionGenericBillTerminalDrainSaveData
+                    .CurrentVersion
+            || payload.entries == null)
+        {
+            throw new InvalidOperationException(
+                "Detached capacity projection requires the exact current-format generic terminal payload.");
+        }
+        ProductionGenericBillTerminalDrainSaveData[] entries = payload.entries
+            .OrderBy(value => value?.billId ?? string.Empty,
+                StringComparer.Ordinal)
+            .ToArray();
+        if (entries.Length > 4096
+            || entries.Any(value =>
+                !ProductionGenericBillTerminalDrainCanonical.IsValidSave(value)))
+        {
+            throw new InvalidOperationException(
+                "Detached capacity projection found an invalid generic terminal source.");
+        }
+        if (entries.GroupBy(value => value.billId, StringComparer.Ordinal)
+            .Any(group => group.Count() != 1))
+        {
+            throw new InvalidOperationException(
+                "Detached capacity projection found duplicate generic terminal bill authority.");
+        }
+        return entries;
+    }
+
+    private static ProductionOutputBufferCapacitySourceSnapshot
+        ReprojectTerminalRoutingSource(
+            ProductionFacilityCapacitySubject subject,
+            ProductionPreparedOutputRoutingBatchSaveData batch,
+            ProductionGenericBillTerminalDrainSaveData terminal,
+            ProductionOutputBufferCapacityProjector capacityProjector)
+    {
+        ProductionBillSaveData source = terminal?.sourceBill;
+        if (source == null
+            || !string.Equals(
+                terminal.sourceBillFingerprint,
+                ProductionGenericBillTerminalDrainCanonical
+                    .CreateSourceBillFingerprint(source),
+                StringComparison.Ordinal)
+            || !string.Equals(batch.ownerBillId, source.billId,
+                StringComparison.Ordinal)
+            || !string.Equals(batch.ownerRecipeId, source.recipeId,
+                StringComparison.Ordinal)
+            || !string.Equals(batch.ownerFacilityId,
+                source.buildingInstanceId, StringComparison.Ordinal)
+            || !string.Equals(batch.ownerFacilityId,
+                subject.FacilityId.Value, StringComparison.Ordinal)
+            || batch.cycleSequence != source.cycleSequence
+            || !string.Equals(batch.destinationId,
+                source.outputDestinationId, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "detached-terminal-routing-source-identity-drift:"
+                + (batch?.batchCommitId ?? string.Empty));
+        }
+
+        ProductionPreparedOutputBatchSaveData prepared = source.preparedOutput;
+        try
+        {
+            ProductionPreparedOutputContract.ValidateForBill(
+                prepared,
+                (ProductionBillId)source.billId,
+                source.recipeId,
+                source.cycleSequence,
+                source.outputDestinationId);
+        }
+        catch (Exception exception)
+        {
+            throw new InvalidOperationException(
+                "detached-terminal-routing-prepared-join-drift:"
+                + batch.batchCommitId,
+                exception);
+        }
+        if (prepared.phase != ProductionPreparedOutputPhase.Completed
+            || !string.Equals(batch.batchCommitId,
+                prepared.batchCommitId, StringComparison.Ordinal)
+            || !string.Equals(batch.outcomeFingerprint,
+                prepared.outcomeFingerprint, StringComparison.Ordinal)
+            || !string.Equals(batch.destinationId,
+                prepared.destinationId, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "detached-terminal-routing-prepared-join-drift:"
+                + batch.batchCommitId);
+        }
+        ValidateTerminalRoutingLines(batch, prepared);
+
+        ProductionPreparedOutputLineSaveData[] ruinedLines = prepared.lines
+            .Where(value => value != null
+                && value.role == ProductionOutputRole.RecoverableWaste
+                && string.Equals(
+                    value.outputLineId,
+                    ProductionRuinedBatchDispositionPlan
+                        .RecoverableWasteOutputLineId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        ProductionOutputBufferCapacitySourceSnapshot current;
+        if (ruinedLines.Length == 1)
+        {
+            ProductionPreparedOutputLineSaveData ruined = ruinedLines[0];
+            ProductionOutputCapabilityDescriptor descriptor = new(
+                ruined.outputLineId,
+                ruined.itemId,
+                ruined.outputCapabilityId,
+                ruined.outputCapabilityVersion,
+                ruined.outputComponentCodecId,
+                ruined.outputComponentCodecVersion,
+                ruined.outputCapabilityFingerprint);
+            ProductionRuinedOutputCapacityClaim claim = capacityProjector
+                .CaptureRuinedClaim(source, descriptor);
+            if (!string.Equals(prepared.maximumMassProofDigest,
+                    claim.MaximumMassProof.SourceDigest,
+                    StringComparison.Ordinal)
+                || prepared.maximumBatchMassGrams !=
+                    claim.MaximumMassProof.MaximumBatchMassGrams
+                || !string.Equals(prepared.capacityClaimDigest,
+                    claim.SourceDigest, StringComparison.Ordinal)
+                || prepared.totalPhysicalMassGrams !=
+                    claim.Disposition.RecoverableWasteMassGrams
+                || prepared.totalDeclaredLossMassGrams !=
+                    claim.Disposition.DeclaredLossMassGrams)
+            {
+                throw new InvalidOperationException(
+                    "detached-terminal-routing-proof-stale:"
+                    + batch.batchCommitId);
+            }
+            current = capacityProjector.CaptureSource(subject, claim);
+        }
+        else if (ruinedLines.Length == 0)
+        {
+            ProductionPreparedOutputCapacityClaim claim = capacityProjector
+                .CapturePreparedClaim(prepared);
+            if (!string.Equals(prepared.maximumMassProofDigest,
+                    claim.MaximumMassProof.SourceDigest,
+                    StringComparison.Ordinal)
+                || prepared.maximumBatchMassGrams !=
+                    claim.MaximumMassProof.MaximumBatchMassGrams
+                || !string.Equals(prepared.capacityClaimDigest,
+                    claim.SourceDigest, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "detached-terminal-routing-proof-stale:"
+                    + batch.batchCommitId);
+            }
+            current = capacityProjector.CaptureSource(subject, claim);
+        }
+        else
+        {
+            throw new InvalidOperationException(
+                "detached-terminal-routing-prepared-join-drift:"
+                + batch.batchCommitId);
+        }
+
+        if (!string.Equals(batch.maximumMassProofDigest,
+                prepared.maximumMassProofDigest, StringComparison.Ordinal)
+            || batch.maximumBatchMassGrams !=
+                prepared.maximumBatchMassGrams
+            || !string.Equals(batch.capacityClaimDigest,
+                prepared.capacityClaimDigest, StringComparison.Ordinal)
+            || !string.Equals(batch.capacitySourceDigest,
+                current.SourceDigest, StringComparison.Ordinal)
+            || batch.outputBufferCycleCapacity != current.CycleCapacity
+            || batch.projectedPortfolioCapacityGrams !=
+                current.ProjectedPortfolioCapacityGrams
+            || batch.requiredMinimumCapacityGrams !=
+                current.RequiredMinimumCapacityGrams)
+        {
+            throw new InvalidOperationException(
+                "detached-terminal-routing-capacity-source-stale:"
+                + batch.batchCommitId);
+        }
+        ProductionOutputBufferCapacitySourceGuard.ValidateSaved(
+            prepared,
+            current,
+            "Detached terminal routing batch '" + batch.batchCommitId + "'");
+        return current;
+    }
+
+    private static void ValidateTerminalRoutingLines(
+        ProductionPreparedOutputRoutingBatchSaveData batch,
+        ProductionPreparedOutputBatchSaveData prepared)
+    {
+        ProductionPreparedOutputLineSaveData[] nonPhysical = prepared.lines
+            .Where(value => value != null
+                && ProductionOutputRoleRules.IsNonPhysical(value.role))
+            .OrderBy(value => value.outputLineId, StringComparer.Ordinal)
+            .ToArray();
+        ProductionPreparedOutputNonPhysicalDispositionSaveData[] dispositions =
+            (batch.nonPhysicalDispositions
+                    ?? new List<
+                        ProductionPreparedOutputNonPhysicalDispositionSaveData>())
+                .Where(value => value != null)
+                .OrderBy(value => value.outputLineId, StringComparer.Ordinal)
+                .ToArray();
+        if (batch.totalDeclaredLossMassGrams !=
+                prepared.totalDeclaredLossMassGrams
+            || batch.totalDeclaredExternalInputMassGrams !=
+                prepared.totalDeclaredExternalInputMassGrams
+            || nonPhysical.Length != dispositions.Length)
+        {
+            throw new InvalidOperationException(
+                "detached-terminal-routing-nonphysical-join-drift:"
+                + batch.batchCommitId);
+        }
+        for (int index = 0; index < nonPhysical.Length; index++)
+        {
+            ProductionPreparedOutputLineSaveData source = nonPhysical[index];
+            ProductionPreparedOutputNonPhysicalDispositionSaveData disposition =
+                dispositions[index];
+            if (!string.Equals(disposition.batchCommitId,
+                    batch.batchCommitId, StringComparison.Ordinal)
+                || !string.Equals(disposition.lineCommitId,
+                    source.lineCommitId, StringComparison.Ordinal)
+                || !string.Equals(disposition.outputLineId,
+                    source.outputLineId, StringComparison.Ordinal)
+                || disposition.role != source.role
+                || !string.Equals(disposition.canonicalPayload,
+                    source.componentPayload, StringComparison.Ordinal)
+                || !string.Equals(disposition.dispositionFingerprint,
+                    source.componentFingerprint, StringComparison.Ordinal)
+                || disposition.exactMassGrams != source.exactMassGrams)
+            {
+                throw new InvalidOperationException(
+                    "detached-terminal-routing-nonphysical-join-drift:"
+                    + batch.batchCommitId + ":" + source.outputLineId);
+            }
+        }
+
+        ProductionPreparedOutputLineSaveData[] physical = prepared.lines
+            .Where(value => value != null
+                && ProductionOutputRoleRules.IsPhysical(value.role)
+                && value.quantity > 0)
+            .OrderBy(value => value.outputLineId, StringComparer.Ordinal)
+            .ToArray();
+        ProductionPreparedOutputRoutingLineSaveData[] routed = (batch.lines
+                ?? new List<ProductionPreparedOutputRoutingLineSaveData>())
+            .Where(value => value != null)
+            .OrderBy(value => value.outputLineId, StringComparer.Ordinal)
+            .ToArray();
+        if (physical.Length != routed.Length)
+        {
+            throw new InvalidOperationException(
+                "detached-terminal-routing-prepared-join-drift:"
+                + batch.batchCommitId);
+        }
+        for (int index = 0; index < physical.Length; index++)
+        {
+            ProductionPreparedOutputLineSaveData source = physical[index];
+            ProductionPreparedOutputRoutingLineSaveData route = routed[index];
+            string expectedLineCommitId =
+                ProductionPreparedOutputIdentity.BuildLineCommitId(
+                    batch.batchCommitId,
+                    source.outputLineId);
+            if (!string.Equals(route.batchCommitId,
+                    batch.batchCommitId, StringComparison.Ordinal)
+                || !string.Equals(route.lineCommitId,
+                    expectedLineCommitId, StringComparison.Ordinal)
+                || !string.Equals(route.outputLineId,
+                    source.outputLineId, StringComparison.Ordinal)
+                || route.role != source.role
+                || !string.Equals(route.itemId, source.itemId,
+                    StringComparison.Ordinal)
+                || !string.Equals(route.destinationId,
+                    prepared.destinationId, StringComparison.Ordinal)
+                || !string.Equals(route.componentFingerprint,
+                    source.componentFingerprint, StringComparison.Ordinal)
+                || !string.Equals(route.outputCapabilityId,
+                    source.outputCapabilityId, StringComparison.Ordinal)
+                || route.outputCapabilityVersion !=
+                    source.outputCapabilityVersion
+                || !string.Equals(route.outputComponentCodecId,
+                    source.outputComponentCodecId, StringComparison.Ordinal)
+                || route.outputComponentCodecVersion !=
+                    source.outputComponentCodecVersion
+                || !string.Equals(route.outputCapabilityFingerprint,
+                    source.outputCapabilityFingerprint,
+                    StringComparison.Ordinal)
+                || route.originalQuantity != source.quantity
+                || route.originalMassGrams != source.exactMassGrams)
+            {
+                throw new InvalidOperationException(
+                    "detached-terminal-routing-prepared-join-drift:"
+                    + batch.batchCommitId + ":" + source.outputLineId);
+            }
+        }
+    }
+
+    internal static ProductionExactDestinationCustodyProjection
+        CaptureExactDestinationCustody(
+            string destinationId,
+            DungeonPhysicalItemSaveData itemPayload,
+            DungeonCharacterWorldSaveData characterPayload)
     {
         if (string.IsNullOrWhiteSpace(destinationId)
-            || !string.Equals(destinationId, destinationId.Trim(), StringComparison.Ordinal))
-            throw new ArgumentException("A canonical destination is required.", nameof(destinationId));
+            || !string.Equals(
+                destinationId,
+                destinationId.Trim(),
+                StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "A canonical destination is required.",
+                nameof(destinationId));
+        }
         if (itemPayload?.stacks == null)
             throw new ArgumentNullException(nameof(itemPayload));
         if (characterPayload?.actors == null)
             throw new ArgumentNullException(nameof(characterPayload));
-        if (massQuery == null)
-            throw new ArgumentNullException(nameof(massQuery));
 
         Dictionary<string, WorldItemStackSaveData> stacks = itemPayload.stacks
             .Where(value => value != null && value.quantity > 0)
             .OrderBy(value => value.stackId, StringComparer.Ordinal)
             .ToDictionary(value => value.stackId, StringComparer.Ordinal);
-        long nonCarried = 0L;
-        foreach (WorldItemStackSaveData stack in stacks.Values
-                     .Where(value => value.state != WorldItemStackState.Carried
-                         && string.Equals(
-                             value.destinationId,
-                             destinationId,
-                             StringComparison.Ordinal))
-                     .OrderBy(value => value.stackId, StringComparer.Ordinal))
-        {
-            nonCarried = checked(nonCarried + GetStackMass(stack, stack.quantity, massQuery));
-        }
-
-        long carried = 0L;
+        WorldItemStackSaveData[] direct = stacks.Values
+            .Where(value => value.state != WorldItemStackState.Carried
+                && string.Equals(
+                    value.destinationId,
+                    destinationId,
+                    StringComparison.Ordinal))
+            .OrderBy(value => value.stackId, StringComparer.Ordinal)
+            .Select(CanonicalizePhysicalStack)
+            .ToArray();
+        List<HaulDeliveryIntentSaveData> intents = new();
+        List<WorldItemStackSaveData> carriedStacks = new();
+        List<CharacterCarriedItemSaveData> carriedItems = new();
         HashSet<string> committedStackOwners = new(StringComparer.Ordinal);
+
         foreach (DungeonCharacterSaveData actor in characterPayload.actors
                      .Where(value => value?.haulDeliveryIntent != null
+                         && !value.haulDeliveryIntent.IsDefaultEmptyProjection
                          && string.Equals(
                              value.haulDeliveryIntent.destinationId,
                              destinationId,
                              StringComparison.Ordinal))
-                     .OrderBy(value => value.haulDeliveryIntent.operationId, StringComparer.Ordinal))
+                     .OrderBy(value => value.haulDeliveryIntent.operationId,
+                         StringComparer.Ordinal))
         {
             HaulDeliveryIntentSaveData intent = actor.haulDeliveryIntent;
             if (!string.Equals(
@@ -870,12 +1466,16 @@ public static class ProductionOutputDestinationDurableSaveProjector
                     "Saved haul intent has no current-format commitment collection: "
                     + intent.operationId);
             }
-            foreach (HaulDeliveryItemCommitmentSaveData commitment in
-                     intent.commitments
-                     .Where(value => value != null)
-                     .OrderBy(value => value.carriedStackId, StringComparer.Ordinal))
+
+            HaulDeliveryItemCommitmentSaveData[] matching = intent.commitments
+                .Where(value => value != null)
+                .OrderBy(value => value.carriedStackId, StringComparer.Ordinal)
+                .ToArray();
+            intents.Add(CanonicalizeHaulIntent(intent, matching));
+            foreach (HaulDeliveryItemCommitmentSaveData commitment in matching)
             {
-                if (!committedStackOwners.Add(commitment.carriedStackId ?? string.Empty))
+                if (!committedStackOwners.Add(
+                        commitment.carriedStackId ?? string.Empty))
                 {
                     throw new InvalidOperationException(
                         "A carried stack is owned by more than one saved haul commitment: "
@@ -889,7 +1489,13 @@ public static class ProductionOutputDestinationDurableSaveProjector
                         "Saved haul commitment has no physical carried stack: "
                         + commitment.carriedStackId);
                 }
-                RequireExactCarriedInventoryJoin(actor, intent, commitment, stack);
+
+                CharacterCarriedItemSaveData carried =
+                    RequireExactCarriedInventoryJoin(
+                        actor,
+                        intent,
+                        commitment,
+                        stack);
                 if (stack.state != WorldItemStackState.Carried)
                 {
                     if (stack.state == WorldItemStackState.FacilityBuffer
@@ -918,9 +1524,47 @@ public static class ProductionOutputDestinationDurableSaveProjector
                         "Committed carried lot conflicts with saved occupancy: "
                         + commitment.carriedStackId);
                 }
-                carried = checked(
-                    carried + GetStackMass(stack, commitment.quantity, massQuery));
+                carriedStacks.Add(CanonicalizePhysicalStack(stack));
+                carriedItems.Add(CanonicalizeCarriedItem(carried));
             }
+        }
+
+        return new ProductionExactDestinationCustodyProjection(
+            Array.AsReadOnly(direct),
+            Array.AsReadOnly(intents
+                .OrderBy(value => value.operationId, StringComparer.Ordinal)
+                .ToArray()),
+            Array.AsReadOnly(carriedStacks
+                .OrderBy(value => value.stackId, StringComparer.Ordinal)
+                .ToArray()),
+            Array.AsReadOnly(carriedItems
+                .OrderBy(value => value.carriedStackId, StringComparer.Ordinal)
+                .ToArray()));
+    }
+
+    public static FacilityBufferPhysicalOccupancySnapshot ProjectPhysicalOccupancy(
+        string destinationId,
+        DungeonPhysicalItemSaveData itemPayload,
+        DungeonCharacterWorldSaveData characterPayload,
+        IPhysicalItemMassQuery massQuery)
+    {
+        if (massQuery == null)
+            throw new ArgumentNullException(nameof(massQuery));
+        ProductionExactDestinationCustodyProjection custody =
+            CaptureExactDestinationCustody(
+                destinationId,
+                itemPayload,
+                characterPayload);
+        long nonCarried = 0L;
+        foreach (WorldItemStackSaveData stack in custody.DirectStacks)
+        {
+            nonCarried = checked(nonCarried + GetStackMass(stack, stack.quantity, massQuery));
+        }
+        long carried = 0L;
+        foreach (WorldItemStackSaveData stack in custody.CarriedStacks)
+        {
+            carried = checked(
+                carried + GetStackMass(stack, stack.quantity, massQuery));
         }
         return new FacilityBufferPhysicalOccupancySnapshot(nonCarried, carried);
     }
@@ -1058,6 +1702,13 @@ public static class ProductionOutputDestinationDurableSaveProjector
         CanonicalizeRoutingBatch(ProductionPreparedOutputRoutingBatchSaveData source)
     {
         ProductionPreparedOutputRoutingBatchSaveData clone = source.Clone();
+        clone.nonPhysicalDispositions = (clone.nonPhysicalDispositions
+                ?? new List<
+                    ProductionPreparedOutputNonPhysicalDispositionSaveData>())
+            .Where(value => value != null)
+            .OrderBy(value => value.outputLineId, StringComparer.Ordinal)
+            .ThenBy(value => value.lineCommitId, StringComparer.Ordinal)
+            .ToList();
         clone.lines = (clone.lines
                 ?? new List<ProductionPreparedOutputRoutingLineSaveData>())
             .Where(value => value != null)
@@ -1250,4 +1901,9 @@ public static class ProductionOutputDestinationDurableSaveProjector
                 nameof(facilityId));
         }
     }
+
+    private static bool IsSha256(string value) => value != null
+        && value.Length == 64
+        && value.All(character => character is >= '0' and <= '9'
+            || character is >= 'a' and <= 'f');
 }

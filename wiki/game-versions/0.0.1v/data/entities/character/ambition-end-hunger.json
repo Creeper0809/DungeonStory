@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Community"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ambition-end-hunger",
+  "spoiler_tier": "none",
+  "summary": "한겨울에도 모든 가구가 충분히 먹는 생산망을 만들려 한다.",
+  "title": "빈 식탁 없는 겨울"
+}

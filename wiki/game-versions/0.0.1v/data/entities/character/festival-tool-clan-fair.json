@@ -1,0 +1,22 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-machine-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "기계 부품",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "festival-tool-clan-fair",
+  "spoiler_tier": "none",
+  "summary": "코볼트 씨족이 수리한 도구를 전시하고 가장 유용한 개선을 뽑는다.",
+  "title": "도구씨족 품평회"
+}

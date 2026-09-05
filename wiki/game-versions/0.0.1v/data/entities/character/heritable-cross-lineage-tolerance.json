@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Reproduction"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "heritable-cross-lineage-tolerance",
+  "spoiler_tier": "none",
+  "summary": "다른 계통과의 배양에서 거부 반응이 줄어든다.",
+  "title": "교차계통 내성"
+}

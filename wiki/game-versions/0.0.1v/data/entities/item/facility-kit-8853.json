@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "160"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "계절 식재료와 종자를 구분해 보관하고 먼저 쓸 물량을 확인하는 선반의 설치 부품이다. 라카쉬 세갈래길식 계절 저장 선반 주변은 짐수레 두 대와 피난 행렬이 엇갈릴 만큼 넓게 비워 둔다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "facility-kit-8853",
+  "spoiler_tier": "none",
+  "summary": "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.",
+  "title": "계절 저장 선반 설치 키트"
+}

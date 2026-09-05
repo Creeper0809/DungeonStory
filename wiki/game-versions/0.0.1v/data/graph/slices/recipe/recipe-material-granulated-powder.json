@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-material-granulated-powder",
+    "spoiler_tier": "none",
+    "title": "과립 화약"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-material-granulated-powder",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-granulated-powder",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-black-powder",
+      "target_spoiler_tier": "none",
+      "target_title": "흑색화약",
+      "to": "item/material-black-powder",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "recipe/recipe-material-granulated-powder",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-granulated-powder",
+      "target_spoiler_tier": "none",
+      "target_title": "과립 화약",
+      "to": "item/material-granulated-powder",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-material-granulated-powder",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-standard-ammunition",
+      "target_spoiler_tier": "none",
+      "target_title": "탄약 규격화",
+      "to": "research/research-equipment-standard-ammunition",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

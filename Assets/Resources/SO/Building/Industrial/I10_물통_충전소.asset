@@ -114,7 +114,7 @@ MonoBehaviour:
         - itemId: material:stone-block
           amount: 6
         - itemId: material:iron-ingot
-          amount: 5
+          amount: 6
         - itemId: material:cloth
           amount: 1
     - rid: 7737212199244661544

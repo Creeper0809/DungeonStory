@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "시작 효과",
+      "value": "1개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "background-guild-apprentice",
+  "spoiler_tier": "none",
+  "summary": "규격과 검사표를 지키며 실패한 시제품의 원인을 기록했다.",
+  "title": "길드 도제"
+}

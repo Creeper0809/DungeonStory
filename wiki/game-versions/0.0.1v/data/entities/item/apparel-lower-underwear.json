@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.18kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "19"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "하체에 밀착해 겉옷 안에서 피부와 옷감이 직접 쓸리는 것을 막는다. 하르나크에서 만든 하의 속옷은 꼬리가 있는 주민도 입을 수 있도록 허리 뒤쪽 솔기를 고치기 쉽게 남겨 둔다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "apparel-lower-underwear",
+  "spoiler_tier": "none",
+  "summary": "하의 속옷 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다.",
+  "title": "하의 속옷"
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "0"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "오래 움직여도 오차가 쌓이지 않는 희귀 태엽이다. 크릭 제7굴의 무결점 태엽에는 오르데나 군수 규격과 지워진 코볼트 제작자 이름이 같은 깊이로 새겨져 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "relic-faction-kobold-2",
+  "spoiler_tier": "none",
+  "summary": "오래 움직여도 오차가 쌓이지 않는 희귀 태엽.",
+  "title": "무결점 태엽"
+}

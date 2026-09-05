@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "equipment-item-weapon-falchion",
+    "spoiler_tier": "none",
+    "title": "팔시온"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-falchion",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-weapon-patterns",
+      "target_spoiler_tier": "none",
+      "target_title": "무기 형식학",
+      "to": "research/research-equipment-weapon-patterns",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

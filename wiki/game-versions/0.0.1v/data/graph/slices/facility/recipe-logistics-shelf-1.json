@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "recipe-logistics-shelf-1",
+    "spoiler_tier": "none",
+    "title": "대형보관선반 조립"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/recipe-logistics-shelf-1",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1009",
+      "target_spoiler_tier": "none",
+      "target_title": "식재료선반",
+      "to": "facility/building-1009",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/recipe-logistics-shelf-1",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1050",
+      "target_spoiler_tier": "none",
+      "target_title": "대형보관선반",
+      "to": "facility/building-1050",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/recipe-logistics-shelf-1",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1051",
+      "target_spoiler_tier": "none",
+      "target_title": "상자더미",
+      "to": "facility/building-1051",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

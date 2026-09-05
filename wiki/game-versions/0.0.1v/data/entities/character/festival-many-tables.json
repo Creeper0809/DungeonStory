@@ -1,0 +1,22 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [
+    {
+      "amount": "8",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "food-lavish-vegan",
+      "target_spoiler_tier": "none",
+      "target_title": "월야 비건 만찬",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "festival-many-tables",
+  "spoiler_tier": "none",
+  "summary": "서로의 금기를 표시한 열 개의 작은 식탁을 돌며 대체식을 나눈다.",
+  "title": "열 문화의 식탁"
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "25"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "2°C 장기 근무를 지원하되 치명선을 바꾸지 않는 작업복이다. 베르사디온은 룬 방한복이 버틴 냉기와 사용한 마나를 계약자의 작업 시간과 함께 계산한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-rune-cold-suit",
+  "spoiler_tier": "none",
+  "summary": "2°C 장기 근무를 지원하되 치명선을 바꾸지 않는 작업복.",
+  "title": "룬 방한복"
+}

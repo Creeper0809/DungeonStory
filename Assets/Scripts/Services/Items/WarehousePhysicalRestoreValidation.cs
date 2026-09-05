@@ -153,8 +153,7 @@ internal static class WarehousePhysicalRestoreValidation
                      .OrderBy(pair => pair.Key, StringComparer.Ordinal))
         {
             WarehouseOwner owner = owners[stored.Key];
-            if (owner.Inventory.HasMassCapacityAuthority
-                && stored.Value > owner.Inventory.MaxMassGrams)
+            if (stored.Value > owner.Inventory.MaxMassGrams)
             {
                 overCapacityWarehouseIds.Add(stored.Key);
             }
@@ -186,6 +185,11 @@ internal static class WarehousePhysicalRestoreValidation
             {
                 throw new InvalidOperationException(
                     $"{MissingCandidateCode}: candidate warehouse has no persistent owner ID.");
+            }
+            if (!warehouse.Inventory.HasMassCapacityAuthority)
+            {
+                throw new InvalidOperationException(
+                    $"{MissingCandidateCode}: warehouse '{ownerId.Value}' has no positive gram-capacity authority.");
             }
 
             string destinationId = WarehouseStorageIdentity.DestinationPrefix

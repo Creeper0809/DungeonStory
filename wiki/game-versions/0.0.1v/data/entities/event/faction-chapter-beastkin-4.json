@@ -1,0 +1,31 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "4",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "food-salted-meat-stew",
+      "target_spoiler_tier": "none",
+      "target_title": "염장육 스튜",
+      "type": "requires"
+    },
+    {
+      "amount": "7",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "food-salted-meat-stew",
+      "target_spoiler_tier": "none",
+      "target_title": "염장육 스튜",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "faction-chapter-beastkin-4",
+  "spoiler_tier": "warning",
+  "summary": "던전은 보존 사육, 공동 사냥, 무기 지원 중 개입 방식을 정한다.",
+  "title": "누구의 무리인가"
+}

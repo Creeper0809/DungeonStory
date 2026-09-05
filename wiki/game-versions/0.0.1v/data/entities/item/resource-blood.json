@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.5kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "2"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "약품, 촉진제와 의식 재료이다. 베르사디온의 피는 제공자와 용도를 적은 유리병에 따로 담고, 동의의 잔 앞에서 확인한 병에만 검은 봉인을 단다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "resource-blood",
+  "spoiler_tier": "none",
+  "summary": "약품, 촉진제와 의식 재료.",
+  "title": "피"
+}

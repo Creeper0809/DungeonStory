@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-7",
+    "spoiler_tier": "none",
+    "title": "내벽"
+  },
+  "edges": [],
+  "schema_version": 1
+}

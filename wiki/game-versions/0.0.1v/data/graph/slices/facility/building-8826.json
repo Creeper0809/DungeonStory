@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-8826",
+    "spoiler_tier": "none",
+    "title": "재료 시험기"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-equipment-material-testing",
+      "label": "시설 해금",
+      "to": "facility/building-8826",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

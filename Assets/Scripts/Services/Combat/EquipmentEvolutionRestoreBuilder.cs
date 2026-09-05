@@ -11,7 +11,7 @@ public static class EquipmentEvolutionRestoreBuilder
             || source.reattunementOrders == null)
         {
             throw new InvalidOperationException(
-                "Equipment evolution V4 payload is missing a required collection.");
+                "Equipment evolution V5 payload is missing a required collection.");
         }
 
         EquipmentEvolutionAggregateState restored = new();
@@ -49,6 +49,9 @@ public static class EquipmentEvolutionRestoreBuilder
         RequireCanonicalId(order.bindingItemId, "reforge binding item");
         RequireCanonicalTextOrEmpty(order.stabilizerItemId, "reforge stabilizer item");
         RequireCanonicalId(order.destinationId, "reforge destination");
+        RequireCanonicalId(
+            order.inputCapacityFingerprint,
+            "reforge input capacity fingerprint");
         RequireCanonicalId(order.lockedHistoryHash, "reforge history hash");
         RequireCanonicalTextOrEmpty(
             order.suppressedBurdenEffectId,
@@ -77,6 +80,8 @@ public static class EquipmentEvolutionRestoreBuilder
             || !IsFiniteInRange(order.completedWork, 0f, order.requiredWork, false)
             || order.precisionGoldCost < 0
             || !IsFiniteInRange(order.resultVariance, 0.01f, 0.5f, true)
+            || order.inputBufferCapacityGrams <= 0L
+            || order.inputMassAuthorityRevision < 0L
             || !string.Equals(
                 order.destinationId,
                 $"facility-reforge:{order.orderId}",
@@ -105,6 +110,9 @@ public static class EquipmentEvolutionRestoreBuilder
         RequireCanonicalId(order.targetNodeId, "reattunement target node");
         RequireCanonicalId(order.catalystItemId, "reattunement catalyst item");
         RequireCanonicalId(order.destinationId, "reattunement destination");
+        RequireCanonicalId(
+            order.inputCapacityFingerprint,
+            "reattunement input capacity fingerprint");
         RequireCanonicalId(order.lockedStateHash, "reattunement state hash");
         if (order.resultingActiveNodeIds == null)
         {
@@ -120,6 +128,8 @@ public static class EquipmentEvolutionRestoreBuilder
             || !IsPendingState(order.state)
             || !IsFinitePositive(order.requiredWork)
             || !IsFiniteInRange(order.completedWork, 0f, order.requiredWork, false)
+            || order.inputBufferCapacityGrams <= 0L
+            || order.inputMassAuthorityRevision < 0L
             || !string.Equals(
                 order.destinationId,
                 $"facility-reattune:{order.orderId}",

@@ -1,0 +1,39 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-tallow",
+    "spoiler_tier": "none",
+    "title": "정제 지방"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-candle",
+      "label": "필요 조건",
+      "to": "item/material-tallow",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-resin-balm",
+      "label": "필요 조건",
+      "to": "item/material-tallow",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-soap",
+      "label": "필요 조건",
+      "to": "item/material-tallow",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tallow",
+      "label": "생산·해금",
+      "to": "item/material-tallow",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

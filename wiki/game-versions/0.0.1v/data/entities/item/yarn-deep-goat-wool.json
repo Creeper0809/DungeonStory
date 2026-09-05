@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.08kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "200개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "14"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "심층 염소모직 섬유를 꼬아 굵기를 맞춘 실이다. 직물과 의복을 짜는 다음 공정에 넘긴다. 노르칸드라의 심층 염소모직 원사는 거친 털이 바깥으로 향하도록 꼬임 방향을 표시해 안감이 피부를 찌르지 않게 한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "yarn-deep-goat-wool",
+  "spoiler_tier": "none",
+  "summary": "등급·상태 밴드로만 병합되는 V22 원섬유.",
+  "title": "심층 염소모직 원사"
+}

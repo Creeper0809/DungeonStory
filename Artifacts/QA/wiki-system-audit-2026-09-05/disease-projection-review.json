@@ -1,0 +1,444 @@
+{
+  "scope": "DiseaseDefinitionSO authored fields vs every published medical disease record; static projection audit, not gameplay or UI execution verification",
+  "count": 16,
+  "sourceFields": "route bitmask: Air=1, Droplet=2, Blood=4, Food=8, Water=16, ManaExposure=32, Contact=64, Environment=128; target: Core=0, Consciousness=1, Breathing=2, Digestion=3, Filtration=4",
+  "finding": "16/16 facts and relations empty. General disease guide delegates these details to entries. 15 contagious diseases and 1 chronic non-contagious condition are all published; no missing sixteenth definition.",
+  "renderingEvidence": [
+    "wiki/src/components/EntryContent.astro",
+    "Tools/Wiki/generate_wiki_model.py:fact_rows"
+  ],
+  "rows": [
+    {
+      "path": "Assets/Resources/SO/Population/Diseases/Disease_disease-spore-lung.asset",
+      "sha256": "9632e5214f89f72c09aa615c1e3f4cf907506e021535065bbe8c0cb7201a7df7",
+      "stableId": "disease:spore-lung",
+      "displayName": "포자폐증",
+      "routes": "1",
+      "incubationDays": "4",
+      "contagiousDays": "12",
+      "baseInfectionProbability": "0.12",
+      "baseSeverity": "50",
+      "targetSystem": "2",
+      "vaccineAllowed": "1",
+      "chronic": "0",
+      "symptomProfileId": "symptom:spore-lung",
+      "responses": [
+        "response:isolate:disease:spore-lung",
+        "response:vaccine:disease:spore-lung"
+      ],
+      "wiki": {
+        "sha256": "9f22ebcab1a077af51d0925a4a96d0aab55738924a5fe15f73afc6b7317ece09",
+        "facts": 0,
+        "path": "wiki/game-versions/0.0.1v/data/entities/medical/disease-spore-lung.json",
+        "title": "포자폐증",
+        "relations": 0,
+        "summary": "포자폐증의 고유 전파와 기관 증상."
+      }
+    },
+    {
+      "path": "Assets/Resources/SO/Population/Diseases/Disease_disease-slime-blight.asset",
+      "sha256": "1448d750c6f640cf031e09ccbd0278acd643c1b203b5c63e7029b1cbe99fe9cd",
+      "stableId": "disease:slime-blight",
+      "displayName": "점액역병",
+      "routes": "80",
+      "incubationDays": "2",
+      "contagiousDays": "10",
+      "baseInfectionProbability": "0.15",
+      "baseSeverity": "65",
+      "targetSystem": "0",
+      "vaccineAllowed": "1",
+      "chronic": "0",
+      "symptomProfileId": "symptom:slime-blight",
+      "responses": [
+        "response:isolate:disease:slime-blight",
+        "response:vaccine:disease:slime-blight"
+      ],
+      "wiki": {
+        "sha256": "9d652ac58fdaab115af11a5890967ec718e3f3992ebee977f2019a0a8b7a7478",
+        "facts": 0,
+        "path": "wiki/game-versions/0.0.1v/data/entities/medical/disease-slime-blight.json",
+        "title": "점액역병",
+        "relations": 0,
+        "summary": "점액역병의 고유 전파와 기관 증상."
+      }
+    },
+    {
+      "path": "Assets/Resources/SO/Population/Diseases/Disease_disease-red-fever.asset",
+      "sha256": "c7c87bdda7e5744037cd105184ed18945732931e3e8d5e364a800984f4804258",
+      "stableId": "disease:red-fever",
+      "displayName": "적열병",
+      "routes": "6",
+      "incubationDays": "3",
+      "contagiousDays": "10",
+      "baseInfectionProbability": "0.1",
+      "baseSeverity": "55",
+      "targetSystem": "4",
+      "vaccineAllowed": "1",
+      "chronic": "0",
+      "symptomProfileId": "symptom:red-fever",
+      "responses": [
+        "response:isolate:disease:red-fever",
+        "response:vaccine:disease:red-fever"
+      ],
+      "wiki": {
+        "sha256": "fd8f4cc54bed539347b79a0fc2ad3c1f8baf82a8ddb0a28c53a16b4143cdbe33",
+        "facts": 0,
+        "path": "wiki/game-versions/0.0.1v/data/entities/medical/disease-red-fever.json",
+        "title": "적열병",
+        "relations": 0,
+        "summary": "적열병의 고유 전파와 기관 증상."
+      }
+    },
+    {
+      "path": "Assets/Resources/SO/Population/Diseases/Disease_disease-mana-pox.asset",
+      "sha256": "ce8c63195f8065250497b3d238102e6563c18fcfd7965c98ddf6e721c2e301c4",
+      "stableId": "disease:mana-pox",
+      "displayName": "마나두창",
+      "routes": "32",
+      "incubationDays": "5",
+      "contagiousDays": "10",
+      "baseInfectionProbability": "0.08",
+      "baseSeverity": "60",
+      "targetSystem": "0",
+      "vaccineAllowed": "1",
+      "chronic": "0",
+      "symptomProfileId": "symptom:mana-pox",
+      "responses": [
+        "response:isolate:disease:mana-pox",
+        "response:vaccine:disease:mana-pox"
+      ],
+      "wiki": {
+        "sha256": "62df164ea081c50b385bc9c7244a4f96988fd5a9f81b884b18869c0797d35c49",
+        "facts": 0,
+        "path": "wiki/game-versions/0.0.1v/data/entities/medical/disease-mana-pox.json",
+        "title": "마나두창",
+        "relations": 0,
+        "summary": "마나두창의 고유 전파와 기관 증상."
+      }
+    },
+    {
+      "path": "Assets/Resources/SO/Population/Diseases/Disease_disease-gut-rot.asset",
+      "sha256": "e7f2f432ee75f0da7347a7ecd6625b3754cae8b63e284674d4059558da4c60c7",
+      "stableId": "disease:gut-rot",
+      "displayName": "장부패증",
+      "routes": "24",
+      "incubationDays": "1",
+      "contagiousDays": "5",
+      "baseInfectionProbability": "0.25",
+      "baseSeverity": "45",
+      "targetSystem": "3",
+      "vaccineAllowed": "1",
+      "chronic": "0",
+      "symptomProfileId": "symptom:gut-rot",
+      "responses": [
+        "response:isolate:disease:gut-rot",
+        "response:vaccine:disease:gut-rot"
+      ],
+      "wiki": {
+        "sha256": "46d290f044f9e93975e404f88b98e0b15cdc4ab4bdedbd294fc0857c7349075f",
+        "facts": 0,
+        "path": "wiki/game-versions/0.0.1v/data/entities/medical/disease-gut-rot.json",
+        "title": "장부패증",
+        "relations": 0,
+        "summary": "장부패증의 고유 전파와 기관 증상."
+      }
+    },
+    {
+      "path": "Assets/Resources/SO/Population/Diseases/Disease_disease-cave-flu.asset",
+      "sha256": "2de93bc335105d5b79b32897551a0d368bc0a814e3a6df32358eda271c0e35e3",
+      "stableId": "disease:cave-flu",
+      "displayName": "동굴 독감",
+      "routes": "1",
+      "incubationDays": "2",
+      "contagiousDays": "6",
+      "baseInfectionProbability": "0.18",
+      "baseSeverity": "25",
+      "targetSystem": "2",
+      "vaccineAllowed": "1",
+      "chronic": "0",
+      "symptomProfileId": "symptom:cave-flu",
+      "responses": [
+        "response:isolate:disease:cave-flu",
+        "response:vaccine:disease:cave-flu"
+      ],
+      "wiki": {
+        "sha256": "b77dc7f6460586a029e47228921b8de937e94797a959d53888f9daedf7571cda",
+        "facts": 0,
+        "path": "wiki/game-versions/0.0.1v/data/entities/medical/disease-cave-flu.json",
+        "title": "동굴 독감",
+        "relations": 0,
+        "summary": "동굴 독감의 고유 전파와 기관 증상."
+      }
+    },
+    {
+      "path": "Assets/Resources/SO/Population/Diseases/Disease_disease-blood-wasting.asset",
+      "sha256": "84adf252c26075cad22e1f8363abc3c0b6c101fc47257e4d52b1c62bdb026277",
+      "stableId": "disease:blood-wasting",
+      "displayName": "혈액소모병",
+      "routes": "4",
+      "incubationDays": "7",
+      "contagiousDays": "20",
+      "baseInfectionProbability": "0.2",
+      "baseSeverity": "70",
+      "targetSystem": "4",
+      "vaccineAllowed": "1",
+      "chronic": "0",
+      "symptomProfileId": "symptom:blood-wasting",
+      "responses": [
+        "response:isolate:disease:blood-wasting",
+        "response:vaccine:disease:blood-wasting"
+      ],
+      "wiki": {
+        "sha256": "6f2df982eda559088a40c542031fd0fbf59472181ff9fc6d42ed052f833ddc97",
+        "facts": 0,
+        "path": "wiki/game-versions/0.0.1v/data/entities/medical/disease-blood-wasting.json",
+        "title": "혈액소모병",
+        "relations": 0,
+        "summary": "혈액소모병의 고유 전파와 기관 증상."
+      }
+    },
+    {
+      "path": "Assets/Resources/SO/Population/Diseases/Disease_condition-core-corrosion.asset",
+      "sha256": "293ef5adce5389017de04a233faeb7af87cb3838d3ba181d11fdf8c0974fe58e",
+      "stableId": "condition:core-corrosion",
+      "displayName": "핵 부식",
+      "routes": "128",
+      "incubationDays": "0",
+      "contagiousDays": "0",
+      "baseInfectionProbability": "0",
+      "baseSeverity": "60",
+      "targetSystem": "0",
+      "vaccineAllowed": "0",
+      "chronic": "1",
+      "symptomProfileId": "symptom:condition:core-corrosion",
+      "responses": [
+        "response:isolate:condition:core-corrosion",
+        "response:environment:condition:core-corrosion"
+      ],
+      "wiki": {
+        "sha256": "261168cc196f560267f228a20c1411e48b7df05855830d20a4c4668455445d93",
+        "facts": 0,
+        "path": "wiki/game-versions/0.0.1v/data/entities/medical/condition-core-corrosion.json",
+        "title": "핵 부식",
+        "relations": 0,
+        "summary": "핵 부식의 고유 전파와 기관 증상."
+      }
+    },
+    {
+      "path": "Assets/Resources/SO/V20/Ecology/Diseases/disease_ash-lung.asset",
+      "sha256": "b0bed8bb1cf19cb0d4a0049edfc2fde43ed1d3bb898dd168de80e173341d101d",
+      "stableId": "disease:ash-lung",
+      "displayName": "재먼지폐",
+      "routes": "1",
+      "incubationDays": "4",
+      "contagiousDays": "14",
+      "baseInfectionProbability": "0.09",
+      "baseSeverity": "52",
+      "targetSystem": "2",
+      "vaccineAllowed": "1",
+      "chronic": "0",
+      "symptomProfileId": "symptom:progressive-breathlessness",
+      "responses": [
+        "response:respirator",
+        "response:wet-cleaning"
+      ],
+      "wiki": {
+        "sha256": "6289259879e0f94b59704dc3a295034060537a1c5e43be5da26bbe40ab2c2028",
+        "facts": 0,
+        "path": "wiki/game-versions/0.0.1v/data/entities/medical/disease-ash-lung.json",
+        "title": "재먼지폐",
+        "relations": 0,
+        "summary": "재와 금속 분진이 폐에 쌓여 호흡과 장시간 작업을 무너뜨린다."
+      }
+    },
+    {
+      "path": "Assets/Resources/SO/V20/Ecology/Diseases/disease_white-spore.asset",
+      "sha256": "79441dce04c9ff4c31f368705cd60da3f0c393956cd723f26bab459cc2c34932",
+      "stableId": "disease:white-spore",
+      "displayName": "백색포자병",
+      "routes": "65",
+      "incubationDays": "5",
+      "contagiousDays": "15",
+      "baseInfectionProbability": "0.11",
+      "baseSeverity": "58",
+      "targetSystem": "4",
+      "vaccineAllowed": "1",
+      "chronic": "0",
+      "symptomProfileId": "symptom:white-mycelial-plaque",
+      "responses": [
+        "response:fungicide-wash",
+        "response:dry-isolation"
+      ],
+      "wiki": {
+        "sha256": "e2499d669654ebc5c73c6d1025bc7446ef1a3a844a1f421f734241bd3bb802a4",
+        "facts": 0,
+        "path": "wiki/game-versions/0.0.1v/data/entities/medical/disease-white-spore.json",
+        "title": "백색포자병",
+        "relations": 0,
+        "summary": "피부와 균사 조직에 흰 균사가 번져 감각과 이동을 둔화한다."
+      }
+    },
+    {
+      "path": "Assets/Resources/SO/V20/Ecology/Diseases/disease_ember-fever.asset",
+      "sha256": "745bf421197d28cdce7484ec6d9e2e476d3b3bc84a04ef3ab6c0cea1104e4deb",
+      "stableId": "disease:ember-fever",
+      "displayName": "잿불열",
+      "routes": "65",
+      "incubationDays": "2",
+      "contagiousDays": "8",
+      "baseInfectionProbability": "0.16",
+      "baseSeverity": "64",
+      "targetSystem": "1",
+      "vaccineAllowed": "1",
+      "chronic": "0",
+      "symptomProfileId": "symptom:heat-hallucination",
+      "responses": [
+        "response:cooling-bed",
+        "response:vent-seal"
+      ],
+      "wiki": {
+        "sha256": "d01ccb06770ae07a144747ab7db9906adc11e0fa3ce10b9bf39ad07ef9eb9db2",
+        "facts": 0,
+        "path": "wiki/game-versions/0.0.1v/data/entities/medical/disease-ember-fever.json",
+        "title": "잿불열",
+        "relations": 0,
+        "summary": "고열과 열 환각을 일으키며 뜨거운 환기구 주변에서 확산된다."
+      }
+    },
+    {
+      "path": "Assets/Resources/SO/V20/Ecology/Diseases/disease_green-swarm.asset",
+      "sha256": "7412a275e06e44b04880480ad48bfd1e0afd333acd9bc72ac389e43f6bbcbe16",
+      "stableId": "disease:green-swarm",
+      "displayName": "녹무리 감염",
+      "routes": "64",
+      "incubationDays": "2",
+      "contagiousDays": "9",
+      "baseInfectionProbability": "0.2",
+      "baseSeverity": "46",
+      "targetSystem": "4",
+      "vaccineAllowed": "1",
+      "chronic": "0",
+      "symptomProfileId": "symptom:moving-green-rash",
+      "responses": [
+        "response:hot-wash",
+        "response:pest-lure"
+      ],
+      "wiki": {
+        "sha256": "f91f0eeda68857b3ade53365ccc7b9d445ad4766f13fff9ed8aa841a1e53c644",
+        "facts": 0,
+        "path": "wiki/game-versions/0.0.1v/data/entities/medical/disease-green-swarm.json",
+        "title": "녹무리 감염",
+        "relations": 0,
+        "summary": "미세 곤충 군체가 상처와 털에 붙어 접촉자와 축사를 오간다."
+      }
+    },
+    {
+      "path": "Assets/Resources/SO/V20/Ecology/Diseases/disease_night-thirst.asset",
+      "sha256": "d3f6a4b3e468c8532fafa2ab4a5e37ce70968212a0fd5deec32ff2b76f0747c5",
+      "stableId": "disease:night-thirst",
+      "displayName": "밤갈증병",
+      "routes": "4",
+      "incubationDays": "4",
+      "contagiousDays": "16",
+      "baseInfectionProbability": "0.14",
+      "baseSeverity": "62",
+      "targetSystem": "1",
+      "vaccineAllowed": "1",
+      "chronic": "0",
+      "symptomProfileId": "symptom:nocturnal-thirst",
+      "responses": [
+        "response:sealed-blood-reserve",
+        "response:night-watch"
+      ],
+      "wiki": {
+        "sha256": "0399042a0ce94bac74725ce7690a031b160d718a4767989ce3b401e677be6559",
+        "facts": 0,
+        "path": "wiki/game-versions/0.0.1v/data/entities/medical/disease-night-thirst.json",
+        "title": "밤갈증병",
+        "relations": 0,
+        "summary": "야간에 극심한 갈증과 충동을 유발하며 혈액 접촉으로 번진다."
+      }
+    },
+    {
+      "path": "Assets/Resources/SO/V20/Ecology/Diseases/disease_glass-blood.asset",
+      "sha256": "a324235590e48e4d32cc7f8ede9dfc1f406309d70f2f4b19fae08b6f77a7027a",
+      "stableId": "disease:glass-blood",
+      "displayName": "유리혈증",
+      "routes": "32",
+      "incubationDays": "6",
+      "contagiousDays": "18",
+      "baseInfectionProbability": "0.07",
+      "baseSeverity": "68",
+      "targetSystem": "4",
+      "vaccineAllowed": "1",
+      "chronic": "0",
+      "symptomProfileId": "symptom:crystal-clotting",
+      "responses": [
+        "response:mana-shield",
+        "response:blood-filtration"
+      ],
+      "wiki": {
+        "sha256": "ed1c7032b71e48ba6c44004dd0d7aee987f445b4a0d54348cb5190436e818e3d",
+        "facts": 0,
+        "path": "wiki/game-versions/0.0.1v/data/entities/medical/disease-glass-blood.json",
+        "title": "유리혈증",
+        "relations": 0,
+        "summary": "마나 결정 미립자가 혈액에 결정화되어 출혈과 비전 폭주를 일으킨다."
+      }
+    },
+    {
+      "path": "Assets/Resources/SO/V20/Ecology/Diseases/disease_dream-mold.asset",
+      "sha256": "3509a5250ed02a9064f46ff33ac4075271522241838dfb474803369b47dcabb2",
+      "stableId": "disease:dream-mold",
+      "displayName": "꿈곰팡이증",
+      "routes": "1",
+      "incubationDays": "7",
+      "contagiousDays": "20",
+      "baseInfectionProbability": "0.08",
+      "baseSeverity": "57",
+      "targetSystem": "1",
+      "vaccineAllowed": "1",
+      "chronic": "0",
+      "symptomProfileId": "symptom:shared-dream-delirium",
+      "responses": [
+        "response:dreamless-sedative",
+        "response:spore-filter"
+      ],
+      "wiki": {
+        "sha256": "01ef0ce6de9a14b32aad26654a1da43107c89d07e4527283484b4d9ce78d9002",
+        "facts": 0,
+        "path": "wiki/game-versions/0.0.1v/data/entities/medical/disease-dream-mold.json",
+        "title": "꿈곰팡이증",
+        "relations": 0,
+        "summary": "수면 중 포자성 환각을 공유하게 만들어 집단 판단을 흐린다."
+      }
+    },
+    {
+      "path": "Assets/Resources/SO/V20/Ecology/Diseases/disease_deep-parasitosis.asset",
+      "sha256": "ce993c85d614b2edf9699e51a351f76d53a66dea6acc2bae7185f71b8aa40e43",
+      "stableId": "disease:deep-parasitosis",
+      "displayName": "심층 기생충증",
+      "routes": "24",
+      "incubationDays": "3",
+      "contagiousDays": "12",
+      "baseInfectionProbability": "0.18",
+      "baseSeverity": "48",
+      "targetSystem": "3",
+      "vaccineAllowed": "1",
+      "chronic": "0",
+      "symptomProfileId": "symptom:wasting-anemia",
+      "responses": [
+        "response:boil-water",
+        "response:antiparasitic"
+      ],
+      "wiki": {
+        "sha256": "a4bbaba3be3b97cee357f03c3e523d4e10be36e95078e4ace77f621d0730c610",
+        "facts": 0,
+        "path": "wiki/game-versions/0.0.1v/data/entities/medical/disease-deep-parasitosis.json",
+        "title": "심층 기생충증",
+        "relations": 0,
+        "summary": "오염된 고기와 물의 기생충이 영양을 빼앗고 빈혈을 만든다."
+      }
+    }
+  ]
+}

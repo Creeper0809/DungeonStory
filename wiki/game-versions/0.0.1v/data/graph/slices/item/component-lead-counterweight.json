@@ -1,0 +1,39 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "component-lead-counterweight",
+    "spoiler_tier": "none",
+    "title": "납 균형추"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-windlass-crossbow",
+      "label": "필요 조건",
+      "to": "item/component-lead-counterweight",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-lead-counterweight",
+      "label": "생산·해금",
+      "to": "item/component-lead-counterweight",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-siege-counterweight",
+      "label": "필요 조건",
+      "to": "item/component-lead-counterweight",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-deep-shaft-hoist",
+      "label": "필요 조건",
+      "to": "item/component-lead-counterweight",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "reproduction-demon",
+    "spoiler_tier": "none",
+    "title": "Reproduction_Demon"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/characterspecies-5",
+      "label": "관련",
+      "to": "character/reproduction-demon",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

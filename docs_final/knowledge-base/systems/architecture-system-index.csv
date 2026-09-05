@@ -1,0 +1,20 @@
+﻿order,system_id,title,document,linked_source_count,expanded_code_file_count
+1,architecture-system:01,캐릭터 AI와 행동 실행,docs_final/architecture/systems/01-character-ai-and-behavior.md,8,8
+2,architecture-system:02,"그리드, 공간 질의와 경로 탐색",docs_final/architecture/systems/02-grid-spatial-and-pathfinding.md,6,6
+3,architecture-system:03,"건물 배치, 건설과 방 판정",docs_final/architecture/systems/03-buildings-construction-and-rooms.md,7,7
+4,architecture-system:04,"작업 주문, 노동 배정과 실행",docs_final/architecture/systems/04-work-orders-and-labor.md,7,7
+5,architecture-system:05,"아이템, 재고, 예약과 운반",docs_final/architecture/systems/05-items-inventory-and-hauling.md,19,19
+6,architecture-system:06,"생산, 제작식과 출력 인계",docs_final/architecture/systems/06-production-and-output-routing.md,10,10
+7,architecture-system:07,"전력, 유체, 컨베이어와 자동화",docs_final/architecture/systems/07-industrial-networks-and-automation.md,7,7
+8,architecture-system:08,"캐릭터 생애, 욕구와 사회 상태",docs_final/architecture/systems/08-character-life-needs-and-society.md,6,6
+9,architecture-system:09,"의료, 질병과 신체 상태",docs_final/architecture/systems/09-medical-disease-and-body-health.md,7,7
+10,architecture-system:10,"환경장, 생존과 공간 위생",docs_final/architecture/systems/10-environment-survival-and-sanitation.md,6,6
+11,architecture-system:11,"야생동물, 농업과 축산",docs_final/architecture/systems/11-wildlife-agriculture-and-husbandry.md,6,6
+12,architecture-system:12,"전투, 장비와 피해 처리",docs_final/architecture/systems/12-combat-equipment-and-damage.md,14,14
+13,architecture-system:13,"방어, 침입과 위협 대응",docs_final/architecture/systems/13-defense-invasion-and-threat.md,7,7
+14,architecture-system:14,"원정, 월드맵과 전략 전투",docs_final/architecture/systems/14-offense-expeditions-and-world-map.md,6,6
+15,architecture-system:15,"연구, 해금과 런 진행",docs_final/architecture/systems/15-research-progression-and-meta.md,7,7
+16,architecture-system:16,"세력, 사건, 모집과 포로",docs_final/architecture/systems/16-factions-events-recruitment-and-captivity.md,11,11
+17,architecture-system:17,"세션 조립, 저장과 결정론",docs_final/architecture/systems/17-session-save-and-determinism.md,10,10
+18,architecture-system:18,"UI, 알림과 성능 진단",docs_final/architecture/systems/18-presentation-notifications-and-diagnostics.md,7,7
+19,architecture-system:19,시설 합성과 사용 기반 진화,docs_final/architecture/systems/19-facility-synthesis-and-use-based-evolution.md,28,28

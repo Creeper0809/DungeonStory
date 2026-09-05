@@ -1,0 +1,25 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+OffenseSiteArchetypeSO,content-type,,type-reference,models:offense,runtime,structural-type-consumer,Assets/Scripts/Models/Offense/Core/OffenseAuthoredContentPort.cs
+OffenseSiteArchetypeSO,content-type,,type-reference,services:items,content-loading,structural-type-consumer,Assets/Scripts/Services/Items/GameContentCatalog.cs
+OffenseSiteArchetypeSO,content-type,,type-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/OffenseStrategicExpeditionServices.cs
+OffenseSiteArchetypeSO,content-type,,type-reference; save-restore-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/Strategic/OffenseHexWorldSimulation.cs
+OffenseSiteArchetypeSO,content-type,,type-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/Strategic/OffenseStrategicDefinitions.cs
+OffenseSiteArchetypeSO,stable-id,armory,stable-id-literal,services:factions,runtime,exact-literal-consumer,Assets/Scripts/Services/Factions/FactionRuntime.cs
+OffenseSiteArchetypeSO,stable-id,armory,stable-id-literal,services:invasion,runtime,exact-literal-consumer,Assets/Scripts/Services/Invasion/InvasionCampaignRuntime.cs
+OffenseSiteArchetypeSO,stable-id,caravan,stable-id-literal,services:invasion,runtime,exact-literal-consumer,Assets/Scripts/Services/Invasion/InvasionCampaignRuntime.cs
+OffenseSiteArchetypeSO,stable-id,farm,stable-id-literal,services:factions,runtime,exact-literal-consumer,Assets/Scripts/Services/Factions/FactionRuntime.cs
+OffenseSiteArchetypeSO,stable-id,farm,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/MilestonePressureApplicationAdapter.cs
+OffenseSiteArchetypeSO,stable-id,farm,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/V20CampaignRuntime.cs
+OffenseSiteArchetypeSO,stable-id,farm,stable-id-literal,services:run,persistence,exact-literal-consumer,Assets/Scripts/Services/Run/V20MilestoneWorldSnapshotProjector.cs
+OffenseSiteArchetypeSO,stable-id,fixed:rival-dungeon,stable-id-literal,services:offense,runtime,exact-literal-consumer,Assets/Scripts/Services/Offense/Strategic/OffenseHexWorldSimulation.cs
+OffenseSiteArchetypeSO,stable-id,fixed:truth-core,stable-id-literal,services:offense,runtime,exact-literal-consumer,Assets/Scripts/Services/Offense/Strategic/OffenseHexWorldSimulation.cs
+OffenseSiteArchetypeSO,stable-id,patrol,stable-id-literal,services:invasion,runtime,exact-literal-consumer,Assets/Scripts/Services/Invasion/InvasionCampaignRuntime.cs
+OffenseSiteArchetypeSO,stable-id,quarry,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+OffenseSiteArchetypeSO,stable-id,quarry,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/ProductionOutputFactor.cs
+OffenseSiteArchetypeSO,stable-id,quarry,stable-id-literal,services:factions,runtime,exact-literal-consumer,Assets/Scripts/Services/Factions/FactionRuntime.cs
+OffenseSiteArchetypeSO,stable-id,ritual_site,stable-id-literal,services:factions,runtime,exact-literal-consumer,Assets/Scripts/Services/Factions/FactionRuntime.cs
+OffenseSiteArchetypeSO,stable-id,ritual_site,stable-id-literal,services:invasion,runtime,exact-literal-consumer,Assets/Scripts/Services/Invasion/InvasionCampaignRuntime.cs
+OffenseSiteArchetypeSO,stable-id,ruin,stable-id-literal,services:factions,runtime,exact-literal-consumer,Assets/Scripts/Services/Factions/FactionRuntime.cs
+OffenseSiteArchetypeSO,stable-id,ruin,stable-id-literal,services:invasion,runtime,exact-literal-consumer,Assets/Scripts/Services/Invasion/InvasionCampaignRuntime.cs
+OffenseSiteArchetypeSO,stable-id,watchtower,stable-id-literal,services:factions,runtime,exact-literal-consumer,Assets/Scripts/Services/Factions/FactionRuntime.cs
+OffenseSiteArchetypeSO,stable-id,watchtower,stable-id-literal,services:invasion,runtime,exact-literal-consumer,Assets/Scripts/Services/Invasion/InvasionCampaignRuntime.cs

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.08kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "200개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "9"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "포자 삼베 섬유를 꼬아 굵기를 맞춘 실이다. 직물과 의복을 짜는 다음 공정에 넘긴다. 므네실라에서는 끊어져 짧아진 포자 삼베 원사를 재배상 가장자리에 둘러 습기가 빠지는 곳을 표시한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "yarn-spore-hemp",
+  "spoiler_tier": "none",
+  "summary": "등급·상태 밴드로만 병합되는 V22 원섬유.",
+  "title": "포자 삼베 원사"
+}

@@ -1,0 +1,29 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "faction-contract-demon-supply",
+    "spoiler_tier": "none",
+    "title": "잿빛 계약정 정기 물자 계약"
+  },
+  "edges": [
+    {
+      "amount": "8",
+      "from": "event/faction-contract-demon-supply",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-demon",
+      "label": "관련",
+      "to": "event/faction-contract-demon-supply",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

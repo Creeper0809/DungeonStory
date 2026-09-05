@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "crop-ember-cotton",
+    "spoiler_tier": "none",
+    "title": "잿불 목화"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/crop-ember-cotton",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "genome-ember-cotton-base",
+      "target_spoiler_tier": "none",
+      "target_title": "genome_ember-cotton_base",
+      "to": "nature/genome-ember-cotton-base",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/crop-ember-cotton",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-fiber",
+      "target_spoiler_tier": "none",
+      "target_title": "섬유 가공",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

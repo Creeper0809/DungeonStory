@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "culture-golem-core",
+    "spoiler_tier": "none",
+    "title": "핵 공명 문화"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/culture-golem-core",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-golem-core-polish",
+      "target_spoiler_tier": "none",
+      "target_title": "핵 광택일",
+      "to": "event/practice-golem-core-polish",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-golem-core",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-golem-memory-plaque",
+      "target_spoiler_tier": "none",
+      "target_title": "기억판 안치",
+      "to": "event/practice-golem-memory-plaque",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-golem-core",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "tool-maintenance-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "정비 키트",
+      "to": "item/tool-maintenance-kit",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

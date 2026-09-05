@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1000",
+    "spoiler_tier": "none",
+    "title": "간이화덕"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9101",
+      "label": "관련",
+      "to": "facility/building-1000",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/recipe-commercial-grill-1",
+      "label": "관련",
+      "to": "facility/building-1000",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.3kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "40개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "11"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "화약과 탄자를 종이 한 봉에 담아 화승총의 재장전을 줄이는 탄약통이다. 오르데나식 종이 탄약통은 접은 끝에 군영 번호를 찍어 젖거나 찢어진 물량을 가려낸다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ammo-paper-cartridge",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 종이 탄약통.",
+  "title": "종이 탄약통"
+}

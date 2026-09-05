@@ -110,7 +110,7 @@ MonoBehaviour:
           excludedTraitIds: []
         constructionMaterials:
         - itemId: material:treated-lumber
-          amount: 5
+          amount: 6
         - itemId: material:iron-ingot
           amount: 1
     - rid: 7737211921440178794

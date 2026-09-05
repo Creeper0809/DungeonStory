@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.35kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "327"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "정밀 광학계는 먼 표적과 미세한 흔적을 확대해 조준과 검사를 돕는다. 특히 아일라세라산 정밀 광학계에는 바람 절벽에서 빛과 소리가 닿은 거리를 나타내는 푸른 깃금이 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "component-precision-optics",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 정밀 광학계.",
+  "title": "정밀 광학계"
+}

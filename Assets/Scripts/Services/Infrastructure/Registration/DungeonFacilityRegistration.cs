@@ -62,8 +62,16 @@ public static class DungeonFacilityRegistration
             .As<IUsageLedgerCompactor>();
         builder.Register<EvolutionModuleRegistry>(Lifetime.Singleton)
             .As<IEvolutionModuleRegistry>();
+        builder.Register<FacilityEvolutionWorkSpeedDefinitionMaximumQuery>(
+                Lifetime.Singleton)
+            .As<IFacilityEvolutionWorkSpeedDefinitionMaximumQuery>();
         builder.Register<FacilityRelocationWorldService>(Lifetime.Singleton)
             .As<IFacilityRelocationWorldService>();
+        builder.Register<FacilityEvolutionInputOwnerRuntime>(Lifetime.Singleton)
+            .As<IFacilityEvolutionInputOwnerRuntime>();
+        builder.Register<FacilityEvolutionInputOwnerRestoreParticipant>(
+                Lifetime.Singleton)
+            .As<IDungeonRestoreTransactionParticipant>();
         builder.Register<FacilityInstanceEvolutionRuntime>(Lifetime.Singleton)
             .As<IFacilityEvolutionRuntime>();
         builder.Register<FacilityEvolutionPendingMaterialRestoreGuard>(Lifetime.Singleton)

@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-8803",
+    "spoiler_tier": "none",
+    "title": "동굴 재배 선반"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-agriculture-subterranean",
+      "label": "시설 해금",
+      "to": "facility/building-8803",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

@@ -54,11 +54,21 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=CuttingWaste|reason=research-machining-forming-and-assembly-offcut|physicalByproduct=false
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: material:rope
     amount: 1
   - itemId: material:treated-lumber
     amount: 1
+  - itemId: resource:dark-resin
+    amount: 2
   outputs:
   - outputLineId: output:recipe:tool:prospecting-kit/000/main/tool:prospecting-kit
     role: 0

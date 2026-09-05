@@ -95,7 +95,7 @@ MonoBehaviour:
         - itemId: material:stone-block
           amount: 24
         - itemId: material:steel-ingot
-          amount: 12
+          amount: 17
         - itemId: component:precision-parts
           amount: 9
         - itemId: component:prototype-package

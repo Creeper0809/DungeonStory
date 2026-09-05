@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.25kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "20개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "1966080"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "미세한 불순물과 오래된 각인 흔적을 걷어 낸 무색 결정이다. 하르나크의 조율사는 범용 촉매 진행 15 · 4등급을 서로 다른 개조 계통을 잇는 범용 계통의 4등급 개조에 쓴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "evolution-catalyst-universal-15",
+  "spoiler_tier": "none",
+  "summary": "시설 개조와 장비 조율에 사용하는 진화 촉매.",
+  "title": "범용 촉매 진행 15 · 4등급"
+}

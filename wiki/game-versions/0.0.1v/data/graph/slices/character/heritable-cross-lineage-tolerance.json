@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "heritable-cross-lineage-tolerance",
+    "spoiler_tier": "none",
+    "title": "교차계통 내성"
+  },
+  "edges": [],
+  "schema_version": 1
+}

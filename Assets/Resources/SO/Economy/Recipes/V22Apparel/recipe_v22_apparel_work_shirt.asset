@@ -54,8 +54,14 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=CuttingWaste|reason=v22-apparel-cutting-thread-and-unusable-offcut|physicalByproduct=false
   inputs:
   - itemId: material:cloth
+    amount: 2
+  - itemId: material:sewing-thread
     amount: 2
   outputs:
   - outputLineId: output:recipe:v22:apparel:work-shirt/000/main/apparel:work-shirt

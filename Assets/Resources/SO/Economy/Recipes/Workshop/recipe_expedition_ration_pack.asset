@@ -55,11 +55,17 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=MoistureEvaporation|reason=cooking-smoking-water-and-trimming-residue|physicalByproduct=false
   inputs:
   - itemId: material:ration-mixture
     amount: 1
   - itemId: material:salted-meat
     amount: 1
+  - itemId: material:starch
+    amount: 2
   outputs:
   - outputLineId: output:recipe:expedition-ration-pack/000/main/food:expedition-ration-pack
     role: 0

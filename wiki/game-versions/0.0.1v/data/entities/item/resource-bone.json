@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.4kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "2"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "무기 재질, 장신구, 퇴비와 연금 재료이다. 라카쉬 세갈래길에서는 뼈의 골수를 뺀 뒤 길이와 휘어짐을 보고 무기용·장신구용·분쇄용으로 나눈다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "resource-bone",
+  "spoiler_tier": "none",
+  "summary": "무기 재질, 장신구, 퇴비와 연금 재료.",
+  "title": "뼈"
+}

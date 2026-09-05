@@ -1,0 +1,267 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-industry-steam-power",
+    "spoiler_tier": "none",
+    "title": "증기 동력과 배전"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-industry-steam-power",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯가마",
+      "to": "research/research-forestry-charcoal",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-steam-power",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯가마",
+      "to": "research/research-forestry-charcoal",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-steam-power",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯가마",
+      "to": "research/research-forestry-charcoal",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-steam-power",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-steam-power",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-steam-power",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-steam-power",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9801",
+      "target_spoiler_tier": "none",
+      "target_title": "전력선",
+      "to": "facility/building-9801",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-steam-power",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9810",
+      "target_spoiler_tier": "none",
+      "target_title": "증기 발전기",
+      "to": "facility/building-9810",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-remote-control",
+      "label": "선행 연구",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-remote-control",
+      "label": "선행 연구",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-remote-control",
+      "label": "선행 연구",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-conveyor",
+      "label": "선행 연구",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-conveyor",
+      "label": "선행 연구",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-conveyor",
+      "label": "선행 연구",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-electric-lighting",
+      "label": "선행 연구",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-electric-lighting",
+      "label": "선행 연구",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-electric-lighting",
+      "label": "선행 연구",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "선행 연구",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "선행 연구",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "선행 연구",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-waterwheel",
+      "label": "선행 연구",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-waterwheel",
+      "label": "선행 연구",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-waterwheel",
+      "label": "선행 연구",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-construct-core-maintenance",
+      "label": "선행 연구",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-construct-core-maintenance",
+      "label": "선행 연구",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-construct-core-maintenance",
+      "label": "선행 연구",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-basics",
+      "label": "선행 연구",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-basics",
+      "label": "선행 연구",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-basics",
+      "label": "선행 연구",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-service-automation",
+      "label": "선행 연구",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-service-automation",
+      "label": "선행 연구",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-service-automation",
+      "label": "선행 연구",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

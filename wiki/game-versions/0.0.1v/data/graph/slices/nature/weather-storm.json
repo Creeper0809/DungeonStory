@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "weather-storm",
+    "spoiler_tier": "none",
+    "title": "폭풍"
+  },
+  "edges": [],
+  "schema_version": 1
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "4kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "4"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "재 더미를 먹고 환기구에 군집해 재먼지폐를 퍼뜨린다. 죽은 재먼지 기는벌레의 사체는 도축 시설로 옮겨 식량과 부산물로 나눈다. 베르사디온의 화구 사냥꾼이 거둔 재먼지 기는벌레 사체에는 계약 몫을 뜻하는 검은 밀랍이 한 방울 떨어져 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "wild-carcass-ash-crawler",
+  "spoiler_tier": "none",
+  "summary": "도축 시설로 옮기면 식량과 부산물을 얻는다.",
+  "title": "재먼지 기는벌레 사체"
+}

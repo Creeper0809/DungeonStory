@@ -1,0 +1,62 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "32"
+    },
+    {
+      "label": "필요 연구",
+      "value": "축산 조리"
+    },
+    {
+      "label": "사이클당 깨끗한 물",
+      "value": "0.4"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-curd",
+      "target_spoiler_tier": "none",
+      "target_title": "응유",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-saltstone",
+      "target_spoiler_tier": "none",
+      "target_title": "소금석",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-milk",
+      "target_spoiler_tier": "none",
+      "target_title": "우유",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-livestock",
+      "target_spoiler_tier": "none",
+      "target_title": "축산 조리",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-curd",
+  "spoiler_tier": "none",
+  "summary": "같은 방의 연결 시설을 사용하는 수동 생산 단계.",
+  "title": "응유 만들기"
+}

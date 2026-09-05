@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "funeral-culture-demon",
+    "spoiler_tier": "none",
+    "title": "Funeral_Demon"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/characterspecies-5",
+      "label": "관련",
+      "to": "character/funeral-culture-demon",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

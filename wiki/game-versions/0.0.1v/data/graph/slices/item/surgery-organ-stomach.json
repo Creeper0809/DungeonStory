@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "surgery-organ-stomach",
+    "spoiler_tier": "none",
+    "title": "적출 위"
+  },
+  "edges": [],
+  "schema_version": 1
+}

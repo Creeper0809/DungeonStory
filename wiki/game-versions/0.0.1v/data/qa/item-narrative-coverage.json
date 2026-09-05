@@ -1,0 +1,151 @@
+{
+  "average_description_chars": 88.1,
+  "banned_fragment_count": 0,
+  "description_count": 1075,
+  "distinct_lore_frame_count": 506,
+  "distinct_lore_sentence_count": 1075,
+  "distinct_opening_frame_count": 1024,
+  "duplicate_texts": [],
+  "largest_lore_frames": [
+    {
+      "count": 12,
+      "frame": "하르나크의 조율사는 <항목><조사> 서로 다른 개조 계통을 잇는 범용 계통의 <수치>등급 개조에 쓴다."
+    },
+    {
+      "count": 12,
+      "frame": "<항목>에서 생산 주문을 처리하는 공정을 맡기 위해 준비한 설치 부품이며, 크릭 제<수치>굴의 시설과도 체결 규격이 맞는다."
+    },
+    {
+      "count": 11,
+      "frame": "베르사디온의 조율사는 <항목><조사> 마나 결을 조율하는 비전 계통의 <수치>등급 개조에 쓴다."
+    },
+    {
+      "count": 11,
+      "frame": "<항목><조사> 므네실라의 작업대에서 습기와 부패에 견디게 하는 생존 계통의 <수치>등급 개조에 쓴다."
+    },
+    {
+      "count": 11,
+      "frame": "<항목><조사> 현장에 세워 공간의 용도와 작업 동선을 갖추는 데 쓰는 설치 부품이며, 하르나크에서도 이 부품의 치수를 알아본다."
+    },
+    {
+      "count": 11,
+      "frame": "<항목><조사> 현장에 세워 공간의 용도와 작업 동선을 갖추는 데 쓰는 설치 부품이며, 하르나크에서도 같은 규격으로 조립한다."
+    },
+    {
+      "count": 10,
+      "frame": "하르나크에서 만든 <항목><조사> 날개와 넓은 어깨에 맞춰 등솔기를 고치기 쉽도록 여유 천을 남긴다."
+    },
+    {
+      "count": 10,
+      "frame": "<항목><조사> 크릭 제<수치>굴의 작업대에서 열과 압력에 반응하는 산업 계통의 <수치>등급 개조에 쓴다."
+    },
+    {
+      "count": 10,
+      "frame": "<항목><조사> 아일라세라의 작업대에서 날과 발사 장치를 맞추는 공세 계통의 <수치>등급 개조에 쓴다."
+    },
+    {
+      "count": 9,
+      "frame": "오르데나에서는 <항목>으로 명령 인장을 새기는 권위 계통의 <수치>등급 개조에 쓴다."
+    }
+  ],
+  "largest_opening_frames": [
+    {
+      "count": 8,
+      "frame": "<항목>은 의복과 안감, 생활용 천을 재단하는 직물 재료다"
+    },
+    {
+      "count": 8,
+      "frame": "<항목>의 품종과 품질, 병원체 검사 기록을 함께 보존한 파종용 종자 묶음이다"
+    },
+    {
+      "count": 7,
+      "frame": "<항목>은 특정 감염에 대비해 면역 반응을 준비시키는 의료 물자다"
+    },
+    {
+      "count": 5,
+      "frame": "<항목>은 무기, 방어구와 정밀 부품의 형태를 잡는 금속 재료다"
+    },
+    {
+      "count": 4,
+      "frame": "<항목>은 화약과 연금 공정에서 반응을 일으키도록 건조해 둔 재료다"
+    },
+    {
+      "count": 4,
+      "frame": "<항목>는 오래 보관하거나 다음 조리를 빠르게 시작하도록 미리 손질한 식재료다"
+    },
+    {
+      "count": 3,
+      "frame": "<항목>을 장비와 설비의 바깥쪽에 덧대 충격과 마나 간섭을 받아 낸다"
+    },
+    {
+      "count": 3,
+      "frame": "<항목>을 장비 안쪽에 덧대 충격과 마찰이 착용자에게 바로 닿지 않게 한다"
+    },
+    {
+      "count": 3,
+      "frame": "<항목>은 움직이는 부품의 하중을 받아 동력과 힘을 다음 관절로 전달한다"
+    },
+    {
+      "count": 3,
+      "frame": "<항목>에는 현장 조립과 보강에 필요한 작은 부품을 빠짐없이 모아 두었다"
+    }
+  ],
+  "lore_anchor_counts": {
+    "place:ailasera": 68,
+    "place:fourth-foundry": 105,
+    "place:harnak": 140,
+    "place:krik-seventh": 168,
+    "place:mnesila": 167,
+    "place:rakash-crossroads": 81,
+    "place:versadion": 96,
+    "practice:adventurer-table": 3,
+    "practice:beastkin-meal": 1,
+    "practice:golem-memory": 6,
+    "practice:harpy-chorus": 3,
+    "practice:kobold-tool-name": 5,
+    "practice:orc-cauldron": 38,
+    "practice:orc-vigil": 15,
+    "practice:slime-water": 10,
+    "practice:vampire-consent": 20,
+    "range:norkandra": 38,
+    "route:milosia": 25,
+    "sea:sarvenia": 24,
+    "state:ordena": 62
+  },
+  "lore_connection_counts": {
+    "animal": 34,
+    "arcane": 24,
+    "care": 74,
+    "craft": 270,
+    "dress": 52,
+    "ecology": 44,
+    "facility": 373,
+    "food": 24,
+    "heritage": 19,
+    "military": 44,
+    "origin": 8,
+    "ranged": 20,
+    "record": 20,
+    "settlement": 10,
+    "trade": 59
+  },
+  "max_description_chars": 145,
+  "missing_ids": [],
+  "missing_lore_count": 0,
+  "orphan_ids": [],
+  "reporting_style_term_counts": {
+    "기록": 19,
+    "소유권": 3,
+    "장부": 7,
+    "적는다": 5,
+    "책임": 2
+  },
+  "schema_version": 1,
+  "story_layer_counts": {
+    "clue": 45,
+    "everyday": 1030
+  },
+  "target_count": 1075,
+  "unique_description_count": 1075,
+  "world_grounded_count": 1075
+}

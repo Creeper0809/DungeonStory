@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "자원"
+    },
+    {
+      "label": "크기",
+      "value": "3×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-1094",
+  "spoiler_tier": "none",
+  "summary": "시설의 고유 역할은 생산 작업대이다. 건설에는 작업량 585, 재료 처리 목재×7, 철괴×4, 석재 블록×2, 기계 부품×2, 외 2개이 필요하다.",
+  "title": "심부 채석장"
+}

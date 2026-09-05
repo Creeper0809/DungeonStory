@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "medical",
+    "slug": "disease-dream-mold",
+    "spoiler_tier": "none",
+    "title": "꿈곰팡이증"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/silk-spider",
+      "label": "관련",
+      "to": "medical/disease-dream-mold",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

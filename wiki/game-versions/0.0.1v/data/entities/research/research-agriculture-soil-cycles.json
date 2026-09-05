@@ -1,0 +1,130 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "697"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Agriculture"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-health-pathogen-observation",
+      "target_spoiler_tier": "none",
+      "target_title": "병원체 관찰과 면역 혈청학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-health-pathogen-observation",
+      "target_spoiler_tier": "none",
+      "target_title": "병원체 관찰과 면역 혈청학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-health-pathogen-observation",
+      "target_spoiler_tier": "none",
+      "target_title": "병원체 관찰과 면역 혈청학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-phenology",
+      "target_spoiler_tier": "none",
+      "target_title": "생물계절학과 종자 선별",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-phenology",
+      "target_spoiler_tier": "none",
+      "target_title": "생물계절학과 종자 선별",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-phenology",
+      "target_spoiler_tier": "none",
+      "target_title": "생물계절학과 종자 선별",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-fungal",
+      "target_spoiler_tier": "none",
+      "target_title": "실내 균목림",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-fungal",
+      "target_spoiler_tier": "none",
+      "target_title": "실내 균목림",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-fungal",
+      "target_spoiler_tier": "none",
+      "target_title": "실내 균목림",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8891",
+      "target_spoiler_tier": "none",
+      "target_title": "방제 조제대",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8892",
+      "target_spoiler_tier": "none",
+      "target_title": "작물 병리실",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8852",
+      "target_spoiler_tier": "none",
+      "target_title": "토양 검사대",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-agriculture-soil-cycles",
+  "spoiler_tier": "none",
+  "summary": "토양 순환과 작물 보호에 필요한 이론, 제작 절차, 안전 기준과 운용 보상을 하나의 완결된 연구 패키지로 통합한다.",
+  "title": "토양 순환과 작물 보호"
+}

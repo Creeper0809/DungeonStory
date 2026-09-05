@@ -1,0 +1,8 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+OffenseUrgentSiteDefinitionSO,content-type,,type-reference,models:offense,runtime,structural-type-consumer,Assets/Scripts/Models/Offense/Core/OffenseAuthoredContentPort.cs
+OffenseUrgentSiteDefinitionSO,content-type,,type-reference,services:items,content-loading,structural-type-consumer,Assets/Scripts/Services/Items/GameContentCatalog.cs
+OffenseUrgentSiteDefinitionSO,content-type,,type-reference,services:offense,persistence,structural-type-consumer,Assets/Scripts/Services/Offense/OffenseAggregateSaveValidation.cs
+OffenseUrgentSiteDefinitionSO,content-type,,type-reference; save-restore-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/Strategic/OffenseHexWorldSimulation.cs
+OffenseUrgentSiteDefinitionSO,content-type,,type-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/Strategic/OffenseStrategicDefinitions.cs
+OffenseUrgentSiteDefinitionSO,content-type,,type-reference; save-restore-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/Strategic/OffenseUrgentMitigationInputOwnerRuntime.cs
+OffenseUrgentSiteDefinitionSO,content-type,,type-reference; save-restore-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/Strategic/OffenseUrgentMitigationRuntime.cs

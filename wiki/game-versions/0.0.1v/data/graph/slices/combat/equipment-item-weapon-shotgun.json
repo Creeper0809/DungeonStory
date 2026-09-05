@@ -1,0 +1,88 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "equipment-item-weapon-shotgun",
+    "spoiler_tier": "none",
+    "title": "산탄총"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-shotgun",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-engineering-drawing",
+      "target_spoiler_tier": "none",
+      "target_title": "공학 도면",
+      "to": "item/component-engineering-drawing",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-shotgun",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-machine-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "기계 부품",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-shotgun",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-precision-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품",
+      "to": "item/component-precision-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-shotgun",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-barrel-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "총열강",
+      "to": "item/material-barrel-steel",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-shotgun",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-scatter-cartridge",
+      "target_spoiler_tier": "none",
+      "target_title": "산탄 탄약",
+      "to": "item/ammo-scatter-cartridge",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-shotgun",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-smoke-cartridge",
+      "target_spoiler_tier": "none",
+      "target_title": "연막 탄약",
+      "to": "item/ammo-smoke-cartridge",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-shotgun",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-pressure-barrels",
+      "target_spoiler_tier": "none",
+      "target_title": "내압 화기와 방폭",
+      "to": "research/research-equipment-pressure-barrels",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

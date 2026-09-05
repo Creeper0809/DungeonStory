@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "genome-ember-cotton-base",
+    "spoiler_tier": "none",
+    "title": "genome_ember-cotton_base"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/crop-ember-cotton",
+      "label": "관련",
+      "to": "nature/genome-ember-cotton-base",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

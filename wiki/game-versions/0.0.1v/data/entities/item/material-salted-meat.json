@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.65kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "13"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "염지 고기는 오래 보관하거나 다음 조리를 빠르게 시작하도록 미리 손질한 식재료다. 라카쉬 세갈래길의 염지 고기에는 소금에 묻은 날짜와 여행용 몫을 나타내는 두 줄 칼집이 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-salted-meat",
+  "spoiler_tier": "none",
+  "summary": "작업실의 다음 공정으로 실제 운반되는 물리 중간재.",
+  "title": "염지 고기"
+}

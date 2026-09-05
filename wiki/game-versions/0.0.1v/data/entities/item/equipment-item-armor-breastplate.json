@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "9kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "448"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "가슴과 배의 급소를 한 장의 철판으로 덮는 몸통 갑옷이다. 특히 제4주조도시제 철 흉갑의 작은 홈은 몸을 바꿀 때 맞추는 수리 눈금이다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-armor-breastplate",
+  "spoiler_tier": "none",
+  "summary": "철 흉갑 전투 장비",
+  "title": "철 흉갑"
+}

@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-tool-inspection-gauge",
+    "spoiler_tier": "none",
+    "title": "검사 게이지"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-inspection-gauge",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "tool-inspection-gauge",
+      "target_spoiler_tier": "none",
+      "target_title": "검사 게이지",
+      "to": "item/tool-inspection-gauge",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-inspection-gauge",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-precision-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품",
+      "to": "item/component-precision-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-inspection-gauge",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-spring-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "용수철강",
+      "to": "item/material-spring-steel",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-tool-inspection-gauge",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-precision-fitting",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품 장착",
+      "to": "research/research-equipment-precision-fitting",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

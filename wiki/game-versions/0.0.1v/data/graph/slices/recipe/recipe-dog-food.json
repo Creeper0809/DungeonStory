@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-dog-food",
+    "spoiler_tier": "none",
+    "title": "개밥"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-dog-food",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-twilight-grain",
+      "target_spoiler_tier": "none",
+      "target_title": "황혼곡",
+      "to": "item/resource-twilight-grain",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-dog-food",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "waste-animal-rot",
+      "target_spoiler_tier": "none",
+      "target_title": "동물성 부패물",
+      "to": "item/waste-animal-rot",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-dog-food",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "feed-dog-food",
+      "target_spoiler_tier": "none",
+      "target_title": "개밥",
+      "to": "item/feed-dog-food",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-dog-food",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-feed",
+      "target_spoiler_tier": "none",
+      "target_title": "사료·깔짚",
+      "to": "research/research-husbandry-feed",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

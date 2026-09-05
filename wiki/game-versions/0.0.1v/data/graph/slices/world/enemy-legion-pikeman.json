@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "enemy-legion-pikeman",
+    "spoiler_tier": "none",
+    "title": "도시연맹 장창병"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/enemy-legion-pikeman",
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-hook-pull",
+      "target_spoiler_tier": "none",
+      "target_title": "갈고리 끌기",
+      "to": "world/enemy-ability-hook-pull",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-legion-pikeman",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "offense-unappraised-loot",
+      "target_spoiler_tier": "none",
+      "target_title": "미감정 전리품",
+      "to": "item/offense-unappraised-loot",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

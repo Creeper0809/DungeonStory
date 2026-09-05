@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-theft",
+      "target_spoiler_tier": "warning",
+      "target_title": "절도",
+      "type": "adds-work-delay"
+    },
+    {
+      "amount": "-100",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-theft",
+      "target_spoiler_tier": "warning",
+      "target_title": "절도",
+      "type": "changes-money"
+    },
+    {
+      "amount": "1",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-theft",
+      "target_spoiler_tier": "warning",
+      "target_title": "절도",
+      "type": "sets-world-flag"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "service-incident-theft",
+  "spoiler_tier": "warning",
+  "summary": "손님의 귀중품이 사라지고 직원 한 명이 의심받는다.",
+  "title": "절도"
+}

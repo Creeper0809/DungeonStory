@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-8898",
+    "spoiler_tier": "none",
+    "title": "보안 거래 금고"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-commerce-secure-trade",
+      "label": "시설 해금",
+      "to": "facility/building-8898",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Reproduction"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "heritable-abundant-seed",
+  "spoiler_tier": "none",
+  "summary": "생식 성공률이 높지만 회복 기간의 영양 요구가 늘어난다.",
+  "title": "풍부한 종자"
+}

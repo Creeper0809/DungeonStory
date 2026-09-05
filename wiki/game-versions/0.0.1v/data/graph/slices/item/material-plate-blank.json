@@ -1,0 +1,74 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-plate-blank",
+    "spoiler_tier": "none",
+    "title": "판금 소재판"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-jack-of-plates",
+      "label": "필요 조건",
+      "to": "item/material-plate-blank",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-powder-cuirass",
+      "label": "필요 조건",
+      "to": "item/material-plate-blank",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-shield-pavise",
+      "label": "필요 조건",
+      "to": "item/material-plate-blank",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-powered-striking-gauntlet",
+      "label": "필요 조건",
+      "to": "item/material-plate-blank",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "combat/equipment-item-armor-articulated-plate",
+      "label": "필요 조건",
+      "to": "item/material-plate-blank",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "combat/equipment-item-shield-powered",
+      "label": "필요 조건",
+      "to": "item/material-plate-blank",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-material-test-coupon",
+      "label": "필요 조건",
+      "to": "item/material-plate-blank",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-siege-reinforcement-kit",
+      "label": "필요 조건",
+      "to": "item/material-plate-blank",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-plate-blank",
+      "label": "생산·해금",
+      "to": "item/material-plate-blank",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.4kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "52"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "머리와 목을 가볍게 감싸는 천 두건으로, 다른 장비와 겹쳐 쓰기 쉽다. 라카쉬 세갈래길의 수선공은 천 후드를 새 주인에게 맞추되 오래된 이름은 안감 아래 남겨 둔다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-armor-cloth-hood",
+  "spoiler_tier": "none",
+  "summary": "천 후드 전투 장비",
+  "title": "천 후드"
+}

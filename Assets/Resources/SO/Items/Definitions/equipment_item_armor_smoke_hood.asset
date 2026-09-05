@@ -29,7 +29,7 @@ MonoBehaviour:
   unitWeight: 1.1
   maxStack: 1
   sprite: {fileID: 0}
-  unitPrice: 184
+  unitPrice: 233
   features:
   - rid: 7737211673752633534
   - rid: 7737211673752633535

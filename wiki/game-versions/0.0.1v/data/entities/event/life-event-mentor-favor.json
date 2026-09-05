@@ -1,0 +1,36 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Apprenticeship"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "-3",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-mentor-favor",
+      "target_spoiler_tier": "warning",
+      "target_title": "스승의 편애",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "5",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-mentor-favor",
+      "target_spoiler_tier": "warning",
+      "target_title": "스승의 편애",
+      "type": "changes-relationship"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "life-event-mentor-favor",
+  "spoiler_tier": "warning",
+  "summary": "한 도제에게만 좋은 작업이 몰린다는 불만이 터졌다.",
+  "title": "스승의 편애"
+}

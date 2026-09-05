@@ -99,6 +99,132 @@ public readonly struct WorkCompletedIdentityEvent : ICharacterIdentityEvent
     private static string Required(string value) => string.IsNullOrWhiteSpace(value) ? throw new ArgumentException("Work id is required.") : value.Trim();
 }
 
+public readonly struct WorkCompletionIdentityDeliveryRequest
+{
+    public WorkCompletionIdentityDeliveryRequest(
+        string deliveryId,
+        string producerStreamId,
+        int operationSequence,
+        CharacterId character,
+        string workId,
+        string productId,
+        CharacterCommandOrigin origin,
+        int absoluteDay)
+    {
+        DeliveryId = RequireCanonical(deliveryId, nameof(deliveryId));
+        ProducerStreamId = RequireCanonical(
+            producerStreamId,
+            nameof(producerStreamId));
+        if (operationSequence < 0)
+            throw new ArgumentOutOfRangeException(nameof(operationSequence));
+        if (!character.IsValid)
+            throw new ArgumentException(
+                "A valid completion character is required.",
+                nameof(character));
+        OperationSequence = operationSequence;
+        Character = character;
+        WorkId = RequireCanonical(workId, nameof(workId));
+        ProductId = RequireCanonical(productId, nameof(productId));
+        if (!Enum.IsDefined(typeof(CharacterCommandOrigin), origin))
+            throw new ArgumentOutOfRangeException(nameof(origin));
+        if (absoluteDay < 0)
+            throw new ArgumentOutOfRangeException(nameof(absoluteDay));
+        Origin = origin;
+        AbsoluteDay = absoluteDay;
+        PayloadFingerprint = ComputeFingerprint(
+            DeliveryId,
+            ProducerStreamId,
+            OperationSequence,
+            Character,
+            WorkId,
+            ProductId,
+            Origin,
+            AbsoluteDay);
+    }
+
+    public string DeliveryId { get; }
+    public string ProducerStreamId { get; }
+    public int OperationSequence { get; }
+    public CharacterId Character { get; }
+    public string WorkId { get; }
+    public string ProductId { get; }
+    public CharacterCommandOrigin Origin { get; }
+    public int AbsoluteDay { get; }
+    public string PayloadFingerprint { get; }
+
+    public WorkCompletedIdentityEvent ToEvent() => new(
+        Character,
+        WorkId,
+        ProductId,
+        Origin,
+        AbsoluteDay);
+
+    public static string ComputeFingerprint(
+        string deliveryId,
+        string producerStreamId,
+        int operationSequence,
+        CharacterId character,
+        string workId,
+        string productId,
+        CharacterCommandOrigin origin,
+        int absoluteDay)
+    {
+        CanonicalSemanticDigestBuilder digest = new();
+        digest.Append("work-completion-identity-delivery@1");
+        digest.Append(deliveryId);
+        digest.Append(producerStreamId);
+        digest.Append(operationSequence);
+        digest.Append(character.Value);
+        digest.Append(workId);
+        digest.Append(productId);
+        digest.AppendEnum(origin);
+        digest.Append(absoluteDay);
+        return digest.ComputeSha256();
+    }
+
+    private static string RequireCanonical(string value, string parameterName)
+    {
+        if (string.IsNullOrWhiteSpace(value)
+            || !string.Equals(value, value.Trim(), StringComparison.Ordinal))
+            throw new ArgumentException(
+                "A nonempty canonical token is required.",
+                parameterName);
+        return value;
+    }
+}
+
+public enum WorkCompletionIdentityDeliveryStatus
+{
+    Applied = 0,
+    AlreadyApplied = 1,
+    Deferred = 2,
+    Conflict = 3
+}
+
+public readonly struct WorkCompletionIdentityDeliveryResult
+{
+    public WorkCompletionIdentityDeliveryResult(
+        WorkCompletionIdentityDeliveryStatus status,
+        string failureReason = "")
+    {
+        Status = status;
+        FailureReason = failureReason ?? string.Empty;
+    }
+
+    public WorkCompletionIdentityDeliveryStatus Status { get; }
+    public string FailureReason { get; }
+    public bool IsApplied => Status is WorkCompletionIdentityDeliveryStatus.Applied
+        or WorkCompletionIdentityDeliveryStatus.AlreadyApplied;
+}
+
+public interface IWorkCompletionIdentityDeliveryCommand
+{
+    WorkCompletionIdentityDeliveryResult EnsureApplied(
+        WorkCompletionIdentityDeliveryRequest request);
+
+    bool RetireProducerStream(string producerStreamId);
+}
+
 public readonly struct RestOutcomeIdentityEvent : ICharacterIdentityEvent
 {
     public RestOutcomeIdentityEvent(
@@ -352,6 +478,192 @@ public sealed class CharacterIdentityEventPublisher
         events.Publish(gameEvent);
 }
 
+public sealed class WorkCompletionIdentityDeliveryLedger
+{
+    private readonly Dictionary<string,
+        WorkCompletionIdentityDeliveryCursorSaveData> cursors =
+        new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> activeDeliveries =
+        new(StringComparer.Ordinal);
+
+    public IReadOnlyList<WorkCompletionIdentityDeliveryCursorSaveData> Capture()
+    {
+        if (activeDeliveries.Count != 0)
+            throw new InvalidOperationException(
+                "Work-completion delivery capture is unavailable during apply.");
+        return cursors.Values
+            .OrderBy(value => value.producerStreamId, StringComparer.Ordinal)
+            .Select(value => value.Clone())
+            .ToArray();
+    }
+
+    public void Restore(
+        IEnumerable<WorkCompletionIdentityDeliveryCursorSaveData> source)
+    {
+        if (activeDeliveries.Count != 0)
+            throw new InvalidOperationException(
+                "Work-completion delivery restore is unavailable during apply.");
+        WorkCompletionIdentityDeliveryCursorSaveData[] candidate =
+            ValidateAndClone(source);
+        cursors.Clear();
+        foreach (WorkCompletionIdentityDeliveryCursorSaveData cursor in candidate)
+            cursors.Add(cursor.producerStreamId, cursor);
+    }
+
+    public WorkCompletionIdentityDeliveryStatus Inspect(
+        WorkCompletionIdentityDeliveryRequest request,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (!cursors.TryGetValue(
+                request.ProducerStreamId,
+                out WorkCompletionIdentityDeliveryCursorSaveData cursor))
+        {
+            if (request.OperationSequence == 0)
+                return WorkCompletionIdentityDeliveryStatus.Applied;
+            failureReason =
+                "The completion delivery stream has no preceding sequence.";
+            return WorkCompletionIdentityDeliveryStatus.Conflict;
+        }
+
+        if (request.OperationSequence == cursor.operationSequence)
+        {
+            if (string.Equals(
+                    request.DeliveryId,
+                    cursor.deliveryId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    request.PayloadFingerprint,
+                    cursor.payloadFingerprint,
+                    StringComparison.Ordinal))
+                return WorkCompletionIdentityDeliveryStatus.AlreadyApplied;
+            failureReason =
+                "The completion delivery sequence has conflicting provenance.";
+            return WorkCompletionIdentityDeliveryStatus.Conflict;
+        }
+
+        if (request.OperationSequence == checked(cursor.operationSequence + 1))
+            return WorkCompletionIdentityDeliveryStatus.Applied;
+
+        failureReason = request.OperationSequence < cursor.operationSequence
+            ? "The completion delivery sequence is stale."
+            : "The completion delivery sequence is not contiguous.";
+        return WorkCompletionIdentityDeliveryStatus.Conflict;
+    }
+
+    public WorkCompletionIdentityDeliveryStatus Commit(
+        WorkCompletionIdentityDeliveryRequest request,
+        out string failureReason,
+        WorkCompletionIdentityDeliveryDisposition disposition =
+            WorkCompletionIdentityDeliveryDisposition.EffectsApplied)
+    {
+        if (!Enum.IsDefined(
+                typeof(WorkCompletionIdentityDeliveryDisposition),
+                disposition))
+            throw new ArgumentOutOfRangeException(nameof(disposition));
+        WorkCompletionIdentityDeliveryStatus status = Inspect(
+            request,
+            out failureReason);
+        if (status == WorkCompletionIdentityDeliveryStatus.Conflict
+            || status == WorkCompletionIdentityDeliveryStatus.AlreadyApplied)
+            return status;
+        cursors[request.ProducerStreamId] = new()
+        {
+            producerStreamId = request.ProducerStreamId,
+            operationSequence = request.OperationSequence,
+            deliveryId = request.DeliveryId,
+            payloadFingerprint = request.PayloadFingerprint,
+            disposition = disposition
+        };
+        return WorkCompletionIdentityDeliveryStatus.Applied;
+    }
+
+    public void BeginApply(WorkCompletionIdentityDeliveryRequest request)
+    {
+        if (!activeDeliveries.TryAdd(
+                request.ProducerStreamId,
+                request.DeliveryId))
+            throw new InvalidOperationException(
+                "Work-completion delivery stream is already applying.");
+    }
+
+    public void EndApply(WorkCompletionIdentityDeliveryRequest request)
+    {
+        if (!activeDeliveries.TryGetValue(
+                request.ProducerStreamId,
+                out string activeDeliveryId)
+            || !string.Equals(
+                activeDeliveryId,
+                request.DeliveryId,
+                StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "Work-completion delivery apply scope is inconsistent.");
+        activeDeliveries.Remove(request.ProducerStreamId);
+    }
+
+    public bool RetireProducerStream(string producerStreamId)
+    {
+        if (string.IsNullOrWhiteSpace(producerStreamId)
+            || !string.Equals(
+                producerStreamId,
+                producerStreamId.Trim(),
+                StringComparison.Ordinal))
+            throw new ArgumentException(
+                "A nonempty canonical producer stream is required.",
+                nameof(producerStreamId));
+        if (activeDeliveries.ContainsKey(producerStreamId))
+            throw new InvalidOperationException(
+                "An active work-completion delivery stream cannot retire.");
+        cursors.Remove(producerStreamId);
+        return true;
+    }
+
+    public static WorkCompletionIdentityDeliveryCursorSaveData[]
+        ValidateAndClone(
+            IEnumerable<WorkCompletionIdentityDeliveryCursorSaveData> source)
+    {
+        Dictionary<string, WorkCompletionIdentityDeliveryCursorSaveData> result =
+            new(StringComparer.Ordinal);
+        foreach (WorkCompletionIdentityDeliveryCursorSaveData value in
+                 source ?? Array.Empty<
+                     WorkCompletionIdentityDeliveryCursorSaveData>())
+        {
+            if (value == null
+                || string.IsNullOrWhiteSpace(value.producerStreamId)
+                || !string.Equals(
+                    value.producerStreamId,
+                    value.producerStreamId.Trim(),
+                    StringComparison.Ordinal)
+                || value.operationSequence < 0
+                || string.IsNullOrWhiteSpace(value.deliveryId)
+                || !string.Equals(
+                    value.deliveryId,
+                    value.deliveryId.Trim(),
+                    StringComparison.Ordinal)
+                || value.payloadFingerprint?.Length != 64
+                || value.payloadFingerprint.Any(character =>
+                    character is not (>= '0' and <= '9')
+                        and not (>= 'a' and <= 'f'))
+                || !Enum.IsDefined(
+                    typeof(WorkCompletionIdentityDeliveryDisposition),
+                    value.disposition)
+                || !result.TryAdd(value.producerStreamId, value.Clone()))
+                throw new InvalidOperationException(
+                    "Work-completion delivery cursor is invalid or duplicated.");
+        }
+        return result.Values
+            .OrderBy(value => value.producerStreamId, StringComparer.Ordinal)
+            .ToArray();
+    }
+}
+
+public interface ICharacterIdentityDeathStateRetentionPolicy
+{
+    bool TryRetainForPendingExternalOwner(
+        string characterId,
+        CharacterIdentityRuleStateSaveData state);
+}
+
 [Serializable]
 public sealed class CharacterIdentityRuleStateSaveData
 {
@@ -438,20 +750,45 @@ public sealed class CharacterIdentityStateStore
     [GameplayInternalOnly(
         "Character death cleanup removes every identity-rule state owned by that character.",
         "CharacterDeathIdentityEventAdapter")]
-    public int RemoveCharacter(string characterId)
+    public int RemoveCharacter(
+        string characterId,
+        IEnumerable<ICharacterIdentityDeathStateRetentionPolicy>
+            retentionPolicies = null)
     {
         string normalized = Required(characterId);
-        string[] keys = states
+        ICharacterIdentityDeathStateRetentionPolicy[] policies =
+            (retentionPolicies
+                ?? Array.Empty<ICharacterIdentityDeathStateRetentionPolicy>())
+            .Where(value => value != null)
+            .ToArray();
+        KeyValuePair<string, Entry>[] owned = states
             .Where(pair => string.Equals(
                 pair.Value.CharacterId,
                 normalized,
                 StringComparison.Ordinal))
+            .ToArray();
+        string[] keys = owned
+            .Where(pair => !policies.Any(policy =>
+                policy.TryRetainForPendingExternalOwner(
+                    normalized,
+                    pair.Value.State.Clone())))
             .Select(pair => pair.Key)
             .ToArray();
         foreach (string key in keys)
             states.Remove(key);
         return keys.Length;
     }
+
+    [GameplayInternalOnly(
+        "A completed external owner retires a death-retained identity rule state.",
+        "ExtremeTraitRuntime")]
+    public bool RemoveRule(
+        string characterId,
+        string traitDefinitionId,
+        string ruleId) => states.Remove(BuildKey(
+            characterId,
+            traitDefinitionId,
+            ruleId));
 
     public IReadOnlyList<CharacterIdentityRuntimeStateSaveData> Capture() => states
         .GroupBy(pair => pair.Value.CharacterId,
@@ -466,6 +803,57 @@ public sealed class CharacterIdentityStateStore
                 .Select(value => value.Clone())
                 .ToList()
         }).ToArray();
+
+    internal void RestoreTrustedTransactionSnapshot(
+        IEnumerable<CharacterIdentityRuntimeStateSaveData> source)
+    {
+        Dictionary<string, Entry> restored = new(StringComparer.Ordinal);
+        foreach (CharacterIdentityRuntimeStateSaveData character in
+                 source ?? throw new ArgumentNullException(nameof(source)))
+        {
+            if (character == null
+                || string.IsNullOrWhiteSpace(character.characterId)
+                || !string.Equals(
+                    character.characterId,
+                    character.characterId.Trim(),
+                    StringComparison.Ordinal)
+                || character.rules == null)
+                throw new InvalidOperationException(
+                    "Trusted identity transaction snapshot is invalid.");
+            foreach (CharacterIdentityRuleStateSaveData state in character.rules)
+            {
+                if (state == null
+                    || state.revision <= 0
+                    || string.IsNullOrWhiteSpace(state.traitDefinitionId)
+                    || string.IsNullOrWhiteSpace(state.ruleId)
+                    || !string.Equals(
+                        state.traitDefinitionId,
+                        state.traitDefinitionId.Trim(),
+                        StringComparison.Ordinal)
+                    || !string.Equals(
+                        state.ruleId,
+                        state.ruleId.Trim(),
+                        StringComparison.Ordinal))
+                    throw new InvalidOperationException(
+                        "Trusted identity transaction rule snapshot is invalid.");
+                string key = BuildKey(
+                    character.characterId,
+                    state.traitDefinitionId,
+                    state.ruleId);
+                if (!restored.TryAdd(key, new Entry
+                    {
+                        CharacterId = character.characterId,
+                        State = state.Clone()
+                    }))
+                    throw new InvalidOperationException(
+                        "Trusted identity transaction snapshot is duplicated.");
+            }
+        }
+
+        states.Clear();
+        foreach (KeyValuePair<string, Entry> pair in restored)
+            states.Add(pair.Key, pair.Value);
+    }
 
     [GameplayInternalOnly(
         "Character narrative restore validates the complete candidate state before atomic replacement.",

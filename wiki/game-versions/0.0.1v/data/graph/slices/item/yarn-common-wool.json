@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "yarn-common-wool",
+    "spoiler_tier": "none",
+    "title": "일반 모직 원사"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-spin-common-wool",
+      "label": "생산·해금",
+      "to": "item/yarn-common-wool",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-spin-powered-common-wool",
+      "label": "생산·해금",
+      "to": "item/yarn-common-wool",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "7",
+      "from": "recipe/recipe-v22-weave-common-wool",
+      "label": "필요 조건",
+      "to": "item/yarn-common-wool",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

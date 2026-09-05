@@ -1,0 +1,49 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "38"
+    },
+    {
+      "label": "필요 연구",
+      "value": "주류 증류·숙성"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-alcohol",
+      "target_spoiler_tier": "none",
+      "target_title": "알코올",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-fermented-liquor",
+      "target_spoiler_tier": "none",
+      "target_title": "발효액",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-distilling-aging",
+      "target_spoiler_tier": "none",
+      "target_title": "주류 증류·숙성",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-alcohol",
+  "spoiler_tier": "none",
+  "summary": "기초 알코올 생산 주문",
+  "title": "기초 알코올"
+}

@@ -31,6 +31,9 @@ public sealed class OffenseUrgentMitigationOrderStateData
     public int facilityX;
     public int facilityY;
     public string destinationId;
+    public long inputBufferCapacityGrams;
+    public long inputMassAuthorityRevision;
+    public string inputCapacityFingerprint = string.Empty;
     public float requiredWork;
     public float completedWork;
     public OffenseUrgentMitigationOrderStatus status;
@@ -130,6 +133,7 @@ public sealed class OffenseUrgentMitigationRuntime :
     private readonly IOffenseContentCatalog content;
     private readonly IBuildingWorldQuery buildings;
     private readonly IProductionItemGateway items;
+    private readonly IOffenseUrgentMitigationInputOwnerRuntime inputOwners;
     private readonly IGameClock gameClock;
     private readonly IWorkforceReplanService workforce;
     private readonly IFacilityCandidateCache facilityCandidates;
@@ -146,6 +150,7 @@ public sealed class OffenseUrgentMitigationRuntime :
         IOffenseContentCatalog content,
         IBuildingWorldQuery buildings,
         IProductionItemGateway items,
+        IOffenseUrgentMitigationInputOwnerRuntime inputOwners,
         IGameClock gameClock,
         IWorkforceReplanService workforce,
         IFacilityCandidateCache facilityCandidates)
@@ -154,6 +159,8 @@ public sealed class OffenseUrgentMitigationRuntime :
         this.content = content ?? throw new ArgumentNullException(nameof(content));
         this.buildings = buildings ?? throw new ArgumentNullException(nameof(buildings));
         this.items = items ?? throw new ArgumentNullException(nameof(items));
+        this.inputOwners = inputOwners
+            ?? throw new ArgumentNullException(nameof(inputOwners));
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
         this.workforce = workforce;
         this.facilityCandidates = facilityCandidates;
@@ -224,7 +231,7 @@ public sealed class OffenseUrgentMitigationRuntime :
         }
 
         string orderId =
-            $"threat-mitigation:{normalizedSiteId}:{nextOrderSequence++}";
+            $"threat-mitigation:{normalizedSiteId}:{nextOrderSequence}";
         OffenseUrgentMitigationOrderStateData order =
             new OffenseUrgentMitigationOrderStateData
             {
@@ -234,11 +241,19 @@ public sealed class OffenseUrgentMitigationRuntime :
                 facilityPersistentId = GetFacilityPersistentId(facility),
                 facilityX = facility.centerPos.x,
                 facilityY = facility.centerPos.y,
-                destinationId = orderId,
+                destinationId = OffenseUrgentMitigationInputOwnerAuthority
+                    .BuildDestinationId(orderId),
                 requiredWork = Mathf.Max(0.01f, definition.mitigationWork),
                 status = OffenseUrgentMitigationOrderStatus.WaitingForMaterials,
                 statusText = "완화 재료를 시설로 운반하는 중입니다."
             };
+        if (!inputOwners.TryEnsure(order, facility, out string ownerFailure))
+        {
+            message = "완화 재료 시설 소유권을 게시하지 못했습니다: "
+                + ownerFailure;
+            return false;
+        }
+        nextOrderSequence++;
         orders.Add(order);
         BindFacility(order, facility);
         RequestMissingMaterials(order, definition, facility);
@@ -264,7 +279,16 @@ public sealed class OffenseUrgentMitigationRuntime :
             message = "재료가 이미 완화 작업에 귀속되어 취소할 수 없습니다.";
             return false;
         }
-        CancelOrder(order);
+        if (!TryRemoveOrder(
+                order,
+                OffenseUrgentMitigationInputOwnerAuthority
+                    .CancelledReleaseReasonCode,
+                out string closeFailure))
+        {
+            message = "완화 작업 재료를 보존하지 못해 취소하지 않았습니다: "
+                + closeFailure;
+            return false;
+        }
         message = $"{displayName} 완화 작업을 취소했습니다.";
         return true;
     }
@@ -388,6 +412,15 @@ public sealed class OffenseUrgentMitigationRuntime :
 
     public IReadOnlyList<OffenseUrgentMitigationOrderStateData> Capture()
     {
+        if (!inputOwners.TryValidateForCapture(
+                orders,
+                buildings.Buildings,
+                out string failureReason))
+        {
+            throw new InvalidOperationException(
+                "Urgent mitigation input ownership is not capture-safe: "
+                + failureReason);
+        }
         return orders
             .Where(order => order != null)
             .Select(Clone)
@@ -413,6 +446,11 @@ public sealed class OffenseUrgentMitigationRuntime :
                 || string.IsNullOrWhiteSpace(restored.orderId)
                 || string.IsNullOrWhiteSpace(restored.siteId)
                 || string.IsNullOrWhiteSpace(restored.destinationId)
+                || !string.Equals(
+                    restored.destinationId,
+                    OffenseUrgentMitigationInputOwnerAuthority
+                        .BuildDestinationId(restored.orderId),
+                    StringComparison.Ordinal)
                 || !orderIds.Add(restored.orderId)
                 || !siteIds.Add(restored.siteId)
                 || !Enum.IsDefined(
@@ -444,6 +482,15 @@ public sealed class OffenseUrgentMitigationRuntime :
                     candidateNextSequence,
                     sequence + 1);
             }
+        }
+
+        if (!inputOwners.TryReplaceForRestore(
+                candidate,
+                out string ownerFailure))
+        {
+            throw new InvalidOperationException(
+                "Urgent mitigation input owner restore join failed: "
+                + ownerFailure);
         }
 
         int candidateVersion;
@@ -555,8 +602,11 @@ public sealed class OffenseUrgentMitigationRuntime :
                 failureReason = "무재료 완화 결과를 게시하지 못했습니다.";
                 return false;
             }
-            RemoveOrder(order);
-            return true;
+            return TryRemoveOrder(
+                order,
+                OffenseUrgentMitigationInputOwnerAuthority
+                    .CompletedReleaseReasonCode,
+                out failureReason);
         }
 
         if (phase == OffenseUrgentMitigationCommitPhase.None)
@@ -644,8 +694,11 @@ public sealed class OffenseUrgentMitigationRuntime :
 
         // Preserve any unexpected residual delivery as physical Loose stock.
         // Completion must never use count-only RemoveDestination deletion.
-        RemoveOrder(order);
-        return true;
+        return TryRemoveOrder(
+            order,
+            OffenseUrgentMitigationInputOwnerAuthority
+                .CompletedReleaseReasonCode,
+            out failureReason);
     }
 
     private bool TryPublishMitigationOutcome(
@@ -730,7 +783,17 @@ public sealed class OffenseUrgentMitigationRuntime :
             || site == null
             || !site.IsActive)
         {
-            CancelOrder(order);
+            if (!TryRemoveOrder(
+                    order,
+                    OffenseUrgentMitigationInputOwnerAuthority
+                        .CancelledReleaseReasonCode,
+                    out string cancelFailure))
+            {
+                SetStatus(
+                    order,
+                    OffenseUrgentMitigationOrderStatus.WaitingForFacility,
+                    "종료 재료 보존 대기: " + cancelFailure);
+            }
             return;
         }
 
@@ -739,7 +802,17 @@ public sealed class OffenseUrgentMitigationRuntime :
         if (definition == null
             || site.mitigation + 0.001f >= definition.maximumMitigation)
         {
-            CancelOrder(order);
+            if (!TryRemoveOrder(
+                    order,
+                    OffenseUrgentMitigationInputOwnerAuthority
+                        .CancelledReleaseReasonCode,
+                    out string cancelFailure))
+            {
+                SetStatus(
+                    order,
+                    OffenseUrgentMitigationOrderStatus.WaitingForFacility,
+                    "종료 재료 보존 대기: " + cancelFailure);
+            }
             return;
         }
 
@@ -785,21 +858,32 @@ public sealed class OffenseUrgentMitigationRuntime :
             && bound != null
             && !bound.isDestroy)
         {
-            return bound;
+            return inputOwners.TryEnsure(order, bound, out _)
+                ? bound
+                : null;
         }
 
         BuildableObject facility = FindFacilityByPersistentId(
             order.facilityPersistentId);
         if (facility == null)
         {
-            items.ReleaseDestination(
-                order.destinationId,
-                new Vector2Int(order.facilityX, order.facilityY));
+            if (OffenseUrgentMitigationInputOwnerAuthority
+                    .HasStoredProjection(order)
+                && !inputOwners.TryRetire(
+                    order,
+                    OffenseUrgentMitigationInputOwnerAuthority
+                        .FacilityLostReleaseReasonCode,
+                    out _))
+            {
+                return null;
+            }
+            order.facilityPersistentId = string.Empty;
+            OffenseUrgentMitigationInputOwnerAuthority
+                .ClearStoredProjection(order);
+            UnbindFacility(order);
             facility = FindAvailableFacility(definition);
             if (facility == null)
             {
-                order.facilityPersistentId = string.Empty;
-                UnbindFacility(order);
                 Touch(rebuildFacilityIndex: true);
                 return null;
             }
@@ -807,6 +891,11 @@ public sealed class OffenseUrgentMitigationRuntime :
             order.facilityPersistentId = GetFacilityPersistentId(facility);
             order.facilityX = facility.centerPos.x;
             order.facilityY = facility.centerPos.y;
+        }
+
+        if (!inputOwners.TryEnsure(order, facility, out _))
+        {
+            return null;
         }
 
         BindFacility(order, facility);
@@ -1036,25 +1125,29 @@ public sealed class OffenseUrgentMitigationRuntime :
         boundFacilities.Remove(order.orderId);
     }
 
-    private void CancelOrder(OffenseUrgentMitigationOrderStateData order)
+    private bool TryRemoveOrder(
+        OffenseUrgentMitigationOrderStateData order,
+        string releaseReasonCode,
+        out string failureReason)
     {
-        RemoveOrder(order);
-    }
-
-    private void RemoveOrder(OffenseUrgentMitigationOrderStateData order)
-    {
+        failureReason = string.Empty;
         if (order == null)
         {
-            return;
+            failureReason = "urgent-mitigation-order-missing";
+            return false;
         }
-
-        items.ReleaseDestination(
-            order.destinationId,
-            new Vector2Int(order.facilityX, order.facilityY));
+        if (!inputOwners.TryRetire(
+                order,
+                releaseReasonCode,
+                out failureReason))
+        {
+            return false;
+        }
 
         UnbindFacility(order);
         orders.Remove(order);
         Touch(rebuildFacilityIndex: true);
+        return true;
     }
 
     private void SetStatus(
@@ -1090,11 +1183,10 @@ public sealed class OffenseUrgentMitigationRuntime :
 
     private static string GetFacilityPersistentId(BuildableObject facility)
     {
-        FacilityEvolutionStateComponent state =
-            facility != null
-                ? facility.GetComponent<FacilityEvolutionStateComponent>()
-                : null;
-        return state?.FacilityPersistentId ?? string.Empty;
+        BuildingInstanceId value = facility != null
+            ? facility.PersistentInstanceId
+            : default;
+        return value.IsValid ? value.Value : string.Empty;
     }
 
     private OffenseUrgentMitigationWorkSnapshot Unavailable(
@@ -1141,6 +1233,10 @@ public sealed class OffenseUrgentMitigationRuntime :
             facilityX = source.facilityX,
             facilityY = source.facilityY,
             destinationId = source.destinationId ?? string.Empty,
+            inputBufferCapacityGrams = source.inputBufferCapacityGrams,
+            inputMassAuthorityRevision = source.inputMassAuthorityRevision,
+            inputCapacityFingerprint = source.inputCapacityFingerprint
+                ?? string.Empty,
             requiredWork = source.requiredWork,
             completedWork = source.completedWork,
             status = source.status,

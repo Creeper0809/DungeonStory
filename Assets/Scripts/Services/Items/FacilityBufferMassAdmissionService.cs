@@ -19,7 +19,8 @@ public enum FacilityBufferMassAdmissionFailureCode
     TokenMismatch = 8,
     TokenNotReserved = 9,
     RestoreMutationAfterPublish = 10,
-    OwnerDestructiveDrainOpen = 11
+    OwnerMutationFenceOpen = 11,
+    OwnerDestructiveDrainOpen = OwnerMutationFenceOpen
 }
 
 public enum FacilityBufferMassAdmissionTokenStatus
@@ -50,7 +51,8 @@ public sealed class FacilityBufferCapacityProfile
         string ownerOperationId,
         string ownerFacilityId,
         PhysicalMassGrams maxMass,
-        long capacityRevision)
+        long capacityRevision,
+        string authorityDigest = "")
     {
         DestinationId = destinationId;
         DropPosition = dropPosition;
@@ -59,6 +61,13 @@ public sealed class FacilityBufferCapacityProfile
         OwnerFacilityId = ownerFacilityId;
         MaxMass = maxMass;
         CapacityRevision = capacityRevision;
+        AuthorityDigest = authorityDigest ?? string.Empty;
+        if (AuthorityDigest.Length != 0 && !IsLowercaseSha256(AuthorityDigest))
+        {
+            throw new ArgumentException(
+                "Facility-buffer capacity authority digest must be lowercase SHA-256.",
+                nameof(authorityDigest));
+        }
     }
 
     public string DestinationId { get; }
@@ -69,6 +78,20 @@ public sealed class FacilityBufferCapacityProfile
     public PhysicalMassGrams MaxMass { get; }
     public long MaxMassGrams => MaxMass.Value;
     public long CapacityRevision { get; }
+    public string AuthorityDigest { get; }
+
+    private static bool IsLowercaseSha256(string value)
+    {
+        if (value == null || value.Length != 64)
+            return false;
+        foreach (char character in value)
+        {
+            if (!(character is >= '0' and <= '9')
+                && !(character is >= 'a' and <= 'f'))
+                return false;
+        }
+        return true;
+    }
 }
 
 public readonly struct FacilityBufferMassLotSlice
@@ -289,12 +312,30 @@ public readonly struct FacilityBufferPlannedOutputSlice
         int quantity,
         IReadOnlyList<ItemInstanceComponentSaveData> runtimeComponents,
         string preparedComponentFingerprint)
+        : this(
+            outputLineId,
+            subject,
+            quantity,
+            runtimeComponents,
+            preparedComponentFingerprint,
+            string.Empty)
+    {
+    }
+
+    public FacilityBufferPlannedOutputSlice(
+        string outputLineId,
+        PhysicalItemMassSubject subject,
+        int quantity,
+        IReadOnlyList<ItemInstanceComponentSaveData> runtimeComponents,
+        string preparedComponentFingerprint,
+        string uniqueBindingCapabilityId)
     {
         OutputLineId = outputLineId;
         Subject = subject;
         Quantity = quantity;
         PreparedComponentFingerprint = preparedComponentFingerprint
             ?? string.Empty;
+        UniqueBindingCapabilityId = uniqueBindingCapabilityId ?? string.Empty;
         if (!string.Equals(
                 PreparedComponentFingerprint,
                 PreparedComponentFingerprint.Trim(),
@@ -303,6 +344,15 @@ public readonly struct FacilityBufferPlannedOutputSlice
             throw new ArgumentException(
                 "Prepared component fingerprint must already be canonical.",
                 nameof(preparedComponentFingerprint));
+        }
+        if (!string.Equals(
+                UniqueBindingCapabilityId,
+                UniqueBindingCapabilityId.Trim(),
+                StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "Unique binding capability ID must already be canonical.",
+                nameof(uniqueBindingCapabilityId));
         }
         FacilityBufferPlannedOutputComponentSnapshot[] copied =
             (runtimeComponents ?? Array.Empty<ItemInstanceComponentSaveData>())
@@ -317,6 +367,7 @@ public readonly struct FacilityBufferPlannedOutputSlice
     public ItemDefinitionId ItemDefinitionId => Subject?.ItemId ?? default;
     public int Quantity { get; }
     public string PreparedComponentFingerprint { get; }
+    public string UniqueBindingCapabilityId { get; }
     public IReadOnlyList<FacilityBufferPlannedOutputComponentSnapshot>
         RuntimeComponents => runtimeComponents
             ?? Array.Empty<FacilityBufferPlannedOutputComponentSnapshot>();
@@ -325,6 +376,11 @@ public readonly struct FacilityBufferPlannedOutputSlice
         MaterializeRuntimeComponents() => RuntimeComponents
         .Select(component => component.Materialize())
         .ToArray();
+
+#if UNITY_EDITOR
+    public IReadOnlyList<ItemInstanceComponentSaveData>
+        MaterializeEditorFixtureComponents() => MaterializeRuntimeComponents();
+#endif
 }
 
 public sealed class FacilityBufferPlannedOutputComponentSnapshot
@@ -368,7 +424,8 @@ public readonly struct FacilityBufferPlannedOutputRequest
         long expectedCapacityRevision,
         IReadOnlyList<FacilityBufferPlannedOutputSlice> slices,
         string capacitySourceDigest = "",
-        long expectedMinimumCapacityGrams = 0L)
+        long expectedMinimumCapacityGrams = 0L,
+        string capacityAuthorityDigest = "")
     {
         PublicationOperationId = publicationOperationId;
         BatchCommitId = batchCommitId;
@@ -381,6 +438,7 @@ public readonly struct FacilityBufferPlannedOutputRequest
         ExpectedCapacityRevision = expectedCapacityRevision;
         CapacitySourceDigest = capacitySourceDigest ?? string.Empty;
         ExpectedMinimumCapacityGrams = expectedMinimumCapacityGrams;
+        CapacityAuthorityDigest = capacityAuthorityDigest ?? string.Empty;
         FacilityBufferPlannedOutputSlice[] copied = (slices
                 ?? throw new ArgumentNullException(nameof(slices)))
             .ToArray();
@@ -398,6 +456,7 @@ public readonly struct FacilityBufferPlannedOutputRequest
     public long ExpectedCapacityRevision { get; }
     public string CapacitySourceDigest { get; }
     public long ExpectedMinimumCapacityGrams { get; }
+    public string CapacityAuthorityDigest { get; }
     public IReadOnlyList<FacilityBufferPlannedOutputSlice> Slices =>
         slices ?? Array.Empty<FacilityBufferPlannedOutputSlice>();
 }
@@ -484,13 +543,15 @@ public readonly struct FacilityBufferPublishedOutputStackReceipt
         string outputLineId,
         ItemDefinitionId itemDefinitionId,
         int quantity,
-        PhysicalMassGrams mass)
+        PhysicalMassGrams mass,
+        string itemInstanceId = "")
     {
         StackId = stackId;
         OutputLineId = outputLineId;
         ItemDefinitionId = itemDefinitionId;
         Quantity = quantity;
         Mass = mass;
+        ItemInstanceId = itemInstanceId ?? string.Empty;
     }
 
     public string StackId { get; }
@@ -498,6 +559,7 @@ public readonly struct FacilityBufferPublishedOutputStackReceipt
     public ItemDefinitionId ItemDefinitionId { get; }
     public int Quantity { get; }
     public PhysicalMassGrams Mass { get; }
+    public string ItemInstanceId { get; }
     public long MassGrams => Mass.Value;
 }
 
@@ -649,6 +711,10 @@ public interface IFacilityBufferMassAdmissionService :
     IFacilityBufferMassCapacityQuery,
     IFacilityBufferMassCapacityCommand
 {
+    bool TryValidateExactDestinationClaim(
+        string destinationId,
+        Vector2Int dropPosition,
+        out string failureReason);
     bool TryReserveExactLot(
         FacilityBufferMassAdmissionRequest request,
         out FacilityBufferMassAdmissionToken token,
@@ -716,6 +782,20 @@ public interface IFacilityBufferMassAdmissionService :
 }
 
 /// <summary>
+/// Pure projection boundary used by detached restore validators. It computes
+/// the same exact mass and fingerprint as admission without reserving capacity
+/// or mutating token state.
+/// </summary>
+public interface IFacilityBufferPlannedOutputProjectionQuery
+{
+    bool TryProjectPlannedOutput(
+        FacilityBufferPlannedOutputRequest request,
+        out FacilityBufferPlannedOutputSnapshot planned,
+        out FacilityBufferMassAdmissionFailureCode failureCode,
+        out string failureReason);
+}
+
+/// <summary>
 /// Reads exact physical occupancy and lot mass from the same repository state
 /// used by delivery retargeting. Callers cannot author occupancy totals.
 /// </summary>
@@ -725,11 +805,15 @@ public sealed class FacilityBufferPhysicalOccupancyQuery :
     private readonly WorldItemRepository repository;
     private readonly IPhysicalItemMassQuery massQuery;
     private readonly IItemQuantityReservationService quantityReservations;
+    private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly IRestoreHaulDeliveryIntentCandidateQuery restoreHaulIntents;
 
     public FacilityBufferPhysicalOccupancyQuery(
         WorldItemRepository repository,
         IPhysicalItemMassQuery massQuery,
-        IItemQuantityReservationService quantityReservations)
+        IItemQuantityReservationService quantityReservations,
+        DungeonRuntimeAggregateRootStore aggregateRootStore = null,
+        IRestoreHaulDeliveryIntentCandidateQuery restoreHaulIntents = null)
     {
         this.repository = repository
             ?? throw new ArgumentNullException(nameof(repository));
@@ -737,6 +821,8 @@ public sealed class FacilityBufferPhysicalOccupancyQuery :
             ?? throw new ArgumentNullException(nameof(massQuery));
         this.quantityReservations = quantityReservations
             ?? throw new ArgumentNullException(nameof(quantityReservations));
+        this.aggregateRootStore = aggregateRootStore;
+        this.restoreHaulIntents = restoreHaulIntents;
     }
 
     public long MassAuthorityRevision => massQuery.AuthorityRevision;
@@ -762,8 +848,11 @@ public sealed class FacilityBufferPhysicalOccupancyQuery :
         }
 
         long carried = 0L;
-        foreach (HaulDeliveryIntentSaveData intent in repository.HaulDeliveryIntents
-                     .CaptureCommitted()
+        foreach (HaulDeliveryIntentSaveData intent in HaulDeliveryIntentAuthorityView
+                     .Capture(
+                         aggregateRootStore,
+                         restoreHaulIntents,
+                         repository.HaulDeliveryIntents)
                      .Where(intent => intent != null
                          && string.Equals(
                              intent.destinationId,
@@ -1025,8 +1114,9 @@ public sealed class FacilityBufferPhysicalOccupancyQuery :
 /// </summary>
 public sealed class FacilityBufferMassAdmissionService :
     IFacilityBufferMassAdmissionService,
+    IFacilityBufferPlannedOutputProjectionQuery,
     IFacilityBufferMassCapacityAuthorityQuery,
-    IDungeonRestoreTransactionParticipant
+    IDungeonPreStageRestoreTransactionParticipant
 {
     private const string RestoreParticipantId =
         "221.world.facility-buffer-mass-capacity";
@@ -1051,8 +1141,8 @@ public sealed class FacilityBufferMassAdmissionService :
     private readonly IFacilityBufferDestinationClaimAuthorityQuery destinationClaims;
     private readonly IFacilityBufferPhysicalOccupancyQuery physicalOccupancy;
     private readonly IPhysicalItemMassQuery plannedOutputMassQuery;
-    private readonly IProductionFacilityDestructiveDrainOpenOperationQuery
-        openDestructiveDrains;
+    private readonly IFacilityBufferDestinationAdmissionFenceQuery
+        admissionFences;
     private Dictionary<string, FacilityBufferCapacityProfile> profiles =
         CreateProfileMap();
     private Dictionary<string, FacilityBufferCapacityProfile> candidateProfiles;
@@ -1078,13 +1168,33 @@ public sealed class FacilityBufferMassAdmissionService :
         IPhysicalItemMassQuery plannedOutputMassQuery = null,
         IProductionFacilityDestructiveDrainOpenOperationQuery
             openDestructiveDrains = null)
+        : this(
+            destinationClaims,
+            physicalOccupancy,
+            plannedOutputMassQuery,
+            openDestructiveDrains == null
+                ? null
+                : new FacilityBufferDestinationAdmissionFenceQuery(new[]
+                {
+                    new ProductionFacilityDestructiveDrainAdmissionFenceSource(
+                        openDestructiveDrains)
+                }))
+    {
+    }
+
+    [VContainer.Inject]
+    public FacilityBufferMassAdmissionService(
+        IFacilityBufferDestinationClaimAuthorityQuery destinationClaims,
+        IFacilityBufferPhysicalOccupancyQuery physicalOccupancy,
+        IPhysicalItemMassQuery plannedOutputMassQuery,
+        IFacilityBufferDestinationAdmissionFenceQuery admissionFences)
     {
         this.destinationClaims = destinationClaims
             ?? throw new ArgumentNullException(nameof(destinationClaims));
         this.physicalOccupancy = physicalOccupancy
             ?? throw new ArgumentNullException(nameof(physicalOccupancy));
         this.plannedOutputMassQuery = plannedOutputMassQuery;
-        this.openDestructiveDrains = openDestructiveDrains;
+        this.admissionFences = admissionFences;
     }
 
     public string ParticipantId => RestoreParticipantId;
@@ -1099,6 +1209,25 @@ public sealed class FacilityBufferMassAdmissionService :
         CaptureAuthorityProfiles() => GetAuthorityView().Values
         .OrderBy(value => value.DestinationId, StringComparer.Ordinal)
         .ToArray();
+
+    public bool TryValidateExactDestinationClaim(
+        string destinationId,
+        Vector2Int dropPosition,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (!destinationClaims.TryGetAuthorityClaim(
+                destinationId,
+                dropPosition,
+                out FacilityBufferDestinationClaim claim)
+            || claim == null)
+        {
+            failureReason =
+                "facility-buffer-exact-destination-claim-missing";
+            return false;
+        }
+        return true;
+    }
 
     public bool TryGetCapacity(
         string destinationId,
@@ -1488,13 +1617,13 @@ public sealed class FacilityBufferMassAdmissionService :
         {
             return false;
         }
-        if (IsOwnerDestructiveDrainOpen(profile, out string drainOperationId))
+        if (IsOwnerMutationFenceOpen(profile, out string mutationOperationId))
         {
             return Fail(
                 FacilityBufferMassAdmissionFailureCode
-                    .OwnerDestructiveDrainOpen,
-                "Facility-buffer owner is fenced by destructive drain '"
-                + drainOperationId + "'.",
+                    .OwnerMutationFenceOpen,
+                "Facility-buffer owner is fenced by mutation operation '"
+                + mutationOperationId + "'.",
                 out failureCode,
                 out failureReason);
         }
@@ -1785,13 +1914,13 @@ public sealed class FacilityBufferMassAdmissionService :
         {
             return false;
         }
-        if (IsOwnerDestructiveDrainOpen(profile, out string drainOperationId))
+        if (IsOwnerMutationFenceOpen(profile, out string mutationOperationId))
         {
             return Fail(
                 FacilityBufferMassAdmissionFailureCode
-                    .OwnerDestructiveDrainOpen,
-                "Facility-buffer owner is fenced by destructive drain '"
-                + drainOperationId + "'.",
+                    .OwnerMutationFenceOpen,
+                "Facility-buffer owner is fenced by mutation operation '"
+                + mutationOperationId + "'.",
                 out failureCode,
                 out failureReason);
         }
@@ -1924,7 +2053,6 @@ public sealed class FacilityBufferMassAdmissionService :
                 out failureReason);
         }
         if (plannedOutputMassQuery == null
-            || token.CapacityAuthorityRevision != revision
             || token.MassAuthorityRevision
                 != plannedOutputMassQuery.AuthorityRevision
             || !profiles.TryGetValue(
@@ -2114,10 +2242,14 @@ public sealed class FacilityBufferMassAdmissionService :
             || request.ExpectedCapacityRevision <= 0L
             || productionCapacitySource
                 && (!IsLowercaseSha256(request.CapacitySourceDigest)
-                    || request.ExpectedMinimumCapacityGrams <= 0L)
+                    || request.ExpectedMinimumCapacityGrams <= 0L
+                    || request.CapacityAuthorityDigest.Length != 0
+                        && !IsLowercaseSha256(
+                            request.CapacityAuthorityDigest))
             || !productionCapacitySource
                 && (request.CapacitySourceDigest.Length != 0
-                    || request.ExpectedMinimumCapacityGrams != 0L)
+                    || request.ExpectedMinimumCapacityGrams != 0L
+                    || request.CapacityAuthorityDigest.Length != 0)
             || slices.Length == 0
             || slices.Any(slice =>
                 !IsCanonicalRequired(slice.OutputLineId)
@@ -2126,7 +2258,9 @@ public sealed class FacilityBufferMassAdmissionService :
                 || slice.Quantity <= 0
                 || (slice.PreparedComponentFingerprint ?? string.Empty).Length > 0
                     && !IsLowercaseSha256(
-                        slice.PreparedComponentFingerprint))
+                        slice.PreparedComponentFingerprint)
+                || (slice.UniqueBindingCapabilityId ?? string.Empty).Length > 0
+                    && !IsCanonicalRequired(slice.UniqueBindingCapabilityId))
             || slices.Select(slice => slice.OutputLineId)
                 .Distinct(StringComparer.Ordinal).Count() != slices.Length)
         {
@@ -2329,6 +2463,8 @@ public sealed class FacilityBufferMassAdmissionService :
         {
             int totalQuantity = 0;
             long totalMassGrams = 0L;
+            HashSet<string> publishedItemInstanceIds = new(
+                StringComparer.Ordinal);
             foreach (IGrouping<string, FacilityBufferPublishedOutputStackReceipt> group in
                      published.GroupBy(
                          stack => stack.OutputLineId,
@@ -2346,6 +2482,43 @@ public sealed class FacilityBufferMassAdmissionService :
                         return Fail(
                             FacilityBufferMassAdmissionFailureCode.TokenMismatch,
                             $"Facility-buffer planned-output line '{group.Key}' item mismatched.",
+                            out failureCode,
+                            out failureReason);
+                    }
+                    string expectedInstanceId =
+                        expectedLine.Source.Subject.ItemInstanceId
+                        ?? string.Empty;
+                    string publishedInstanceId = stack.ItemInstanceId
+                        ?? string.Empty;
+                    bool exactInstance = string.Equals(
+                        publishedInstanceId,
+                        expectedInstanceId,
+                        StringComparison.Ordinal);
+                    bool publicationAllocatedGenericInstance =
+                        expectedInstanceId.Length == 0
+                        && expectedLine.Source.Subject.Kind
+                            == PhysicalItemMassSubjectKind.GenericDefinition
+                        && stack.Quantity == 1
+                        && publishedInstanceId.Length > 0
+                        && ((ItemInstanceId)publishedInstanceId).IsValid
+                        && string.Equals(
+                            ((ItemInstanceId)publishedInstanceId).Value,
+                            publishedInstanceId,
+                            StringComparison.Ordinal);
+                    if (!exactInstance && !publicationAllocatedGenericInstance)
+                    {
+                        return Fail(
+                            FacilityBufferMassAdmissionFailureCode.TokenMismatch,
+                            $"Facility-buffer planned-output stack '{stack.StackId}' item instance mismatched.",
+                            out failureCode,
+                            out failureReason);
+                    }
+                    if (publishedInstanceId.Length > 0
+                        && !publishedItemInstanceIds.Add(publishedInstanceId))
+                    {
+                        return Fail(
+                            FacilityBufferMassAdmissionFailureCode.TokenMismatch,
+                            $"Facility-buffer planned-output item instance '{publishedInstanceId}' is duplicated.",
                             out failureCode,
                             out failureReason);
                     }
@@ -2413,7 +2586,8 @@ public sealed class FacilityBufferMassAdmissionService :
             || !IsCanonicalRequired(profile.DestinationId)
             || !IsCanonicalRequired(profile.OwnerDomain)
             || !IsCanonicalRequired(profile.OwnerOperationId)
-            || !IsCanonicalRequired(profile.OwnerFacilityId)
+            || profile.OwnerFacilityId != null
+                && !IsCanonicalRequired(profile.OwnerFacilityId)
             || profile.MaxMassGrams <= 0L
             || profile.CapacityRevision <= 0L
             || !string.Equals(
@@ -2431,6 +2605,8 @@ public sealed class FacilityBufferMassAdmissionService :
                 profile.DestinationId,
                 profile.DropPosition,
                 out FacilityBufferDestinationClaim claim)
+            || claim.AnchorKind != FacilityBufferDestinationAnchorKind.ReservedTarget
+                && !IsCanonicalRequired(profile.OwnerFacilityId)
             || !string.Equals(
                 claim.OwnerDomain,
                 profile.OwnerDomain,
@@ -2464,7 +2640,8 @@ public sealed class FacilityBufferMassAdmissionService :
             || !IsCanonicalRequired(request.DestinationId)
             || !IsCanonicalRequired(request.ExpectedOwnerDomain)
             || !IsCanonicalRequired(request.ExpectedOwnerOperationId)
-            || !IsCanonicalRequired(request.ExpectedOwnerFacilityId)
+            || request.ExpectedOwnerFacilityId != null
+                && !IsCanonicalRequired(request.ExpectedOwnerFacilityId)
             || request.ExpectedCapacityRevision <= 0L
             || request.ExactLotSlices == null
             || request.ExactLotSlices.Count == 0)
@@ -2505,6 +2682,10 @@ public sealed class FacilityBufferMassAdmissionService :
         && profile.CapacityRevision == request.ExpectedCapacityRevision
         && profile.MaxMassGrams >= request.ExpectedMinimumCapacityGrams
         && string.Equals(
+            profile.AuthorityDigest,
+            request.CapacityAuthorityDigest,
+            StringComparison.Ordinal)
+        && string.Equals(
             profile.OwnerDomain,
             request.ExpectedOwnerDomain,
             StringComparison.Ordinal)
@@ -2531,6 +2712,10 @@ public sealed class FacilityBufferMassAdmissionService :
         && string.Equals(
             left.OwnerFacilityId,
             right.OwnerFacilityId,
+            StringComparison.Ordinal)
+        && string.Equals(
+            left.AuthorityDigest,
+            right.AuthorityDigest,
             StringComparison.Ordinal);
 
     private static bool ProfilesMatch(
@@ -2556,6 +2741,10 @@ public sealed class FacilityBufferMassAdmissionService :
         && string.Equals(
             left.OwnerFacilityId,
             right.OwnerFacilityId,
+            StringComparison.Ordinal)
+        && string.Equals(
+            left.AuthorityDigest,
+            right.AuthorityDigest,
             StringComparison.Ordinal);
 
     private static bool OwnedProfileSetMatches(
@@ -2725,7 +2914,11 @@ public sealed class FacilityBufferMassAdmissionService :
                     StringComparison.Ordinal)
                 || !a.ItemDefinitionId.Equals(b.ItemDefinitionId)
                 || a.Quantity != b.Quantity
-                || a.MassGrams != b.MassGrams)
+                || a.MassGrams != b.MassGrams
+                || !string.Equals(
+                    a.ItemInstanceId,
+                    b.ItemInstanceId,
+                    StringComparison.Ordinal))
             {
                 return false;
             }
@@ -2751,7 +2944,7 @@ public sealed class FacilityBufferMassAdmissionService :
         long massAuthorityRevision)
     {
         StringBuilder canonical = new();
-        AppendFingerprintValue(canonical, "facility-buffer-planned-output-v3");
+        AppendFingerprintValue(canonical, "facility-buffer-planned-output-v5");
         AppendFingerprintValue(canonical, request.PublicationOperationId);
         AppendFingerprintValue(canonical, request.BatchCommitId);
         AppendFingerprintValue(canonical, request.OutcomeFingerprint);
@@ -2766,6 +2959,7 @@ public sealed class FacilityBufferMassAdmissionService :
         AppendFingerprintValue(canonical, request.ExpectedCapacityRevision.ToString(
             CultureInfo.InvariantCulture));
         AppendFingerprintValue(canonical, request.CapacitySourceDigest);
+        AppendFingerprintValue(canonical, request.CapacityAuthorityDigest);
         AppendFingerprintValue(canonical, request.ExpectedMinimumCapacityGrams
             .ToString(CultureInfo.InvariantCulture));
         AppendFingerprintValue(canonical, massAuthorityRevision.ToString(
@@ -2784,6 +2978,9 @@ public sealed class FacilityBufferMassAdmissionService :
             AppendFingerprintValue(
                 canonical,
                 slice.Source.PreparedComponentFingerprint);
+            AppendFingerprintValue(
+                canonical,
+                slice.Source.UniqueBindingCapabilityId);
             AppendFingerprintValue(canonical, slice.Quantity.ToString(
                 CultureInfo.InvariantCulture));
             AppendFingerprintValue(canonical, slice.ExactMassGrams.ToString(
@@ -2961,29 +3158,49 @@ public sealed class FacilityBufferMassAdmissionService :
         !string.IsNullOrWhiteSpace(value)
         && string.Equals(value, value.Trim(), StringComparison.Ordinal);
 
-    private bool IsOwnerDestructiveDrainOpen(
+    private bool IsOwnerMutationFenceOpen(
         FacilityBufferCapacityProfile profile,
         out string operationId)
     {
         operationId = string.Empty;
-        if (openDestructiveDrains == null
-            || profile == null
-            || string.IsNullOrEmpty(profile.OwnerFacilityId))
+        if (admissionFences == null || profile == null)
         {
             return false;
         }
 
-        BuildingInstanceId facilityId =
-            (BuildingInstanceId)profile.OwnerFacilityId;
-        if (!openDestructiveDrains.TryCapture(
-                facilityId,
-                out ProductionFacilityDestructiveDrainOpenOperationSnapshot
-                    pending))
+        FacilityBufferDestinationAdmissionFenceSubject subject = new(
+            profile.DestinationId,
+            profile.OwnerDomain,
+            profile.OwnerOperationId,
+            profile.OwnerFacilityId);
+        if (!admissionFences.TryCaptureOpenFence(
+                subject,
+                out FacilityBufferDestinationAdmissionFenceSnapshot pending))
         {
             return false;
         }
-        operationId = pending.OperationId.Value;
+        operationId = pending.OperationId;
         return true;
+    }
+
+    public bool TryProjectPlannedOutput(
+        FacilityBufferPlannedOutputRequest request,
+        out FacilityBufferPlannedOutputSnapshot planned,
+        out FacilityBufferMassAdmissionFailureCode failureCode,
+        out string failureReason)
+    {
+        planned = default;
+        long revision = plannedOutputMassQuery.AuthorityRevision;
+        return TryValidatePlannedOutputRequest(
+                request,
+                out failureCode,
+                out failureReason)
+            && TryCapturePlannedOutput(
+                request,
+                revision,
+                out planned,
+                out failureCode,
+                out failureReason);
     }
 
     private static bool Fail(

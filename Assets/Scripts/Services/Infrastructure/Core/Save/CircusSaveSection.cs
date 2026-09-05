@@ -15,6 +15,7 @@ public sealed class CircusSaveSection :
     private static readonly string[] Dependencies =
     {
         "items.physical",
+        "items.durable-facility-equipment",
         CaptivitySaveSection.Id,
         "wildlife.population",
         "characters.world",

@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "apparel-sleep-bottom",
+    "spoiler_tier": "none",
+    "title": "잠옷 하의"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-sleep-bottom",
+      "label": "생산·해금",
+      "to": "item/apparel-sleep-bottom",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

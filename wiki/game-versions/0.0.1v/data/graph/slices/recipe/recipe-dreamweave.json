@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-dreamweave",
+    "spoiler_tier": "none",
+    "title": "몽직물 직조"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-dreamweave",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-dreamweave",
+      "target_spoiler_tier": "none",
+      "target_title": "몽직물",
+      "to": "item/material-dreamweave",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-dreamweave",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-mana-crystal",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 결정",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-dreamweave",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "천",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-dreamweave",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-dreamleaf",
+      "target_spoiler_tier": "none",
+      "target_title": "몽엽",
+      "to": "item/resource-dreamleaf",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-dreamweave",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-dreamweave",
+      "target_spoiler_tier": "none",
+      "target_title": "몽직물",
+      "to": "research/research-textile-dreamweave",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

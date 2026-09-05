@@ -21,6 +21,16 @@ public static class CombatEquipmentMaterialDebugScenarios
         Run("catalog_and_allowed_families", VerifyCatalogAndFamilies, report, failures);
         Run("derived_stats", VerifyDerivedStats, report, failures);
         Run("material_policy", VerifyMaterialPolicy, report, failures);
+        Run(
+            "facility_mutation_fence",
+            VerifyFacilityMutationFence,
+            report,
+            failures);
+        Run(
+            "craft_output_capability_binding",
+            VerifyCraftOutputCapabilityBinding,
+            report,
+            failures);
         Run("save_round_trip", VerifySaveRoundTrip, report, failures);
         report.Add($"valid={failures.Count == 0}");
         Directory.CreateDirectory(Path.GetDirectoryName(ReportPath) ?? "docs");
@@ -182,6 +192,86 @@ public static class CombatEquipmentMaterialDebugScenarios
         }
     }
 
+    private static string VerifyFacilityMutationFence()
+    {
+        (ResourceCombatEquipmentCatalog equipmentCatalog,
+            ResourceEconomyContentCatalog materialCatalog) = CreateCatalogs();
+        ProductionFacilityMutationEpochRuntime mutations = new();
+        CombatEquipmentRuntime runtime = CombatEquipmentEditorTestFactory.Create(
+            equipmentCatalog,
+            new WorldItemRepository(
+                new GuidPersistentIdGenerator(),
+                new DungeonRuntimeAggregateRootStore()),
+            new CharacterCarryInventoryRegistry(),
+            materialCatalog,
+            researchProvider: EditorAllResearchRuntimeProvider.Instance,
+            evolutionModules: EmptyEvolutionModuleRegistry.Instance,
+            moduleCatalog: EmptyEquipmentModuleCatalog.Instance,
+            itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance,
+            facilityMutations: mutations);
+        BuildingSO facilityData = Resources.LoadAll<BuildingSO>(string.Empty)
+            .Where(value => value != null)
+            .First(value => value.GetAbility<BuildingEquipmentCraftingAbility>()?
+                .CraftableEquipmentIds.Contains(
+                    "weapon:longsword",
+                    StringComparer.Ordinal) == true);
+        GameObject facilityObject = new("CombatMutationFenceFacility");
+        long epoch = 0L;
+        BuildingInstanceId facilityId = default;
+        try
+        {
+            BuildableObject facility = facilityObject.AddComponent<BuildableObject>();
+            CharacterAiEditorTestDependencies.Inject(facility);
+            facility.Initialization(facilityData, new Vector2Int(13, 9));
+            facilityId = facility.RequirePersistentInstanceId();
+            Require(mutations.TryBegin(
+                    facilityId,
+                    "qa:combat-craft-mutation",
+                    out epoch,
+                    out string beginFailure),
+                "combat mutation fence could not open: " + beginFailure);
+            Require(!runtime.TryQueueCraft(
+                    "weapon:longsword",
+                    "material:iron",
+                    facility,
+                    out string frozenFailure)
+                && frozenFailure.Contains(
+                    "production-facility-mutation-open",
+                    StringComparison.Ordinal),
+                "combat queue was not rejected by the exact mutation fence: "
+                + frozenFailure);
+            Require(mutations.TryEnd(
+                    facilityId,
+                    "qa:combat-craft-mutation",
+                    epoch,
+                    out string endFailure),
+                "combat mutation fence could not close: " + endFailure);
+            epoch = 0L;
+            runtime.TryQueueCraft(
+                "weapon:longsword",
+                "material:iron",
+                facility,
+                out string reopenedFailure);
+            Require(!reopenedFailure.Contains(
+                    "production-facility-mutation-open",
+                    StringComparison.Ordinal),
+                "combat queue remained mutation-blocked after close");
+            return "openRejected=1; closeReopened=1";
+        }
+        finally
+        {
+            if (epoch > 0L)
+            {
+                mutations.TryEnd(
+                    facilityId,
+                    "qa:combat-craft-mutation",
+                    epoch,
+                    out _);
+            }
+            UnityEngine.Object.DestroyImmediate(facilityObject);
+        }
+    }
+
     private static string VerifySaveRoundTrip()
     {
         (ResourceCombatEquipmentCatalog equipmentCatalog,
@@ -239,6 +329,49 @@ public static class CombatEquipmentMaterialDebugScenarios
             UnityEngine.Object.DestroyImmediate(facilityObject);
             UnityEngine.Object.DestroyImmediate(facilityData);
         }
+    }
+
+    private static string VerifyCraftOutputCapabilityBinding()
+    {
+        (ResourceCombatEquipmentCatalog equipmentCatalog,
+            ResourceEconomyContentCatalog materialCatalog) = CreateCatalogs();
+        IProductionOutputCapabilityRegistry registry =
+            CombatEquipmentEditorTestFactory.CreateOutputCapabilities(
+                equipmentCatalog,
+                new ResourceItemDefinitionCatalog(
+                    new ResourceGameContentCatalog(
+                        new UnityGameContentRootLoader())));
+
+        ProductionOutputCapabilityDescriptor equipment =
+            registry.CaptureDeclaredDescriptor(
+                CombatEquipmentCraftOutputCapability.OutputLineId,
+                PhysicalItemIds.ForEquipment("weapon:longsword"),
+                ProductionOutputCapabilityIds.CombatEquipmentCraft);
+        ProductionOutputCapabilityDescriptor ammunition =
+            registry.CaptureDeclaredDescriptor(
+                CombatAmmunitionCraftOutputCapability.OutputLineId,
+                CombatItemDefinitions.ArrowItemId,
+                ProductionOutputCapabilityIds.CombatAmmunitionCraft);
+        Require(
+            registry.TryValidateExact(equipment, out _, out _),
+            "combat equipment output capability did not validate exactly");
+        Require(
+            registry.TryValidateExact(ammunition, out _, out _),
+            "combat ammunition output capability did not validate exactly");
+
+        ProductionOutputCapabilityDescriptor drifted = new(
+            ammunition.OutputLineId,
+            ammunition.ItemId,
+            ammunition.CapabilityId,
+            ammunition.CapabilityVersion,
+            ammunition.ComponentCodecId,
+            ammunition.ComponentCodecVersion + 1,
+            ammunition.Fingerprint);
+        Require(
+            !registry.TryValidateExact(drifted, out _, out DomainFailure failure)
+                && failure.IsFailure,
+            "combat ammunition output capability codec drift was accepted");
+        return $"equipment={equipment.CapabilityId}; ammunition={ammunition.CapabilityId}; driftRejected=true";
     }
 
     private static BuildingSO CreateFacilityData(int id)

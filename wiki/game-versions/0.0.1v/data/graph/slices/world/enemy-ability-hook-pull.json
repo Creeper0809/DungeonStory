@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "enemy-ability-hook-pull",
+    "spoiler_tier": "none",
+    "title": "갈고리 끌기"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/enemy-legion-pikeman",
+      "label": "관련",
+      "to": "world/enemy-ability-hook-pull",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-rival-packbreaker",
+      "label": "관련",
+      "to": "world/enemy-ability-hook-pull",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

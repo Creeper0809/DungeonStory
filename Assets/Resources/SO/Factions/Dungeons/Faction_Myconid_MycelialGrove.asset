@@ -252,6 +252,12 @@ MonoBehaviour:
     amount: 8
   - itemId: food:mushroom-soup
     amount: 10
+  tradeEconomicPolicy:
+    capabilityId: faction-economy:paid-market-purchase
+    capabilityVersion: 1
+  supplyEconomicPolicy:
+    capabilityId: faction-economy:alliance-benefit
+    capabilityVersion: 1
   tradeCooldownDays: 22
   supplyCooldownDays: 38
   reinforcementCooldownDays: 10

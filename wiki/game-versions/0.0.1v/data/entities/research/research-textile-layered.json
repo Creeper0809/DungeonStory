@@ -1,0 +1,211 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "60"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Textiles"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9312",
+      "target_spoiler_tier": "none",
+      "target_title": "축융·마감대",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-golem-functional-lining",
+      "target_spoiler_tier": "none",
+      "target_title": "골렘 기능성 내피 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-miner-workwear",
+      "target_spoiler_tier": "none",
+      "target_title": "광부 작업복 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-tail-guard",
+      "target_spoiler_tier": "none",
+      "target_title": "꼬리 보호대 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-heat-work-suit",
+      "target_spoiler_tier": "none",
+      "target_title": "내열 작업복 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-smith-apron",
+      "target_spoiler_tier": "none",
+      "target_title": "대장장이 앞치마 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-waterproof-work-suit",
+      "target_spoiler_tier": "none",
+      "target_title": "방수 작업복 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-frost-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "서리 양모직 방적",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-weave-frost-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "서리 양모직 직조",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-mire-canvas",
+      "target_spoiler_tier": "none",
+      "target_title": "습지 캔버스 방적",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-weave-mire-canvas",
+      "target_spoiler_tier": "none",
+      "target_title": "습지 캔버스 직조",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-deep-goat-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "심층 염소모직 방적",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-weave-deep-goat-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "심층 염소모직 직조",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-smoke-protection-hood",
+      "target_spoiler_tier": "none",
+      "target_title": "연기 방호 두건 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-raincoat",
+      "target_spoiler_tier": "none",
+      "target_title": "우비 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-spore-protection-hood",
+      "target_spoiler_tier": "none",
+      "target_title": "포자 방호 두건 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-spore-hemp",
+      "target_spoiler_tier": "none",
+      "target_title": "포자 삼베 방적",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-weave-spore-hemp",
+      "target_spoiler_tier": "none",
+      "target_title": "포자 삼베 직조",
+      "type": "unlocks-recipe"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-textile-layered",
+  "spoiler_tier": "none",
+  "summary": "여러 원단층으로 부위별 방어를 강화한다.",
+  "title": "층상 방어구"
+}

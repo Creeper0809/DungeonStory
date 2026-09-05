@@ -11,6 +11,43 @@ public enum AutomationMode
     Automatic = 2
 }
 
+/// <summary>
+/// Root-backed read authority for execution admission. It exposes only the
+/// current authored-facility mode and does not own or cache automation state.
+/// </summary>
+public interface IAutomationExecutionModeQuery
+{
+    AutomationMode GetMode(BuildingInstanceId facilityId);
+}
+
+public static class AutomationModeTransitionRules
+{
+    public static bool HasActiveManualExecution(
+        bool hasFacilityReservation,
+        bool hasAllocatedWorker,
+        bool hasBillReservation) =>
+        hasFacilityReservation || hasAllocatedWorker || hasBillReservation;
+
+    public static bool TryAuthorize(
+        AutomationMode targetMode,
+        bool hasActiveManualWorker,
+        out string failureReason)
+    {
+        if (!Enum.IsDefined(typeof(AutomationMode), targetMode))
+        {
+            failureReason = "automation-mode-invalid";
+            return false;
+        }
+        if (targetMode == AutomationMode.Automatic && hasActiveManualWorker)
+        {
+            failureReason = "automatic-mode-manual-worker-active";
+            return false;
+        }
+        failureReason = string.Empty;
+        return true;
+    }
+}
+
 public readonly struct AutomationPowerDemandProfile
 {
     public AutomationPowerDemandProfile(

@@ -1,0 +1,273 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+DiseaseDefinitionSO|condition:core-corrosion,condition:core-corrosion,m_Name,Disease_condition-core-corrosion,,,explicit-serialized
+DiseaseDefinitionSO|condition:core-corrosion,condition:core-corrosion,stableId,condition:core-corrosion,,,explicit-serialized
+DiseaseDefinitionSO|condition:core-corrosion,condition:core-corrosion,displayName,핵 부식,,,explicit-serialized
+DiseaseDefinitionSO|condition:core-corrosion,condition:core-corrosion,routes,128,DiseaseTransmissionRoute,Environment,explicit-serialized
+DiseaseDefinitionSO|condition:core-corrosion,condition:core-corrosion,incubationDays,0,,,explicit-serialized
+DiseaseDefinitionSO|condition:core-corrosion,condition:core-corrosion,contagiousDays,0,,,explicit-serialized
+DiseaseDefinitionSO|condition:core-corrosion,condition:core-corrosion,baseInfectionProbability,0,,,explicit-serialized
+DiseaseDefinitionSO|condition:core-corrosion,condition:core-corrosion,baseSeverity,60,,,explicit-serialized
+DiseaseDefinitionSO|condition:core-corrosion,condition:core-corrosion,targetSystem,0,DiseaseTargetSystem,Core,explicit-serialized
+DiseaseDefinitionSO|condition:core-corrosion,condition:core-corrosion,vaccineAllowed,0,,,explicit-serialized
+DiseaseDefinitionSO|condition:core-corrosion,condition:core-corrosion,chronic,1,,,explicit-serialized
+DiseaseDefinitionSO|condition:core-corrosion,condition:core-corrosion,description,핵 부식의 고유 전파와 기관 증상.,,,explicit-serialized
+DiseaseDefinitionSO|condition:core-corrosion,condition:core-corrosion,authoringRevision,1,,,explicit-serialized
+DiseaseDefinitionSO|condition:core-corrosion,condition:core-corrosion,sourceNote,V19 disease upgraded to V20 symptom/response contract.,,,explicit-serialized
+DiseaseDefinitionSO|condition:core-corrosion,condition:core-corrosion,symptomProfileId,symptom:condition:core-corrosion,,,explicit-serialized
+DiseaseDefinitionSO|condition:core-corrosion,condition:core-corrosion,fieldResponseIds.0,response:isolate:condition:core-corrosion,,,explicit-serialized
+DiseaseDefinitionSO|condition:core-corrosion,condition:core-corrosion,fieldResponseIds.1,response:environment:condition:core-corrosion,,,explicit-serialized
+DiseaseDefinitionSO|disease:ash-lung,disease:ash-lung,m_Name,disease_ash-lung,,,explicit-serialized
+DiseaseDefinitionSO|disease:ash-lung,disease:ash-lung,stableId,disease:ash-lung,,,explicit-serialized
+DiseaseDefinitionSO|disease:ash-lung,disease:ash-lung,displayName,재먼지폐,,,explicit-serialized
+DiseaseDefinitionSO|disease:ash-lung,disease:ash-lung,routes,1,DiseaseTransmissionRoute,Air,explicit-serialized
+DiseaseDefinitionSO|disease:ash-lung,disease:ash-lung,incubationDays,4,,,explicit-serialized
+DiseaseDefinitionSO|disease:ash-lung,disease:ash-lung,contagiousDays,14,,,explicit-serialized
+DiseaseDefinitionSO|disease:ash-lung,disease:ash-lung,baseInfectionProbability,0.09,,,explicit-serialized
+DiseaseDefinitionSO|disease:ash-lung,disease:ash-lung,baseSeverity,52,,,explicit-serialized
+DiseaseDefinitionSO|disease:ash-lung,disease:ash-lung,targetSystem,2,DiseaseTargetSystem,Breathing,explicit-serialized
+DiseaseDefinitionSO|disease:ash-lung,disease:ash-lung,vaccineAllowed,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:ash-lung,disease:ash-lung,chronic,0,,,explicit-serialized
+DiseaseDefinitionSO|disease:ash-lung,disease:ash-lung,description,재와 금속 분진이 폐에 쌓여 호흡과 장시간 작업을 무너뜨린다.,,,explicit-serialized
+DiseaseDefinitionSO|disease:ash-lung,disease:ash-lung,authoringRevision,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:ash-lung,disease:ash-lung,sourceNote,V20 hand-authored disease.,,,explicit-serialized
+DiseaseDefinitionSO|disease:ash-lung,disease:ash-lung,symptomProfileId,symptom:progressive-breathlessness,,,explicit-serialized
+DiseaseDefinitionSO|disease:ash-lung,disease:ash-lung,fieldResponseIds.0,response:respirator,,,explicit-serialized
+DiseaseDefinitionSO|disease:ash-lung,disease:ash-lung,fieldResponseIds.1,response:wet-cleaning,,,explicit-serialized
+DiseaseDefinitionSO|disease:blood-wasting,disease:blood-wasting,m_Name,Disease_disease-blood-wasting,,,explicit-serialized
+DiseaseDefinitionSO|disease:blood-wasting,disease:blood-wasting,stableId,disease:blood-wasting,,,explicit-serialized
+DiseaseDefinitionSO|disease:blood-wasting,disease:blood-wasting,displayName,혈액소모병,,,explicit-serialized
+DiseaseDefinitionSO|disease:blood-wasting,disease:blood-wasting,routes,4,DiseaseTransmissionRoute,Blood,explicit-serialized
+DiseaseDefinitionSO|disease:blood-wasting,disease:blood-wasting,incubationDays,7,,,explicit-serialized
+DiseaseDefinitionSO|disease:blood-wasting,disease:blood-wasting,contagiousDays,20,,,explicit-serialized
+DiseaseDefinitionSO|disease:blood-wasting,disease:blood-wasting,baseInfectionProbability,0.2,,,explicit-serialized
+DiseaseDefinitionSO|disease:blood-wasting,disease:blood-wasting,baseSeverity,70,,,explicit-serialized
+DiseaseDefinitionSO|disease:blood-wasting,disease:blood-wasting,targetSystem,4,DiseaseTargetSystem,Filtration,explicit-serialized
+DiseaseDefinitionSO|disease:blood-wasting,disease:blood-wasting,vaccineAllowed,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:blood-wasting,disease:blood-wasting,chronic,0,,,explicit-serialized
+DiseaseDefinitionSO|disease:blood-wasting,disease:blood-wasting,description,혈액소모병의 고유 전파와 기관 증상.,,,explicit-serialized
+DiseaseDefinitionSO|disease:blood-wasting,disease:blood-wasting,authoringRevision,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:blood-wasting,disease:blood-wasting,sourceNote,V19 disease upgraded to V20 symptom/response contract.,,,explicit-serialized
+DiseaseDefinitionSO|disease:blood-wasting,disease:blood-wasting,symptomProfileId,symptom:blood-wasting,,,explicit-serialized
+DiseaseDefinitionSO|disease:blood-wasting,disease:blood-wasting,fieldResponseIds.0,response:isolate:disease:blood-wasting,,,explicit-serialized
+DiseaseDefinitionSO|disease:blood-wasting,disease:blood-wasting,fieldResponseIds.1,response:vaccine:disease:blood-wasting,,,explicit-serialized
+DiseaseDefinitionSO|disease:cave-flu,disease:cave-flu,m_Name,Disease_disease-cave-flu,,,explicit-serialized
+DiseaseDefinitionSO|disease:cave-flu,disease:cave-flu,stableId,disease:cave-flu,,,explicit-serialized
+DiseaseDefinitionSO|disease:cave-flu,disease:cave-flu,displayName,동굴 독감,,,explicit-serialized
+DiseaseDefinitionSO|disease:cave-flu,disease:cave-flu,routes,1,DiseaseTransmissionRoute,Air,explicit-serialized
+DiseaseDefinitionSO|disease:cave-flu,disease:cave-flu,incubationDays,2,,,explicit-serialized
+DiseaseDefinitionSO|disease:cave-flu,disease:cave-flu,contagiousDays,6,,,explicit-serialized
+DiseaseDefinitionSO|disease:cave-flu,disease:cave-flu,baseInfectionProbability,0.18,,,explicit-serialized
+DiseaseDefinitionSO|disease:cave-flu,disease:cave-flu,baseSeverity,25,,,explicit-serialized
+DiseaseDefinitionSO|disease:cave-flu,disease:cave-flu,targetSystem,2,DiseaseTargetSystem,Breathing,explicit-serialized
+DiseaseDefinitionSO|disease:cave-flu,disease:cave-flu,vaccineAllowed,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:cave-flu,disease:cave-flu,chronic,0,,,explicit-serialized
+DiseaseDefinitionSO|disease:cave-flu,disease:cave-flu,description,동굴 독감의 고유 전파와 기관 증상.,,,explicit-serialized
+DiseaseDefinitionSO|disease:cave-flu,disease:cave-flu,authoringRevision,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:cave-flu,disease:cave-flu,sourceNote,V19 disease upgraded to V20 symptom/response contract.,,,explicit-serialized
+DiseaseDefinitionSO|disease:cave-flu,disease:cave-flu,symptomProfileId,symptom:cave-flu,,,explicit-serialized
+DiseaseDefinitionSO|disease:cave-flu,disease:cave-flu,fieldResponseIds.0,response:isolate:disease:cave-flu,,,explicit-serialized
+DiseaseDefinitionSO|disease:cave-flu,disease:cave-flu,fieldResponseIds.1,response:vaccine:disease:cave-flu,,,explicit-serialized
+DiseaseDefinitionSO|disease:deep-parasitosis,disease:deep-parasitosis,m_Name,disease_deep-parasitosis,,,explicit-serialized
+DiseaseDefinitionSO|disease:deep-parasitosis,disease:deep-parasitosis,stableId,disease:deep-parasitosis,,,explicit-serialized
+DiseaseDefinitionSO|disease:deep-parasitosis,disease:deep-parasitosis,displayName,심층 기생충증,,,explicit-serialized
+DiseaseDefinitionSO|disease:deep-parasitosis,disease:deep-parasitosis,routes,24,DiseaseTransmissionRoute,Food | Water,explicit-serialized
+DiseaseDefinitionSO|disease:deep-parasitosis,disease:deep-parasitosis,incubationDays,3,,,explicit-serialized
+DiseaseDefinitionSO|disease:deep-parasitosis,disease:deep-parasitosis,contagiousDays,12,,,explicit-serialized
+DiseaseDefinitionSO|disease:deep-parasitosis,disease:deep-parasitosis,baseInfectionProbability,0.18,,,explicit-serialized
+DiseaseDefinitionSO|disease:deep-parasitosis,disease:deep-parasitosis,baseSeverity,48,,,explicit-serialized
+DiseaseDefinitionSO|disease:deep-parasitosis,disease:deep-parasitosis,targetSystem,3,DiseaseTargetSystem,Digestion,explicit-serialized
+DiseaseDefinitionSO|disease:deep-parasitosis,disease:deep-parasitosis,vaccineAllowed,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:deep-parasitosis,disease:deep-parasitosis,chronic,0,,,explicit-serialized
+DiseaseDefinitionSO|disease:deep-parasitosis,disease:deep-parasitosis,description,오염된 고기와 물의 기생충이 영양을 빼앗고 빈혈을 만든다.,,,explicit-serialized
+DiseaseDefinitionSO|disease:deep-parasitosis,disease:deep-parasitosis,authoringRevision,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:deep-parasitosis,disease:deep-parasitosis,sourceNote,V20 hand-authored disease.,,,explicit-serialized
+DiseaseDefinitionSO|disease:deep-parasitosis,disease:deep-parasitosis,symptomProfileId,symptom:wasting-anemia,,,explicit-serialized
+DiseaseDefinitionSO|disease:deep-parasitosis,disease:deep-parasitosis,fieldResponseIds.0,response:boil-water,,,explicit-serialized
+DiseaseDefinitionSO|disease:deep-parasitosis,disease:deep-parasitosis,fieldResponseIds.1,response:antiparasitic,,,explicit-serialized
+DiseaseDefinitionSO|disease:dream-mold,disease:dream-mold,m_Name,disease_dream-mold,,,explicit-serialized
+DiseaseDefinitionSO|disease:dream-mold,disease:dream-mold,stableId,disease:dream-mold,,,explicit-serialized
+DiseaseDefinitionSO|disease:dream-mold,disease:dream-mold,displayName,꿈곰팡이증,,,explicit-serialized
+DiseaseDefinitionSO|disease:dream-mold,disease:dream-mold,routes,1,DiseaseTransmissionRoute,Air,explicit-serialized
+DiseaseDefinitionSO|disease:dream-mold,disease:dream-mold,incubationDays,7,,,explicit-serialized
+DiseaseDefinitionSO|disease:dream-mold,disease:dream-mold,contagiousDays,20,,,explicit-serialized
+DiseaseDefinitionSO|disease:dream-mold,disease:dream-mold,baseInfectionProbability,0.08,,,explicit-serialized
+DiseaseDefinitionSO|disease:dream-mold,disease:dream-mold,baseSeverity,57,,,explicit-serialized
+DiseaseDefinitionSO|disease:dream-mold,disease:dream-mold,targetSystem,1,DiseaseTargetSystem,Consciousness,explicit-serialized
+DiseaseDefinitionSO|disease:dream-mold,disease:dream-mold,vaccineAllowed,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:dream-mold,disease:dream-mold,chronic,0,,,explicit-serialized
+DiseaseDefinitionSO|disease:dream-mold,disease:dream-mold,description,수면 중 포자성 환각을 공유하게 만들어 집단 판단을 흐린다.,,,explicit-serialized
+DiseaseDefinitionSO|disease:dream-mold,disease:dream-mold,authoringRevision,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:dream-mold,disease:dream-mold,sourceNote,V20 hand-authored disease.,,,explicit-serialized
+DiseaseDefinitionSO|disease:dream-mold,disease:dream-mold,symptomProfileId,symptom:shared-dream-delirium,,,explicit-serialized
+DiseaseDefinitionSO|disease:dream-mold,disease:dream-mold,fieldResponseIds.0,response:dreamless-sedative,,,explicit-serialized
+DiseaseDefinitionSO|disease:dream-mold,disease:dream-mold,fieldResponseIds.1,response:spore-filter,,,explicit-serialized
+DiseaseDefinitionSO|disease:ember-fever,disease:ember-fever,m_Name,disease_ember-fever,,,explicit-serialized
+DiseaseDefinitionSO|disease:ember-fever,disease:ember-fever,stableId,disease:ember-fever,,,explicit-serialized
+DiseaseDefinitionSO|disease:ember-fever,disease:ember-fever,displayName,잿불열,,,explicit-serialized
+DiseaseDefinitionSO|disease:ember-fever,disease:ember-fever,routes,65,DiseaseTransmissionRoute,Air | Contact,explicit-serialized
+DiseaseDefinitionSO|disease:ember-fever,disease:ember-fever,incubationDays,2,,,explicit-serialized
+DiseaseDefinitionSO|disease:ember-fever,disease:ember-fever,contagiousDays,8,,,explicit-serialized
+DiseaseDefinitionSO|disease:ember-fever,disease:ember-fever,baseInfectionProbability,0.16,,,explicit-serialized
+DiseaseDefinitionSO|disease:ember-fever,disease:ember-fever,baseSeverity,64,,,explicit-serialized
+DiseaseDefinitionSO|disease:ember-fever,disease:ember-fever,targetSystem,1,DiseaseTargetSystem,Consciousness,explicit-serialized
+DiseaseDefinitionSO|disease:ember-fever,disease:ember-fever,vaccineAllowed,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:ember-fever,disease:ember-fever,chronic,0,,,explicit-serialized
+DiseaseDefinitionSO|disease:ember-fever,disease:ember-fever,description,고열과 열 환각을 일으키며 뜨거운 환기구 주변에서 확산된다.,,,explicit-serialized
+DiseaseDefinitionSO|disease:ember-fever,disease:ember-fever,authoringRevision,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:ember-fever,disease:ember-fever,sourceNote,V20 hand-authored disease.,,,explicit-serialized
+DiseaseDefinitionSO|disease:ember-fever,disease:ember-fever,symptomProfileId,symptom:heat-hallucination,,,explicit-serialized
+DiseaseDefinitionSO|disease:ember-fever,disease:ember-fever,fieldResponseIds.0,response:cooling-bed,,,explicit-serialized
+DiseaseDefinitionSO|disease:ember-fever,disease:ember-fever,fieldResponseIds.1,response:vent-seal,,,explicit-serialized
+DiseaseDefinitionSO|disease:glass-blood,disease:glass-blood,m_Name,disease_glass-blood,,,explicit-serialized
+DiseaseDefinitionSO|disease:glass-blood,disease:glass-blood,stableId,disease:glass-blood,,,explicit-serialized
+DiseaseDefinitionSO|disease:glass-blood,disease:glass-blood,displayName,유리혈증,,,explicit-serialized
+DiseaseDefinitionSO|disease:glass-blood,disease:glass-blood,routes,32,DiseaseTransmissionRoute,Mana Exposure,explicit-serialized
+DiseaseDefinitionSO|disease:glass-blood,disease:glass-blood,incubationDays,6,,,explicit-serialized
+DiseaseDefinitionSO|disease:glass-blood,disease:glass-blood,contagiousDays,18,,,explicit-serialized
+DiseaseDefinitionSO|disease:glass-blood,disease:glass-blood,baseInfectionProbability,0.07,,,explicit-serialized
+DiseaseDefinitionSO|disease:glass-blood,disease:glass-blood,baseSeverity,68,,,explicit-serialized
+DiseaseDefinitionSO|disease:glass-blood,disease:glass-blood,targetSystem,4,DiseaseTargetSystem,Filtration,explicit-serialized
+DiseaseDefinitionSO|disease:glass-blood,disease:glass-blood,vaccineAllowed,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:glass-blood,disease:glass-blood,chronic,0,,,explicit-serialized
+DiseaseDefinitionSO|disease:glass-blood,disease:glass-blood,description,마나 결정 미립자가 혈액에 결정화되어 출혈과 비전 폭주를 일으킨다.,,,explicit-serialized
+DiseaseDefinitionSO|disease:glass-blood,disease:glass-blood,authoringRevision,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:glass-blood,disease:glass-blood,sourceNote,V20 hand-authored disease.,,,explicit-serialized
+DiseaseDefinitionSO|disease:glass-blood,disease:glass-blood,symptomProfileId,symptom:crystal-clotting,,,explicit-serialized
+DiseaseDefinitionSO|disease:glass-blood,disease:glass-blood,fieldResponseIds.0,response:mana-shield,,,explicit-serialized
+DiseaseDefinitionSO|disease:glass-blood,disease:glass-blood,fieldResponseIds.1,response:blood-filtration,,,explicit-serialized
+DiseaseDefinitionSO|disease:green-swarm,disease:green-swarm,m_Name,disease_green-swarm,,,explicit-serialized
+DiseaseDefinitionSO|disease:green-swarm,disease:green-swarm,stableId,disease:green-swarm,,,explicit-serialized
+DiseaseDefinitionSO|disease:green-swarm,disease:green-swarm,displayName,녹무리 감염,,,explicit-serialized
+DiseaseDefinitionSO|disease:green-swarm,disease:green-swarm,routes,64,DiseaseTransmissionRoute,Contact,explicit-serialized
+DiseaseDefinitionSO|disease:green-swarm,disease:green-swarm,incubationDays,2,,,explicit-serialized
+DiseaseDefinitionSO|disease:green-swarm,disease:green-swarm,contagiousDays,9,,,explicit-serialized
+DiseaseDefinitionSO|disease:green-swarm,disease:green-swarm,baseInfectionProbability,0.2,,,explicit-serialized
+DiseaseDefinitionSO|disease:green-swarm,disease:green-swarm,baseSeverity,46,,,explicit-serialized
+DiseaseDefinitionSO|disease:green-swarm,disease:green-swarm,targetSystem,4,DiseaseTargetSystem,Filtration,explicit-serialized
+DiseaseDefinitionSO|disease:green-swarm,disease:green-swarm,vaccineAllowed,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:green-swarm,disease:green-swarm,chronic,0,,,explicit-serialized
+DiseaseDefinitionSO|disease:green-swarm,disease:green-swarm,description,미세 곤충 군체가 상처와 털에 붙어 접촉자와 축사를 오간다.,,,explicit-serialized
+DiseaseDefinitionSO|disease:green-swarm,disease:green-swarm,authoringRevision,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:green-swarm,disease:green-swarm,sourceNote,V20 hand-authored disease.,,,explicit-serialized
+DiseaseDefinitionSO|disease:green-swarm,disease:green-swarm,symptomProfileId,symptom:moving-green-rash,,,explicit-serialized
+DiseaseDefinitionSO|disease:green-swarm,disease:green-swarm,fieldResponseIds.0,response:hot-wash,,,explicit-serialized
+DiseaseDefinitionSO|disease:green-swarm,disease:green-swarm,fieldResponseIds.1,response:pest-lure,,,explicit-serialized
+DiseaseDefinitionSO|disease:gut-rot,disease:gut-rot,m_Name,Disease_disease-gut-rot,,,explicit-serialized
+DiseaseDefinitionSO|disease:gut-rot,disease:gut-rot,stableId,disease:gut-rot,,,explicit-serialized
+DiseaseDefinitionSO|disease:gut-rot,disease:gut-rot,displayName,장부패증,,,explicit-serialized
+DiseaseDefinitionSO|disease:gut-rot,disease:gut-rot,routes,24,DiseaseTransmissionRoute,Food | Water,explicit-serialized
+DiseaseDefinitionSO|disease:gut-rot,disease:gut-rot,incubationDays,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:gut-rot,disease:gut-rot,contagiousDays,5,,,explicit-serialized
+DiseaseDefinitionSO|disease:gut-rot,disease:gut-rot,baseInfectionProbability,0.25,,,explicit-serialized
+DiseaseDefinitionSO|disease:gut-rot,disease:gut-rot,baseSeverity,45,,,explicit-serialized
+DiseaseDefinitionSO|disease:gut-rot,disease:gut-rot,targetSystem,3,DiseaseTargetSystem,Digestion,explicit-serialized
+DiseaseDefinitionSO|disease:gut-rot,disease:gut-rot,vaccineAllowed,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:gut-rot,disease:gut-rot,chronic,0,,,explicit-serialized
+DiseaseDefinitionSO|disease:gut-rot,disease:gut-rot,description,장부패증의 고유 전파와 기관 증상.,,,explicit-serialized
+DiseaseDefinitionSO|disease:gut-rot,disease:gut-rot,authoringRevision,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:gut-rot,disease:gut-rot,sourceNote,V19 disease upgraded to V20 symptom/response contract.,,,explicit-serialized
+DiseaseDefinitionSO|disease:gut-rot,disease:gut-rot,symptomProfileId,symptom:gut-rot,,,explicit-serialized
+DiseaseDefinitionSO|disease:gut-rot,disease:gut-rot,fieldResponseIds.0,response:isolate:disease:gut-rot,,,explicit-serialized
+DiseaseDefinitionSO|disease:gut-rot,disease:gut-rot,fieldResponseIds.1,response:vaccine:disease:gut-rot,,,explicit-serialized
+DiseaseDefinitionSO|disease:mana-pox,disease:mana-pox,m_Name,Disease_disease-mana-pox,,,explicit-serialized
+DiseaseDefinitionSO|disease:mana-pox,disease:mana-pox,stableId,disease:mana-pox,,,explicit-serialized
+DiseaseDefinitionSO|disease:mana-pox,disease:mana-pox,displayName,마나두창,,,explicit-serialized
+DiseaseDefinitionSO|disease:mana-pox,disease:mana-pox,routes,32,DiseaseTransmissionRoute,Mana Exposure,explicit-serialized
+DiseaseDefinitionSO|disease:mana-pox,disease:mana-pox,incubationDays,5,,,explicit-serialized
+DiseaseDefinitionSO|disease:mana-pox,disease:mana-pox,contagiousDays,10,,,explicit-serialized
+DiseaseDefinitionSO|disease:mana-pox,disease:mana-pox,baseInfectionProbability,0.08,,,explicit-serialized
+DiseaseDefinitionSO|disease:mana-pox,disease:mana-pox,baseSeverity,60,,,explicit-serialized
+DiseaseDefinitionSO|disease:mana-pox,disease:mana-pox,targetSystem,0,DiseaseTargetSystem,Core,explicit-serialized
+DiseaseDefinitionSO|disease:mana-pox,disease:mana-pox,vaccineAllowed,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:mana-pox,disease:mana-pox,chronic,0,,,explicit-serialized
+DiseaseDefinitionSO|disease:mana-pox,disease:mana-pox,description,마나두창의 고유 전파와 기관 증상.,,,explicit-serialized
+DiseaseDefinitionSO|disease:mana-pox,disease:mana-pox,authoringRevision,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:mana-pox,disease:mana-pox,sourceNote,V19 disease upgraded to V20 symptom/response contract.,,,explicit-serialized
+DiseaseDefinitionSO|disease:mana-pox,disease:mana-pox,symptomProfileId,symptom:mana-pox,,,explicit-serialized
+DiseaseDefinitionSO|disease:mana-pox,disease:mana-pox,fieldResponseIds.0,response:isolate:disease:mana-pox,,,explicit-serialized
+DiseaseDefinitionSO|disease:mana-pox,disease:mana-pox,fieldResponseIds.1,response:vaccine:disease:mana-pox,,,explicit-serialized
+DiseaseDefinitionSO|disease:night-thirst,disease:night-thirst,m_Name,disease_night-thirst,,,explicit-serialized
+DiseaseDefinitionSO|disease:night-thirst,disease:night-thirst,stableId,disease:night-thirst,,,explicit-serialized
+DiseaseDefinitionSO|disease:night-thirst,disease:night-thirst,displayName,밤갈증병,,,explicit-serialized
+DiseaseDefinitionSO|disease:night-thirst,disease:night-thirst,routes,4,DiseaseTransmissionRoute,Blood,explicit-serialized
+DiseaseDefinitionSO|disease:night-thirst,disease:night-thirst,incubationDays,4,,,explicit-serialized
+DiseaseDefinitionSO|disease:night-thirst,disease:night-thirst,contagiousDays,16,,,explicit-serialized
+DiseaseDefinitionSO|disease:night-thirst,disease:night-thirst,baseInfectionProbability,0.14,,,explicit-serialized
+DiseaseDefinitionSO|disease:night-thirst,disease:night-thirst,baseSeverity,62,,,explicit-serialized
+DiseaseDefinitionSO|disease:night-thirst,disease:night-thirst,targetSystem,1,DiseaseTargetSystem,Consciousness,explicit-serialized
+DiseaseDefinitionSO|disease:night-thirst,disease:night-thirst,vaccineAllowed,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:night-thirst,disease:night-thirst,chronic,0,,,explicit-serialized
+DiseaseDefinitionSO|disease:night-thirst,disease:night-thirst,description,야간에 극심한 갈증과 충동을 유발하며 혈액 접촉으로 번진다.,,,explicit-serialized
+DiseaseDefinitionSO|disease:night-thirst,disease:night-thirst,authoringRevision,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:night-thirst,disease:night-thirst,sourceNote,V20 hand-authored disease.,,,explicit-serialized
+DiseaseDefinitionSO|disease:night-thirst,disease:night-thirst,symptomProfileId,symptom:nocturnal-thirst,,,explicit-serialized
+DiseaseDefinitionSO|disease:night-thirst,disease:night-thirst,fieldResponseIds.0,response:sealed-blood-reserve,,,explicit-serialized
+DiseaseDefinitionSO|disease:night-thirst,disease:night-thirst,fieldResponseIds.1,response:night-watch,,,explicit-serialized
+DiseaseDefinitionSO|disease:red-fever,disease:red-fever,m_Name,Disease_disease-red-fever,,,explicit-serialized
+DiseaseDefinitionSO|disease:red-fever,disease:red-fever,stableId,disease:red-fever,,,explicit-serialized
+DiseaseDefinitionSO|disease:red-fever,disease:red-fever,displayName,적열병,,,explicit-serialized
+DiseaseDefinitionSO|disease:red-fever,disease:red-fever,routes,6,DiseaseTransmissionRoute,Droplet | Blood,explicit-serialized
+DiseaseDefinitionSO|disease:red-fever,disease:red-fever,incubationDays,3,,,explicit-serialized
+DiseaseDefinitionSO|disease:red-fever,disease:red-fever,contagiousDays,10,,,explicit-serialized
+DiseaseDefinitionSO|disease:red-fever,disease:red-fever,baseInfectionProbability,0.1,,,explicit-serialized
+DiseaseDefinitionSO|disease:red-fever,disease:red-fever,baseSeverity,55,,,explicit-serialized
+DiseaseDefinitionSO|disease:red-fever,disease:red-fever,targetSystem,4,DiseaseTargetSystem,Filtration,explicit-serialized
+DiseaseDefinitionSO|disease:red-fever,disease:red-fever,vaccineAllowed,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:red-fever,disease:red-fever,chronic,0,,,explicit-serialized
+DiseaseDefinitionSO|disease:red-fever,disease:red-fever,description,적열병의 고유 전파와 기관 증상.,,,explicit-serialized
+DiseaseDefinitionSO|disease:red-fever,disease:red-fever,authoringRevision,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:red-fever,disease:red-fever,sourceNote,V19 disease upgraded to V20 symptom/response contract.,,,explicit-serialized
+DiseaseDefinitionSO|disease:red-fever,disease:red-fever,symptomProfileId,symptom:red-fever,,,explicit-serialized
+DiseaseDefinitionSO|disease:red-fever,disease:red-fever,fieldResponseIds.0,response:isolate:disease:red-fever,,,explicit-serialized
+DiseaseDefinitionSO|disease:red-fever,disease:red-fever,fieldResponseIds.1,response:vaccine:disease:red-fever,,,explicit-serialized
+DiseaseDefinitionSO|disease:slime-blight,disease:slime-blight,m_Name,Disease_disease-slime-blight,,,explicit-serialized
+DiseaseDefinitionSO|disease:slime-blight,disease:slime-blight,stableId,disease:slime-blight,,,explicit-serialized
+DiseaseDefinitionSO|disease:slime-blight,disease:slime-blight,displayName,점액역병,,,explicit-serialized
+DiseaseDefinitionSO|disease:slime-blight,disease:slime-blight,routes,80,DiseaseTransmissionRoute,Water | Contact,explicit-serialized
+DiseaseDefinitionSO|disease:slime-blight,disease:slime-blight,incubationDays,2,,,explicit-serialized
+DiseaseDefinitionSO|disease:slime-blight,disease:slime-blight,contagiousDays,10,,,explicit-serialized
+DiseaseDefinitionSO|disease:slime-blight,disease:slime-blight,baseInfectionProbability,0.15,,,explicit-serialized
+DiseaseDefinitionSO|disease:slime-blight,disease:slime-blight,baseSeverity,65,,,explicit-serialized
+DiseaseDefinitionSO|disease:slime-blight,disease:slime-blight,targetSystem,0,DiseaseTargetSystem,Core,explicit-serialized
+DiseaseDefinitionSO|disease:slime-blight,disease:slime-blight,vaccineAllowed,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:slime-blight,disease:slime-blight,chronic,0,,,explicit-serialized
+DiseaseDefinitionSO|disease:slime-blight,disease:slime-blight,description,점액역병의 고유 전파와 기관 증상.,,,explicit-serialized
+DiseaseDefinitionSO|disease:slime-blight,disease:slime-blight,authoringRevision,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:slime-blight,disease:slime-blight,sourceNote,V19 disease upgraded to V20 symptom/response contract.,,,explicit-serialized
+DiseaseDefinitionSO|disease:slime-blight,disease:slime-blight,symptomProfileId,symptom:slime-blight,,,explicit-serialized
+DiseaseDefinitionSO|disease:slime-blight,disease:slime-blight,fieldResponseIds.0,response:isolate:disease:slime-blight,,,explicit-serialized
+DiseaseDefinitionSO|disease:slime-blight,disease:slime-blight,fieldResponseIds.1,response:vaccine:disease:slime-blight,,,explicit-serialized
+DiseaseDefinitionSO|disease:spore-lung,disease:spore-lung,m_Name,Disease_disease-spore-lung,,,explicit-serialized
+DiseaseDefinitionSO|disease:spore-lung,disease:spore-lung,stableId,disease:spore-lung,,,explicit-serialized
+DiseaseDefinitionSO|disease:spore-lung,disease:spore-lung,displayName,포자폐증,,,explicit-serialized
+DiseaseDefinitionSO|disease:spore-lung,disease:spore-lung,routes,1,DiseaseTransmissionRoute,Air,explicit-serialized
+DiseaseDefinitionSO|disease:spore-lung,disease:spore-lung,incubationDays,4,,,explicit-serialized
+DiseaseDefinitionSO|disease:spore-lung,disease:spore-lung,contagiousDays,12,,,explicit-serialized
+DiseaseDefinitionSO|disease:spore-lung,disease:spore-lung,baseInfectionProbability,0.12,,,explicit-serialized
+DiseaseDefinitionSO|disease:spore-lung,disease:spore-lung,baseSeverity,50,,,explicit-serialized
+DiseaseDefinitionSO|disease:spore-lung,disease:spore-lung,targetSystem,2,DiseaseTargetSystem,Breathing,explicit-serialized
+DiseaseDefinitionSO|disease:spore-lung,disease:spore-lung,vaccineAllowed,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:spore-lung,disease:spore-lung,chronic,0,,,explicit-serialized
+DiseaseDefinitionSO|disease:spore-lung,disease:spore-lung,description,포자폐증의 고유 전파와 기관 증상.,,,explicit-serialized
+DiseaseDefinitionSO|disease:spore-lung,disease:spore-lung,authoringRevision,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:spore-lung,disease:spore-lung,sourceNote,V19 disease upgraded to V20 symptom/response contract.,,,explicit-serialized
+DiseaseDefinitionSO|disease:spore-lung,disease:spore-lung,symptomProfileId,symptom:spore-lung,,,explicit-serialized
+DiseaseDefinitionSO|disease:spore-lung,disease:spore-lung,fieldResponseIds.0,response:isolate:disease:spore-lung,,,explicit-serialized
+DiseaseDefinitionSO|disease:spore-lung,disease:spore-lung,fieldResponseIds.1,response:vaccine:disease:spore-lung,,,explicit-serialized
+DiseaseDefinitionSO|disease:white-spore,disease:white-spore,m_Name,disease_white-spore,,,explicit-serialized
+DiseaseDefinitionSO|disease:white-spore,disease:white-spore,stableId,disease:white-spore,,,explicit-serialized
+DiseaseDefinitionSO|disease:white-spore,disease:white-spore,displayName,백색포자병,,,explicit-serialized
+DiseaseDefinitionSO|disease:white-spore,disease:white-spore,routes,65,DiseaseTransmissionRoute,Air | Contact,explicit-serialized
+DiseaseDefinitionSO|disease:white-spore,disease:white-spore,incubationDays,5,,,explicit-serialized
+DiseaseDefinitionSO|disease:white-spore,disease:white-spore,contagiousDays,15,,,explicit-serialized
+DiseaseDefinitionSO|disease:white-spore,disease:white-spore,baseInfectionProbability,0.11,,,explicit-serialized
+DiseaseDefinitionSO|disease:white-spore,disease:white-spore,baseSeverity,58,,,explicit-serialized
+DiseaseDefinitionSO|disease:white-spore,disease:white-spore,targetSystem,4,DiseaseTargetSystem,Filtration,explicit-serialized
+DiseaseDefinitionSO|disease:white-spore,disease:white-spore,vaccineAllowed,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:white-spore,disease:white-spore,chronic,0,,,explicit-serialized
+DiseaseDefinitionSO|disease:white-spore,disease:white-spore,description,피부와 균사 조직에 흰 균사가 번져 감각과 이동을 둔화한다.,,,explicit-serialized
+DiseaseDefinitionSO|disease:white-spore,disease:white-spore,authoringRevision,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:white-spore,disease:white-spore,sourceNote,V20 hand-authored disease.,,,explicit-serialized
+DiseaseDefinitionSO|disease:white-spore,disease:white-spore,symptomProfileId,symptom:white-mycelial-plaque,,,explicit-serialized
+DiseaseDefinitionSO|disease:white-spore,disease:white-spore,fieldResponseIds.0,response:fungicide-wash,,,explicit-serialized
+DiseaseDefinitionSO|disease:white-spore,disease:white-spore,fieldResponseIds.1,response:dry-isolation,,,explicit-serialized

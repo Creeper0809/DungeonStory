@@ -1,0 +1,103 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "42"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Commerce And Craft"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "facility-blueprint-6101",
+      "target_spoiler_tier": "none",
+      "target_title": "상업 확장 설계도",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-retail",
+      "target_spoiler_tier": "none",
+      "target_title": "상업 진열",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-retail",
+      "target_spoiler_tier": "none",
+      "target_title": "상업 진열",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-retail",
+      "target_spoiler_tier": "none",
+      "target_title": "상업 진열",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1010",
+      "target_spoiler_tier": "none",
+      "target_title": "고기걸이",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1019",
+      "target_spoiler_tier": "none",
+      "target_title": "대장작업대",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1005",
+      "target_spoiler_tier": "none",
+      "target_title": "대형연회식탁",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1011",
+      "target_spoiler_tier": "none",
+      "target_title": "술음료장",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1007",
+      "target_spoiler_tier": "none",
+      "target_title": "푹신한의자",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-commerce-expansion",
+  "spoiler_tier": "none",
+  "summary": "전문 상점과 고급 제작 설비를 개방한다.",
+  "title": "상업 확장"
+}

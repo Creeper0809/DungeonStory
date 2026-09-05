@@ -1,0 +1,49 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "20"
+    },
+    {
+      "label": "필요 연구",
+      "value": "식량 보존"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "food-jerky",
+      "target_spoiler_tier": "none",
+      "target_title": "육포",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-survival-preservation",
+      "target_spoiler_tier": "none",
+      "target_title": "식량 보존",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-salted-meat",
+      "target_spoiler_tier": "none",
+      "target_title": "염지 고기",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-jerky",
+  "spoiler_tier": "none",
+  "summary": "육포 생산 주문",
+  "title": "육포 훈연"
+}

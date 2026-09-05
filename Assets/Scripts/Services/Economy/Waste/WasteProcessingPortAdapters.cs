@@ -9,14 +9,80 @@ public sealed class WasteProcessingInventoryPortAdapter :
 {
     private readonly IStockQuery stock;
     private readonly IItemTransferService transfers;
+    private readonly IFacilityBufferDestinationClaimQuery claims;
+    private readonly IFacilityBufferMassCapacityQuery capacities;
 
     public WasteProcessingInventoryPortAdapter(
         IStockQuery stock,
-        IItemTransferService transfers)
+        IItemTransferService transfers,
+        IFacilityBufferDestinationClaimQuery claims,
+        IFacilityBufferMassCapacityQuery capacities)
     {
         this.stock = stock ?? throw new ArgumentNullException(nameof(stock));
         this.transfers = transfers
             ?? throw new ArgumentNullException(nameof(transfers));
+        this.claims = claims ?? throw new ArgumentNullException(nameof(claims));
+        this.capacities = capacities
+            ?? throw new ArgumentNullException(nameof(capacities));
+    }
+
+    public bool TryGetExactWildlifeCareDestinationPosition(
+        string destinationId,
+        out Vector2Int destinationPosition)
+    {
+        FacilityBufferDestinationClaim[] matching = claims.CaptureClaims()
+            .Where(value => value != null
+                && string.Equals(
+                    value.DestinationId,
+                    destinationId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        destinationPosition = matching.Length == 1
+            ? matching[0].DropPosition
+            : default;
+        return matching.Length == 1
+            && HasExactWildlifeCareDestinationAuthority(
+                destinationId,
+                destinationPosition);
+    }
+
+    public bool HasExactWildlifeCareDestinationAuthority(
+        string destinationId,
+        Vector2Int destinationPosition)
+    {
+        const string ownerDomain = "captivity.wildlife-care";
+        return claims.TryGetClaim(
+                destinationId,
+                destinationPosition,
+                out FacilityBufferDestinationClaim claim)
+            && claim != null
+            && claim.AnchorKind
+                == FacilityBufferDestinationAnchorKind.LiveFacility
+            && claim.AdmissionPolicy
+                == FacilityBufferDestinationAdmissionPolicy.ExactGramRequired
+            && string.Equals(
+                claim.OwnerDomain,
+                ownerDomain,
+                StringComparison.Ordinal)
+            && capacities.TryGetCapacity(
+                destinationId,
+                destinationPosition,
+                out FacilityBufferMassCapacitySnapshot capacity)
+            && capacity.Profile != null
+            && capacity.Profile.MaxMassGrams > 0L
+            && capacity.Profile.CapacityRevision > 0L
+            && string.Equals(
+                capacity.Profile.OwnerDomain,
+                ownerDomain,
+                StringComparison.Ordinal)
+            && string.Equals(
+                capacity.Profile.OwnerOperationId,
+                claim.OwnerOperationId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                capacity.Profile.OwnerFacilityId,
+                claim.OwnerFacilityId,
+                StringComparison.Ordinal);
     }
 
     public IReadOnlyList<WasteProcessingStackSnapshot> GetAllStacks() =>

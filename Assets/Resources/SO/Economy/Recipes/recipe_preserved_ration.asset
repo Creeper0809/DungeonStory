@@ -54,8 +54,14 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=MoistureEvaporation|reason=cooking-smoking-water-and-trimming-residue|physicalByproduct=false
   inputs:
   - itemId: material:ration-mixture
+    amount: 2
+  - itemId: material:starch
     amount: 2
   outputs:
   - outputLineId: output:recipe:preserved-ration/000/main/food:preserved-ration

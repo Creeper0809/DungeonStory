@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-component-sealed-seasonal-container",
+    "spoiler_tier": "none",
+    "title": "밀폐형 계절 보관함"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-sealed-seasonal-container",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-sealed-seasonal-container",
+      "target_spoiler_tier": "none",
+      "target_title": "밀폐형 계절 보관함",
+      "to": "item/component-sealed-seasonal-container",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-sealed-seasonal-container",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-hardened-leather",
+      "target_spoiler_tier": "none",
+      "target_title": "경화 가죽",
+      "to": "item/material-hardened-leather",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-sealed-seasonal-container",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-laminated-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "적층 목재",
+      "to": "item/material-laminated-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-sealed-seasonal-container",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-survival-seasonal-storage",
+      "target_spoiler_tier": "none",
+      "target_title": "계절 저장",
+      "to": "research/research-survival-seasonal-storage",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-bedding-animal",
+    "spoiler_tier": "none",
+    "title": "털 깔짚"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bedding-animal",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-hide",
+      "target_spoiler_tier": "none",
+      "target_title": "생가죽",
+      "to": "item/resource-hide",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bedding-animal",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "털",
+      "to": "item/resource-wool",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-bedding-animal",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "husbandry-bedding",
+      "target_spoiler_tier": "none",
+      "target_title": "깔짚",
+      "to": "item/husbandry-bedding",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-bedding-animal",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-feather",
+      "target_spoiler_tier": "none",
+      "target_title": "깃털",
+      "to": "item/resource-feather",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-bedding-animal",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-feed",
+      "target_spoiler_tier": "none",
+      "target_title": "사료·깔짚",
+      "to": "research/research-husbandry-feed",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

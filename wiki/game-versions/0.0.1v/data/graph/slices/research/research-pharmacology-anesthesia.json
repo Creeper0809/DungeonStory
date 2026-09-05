@@ -1,0 +1,163 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-pharmacology-anesthesia",
+    "spoiler_tier": "none",
+    "title": "진통·마취"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-anesthesia",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-distillation",
+      "target_spoiler_tier": "none",
+      "target_title": "증류",
+      "to": "research/research-pharmacology-distillation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-anesthesia",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-distillation",
+      "target_spoiler_tier": "none",
+      "target_title": "증류",
+      "to": "research/research-pharmacology-distillation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-anesthesia",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-distillation",
+      "target_spoiler_tier": "none",
+      "target_title": "증류",
+      "to": "research/research-pharmacology-distillation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "nature/crop-dreamleaf",
+      "label": "필요 조건",
+      "to": "research/research-pharmacology-anesthesia",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-ammo-tranquilizer-dart",
+      "label": "필요 조건",
+      "to": "research/research-pharmacology-anesthesia",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-anesthetic",
+      "label": "필요 조건",
+      "to": "research/research-pharmacology-anesthesia",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-dreamleaf-analgesic",
+      "label": "필요 조건",
+      "to": "research/research-pharmacology-anesthesia",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-medical-vial",
+      "label": "필요 조건",
+      "to": "research/research-pharmacology-anesthesia",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-reproductive-medicine",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-anesthesia",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-reproductive-medicine",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-anesthesia",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-reproductive-medicine",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-anesthesia",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-surgery",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-anesthesia",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-surgery",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-anesthesia",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-surgery",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-anesthesia",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-stimulants",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-anesthesia",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-stimulants",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-anesthesia",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-stimulants",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-anesthesia",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-dreamweave",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-anesthesia",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-dreamweave",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-anesthesia",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-dreamweave",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-anesthesia",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

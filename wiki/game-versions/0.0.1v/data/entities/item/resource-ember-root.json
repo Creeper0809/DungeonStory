@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.45kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "3"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "열량이 높고 보존에 유리한 뿌리 작물이다. 특히 베르사디온산 잿불뿌리의 봉인에는 마나가 새면 가장 먼저 빛을 잃는 세 번째 매듭이 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "resource-ember-root",
+  "spoiler_tier": "none",
+  "summary": "열량이 높고 보존에 유리한 뿌리 작물.",
+  "title": "잿불뿌리"
+}

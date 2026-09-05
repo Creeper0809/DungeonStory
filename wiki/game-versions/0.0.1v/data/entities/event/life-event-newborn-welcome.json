@@ -1,0 +1,27 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Partnership Family"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "3",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-newborn-welcome",
+      "target_spoiler_tier": "warning",
+      "target_title": "새 생명의 환영",
+      "type": "changes-mood"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "life-event-newborn-welcome",
+  "spoiler_tier": "warning",
+  "summary": "가구가 새 구성원을 공동체에 소개했다.",
+  "title": "새 생명의 환영"
+}

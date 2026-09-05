@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.5kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "20개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "26"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "무균 붕대로 상처와 손상 부위를 덮거나 고정해 치료를 돕는다. 므네실라의 격리실에서 쓰는 무균 붕대에는 방마다 다른 포자색이 배어 있어 밖으로 섞이면 곧 드러난다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "medical-sterile-bandage",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 무균 붕대.",
+  "title": "무균 붕대"
+}

@@ -1,0 +1,31 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "17"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Records And Arcane"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1032",
+      "target_spoiler_tier": "none",
+      "target_title": "연구용책장",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-arcane-records",
+  "spoiler_tier": "none",
+  "summary": "관찰과 실험 결과를 재현 가능한 기록으로 남긴다.",
+  "title": "기록 체계"
+}

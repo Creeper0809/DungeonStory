@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "career-position-chief-physician",
+  "spoiler_tier": "none",
+  "summary": "조직 내 직책의 권한 범위와 최대 재직자 1명을 규정한다.",
+  "title": "수석 의사"
+}

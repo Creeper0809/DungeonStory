@@ -19,6 +19,7 @@ on:
       - "Artifacts/QA/phase157-daily-routine-wu-seed-*.txt"
       - "docs/generated/V27_Balance_Before_After.md"
       - "docs/game-design/v27-balance-critical-approvals.json"
+      - "docs/game-design/v27-balance-market-review-decisions.json"
       - "docs/game-design/whole-game-balance-baseline.md"
   push:
     branches: [main]
@@ -39,6 +40,7 @@ on:
       - "Artifacts/QA/phase157-daily-routine-wu-seed-*.txt"
       - "docs/generated/V27_Balance_Before_After.md"
       - "docs/game-design/v27-balance-critical-approvals.json"
+      - "docs/game-design/v27-balance-market-review-decisions.json"
       - "docs/game-design/whole-game-balance-baseline.md"
 
 permissions:

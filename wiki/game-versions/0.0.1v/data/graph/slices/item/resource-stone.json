@@ -1,0 +1,39 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-stone",
+    "spoiler_tier": "none",
+    "title": "석재"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-stone-ornament",
+      "label": "필요 조건",
+      "to": "item/resource-stone",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-stone-block",
+      "label": "필요 조건",
+      "to": "item/resource-stone",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/source-saltstone",
+      "label": "생산·해금",
+      "to": "item/resource-stone",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/source-quarry",
+      "label": "생산·해금",
+      "to": "item/resource-stone",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

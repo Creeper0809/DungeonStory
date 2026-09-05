@@ -1,0 +1,58 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "characterspecies-2",
+    "spoiler_tier": "none",
+    "title": "오크"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/characterspecies-2",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "funeral-culture-orc",
+      "target_spoiler_tier": "none",
+      "target_title": "Funeral_Orc",
+      "to": "character/funeral-culture-orc",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/characterspecies-2",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "life-history-orc",
+      "target_spoiler_tier": "none",
+      "target_title": "Life_Orc",
+      "to": "character/life-history-orc",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/characterspecies-2",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "reproduction-orc",
+      "target_spoiler_tier": "none",
+      "target_title": "Reproduction_Orc",
+      "to": "character/reproduction-orc",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/character-archetype-1002",
+      "label": "관련",
+      "to": "character/characterspecies-2",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/character-archetype-2",
+      "label": "관련",
+      "to": "character/characterspecies-2",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

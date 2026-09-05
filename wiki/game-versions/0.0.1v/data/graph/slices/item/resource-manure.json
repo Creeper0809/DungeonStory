@@ -1,0 +1,46 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-manure",
+    "spoiler_tier": "none",
+    "title": "분뇨"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-compost-manure",
+      "label": "필요 조건",
+      "to": "item/resource-manure",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-supply-nitrate-fertilizer",
+      "label": "필요 조건",
+      "to": "item/resource-manure",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/source-animal-manure",
+      "label": "생산·해금",
+      "to": "item/resource-manure",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-low-fuel-manure",
+      "label": "필요 조건",
+      "to": "item/resource-manure",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "from": "recipe/recipe-material-niter",
+      "label": "필요 조건",
+      "to": "item/resource-manure",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

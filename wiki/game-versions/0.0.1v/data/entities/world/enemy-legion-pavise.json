@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "world",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-shield-wall",
+      "target_spoiler_tier": "none",
+      "target_title": "방패벽",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-retreat-cover",
+      "target_spoiler_tier": "none",
+      "target_title": "퇴각 엄호",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "offense-unappraised-loot",
+      "target_spoiler_tier": "none",
+      "target_title": "미감정 전리품",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "enemy-legion-pavise",
+  "spoiler_tier": "none",
+  "summary": "사격수를 가리는 이동 엄폐를 만든다.",
+  "title": "도시연맹 파비스병"
+}

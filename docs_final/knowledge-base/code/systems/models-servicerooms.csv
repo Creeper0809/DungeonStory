@@ -1,0 +1,2 @@
+﻿source_path,code_system,layer,domain,scope,namespace,declared_symbol_count,declared_symbols,symbol_kinds,architectural_roles,optimization_techniques,architecture_system_ids
+Assets/Scripts/Models/ServiceRooms/Core/ServiceSessionAggregate.cs,models:servicerooms,Models,ServiceRooms,runtime,DungeonStory.ServiceRooms,5,ServiceSessionBeginCommand; ServiceSessionEconomicCommand; ServiceSessionCompletionTransition; ServiceSessionAggregate; ServiceSessionPolicy,class,mutation-boundary-or-orchestration; state-authority-or-registry,dictionary-index; hash-membership,

@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "medicine-blood-pack",
+    "spoiler_tier": "none",
+    "title": "수혈 팩"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "medical/procedure-blood-transfusion",
+      "label": "관련",
+      "to": "item/medicine-blood-pack",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

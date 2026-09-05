@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ending-sealed-paradise",
+  "spoiler_tier": "warning",
+  "summary": "외부 조달 없이 주민과 생산 시설을 장기간 유지하는 폐쇄 생태계를 완성한다.",
+  "title": "봉인된 낙원"
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "280"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "룬 봉합기로 환자의 신체 반응을 조절하고 치료를 이어 가도록 만든 설치 부품이다. 베르사디온의 룬 봉합기에는 어제의 서명을 지울 수 있는 작은 화로가 있다. 마음이 바뀌면 다시 쓴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "facility-kit-9513",
+  "spoiler_tier": "none",
+  "summary": "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.",
+  "title": "룬 봉합기 설치 키트"
+}

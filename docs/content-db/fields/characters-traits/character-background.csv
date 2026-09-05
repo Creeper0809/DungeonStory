@@ -1,0 +1,181 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+CharacterBackgroundDefinitionSO|background:archive-caretaker,background:archive-caretaker,m_Name,background_archive-caretaker,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:archive-caretaker,background:archive-caretaker,stableId,background:archive-caretaker,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:archive-caretaker,background:archive-caretaker,displayName,봉인 기록고지기,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:archive-caretaker,background:archive-caretaker,description,읽어서는 안 될 장부를 분류하며 지식의 가치와 위험을 배웠다.,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:archive-caretaker,background:archive-caretaker,authoringRevision,1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:archive-caretaker,background:archive-caretaker,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:archive-caretaker,background:archive-caretaker,startingSkills.0.skillId,proficiency:scholarship,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:archive-caretaker,background:archive-caretaker,startingSkills.0.experience,90,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:archive-caretaker,background:archive-caretaker,startingEffects.0.kind,1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:archive-caretaker,background:archive-caretaker,startingEffects.0.targetId,background-confidence,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:archive-caretaker,background:archive-caretaker,startingEffects.0.amount,2,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:archive-caretaker,background:archive-caretaker,startingEffects.0.durationDays,10,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:archive-caretaker,background:archive-caretaker,factionReactions.0.id,faction:archive-conclave,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:archive-caretaker,background:archive-caretaker,factionReactions.0.weight,2.6,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:archive-caretaker,background:archive-caretaker,initialMemoryCode,memory:sealed-ledger,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:camp-refugee,background:camp-refugee,m_Name,background_camp-refugee,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:camp-refugee,background:camp-refugee,stableId,background:camp-refugee,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:camp-refugee,background:camp-refugee,displayName,피난 행렬 출신,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:camp-refugee,background:camp-refugee,description,긴 피난길에서 식량을 나누고 뒤처진 사람을 챙기는 법을 배웠다.,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:camp-refugee,background:camp-refugee,authoringRevision,1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:camp-refugee,background:camp-refugee,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:camp-refugee,background:camp-refugee,startingSkills.0.skillId,proficiency:fieldwork,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:camp-refugee,background:camp-refugee,startingSkills.0.experience,70,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:camp-refugee,background:camp-refugee,startingEffects.0.kind,1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:camp-refugee,background:camp-refugee,startingEffects.0.targetId,background-confidence,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:camp-refugee,background:camp-refugee,startingEffects.0.amount,2,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:camp-refugee,background:camp-refugee,startingEffects.0.durationDays,10,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:camp-refugee,background:camp-refugee,factionReactions.0.id,faction:free-settlers,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:camp-refugee,background:camp-refugee,factionReactions.0.weight,2.6,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:camp-refugee,background:camp-refugee,initialMemoryCode,memory:last-ration,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:caravan-artisan,background:caravan-artisan,m_Name,background_caravan-artisan,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:caravan-artisan,background:caravan-artisan,stableId,background:caravan-artisan,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:caravan-artisan,background:caravan-artisan,displayName,대상단 수공업자,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:caravan-artisan,background:caravan-artisan,description,이동 공방에서 자재 손실과 납기를 동시에 다루며 손기술을 익혔다.,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:caravan-artisan,background:caravan-artisan,authoringRevision,1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:caravan-artisan,background:caravan-artisan,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:caravan-artisan,background:caravan-artisan,startingSkills.0.skillId,proficiency:crafting,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:caravan-artisan,background:caravan-artisan,startingSkills.0.experience,80,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:caravan-artisan,background:caravan-artisan,startingEffects.0.kind,1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:caravan-artisan,background:caravan-artisan,startingEffects.0.targetId,background-confidence,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:caravan-artisan,background:caravan-artisan,startingEffects.0.amount,2,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:caravan-artisan,background:caravan-artisan,startingEffects.0.durationDays,10,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:caravan-artisan,background:caravan-artisan,factionReactions.0.id,faction:merchant-league,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:caravan-artisan,background:caravan-artisan,factionReactions.0.weight,2.2,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:caravan-artisan,background:caravan-artisan,initialMemoryCode,memory:caravan-workshop,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:deserter,background:deserter,m_Name,background_deserter,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:deserter,background:deserter,stableId,background:deserter,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:deserter,background:deserter,displayName,탈영병,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:deserter,background:deserter,description,명령보다 살아남는 판단을 택했으며 군대의 습관과 약점을 함께 안다.,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:deserter,background:deserter,authoringRevision,1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:deserter,background:deserter,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:deserter,background:deserter,startingSkills.0.skillId,proficiency:melee-combat,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:deserter,background:deserter,startingSkills.0.experience,85,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:deserter,background:deserter,startingEffects.0.kind,1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:deserter,background:deserter,startingEffects.0.targetId,background-confidence,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:deserter,background:deserter,startingEffects.0.amount,2,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:deserter,background:deserter,startingEffects.0.durationDays,10,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:deserter,background:deserter,factionReactions.0.id,faction:human-legion,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:deserter,background:deserter,factionReactions.0.weight,0.1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:deserter,background:deserter,initialMemoryCode,memory:desertion-night,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:exiled-heir,background:exiled-heir,m_Name,background_exiled-heir,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:exiled-heir,background:exiled-heir,stableId,background:exiled-heir,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:exiled-heir,background:exiled-heir,displayName,추방된 후계자,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:exiled-heir,background:exiled-heir,description,가문의 몰락 뒤에도 협상 언어와 권력의 체면을 잊지 않았다.,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:exiled-heir,background:exiled-heir,authoringRevision,1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:exiled-heir,background:exiled-heir,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:exiled-heir,background:exiled-heir,startingSkills.0.skillId,proficiency:social,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:exiled-heir,background:exiled-heir,startingSkills.0.experience,80,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:exiled-heir,background:exiled-heir,startingEffects.0.kind,1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:exiled-heir,background:exiled-heir,startingEffects.0.targetId,background-confidence,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:exiled-heir,background:exiled-heir,startingEffects.0.amount,2,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:exiled-heir,background:exiled-heir,startingEffects.0.durationDays,10,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:exiled-heir,background:exiled-heir,factionReactions.0.id,faction:old-nobility,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:exiled-heir,background:exiled-heir,factionReactions.0.weight,2.2,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:exiled-heir,background:exiled-heir,initialMemoryCode,memory:broken-seal,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:guild-apprentice,background:guild-apprentice,m_Name,background_guild-apprentice,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:guild-apprentice,background:guild-apprentice,stableId,background:guild-apprentice,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:guild-apprentice,background:guild-apprentice,displayName,길드 도제,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:guild-apprentice,background:guild-apprentice,description,규격과 검사표를 지키며 실패한 시제품의 원인을 기록했다.,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:guild-apprentice,background:guild-apprentice,authoringRevision,1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:guild-apprentice,background:guild-apprentice,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:guild-apprentice,background:guild-apprentice,startingSkills.0.skillId,proficiency:construction-engineering,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:guild-apprentice,background:guild-apprentice,startingSkills.0.experience,90,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:guild-apprentice,background:guild-apprentice,startingEffects.0.kind,1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:guild-apprentice,background:guild-apprentice,startingEffects.0.targetId,background-confidence,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:guild-apprentice,background:guild-apprentice,startingEffects.0.amount,2,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:guild-apprentice,background:guild-apprentice,startingEffects.0.durationDays,10,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:guild-apprentice,background:guild-apprentice,factionReactions.0.id,faction:iron-consortium,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:guild-apprentice,background:guild-apprentice,factionReactions.0.weight,2.4,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:guild-apprentice,background:guild-apprentice,initialMemoryCode,memory:first-masterwork,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:inn-servant,background:inn-servant,m_Name,background_inn-servant,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:inn-servant,background:inn-servant,stableId,background:inn-servant,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:inn-servant,background:inn-servant,displayName,여관 심부름꾼,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:inn-servant,background:inn-servant,description,"취객과 사절 사이를 오가며 주문, 소문, 모욕을 놓치지 않았다.",,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:inn-servant,background:inn-servant,authoringRevision,1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:inn-servant,background:inn-servant,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:inn-servant,background:inn-servant,startingSkills.0.skillId,proficiency:social,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:inn-servant,background:inn-servant,startingSkills.0.experience,75,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:inn-servant,background:inn-servant,startingEffects.0.kind,1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:inn-servant,background:inn-servant,startingEffects.0.targetId,background-confidence,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:inn-servant,background:inn-servant,startingEffects.0.amount,2,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:inn-servant,background:inn-servant,startingEffects.0.durationDays,10,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:inn-servant,background:inn-servant,factionReactions.0.id,faction:merchant-league,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:inn-servant,background:inn-servant,factionReactions.0.weight,1.8,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:inn-servant,background:inn-servant,initialMemoryCode,memory:night-shift,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:mine-bondworker,background:mine-bondworker,m_Name,background_mine-bondworker,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:mine-bondworker,background:mine-bondworker,stableId,background:mine-bondworker,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:mine-bondworker,background:mine-bondworker,displayName,광산 계약노동자,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:mine-bondworker,background:mine-bondworker,description,무너지는 갱도와 부당한 할당량 속에서 광맥과 위험 징후를 읽었다.,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:mine-bondworker,background:mine-bondworker,authoringRevision,1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:mine-bondworker,background:mine-bondworker,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:mine-bondworker,background:mine-bondworker,startingSkills.0.skillId,proficiency:fieldwork,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:mine-bondworker,background:mine-bondworker,startingSkills.0.experience,90,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:mine-bondworker,background:mine-bondworker,startingEffects.0.kind,1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:mine-bondworker,background:mine-bondworker,startingEffects.0.targetId,background-confidence,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:mine-bondworker,background:mine-bondworker,startingEffects.0.amount,2,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:mine-bondworker,background:mine-bondworker,startingEffects.0.durationDays,10,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:mine-bondworker,background:mine-bondworker,factionReactions.0.id,faction:iron-consortium,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:mine-bondworker,background:mine-bondworker,factionReactions.0.weight,0.1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:mine-bondworker,background:mine-bondworker,initialMemoryCode,memory:collapsed-shaft,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:monastery-novice,background:monastery-novice,m_Name,background_monastery-novice,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:monastery-novice,background:monastery-novice,stableId,background:monastery-novice,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:monastery-novice,background:monastery-novice,displayName,수도원 수련자,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:monastery-novice,background:monastery-novice,description,"기록과 절제, 환자 곁을 지키는 반복 노동에 익숙하다.",,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:monastery-novice,background:monastery-novice,authoringRevision,1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:monastery-novice,background:monastery-novice,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:monastery-novice,background:monastery-novice,startingSkills.0.skillId,proficiency:medicine,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:monastery-novice,background:monastery-novice,startingSkills.0.experience,75,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:monastery-novice,background:monastery-novice,startingEffects.0.kind,1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:monastery-novice,background:monastery-novice,startingEffects.0.targetId,background-confidence,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:monastery-novice,background:monastery-novice,startingEffects.0.amount,2,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:monastery-novice,background:monastery-novice,startingEffects.0.durationDays,10,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:monastery-novice,background:monastery-novice,factionReactions.0.id,faction:truth-keepers,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:monastery-novice,background:monastery-novice,factionReactions.0.weight,2,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:monastery-novice,background:monastery-novice,initialMemoryCode,memory:monastery-vigil,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:ritual-test-subject,background:ritual-test-subject,m_Name,background_ritual-test-subject,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:ritual-test-subject,background:ritual-test-subject,stableId,background:ritual-test-subject,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:ritual-test-subject,background:ritual-test-subject,displayName,의식 실험 생존자,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:ritual-test-subject,background:ritual-test-subject,description,비전 실험의 흔적을 지녔고 마나 이상에 예민하게 반응한다.,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:ritual-test-subject,background:ritual-test-subject,authoringRevision,1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:ritual-test-subject,background:ritual-test-subject,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:ritual-test-subject,background:ritual-test-subject,startingSkills.0.skillId,proficiency:scholarship,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:ritual-test-subject,background:ritual-test-subject,startingSkills.0.experience,85,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:ritual-test-subject,background:ritual-test-subject,startingEffects.0.kind,1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:ritual-test-subject,background:ritual-test-subject,startingEffects.0.targetId,background-confidence,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:ritual-test-subject,background:ritual-test-subject,startingEffects.0.amount,2,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:ritual-test-subject,background:ritual-test-subject,startingEffects.0.durationDays,10,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:ritual-test-subject,background:ritual-test-subject,factionReactions.0.id,faction:truth-keepers,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:ritual-test-subject,background:ritual-test-subject,factionReactions.0.weight,0.1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:ritual-test-subject,background:ritual-test-subject,initialMemoryCode,memory:ritual-chamber,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:siege-survivor,background:siege-survivor,m_Name,background_siege-survivor,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:siege-survivor,background:siege-survivor,stableId,background:siege-survivor,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:siege-survivor,background:siege-survivor,displayName,공성전 생존자,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:siege-survivor,background:siege-survivor,description,성벽이 무너진 날 살아남아 엄폐와 비상 보급을 습관처럼 확인한다.,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:siege-survivor,background:siege-survivor,authoringRevision,1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:siege-survivor,background:siege-survivor,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:siege-survivor,background:siege-survivor,startingSkills.0.skillId,proficiency:melee-combat,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:siege-survivor,background:siege-survivor,startingSkills.0.experience,90,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:siege-survivor,background:siege-survivor,startingEffects.0.kind,1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:siege-survivor,background:siege-survivor,startingEffects.0.targetId,background-confidence,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:siege-survivor,background:siege-survivor,startingEffects.0.amount,2,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:siege-survivor,background:siege-survivor,startingEffects.0.durationDays,10,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:siege-survivor,background:siege-survivor,factionReactions.0.id,faction:human-crown,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:siege-survivor,background:siege-survivor,factionReactions.0.weight,0.1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:siege-survivor,background:siege-survivor,initialMemoryCode,memory:fallen-wall,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:tenant-farmer,background:tenant-farmer,m_Name,background_tenant-farmer,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:tenant-farmer,background:tenant-farmer,stableId,background:tenant-farmer,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:tenant-farmer,background:tenant-farmer,displayName,소작농의 자식,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:tenant-farmer,background:tenant-farmer,description,척박한 밭에서 수확량보다 토양과 이웃을 먼저 살피는 법을 배웠다.,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:tenant-farmer,background:tenant-farmer,authoringRevision,1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:tenant-farmer,background:tenant-farmer,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:tenant-farmer,background:tenant-farmer,startingSkills.0.skillId,proficiency:food-production,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:tenant-farmer,background:tenant-farmer,startingSkills.0.experience,80,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:tenant-farmer,background:tenant-farmer,startingEffects.0.kind,1,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:tenant-farmer,background:tenant-farmer,startingEffects.0.targetId,background-confidence,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:tenant-farmer,background:tenant-farmer,startingEffects.0.amount,2,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:tenant-farmer,background:tenant-farmer,startingEffects.0.durationDays,10,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:tenant-farmer,background:tenant-farmer,factionReactions.0.id,faction:free-settlers,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:tenant-farmer,background:tenant-farmer,factionReactions.0.weight,2,,,explicit-serialized
+CharacterBackgroundDefinitionSO|background:tenant-farmer,background:tenant-farmer,initialMemoryCode,memory:first-harvest,,,explicit-serialized

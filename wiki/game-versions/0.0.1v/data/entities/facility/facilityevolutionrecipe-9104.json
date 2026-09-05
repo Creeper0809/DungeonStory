@@ -1,0 +1,49 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1041",
+      "target_spoiler_tier": "none",
+      "target_title": "사격과녁",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1040",
+      "target_spoiler_tier": "none",
+      "target_title": "훈련허수아비",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-1045",
+      "target_spoiler_tier": "none",
+      "target_title": "경보종",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-1044",
+      "target_spoiler_tier": "none",
+      "target_title": "경비초소책상",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "facilityevolutionrecipe-9104",
+  "spoiler_tier": "none",
+  "summary": "경비 체계가 갖춰진 훈련실에서 허수아비를 정밀 사격과녁으로 진화시킨다.",
+  "title": "요새 훈련 진화"
+}

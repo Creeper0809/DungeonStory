@@ -1,0 +1,27 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Apprenticeship"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "10",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-tool-inheritance",
+      "target_spoiler_tier": "warning",
+      "target_title": "물려받은 도구",
+      "type": "advances-ambition"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "life-event-tool-inheritance",
+  "spoiler_tier": "warning",
+  "summary": "도제가 은퇴자의 낡은 도구와 사용 기록을 넘겨받았다.",
+  "title": "물려받은 도구"
+}

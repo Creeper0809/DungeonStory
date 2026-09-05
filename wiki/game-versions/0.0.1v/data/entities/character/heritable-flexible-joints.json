@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Anatomy"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "heritable-flexible-joints",
+  "spoiler_tier": "none",
+  "summary": "좁은 공간과 정밀 동작에 유리하지만 무거운 충격에는 약하다.",
+  "title": "유연 관절"
+}

@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-8863",
+    "spoiler_tier": "none",
+    "title": "노화 평가대"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "시설 해금",
+      "to": "facility/building-8863",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

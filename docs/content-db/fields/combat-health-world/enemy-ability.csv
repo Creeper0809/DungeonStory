@@ -1,0 +1,235 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+EnemyAbilityDefinitionSO|enemy-ability:arcane-null,enemy-ability:arcane-null,m_Name,enemy-ability_arcane-null,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:arcane-null,enemy-ability:arcane-null,stableId,enemy-ability:arcane-null,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:arcane-null,enemy-ability:arcane-null,displayName,마법 차단,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:arcane-null,enemy-ability:arcane-null,description,대상의 비전 강화 효과를 제거하고 취약하게 만든다.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:arcane-null,enemy-ability:arcane-null,authoringRevision,1,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:arcane-null,enemy-ability:arcane-null,sourceNote,V20 hand-authored enemy ability.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:arcane-null,enemy-ability:arcane-null,cooldownRounds,4,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:arcane-null,enemy-ability:arcane-null,targetRule,2,OffenseBattleTargetRule,Enemy,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:arcane-null,enemy-ability:arcane-null,effects.0.kind,8,V20ContentEffectKind,FactionObligation (세력 의무),explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:arcane-null,enemy-ability:arcane-null,effects.0.magnitude,1,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:arcane-null,enemy-ability:arcane-null,effects.0.durationRounds,0,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:arcane-null,enemy-ability:arcane-null,effects.0.targetTag,arcane,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:arcane-null,enemy-ability:arcane-null,kind,0,EnemyAbilityEffectKind,Damage,implicit-csharp-default
+EnemyAbilityDefinitionSO|enemy-ability:armor-break,enemy-ability:armor-break,m_Name,enemy-ability_armor-break,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:armor-break,enemy-ability:armor-break,stableId,enemy-ability:armor-break,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:armor-break,enemy-ability:armor-break,displayName,갑주 파쇄,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:armor-break,enemy-ability:armor-break,description,단단한 목표의 방어를 약화시키는 강타를 가한다.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:armor-break,enemy-ability:armor-break,authoringRevision,1,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:armor-break,enemy-ability:armor-break,sourceNote,V20 hand-authored enemy ability.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:armor-break,enemy-ability:armor-break,cooldownRounds,3,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:armor-break,enemy-ability:armor-break,targetRule,2,OffenseBattleTargetRule,Enemy,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:armor-break,enemy-ability:armor-break,effects.0.kind,4,V20ContentEffectKind,Health (건강),explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:armor-break,enemy-ability:armor-break,effects.0.magnitude,0.3,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:armor-break,enemy-ability:armor-break,effects.0.durationRounds,2,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:armor-break,enemy-ability:armor-break,effects.0.targetTag,armored,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:armor-break,enemy-ability:armor-break,kind,0,EnemyAbilityEffectKind,Damage,implicit-csharp-default
+EnemyAbilityDefinitionSO|enemy-ability:blood-drain,enemy-ability:blood-drain,m_Name,enemy-ability_blood-drain,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:blood-drain,enemy-ability:blood-drain,stableId,enemy-ability:blood-drain,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:blood-drain,enemy-ability:blood-drain,displayName,혈액 흡수,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:blood-drain,enemy-ability:blood-drain,description,상처 입은 대상에게 피해를 주고 자신을 회복한다.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:blood-drain,enemy-ability:blood-drain,authoringRevision,1,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:blood-drain,enemy-ability:blood-drain,sourceNote,V20 hand-authored enemy ability.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:blood-drain,enemy-ability:blood-drain,cooldownRounds,3,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:blood-drain,enemy-ability:blood-drain,targetRule,2,OffenseBattleTargetRule,Enemy,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:blood-drain,enemy-ability:blood-drain,effects.0.kind,0,V20ContentEffectKind,None (없음),explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:blood-drain,enemy-ability:blood-drain,effects.0.magnitude,1.2,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:blood-drain,enemy-ability:blood-drain,effects.0.durationRounds,0,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:blood-drain,enemy-ability:blood-drain,effects.0.targetTag,wounded,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:blood-drain,enemy-ability:blood-drain,kind,0,EnemyAbilityEffectKind,Damage,implicit-csharp-default
+EnemyAbilityDefinitionSO|enemy-ability:charge,enemy-ability:charge,m_Name,enemy-ability_charge,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:charge,enemy-ability:charge,stableId,enemy-ability:charge,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:charge,enemy-ability:charge,displayName,돌진,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:charge,enemy-ability:charge,description,거리를 좁히며 첫 타격의 충격을 높인다.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:charge,enemy-ability:charge,authoringRevision,1,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:charge,enemy-ability:charge,sourceNote,V20 hand-authored enemy ability.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:charge,enemy-ability:charge,cooldownRounds,2,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:charge,enemy-ability:charge,targetRule,2,OffenseBattleTargetRule,Enemy,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:charge,enemy-ability:charge,effects.0.kind,0,V20ContentEffectKind,None (없음),explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:charge,enemy-ability:charge,effects.0.magnitude,1.25,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:charge,enemy-ability:charge,effects.0.durationRounds,0,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:charge,enemy-ability:charge,effects.0.targetTag,front,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:charge,enemy-ability:charge,kind,0,EnemyAbilityEffectKind,Damage,implicit-csharp-default
+EnemyAbilityDefinitionSO|enemy-ability:core-repair,enemy-ability:core-repair,m_Name,enemy-ability_core-repair,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:core-repair,enemy-ability:core-repair,stableId,enemy-ability:core-repair,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:core-repair,enemy-ability:core-repair,displayName,핵 긴급수리,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:core-repair,enemy-ability:core-repair,description,구성체의 핵과 외장을 전투 중 수리한다.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:core-repair,enemy-ability:core-repair,authoringRevision,1,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:core-repair,enemy-ability:core-repair,sourceNote,V20 hand-authored enemy ability.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:core-repair,enemy-ability:core-repair,cooldownRounds,4,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:core-repair,enemy-ability:core-repair,targetRule,1,OffenseBattleTargetRule,Ally,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:core-repair,enemy-ability:core-repair,effects.0.kind,2,V20ContentEffectKind,Trauma (트라우마),explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:core-repair,enemy-ability:core-repair,effects.0.magnitude,24,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:core-repair,enemy-ability:core-repair,effects.0.durationRounds,0,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:core-repair,enemy-ability:core-repair,effects.0.targetTag,construct,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:core-repair,enemy-ability:core-repair,kind,0,EnemyAbilityEffectKind,Damage,implicit-csharp-default
+EnemyAbilityDefinitionSO|enemy-ability:field-dressing,enemy-ability:field-dressing,m_Name,enemy-ability_field-dressing,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:field-dressing,enemy-ability:field-dressing,stableId,enemy-ability:field-dressing,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:field-dressing,enemy-ability:field-dressing,displayName,야전 처치,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:field-dressing,enemy-ability:field-dressing,description,가장 크게 다친 아군의 출혈과 체력을 회복한다.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:field-dressing,enemy-ability:field-dressing,authoringRevision,1,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:field-dressing,enemy-ability:field-dressing,sourceNote,V20 hand-authored enemy ability.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:field-dressing,enemy-ability:field-dressing,cooldownRounds,3,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:field-dressing,enemy-ability:field-dressing,targetRule,1,OffenseBattleTargetRule,Ally,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:field-dressing,enemy-ability:field-dressing,effects.0.kind,2,V20ContentEffectKind,Trauma (트라우마),explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:field-dressing,enemy-ability:field-dressing,effects.0.magnitude,18,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:field-dressing,enemy-ability:field-dressing,effects.0.durationRounds,0,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:field-dressing,enemy-ability:field-dressing,effects.0.targetTag,injured-ally,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:field-dressing,enemy-ability:field-dressing,kind,0,EnemyAbilityEffectKind,Damage,implicit-csharp-default
+EnemyAbilityDefinitionSO|enemy-ability:frost-bind,enemy-ability:frost-bind,m_Name,enemy-ability_frost-bind,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:frost-bind,enemy-ability:frost-bind,stableId,enemy-ability:frost-bind,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:frost-bind,enemy-ability:frost-bind,displayName,서리 구속,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:frost-bind,enemy-ability:frost-bind,description,대상의 이동과 다음 행동을 크게 늦춘다.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:frost-bind,enemy-ability:frost-bind,authoringRevision,1,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:frost-bind,enemy-ability:frost-bind,sourceNote,V20 hand-authored enemy ability.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:frost-bind,enemy-ability:frost-bind,cooldownRounds,3,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:frost-bind,enemy-ability:frost-bind,targetRule,2,OffenseBattleTargetRule,Enemy,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:frost-bind,enemy-ability:frost-bind,effects.0.kind,3,V20ContentEffectKind,SkillExperience (숙련 경험치),explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:frost-bind,enemy-ability:frost-bind,effects.0.magnitude,3,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:frost-bind,enemy-ability:frost-bind,effects.0.durationRounds,2,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:frost-bind,enemy-ability:frost-bind,effects.0.targetTag,fast,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:frost-bind,enemy-ability:frost-bind,kind,0,EnemyAbilityEffectKind,Damage,implicit-csharp-default
+EnemyAbilityDefinitionSO|enemy-ability:hook-pull,enemy-ability:hook-pull,m_Name,enemy-ability_hook-pull,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:hook-pull,enemy-ability:hook-pull,stableId,enemy-ability:hook-pull,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:hook-pull,enemy-ability:hook-pull,displayName,갈고리 끌기,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:hook-pull,enemy-ability:hook-pull,description,후열 대상을 전열로 끌어내 진형을 무너뜨린다.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:hook-pull,enemy-ability:hook-pull,authoringRevision,1,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:hook-pull,enemy-ability:hook-pull,sourceNote,V20 hand-authored enemy ability.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:hook-pull,enemy-ability:hook-pull,cooldownRounds,3,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:hook-pull,enemy-ability:hook-pull,targetRule,2,OffenseBattleTargetRule,Enemy,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:hook-pull,enemy-ability:hook-pull,effects.0.kind,3,V20ContentEffectKind,SkillExperience (숙련 경험치),explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:hook-pull,enemy-ability:hook-pull,effects.0.magnitude,2,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:hook-pull,enemy-ability:hook-pull,effects.0.durationRounds,0,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:hook-pull,enemy-ability:hook-pull,effects.0.targetTag,backline,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:hook-pull,enemy-ability:hook-pull,kind,0,EnemyAbilityEffectKind,Damage,implicit-csharp-default
+EnemyAbilityDefinitionSO|enemy-ability:poison-cloud,enemy-ability:poison-cloud,m_Name,enemy-ability_poison-cloud,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:poison-cloud,enemy-ability:poison-cloud,stableId,enemy-ability:poison-cloud,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:poison-cloud,enemy-ability:poison-cloud,displayName,독성 구름,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:poison-cloud,enemy-ability:poison-cloud,description,구역에 지속 독 피해를 남겨 엄폐지를 비우게 한다.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:poison-cloud,enemy-ability:poison-cloud,authoringRevision,1,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:poison-cloud,enemy-ability:poison-cloud,sourceNote,V20 hand-authored enemy ability.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:poison-cloud,enemy-ability:poison-cloud,cooldownRounds,4,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:poison-cloud,enemy-ability:poison-cloud,targetRule,2,OffenseBattleTargetRule,Enemy,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:poison-cloud,enemy-ability:poison-cloud,effects.0.kind,1,V20ContentEffectKind,Mood (기분),explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:poison-cloud,enemy-ability:poison-cloud,effects.0.magnitude,7,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:poison-cloud,enemy-ability:poison-cloud,effects.0.durationRounds,3,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:poison-cloud,enemy-ability:poison-cloud,effects.0.targetTag,cluster,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:poison-cloud,enemy-ability:poison-cloud,kind,0,EnemyAbilityEffectKind,Damage,implicit-csharp-default
+EnemyAbilityDefinitionSO|enemy-ability:powder-shot,enemy-ability:powder-shot,m_Name,enemy-ability_powder-shot,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:powder-shot,enemy-ability:powder-shot,stableId,enemy-ability:powder-shot,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:powder-shot,enemy-ability:powder-shot,displayName,화약 일제,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:powder-shot,enemy-ability:powder-shot,description,긴 준비 뒤 방어구를 뚫는 강한 사격을 가한다.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:powder-shot,enemy-ability:powder-shot,authoringRevision,1,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:powder-shot,enemy-ability:powder-shot,sourceNote,V20 hand-authored enemy ability.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:powder-shot,enemy-ability:powder-shot,cooldownRounds,3,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:powder-shot,enemy-ability:powder-shot,targetRule,2,OffenseBattleTargetRule,Enemy,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:powder-shot,enemy-ability:powder-shot,effects.0.kind,0,V20ContentEffectKind,None (없음),explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:powder-shot,enemy-ability:powder-shot,effects.0.magnitude,1.55,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:powder-shot,enemy-ability:powder-shot,effects.0.durationRounds,0,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:powder-shot,enemy-ability:powder-shot,effects.0.targetTag,armored,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:powder-shot,enemy-ability:powder-shot,kind,0,EnemyAbilityEffectKind,Damage,implicit-csharp-default
+EnemyAbilityDefinitionSO|enemy-ability:rally,enemy-ability:rally,m_Name,enemy-ability_rally,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:rally,enemy-ability:rally,stableId,enemy-ability:rally,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:rally,enemy-ability:rally,displayName,전열 재정비,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:rally,enemy-ability:rally,description,흩어진 아군을 보호 대상 주변으로 다시 모은다.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:rally,enemy-ability:rally,authoringRevision,1,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:rally,enemy-ability:rally,sourceNote,V20 hand-authored enemy ability.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:rally,enemy-ability:rally,cooldownRounds,4,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:rally,enemy-ability:rally,targetRule,1,OffenseBattleTargetRule,Ally,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:rally,enemy-ability:rally,effects.0.kind,9,V20ContentEffectKind,Money (자금),explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:rally,enemy-ability:rally,effects.0.magnitude,1.25,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:rally,enemy-ability:rally,effects.0.durationRounds,2,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:rally,enemy-ability:rally,effects.0.targetTag,all-allies,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:rally,enemy-ability:rally,kind,0,EnemyAbilityEffectKind,Damage,implicit-csharp-default
+EnemyAbilityDefinitionSO|enemy-ability:retreat-cover,enemy-ability:retreat-cover,m_Name,enemy-ability_retreat-cover,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:retreat-cover,enemy-ability:retreat-cover,stableId,enemy-ability:retreat-cover,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:retreat-cover,enemy-ability:retreat-cover,displayName,퇴각 엄호,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:retreat-cover,enemy-ability:retreat-cover,description,부상한 아군의 퇴로를 지키며 추격자를 제압한다.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:retreat-cover,enemy-ability:retreat-cover,authoringRevision,1,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:retreat-cover,enemy-ability:retreat-cover,sourceNote,V20 hand-authored enemy ability.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:retreat-cover,enemy-ability:retreat-cover,cooldownRounds,3,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:retreat-cover,enemy-ability:retreat-cover,targetRule,1,OffenseBattleTargetRule,Ally,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:retreat-cover,enemy-ability:retreat-cover,effects.0.kind,9,V20ContentEffectKind,Money (자금),explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:retreat-cover,enemy-ability:retreat-cover,effects.0.magnitude,1.2,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:retreat-cover,enemy-ability:retreat-cover,effects.0.durationRounds,0,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:retreat-cover,enemy-ability:retreat-cover,effects.0.targetTag,retreating-ally,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:retreat-cover,enemy-ability:retreat-cover,kind,0,EnemyAbilityEffectKind,Damage,implicit-csharp-default
+EnemyAbilityDefinitionSO|enemy-ability:rune-ward,enemy-ability:rune-ward,m_Name,enemy-ability_rune-ward,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:rune-ward,enemy-ability:rune-ward,stableId,enemy-ability:rune-ward,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:rune-ward,enemy-ability:rune-ward,displayName,룬 보호막,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:rune-ward,enemy-ability:rune-ward,description,아군에게 일시적인 마법·화약 피해 보호를 부여한다.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:rune-ward,enemy-ability:rune-ward,authoringRevision,1,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:rune-ward,enemy-ability:rune-ward,sourceNote,V20 hand-authored enemy ability.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:rune-ward,enemy-ability:rune-ward,cooldownRounds,4,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:rune-ward,enemy-ability:rune-ward,targetRule,1,OffenseBattleTargetRule,Ally,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:rune-ward,enemy-ability:rune-ward,effects.0.kind,9,V20ContentEffectKind,Money (자금),explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:rune-ward,enemy-ability:rune-ward,effects.0.magnitude,1.4,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:rune-ward,enemy-ability:rune-ward,effects.0.durationRounds,2,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:rune-ward,enemy-ability:rune-ward,effects.0.targetTag,priority-ally,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:rune-ward,enemy-ability:rune-ward,kind,0,EnemyAbilityEffectKind,Damage,implicit-csharp-default
+EnemyAbilityDefinitionSO|enemy-ability:shield-wall,enemy-ability:shield-wall,m_Name,enemy-ability_shield-wall,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:shield-wall,enemy-ability:shield-wall,stableId,enemy-ability:shield-wall,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:shield-wall,enemy-ability:shield-wall,displayName,방패벽,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:shield-wall,enemy-ability:shield-wall,description,인접 전열을 보호하고 밀려남을 막는다.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:shield-wall,enemy-ability:shield-wall,authoringRevision,1,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:shield-wall,enemy-ability:shield-wall,sourceNote,V20 hand-authored enemy ability.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:shield-wall,enemy-ability:shield-wall,cooldownRounds,3,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:shield-wall,enemy-ability:shield-wall,targetRule,1,OffenseBattleTargetRule,Ally,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:shield-wall,enemy-ability:shield-wall,effects.0.kind,9,V20ContentEffectKind,Money (자금),explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:shield-wall,enemy-ability:shield-wall,effects.0.magnitude,1.35,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:shield-wall,enemy-ability:shield-wall,effects.0.durationRounds,0,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:shield-wall,enemy-ability:shield-wall,effects.0.targetTag,ally-front,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:shield-wall,enemy-ability:shield-wall,kind,0,EnemyAbilityEffectKind,Damage,implicit-csharp-default
+EnemyAbilityDefinitionSO|enemy-ability:smoke-screen,enemy-ability:smoke-screen,m_Name,enemy-ability_smoke-screen,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:smoke-screen,enemy-ability:smoke-screen,stableId,enemy-ability:smoke-screen,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:smoke-screen,enemy-ability:smoke-screen,displayName,연막 전개,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:smoke-screen,enemy-ability:smoke-screen,description,시야를 차단해 원거리 명중을 낮추고 퇴로를 만든다.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:smoke-screen,enemy-ability:smoke-screen,authoringRevision,1,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:smoke-screen,enemy-ability:smoke-screen,sourceNote,V20 hand-authored enemy ability.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:smoke-screen,enemy-ability:smoke-screen,cooldownRounds,4,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:smoke-screen,enemy-ability:smoke-screen,targetRule,0,OffenseBattleTargetRule,Self,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:smoke-screen,enemy-ability:smoke-screen,effects.0.kind,6,V20ContentEffectKind,FactionRapport (세력 우호도),explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:smoke-screen,enemy-ability:smoke-screen,effects.0.magnitude,1,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:smoke-screen,enemy-ability:smoke-screen,effects.0.durationRounds,2,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:smoke-screen,enemy-ability:smoke-screen,effects.0.targetTag,battlefield,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:smoke-screen,enemy-ability:smoke-screen,kind,0,EnemyAbilityEffectKind,Damage,implicit-csharp-default
+EnemyAbilityDefinitionSO|enemy-ability:summon-minion,enemy-ability:summon-minion,m_Name,enemy-ability_summon-minion,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:summon-minion,enemy-ability:summon-minion,stableId,enemy-ability:summon-minion,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:summon-minion,enemy-ability:summon-minion,displayName,지원체 소환,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:summon-minion,enemy-ability:summon-minion,description,예비 병력이나 소형 구성체를 전장에 투입한다.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:summon-minion,enemy-ability:summon-minion,authoringRevision,1,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:summon-minion,enemy-ability:summon-minion,sourceNote,V20 hand-authored enemy ability.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:summon-minion,enemy-ability:summon-minion,cooldownRounds,5,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:summon-minion,enemy-ability:summon-minion,targetRule,0,OffenseBattleTargetRule,Self,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:summon-minion,enemy-ability:summon-minion,effects.0.kind,7,V20ContentEffectKind,FactionGrievance (세력 원한),explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:summon-minion,enemy-ability:summon-minion,effects.0.magnitude,1,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:summon-minion,enemy-ability:summon-minion,effects.0.durationRounds,0,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:summon-minion,enemy-ability:summon-minion,effects.0.targetTag,reserve,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:summon-minion,enemy-ability:summon-minion,kind,0,EnemyAbilityEffectKind,Damage,implicit-csharp-default
+EnemyAbilityDefinitionSO|enemy-ability:suppressive-volley,enemy-ability:suppressive-volley,m_Name,enemy-ability_suppressive-volley,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:suppressive-volley,enemy-ability:suppressive-volley,stableId,enemy-ability:suppressive-volley,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:suppressive-volley,enemy-ability:suppressive-volley,displayName,제압 사격,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:suppressive-volley,enemy-ability:suppressive-volley,description,넓은 구역을 사격해 이동과 행동을 늦춘다.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:suppressive-volley,enemy-ability:suppressive-volley,authoringRevision,1,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:suppressive-volley,enemy-ability:suppressive-volley,sourceNote,V20 hand-authored enemy ability.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:suppressive-volley,enemy-ability:suppressive-volley,cooldownRounds,3,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:suppressive-volley,enemy-ability:suppressive-volley,targetRule,2,OffenseBattleTargetRule,Enemy,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:suppressive-volley,enemy-ability:suppressive-volley,effects.0.kind,5,V20ContentEffectKind,Relationship (관계),explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:suppressive-volley,enemy-ability:suppressive-volley,effects.0.magnitude,1,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:suppressive-volley,enemy-ability:suppressive-volley,effects.0.durationRounds,2,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:suppressive-volley,enemy-ability:suppressive-volley,effects.0.targetTag,backline,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:suppressive-volley,enemy-ability:suppressive-volley,kind,0,EnemyAbilityEffectKind,Damage,implicit-csharp-default
+EnemyAbilityDefinitionSO|enemy-ability:truth-seal,enemy-ability:truth-seal,m_Name,enemy-ability_truth-seal,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:truth-seal,enemy-ability:truth-seal,stableId,enemy-ability:truth-seal,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:truth-seal,enemy-ability:truth-seal,displayName,진실 봉인,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:truth-seal,enemy-ability:truth-seal,description,강화 효과를 지우고 지속 피해 표식을 남긴다.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:truth-seal,enemy-ability:truth-seal,authoringRevision,1,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:truth-seal,enemy-ability:truth-seal,sourceNote,V20 hand-authored enemy ability.,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:truth-seal,enemy-ability:truth-seal,cooldownRounds,4,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:truth-seal,enemy-ability:truth-seal,targetRule,2,OffenseBattleTargetRule,Enemy,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:truth-seal,enemy-ability:truth-seal,effects.0.kind,8,V20ContentEffectKind,FactionObligation (세력 의무),explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:truth-seal,enemy-ability:truth-seal,effects.0.magnitude,1,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:truth-seal,enemy-ability:truth-seal,effects.0.durationRounds,3,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:truth-seal,enemy-ability:truth-seal,effects.0.targetTag,highest-power,,,explicit-serialized
+EnemyAbilityDefinitionSO|enemy-ability:truth-seal,enemy-ability:truth-seal,kind,0,EnemyAbilityEffectKind,Damage,implicit-csharp-default

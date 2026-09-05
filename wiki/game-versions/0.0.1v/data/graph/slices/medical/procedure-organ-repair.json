@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "medical",
+    "slug": "procedure-organ-repair",
+    "spoiler_tier": "none",
+    "title": "장기 봉합"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "medical/procedure-organ-repair",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "medicine-disinfectant",
+      "target_spoiler_tier": "none",
+      "target_title": "소독제",
+      "to": "item/medicine-disinfectant",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-organ-repair",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "medicine-standard",
+      "target_spoiler_tier": "none",
+      "target_title": "표준 약품",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-organ-repair",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-surgery",
+      "target_spoiler_tier": "none",
+      "target_title": "외과술",
+      "to": "research/research-medical-surgery",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

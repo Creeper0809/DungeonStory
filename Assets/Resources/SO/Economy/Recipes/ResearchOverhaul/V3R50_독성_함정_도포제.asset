@@ -54,11 +54,19 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: material:rot-toxin
-    amount: 1
+    amount: 5
   - itemId: resource:dark-resin
-    amount: 1
+    amount: 5
   outputs:
   - outputLineId: output:recipe:craft:toxic-trap-coating/000/main/craft:toxic-trap-coating
     role: 0

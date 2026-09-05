@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "combat",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "module-armor-thermal-layer",
+  "spoiler_tier": "none",
+  "summary": "원정에서 회수하는 열 차폐층 개량 부품",
+  "title": "열 차폐층"
+}

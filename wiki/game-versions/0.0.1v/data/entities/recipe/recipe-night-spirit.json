@@ -1,0 +1,70 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "34"
+    },
+    {
+      "label": "필요 연구",
+      "value": "주류 증류·숙성"
+    },
+    {
+      "label": "준비 작업",
+      "value": "3"
+    },
+    {
+      "label": "마무리 작업",
+      "value": "2"
+    },
+    {
+      "label": "처리 시간",
+      "value": "12"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "food-night-spirit",
+      "target_spoiler_tier": "none",
+      "target_title": "밤 증류주",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-syrup",
+      "target_spoiler_tier": "none",
+      "target_title": "밤포도 시럽",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-young-wine",
+      "target_spoiler_tier": "none",
+      "target_title": "어린 포도주",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-distilling-aging",
+      "target_spoiler_tier": "none",
+      "target_title": "주류 증류·숙성",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-night-spirit",
+  "spoiler_tier": "none",
+  "summary": "준비와 마감 사이에 게임 시간으로 처리되는 배치 공정.",
+  "title": "밤 증류주 오크 숙성"
+}

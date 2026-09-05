@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "816"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "베기와 찌르기를 모두 다룰 수 있도록 균형을 잡은 양손 장검이다. 하르나크의 무기 철야를 지낸 장검에는 살아 돌아온 싸움마다 얕은 흠집이 하나씩 더해진다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-weapon-longsword",
+  "spoiler_tier": "none",
+  "summary": "장검 전투 장비",
+  "title": "장검"
+}

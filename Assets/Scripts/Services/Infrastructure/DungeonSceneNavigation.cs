@@ -362,6 +362,7 @@ public sealed class DungeonGameplayLaunchController : IStartable, ITickable
     private readonly IPreparedStartPartyGameplayApplier preparedStartPartyApplier;
     private readonly IStartPartyPreparationService startPartyPreparationService;
     private readonly IOwnerCandidateCatalog ownerCandidateCatalog;
+    private readonly IDungeonSpaceExpansionCommand dungeonSpaceExpansion;
 
     private DungeonGameplayLaunchRequest request;
     private bool pending;
@@ -374,7 +375,8 @@ public sealed class DungeonGameplayLaunchController : IStartable, ITickable
         InvasionSceneRuntimeReferences invasionRuntimes,
         IPreparedStartPartyGameplayApplier preparedStartPartyApplier,
         IStartPartyPreparationService startPartyPreparationService,
-        IOwnerCandidateCatalog ownerCandidateCatalog)
+        IOwnerCandidateCatalog ownerCandidateCatalog,
+        IDungeonSpaceExpansionCommand dungeonSpaceExpansion)
     {
         this.sceneNavigator = sceneNavigator ?? throw new ArgumentNullException(nameof(sceneNavigator));
         this.slotService = slotService ?? throw new ArgumentNullException(nameof(slotService));
@@ -391,6 +393,8 @@ public sealed class DungeonGameplayLaunchController : IStartable, ITickable
             ?? throw new ArgumentNullException(nameof(startPartyPreparationService));
         this.ownerCandidateCatalog = ownerCandidateCatalog
             ?? throw new ArgumentNullException(nameof(ownerCandidateCatalog));
+        this.dungeonSpaceExpansion = dungeonSpaceExpansion
+            ?? throw new ArgumentNullException(nameof(dungeonSpaceExpansion));
     }
 
     public void Start()
@@ -417,6 +421,10 @@ public sealed class DungeonGameplayLaunchController : IStartable, ITickable
         switch (request.Mode)
         {
             case DungeonGameplayLaunchMode.NewRun:
+                if (!TryReconcileNewRunSpace())
+                {
+                    break;
+                }
                 DeleteRunSlots();
                 ApplyNewRunDifficulty(request.Difficulty);
                 ApplyDebugFallbackNewRun(
@@ -424,6 +432,10 @@ public sealed class DungeonGameplayLaunchController : IStartable, ITickable
                     request.SurvivalPressure);
                 break;
             case DungeonGameplayLaunchMode.PreparedNewRun:
+                if (!TryReconcileNewRunSpace())
+                {
+                    break;
+                }
                 DeleteRunSlots();
                 ApplyNewRunDifficulty(request.Difficulty);
                 if (!preparedStartPartyApplier.TryApply(request.PreparedStartParty, out string message))
@@ -436,6 +448,21 @@ public sealed class DungeonGameplayLaunchController : IStartable, ITickable
                 RestoreSlot(request.SlotId);
                 break;
         }
+    }
+
+    private bool TryReconcileNewRunSpace()
+    {
+        if (dungeonSpaceExpansion.TryReconcileNewRunTierZero(
+                out _,
+                out string failureReason))
+        {
+            return true;
+        }
+
+        pendingTitleFailure =
+            "새 게임의 초기 던전 공간을 준비하지 못했습니다. "
+            + failureReason;
+        return false;
     }
 
     private void RestoreSlot(string slotId)

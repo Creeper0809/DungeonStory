@@ -1,0 +1,36 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "저온 작업 보호"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "combat",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "equipment-cold-work-suit",
+      "target_spoiler_tier": "none",
+      "target_title": "방한 작업복",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-environment-cold-work",
+      "target_spoiler_tier": "none",
+      "target_title": "저온 작업 보호",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "workwear-cold-work-suit",
+  "spoiler_tier": "none",
+  "summary": "전투 방어력 없이 8°C 냉장실 상시 근무를 지원한다.",
+  "title": "방한 작업복"
+}

@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "component-corridor-detonator",
+    "spoiler_tier": "none",
+    "title": "복도식 기폭 장치"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-corridor-detonator",
+      "label": "생산·해금",
+      "to": "item/component-corridor-detonator",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

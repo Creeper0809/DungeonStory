@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.35kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "161"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "복도식 기폭 장치는 복잡한 설비의 작동 순서와 흐름을 맡는 핵심 조립품이다. 크릭 제7굴에서는 복도식 기폭 장치의 치수와 맞물림 상태를 조립 전에 검사한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "component-corridor-detonator",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 복도식 기폭 장치.",
+  "title": "복도식 기폭 장치"
+}

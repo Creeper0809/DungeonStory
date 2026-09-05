@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-meat-pie",
+    "spoiler_tier": "none",
+    "title": "고기 파이 굽기"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-meat-pie",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-dough",
+      "target_spoiler_tier": "none",
+      "target_title": "반죽",
+      "to": "item/material-dough",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-meat-pie",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-seasoned-filling",
+      "target_spoiler_tier": "none",
+      "target_title": "양념 속재료",
+      "to": "item/material-seasoned-filling",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-meat-pie",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "food-meat-pie",
+      "target_spoiler_tier": "none",
+      "target_title": "고기 파이",
+      "to": "item/food-meat-pie",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-meat-pie",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-baking",
+      "target_spoiler_tier": "none",
+      "target_title": "제빵",
+      "to": "research/research-cuisine-baking",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

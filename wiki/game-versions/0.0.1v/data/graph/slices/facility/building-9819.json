@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-9819",
+    "spoiler_tier": "none",
+    "title": "물통 충전소"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-plumbing-basics",
+      "label": "시설 해금",
+      "to": "facility/building-9819",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

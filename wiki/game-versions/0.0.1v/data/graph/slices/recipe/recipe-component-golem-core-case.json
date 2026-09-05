@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-component-golem-core-case",
+    "spoiler_tier": "none",
+    "title": "골렘 핵 케이스"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-golem-core-case",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-golem-core-case",
+      "target_spoiler_tier": "none",
+      "target_title": "골렘 핵 케이스",
+      "to": "item/component-golem-core-case",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-golem-core-case",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-rune-conductor",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 도체",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-golem-core-case",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-sterile-composite",
+      "target_spoiler_tier": "none",
+      "target_title": "무균 복합재",
+      "to": "item/material-sterile-composite",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-golem-core-case",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-construct-core-engineering",
+      "target_spoiler_tier": "none",
+      "target_title": "구성체 핵 공학",
+      "to": "research/research-medical-construct-core-engineering",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

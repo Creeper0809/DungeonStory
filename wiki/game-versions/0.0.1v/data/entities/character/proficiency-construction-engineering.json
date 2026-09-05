@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "proficiency-construction-engineering",
+  "spoiler_tier": "none",
+  "summary": "건설, 수리, 배관, 해체, 기반 시설과 대형 건설의 숙련이다.",
+  "title": "건설·공학"
+}

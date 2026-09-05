@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "medical",
+    "slug": "procedure-myconid-core-graft",
+    "spoiler_tier": "none",
+    "title": "균핵 접목"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "medical/procedure-myconid-core-graft",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "medical-sterile-mycelium-graft",
+      "target_spoiler_tier": "none",
+      "target_title": "무균 균사 이식편",
+      "to": "item/medical-sterile-mycelium-graft",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-myconid-core-graft",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-mycelial-grafting",
+      "target_spoiler_tier": "none",
+      "target_title": "균사 접목학",
+      "to": "research/research-medical-mycelial-grafting",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

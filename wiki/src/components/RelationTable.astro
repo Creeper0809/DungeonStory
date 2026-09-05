@@ -1,0 +1,91 @@
+---
+import type { Backlink, Relation } from '../lib/wiki-data';
+
+interface Props { relations: Relation[]; backlinks?: Backlink[]; version?: string }
+interface RelatedEntry {
+  amount: string | null;
+  kind: string;
+  label: string;
+  slug: string;
+  spoilerTier: 'none' | 'warning';
+  title: string;
+  type: string;
+}
+
+const { relations, backlinks = [], version } = Astro.props;
+const kindOrder = ['recipe', 'item', 'research', 'facility', 'character', 'combat', 'medical', 'nature', 'event', 'world'];
+const kindCopy: Record<string, { heading: string; column: string }> = {
+  recipe: { heading: '관련 조합식', column: '조합식' },
+  item: { heading: '관련 아이템', column: '아이템' },
+  research: { heading: '관련 연구', column: '연구' },
+  facility: { heading: '관련 시설', column: '시설' },
+  character: { heading: '관련 주민·사회 항목', column: '주민·사회' },
+  combat: { heading: '관련 장비·전투 항목', column: '장비·전투' },
+  medical: { heading: '관련 의료·건강 항목', column: '의료·건강' },
+  nature: { heading: '관련 농업·생태 항목', column: '농업·생태' },
+  event: { heading: '관련 사건', column: '사건' },
+  world: { heading: '관련 세계·원정 항목', column: '세계·원정' },
+};
+const directEntries: RelatedEntry[] = relations.map((relation) => ({
+  amount: relation.amount,
+  kind: relation.target_kind,
+  label: relation.label,
+  slug: relation.target_slug,
+  spoilerTier: relation.target_spoiler_tier,
+  title: relation.target_title,
+  type: relation.type,
+}));
+const backlinkEntries: RelatedEntry[] = backlinks.map((backlink) => ({
+  amount: backlink.amount,
+  kind: backlink.from_kind,
+  label: backlink.label,
+  slug: backlink.from_slug,
+  spoilerTier: backlink.from_spoiler_tier,
+  title: backlink.from_title,
+  type: backlink.type,
+}));
+const uniqueEntries = [...new Map(
+  [...directEntries, ...backlinkEntries].map((entry) => [
+    `${entry.kind}/${entry.slug}/${entry.type}/${entry.label}/${entry.amount ?? ''}`,
+    entry,
+  ]),
+).values()];
+const groups = [...new Set(uniqueEntries.map((entry) => entry.kind))]
+  .sort((left, right) => {
+    const leftIndex = kindOrder.indexOf(left);
+    const rightIndex = kindOrder.indexOf(right);
+    return (leftIndex < 0 ? kindOrder.length : leftIndex) - (rightIndex < 0 ? kindOrder.length : rightIndex)
+      || left.localeCompare(right, 'ko');
+  })
+  .map((kind) => {
+    const entries = uniqueEntries.filter((entry) => entry.kind === kind);
+    return {
+      copy: kindCopy[kind] ?? { heading: '관련 항목', column: '항목' },
+      hidden: entries.filter((entry) => entry.spoilerTier !== 'none').length,
+      id: `related-${kind.replace(/[^a-z0-9-]/gi, '-')}`,
+      kind,
+      visible: entries.filter((entry) => entry.spoilerTier === 'none'),
+    };
+  });
+const href = (entry: RelatedEntry) => version
+  ? `/game-versions/${version}/entry/${entry.kind}/${entry.slug}/`
+  : `/entry/${entry.kind}/${entry.slug}/`;
+---
+
+{groups.map((group) => (
+  <section class="relations" aria-labelledby={group.id}>
+    <div class="section-heading section-heading--inline"><h2 id={group.id}>{group.copy.heading}</h2><span>{group.visible.length}개</span></div>
+    {group.visible.length > 0 && (
+      <div class="table-wrap">
+        <table>
+          <caption class="sr-only">{group.copy.heading} 목록</caption>
+          <thead><tr><th scope="col">관계</th><th scope="col">{group.copy.column}</th><th scope="col">수량·조건</th></tr></thead>
+          <tbody>
+            {group.visible.map((entry) => <tr><td>{entry.label}</td><td><a href={href(entry)}>{entry.title}</a></td><td>{entry.amount ?? '없음'}</td></tr>)}
+          </tbody>
+        </table>
+      </div>
+    )}
+    {group.hidden > 0 && <p class="spoiler-hint">스포일러가 될 수 있는 {group.copy.column} {group.hidden}개는 기본 표시에서 숨긴다.</p>}
+  </section>
+))}

@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-landmark-sovereign-citadel",
+    "spoiler_tier": "none",
+    "title": "주권 성채"
+  },
+  "edges": [],
+  "schema_version": 1
+}

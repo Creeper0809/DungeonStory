@@ -1,0 +1,111 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-agriculture-irrigation",
+    "spoiler_tier": "none",
+    "title": "관개"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-agriculture-irrigation",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-compost",
+      "target_spoiler_tier": "none",
+      "target_title": "퇴비·윤작",
+      "to": "research/research-agriculture-compost",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-irrigation",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-compost",
+      "target_spoiler_tier": "none",
+      "target_title": "퇴비·윤작",
+      "to": "research/research-agriculture-compost",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-irrigation",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-compost",
+      "target_spoiler_tier": "none",
+      "target_title": "퇴비·윤작",
+      "to": "research/research-agriculture-compost",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-irrigation",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8802",
+      "target_spoiler_tier": "none",
+      "target_title": "중력식 수문",
+      "to": "facility/building-8802",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "nature/crop-night-grape",
+      "label": "필요 조건",
+      "to": "research/research-agriculture-irrigation",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-resource-clean-water",
+      "label": "필요 조건",
+      "to": "research/research-agriculture-irrigation",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-indoor",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-irrigation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-indoor",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-irrigation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-indoor",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-irrigation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-waterwheel",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-irrigation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-waterwheel",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-irrigation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-waterwheel",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-irrigation",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

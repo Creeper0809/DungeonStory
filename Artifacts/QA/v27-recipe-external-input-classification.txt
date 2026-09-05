@@ -1,0 +1,10 @@
+RESULT=STATIC_CLASSIFICATION_PASS; phase=batch-d-external-input-authority-review; assetMutations=0
+priorArtifactRows=97; uniqueRecipeIds=97; missingRows=0; duplicateRows=0
+legitimateProcessAddition=0; suggestedExternalInputKindNone=97; falseAbstractAdditionRejected=97
+currentSourceProcessLoss=86; currentSourceBalancedExact=11; currentSourceMassCreation=0
+families=core-workshop=9; research-overhaul=47; v22-apparel-textile=41
+classification=all 97 prior rows require physical BOM/fluid authority, never a nonphysical process-addition receipt
+verification=STATIC_ONLY; unityCurrentSourceRecapture=PENDING
+sourceDigest=d776a6b95243a2fc9feb5fdc711f9eb290ee2ea8d195c04661a315c858c53b0c
+csvDigest=7ba440dc954da9c74a9decf4ad1d682c2eacef514832f91edc6bc3e96fd9d185
+nextGate=refresh Unity current catalogs; regenerate v27-recipe-mass-balance.csv twice; require externalInputAuthorityMissing=0 and byte-identical output

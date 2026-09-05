@@ -1,0 +1,47 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "service-incident-brawl",
+    "spoiler_tier": "warning",
+    "title": "난투"
+  },
+  "edges": [
+    {
+      "amount": "-3",
+      "from": "event/service-incident-brawl",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-brawl",
+      "target_spoiler_tier": "warning",
+      "target_title": "난투",
+      "to": "event/service-incident-brawl",
+      "type": "changes-health"
+    },
+    {
+      "amount": "4",
+      "from": "event/service-incident-brawl",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-brawl",
+      "target_spoiler_tier": "warning",
+      "target_title": "난투",
+      "to": "event/service-incident-brawl",
+      "type": "changes-relationship"
+    },
+    {
+      "amount": "-3",
+      "from": "event/service-incident-brawl",
+      "label": "연결",
+      "to": "event/service-incident-brawl",
+      "type": "changes-health"
+    },
+    {
+      "amount": "4",
+      "from": "event/service-incident-brawl",
+      "label": "연결",
+      "to": "event/service-incident-brawl",
+      "type": "changes-relationship"
+    }
+  ],
+  "schema_version": 1
+}

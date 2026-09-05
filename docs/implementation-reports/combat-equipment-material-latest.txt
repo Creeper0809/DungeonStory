@@ -1,0 +1,8 @@
+DungeonStory material equipment contracts
+catalog_and_allowed_families=PASS; equipment=61; materials=12
+derived_stats=PASS; ironWeight=1.8; blacksteelDurability=150; goldValue=4
+material_policy=PASS; allowed=4; blacksteelPriority=4
+facility_mutation_fence=PASS; openRejected=1; closeReopened=1
+craft_output_capability_binding=PASS; equipment=production-output:combat-equipment-craft; ammunition=production-output:combat-ammunition-craft; driftRejected=true
+save_round_trip=PASS; instance=item-instance:496cc30f6ea343eaaf75a2540b7b3a73; material=material:blacksteel; policies=1
+valid=True

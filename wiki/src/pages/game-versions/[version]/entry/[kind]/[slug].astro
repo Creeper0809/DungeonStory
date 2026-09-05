@@ -1,0 +1,13 @@
+---
+import BaseLayout from '../../../../../components/BaseLayout.astro';
+import EntryContent from '../../../../../components/EntryContent.astro';
+import { getEntity, hasGameVersion } from '../../../../../lib/wiki-data';
+const version = Astro.params.version ?? '';
+if (!hasGameVersion(version)) return new Response(null, { status: 404 });
+const entity = getEntity(version, Astro.params.kind ?? '', Astro.params.slug ?? '');
+if (!entity) return new Response(null, { status: 404 });
+---
+
+<BaseLayout title={entity.spoiler_tier === 'warning' ? '스포일러 콘텐츠' : entity.title} version={version} historical currentHref={`/entry/${entity.kind}/${entity.slug}/`}>
+  <EntryContent entity={entity} version={version} historical />
+</BaseLayout>

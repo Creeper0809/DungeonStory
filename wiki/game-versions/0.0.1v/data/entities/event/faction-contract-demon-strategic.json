@@ -1,0 +1,31 @@
+{
+  "facts": [
+    {
+      "label": "성공 효과",
+      "value": "2개"
+    },
+    {
+      "label": "실패 효과",
+      "value": "1개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "18",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "tool-administrative-seal",
+      "target_spoiler_tier": "none",
+      "target_title": "행정 인장",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "faction-contract-demon-strategic",
+  "spoiler_tier": "none",
+  "summary": "잿빛 계약정이 실제 물자와 작업 결과를 요구하는 장기 전략 계약이다.",
+  "title": "잿빛 계약정 장기 전략 계약"
+}

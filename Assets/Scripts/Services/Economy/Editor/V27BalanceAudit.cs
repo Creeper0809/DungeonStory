@@ -12,6 +12,15 @@ using UnityEngine;
 
 public static class V27BalanceAudit
 {
+    private enum MarketAuthorityState
+    {
+        Implemented,
+        LegacyReconstructedBaseline,
+        PreviouslyApprovedApplied,
+        MissingProvenance,
+        UnauthorizedDrift
+    }
+
     public const string MarkdownPath = "docs/generated/V27_Balance_Before_After.md";
     public const string AuditPath = "Artifacts/QA/v27-balance-recalibration-audit.txt";
     public const string ManifestPath = "Artifacts/QA/v27-balance-artifact-manifest.json";
@@ -67,7 +76,17 @@ public static class V27BalanceAudit
         "balance:v27:service-spatial-clutter-rng-validation-v1";
     public const string OutputContainmentBaselineRecordId =
         "balance:v27:resource-output-containment-saturation-v1";
-    private const string GeneratorVersion = "v27.13.1";
+    public const string MultiOutputEconomicAllocationBaselineRecordId =
+        "balance:v27:multi-output-economic-allocation-v1";
+    internal const string ConstructionRecalibrationCandidateWuMetric =
+        "construction-recalibration-candidate-wu";
+    internal const string ConstructionRecalibrationCandidateMaterialMetricPrefix =
+        "construction-recalibration-candidate-material:";
+    internal const string MarketRecalibrationCandidateMetricPrefix =
+        "market-recalibration-candidate:";
+    internal const string MarketDerivedRecalibrationCandidateMetricPrefix =
+        "market-derived-recalibration-candidate:";
+    private const string GeneratorVersion = "v27.13.3";
     private const decimal LaborScale = 2.25m;
 
     [MenuItem("DungeonStory/V27/Generate Audit-Only Whole-Game Ledger")]
@@ -93,6 +112,22 @@ public static class V27BalanceAudit
     internal static V27BalanceAuditOutput GenerateForApprovalRefresh()
     {
         return Generate(BalanceLedgerExecutionMode.AuditOnly, allowApprovalRefresh: true);
+    }
+
+    [MenuItem("DungeonStory/V27/Generate Dependency Recalibration Review")]
+    public static void GenerateDependencyRecalibrationReview()
+    {
+        V27BalanceAuditOutput output = GenerateForApprovalRefresh();
+        if (output.IntegrityFailures.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "V27 dependency recalibration integrity failed:\n"
+                + string.Join("\n", output.IntegrityFailures));
+        }
+        Debug.Log(
+            $"V27 dependency recalibration review generated: rows={output.Ledger.Count}, "
+            + $"critical={output.CriticalCount}, scc={output.SccCount}. "
+            + "Criticals remain review gates; no asset or approval was changed.");
     }
 
     private static V27BalanceAuditOutput Generate(
@@ -135,6 +170,8 @@ public static class V27BalanceAudit
             work).Calculate();
         IReadOnlyDictionary<string, string> historicalBeforeValues =
             V27BalanceAssetApplication.CaptureHistoricalBeforeValues();
+        IReadOnlyDictionary<string, string> previouslyApprovedAfterValues =
+            V27BalanceAssetApplication.CapturePreviouslyApprovedAfterValues();
         V27EmbeddedWorkValueSnapshot after = new V27EmbeddedWorkValueCalculator(
             recipes,
             crops,
@@ -168,6 +205,10 @@ public static class V27BalanceAudit
                 "V27 non-convergent recipes: " + string.Join(",", after.NonConvergentRecipeIds));
 
         Dictionary<string, int> downstream = BuildDownstreamCounts(recipes, crops);
+        HashSet<string> itemValueSemanticRootIds = recipes
+            .Select(value => RawStableId(value, "recipeId"))
+            .Concat(crops.Select(value => RawStableId(value, "cropId")))
+            .ToHashSet(StringComparer.Ordinal);
         Dictionary<string, string> sourceDigests = new Dictionary<string, string>(
             StringComparer.Ordinal);
         CapturePipelineSourceDigests(sourceDigests);
@@ -186,12 +227,14 @@ public static class V27BalanceAudit
             before,
             after,
             materialProfiles,
+            itemValueSemanticRootIds,
             downstream,
             capture,
             anomalies,
             sourceDigests,
             integrityFailures,
             historicalBeforeValues,
+            previouslyApprovedAfterValues,
             allowApprovalRefresh);
         CaptureItemMarketConsumers(
             source,
@@ -199,9 +242,11 @@ public static class V27BalanceAudit
             before,
             after,
             capture,
+            anomalies,
             sourceDigests,
             integrityFailures,
             historicalBeforeValues,
+            previouslyApprovedAfterValues,
             allowApprovalRefresh);
         CaptureCropValues(
             crops,
@@ -231,7 +276,7 @@ public static class V27BalanceAudit
             anomalies,
             sourceDigests,
             historicalBeforeValues,
-            allowApprovalRefresh);
+            previouslyApprovedAfterValues);
         CaptureCombatEncounterValues(
             source.GetAll<OffenseEncounterSO>(),
             capture,
@@ -300,10 +345,10 @@ public static class V27BalanceAudit
         AddPipelineReadinessAnomalies(anomalies);
 
         FrozenBalanceLedger ledger = capture.Freeze();
-        PromoteDependencyRoots(ledger, anomalies);
         string[] approvedKeys = allowApprovalRefresh
             ? V27BalanceAssetApplication.CaptureMatchingApprovalKeysForRefresh(ledger)
             : V27BalanceAssetApplication.CaptureValidApprovalKeys(ledger);
+        PromoteDependencyRoots(ledger, anomalies, approvedKeys);
         anomalies = ApplyApprovalDispositions(ledger, anomalies, approvedKeys);
         string assetPatchDigest = allowApprovalRefresh
             ? string.Empty
@@ -315,19 +360,19 @@ public static class V27BalanceAudit
             .ThenBy(value => value.ReasonCode, StringComparer.Ordinal)
             .ToArray();
 
-        V27BalanceArtifactWriter.WriteCsvIfDifferent(
+        bool csvChanged = V27BalanceArtifactWriter.WriteCsvIfDifferent(
             V27BalanceCsvSerializer.ArtifactPath,
             ledger);
-        V27BalanceArtifactWriter.WriteIfDifferent(MarkdownPath, stream =>
+        bool markdownChanged = V27BalanceArtifactWriter.WriteIfDifferent(MarkdownPath, stream =>
             WriteMarkdown(stream, ledger, orderedAnomalies, scc, integrityFailures));
-        V27BalanceArtifactWriter.WriteIfDifferent(
+        bool anomalyChanged = V27BalanceArtifactWriter.WriteIfDifferent(
             V27BalanceJsonSerializer.AnomalyArtifactPath,
             stream => V27BalanceJsonSerializer.WriteAnomalyGraph(stream, orderedAnomalies));
-        V27BalanceArtifactWriter.WriteIfDifferent(AuditPath, stream =>
+        bool auditChanged = V27BalanceArtifactWriter.WriteIfDifferent(AuditPath, stream =>
             WriteAudit(stream, ledger, orderedAnomalies, scc, integrityFailures));
 
         string aggregateSourceDigest = HashCanonicalPairs(sourceDigests);
-        V27BalanceArtifactWriter.WriteIfDifferent(SourceInventoryPath, stream =>
+        bool sourceInventoryChanged = V27BalanceArtifactWriter.WriteIfDifferent(SourceInventoryPath, stream =>
             WriteSourceInventory(stream, sourceDigests));
         string csvHash = V27BalanceArtifactWriter.ComputeSha256(
             V27BalanceCsvSerializer.ArtifactPath);
@@ -354,7 +399,7 @@ public static class V27BalanceAudit
             scc.Components.Count,
             integrityFailures.Count,
             CaptureBaselineRecordIds());
-        V27BalanceArtifactWriter.WriteIfDifferent(ManifestPath, stream =>
+        bool manifestChanged = V27BalanceArtifactWriter.WriteIfDifferent(ManifestPath, stream =>
             WriteManifest(
                 stream,
                 artifactManifest,
@@ -365,12 +410,30 @@ public static class V27BalanceAudit
                 sourceInventoryHash,
                 approvalHash,
                 assetPatchDigest));
+        V27BalanceAuditWriteResult writeResult = V27BalanceAuditWriteResult.Capture(
+            new[]
+            {
+                V27BalanceAuditWriteObservation.Capture(
+                    V27BalanceCsvSerializer.ArtifactPath, csvChanged),
+                V27BalanceAuditWriteObservation.Capture(
+                    MarkdownPath, markdownChanged),
+                V27BalanceAuditWriteObservation.Capture(
+                    V27BalanceJsonSerializer.AnomalyArtifactPath, anomalyChanged),
+                V27BalanceAuditWriteObservation.Capture(
+                    AuditPath, auditChanged),
+                V27BalanceAuditWriteObservation.Capture(
+                    SourceInventoryPath, sourceInventoryChanged),
+                V27BalanceAuditWriteObservation.Capture(
+                    ManifestPath, manifestChanged)
+            });
         AssetDatabase.Refresh();
         return new V27BalanceAuditOutput(
             authoritySnapshot,
             artifactManifest,
             assetPatchDigest,
-            Array.AsReadOnly(integrityFailures.ToArray()));
+            Array.AsReadOnly(orderedAnomalies),
+            Array.AsReadOnly(integrityFailures.ToArray()),
+            writeResult);
     }
 
     public static void RefreshManifestEvidenceHashes(
@@ -944,12 +1007,14 @@ public static class V27BalanceAudit
         EmbeddedWorkValueSnapshot before,
         V27EmbeddedWorkValueSnapshot after,
         IMaterialEconomicProfileCatalog materialProfiles,
+        ISet<string> semanticRootIds,
         IReadOnlyDictionary<string, int> downstream,
         BalanceCaptureFactory capture,
         ICollection<BalanceAnomalyNode> anomalies,
         IDictionary<string, string> sourceDigests,
         ICollection<string> integrityFailures,
         IReadOnlyDictionary<string, string> historicalBeforeValues,
+        IReadOnlyDictionary<string, string> previouslyApprovedAfterValues,
         bool allowApprovalRefresh)
     {
         foreach (ItemDefinitionSO definition in definitions)
@@ -965,13 +1030,27 @@ public static class V27BalanceAudit
                 beforeFloat,
                 $"item:{definition.ItemId}:V23EWU");
             long beforeMilli = V27EwuQuantizer.QuantizeInputDebit(beforeDecimal).MilliEwu;
+            int downstreamCount = downstream.TryGetValue(
+                definition.ItemId,
+                out int count)
+                ? count
+                : 0;
+            bool acquisitionEmitsRootCritical =
+                ClassifyItemMetricSeverity(
+                    definition,
+                    beforeMilli,
+                    value.AcquisitionCost.MilliEwu,
+                    downstreamCount) == BalanceAnomalySeverity.Critical
+                && !semanticRootIds.Contains(value.SelectedSourceId);
             CaptureItemMetric(
                 definition,
                 "acquisition-cost",
                 beforeMilli,
                 value.AcquisitionCost.MilliEwu,
                 value.SelectedSourceId,
-                downstream.TryGetValue(definition.ItemId, out int count) ? count : 0,
+                semanticRootIds,
+                acquisitionEmitsRootCritical,
+                downstreamCount,
                 path,
                 sourceDigest,
                 capture,
@@ -988,7 +1067,9 @@ public static class V27BalanceAudit
                 beforeRecoverable,
                 value.RecoverableValue.MilliEwu,
                 value.SelectedSourceId,
-                downstream.TryGetValue(definition.ItemId, out count) ? count : 0,
+                semanticRootIds,
+                acquisitionEmitsRootCritical,
+                downstreamCount,
                 path,
                 sourceDigest,
                 capture,
@@ -1000,8 +1081,10 @@ public static class V27BalanceAudit
                 path,
                 sourceDigest,
                 capture,
+                anomalies,
                 integrityFailures,
                 historicalBeforeValues,
+                previouslyApprovedAfterValues,
                 allowApprovalRefresh);
         }
     }
@@ -1013,8 +1096,10 @@ public static class V27BalanceAudit
         string path,
         string sourceDigest,
         BalanceCaptureFactory capture,
+        ICollection<BalanceAnomalyNode> anomalies,
         ICollection<string> integrityFailures,
         IReadOnlyDictionary<string, string> historicalBeforeValues,
+        IReadOnlyDictionary<string, string> previouslyApprovedAfterValues,
         bool allowApprovalRefresh)
     {
         const string AppraisedValuablesId = "offense:appraised-valuables";
@@ -1046,19 +1131,33 @@ public static class V27BalanceAudit
             V27BalanceAssetApplication.BuildHistoricalBeforeKey(
                 stableId,
                 "authored-unit-price-gold");
-        int beforeUnitPrice = historicalBeforeValues.TryGetValue(
+        bool hasHistoricalPrice = historicalBeforeValues.TryGetValue(
                 historicalPriceKey,
-                out string historicalPriceToken)
+                out string historicalPriceToken);
+        int beforeUnitPrice = hasHistoricalPrice
             ? int.Parse(
                 historicalPriceToken,
                 NumberStyles.Integer,
                 CultureInfo.InvariantCulture)
-            : allowApprovalRefresh
-                ? currentUnitPrice
-                : formulaBeforeUnitPrice;
-        if (!allowApprovalRefresh
-            && currentUnitPrice != beforeUnitPrice
-            && currentUnitPrice != afterUnitPrice)
+            : formulaBeforeUnitPrice;
+        bool previouslyApprovedCurrentPrice = hasHistoricalPrice
+            && previouslyApprovedAfterValues.TryGetValue(
+                historicalPriceKey,
+                out string approvedPriceAfter)
+            && string.Equals(
+                approvedPriceAfter,
+                currentUnitPrice.ToString(CultureInfo.InvariantCulture),
+                StringComparison.Ordinal);
+        MarketAuthorityState priceAuthorityState = ClassifyMarketAuthority(
+            hasHistoricalPrice,
+            previouslyApprovedCurrentPrice,
+            currentUnitPrice == formulaBeforeUnitPrice,
+            currentUnitPrice == afterUnitPrice,
+            currentUnitPrice == beforeUnitPrice);
+        bool splitPriceCandidate = priceAuthorityState
+            is MarketAuthorityState.PreviouslyApprovedApplied
+            or MarketAuthorityState.MissingProvenance;
+        if (priceAuthorityState == MarketAuthorityState.UnauthorizedDrift)
         {
             integrityFailures.Add(
                 $"V27 unit price authority drift: {definition.ItemId}; "
@@ -1070,6 +1169,19 @@ public static class V27BalanceAudit
             : GetApprovalSourceDigest(path, "unitPrice");
         string beforeToken = beforeUnitPrice.ToString(CultureInfo.InvariantCulture);
         string afterToken = afterUnitPrice.ToString(CultureInfo.InvariantCulture);
+        string currentToken = currentUnitPrice.ToString(CultureInfo.InvariantCulture);
+        string authorityBeforeToken = splitPriceCandidate
+            ? previouslyApprovedCurrentPrice ? beforeToken : currentToken
+            : beforeToken;
+        string authorityAfterToken = splitPriceCandidate ? currentToken : afterToken;
+        int authorityBeforePrice = int.Parse(
+            authorityBeforeToken,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture);
+        int authorityAfterPrice = int.Parse(
+            authorityAfterToken,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture);
         const string priceReason = "v27-market-acquisition-input-ceil";
         capture.Capture(new BalanceMetricCaptureRequest
         {
@@ -1078,10 +1190,10 @@ public static class V27BalanceAudit
             StableId = stableId,
             Metric = "authored-unit-price-gold",
             Unit = "gold",
-            Before = beforeToken,
-            After = afterToken,
-            AuthoredRoundedValue = afterToken,
-            PercentDelta = Token(PercentDelta(beforeUnitPrice, afterUnitPrice)),
+            Before = authorityBeforeToken,
+            After = authorityAfterToken,
+            AuthoredRoundedValue = authorityAfterToken,
+            PercentDelta = Token(PercentDelta(authorityBeforePrice, authorityAfterPrice)),
             ExactFormula = appraised
                 ? "max(1,floor(RecoverableValue/3000mEWU-per-gold))"
                 : "max(1,ceil(AcquisitionCost/3000mEWU-per-gold))",
@@ -1093,8 +1205,8 @@ public static class V27BalanceAudit
             AfterBomEwu = "N/A",
             BeforeLaborDensity = "N/A",
             AfterLaborDensity = "N/A",
-            UpstreamOnlyAfter = afterToken,
-            InheritedDelta = checked(afterUnitPrice - beforeUnitPrice).ToString(
+            UpstreamOnlyAfter = authorityAfterToken,
+            InheritedDelta = checked(authorityAfterPrice - authorityBeforePrice).ToString(
                 CultureInfo.InvariantCulture),
             RawLocalDelta = "0",
             LocalQuantizationBoundaryCount = 1,
@@ -1111,13 +1223,18 @@ public static class V27BalanceAudit
             ExecutionRoute = "ItemDefinitionSO.UnitPrice->shop/procurement/market ledger",
             SaveAuthority = "ItemDefinitionSO Unity YAML",
             VerificationEvidence = "V27 market formula audit; consumer coherence pending",
-            ReviewStatus = currentUnitPrice == afterUnitPrice ? "implemented" : "pending",
-            ApprovalKey = beforeUnitPrice == afterUnitPrice
+            ReviewStatus = splitPriceCandidate
+                ? priceAuthorityState == MarketAuthorityState.PreviouslyApprovedApplied
+                    ? "applied"
+                    : "provenance-missing"
+                : currentUnitPrice == afterUnitPrice ? "implemented" : "pending",
+            ApprovalKey = authorityBeforePrice == authorityAfterPrice
+                    || (splitPriceCandidate && !previouslyApprovedCurrentPrice)
                 ? string.Empty
                 : BuildApprovalKey(
                     stableId,
                     "authored-unit-price-gold",
-                    afterToken,
+                    authorityAfterToken,
                     dependencyFingerprint,
                     approvalSourceDigest,
                     priceReason,
@@ -1126,11 +1243,35 @@ public static class V27BalanceAudit
             LocalFingerprint = HashText(
                 definition.ItemId + "|unitPrice|" + value.SelectedSourceId),
             SourceDigest = approvalSourceDigest,
-            SemanticHash = HashText(
-                definition.ItemId + "|authored-unit-price-gold|" + afterToken),
-            AssetApplied = currentUnitPrice == afterUnitPrice ? "true" : "false",
+            SemanticHash = BuildMarketAuthoritySemanticHash(
+                stableId,
+                "authored-unit-price-gold",
+                authorityAfterToken),
+            AssetApplied = currentUnitPrice == authorityAfterPrice ? "true" : "false",
             BalanceBaselineRecordId = MarketBaselineRecordId
         });
+        if (splitPriceCandidate)
+        {
+            CaptureMarketRecalibrationCandidate(
+                capture,
+                anomalies,
+                stableId,
+                "item-market",
+                "authored-unit-price-gold",
+                "gold",
+                currentToken,
+                afterToken,
+                appraised
+                    ? "max(1,floor(RecoverableValue/3000mEWU-per-gold))"
+                    : "max(1,ceil(AcquisitionCost/3000mEWU-per-gold))",
+                path,
+                "unitPrice",
+                value.SelectedSourceId,
+                dependencyFingerprint,
+                approvalSourceDigest,
+                "ItemDefinitionSO.UnitPrice->shop/procurement/market ledger",
+                previouslyApprovedCurrentPrice);
+        }
 
         if (definition is ResourceItemDefinitionSO resource)
         {
@@ -1145,8 +1286,11 @@ public static class V27BalanceAudit
                 stableId,
                 dependencyFingerprint,
                 capture,
+                anomalies,
                 integrityFailures,
                 historicalBeforeValues,
+                previouslyApprovedAfterValues,
+                splitPriceCandidate,
                 allowApprovalRefresh);
         }
     }
@@ -1162,8 +1306,11 @@ public static class V27BalanceAudit
         string stableId,
         string dependencyFingerprint,
         BalanceCaptureFactory capture,
+        ICollection<BalanceAnomalyNode> anomalies,
         ICollection<string> integrityFailures,
         IReadOnlyDictionary<string, string> historicalBeforeValues,
+        IReadOnlyDictionary<string, string> previouslyApprovedAfterValues,
+        bool splitPriceCandidate,
         bool allowApprovalRefresh)
     {
         bool appraised = string.Equals(
@@ -1193,29 +1340,41 @@ public static class V27BalanceAudit
         bool hasHistoricalBefore = historicalBeforeValues.TryGetValue(
             historicalKey,
             out string historicalBeforeToken);
-        if (!allowApprovalRefresh
-            && !hasHistoricalBefore
-            && currentRate != afterRate
-            && !AreSameOrAdjacentNonNegativeFloats(currentRate, formulaBeforeRate))
-        {
-            integrityFailures.Add(
-                $"V27 V23 sale-rate reconstruction drift exceeds one float ULP: "
-                + $"{definition.ItemId}; formula={formulaBeforeToken}, current={currentToken}.");
-        }
-        string beforeToken = allowApprovalRefresh
-            ? currentToken
-            : hasHistoricalBefore
-                ? historicalBeforeToken
-                : currentRate != afterRate
+        bool previouslyApprovedCurrentRate = hasHistoricalBefore
+            && previouslyApprovedAfterValues.TryGetValue(
+                historicalKey,
+                out string approvedRateAfter)
+            && string.Equals(
+                approvedRateAfter,
+                currentToken,
+                StringComparison.Ordinal);
+        float historicalBeforeRate = hasHistoricalBefore
+            ? float.Parse(
+                historicalBeforeToken,
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture)
+            : formulaBeforeRate;
+        MarketAuthorityState rateAuthorityState = ClassifyMarketAuthority(
+            hasHistoricalBefore,
+            previouslyApprovedCurrentRate,
+            AreSameOrAdjacentNonNegativeFloats(currentRate, formulaBeforeRate),
+            currentRate == afterRate,
+            currentRate == historicalBeforeRate);
+        bool splitRateCandidate = rateAuthorityState
+            is MarketAuthorityState.PreviouslyApprovedApplied
+            or MarketAuthorityState.MissingProvenance;
+        string beforeToken = hasHistoricalBefore
+            ? historicalBeforeToken
+            : rateAuthorityState == MarketAuthorityState.MissingProvenance
+                ? currentToken
+                : rateAuthorityState == MarketAuthorityState.LegacyReconstructedBaseline
                     ? currentToken
                     : formulaBeforeToken;
         float beforeRate = float.Parse(
             beforeToken,
             NumberStyles.Float,
             CultureInfo.InvariantCulture);
-        if (!allowApprovalRefresh
-            && currentRate != beforeRate
-            && currentRate != afterRate)
+        if (rateAuthorityState == MarketAuthorityState.UnauthorizedDrift)
         {
             integrityFailures.Add(
                 $"V27 market sale-rate authority drift: {definition.ItemId}; "
@@ -1236,6 +1395,18 @@ public static class V27BalanceAudit
             definition,
             "saleRate",
             SerializedPropertyType.Float);
+        string authorityBeforeToken = splitRateCandidate
+            ? previouslyApprovedCurrentRate ? beforeToken : currentToken
+            : beforeToken;
+        string authorityAfterToken = splitRateCandidate ? currentToken : afterToken;
+        float authorityBeforeRate = float.Parse(
+            authorityBeforeToken,
+            NumberStyles.Float,
+            CultureInfo.InvariantCulture);
+        float authorityAfterRate = float.Parse(
+            authorityAfterToken,
+            NumberStyles.Float,
+            CultureInfo.InvariantCulture);
         const string reason = "v27-market-sale-rate-output-floor";
         capture.Capture(new BalanceMetricCaptureRequest
         {
@@ -1244,12 +1415,12 @@ public static class V27BalanceAudit
             StableId = stableId,
             Metric = "authored-market-sale-rate",
             Unit = "ratio",
-            Before = beforeToken,
-            After = afterToken,
-            AuthoredRoundedValue = afterToken,
+            Before = authorityBeforeToken,
+            After = authorityAfterToken,
+            AuthoredRoundedValue = authorityAfterToken,
             PercentDelta = Token(PercentDelta(
-                (decimal)beforeRate,
-                (decimal)afterRate)),
+                (decimal)authorityBeforeRate,
+                (decimal)authorityAfterRate)),
             ExactFormula = "max float rate where floor(unitPrice*rate*3000mEWU)<=floor(AcquisitionCost*0.60)",
             BeforeBom = "N/A",
             AfterBom = "N/A",
@@ -1259,8 +1430,9 @@ public static class V27BalanceAudit
             AfterBomEwu = "N/A",
             BeforeLaborDensity = "N/A",
             AfterLaborDensity = "N/A",
-            UpstreamOnlyAfter = afterToken,
-            InheritedDelta = Token((decimal)afterRate - (decimal)beforeRate),
+            UpstreamOnlyAfter = authorityAfterToken,
+            InheritedDelta = Token(
+                (decimal)authorityAfterRate - (decimal)authorityBeforeRate),
             RawLocalDelta = "0",
             LocalQuantizationBoundaryCount = 1,
             DownstreamConsumerCount = "1",
@@ -1278,31 +1450,63 @@ public static class V27BalanceAudit
             ExecutionRoute = "ResourceItemDefinitionSO.MarketSaleRate->ResourceStockPolicyRuntime",
             SaveAuthority = "ResourceItemDefinitionSO MarketItemFeature Unity YAML",
             VerificationEvidence = "V27 sale-credit floor audit; physical market PlayMode pending",
-            ReviewStatus = currentRate == afterRate ? "implemented" : "pending",
-            ApprovalKey = beforeRate == afterRate
+            ReviewStatus = splitRateCandidate
+                ? rateAuthorityState == MarketAuthorityState.PreviouslyApprovedApplied
+                    ? "applied"
+                    : "provenance-missing"
+                : currentRate == afterRate ? "implemented" : "pending",
+            ApprovalKey = authorityBeforeRate == authorityAfterRate
+                    || (splitRateCandidate && !previouslyApprovedCurrentRate)
                 ? string.Empty
                 : BuildApprovalKey(
                     stableId,
                     "authored-market-sale-rate",
-                    afterToken,
+                    authorityAfterToken,
                     dependencyFingerprint,
                     approvalSourceDigest,
                     reason,
                     MarketBaselineRecordId),
             DependencyFingerprint = dependencyFingerprint,
             LocalFingerprint = HashText(
-                definition.ItemId + "|saleRate|" + beforeToken),
+                definition.ItemId + "|saleRate|" + authorityBeforeToken),
             SourceDigest = approvalSourceDigest,
-            SemanticHash = HashText(
-                definition.ItemId + "|authored-market-sale-rate|" + afterToken),
-            AssetApplied = currentRate == afterRate ? "true" : "false",
+            SemanticHash = BuildMarketAuthoritySemanticHash(
+                stableId,
+                "authored-market-sale-rate",
+                authorityAfterToken),
+            AssetApplied = currentRate == authorityAfterRate ? "true" : "false",
             BalanceBaselineRecordId = MarketBaselineRecordId
         });
+        if (splitRateCandidate)
+        {
+            CaptureMarketRecalibrationCandidate(
+                capture,
+                anomalies,
+                stableId,
+                "item-market",
+                "authored-market-sale-rate",
+                "ratio",
+                currentToken,
+                afterToken,
+                "max float rate where floor(unitPrice*rate*3000mEWU)<=floor(AcquisitionCost*0.60)",
+                path,
+                propertyPath,
+                stableId,
+                dependencyFingerprint,
+                approvalSourceDigest,
+                "ResourceItemDefinitionSO.MarketSaleRate->ResourceStockPolicyRuntime",
+                previouslyApprovedCurrentRate);
+        }
 
         long beforeCredit = checked((long)Math.Floor(
             beforeUnitPrice * (decimal)beforeRate * 3000m));
+        long currentCredit = checked((long)Math.Floor(
+            definition.UnitPrice * (decimal)currentRate * 3000m));
         long afterCredit = checked((long)Math.Floor(
             afterUnitPrice * (decimal)afterRate * 3000m));
+        bool splitCreditCandidate = splitPriceCandidate || splitRateCandidate;
+        long authorityBeforeCredit = splitCreditCandidate ? currentCredit : beforeCredit;
+        long authorityAfterCredit = splitCreditCandidate ? currentCredit : afterCredit;
         long marketSaleCreditCap = marketSaleValue;
         bool creditExceedsTarget = !authoredExcluded
             && afterCredit > marketSaleCreditCap;
@@ -1319,10 +1523,10 @@ public static class V27BalanceAudit
             StableId = stableId,
             Metric = "market-sale-credit",
             Unit = "mEWU",
-            Before = beforeCredit.ToString(CultureInfo.InvariantCulture),
-            After = afterCredit.ToString(CultureInfo.InvariantCulture),
-            AuthoredRoundedValue = afterCredit.ToString(CultureInfo.InvariantCulture),
-            PercentDelta = Token(PercentDelta(beforeCredit, afterCredit)),
+            Before = authorityBeforeCredit.ToString(CultureInfo.InvariantCulture),
+            After = authorityAfterCredit.ToString(CultureInfo.InvariantCulture),
+            AuthoredRoundedValue = authorityAfterCredit.ToString(CultureInfo.InvariantCulture),
+            PercentDelta = Token(PercentDelta(authorityBeforeCredit, authorityAfterCredit)),
             ExactFormula = "floor(authoredUnitPrice*authoredSaleRate*3000mEWU)",
             BeforeBom = "N/A",
             AfterBom = "N/A",
@@ -1332,8 +1536,8 @@ public static class V27BalanceAudit
             AfterBomEwu = "N/A",
             BeforeLaborDensity = "N/A",
             AfterLaborDensity = "N/A",
-            UpstreamOnlyAfter = afterCredit.ToString(CultureInfo.InvariantCulture),
-            InheritedDelta = checked(afterCredit - beforeCredit).ToString(
+            UpstreamOnlyAfter = authorityAfterCredit.ToString(CultureInfo.InvariantCulture),
+            InheritedDelta = checked(authorityAfterCredit - authorityBeforeCredit).ToString(
                 CultureInfo.InvariantCulture),
             RawLocalDelta = "0",
             LocalQuantizationBoundaryCount = 1,
@@ -1348,17 +1552,71 @@ public static class V27BalanceAudit
             ExecutionRoute = "ResourceStockPolicyRuntime sale settlement",
             SaveAuthority = "physical sale buffer + treasury transaction ledger",
             VerificationEvidence = "V27 market formula audit; physical market PlayMode pending",
-            ReviewStatus = creditExceedsTarget ? "blocked" : "review",
+            ReviewStatus = splitCreditCandidate
+                ? "observed-live-derived"
+                : creditExceedsTarget ? "blocked" : "review",
             ApprovalKey = string.Empty,
             DependencyFingerprint = dependencyFingerprint,
             LocalFingerprint = HashText(
-                definition.ItemId + "|market-sale-credit|" + beforeToken),
+                definition.ItemId + "|market-sale-credit|" + authorityBeforeCredit),
             SourceDigest = approvalSourceDigest,
             SemanticHash = HashText(
-                definition.ItemId + "|market-sale-credit|" + afterCredit),
+                definition.ItemId + "|market-sale-credit|" + authorityAfterCredit),
             AssetApplied = "true",
             BalanceBaselineRecordId = MarketBaselineRecordId
         });
+        if (splitCreditCandidate)
+        {
+            string candidateMetric = MarketDerivedRecalibrationCandidateMetricPrefix
+                + "market-sale-credit";
+            capture.Capture(new BalanceMetricCaptureRequest
+            {
+                Domain = ResolveDomain(path, definition.GetType().Name),
+                DefinitionKind = "item-market-derived-recalibration-candidate",
+                StableId = stableId,
+                Metric = candidateMetric,
+                Unit = "mEWU",
+                Before = currentCredit.ToString(CultureInfo.InvariantCulture),
+                After = afterCredit.ToString(CultureInfo.InvariantCulture),
+                AuthoredRoundedValue = afterCredit.ToString(CultureInfo.InvariantCulture),
+                PercentDelta = Token(PercentDelta(currentCredit, afterCredit)),
+                ExactFormula = "floor(candidateUnitPrice*candidateSaleRate*3000mEWU)",
+                BeforeBom = "N/A",
+                AfterBom = "N/A",
+                BeforeDirectWu = "N/A",
+                AfterDirectWu = "N/A",
+                BeforeBomEwu = "N/A",
+                AfterBomEwu = "N/A",
+                BeforeLaborDensity = "N/A",
+                AfterLaborDensity = "N/A",
+                UpstreamOnlyAfter = afterCredit.ToString(CultureInfo.InvariantCulture),
+                InheritedDelta = checked(afterCredit - currentCredit).ToString(
+                    CultureInfo.InvariantCulture),
+                RawLocalDelta = "0",
+                LocalQuantizationBoundaryCount = 1,
+                DownstreamConsumerCount = "review-only-derived",
+                DependencyIds = new[] { stableId },
+                RootCauseIds = new[] { stableId },
+                AnomalyDisposition = "collapsed-inherited",
+                ReasonCode = "derived-from-unresolved-market-authority",
+                ReasonDetail = "This sale credit is derived only from unresolved price or sale-rate candidates. It cannot become live or independently approved.",
+                SourceAuthority = path,
+                SourcePropertyPath = "unitPrice|" + propertyPath,
+                ExecutionRoute = "review-only derived projection; authority route=ResourceStockPolicyRuntime sale settlement",
+                SaveAuthority = "derived market recalibration projection; no independent write authority",
+                VerificationEvidence = "V27 market authority/candidate separation audit",
+                ReviewStatus = "pending-upstream-review",
+                ApprovalKey = string.Empty,
+                DependencyFingerprint = dependencyFingerprint,
+                LocalFingerprint = HashText(
+                    definition.ItemId + "|" + candidateMetric + "|" + currentCredit),
+                SourceDigest = approvalSourceDigest,
+                SemanticHash = HashText(
+                    definition.ItemId + "|" + candidateMetric + "|" + afterCredit),
+                AssetApplied = "false",
+                BalanceBaselineRecordId = MarketBaselineRecordId
+            });
+        }
     }
 
     private static float ResolveV23MarketSaleRate(
@@ -1464,6 +1722,28 @@ public static class V27BalanceAudit
         return Math.Abs((long)leftBits - rightBits) <= 1L;
     }
 
+    private static MarketAuthorityState ClassifyMarketAuthority(
+        bool hasHistorical,
+        bool previouslyApprovedCurrent,
+        bool currentMatchesLegacy,
+        bool currentMatchesCandidate,
+        bool currentMatchesHistoricalBefore)
+    {
+        if (currentMatchesCandidate)
+            return MarketAuthorityState.Implemented;
+        if (previouslyApprovedCurrent)
+            return MarketAuthorityState.PreviouslyApprovedApplied;
+        if (hasHistorical)
+        {
+            return currentMatchesHistoricalBefore
+                ? MarketAuthorityState.LegacyReconstructedBaseline
+                : MarketAuthorityState.UnauthorizedDrift;
+        }
+        return currentMatchesLegacy
+            ? MarketAuthorityState.LegacyReconstructedBaseline
+            : MarketAuthorityState.MissingProvenance;
+    }
+
     private static bool IsAutomaticSaleExcluded(string itemId) => itemId switch
     {
         PhysicalItemIds.EquipmentModule => true,
@@ -1490,9 +1770,11 @@ public static class V27BalanceAudit
         EmbeddedWorkValueSnapshot before,
         V27EmbeddedWorkValueSnapshot after,
         BalanceCaptureFactory capture,
+        ICollection<BalanceAnomalyNode> anomalies,
         IDictionary<string, string> sourceDigests,
         ICollection<string> integrityFailures,
         IReadOnlyDictionary<string, string> historicalBeforeValues,
+        IReadOnlyDictionary<string, string> previouslyApprovedAfterValues,
         bool allowApprovalRefresh)
     {
         Dictionary<string, ItemDefinitionSO> itemById = items.ToDictionary(
@@ -1524,9 +1806,7 @@ public static class V27BalanceAudit
                     historicalPriceToken,
                     NumberStyles.Integer,
                     CultureInfo.InvariantCulture)
-                : allowApprovalRefresh
-                    ? item.UnitPrice
-                    : ResolveV23MarketUnitPrice(item.ItemId, beforeEwu);
+                : ResolveV23MarketUnitPrice(item.ItemId, beforeEwu);
             afterPrices[item.ItemId] = checked((int)ResolveV27MarketUnitPrice(
                 item.ItemId,
                 afterValue.AcquisitionCost.MilliEwu,
@@ -1551,9 +1831,10 @@ public static class V27BalanceAudit
             GetSourceDigest(path, sourceDigests);
             CaptureMarketConsumerPatch(
                 capture,
+                anomalies,
                 integrityFailures,
                 path,
-                GetApprovalSerializedDigest(saleItem, "cost"),
+                GetApprovalSourceDigest(path, "cost"),
                 "retail-offer:" + saleItem.id.ToString(CultureInfo.InvariantCulture),
                 "retail-offer",
                 "authored-retail-cost-gold",
@@ -1567,6 +1848,8 @@ public static class V27BalanceAudit
                 itemId,
                 "SaleItem.cost->FacilityShop purchase debit",
                 historicalBeforeValues,
+                previouslyApprovedAfterValues,
+                saleItem.cost == beforeCost,
                 allowApprovalRefresh);
         }
 
@@ -1613,24 +1896,12 @@ public static class V27BalanceAudit
             bool hasHistorical = historicalBeforeValues.TryGetValue(
                 historicalKey,
                 out string historicalToken);
-            if (!allowApprovalRefresh
-                && !hasHistorical
-                && stock.dailyUnitCost != afterCost
-                && !AreSameOrAdjacentNonNegativeFloats(stock.dailyUnitCost, formulaBefore))
-            {
-                integrityFailures.Add(
-                    $"V27 stock V23 cost reconstruction drift exceeds one float ULP: "
-                    + $"{stock.id}; formula={formulaBeforeToken}, current={currentToken}.");
-            }
             string beforeToken = hasHistorical
                 ? historicalToken
-                : allowApprovalRefresh
-                    ? currentToken
-                    : stock.dailyUnitCost != afterCost
-                        ? currentToken
-                        : formulaBeforeToken;
+                : formulaBeforeToken;
             CaptureMarketConsumerPatch(
                 capture,
+                anomalies,
                 integrityFailures,
                 domainPath,
                 stockApprovalDigest,
@@ -1647,6 +1918,10 @@ public static class V27BalanceAudit
                 itemId,
                 "AuthoredStockCategoryRecord.dailyUnitCost->StockSupplyService purchase debit",
                 historicalBeforeValues,
+                previouslyApprovedAfterValues,
+                AreSameOrAdjacentNonNegativeFloats(
+                    stock.dailyUnitCost,
+                    formulaBefore),
                 allowApprovalRefresh);
         }
 
@@ -1697,6 +1972,7 @@ public static class V27BalanceAudit
             GetSourceDigest(path, sourceDigests);
             CaptureMarketConsumerPatch(
                 capture,
+                anomalies,
                 integrityFailures,
                 path,
                 GetApprovalSerializedDigest(request, propertyPath),
@@ -1713,12 +1989,15 @@ public static class V27BalanceAudit
                 string.Join("|", consumed.Select(value => value.itemDefinitionId)),
                 "GuestRequestDefinitionSO.successEffects(Money)->campaign reward credit",
                 historicalBeforeValues,
+                previouslyApprovedAfterValues,
+                money.amount == beforeReward,
                 allowApprovalRefresh);
         }
     }
 
     private static void CaptureMarketConsumerPatch(
         BalanceCaptureFactory capture,
+        ICollection<BalanceAnomalyNode> anomalies,
         ICollection<string> integrityFailures,
         string path,
         string approvalSourceDigest,
@@ -1735,26 +2014,50 @@ public static class V27BalanceAudit
         string dependencyId,
         string executionRoute,
         IReadOnlyDictionary<string, string> historicalBeforeValues,
+        IReadOnlyDictionary<string, string> previouslyApprovedAfterValues,
+        bool currentMatchesLegacy,
         bool allowApprovalRefresh)
     {
-        if (historicalBeforeValues.TryGetValue(
-                V27BalanceAssetApplication.BuildHistoricalBeforeKey(
-                    stableId,
-                    metric),
-                out string historicalBefore))
+        string historicalKey = V27BalanceAssetApplication.BuildHistoricalBeforeKey(
+            stableId,
+            metric);
+        bool hasHistorical = historicalBeforeValues.TryGetValue(
+            historicalKey,
+            out string historicalBefore);
+        if (hasHistorical)
             before = historicalBefore;
-        else if (allowApprovalRefresh)
-            before = current;
-        if (!allowApprovalRefresh
-            && !string.Equals(current, before, StringComparison.Ordinal)
-            && !string.Equals(current, after, StringComparison.Ordinal))
+        bool previouslyApprovedCurrent = hasHistorical
+            && previouslyApprovedAfterValues.TryGetValue(
+                historicalKey,
+                out string approvedAfter)
+            && string.Equals(approvedAfter, current, StringComparison.Ordinal);
+        MarketAuthorityState authorityState = ClassifyMarketAuthority(
+            hasHistorical,
+            previouslyApprovedCurrent,
+            currentMatchesLegacy,
+            string.Equals(current, after, StringComparison.Ordinal),
+            string.Equals(current, before, StringComparison.Ordinal));
+        bool splitCandidate = authorityState
+            is MarketAuthorityState.PreviouslyApprovedApplied
+            or MarketAuthorityState.MissingProvenance;
+        if (authorityState == MarketAuthorityState.UnauthorizedDrift)
         {
             integrityFailures.Add(
                 $"V27 market consumer authority drift: {stableId}:{metric}; "
                 + $"Before={before}, After={after}, current={current}.");
         }
-        decimal beforeNumber = decimal.Parse(before, NumberStyles.Float, CultureInfo.InvariantCulture);
-        decimal afterNumber = decimal.Parse(after, NumberStyles.Float, CultureInfo.InvariantCulture);
+        string authorityBefore = splitCandidate
+            ? previouslyApprovedCurrent ? before : current
+            : before;
+        string authorityAfter = splitCandidate ? current : after;
+        decimal beforeNumber = decimal.Parse(
+            authorityBefore,
+            NumberStyles.Float,
+            CultureInfo.InvariantCulture);
+        decimal afterNumber = decimal.Parse(
+            authorityAfter,
+            NumberStyles.Float,
+            CultureInfo.InvariantCulture);
         string dependencyFingerprint = HashText(dependencyId);
         capture.Capture(new BalanceMetricCaptureRequest
         {
@@ -1763,9 +2066,9 @@ public static class V27BalanceAudit
             StableId = stableId,
             Metric = metric,
             Unit = unit,
-            Before = before,
-            After = after,
-            AuthoredRoundedValue = after,
+            Before = authorityBefore,
+            After = authorityAfter,
+            AuthoredRoundedValue = authorityAfter,
             PercentDelta = Token(PercentDelta(beforeNumber, afterNumber)),
             ExactFormula = formula,
             BeforeBom = "N/A",
@@ -1776,7 +2079,7 @@ public static class V27BalanceAudit
             AfterBomEwu = "N/A",
             BeforeLaborDensity = "N/A",
             AfterLaborDensity = "N/A",
-            UpstreamOnlyAfter = after,
+            UpstreamOnlyAfter = authorityAfter,
             InheritedDelta = Token(afterNumber - beforeNumber),
             RawLocalDelta = "0",
             LocalQuantizationBoundaryCount = 1,
@@ -1791,15 +2094,20 @@ public static class V27BalanceAudit
             ExecutionRoute = executionRoute,
             SaveAuthority = "Unity YAML authored consumer authority",
             VerificationEvidence = "V27 market consumer coherence audit; live settlement evidence pending",
-            ReviewStatus = string.Equals(current, after, StringComparison.Ordinal)
-                ? "implemented"
-                : "pending",
-            ApprovalKey = string.Equals(before, after, StringComparison.Ordinal)
+            ReviewStatus = splitCandidate
+                ? authorityState == MarketAuthorityState.PreviouslyApprovedApplied
+                    ? "applied"
+                    : "provenance-missing"
+                : string.Equals(current, after, StringComparison.Ordinal)
+                    ? "implemented"
+                    : "pending",
+            ApprovalKey = string.Equals(authorityBefore, authorityAfter, StringComparison.Ordinal)
+                    || (splitCandidate && !previouslyApprovedCurrent)
                 ? string.Empty
                 : BuildApprovalKey(
                     stableId,
                     metric,
-                    after,
+                    authorityAfter,
                     dependencyFingerprint,
                     approvalSourceDigest,
                     reasonCode,
@@ -1807,12 +2115,123 @@ public static class V27BalanceAudit
             DependencyFingerprint = dependencyFingerprint,
             LocalFingerprint = HashText(stableId + "|" + metric + "|" + dependencyId),
             SourceDigest = approvalSourceDigest,
-            SemanticHash = HashText(stableId + "|" + metric + "|" + after),
-            AssetApplied = string.Equals(current, after, StringComparison.Ordinal)
+            SemanticHash = BuildMarketAuthoritySemanticHash(
+                stableId,
+                metric,
+                authorityAfter),
+            AssetApplied = string.Equals(current, authorityAfter, StringComparison.Ordinal)
                 ? "true"
                 : "false",
             BalanceBaselineRecordId = MarketBaselineRecordId
         });
+        if (splitCandidate)
+        {
+            CaptureMarketRecalibrationCandidate(
+                capture,
+                anomalies,
+                stableId,
+                definitionKind,
+                metric,
+                unit,
+                current,
+                after,
+                formula,
+                path,
+                propertyPath,
+                dependencyId,
+                dependencyFingerprint,
+                approvalSourceDigest,
+                executionRoute,
+                previouslyApprovedCurrent);
+        }
+    }
+
+    private static void CaptureMarketRecalibrationCandidate(
+        BalanceCaptureFactory capture,
+        ICollection<BalanceAnomalyNode> anomalies,
+        string stableId,
+        string definitionKind,
+        string authorityMetric,
+        string unit,
+        string current,
+        string candidate,
+        string formula,
+        string path,
+        string propertyPath,
+        string dependencyId,
+        string authorityDependencyFingerprint,
+        string sourceDigest,
+        string authorityExecutionRoute,
+        bool previouslyApprovedCurrent)
+    {
+        string metric = MarketRecalibrationCandidateMetricPrefix + authorityMetric;
+        string reasonCode = previouslyApprovedCurrent
+            ? "previous-applied-market-recalibration-review-required"
+            : "market-authority-provenance-missing";
+        decimal currentNumber = decimal.Parse(
+            current,
+            NumberStyles.Float,
+            CultureInfo.InvariantCulture);
+        decimal candidateNumber = decimal.Parse(
+            candidate,
+            NumberStyles.Float,
+            CultureInfo.InvariantCulture);
+        capture.Capture(new BalanceMetricCaptureRequest
+        {
+            Domain = ResolveDomain(path, definitionKind),
+            DefinitionKind = definitionKind + "-recalibration-candidate",
+            StableId = stableId,
+            Metric = metric,
+            Unit = unit,
+            Before = current,
+            After = candidate,
+            AuthoredRoundedValue = candidate,
+            PercentDelta = Token(PercentDelta(currentNumber, candidateNumber)),
+            ExactFormula = formula,
+            BeforeBom = "N/A",
+            AfterBom = "N/A",
+            BeforeDirectWu = "N/A",
+            AfterDirectWu = "N/A",
+            BeforeBomEwu = "N/A",
+            AfterBomEwu = "N/A",
+            BeforeLaborDensity = "N/A",
+            AfterLaborDensity = "N/A",
+            UpstreamOnlyAfter = candidate,
+            InheritedDelta = Token(candidateNumber - currentNumber),
+            RawLocalDelta = "0",
+            LocalQuantizationBoundaryCount = 1,
+            DownstreamConsumerCount = "review-only",
+            DependencyIds = new[] { dependencyId },
+            RootCauseIds = Array.Empty<string>(),
+            AnomalyDisposition = "local-critical",
+            ReasonCode = reasonCode,
+            ReasonDetail = previouslyApprovedCurrent
+                ? "The exact previously approved current authority is retained; this newly calculated value requires explicit promotion review."
+                : "The exact current authored value is retained as observed Authority, not as an accepted baseline. No surviving exact approval proves its provenance, so this candidate remains an unresolved Critical until explicit review.",
+            SourceAuthority = path,
+            SourcePropertyPath = propertyPath,
+            ExecutionRoute = "review-only:V27 market recalculation->explicit promotion transaction; authority route="
+                + authorityExecutionRoute,
+            SaveAuthority = "derived market recalibration proposal + explicit review authority",
+            VerificationEvidence = "V27 current-authority/recalibration-candidate separation audit",
+            ReviewStatus = "pending-explicit-review",
+            ApprovalKey = string.Empty,
+            DependencyFingerprint = authorityDependencyFingerprint,
+            LocalFingerprint = HashText(
+                stableId + "|" + metric + "|" + current + "|" + candidate),
+            SourceDigest = sourceDigest,
+            SemanticHash = HashText(
+                stableId + "|" + metric + "|" + candidate),
+            AssetApplied = "false",
+            BalanceBaselineRecordId = MarketBaselineRecordId
+        });
+        anomalies.Add(BalanceAnomalyNode.Capture(
+            stableId,
+            metric,
+            BalanceAnomalySeverity.Critical,
+            BalanceAnomalyDisposition.RootCritical,
+            reasonCode,
+            Array.Empty<string>()));
     }
 
     private static float ResolveV27InputFloat(decimal exactMinimum)
@@ -1914,6 +2333,8 @@ public static class V27BalanceAudit
         long before,
         long after,
         string selectedSourceId,
+        ISet<string> semanticRootIds,
+        bool acquisitionEmitsRootCritical,
         int downstream,
         string path,
         string sourceDigest,
@@ -1921,20 +2342,21 @@ public static class V27BalanceAudit
         ICollection<BalanceAnomalyNode> anomalies)
     {
         decimal percent = PercentDelta(before, after);
-        BalanceAnomalySeverity severity = BalanceAnomalyDetector.ClassifyPercentDelta(
-            Math.Abs(percent));
-        if (definition is ResourceItemDefinitionSO resource
-            && resource.Kind == ResourceItemKind.Raw)
-        {
-            severity = Max(severity, BalanceAnomalyDetector.ClassifyPrimitiveDelta(
-                Math.Abs(percent), downstream));
-        }
+        BalanceAnomalySeverity severity = ClassifyItemMetricSeverity(
+            definition,
+            before,
+            after,
+            downstream);
+        string stableId = RawStableId(definition, "itemId");
         string[] dependencies = selectedSourceId.StartsWith("external:", StringComparison.Ordinal)
             ? Array.Empty<string>()
             : new[] { selectedSourceId };
-        string[] rootCauseIds = metric == "recoverable-value"
-            ? dependencies.Length > 0 ? dependencies : new[] { definition.ItemId }
-            : dependencies;
+        string[] rootCauseIds = ResolveItemMetricRootCauseIds(
+            stableId,
+            metric,
+            selectedSourceId,
+            semanticRootIds,
+            acquisitionEmitsRootCritical);
         BalanceAnomalyDisposition disposition = severity == BalanceAnomalySeverity.Critical
             ? rootCauseIds.Length > 0
                 ? BalanceAttribution.Attribute(
@@ -1950,7 +2372,6 @@ public static class V27BalanceAudit
             : BalanceAnomalyDisposition.None;
         string fingerprint = HashText(
             metric + "|" + selectedSourceId + "|" + definition.UnitWeight.ToString("R", CultureInfo.InvariantCulture));
-        string stableId = RawStableId(definition, "itemId");
         string dependencyFingerprint = HashText(string.Join("|", dependencies));
         string afterToken = after.ToString(CultureInfo.InvariantCulture);
         const string reasonCode = "v27-duration-preserving-first-candidate";
@@ -2015,7 +2436,7 @@ public static class V27BalanceAudit
         if (severity != BalanceAnomalySeverity.None)
         {
             anomalies.Add(BalanceAnomalyNode.Capture(
-                definition.ItemId,
+                stableId,
                 metric,
                 severity,
                 disposition,
@@ -2459,16 +2880,33 @@ public static class V27BalanceAudit
         IDictionary<string, string> sourceDigests,
         IReadOnlyDictionary<string, string> historicalBeforeValues)
     {
-        foreach (ProductionRecipeSO recipe in recipes)
+        ProductionRecipeSO[] canonicalRecipes = recipes
+            .Where(value => value != null)
+            .OrderBy(value => value.RecipeId, StringComparer.Ordinal)
+            .ToArray();
+        Dictionary<string, ProductionRecipeSO> recipesById = canonicalRecipes
+            .ToDictionary(value => value.RecipeId, StringComparer.Ordinal);
+        foreach (ProductionRecipeSO recipe in canonicalRecipes)
         {
             if (!before.Recipes.TryGetValue(recipe.RecipeId, out EmbeddedWorkValueRecipeBreakdown beforeValue)
                 || !after.Recipes.TryGetValue(recipe.RecipeId, out V27RecipeValueBreakdown afterValue))
             {
+                if (recipe.Outputs.Count == 0)
+                {
+                    CaptureTerminalSinkRecipe(
+                        recipe,
+                        routeComparableBeforeItemValues,
+                        after,
+                        capture,
+                        sourceDigests);
+                }
                 continue;
             }
             string path = AssetDatabase.GetAssetPath(recipe);
             string sourceDigest = GetSourceDigest(path, sourceDigests);
-            string approvalSourceDigest = GetApprovalSourceDigest(path, "requiredWork");
+            string approvalSourceDigest = GetRecipeWorkApprovalSourceDigest(
+                recipe,
+                sourceDigests);
             string stableId = RawStableId(recipe, "recipeId");
             decimal v23DirectWu = BalanceCanonicalText.DecimalFromFiniteFloat(
                 beforeValue.DirectWork,
@@ -2497,8 +2935,12 @@ public static class V27BalanceAudit
             decimal percent = PercentDelta(beforeWu, afterWu);
             BalanceAnomalySeverity percentSeverity = BalanceAnomalyDetector.ClassifyPercentDelta(
                 Math.Abs(percent));
+            // A recurring-throughput density comparison must use the frozen
+            // per-batch work on both sides. Using the accidentally project-scaled
+            // legacy display value here manufactures a 1/2.25 density collapse
+            // even when the recipe and its input economics are unchanged.
             decimal beforeDensity = comparableBeforeInput > 0m
-                ? beforeWu / comparableBeforeInput
+                ? historicalAuthoredWu / comparableBeforeInput
                 : 0m;
             decimal afterDensity = afterValue.InputDebit.MilliEwu > 0L
                 ? afterWu / (afterValue.InputDebit.MilliEwu / 1000m)
@@ -2508,7 +2950,7 @@ public static class V27BalanceAudit
                 : 1m;
             BalanceAnomalySeverity densitySeverity =
                 BalanceAnomalyDetector.ClassifyLaborDensity(densityRatio);
-            BalanceAnomalySeverity severity = Max(percentSeverity, densitySeverity);
+            BalanceAnomalySeverity directWorkSeverity = percentSeverity;
             string bom = FormatBom(recipe.Inputs);
             string[] dependencies = recipe.Inputs.Select(value => value.ItemId)
                 .Distinct(StringComparer.Ordinal)
@@ -2518,6 +2960,19 @@ public static class V27BalanceAudit
                 recipe.RecipeId + "|" + bom + "|" + recipe.Outputs.Count + "|"
                 + recipe.RequiredWork.ToString("R", CultureInfo.InvariantCulture));
             string dependencyFingerprint = HashText(string.Join("|", dependencies));
+            string[] densityRootCauseIds = ResolveRecipeDensityRootCauseIds(
+                recipe,
+                routeComparableBeforeItemValues,
+                after,
+                recipesById);
+            BalanceAnomalyDisposition densityDisposition =
+                densitySeverity != BalanceAnomalySeverity.Critical
+                    ? BalanceAnomalyDisposition.None
+                    : densityRootCauseIds.Length == 0
+                        ? BalanceAnomalyDisposition.RootCritical
+                        : densityRootCauseIds.Length == 1
+                            ? BalanceAnomalyDisposition.CollapsedInheritedOnly
+                            : BalanceAnomalyDisposition.CollapsedMultiRoot;
             string afterToken = Token(afterWu);
             const string reasonCode = "v27-recurring-throughput-no-project-scale";
             decimal authoredCurrent = BalanceCanonicalText.DecimalFromFiniteFloat(
@@ -2554,11 +3009,11 @@ public static class V27BalanceAudit
                 DownstreamConsumerCount = recipe.Outputs.Count.ToString(CultureInfo.InvariantCulture),
                 DependencyIds = dependencies,
                 RootCauseIds = Array.Empty<string>(),
-                AnomalyDisposition = severity == BalanceAnomalySeverity.Critical
+                AnomalyDisposition = directWorkSeverity == BalanceAnomalySeverity.Critical
                     ? "root-critical"
-                    : severity == BalanceAnomalySeverity.Warning ? "warning" : "none",
+                    : directWorkSeverity == BalanceAnomalySeverity.Warning ? "warning" : "none",
                 ReasonCode = reasonCode,
-                ReasonDetail = "Corrects a recurring batch that was incorrectly scaled as a one-shot project; same-route labor-density ratio="
+                ReasonDetail = "Corrects a recurring batch that was incorrectly scaled as a one-shot project; density review is emitted as a separate upstream-attributed metric; same-route labor-density ratio="
                     + Token(densityRatio)
                     + "; crop inputs use cultivated Before acquisition while V23 item rows remain frozen.",
                 SourceAuthority = path,
@@ -2566,8 +3021,8 @@ public static class V27BalanceAudit
                 ExecutionRoute = "ProductionRecipeSO->ProductionBillRuntime->AIWork",
                 SaveAuthority = "ProductionRecipeSO",
                 VerificationEvidence = "V27 recipe graph audit",
-                ReviewStatus = severity == BalanceAnomalySeverity.Critical ? "pending" : "review",
-                ApprovalKey = severity == BalanceAnomalySeverity.Critical
+                ReviewStatus = directWorkSeverity == BalanceAnomalySeverity.Critical ? "pending" : "review",
+                ApprovalKey = beforeWu != afterWu
                     ? BuildApprovalKey(
                         stableId,
                         "direct-wu",
@@ -2584,10 +3039,26 @@ public static class V27BalanceAudit
                 AssetApplied = authoredCurrent == afterWu ? "true" : "false",
                 BalanceBaselineRecordId = ResolveLaborBaselineRecordId(stableId)
             });
+            CaptureRecipeLaborDensityMetric(
+                recipe,
+                stableId,
+                path,
+                approvalSourceDigest,
+                dependencies,
+                dependencyFingerprint,
+                bom,
+                beforeDensity,
+                afterDensity,
+                densityRatio,
+                densitySeverity,
+                densityDisposition,
+                densityRootCauseIds,
+                capture,
+                anomalies);
             decimal authoredBefore = ResolveHistoricalAuthoredBefore(
                 stableId,
                 "authored-required-wu",
-                historicalAuthoredWu,
+                authoredCurrent,
                 historicalBeforeValues);
             decimal legacyAuthored = decimal.Ceiling(authoredBefore * LaborScale);
             decimal authoredAfter = authoredBefore;
@@ -2656,20 +3127,367 @@ public static class V27BalanceAudit
                 AssetApplied = authoredCurrent == authoredAfter ? "true" : "false",
                 BalanceBaselineRecordId = ResolveLaborBaselineRecordId(stableId)
             });
-            if (severity != BalanceAnomalySeverity.None)
+            if (directWorkSeverity != BalanceAnomalySeverity.None)
             {
                 anomalies.Add(BalanceAnomalyNode.Capture(
                     recipe.RecipeId,
                     "direct-wu",
-                    severity,
-                    severity == BalanceAnomalySeverity.Critical
+                    directWorkSeverity,
+                    directWorkSeverity == BalanceAnomalySeverity.Critical
                         ? BalanceAnomalyDisposition.RootCritical
                         : BalanceAnomalyDisposition.None,
-                    densitySeverity > percentSeverity
-                        ? "labor-density-drift"
-                        : reasonCode,
+                    reasonCode,
                     Array.Empty<string>()));
             }
+        }
+    }
+
+    private static void CaptureTerminalSinkRecipe(
+        ProductionRecipeSO recipe,
+        IReadOnlyDictionary<string, long> routeComparableBeforeItemValues,
+        V27EmbeddedWorkValueSnapshot after,
+        BalanceCaptureFactory capture,
+        IDictionary<string, string> sourceDigests)
+    {
+        string path = AssetDatabase.GetAssetPath(recipe);
+        string sourceDigest = GetSourceDigest(path, sourceDigests);
+        string stableId = RawStableId(recipe, "recipeId");
+        string bom = FormatBom(recipe.Inputs);
+        string[] dependencies = recipe.Inputs
+            .Select(value => value.ItemId)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        long beforeInputMilli = 0L;
+        long afterInputMilli = 0L;
+        foreach (ItemAmountDefinition input in recipe.Inputs)
+        {
+            if (!routeComparableBeforeItemValues.TryGetValue(
+                    input.ItemId,
+                    out long beforeUnit)
+                || !after.Items.TryGetValue(
+                    input.ItemId,
+                    out V27ItemValue afterValue))
+            {
+                throw new InvalidOperationException(
+                    "Terminal sink recipe input value is missing: "
+                    + recipe.RecipeId + ":" + input.ItemId);
+            }
+            beforeInputMilli = checked(
+                beforeInputMilli + beforeUnit * input.Amount);
+            afterInputMilli = checked(
+                afterInputMilli
+                + afterValue.AcquisitionCost.MilliEwu * input.Amount);
+        }
+
+        decimal authoredWu = BalanceCanonicalText.DecimalFromFiniteFloat(
+            recipe.RequiredWork,
+            $"recipe:{recipe.RecipeId}:terminalSinkRequiredWork");
+        string wuToken = Token(authoredWu);
+        string dependencyFingerprint = HashText(string.Join("|", dependencies));
+        const string reasonCode = "v27-typed-terminal-sink-census";
+        capture.Capture(new BalanceMetricCaptureRequest
+        {
+            Domain = "production",
+            DefinitionKind = "recipe",
+            StableId = stableId,
+            Metric = "direct-wu",
+            Unit = "WU",
+            Before = wuToken,
+            After = wuToken,
+            AuthoredRoundedValue = wuToken,
+            PercentDelta = "0",
+            ExactFormula = "terminal sink: all physical inputs become typed process loss",
+            BeforeBom = bom,
+            AfterBom = bom,
+            BeforeDirectWu = wuToken,
+            AfterDirectWu = wuToken,
+            BeforeBomEwu = Token(beforeInputMilli / 1000m),
+            AfterBomEwu = Token(afterInputMilli / 1000m),
+            BeforeLaborDensity = "N/A",
+            AfterLaborDensity = "N/A",
+            UpstreamOnlyAfter = wuToken,
+            InheritedDelta = "0",
+            RawLocalDelta = "0",
+            LocalQuantizationBoundaryCount = recipe.Inputs.Count + 2,
+            DownstreamConsumerCount = "0",
+            DependencyIds = dependencies,
+            RootCauseIds = Array.Empty<string>(),
+            AnomalyDisposition = "none",
+            ReasonCode = reasonCode,
+            ReasonDetail = "Zero-output terminal Sink is excluded from value relaxation and SCC transforms but remains present in the exhaustive recipe ledger.",
+            SourceAuthority = path,
+            SourcePropertyPath = "requiredWork",
+            ExecutionRoute = "ProductionRecipeSO->ProductionBillRuntime->typed terminal Sink",
+            SaveAuthority = "ProductionRecipeSO",
+            VerificationEvidence = "V27 terminal sink recipe census",
+            ReviewStatus = "verified",
+            ApprovalKey = string.Empty,
+            DependencyFingerprint = dependencyFingerprint,
+            LocalFingerprint = HashText(
+                recipe.RecipeId + "|terminal-sink|" + bom + "|" + wuToken),
+            SourceDigest = sourceDigest,
+            SemanticHash = HashText(
+                recipe.RecipeId + "|terminal-sink|" + afterInputMilli),
+            AssetApplied = "true",
+            BalanceBaselineRecordId = ResolveLaborBaselineRecordId(stableId)
+        });
+    }
+
+    internal static string[] ResolveItemMetricRootCauseIds(
+        string stableId,
+        string metric,
+        string selectedSourceId,
+        ISet<string> semanticRootIds,
+        bool acquisitionEmitsRootCritical)
+    {
+        if (string.IsNullOrEmpty(stableId))
+            throw new ArgumentException("Item stable ID is required.", nameof(stableId));
+        if (string.IsNullOrEmpty(metric))
+            throw new ArgumentException("Item metric is required.", nameof(metric));
+        if (string.IsNullOrEmpty(selectedSourceId))
+            throw new ArgumentException("Selected item source is required.", nameof(selectedSourceId));
+        if (semanticRootIds == null)
+            throw new ArgumentNullException(nameof(semanticRootIds));
+
+        if (semanticRootIds.Contains(selectedSourceId))
+            return new[] { selectedSourceId };
+        if (string.Equals(metric, "recoverable-value", StringComparison.Ordinal)
+            && acquisitionEmitsRootCritical)
+        {
+            return new[] { stableId };
+        }
+        return Array.Empty<string>();
+    }
+
+    private static BalanceAnomalySeverity ClassifyItemMetricSeverity(
+        ItemDefinitionSO definition,
+        long before,
+        long after,
+        int downstream)
+    {
+        decimal absolutePercent = Math.Abs(PercentDelta(before, after));
+        BalanceAnomalySeverity severity =
+            BalanceAnomalyDetector.ClassifyPercentDelta(absolutePercent);
+        if (definition is ResourceItemDefinitionSO resource
+            && resource.Kind == ResourceItemKind.Raw)
+        {
+            severity = Max(
+                severity,
+                BalanceAnomalyDetector.ClassifyPrimitiveDelta(
+                    absolutePercent,
+                    downstream));
+        }
+        return severity;
+    }
+
+    private static string GetRecipeWorkApprovalSourceDigest(
+        ProductionRecipeSO recipe,
+        IDictionary<string, string> sourceDigests)
+    {
+        if (recipe == null)
+            throw new ArgumentNullException(nameof(recipe));
+        const string WorkCalculatorPath =
+            "Assets/Scripts/Services/Economy/V27BalanceWorkCalculator.cs";
+        string calculatorDigest = GetSourceDigest(
+            WorkCalculatorPath,
+            sourceDigests);
+        return HashText(
+            "recipe-direct-wu-approval-subject@1|"
+            + recipe.RecipeId + "|"
+            + recipe.ProcessKind + "|"
+            + calculatorDigest);
+    }
+
+    private static string[] ResolveRecipeDensityRootCauseIds(
+        ProductionRecipeSO recipe,
+        IReadOnlyDictionary<string, long> beforeItemValues,
+        V27EmbeddedWorkValueSnapshot after,
+        IReadOnlyDictionary<string, ProductionRecipeSO> recipesById)
+    {
+        SortedSet<string> roots = new SortedSet<string>(StringComparer.Ordinal);
+        HashSet<string> visitingItems = new HashSet<string>(StringComparer.Ordinal);
+        foreach (ItemAmountDefinition input in recipe.Inputs)
+        {
+            CollectItemEconomicRootCauses(
+                input.ItemId,
+                beforeItemValues,
+                after,
+                recipesById,
+                visitingItems,
+                roots);
+        }
+        return roots.ToArray();
+    }
+
+    private static bool CollectItemEconomicRootCauses(
+        string itemId,
+        IReadOnlyDictionary<string, long> beforeItemValues,
+        V27EmbeddedWorkValueSnapshot after,
+        IReadOnlyDictionary<string, ProductionRecipeSO> recipesById,
+        ISet<string> visitingItems,
+        ISet<string> roots)
+    {
+        if (!beforeItemValues.TryGetValue(itemId, out long beforeValue)
+            || !after.Items.TryGetValue(itemId, out V27ItemValue afterValue))
+        {
+            throw new InvalidOperationException(
+                $"Recipe density attribution cannot resolve item '{itemId}'.");
+        }
+        if (beforeValue == afterValue.AcquisitionCost.MilliEwu)
+            return false;
+        if (!visitingItems.Add(itemId))
+        {
+            roots.Add(itemId);
+            return true;
+        }
+
+        try
+        {
+            string sourceId = afterValue.SelectedSourceId;
+            if (sourceId.StartsWith("external:", StringComparison.Ordinal))
+            {
+                // External acquisition has no separate authored producer row;
+                // the item acquisition row is the approvable root authority.
+                roots.Add(itemId);
+                return true;
+            }
+            if (!sourceId.StartsWith("recipe:", StringComparison.Ordinal)
+                || !recipesById.TryGetValue(sourceId, out ProductionRecipeSO sourceRecipe))
+            {
+                roots.Add(sourceId);
+                return true;
+            }
+
+            bool inheritedRootFound = false;
+            foreach (ItemAmountDefinition sourceInput in sourceRecipe.Inputs)
+            {
+                inheritedRootFound |= CollectItemEconomicRootCauses(
+                    sourceInput.ItemId,
+                    beforeItemValues,
+                    after,
+                    recipesById,
+                    visitingItems,
+                    roots);
+            }
+            if (!inheritedRootFound)
+            {
+                // The selected producer changed without an inherited input-cost
+                // change (for example a work formula or output allocation
+                // revision), so that producer is the actual review root.
+                roots.Add(sourceId);
+            }
+            return true;
+        }
+        finally
+        {
+            visitingItems.Remove(itemId);
+        }
+    }
+
+    private static void CaptureRecipeLaborDensityMetric(
+        ProductionRecipeSO recipe,
+        string stableId,
+        string path,
+        string sourceDigest,
+        string[] dependencies,
+        string dependencyFingerprint,
+        string bom,
+        decimal beforeDensity,
+        decimal afterDensity,
+        decimal densityRatio,
+        BalanceAnomalySeverity severity,
+        BalanceAnomalyDisposition disposition,
+        string[] rootCauseIds,
+        BalanceCaptureFactory capture,
+        ICollection<BalanceAnomalyNode> anomalies)
+    {
+        const string Metric = "labor-density-ratio";
+        const string ReasonCode = "labor-density-drift";
+        decimal directWu = BalanceCanonicalText.DecimalFromFiniteFloat(
+            recipe.RequiredWork,
+            $"recipe:{recipe.RecipeId}:density-direct-wu");
+        string beforeToken = Token(beforeDensity);
+        string afterToken = Token(afterDensity);
+        string[] roots = severity == BalanceAnomalySeverity.Critical
+            ? rootCauseIds
+            : Array.Empty<string>();
+        bool emitsApproval = severity == BalanceAnomalySeverity.Critical
+            && (disposition == BalanceAnomalyDisposition.RootCritical
+                || disposition == BalanceAnomalyDisposition.LocalCritical);
+        capture.Capture(new BalanceMetricCaptureRequest
+        {
+            Domain = "production",
+            DefinitionKind = "recipe",
+            StableId = stableId,
+            Metric = Metric,
+            Unit = "direct-WU/BOM-EWU",
+            Before = beforeToken,
+            After = afterToken,
+            AuthoredRoundedValue = afterToken,
+            PercentDelta = Token(PercentDelta(beforeDensity, afterDensity)),
+            ExactFormula = "same-route recurring direct WU / input BOM acquisition EWU; project-scale correction excluded from both sides",
+            BeforeBom = bom,
+            AfterBom = bom,
+            BeforeDirectWu = Token(directWu),
+            AfterDirectWu = Token(directWu),
+            BeforeBomEwu = beforeDensity > 0m
+                ? Token(directWu / beforeDensity)
+                : "N/A",
+            AfterBomEwu = afterDensity > 0m
+                ? Token(directWu / afterDensity)
+                : "N/A",
+            BeforeLaborDensity = beforeToken,
+            AfterLaborDensity = afterToken,
+            UpstreamOnlyAfter = afterToken,
+            InheritedDelta = Token(afterDensity - beforeDensity),
+            RawLocalDelta = "0",
+            LocalQuantizationBoundaryCount = recipe.Inputs.Count + 4,
+            DownstreamConsumerCount = recipe.Outputs.Count.ToString(
+                CultureInfo.InvariantCulture),
+            DependencyIds = dependencies,
+            RootCauseIds = roots,
+            AnomalyDisposition = severity == BalanceAnomalySeverity.Critical
+                ? DispositionToken(disposition)
+                : severity == BalanceAnomalySeverity.Warning ? "warning" : "none",
+            ReasonCode = ReasonCode,
+            ReasonDetail = "Derived density-only review. The recipe's local authored work is unchanged; input acquisition changes are attributed recursively to their selected producer roots.",
+            SourceAuthority = path,
+            SourcePropertyPath = "derived:requiredWork/input-acquisition-cost",
+            ExecutionRoute = "V27 recipe graph density attribution",
+            SaveAuthority = "derived ledger metric",
+            VerificationEvidence = "V27 same-route density audit",
+            ReviewStatus = severity == BalanceAnomalySeverity.Critical
+                ? "pending"
+                : "review",
+            ApprovalKey = emitsApproval
+                ? BuildApprovalKey(
+                    stableId,
+                    Metric,
+                    afterToken,
+                    dependencyFingerprint,
+                    sourceDigest,
+                    ReasonCode,
+                    ResolveLaborBaselineRecordId(stableId))
+                : string.Empty,
+            DependencyFingerprint = dependencyFingerprint,
+            LocalFingerprint = HashText(
+                stableId + "|" + Metric + "|" + bom + "|"
+                + Token(directWu)),
+            SourceDigest = sourceDigest,
+            SemanticHash = HashText(stableId + "|" + Metric + "|" + afterToken),
+            AssetApplied = "true",
+            BalanceBaselineRecordId = ResolveLaborBaselineRecordId(stableId)
+        });
+        if (severity != BalanceAnomalySeverity.None)
+        {
+            anomalies.Add(BalanceAnomalyNode.Capture(
+                recipe.RecipeId,
+                Metric,
+                severity,
+                disposition,
+                ReasonCode,
+                roots));
         }
     }
 
@@ -2683,7 +3501,7 @@ public static class V27BalanceAudit
         ICollection<BalanceAnomalyNode> anomalies,
         IDictionary<string, string> sourceDigests,
         IReadOnlyDictionary<string, string> historicalBeforeValues,
-        bool allowApprovalRefresh)
+        IReadOnlyDictionary<string, string> previouslyApprovedAfterValues)
     {
         Dictionary<string, V27ConstructionRedistributionResult> results = new(
             StringComparer.Ordinal);
@@ -2728,6 +3546,13 @@ public static class V27BalanceAudit
             if (!resolved || beforeBomEwu <= 0m)
                 continue;
 
+            BuildingWorkAmountAbility authoredWork =
+                building.GetAbility<BuildingWorkAmountAbility>();
+            decimal? currentApprovedWu = authoredWork != null
+                ? BalanceCanonicalText.DecimalFromFiniteFloat(
+                    authoredWork.constructionWorkRequired,
+                    $"building:{stableId}:currentConstructionWU")
+                : null;
             V27ConstructionRedistributionResult selected =
                 V27ConstructionRedistributionPolicy.Select(
                     stableId,
@@ -2735,7 +3560,9 @@ public static class V27BalanceAudit
                     beforeWu,
                     beforeBomEwu,
                     beforeMaterials,
-                    afterValues.Items);
+                    afterValues.Items,
+                    currentMaterials,
+                    currentApprovedWu);
             if (!results.TryAdd(stableId, selected))
                 throw new InvalidOperationException($"Duplicate construction result: {stableId}.");
 
@@ -2746,19 +3573,26 @@ public static class V27BalanceAudit
             decimal beforeDensity = beforeWu / beforeBomEwu;
             decimal periodDensity = periodWu / originalAfterBomEwu;
             decimal selectedDensity = selectedWu / selectedAfterBomEwu;
-            BalanceAnomalySeverity selectedSeverity = selected.Disposition
-                == V27ConstructionRedistributionDisposition.Normal
-                    ? BalanceAnomalySeverity.None
-                    : BalanceAnomalySeverity.Warning;
+            BalanceAnomalySeverity selectedSeverity = selected.Disposition switch
+            {
+                V27ConstructionRedistributionDisposition.Normal =>
+                    BalanceAnomalySeverity.None,
+                V27ConstructionRedistributionDisposition.CriticalDensityUnresolved =>
+                    BalanceAnomalySeverity.Critical,
+                _ => BalanceAnomalySeverity.Warning
+            };
             string path = AssetDatabase.GetAssetPath(building);
             string sourceDigest = GetSourceDigest(path, sourceDigests);
             string beforeBom = FormatBom(beforeMaterials);
+            string currentBom = FormatBom(currentMaterials);
             string afterBom = FormatBom(selected.AfterMaterials);
+            long currentBomMilliEwu = currentMaterials.Sum(value => checked(
+                afterValues.Items[value.ItemId].AcquisitionCost.MilliEwu
+                * value.Amount));
+            decimal currentBomEwu = currentBomMilliEwu / 1000m;
             string[] dependencies = beforeMaterials.Select(value => value.ItemId)
                 .OrderBy(value => value, StringComparer.Ordinal)
                 .ToArray();
-            BuildingWorkAmountAbility authoredWork =
-                building.GetAbility<BuildingWorkAmountAbility>();
             string authoredWorkPath = authoredWork != null
                 ? FindUniqueSerializedPropertyPath(building, "constructionWorkRequired")
                 : string.Empty;
@@ -2822,13 +3656,24 @@ public static class V27BalanceAudit
                     historicalBeforeValues);
                 string authoredCurrentToken = Token(authoredCurrent);
                 string patchBeforeToken = Token(patchBefore);
-                bool previouslyApprovedCurrent = allowApprovalRefresh
-                    && V27BalanceAssetApplication.IsPreviouslyApprovedCurrentAuthority(
+                string authoredApprovalIdentity =
+                    V27BalanceAssetApplication.BuildHistoricalBeforeKey(
                         stableId,
-                        "construction-authored-wu:redistributed",
+                        "construction-authored-wu:redistributed");
+                bool previouslyApprovedCurrent = historicalBeforeValues.TryGetValue(
+                        authoredApprovalIdentity,
+                        out string approvedWuBefore)
+                    && previouslyApprovedAfterValues.TryGetValue(
+                        authoredApprovalIdentity,
+                        out string approvedWuAfter)
+                    && string.Equals(
+                        approvedWuBefore,
                         patchBeforeToken,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        approvedWuAfter,
                         authoredCurrentToken,
-                        sourceDigest);
+                        StringComparison.Ordinal);
                 if (authoredCurrent != patchBefore
                     && authoredCurrent != selectedWu
                     && !previouslyApprovedCurrent)
@@ -2838,20 +3683,65 @@ public static class V27BalanceAudit
                         + $"{stableId}; current={Token(authoredCurrent)}, "
                         + $"before={Token(patchBefore)}, after={Token(selectedWu)}.");
                 }
-                CaptureBuildingCandidate(
-                    capture, building, stableId, path, sourceDigest, dependencies,
-                    "construction-authored-wu:redistributed",
-                    patchBefore, selectedWu,
-                    beforeBom, afterBom,
-                    beforeBomEwu, selectedAfterBomEwu,
-                    beforeDensity, selectedDensity,
-                    selectedSeverity,
-                    "facility-authored-runtime-wu-authority",
-                    "Approved per-building runtime WU selected by the bounded WU/BOM optimizer.",
-                    patchBefore != selectedWu,
-                    authoredWorkPath,
-                    "pending",
-                    authoredCurrent == selectedWu);
+                bool hasPendingWuRecalibration = previouslyApprovedCurrent
+                    && authoredCurrent != selectedWu;
+                if (hasPendingWuRecalibration)
+                {
+                    decimal currentDensity = authoredCurrent / currentBomEwu;
+                    CaptureBuildingCandidate(
+                        capture, building, stableId, path, sourceDigest, dependencies,
+                        "construction-authored-wu:redistributed",
+                        patchBefore, authoredCurrent,
+                        beforeBom, currentBom,
+                        beforeBomEwu, currentBomEwu,
+                        beforeDensity, currentDensity,
+                        BalanceAnomalySeverity.None,
+                        "facility-authored-runtime-wu-authority",
+                        "Previously approved runtime WU retained as exact current authority.",
+                        true,
+                        authoredWorkPath,
+                        "applied",
+                        true);
+                    CaptureBuildingCandidate(
+                        capture, building, stableId, path, sourceDigest, dependencies,
+                        ConstructionRecalibrationCandidateWuMetric,
+                        authoredCurrent, selectedWu,
+                        currentBom, afterBom,
+                        currentBomEwu, selectedAfterBomEwu,
+                        currentDensity, selectedDensity,
+                        BalanceAnomalySeverity.Critical,
+                        "previous-applied-recalibration-review-required",
+                        "Pending recalibration candidate; explicit review must replace the previous approval before any asset mutation.",
+                        false,
+                        authoredWorkPath,
+                        "pending-explicit-review",
+                        false,
+                        true);
+                    anomalies.Add(BalanceAnomalyNode.Capture(
+                        stableId,
+                        ConstructionRecalibrationCandidateWuMetric,
+                        BalanceAnomalySeverity.Critical,
+                        BalanceAnomalyDisposition.RootCritical,
+                        "previous-applied-recalibration-review-required",
+                        Array.Empty<string>()));
+                }
+                else
+                {
+                    CaptureBuildingCandidate(
+                        capture, building, stableId, path, sourceDigest, dependencies,
+                        "construction-authored-wu:redistributed",
+                        patchBefore, selectedWu,
+                        beforeBom, afterBom,
+                        beforeBomEwu, selectedAfterBomEwu,
+                        beforeDensity, selectedDensity,
+                        selectedSeverity,
+                        "facility-authored-runtime-wu-authority",
+                        "Approved per-building runtime WU selected by the bounded WU/BOM optimizer.",
+                        patchBefore != selectedWu,
+                        authoredWorkPath,
+                        "pending",
+                        authoredCurrent == selectedWu);
+                }
 
                 Dictionary<string, int> currentAmounts = currentMaterials
                     .ToDictionary(value => value.ItemId, value => value.Amount, StringComparer.Ordinal);
@@ -2864,13 +3754,24 @@ public static class V27BalanceAudit
                     int currentAmount = currentAmounts[itemId];
                     int beforeAmount = beforeAmounts[itemId];
                     int afterAmount = afterAmounts[itemId];
-                    bool previouslyApprovedAmount = allowApprovalRefresh
-                        && V27BalanceAssetApplication.IsPreviouslyApprovedCurrentAuthority(
+                    string materialApprovalIdentity =
+                        V27BalanceAssetApplication.BuildHistoricalBeforeKey(
                             stableId,
-                            ConstructionMaterialMetric(itemId),
+                            ConstructionMaterialMetric(itemId));
+                    bool previouslyApprovedAmount = historicalBeforeValues.TryGetValue(
+                            materialApprovalIdentity,
+                            out string approvedAmountBefore)
+                        && previouslyApprovedAfterValues.TryGetValue(
+                            materialApprovalIdentity,
+                            out string approvedAmountAfter)
+                        && string.Equals(
+                            approvedAmountBefore,
                             beforeAmount.ToString(CultureInfo.InvariantCulture),
+                            StringComparison.Ordinal)
+                        && string.Equals(
+                            approvedAmountAfter,
                             currentAmount.ToString(CultureInfo.InvariantCulture),
-                            sourceDigest);
+                            StringComparison.Ordinal);
                     if (currentAmount != beforeAmount
                         && currentAmount != afterAmount
                         && !previouslyApprovedAmount)
@@ -2880,21 +3781,94 @@ public static class V27BalanceAudit
                             + $"{stableId}:{itemId}; current={currentAmount}; "
                             + $"before={beforeAmount}; after={afterAmount}.");
                     }
-                    CaptureBuildingMaterialAmount(
-                        capture,
-                        stableId,
-                        path,
-                        sourceDigest,
-                        dependencies,
-                        itemId,
-                        beforeAmount,
-                        afterAmount,
-                        beforeBom,
-                        afterBom,
-                        beforeBomEwu,
-                        selectedAfterBomEwu,
-                        amountPaths[itemId],
-                        currentAmount == afterAmount);
+                    bool hasPendingAmountRecalibration = previouslyApprovedAmount
+                        && currentAmount != afterAmount;
+                    if (hasPendingAmountRecalibration)
+                    {
+                        CaptureBuildingMaterialAmount(
+                            capture,
+                            stableId,
+                            path,
+                            sourceDigest,
+                            dependencies,
+                            itemId,
+                            ConstructionMaterialMetric(itemId),
+                            beforeAmount,
+                            currentAmount,
+                            beforeBom,
+                            currentBom,
+                            beforeBomEwu,
+                            currentBomEwu,
+                            amountPaths[itemId],
+                            BalanceAnomalySeverity.None,
+                            "facility-bounded-bom-redistribution",
+                            "Previously approved physical BOM amount retained as exact current authority.",
+                            "applied",
+                            true,
+                            true,
+                            false,
+                            beforeAmount);
+                        string candidateMetric =
+                            ConstructionRecalibrationCandidateMaterialMetricPrefix + itemId;
+                        CaptureBuildingMaterialAmount(
+                            capture,
+                            stableId,
+                            path,
+                            sourceDigest,
+                            dependencies,
+                            itemId,
+                            candidateMetric,
+                            currentAmount,
+                            afterAmount,
+                            currentBom,
+                            afterBom,
+                            currentBomEwu,
+                            selectedAfterBomEwu,
+                            amountPaths[itemId],
+                            BalanceAnomalySeverity.Critical,
+                            "previous-applied-recalibration-review-required",
+                            "Pending BOM recalibration candidate; explicit review must replace the previous approval before any asset mutation.",
+                            "pending-explicit-review",
+                            false,
+                            false,
+                            true,
+                            beforeAmount);
+                        anomalies.Add(BalanceAnomalyNode.Capture(
+                            stableId,
+                            candidateMetric,
+                            BalanceAnomalySeverity.Critical,
+                            BalanceAnomalyDisposition.RootCritical,
+                            "previous-applied-recalibration-review-required",
+                            Array.Empty<string>()));
+                    }
+                    else
+                    {
+                        CaptureBuildingMaterialAmount(
+                            capture,
+                            stableId,
+                            path,
+                            sourceDigest,
+                            dependencies,
+                            itemId,
+                            ConstructionMaterialMetric(itemId),
+                            beforeAmount,
+                            afterAmount,
+                            beforeBom,
+                            afterBom,
+                            beforeBomEwu,
+                            selectedAfterBomEwu,
+                            amountPaths[itemId],
+                            BalanceAnomalySeverity.None,
+                            "facility-bounded-bom-redistribution",
+                            afterAmount == beforeAmount
+                                ? "Existing physical BOM amount retained."
+                                : "Existing physical BOM amount increased within the 50% cap; no new item type.",
+                            beforeAmount == afterAmount ? "unchanged" : "pending",
+                            true,
+                            currentAmount == afterAmount,
+                            false,
+                            beforeAmount);
+                    }
                 }
             }
             if (selectedSeverity == BalanceAnomalySeverity.Warning)
@@ -2906,6 +3880,24 @@ public static class V27BalanceAudit
                     BalanceAnomalyDisposition.None,
                     "bounded-redistribution-warning",
                     dependencies));
+            }
+            else if (selectedSeverity == BalanceAnomalySeverity.Critical)
+            {
+                if (!anomalies.Any(value =>
+                        string.Equals(value.StableId, stableId, StringComparison.Ordinal)
+                        && string.Equals(
+                            value.Metric,
+                            ConstructionRecalibrationCandidateWuMetric,
+                            StringComparison.Ordinal)))
+                {
+                    anomalies.Add(BalanceAnomalyNode.Capture(
+                        stableId,
+                        "construction-authored-wu:redistributed",
+                        BalanceAnomalySeverity.Critical,
+                        BalanceAnomalyDisposition.RootCritical,
+                        "construction-density-unresolved-within-bounds",
+                        Array.Empty<string>()));
+                }
             }
         }
         return results;
@@ -3020,9 +4012,9 @@ public static class V27BalanceAudit
                 value.SevenDayWaterUnits, survivalSource, survivalDigest,
                 "seven-day total clean-water demand", SixAdultClosedLoopBaselineRecordId);
             CaptureInvariantMetric(capture, "storage", "population-stage", stableId,
-                "required-storage-cells", "cells",
-                value.StorageCells, survivalSource, survivalDigest,
-                "ceil physical reserve quantities / authored stack capacities", OverflowContainmentBaselineRecordId);
+                "required-storage-mass", "grams",
+                value.RequiredStorageMassGrams, survivalSource, survivalDigest,
+                "physical reserve quantities multiplied by canonical item gram authority", OverflowContainmentBaselineRecordId);
             CaptureInvariantMetric(capture, "agriculture", "population-stage", stableId,
                 "required-crop-plots", "plots",
                 value.CropPlots, survivalSource, survivalDigest,
@@ -3073,8 +4065,8 @@ public static class V27BalanceAudit
                 spatialSource, spatialDigest, "population portfolio physical facility count",
                 PopulationCapacityBaselineRecordId);
             CaptureInvariantMetric(capture, "storage", "population-stage", stableId,
-                "minimum-storage-capacity", "units", value.MinimumStorageCapacityUnits,
-                spatialSource, spatialDigest, "minimum installed physical stack capacity",
+                "minimum-storage-capacity", "grams", value.MinimumStorageCapacityGrams,
+                spatialSource, spatialDigest, "minimum installed physical mass capacity",
                 OverflowContainmentBaselineRecordId);
             CaptureInvariantMetric(capture, "space", "population-stage", stableId,
                 "fixed-interior-world-feature-cells", "cells",
@@ -3223,10 +4215,10 @@ public static class V27BalanceAudit
                 "sourceDigest=" + expectedSourceDigest,
                 StringComparer.Ordinal)
             || !lines.Any(line => line.StartsWith(
-                "PASS OUTPUT_CONTAINMENT_TYPED_BLOCK_RECOVERY ",
+                "PASS WORLD_RESOURCE_EXACT_SOURCE_ATOMIC_PUBLICATION ",
                 StringComparison.Ordinal))
             || !lines.Any(line => line.StartsWith(
-                "PASS CROP_OUTPUT_CONTAINMENT_TYPED_BLOCK_RECOVERY ",
+                "PASS CROP_OUTPUT_FACILITY_BUFFER_WAIT_RESTORE_RETRY_EXACT_ONCE ",
                 StringComparison.Ordinal)))
         {
             throw new InvalidOperationException(
@@ -3234,26 +4226,27 @@ public static class V27BalanceAudit
         }
 
         CaptureInvariantMetric(capture, "production", "output-capacity",
-            "output-capacity:world-resource", "typed-block-recovery", "boolean", 1,
+            "output-capacity:world-resource", "exact-source-atomic-publication", "boolean", 1,
             path, expectedSourceDigest,
-            "physical source containment blocks without consuming work or resource cycles",
+            "physical source output freezes once and commits with its source debit exactly once",
             OutputContainmentBaselineRecordId);
         CaptureInvariantMetric(capture, "agriculture", "output-capacity",
-            "output-capacity:crop-harvest", "typed-block-recovery", "boolean", 1,
+            "output-capacity:crop-harvest", "buffer-wait-restore-retry-exact-once", "boolean", 1,
             path, expectedSourceDigest,
-            "harvest and seed-lot containment block without consuming work or quantity",
+            "harvest output waits in a frozen physical batch and restores/retries exactly once",
             OutputContainmentBaselineRecordId);
     }
 
     private static void CapturePairedRunMetrics(BalanceCaptureFactory capture)
     {
         const string path = "Artifacts/QA/v27-balance-paired-run-rng.txt";
-        if (!File.Exists(path))
-            throw new InvalidOperationException("V27 paired-run evidence is missing.");
-        string[] lines = File.ReadAllLines(path);
+        string[] lines = File.Exists(path) ? File.ReadAllLines(path) : Array.Empty<string>();
         if (lines.Length == 0
             || !lines[0].StartsWith("RESULT=PASS;", StringComparison.Ordinal))
-            throw new InvalidOperationException("V27 paired-run evidence is not PASS.");
+        {
+            CaptureFocusedPairedRunMetrics(capture);
+            return;
+        }
         string sourceDigest = HashText(File.ReadAllText(path));
         CaptureInvariantMetric(capture, "chaos", "paired-run", "paired-run:four-arm",
             "seed-count", "seeds", ParseKey(lines[0], "seeds"), path, sourceDigest,
@@ -3353,6 +4346,93 @@ public static class V27BalanceAudit
         CaptureInvariantMetric(capture, "clutter", "paired-run", "paired-run:four-arm",
             "maximum-clutter-cell-seconds", "cell-seconds", clutterSeconds.Max(),
             floorCsvPath, floorCsvDigest, "maximum clutter occupancy in one fixed window",
+            FloorClutterBaselineRecordId);
+    }
+
+    private static void CaptureFocusedPairedRunMetrics(BalanceCaptureFactory capture)
+    {
+        string path = V27PairedClutterPlayModeVerifier.FocusedReportPath;
+        string pairedCsvPath = V27PairedClutterPlayModeVerifier.FocusedPairedCsvPath;
+        string floorCsvPath = V27PairedClutterPlayModeVerifier.FocusedClutterCsvPath;
+        if (!File.Exists(path) || !File.Exists(pairedCsvPath) || !File.Exists(floorCsvPath))
+            throw new InvalidOperationException("V27 focused paired-run evidence is missing.");
+        string[] lines = File.ReadAllLines(path, Encoding.UTF8);
+        string expectedDigest = V27PairedClutterPlayModeVerifier.ComputeEvidenceSourceDigest();
+        if (lines.Length == 0
+            || !lines[0].StartsWith("RESULT=PASS;", StringComparison.Ordinal)
+            || !string.Equals(ParseTextKey(lines[0], "sourceDigest"), expectedDigest,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "V27 focused paired-run evidence is stale or not PASS.");
+        }
+
+        RequireReportLine(lines, "PASS\tPAIRED_FOCUSED_FOUR_ARMS\t");
+        RequireReportLine(lines, "PASS\tPAIRED_RUN_CLEAN_REPEATABILITY_EXACT\t");
+        RequireReportLine(lines, "PASS\tPAIRED_RUN_EXOGENOUS_EVENTS_EXACT\t");
+        RequireReportLine(lines, "PASS\tPAIRED_FOCUSED_BURST_QUANTITY_CONSERVED\t");
+        string postPickup = RequireReportLine(
+            lines,
+            "PASS\tPAIRED_HAULER_FAULT_AFTER_PHYSICAL_PICKUP\t");
+        string clutter = RequireReportLine(lines, "PASS\tFLOOR_CLUTTER_RECOVERY_ZERO\t");
+        string access = RequireReportLine(lines, "PASS\tFLOOR_CLUTTER_ACCESS_EGRESS_ZERO\t");
+        string headroom = RequireReportLine(
+            lines,
+            "PASS\tPAIRED_RUNTIME_HEADROOM_AT_LEAST_30_PERCENT\t");
+        string crossTalk = RequireReportLine(
+            lines,
+            "PASS\tRNG_CAUSAL_CONE_NO_CROSS_TALK\t");
+
+        CaptureInvariantMetric(capture, "chaos", "paired-run-focused",
+            "paired-run-focused:four-arm", "seed-count", "seeds",
+            ParseKey(lines[0], "seeds"), path, expectedDigest,
+            "Ship P0 representative four-arm current-source run",
+            PairedRunBaselineRecordId);
+        CaptureInvariantMetric(capture, "chaos", "paired-run-focused",
+            "paired-run-focused:four-arm", "window-count", "windows",
+            ParseKey(lines[0], "windows"), path, expectedDigest,
+            "four fixed game-time windows per arm", PairedRunBaselineRecordId);
+        CaptureInvariantMetric(capture, "logistics", "paired-run-focused",
+            "paired-run-focused:four-arm", "post-pickup-fault-arms", "arms",
+            ParseKey(postPickup, "arms"), path, expectedDigest,
+            "representative Downed fault occurs after physical pickup",
+            PairedRunBaselineRecordId);
+        CaptureInvariantMetric(capture, "clutter", "paired-run-focused",
+            "paired-run-focused:four-arm", "persistent-floor-clutter", "stacks",
+            ParseKey(clutter, "persistent"), path, expectedDigest,
+            "persistent loose stacks after recovery", FloorClutterBaselineRecordId);
+        CaptureInvariantMetric(capture, "clutter", "paired-run-focused",
+            "paired-run-focused:four-arm", "access-egress-clutter-failures", "cells",
+            ParseKey(access, "immediateFailures"), path, expectedDigest,
+            "access and emergency egress immediate clutter failures",
+            FloorClutterBaselineRecordId);
+        CaptureInvariantMetric(capture, "space", "paired-run-focused",
+            "paired-run-focused:four-arm", "minimum-runtime-headroom", "permille",
+            ParseKey(headroom, "minimumPermille"), path, expectedDigest,
+            "minimum runtime headroom in representative four-arm run",
+            FloorClutterBaselineRecordId);
+        CaptureInvariantMetric(capture, "rng", "paired-run-focused",
+            "paired-run-focused:four-arm", "outside-causal-cone-divergence", "streams",
+            ParseKey(crossTalk, "outsideConeDivergence"), path, expectedDigest,
+            "unaffected random stream divergence", CounterfactualRngBaselineRecordId);
+
+        long[] dispatch = ReadIntegerCsvColumn(pairedCsvPath, "dispatchWaitMilliWu");
+        long[] noPath = ReadIntegerCsvColumn(pairedCsvPath, "noPathMilliWu");
+        long[] clutterSeconds = ReadIntegerCsvColumn(floorCsvPath, "clutterCellSeconds");
+        string pairedDigest = HashText(File.ReadAllText(pairedCsvPath));
+        string floorDigest = HashText(File.ReadAllText(floorCsvPath));
+        CaptureInvariantMetric(capture, "logistics", "paired-run-focused",
+            "paired-run-focused:four-arm", "haul-dispatch-wait-window-p95", "mWU",
+            Percentile95(dispatch), pairedCsvPath, pairedDigest,
+            "representative fixed-window haul dispatch wait p95", PairedRunBaselineRecordId);
+        CaptureInvariantMetric(capture, "logistics", "paired-run-focused",
+            "paired-run-focused:four-arm", "no-path-wait-window-p95", "mWU",
+            Percentile95(noPath), pairedCsvPath, pairedDigest,
+            "representative fixed-window no-path wait p95", PairedRunBaselineRecordId);
+        CaptureInvariantMetric(capture, "clutter", "paired-run-focused",
+            "paired-run-focused:four-arm", "maximum-clutter-cell-seconds", "cell-seconds",
+            clutterSeconds.Max(), floorCsvPath, floorDigest,
+            "maximum representative clutter occupancy in one fixed window",
             FloorClutterBaselineRecordId);
     }
 
@@ -3949,7 +5029,8 @@ public static class V27BalanceAudit
         bool patchable,
         string sourcePropertyPath,
         string reviewStatus,
-        bool assetApplied = false)
+        bool assetApplied = false,
+        bool reviewOnlyCandidate = false)
     {
         string fingerprint = HashText(
             stableId + "|" + beforeBom + "|" + afterBom + "|"
@@ -3986,7 +5067,9 @@ public static class V27BalanceAudit
             InheritedDelta = "0",
             RawLocalDelta = Token(afterWu - beforeWu),
             LocalQuantizationBoundaryCount = dependencies.Length + 1,
-            DownstreamConsumerCount = "facility-runtime",
+            DownstreamConsumerCount = reviewOnlyCandidate
+                ? "review-only"
+                : "facility-runtime",
             DependencyIds = dependencies,
             RootCauseIds = dependencies,
             AnomalyDisposition = severity == BalanceAnomalySeverity.Critical
@@ -3996,9 +5079,15 @@ public static class V27BalanceAudit
             ReasonDetail = reason,
             SourceAuthority = path,
             SourcePropertyPath = sourcePropertyPath,
-            ExecutionRoute = "BuildingSO->ConstructionSite->AIWork",
-            SaveAuthority = "BuildingSO",
-            VerificationEvidence = "V27 facility candidate audit",
+            ExecutionRoute = reviewOnlyCandidate
+                ? "review-only:V27ConstructionRedistributionPolicy->explicit promotion transaction"
+                : "BuildingSO->ConstructionSite->AIWork",
+            SaveAuthority = reviewOnlyCandidate
+                ? "derived optimizer proposal + explicit review authority"
+                : "BuildingSO",
+            VerificationEvidence = reviewOnlyCandidate
+                ? "V27 previous-applied/recalibration-candidate separation audit"
+                : "V27 facility candidate audit",
             ReviewStatus = reviewStatus,
             ApprovalKey = patchable && beforeWu != afterWu
                 ? BuildApprovalKey(stableId, metric, afterToken, dependencyFingerprint,
@@ -4021,6 +5110,7 @@ public static class V27BalanceAudit
         string sourceDigest,
         string[] dependencies,
         string itemId,
+        string metric,
         int beforeAmount,
         int afterAmount,
         string beforeBom,
@@ -4028,14 +5118,20 @@ public static class V27BalanceAudit
         decimal beforeBomEwu,
         decimal afterBomEwu,
         string sourcePropertyPath,
-        bool assetApplied)
+        BalanceAnomalySeverity severity,
+        string reasonCode,
+        string reasonDetail,
+        string reviewStatus,
+        bool approvalEligible,
+        bool assetApplied,
+        bool reviewOnlyCandidate,
+        int historicalBaselineAmount)
     {
-        string metric = ConstructionMaterialMetric(itemId);
         string dependencyFingerprint = HashText(string.Join("|", dependencies));
-        string approvalSourceDigest =
-            GetConstructionMaterialApprovalSourceDigest(path, itemId);
+        string approvalSourceDigest = approvalEligible
+            ? GetConstructionMaterialApprovalSourceDigest(path, itemId)
+            : sourceDigest;
         string afterToken = afterAmount.ToString(CultureInfo.InvariantCulture);
-        const string reasonCode = "facility-bounded-bom-redistribution";
         capture.Capture(new BalanceMetricCaptureRequest
         {
             Domain = "facilities",
@@ -4047,7 +5143,16 @@ public static class V27BalanceAudit
             After = afterToken,
             AuthoredRoundedValue = afterToken,
             PercentDelta = Token(PercentDelta(beforeAmount, afterAmount)),
-            ExactFormula = "integer amount in [Before,ceil(Before*1.5)]; existing item IDs only",
+            ExactFormula = reviewOnlyCandidate
+                ? "candidate in [historicalBaseline="
+                    + historicalBaselineAmount.ToString(CultureInfo.InvariantCulture)
+                    + ",ceil(historicalBaseline*1.5)="
+                    + ((historicalBaselineAmount * 3 + 1) / 2).ToString(
+                        CultureInfo.InvariantCulture)
+                    + "]; currentApplied="
+                    + beforeAmount.ToString(CultureInfo.InvariantCulture)
+                    + "; existing item IDs only"
+                : "integer amount in [Before,ceil(Before*1.5)]; existing item IDs only",
             BeforeBom = beforeBom,
             AfterBom = afterBom,
             BeforeDirectWu = "N/A",
@@ -4060,21 +5165,29 @@ public static class V27BalanceAudit
             InheritedDelta = "0",
             RawLocalDelta = (afterAmount - beforeAmount).ToString(CultureInfo.InvariantCulture),
             LocalQuantizationBoundaryCount = 1,
-            DownstreamConsumerCount = "construction-runtime",
+            DownstreamConsumerCount = reviewOnlyCandidate
+                ? "review-only"
+                : "construction-runtime",
             DependencyIds = dependencies,
             RootCauseIds = Array.Empty<string>(),
-            AnomalyDisposition = "none",
+            AnomalyDisposition = severity == BalanceAnomalySeverity.Critical
+                ? "local-critical"
+                : severity == BalanceAnomalySeverity.Warning ? "warning" : "none",
             ReasonCode = reasonCode,
-            ReasonDetail = afterAmount == beforeAmount
-                ? "Existing physical BOM amount retained."
-                : "Existing physical BOM amount increased within the 50% cap; no new item type.",
+            ReasonDetail = reasonDetail,
             SourceAuthority = path,
             SourcePropertyPath = sourcePropertyPath,
-            ExecutionRoute = "BuildingSO->WorkAmountSystem.RequestMissingMaterials->AIHaul->ConstructionSite",
-            SaveAuthority = "BuildingSO + physical world-item runtime",
-            VerificationEvidence = "V27 construction redistribution + physical logistics PlayMode",
-            ReviewStatus = beforeAmount == afterAmount ? "unchanged" : "pending",
-            ApprovalKey = beforeAmount != afterAmount
+            ExecutionRoute = reviewOnlyCandidate
+                ? "review-only:V27ConstructionRedistributionPolicy->explicit promotion transaction"
+                : "BuildingSO->WorkAmountSystem.RequestMissingMaterials->AIHaul->ConstructionSite",
+            SaveAuthority = reviewOnlyCandidate
+                ? "derived optimizer proposal + explicit review authority"
+                : "BuildingSO + physical world-item runtime",
+            VerificationEvidence = reviewOnlyCandidate
+                ? "V27 previous-applied/recalibration-candidate separation audit"
+                : "V27 construction redistribution + physical logistics PlayMode",
+            ReviewStatus = reviewStatus,
+            ApprovalKey = approvalEligible && beforeAmount != afterAmount
                 ? BuildApprovalKey(
                     stableId,
                     metric,
@@ -4085,7 +5198,9 @@ public static class V27BalanceAudit
                     ResolveLaborBaselineRecordId(stableId))
                 : string.Empty,
             DependencyFingerprint = dependencyFingerprint,
-            LocalFingerprint = HashText(stableId + "|" + itemId + "|" + beforeAmount),
+            LocalFingerprint = HashText(
+                stableId + "|" + metric + "|" + itemId + "|"
+                + beforeAmount + "|" + historicalBaselineAmount),
             SourceDigest = approvalSourceDigest,
             SemanticHash = HashText(stableId + "|" + metric + "|" + afterToken),
             AssetApplied = assetApplied ? "true" : "false",
@@ -4111,8 +5226,12 @@ public static class V27BalanceAudit
 
     private static void PromoteDependencyRoots(
         FrozenBalanceLedger ledger,
-        ICollection<BalanceAnomalyNode> anomalies)
+        ICollection<BalanceAnomalyNode> anomalies,
+        IReadOnlyCollection<string> approvedKeys)
     {
+        HashSet<string> approved = new HashSet<string>(
+            approvedKeys ?? Array.Empty<string>(),
+            StringComparer.Ordinal);
         HashSet<string> existingRoots = anomalies
             .Where(value => value.EmitsCiAnnotation)
             .Select(value => value.StableId)
@@ -4128,15 +5247,19 @@ public static class V27BalanceAudit
         {
             if (existingRoots.Contains(rootId))
                 continue;
-            CanonicalBalanceMetricRecord record = ledger.Records
+            CanonicalBalanceMetricRecord[] causalRows = ledger.Records
                 .Where(value => string.Equals(value.StableId, rootId, StringComparison.Ordinal)
-                    && value.ApprovalKey.Length > 0)
-                .OrderBy(value => value.Metric == "authored-required-wu" ? 0 : 1)
+                    && value.ApprovalKey.Length > 0
+                    && DependencyRootMetricPriority(value.Metric) < int.MaxValue)
+                .OrderBy(value => approved.Contains(value.ApprovalKey) ? 0 : 1)
+                .ThenBy(value => DependencyRootMetricPriority(value.Metric))
                 .ThenBy(value => value.Metric, StringComparer.Ordinal)
-                .FirstOrDefault();
-            if (record == null)
+                .ToArray();
+            if (causalRows.Length == 0)
                 throw new InvalidOperationException(
-                    $"Collapsed Critical references a root with no approvable ledger row: {rootId}");
+                    "Collapsed Critical references a root with no causal approvable ledger row: "
+                    + rootId);
+            CanonicalBalanceMetricRecord record = causalRows[0];
             anomalies.Add(BalanceAnomalyNode.Capture(
                 rootId,
                 record.Metric,
@@ -4339,7 +5462,8 @@ public static class V27BalanceAudit
         PopulationCapacityBaselineRecordId,
         SixAdultClosedLoopBaselineRecordId,
         IntegratedCapacityValidationBaselineRecordId,
-        OutputContainmentBaselineRecordId
+        OutputContainmentBaselineRecordId,
+        MultiOutputEconomicAllocationBaselineRecordId
     };
 
     private static void WriteManifest(
@@ -4835,6 +5959,12 @@ public static class V27BalanceAudit
             "Assets/Scripts/Services/Economy/Editor/V27BalanceAssetRollbackDebugScenarios.cs",
             "Assets/Scripts/Services/Economy/Editor/V27BalanceEconomySimulationDebugScenarios.cs",
             "Assets/Scripts/Services/Economy/Editor/V27BalanceMarketDebugScenarios.cs",
+            "Assets/Scripts/Services/Economy/Editor/V27BalanceMarketDecisionEpoch.cs",
+            "Assets/Scripts/Services/Economy/Editor/V27BalanceMarketReviewPromotion.cs",
+            "Assets/Scripts/Services/Economy/Editor/V27BalanceMarketApplicationReceiptDebugScenarios.cs",
+            "Assets/Scripts/Services/Economy/Editor/V27BalanceMarketApplicationReceiptV2.cs",
+            "Assets/Scripts/Services/Economy/Editor/V27BalanceConstructionReviewPromotion.cs",
+            "Assets/Resources/SO/Factions/FactionAllianceBenefitBudget.asset",
             "Assets/Scripts/Services/Economy/Editor/V27BalanceLaborFacilityDebugScenarios.cs",
             "Assets/Scripts/Services/Economy/Editor/V27ConstructionRedistributionPolicy.cs",
             "Assets/Scripts/Services/Economy/Editor/V27BalanceWholeGameCoverageDebugScenarios.cs",
@@ -4868,7 +5998,6 @@ public static class V27BalanceAudit
             "tools/DungeonStory.BalanceAnalyzers/test-analyzer.ps1",
             "tools/DungeonStory.BalanceAnalyzers/Tests/Positive.cs",
             "tools/DungeonStory.BalanceAnalyzers/Tests/Negative.cs",
-            ApprovalPath,
             "docs/game-design/whole-game-balance-baseline.md"
         };
         foreach (string path in paths)
@@ -4903,6 +6032,12 @@ public static class V27BalanceAudit
         stream.Position = 0L;
         return Hex(sha.ComputeHash(stream));
     }
+
+    internal static string BuildMarketAuthoritySemanticHash(
+        string stableId,
+        string authorityMetric,
+        string exactAfterToken) => HashText(
+        stableId + "|" + authorityMetric + "|" + exactAfterToken);
 
     private static string HashText(string value)
     {
@@ -5259,6 +6394,35 @@ public static class V27BalanceAudit
         }
     }
 
+    private static int DependencyRootMetricPriority(string metric)
+    {
+        if (string.Equals(metric, "authored-unit-price-gold", StringComparison.Ordinal))
+            return 0;
+        if (string.Equals(metric, "acquisition-cost", StringComparison.Ordinal)
+            || string.Equals(metric, "cultivated-acquisition-cost", StringComparison.Ordinal))
+            return 1;
+        if (string.Equals(metric, "direct-wu", StringComparison.Ordinal))
+            return 2;
+        if (string.Equals(metric, "authored-required-wu", StringComparison.Ordinal)
+            || string.Equals(metric, "authored-sow-wu", StringComparison.Ordinal)
+            || string.Equals(metric, "authored-harvest-wu", StringComparison.Ordinal)
+            || string.Equals(
+                metric,
+                "construction-authored-wu:redistributed",
+                StringComparison.Ordinal))
+        {
+            return 3;
+        }
+        if (!string.IsNullOrEmpty(metric)
+            && metric.StartsWith(
+                "construction-material-amount:",
+                StringComparison.Ordinal))
+        {
+            return 4;
+        }
+        return int.MaxValue;
+    }
+
     private static int MaskConstructionMaterialAmounts(string[] lines)
     {
         int masked = 0;
@@ -5385,22 +6549,103 @@ public sealed class V27BalanceAuditOutput
         BalanceAuthoritySnapshot authoritySnapshot,
         BalanceArtifactManifest artifactManifest,
         string assetPatchDigest,
-        IReadOnlyList<string> integrityFailures)
+        IReadOnlyList<BalanceAnomalyNode> anomalies,
+        IReadOnlyList<string> integrityFailures,
+        V27BalanceAuditWriteResult writeResult)
     {
         AuthoritySnapshot = authoritySnapshot
             ?? throw new ArgumentNullException(nameof(authoritySnapshot));
         ArtifactManifest = artifactManifest
             ?? throw new ArgumentNullException(nameof(artifactManifest));
         AssetPatchDigest = assetPatchDigest ?? string.Empty;
-        IntegrityFailures = integrityFailures;
+        Anomalies = anomalies ?? throw new ArgumentNullException(nameof(anomalies));
+        IntegrityFailures = integrityFailures
+            ?? throw new ArgumentNullException(nameof(integrityFailures));
+        WriteResult = writeResult
+            ?? throw new ArgumentNullException(nameof(writeResult));
     }
 
     public BalanceAuthoritySnapshot AuthoritySnapshot { get; }
     public BalanceArtifactManifest ArtifactManifest { get; }
     public string AssetPatchDigest { get; }
+    public IReadOnlyList<BalanceAnomalyNode> Anomalies { get; }
     public FrozenBalanceLedger Ledger => AuthoritySnapshot.Ledger;
     public int CriticalCount => ArtifactManifest.CriticalCount;
     public int SccCount => ArtifactManifest.SccCount;
     public IReadOnlyList<string> IntegrityFailures { get; }
+    public V27BalanceAuditWriteResult WriteResult { get; }
+}
+
+[BalanceImmutableRecord]
+public sealed class V27BalanceAuditWriteResult
+{
+    private static readonly string[] ExpectedPaths =
+    {
+        V27BalanceCsvSerializer.ArtifactPath,
+        V27BalanceAudit.MarkdownPath,
+        V27BalanceJsonSerializer.AnomalyArtifactPath,
+        V27BalanceAudit.AuditPath,
+        V27BalanceAudit.SourceInventoryPath,
+        V27BalanceAudit.ManifestPath
+    };
+
+    private V27BalanceAuditWriteResult(
+        V27BalanceAuditWriteObservation[] observations)
+    {
+        Observations = Array.AsReadOnly(observations);
+    }
+
+    public IReadOnlyList<V27BalanceAuditWriteObservation> Observations { get; }
+    public int InvocationCount => Observations.Count;
+    public bool CsvChanged => Observations[0].Changed;
+    public bool MarkdownChanged => Observations[1].Changed;
+    public bool AnomalyChanged => Observations[2].Changed;
+    public bool AuditChanged => Observations[3].Changed;
+    public bool SourceInventoryChanged => Observations[4].Changed;
+    public bool ManifestChanged => Observations[5].Changed;
+    public int ChangedCount => Observations.Count(value => value.Changed);
+
+    [BalanceCaptureFactory]
+    public static V27BalanceAuditWriteResult Capture(
+        IReadOnlyList<V27BalanceAuditWriteObservation> observations)
+    {
+        if (observations == null)
+            throw new ArgumentNullException(nameof(observations));
+        if (observations.Count != ExpectedPaths.Length)
+            throw new InvalidOperationException(
+                "Audit writer invocation count must be exactly six.");
+        V27BalanceAuditWriteObservation[] copy = observations.ToArray();
+        for (int index = 0; index < copy.Length; index++)
+        {
+            if (!string.Equals(copy[index].ProjectRelativePath,
+                    ExpectedPaths[index], StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "Audit writer invocation path/order drift at index " + index + ".");
+            }
+        }
+        return new V27BalanceAuditWriteResult(copy);
+    }
+}
+
+public readonly struct V27BalanceAuditWriteObservation
+{
+    private V27BalanceAuditWriteObservation(
+        string projectRelativePath,
+        bool changed)
+    {
+        ProjectRelativePath = projectRelativePath;
+        Changed = changed;
+    }
+
+    public string ProjectRelativePath { get; }
+    public bool Changed { get; }
+
+    [BalanceCaptureFactory]
+    public static V27BalanceAuditWriteObservation Capture(
+        string projectRelativePath,
+        bool changed) => new V27BalanceAuditWriteObservation(
+            BalanceCanonicalText.ProjectRelativePath(projectRelativePath),
+            changed);
 }
 #endif

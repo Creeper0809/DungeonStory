@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "reproduction-adventurer",
+  "spoiler_tier": "none",
+  "summary": "Adventurer의 생식 성공률 0.35, 생식 단계 4개와 생존 온도 10~32℃를 정의해 인구 증가를 환경·시간 조건에 연결한다.",
+  "title": "Reproduction_Adventurer"
+}

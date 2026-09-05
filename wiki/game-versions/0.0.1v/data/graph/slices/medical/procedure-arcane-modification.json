@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "medical",
+    "slug": "procedure-arcane-modification",
+    "spoiler_tier": "none",
+    "title": "이형 개조"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "medical/procedure-arcane-modification",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "medicine-standard",
+      "target_spoiler_tier": "none",
+      "target_title": "표준 약품",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-arcane-modification",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "resource-mana-crystal",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 결정",
+      "to": "item/resource-mana-crystal",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-arcane-modification",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-aberrant-augmentation",
+      "target_spoiler_tier": "none",
+      "target_title": "이형 개조",
+      "to": "research/research-medical-aberrant-augmentation",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

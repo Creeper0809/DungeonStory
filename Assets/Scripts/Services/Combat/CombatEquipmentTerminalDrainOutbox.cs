@@ -6,22 +6,52 @@ using System.Linq;
 /// Durable producer for craft and repair order terminalization. The producer
 /// freezes the complete source before asking the Items-owned child to release
 /// input custody, then records deterministic WIP/loss and exact source-removal
-/// receipts. It is intentionally not registered until the exact-five restore
-/// join is complete.
+/// receipts. Runtime registration is valid only together with the exact source,
+/// child, effect and upper-journal restore join.
 /// </summary>
 public sealed class CombatEquipmentTerminalDrainOutbox :
     ICombatEquipmentTerminalDrainQuery,
-    ICombatEquipmentTerminalDrainCommand
+    ICombatEquipmentTerminalDrainCommand,
+    ICombatEquipmentTerminalDrainCheckpointGcAuthority
 {
     private sealed class State
     {
         internal Dictionary<string, CombatEquipmentTerminalDrainSaveData>
             ByStepOperationId { get; } = new(StringComparer.Ordinal);
+
+        internal State Clone()
+        {
+            State clone = new();
+            foreach (KeyValuePair<string, CombatEquipmentTerminalDrainSaveData> pair
+                     in ByStepOperationId)
+            {
+                clone.ByStepOperationId.Add(pair.Key, pair.Value?.Clone());
+            }
+            return clone;
+        }
+    }
+
+    private sealed class CheckpointGcCandidate :
+        ICombatEquipmentTerminalDrainCheckpointGcCandidate
+    {
+        internal CheckpointGcCandidate(
+            IReadOnlyList<CombatEquipmentTerminalDrainSaveData> rows)
+        {
+            Rows = Array.AsReadOnly((rows
+                    ?? Array.Empty<CombatEquipmentTerminalDrainSaveData>())
+                .Select(value => value?.Clone())
+                .ToArray());
+        }
+
+        internal IReadOnlyList<CombatEquipmentTerminalDrainSaveData> Rows { get; }
+        internal bool Published { get; set; }
+        internal bool Completed { get; set; }
     }
 
     private readonly DungeonRuntimeAggregateRootStore rootStore;
     private readonly ICombatEquipmentTerminalSourceAuthority sourceAuthority;
     private readonly IProductionInputDestinationCustodyDrainOutbox inputDrain;
+    private CheckpointGcCandidate activeCheckpointGcCandidate;
 
     public CombatEquipmentTerminalDrainOutbox(
         DungeonRuntimeAggregateRootStore rootStore,
@@ -37,6 +67,11 @@ public sealed class CombatEquipmentTerminalDrainOutbox :
     }
 
     private State Current => rootStore.GetOrCreate(() => new State());
+
+    ICombatEquipmentTerminalSourceCheckpointGcAuthority
+        ICombatEquipmentTerminalDrainCheckpointGcAuthority
+            .SourceCheckpointGcAuthority =>
+        sourceAuthority as ICombatEquipmentTerminalSourceCheckpointGcAuthority;
 
     public bool TryCaptureLiveSourceForPreparation(
         string ownerStableId,
@@ -103,6 +138,8 @@ public sealed class CombatEquipmentTerminalDrainOutbox :
     public CombatEquipmentTerminalDrainResult TryPrepare(
         CombatEquipmentTerminalDrainRequest request)
     {
+        if (activeCheckpointGcCandidate != null)
+            return Conflict("combat-equipment-terminal-checkpoint-gc-active");
         if (!TryValidateRequest(request, out string failureReason))
             return Conflict(failureReason);
 
@@ -212,6 +249,8 @@ public sealed class CombatEquipmentTerminalDrainOutbox :
         string stepOperationId,
         string receiptFingerprint)
     {
+        if (activeCheckpointGcCandidate != null)
+            return Conflict("combat-equipment-terminal-checkpoint-gc-active");
         if (!TryGet(stepOperationId, out CombatEquipmentTerminalDrainSaveData value))
         {
             return new CombatEquipmentTerminalDrainResult(
@@ -287,7 +326,7 @@ public sealed class CombatEquipmentTerminalDrainOutbox :
         .ToArray();
 
     [GameplayInternalOnly(
-        "Atomically replaces unregistered combat producer state after exact source, child, and effect join validation.",
+        "Atomically replaces combat producer state after exact source, child, and effect join validation.",
         "Combat terminal save restore coordinator only")]
     public bool TryRestoreCurrentFormat(
         IEnumerable<CombatEquipmentTerminalDrainSaveData> records,
@@ -295,6 +334,11 @@ public sealed class CombatEquipmentTerminalDrainOutbox :
         out string failureReason)
     {
         failureReason = string.Empty;
+        if (activeCheckpointGcCandidate != null)
+        {
+            failureReason = "combat-equipment-terminal-checkpoint-gc-active";
+            return false;
+        }
         CombatEquipmentTerminalDrainSaveData[] ordered = (records
                 ?? Array.Empty<CombatEquipmentTerminalDrainSaveData>())
             .Select(value => value?.Clone())
@@ -330,6 +374,125 @@ public sealed class CombatEquipmentTerminalDrainOutbox :
             restored.ByStepOperationId.Add(value.stepOperationId, value.Clone());
         rootStore.Replace(restored);
         return true;
+    }
+
+    bool ICombatEquipmentTerminalDrainCheckpointGcAuthority
+        .TryPrepareCheckpointGarbageCollection(
+            IReadOnlyList<CombatEquipmentTerminalDrainSaveData> rows,
+            out ICombatEquipmentTerminalDrainCheckpointGcCandidate candidate,
+            out string failureReason)
+    {
+        candidate = null;
+        failureReason = string.Empty;
+        CombatEquipmentTerminalDrainSaveData[] ordered = (rows
+                ?? Array.Empty<CombatEquipmentTerminalDrainSaveData>())
+            .Select(value => value?.Clone())
+            .OrderBy(value => value?.stepOperationId, StringComparer.Ordinal)
+            .ToArray();
+        if (activeCheckpointGcCandidate != null)
+        {
+            failureReason = "combat-equipment-terminal-checkpoint-gc-already-active";
+            return false;
+        }
+        if (ordered.Any(value => value == null
+                || value.phase != CombatEquipmentTerminalDrainPhase
+                    .OwnerAcknowledgedAwaitingCheckpointGc
+                || !CombatEquipmentTerminalDrainCanonical.IsValidSave(value))
+            || HasDuplicates(ordered.Select(value => value.stepOperationId), false))
+        {
+            failureReason = "combat-equipment-terminal-checkpoint-gc-row-invalid";
+            return false;
+        }
+        foreach (CombatEquipmentTerminalDrainSaveData row in ordered)
+        {
+            if (!Current.ByStepOperationId.TryGetValue(row.stepOperationId,
+                    out CombatEquipmentTerminalDrainSaveData live)
+                || !ExactCheckpointGcRow(live, row))
+            {
+                failureReason =
+                    "combat-equipment-terminal-checkpoint-gc-live-row-changed";
+                return false;
+            }
+        }
+
+        CheckpointGcCandidate exact = new(ordered);
+        activeCheckpointGcCandidate = exact;
+        candidate = exact;
+        return true;
+    }
+
+    CombatEquipmentTerminalDrainResult
+        ICombatEquipmentTerminalDrainCheckpointGcAuthority
+            .PublishCheckpointGarbageCollection(
+                ICombatEquipmentTerminalDrainCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        if (exact.Published)
+            return CheckpointGcResult(exact, CombatEquipmentTerminalDrainStatus.Replay);
+
+        State current = Current;
+        foreach (CombatEquipmentTerminalDrainSaveData row in exact.Rows)
+        {
+            if (!current.ByStepOperationId.TryGetValue(row.stepOperationId,
+                    out CombatEquipmentTerminalDrainSaveData live)
+                || !ExactCheckpointGcRow(live, row))
+            {
+                return new CombatEquipmentTerminalDrainResult(
+                    CombatEquipmentTerminalDrainStatus.Deferred,
+                    CombatEquipmentTerminalDrainPhase
+                        .OwnerAcknowledgedAwaitingCheckpointGc,
+                    string.Empty,
+                    string.Empty,
+                    "combat-equipment-terminal-checkpoint-gc-live-row-changed");
+            }
+        }
+
+        State next = current.Clone();
+        foreach (CombatEquipmentTerminalDrainSaveData row in exact.Rows)
+            next.ByStepOperationId.Remove(row.stepOperationId);
+        rootStore.Replace(next);
+        exact.Published = true;
+        return CheckpointGcResult(exact, CombatEquipmentTerminalDrainStatus.Applied);
+    }
+
+    void ICombatEquipmentTerminalDrainCheckpointGcAuthority
+        .RollbackCheckpointGarbageCollection(
+            ICombatEquipmentTerminalDrainCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        if (!exact.Published)
+            return;
+
+        State next = Current.Clone();
+        foreach (CombatEquipmentTerminalDrainSaveData row in exact.Rows)
+        {
+            if (next.ByStepOperationId.ContainsKey(row.stepOperationId)
+                || next.ByStepOperationId.Values.Any(value => value != null
+                    && (string.Equals(value.source?.ownerStableId,
+                            row.source?.ownerStableId, StringComparison.Ordinal)
+                        || string.Equals(value.source?.sourceId,
+                            row.source?.sourceId, StringComparison.Ordinal)
+                        || HasChild(row) && string.Equals(
+                            value.inputDestinationDrainStepOperationId,
+                            row.inputDestinationDrainStepOperationId,
+                            StringComparison.Ordinal))))
+            {
+                throw new InvalidOperationException(
+                    "combat-equipment-terminal-checkpoint-gc-rollback-conflict");
+            }
+            next.ByStepOperationId.Add(row.stepOperationId, row.Clone());
+        }
+        rootStore.Replace(next);
+        exact.Published = false;
+    }
+
+    void ICombatEquipmentTerminalDrainCheckpointGcAuthority
+        .CompleteCheckpointGarbageCollection(
+            ICombatEquipmentTerminalDrainCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        exact.Completed = true;
+        activeCheckpointGcCandidate = null;
     }
 
     private CombatEquipmentTerminalDrainResult
@@ -865,12 +1028,72 @@ public sealed class CombatEquipmentTerminalDrainOutbox :
 
     private void Store(CombatEquipmentTerminalDrainSaveData value)
     {
+        if (activeCheckpointGcCandidate != null)
+        {
+            throw new InvalidOperationException(
+                "Combat equipment terminal checkpoint GC is active.");
+        }
         if (!CombatEquipmentTerminalDrainCanonical.IsValidSave(value))
         {
             throw new InvalidOperationException(
                 "Combat equipment terminal outbox refused invalid state.");
         }
         Current.ByStepOperationId[value.stepOperationId] = value.Clone();
+    }
+
+    private CheckpointGcCandidate RequireCheckpointGcCandidate(
+        ICombatEquipmentTerminalDrainCheckpointGcCandidate candidate)
+    {
+        if (candidate is not CheckpointGcCandidate exact
+            || exact.Completed
+            || !ReferenceEquals(activeCheckpointGcCandidate, exact))
+        {
+            throw new InvalidOperationException(
+                "Combat equipment terminal checkpoint GC candidate is invalid.");
+        }
+        return exact;
+    }
+
+    private static bool ExactCheckpointGcRow(
+        CombatEquipmentTerminalDrainSaveData live,
+        CombatEquipmentTerminalDrainSaveData expected) =>
+        live != null
+        && expected != null
+        && CombatEquipmentTerminalDrainCanonical.IsValidSave(live)
+        && CombatEquipmentTerminalDrainCanonical.IsValidSave(expected)
+        && live.phase == expected.phase
+        && string.Equals(live.parentOperationId, expected.parentOperationId,
+            StringComparison.Ordinal)
+        && string.Equals(live.stepOperationId, expected.stepOperationId,
+            StringComparison.Ordinal)
+        && string.Equals(live.requestFingerprint, expected.requestFingerprint,
+            StringComparison.Ordinal)
+        && string.Equals(live.receiptFingerprint, expected.receiptFingerprint,
+            StringComparison.Ordinal)
+        && string.Equals(live.source?.sourceFingerprint,
+            expected.source?.sourceFingerprint, StringComparison.Ordinal)
+        && string.Equals(live.inputDestinationDrainReceiptFingerprint,
+            expected.inputDestinationDrainReceiptFingerprint,
+            StringComparison.Ordinal)
+        && string.Equals(live.wipLossReceiptFingerprint,
+            expected.wipLossReceiptFingerprint, StringComparison.Ordinal)
+        && string.Equals(live.sourceRemovalReceiptFingerprint,
+            expected.sourceRemovalReceiptFingerprint, StringComparison.Ordinal);
+
+    private static CombatEquipmentTerminalDrainResult CheckpointGcResult(
+        CheckpointGcCandidate candidate,
+        CombatEquipmentTerminalDrainStatus status)
+    {
+        CombatEquipmentTerminalDrainSaveData row = candidate.Rows.Count == 0
+            ? null
+            : candidate.Rows[candidate.Rows.Count - 1];
+        return new CombatEquipmentTerminalDrainResult(
+            status,
+            CombatEquipmentTerminalDrainPhase
+                .OwnerAcknowledgedAwaitingCheckpointGc,
+            row?.commitId ?? string.Empty,
+            row?.receiptFingerprint ?? string.Empty,
+            string.Empty);
     }
 
     private static bool HasDuplicates(

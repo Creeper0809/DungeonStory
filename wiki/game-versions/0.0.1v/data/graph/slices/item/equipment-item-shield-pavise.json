@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "equipment-item-shield-pavise",
+    "spoiler_tier": "none",
+    "title": "파비스"
+  },
+  "edges": [],
+  "schema_version": 1
+}

@@ -1,0 +1,58 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "nature",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "tunnel-mole",
+      "target_spoiler_tier": "none",
+      "target_title": "굴착두더지",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "shadow-hare",
+      "target_spoiler_tier": "none",
+      "target_title": "그림자토끼",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-rat",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴쥐",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "carrion-drake",
+      "target_spoiler_tier": "none",
+      "target_title": "시체청소 비룡",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-red-fever",
+      "target_spoiler_tier": "none",
+      "target_title": "적열병",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "cave-hound",
+  "spoiler_tier": "none",
+  "summary": "무리 사냥을 하며 길들이면 경비와 추적에 쓸 수 있다.",
+  "title": "동굴사냥개"
+}

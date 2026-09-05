@@ -276,10 +276,37 @@ public static class BackgroundFactionReactionRules
 [Serializable]
 public sealed class CharacterNarrativeWorldSaveData
 {
-    public const int CurrentVersion = 8;
+    public const int CurrentVersion = 9;
     public int version = CurrentVersion;
     public List<CharacterNarrativeSaveData> characters = new();
     public List<CharacterIdentityRuntimeStateSaveData> identityStates = new();
+    public List<WorkCompletionIdentityDeliveryCursorSaveData>
+        workCompletionDeliveries = new();
+}
+
+[Serializable]
+public sealed class WorkCompletionIdentityDeliveryCursorSaveData
+{
+    public string producerStreamId = string.Empty;
+    public int operationSequence;
+    public string deliveryId = string.Empty;
+    public string payloadFingerprint = string.Empty;
+    public WorkCompletionIdentityDeliveryDisposition disposition;
+
+    public WorkCompletionIdentityDeliveryCursorSaveData Clone() => new()
+    {
+        producerStreamId = producerStreamId ?? string.Empty,
+        operationSequence = operationSequence,
+        deliveryId = deliveryId ?? string.Empty,
+        payloadFingerprint = payloadFingerprint ?? string.Empty,
+        disposition = disposition
+    };
+}
+
+public enum WorkCompletionIdentityDeliveryDisposition
+{
+    EffectsApplied = 0,
+    TerminalRecipientUnavailable = 1
 }
 
 [Serializable]

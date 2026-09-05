@@ -1,0 +1,75 @@
+﻿document,title,authority_kind,local_link_count,broken_local_link_count,heading_count
+docs_final/architecture/01-modules-composition-and-ports.md,01. 모듈 경계와 런타임 조립,implementation-architecture,1,0,24
+docs_final/architecture/02-domain-model-state-and-commands.md,02. 도메인 상태와 명령 경계,implementation-architecture,1,0,16
+docs_final/architecture/03-content-capabilities-and-dispatch.md,03. 콘텐츠 조립과 런타임 디스패치,implementation-architecture,1,0,22
+docs_final/architecture/04-workflows-events-and-presentation.md,"04. 응용 워크플로, 사건과 프레젠테이션",implementation-architecture,1,0,17
+docs_final/architecture/05-persistence-transactions-and-idempotency.md,"05. 저장, 복원과 중복 실행 방지",implementation-architecture,1,0,21
+docs_final/architecture/06-extension-playbook-and-assessment.md,06. 확장 실무와 엄격 평가,implementation-architecture,1,0,40
+docs_final/architecture/07-history-driven-evolution-architecture.md,07. 사용 이력 기반 진화 아키텍처,implementation-architecture,2,0,16
+docs_final/architecture/08-whole-runtime-topology.md,08. 전체 런타임 구조,implementation-architecture,24,0,10
+docs_final/architecture/09-state-authority-ledger.md,09. 상태 권위 원장,implementation-architecture,3,0,10
+docs_final/architecture/10-cross-domain-transactions.md,10. 도메인 간 거래와 실패 경계,implementation-architecture,4,0,23
+docs_final/architecture/11-runtime-scheduling-and-projections.md,11. 런타임 스케줄링과 읽기 투영,implementation-architecture,3,0,14
+docs_final/architecture/code-architecture-guide.md,DungeonStory 코드 아키텍처,implementation-architecture,17,0,5
+docs_final/architecture/systems/01-character-ai-and-behavior.md,캐릭터 AI와 행동 실행,implementation-architecture,0,0,9
+docs_final/architecture/systems/02-grid-spatial-and-pathfinding.md,"그리드, 공간 질의와 경로 탐색",implementation-architecture,0,0,9
+docs_final/architecture/systems/03-buildings-construction-and-rooms.md,"건물 배치, 건설과 방 판정",implementation-architecture,1,0,8
+docs_final/architecture/systems/04-work-orders-and-labor.md,"작업 주문, 노동 배정과 실행",implementation-architecture,0,0,9
+docs_final/architecture/systems/05-items-inventory-and-hauling.md,"아이템, 재고, 예약과 운반",implementation-architecture,0,0,10
+docs_final/architecture/systems/06-production-and-output-routing.md,"생산, 제작식과 출력 인계",implementation-architecture,0,0,9
+docs_final/architecture/systems/07-industrial-networks-and-automation.md,"전력, 유체, 컨베이어와 자동화",implementation-architecture,0,0,10
+docs_final/architecture/systems/08-character-life-needs-and-society.md,"캐릭터 생애, 욕구와 사회 상태",implementation-architecture,0,0,8
+docs_final/architecture/systems/09-medical-disease-and-body-health.md,"의료, 질병과 신체 상태",implementation-architecture,0,0,7
+docs_final/architecture/systems/10-environment-survival-and-sanitation.md,"환경장, 생존과 공간 위생",implementation-architecture,0,0,8
+docs_final/architecture/systems/11-wildlife-agriculture-and-husbandry.md,"야생동물, 농업과 축산",implementation-architecture,0,0,9
+docs_final/architecture/systems/12-combat-equipment-and-damage.md,"전투, 장비와 피해 처리",implementation-architecture,2,0,10
+docs_final/architecture/systems/13-defense-invasion-and-threat.md,"방어, 침입과 위협 대응",implementation-architecture,0,0,8
+docs_final/architecture/systems/14-offense-expeditions-and-world-map.md,"원정, 월드맵과 전략 전투",implementation-architecture,1,0,9
+docs_final/architecture/systems/15-research-progression-and-meta.md,"연구, 해금과 런 진행",implementation-architecture,0,0,8
+docs_final/architecture/systems/16-factions-events-recruitment-and-captivity.md,"세력, 사건, 모집과 포로",implementation-architecture,0,0,10
+docs_final/architecture/systems/17-session-save-and-determinism.md,"세션 조립, 저장과 결정론",implementation-architecture,0,0,10
+docs_final/architecture/systems/18-presentation-notifications-and-diagnostics.md,"UI, 알림과 성능 진단",implementation-architecture,0,0,9
+docs_final/architecture/systems/19-facility-synthesis-and-use-based-evolution.md,시설 합성과 사용 기반 진화,implementation-architecture,1,0,22
+docs_final/architecture/systems/README.md,시스템 구현과 성능 설계,implementation-architecture,45,0,3
+docs_final/game-design/balance-execution-acceptance.md,실행 검증 수용 기준,game-design,0,0,4
+docs_final/game-design/balance-progression-validation-contract.md,밸런스·진행 검증 계약,game-design,6,0,14
+docs_final/game-design/balance-validation-status.md,V27 밸런스 검증 현황,game-design,1,0,1
+docs_final/game-design/content-plans/combat/encounter-numeric-ledger.md,조우 수치 원장,game-design,3,0,1
+docs_final/game-design/content-plans/context/population-numeric-ledger.md,종족·특성 수치 원장,game-design,2,0,1
+docs_final/game-design/content-plans/events/event-numeric-ledger.md,사건 수치 원장,game-design,13,0,1
+docs_final/game-design/content-plans/events/event-response-labor-model.md,사건 대응 노동 원장,game-design,8,0,3
+docs_final/game-design/content-plans/facilities/facility-numeric-ledger.md,시설 수치 원장,game-design,5,0,1
+docs_final/game-design/content-plans/items/apparel-and-module-numeric-notes.md,의복·작업복·장비 모듈 수치 원장,game-design,0,0,1
+docs_final/game-design/content-plans/items/combat-equipment-numeric-ledger.md,전투 장비 수치 원장,game-design,1,0,1
+docs_final/game-design/content-plans/medical/procedure-numeric-ledger.md,의료 시술 수치 원장,game-design,2,0,1
+docs_final/game-design/content-plans/portfolio-choice-closure.md,포트폴리오 선택 폐쇄 기록,game-design,6,0,5
+docs_final/game-design/content-plans/portfolio-numeric-assembly.md,전략 포트폴리오 수치 조립 원장,game-design,19,0,6
+docs_final/game-design/content-plans/portfolio-numeric-curve.md,포트폴리오 수치 곡선,game-design,3,0,2
+docs_final/game-design/content-plans/portfolio-pressure-stage-model.md,포트폴리오 압력 단계 매트릭스,game-design,2,0,3
+docs_final/game-design/content-plans/production/crop-numeric-ledger.md,작물 수치 원장,game-design,1,0,1
+docs_final/game-design/content-plans/README.md,콘텐츠 설계 기록,game-design,99,0,9
+docs_final/game-design/content-plans/strategic-portfolio-assembly.md,전략 포트폴리오 조립 계약,game-design,26,0,14
+docs_final/game-design/numeric-balance-authority.md,DungeonStory 수치 설계 권위,game-design,30,0,8
+docs_final/game-design/numeric-finalization-closure.md,수치 설계 완결성 기록,game-design,2,0,3
+docs_final/game-design/reference-game-design-synthesis.md,상용·인디 시스템 게임 설계 비교와 적용 원칙,game-design,2,0,35
+docs_final/game-design/replay-meta-validation.md,반복 플레이 메타 검증,game-design,0,0,7
+docs_final/game-design/strategic-build-and-progression-design.md,DungeonStory 전략 빌드·연구·시설 포트폴리오 설계,game-design,12,0,49
+docs_final/game-design/strategic-vertical-slices.md,DungeonStory 전략 수직 슬라이스,game-design,2,0,14
+docs_final/game-design/systemic-content-event-catalog.md,DungeonStory 시스템 콘텐츠 상세 카탈로그,game-design,3,0,37
+docs_final/game-design/systemic-content-integration-design.md,DungeonStory 시스템 콘텐츠 통합 설계,game-design,5,0,51
+docs_final/game-design/systemic-event-vertical-slices.md,DungeonStory 사건 수직 슬라이스,game-design,3,0,7
+docs_final/game-design/v27-physical-mass-and-hauling-recalibration-plan.md,V27 물리 중량·운반량 전수 재조정 구현 계획,game-design,0,0,376
+docs_final/game-design/whole-game-balance-baseline.md,DungeonStory 전역 밸런스 기준서,game-design,1,0,296
+docs_final/handbook/01-game-vision-and-player-loop.md,01. 게임 정체성과 운영 순환,system-handbook,5,0,22
+docs_final/handbook/02-system-map-and-authority.md,02. 시스템 구성과 상태 권위,system-handbook,5,0,18
+docs_final/handbook/03-world-building-facilities-environment.md,"03. 공간 구축, 시설과 환경",system-handbook,5,0,27
+docs_final/handbook/04-items-production-logistics-economy.md,"04. 물질 경제, 생산과 물류",system-handbook,7,0,23
+docs_final/handbook/05-characters-ai-society-health.md,"05. 인물, 노동, 사회와 생명",system-handbook,4,0,23
+docs_final/handbook/06-research-progression-and-strategy.md,"06. 연구, 진행과 전략 선택",system-handbook,6,0,24
+docs_final/handbook/07-combat-invasions-expeditions-factions.md,"07. 전투, 침입, 원정과 세력",system-handbook,6,0,20
+docs_final/handbook/08-content-events-and-authoring.md,08. 콘텐츠 작성과 사건 통합,system-handbook,13,0,33
+docs_final/handbook/09-save-restore-determinism-and-validation.md,"09. 저장, 복원과 이어지는 세계",system-handbook,6,0,15
+docs_final/handbook/appendix-source-map.md,부록. 코드와 문서의 근거 지도,system-handbook,12,0,11
+docs_final/handbook/README.md,DungeonStory 현행 게임 시스템 설계 핸드북,system-handbook,19,0,2
+docs_final/README.md,DungeonStory 설계 문서 체계,game-design,45,0,7
+docs_final/system-implementation-checklist.md,DungeonStory 시스템 구현 권위 체크리스트,implementation-status,92,0,11

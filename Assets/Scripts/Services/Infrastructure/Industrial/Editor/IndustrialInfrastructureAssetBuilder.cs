@@ -316,9 +316,20 @@ public static class IndustrialInfrastructureAssetBuilder
                          || building.Facility?.SupportsWork(
                              BuiltInWorkTypeIds.Butcher) == true))
         {
+            string facilityCode = building
+                .GetAbility<BuildingFacilityPartAbility>()?.code;
+            UtilityChannel utilityChannels = facilityCode switch
+            {
+                "P02" => UtilityChannel.Power
+                    | UtilityChannel.CleanWater
+                    | UtilityChannel.Wastewater,
+                "P17" or "P18" => UtilityChannel.Power
+                    | UtilityChannel.CleanWater,
+                _ => UtilityChannel.Power
+            };
             Replace(building, new BuildingUtilityConnectionAbility
             {
-                channels = UtilityChannel.Power,
+                channels = utilityChannels,
                 maxThroughput = 25f
             });
             Replace(building, new BuildingPowerConsumerAbility
@@ -327,17 +338,28 @@ public static class IndustrialInfrastructureAssetBuilder
                 priority = PowerPriority.Production,
                 minimumSupplyFraction = 0.75f
             });
-            Replace(building, new BuildingAutomationAbility
-            {
+             Replace(building, new BuildingAutomationAbility
+             {
                 maximumMode = AutomationMode.Automatic,
                 assistedPowerDemand = 2f,
                 automaticPowerDemand = 5f,
                 assistedWorkMultiplier = 1.35f,
                 automaticWorkPerSecond = 1f,
                 automaticQualityCap = 0.75f,
-                maintenancePerGameHour = 1f
-            });
-            Replace(building, new BuildingConveyorPortAbility
+                 maintenancePerGameHour = 1f
+             });
+             BuildingProductionWorkstationAbility workstation =
+                 building.GetAbility<BuildingProductionWorkstationAbility>();
+             if (workstation == null)
+             {
+                 throw new InvalidOperationException(
+                     $"Automated production facility '{building.id}' is missing its workstation ability.");
+             }
+             workstation.lanePolicy = ProductionWorkstationLanePolicy
+                 .ModeExclusiveManualOrAutomaticWithDetachedBatchProcessors;
+             workstation.manualWorkLaneCount = 1;
+             workstation.automaticWorkLaneCount = 1;
+             Replace(building, new BuildingConveyorPortAbility
             {
                 mode = ConveyorPortMode.Both,
                 destinationId = string.Empty,
@@ -682,12 +704,16 @@ public static class IndustrialInfrastructureAssetBuilder
                         "workstation:v3:rune-tuning"
                     }
                 },
-                new BuildingProductionWorkstationAbility
-                {
-                    workstationTag = "workstation:v3:rune-tuning",
-                    stockSensorInstallationItemId =
-                        "component:stock-sensor-panel"
-                },
+                 new BuildingProductionWorkstationAbility
+                 {
+                     workstationTag = "workstation:v3:rune-tuning",
+                     stockSensorInstallationItemId =
+                         "component:stock-sensor-panel",
+                     lanePolicy = ProductionWorkstationLanePolicy
+                         .ManualWithDetachedBatchProcessors,
+                     manualWorkLaneCount = 1,
+                     automaticWorkLaneCount = 0
+                 },
                 new BuildingProductionBufferAbility
                 {
                     defaultBatchCapacity = 4,
@@ -715,12 +741,16 @@ public static class IndustrialInfrastructureAssetBuilder
                         "workstation:v3:lineage-archive"
                     }
                 },
-                new BuildingProductionWorkstationAbility
-                {
-                    workstationTag = "workstation:v3:lineage-archive",
-                    stockSensorInstallationItemId =
-                        "component:stock-sensor-panel"
-                },
+                 new BuildingProductionWorkstationAbility
+                 {
+                     workstationTag = "workstation:v3:lineage-archive",
+                     stockSensorInstallationItemId =
+                         "component:stock-sensor-panel",
+                     lanePolicy = ProductionWorkstationLanePolicy
+                         .ManualWithDetachedBatchProcessors,
+                     manualWorkLaneCount = 1,
+                     automaticWorkLaneCount = 0
+                 },
                 new BuildingProductionBufferAbility
                 {
                     defaultBatchCapacity = 4,
@@ -728,14 +758,7 @@ public static class IndustrialInfrastructureAssetBuilder
                 },
                 new BuildingFacilityAbility
                 {
-                    settings = new FacilityData
-                    {
-                        roles = FacilityRole.Research,
-                        capacity = 1,
-                        useDuration = 2f,
-                        requiredWorkers = 1,
-                        disabledWhenDamaged = true
-                    }
+                    settings = CreateLineageArchiveFacilityData()
                 }),
 
             Belt("C01R", 9840, "컨베이어 우향", "research:industry:conveyor",
@@ -917,6 +940,24 @@ public static class IndustrialInfrastructureAssetBuilder
             BuiltInWorkTypeIds.Clean,
             BuiltInWorkTypeIds.Repair,
             BuiltInWorkTypeIds.Plumbing
+        });
+        return data;
+    }
+
+    private static FacilityData CreateLineageArchiveFacilityData()
+    {
+        FacilityData data = new FacilityData
+        {
+            roles = FacilityRole.Research,
+            capacity = 1,
+            useDuration = 2f,
+            requiredWorkers = 1,
+            disabledWhenDamaged = true
+        };
+        data.AddSupportedWorkTypeIds(new[]
+        {
+            BuiltInWorkTypeIds.Repair,
+            BuiltInWorkTypeIds.Craft
         });
         return data;
     }

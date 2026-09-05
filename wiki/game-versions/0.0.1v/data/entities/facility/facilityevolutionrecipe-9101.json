@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1000",
+      "target_spoiler_tier": "none",
+      "target_title": "간이화덕",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1001",
+      "target_spoiler_tier": "none",
+      "target_title": "고기그릴",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-1002",
+      "target_spoiler_tier": "none",
+      "target_title": "조리손질대",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "facilityevolutionrecipe-9101",
+  "spoiler_tier": "none",
+  "summary": "조리 지원과 손님 회전이 갖춰진 방에서 간이화덕을 고기그릴로 진화시킨다.",
+  "title": "상업 화덕 진화"
+}

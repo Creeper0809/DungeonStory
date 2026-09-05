@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "3.1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "207"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "좁은 타격면에 힘을 모아 판금과 뼈에 충격을 전하는 전투망치다. 제4주조도시의 골렘은 전투망치를 수리할 때 겉판보다 안쪽 기억판을 먼저 떼어 낸다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-weapon-warhammer",
+  "spoiler_tier": "none",
+  "summary": "전투망치 전투 장비",
+  "title": "전투망치"
+}

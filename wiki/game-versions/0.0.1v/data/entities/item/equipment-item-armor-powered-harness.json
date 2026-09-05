@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "18kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "3823"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "동력 관절이 무거운 판금을 움직이도록 팔다리와 몸통을 잇는 보조 갑주다. 특히 제4주조도시제 동력 보조 갑주의 작은 홈은 몸을 바꿀 때 맞추는 수리 눈금이다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-armor-powered-harness",
+  "spoiler_tier": "none",
+  "summary": "동력 보조 갑주 전투 장비",
+  "title": "동력 보조 갑주"
+}

@@ -398,6 +398,47 @@ public sealed class StaffDiscontentState
     }
 }
 
+public static class StaffDiscontentWorkSpeedAuthority
+{
+    public const string Schema = "staff-discontent-work-speed-authority@1";
+    public const float MaximumMultiplier = 1f;
+
+    public static float Resolve(
+        StaffDiscontentStage stage,
+        StaffDiscontentRules rules)
+    {
+        rules ??= StaffDiscontentRules.CreateDefault();
+        if (!Finite(rules.lowSatisfactionMultiplier)
+            || !Finite(rules.efficiencyDropMultiplier)
+            || !Finite(rules.workDisruptionMultiplier))
+        {
+            throw new InvalidOperationException(
+                "Staff discontent work-speed rules must be finite.");
+        }
+        return stage switch
+        {
+            StaffDiscontentStage.LowSatisfaction => Mathf.Clamp(
+                rules.lowSatisfactionMultiplier,
+                0.1f,
+                MaximumMultiplier),
+            StaffDiscontentStage.EfficiencyDrop => Mathf.Clamp(
+                rules.efficiencyDropMultiplier,
+                0.1f,
+                MaximumMultiplier),
+            StaffDiscontentStage.WorkDisruption => Mathf.Clamp(
+                rules.workDisruptionMultiplier,
+                0.05f,
+                MaximumMultiplier),
+            StaffDiscontentStage.Departure => 0f,
+            StaffDiscontentStage.LocalRebellion => 0f,
+            _ => MaximumMultiplier
+        };
+    }
+
+    private static bool Finite(float value) =>
+        !float.IsNaN(value) && !float.IsInfinity(value);
+}
+
 public static class StaffDiscontentService
 {
     public static bool IsTrackableStaff(CharacterActor staff)
@@ -490,16 +531,7 @@ public static class StaffDiscontentService
 
     public static float GetWorkEfficiencyMultiplier(StaffDiscontentStage stage, StaffDiscontentRules rules)
     {
-        rules ??= StaffDiscontentRules.CreateDefault();
-        return stage switch
-        {
-            StaffDiscontentStage.LowSatisfaction => Mathf.Clamp(rules.lowSatisfactionMultiplier, 0.1f, 1f),
-            StaffDiscontentStage.EfficiencyDrop => Mathf.Clamp(rules.efficiencyDropMultiplier, 0.1f, 1f),
-            StaffDiscontentStage.WorkDisruption => Mathf.Clamp(rules.workDisruptionMultiplier, 0.05f, 1f),
-            StaffDiscontentStage.Departure => 0f,
-            StaffDiscontentStage.LocalRebellion => 0f,
-            _ => 1f
-        };
+        return StaffDiscontentWorkSpeedAuthority.Resolve(stage, rules);
     }
 
     public static bool ShouldBlockWork(StaffDiscontentStage stage)

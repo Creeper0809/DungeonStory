@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-deep-goat-wool",
+    "spoiler_tier": "none",
+    "title": "심층 염소모직"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-weave-deep-goat-wool",
+      "label": "생산·해금",
+      "to": "item/material-deep-goat-wool",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "220"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "종자 선별대에서 작물의 파종과 성장 상태를 살피고 재배 작업을 처리하도록 만든 설치 부품이다. 하르나크의 종자 선별대에서는 큰솥의 몫이 끝날 때까지 조리사가 자기 그릇을 들지 않는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "facility-kit-8890",
+  "spoiler_tier": "none",
+  "summary": "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.",
+  "title": "종자 선별대 설치 키트"
+}

@@ -308,6 +308,200 @@ public sealed class CharacterAiWorldRegistry :
         UnregisterBuilding(buildableObject);
     }
 
+    bool IBuildingWorldRegistryPort.TryReplaceBuilding(
+        IBuildingWorldEntryPort expectedCurrent,
+        IBuildingWorldEntryPort replacement,
+        out string failureReason)
+    {
+        return TrySwapBuildingWorldProjection(
+            expectedCurrent,
+            replacement,
+            rollback: false,
+            out failureReason);
+    }
+
+    bool IBuildingWorldRegistryPort.TryRollbackBuildingReplacement(
+        IBuildingWorldEntryPort expectedReplacement,
+        IBuildingWorldEntryPort original,
+        out string failureReason)
+    {
+        return TrySwapBuildingWorldProjection(
+            expectedReplacement,
+            original,
+            rollback: true,
+            out failureReason);
+    }
+
+    private bool TrySwapBuildingWorldProjection(
+        IBuildingWorldEntryPort expectedCurrent,
+        IBuildingWorldEntryPort replacement,
+        bool rollback,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (expectedCurrent is not BuildableObject source
+            || replacement is not BuildableObject candidate
+            || ReferenceEquals(source, candidate)
+            || source.IsBuildingDestroyed
+            || candidate.IsBuildingDestroyed
+            || !source.BuildingInstanceId.IsValid
+            || !source.BuildingInstanceId.Equals(candidate.BuildingInstanceId))
+        {
+            failureReason = "building-world-replacement-subject-invalid";
+            return false;
+        }
+        if (!buildings.Entries.Contains(source)
+            || buildings.Entries.Contains(candidate))
+        {
+            failureReason = "building-world-replacement-membership-drift";
+            return false;
+        }
+
+        IWarehouseFacility sourceWarehouse = source as IWarehouseFacility;
+        IWarehouseFacility candidateWarehouse = candidate as IWarehouseFacility;
+        IRetailFacility sourceRetail = source as IRetailFacility;
+        IRetailFacility candidateRetail = candidate as IRetailFacility;
+        if ((sourceWarehouse != null) != warehouses.Entries.Contains(sourceWarehouse)
+            || (candidateWarehouse != null && warehouses.Entries.Contains(candidateWarehouse))
+            || (sourceRetail != null) != retailFacilities.Entries.Contains(sourceRetail)
+            || (candidateRetail != null && retailFacilities.Entries.Contains(candidateRetail)))
+        {
+            failureReason = "building-world-replacement-projection-drift";
+            return false;
+        }
+        bool registrationReady = rollback
+            ? source.CanRollbackWorldRegistryRegistrationTo(candidate)
+            : source.CanTransferWorldRegistryRegistrationTo(candidate);
+        if (!registrationReady)
+        {
+            failureReason = "building-world-replacement-registration-drift";
+            return false;
+        }
+        if (!TryPreflightTransientOwnershipReplacement(
+                source,
+                candidate,
+                out failureReason))
+        {
+            return false;
+        }
+
+        if (!buildings.TryReplace(source, candidate))
+            throw new InvalidOperationException(
+                "Building registry replacement failed after exact preflight.");
+        ReplaceOptionalProjection(warehouses, sourceWarehouse, candidateWarehouse);
+        ReplaceOptionalProjection(retailFacilities, sourceRetail, candidateRetail);
+        TransferTransientOwnership(source, candidate);
+        if (rollback)
+            source.RollbackWorldRegistryRegistrationTo(candidate);
+        else
+            source.TransferWorldRegistryRegistrationTo(candidate);
+        return true;
+    }
+
+    private bool TryPreflightTransientOwnershipReplacement(
+        BuildableObject source,
+        BuildableObject candidate,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (transientCharactersByBuilding.ContainsKey(candidate))
+        {
+            failureReason = "building-world-replacement-transient-candidate-drift";
+            return false;
+        }
+
+        transientCharactersByBuilding.TryGetValue(
+            source,
+            out HashSet<CharacterId> forwardCharacters);
+        int reverseSourceCount = 0;
+        foreach (KeyValuePair<CharacterId, Dictionary<BuildableObject,
+                     BuildingTransientOwnershipKind>> pair
+                 in transientBuildingsByCharacter)
+        {
+            Dictionary<BuildableObject, BuildingTransientOwnershipKind> owned =
+                pair.Value;
+            if (owned.ContainsKey(candidate))
+            {
+                failureReason = "building-world-replacement-transient-candidate-drift";
+                return false;
+            }
+            if (!owned.TryGetValue(
+                    source,
+                    out BuildingTransientOwnershipKind kind))
+            {
+                continue;
+            }
+
+            reverseSourceCount++;
+            if (kind == BuildingTransientOwnershipKind.None
+                || forwardCharacters == null
+                || !forwardCharacters.Contains(pair.Key))
+            {
+                failureReason = "building-world-replacement-transient-source-drift";
+                return false;
+            }
+        }
+
+        if ((forwardCharacters?.Count ?? 0) != reverseSourceCount)
+        {
+            failureReason = "building-world-replacement-transient-source-drift";
+            return false;
+        }
+        return true;
+    }
+
+    private static void ReplaceOptionalProjection<T>(
+        ISceneRuntimeRegistry<T> registry,
+        T source,
+        T candidate)
+        where T : class
+    {
+        bool succeeded = source != null && candidate != null
+            ? registry.TryReplace(source, candidate)
+            : source != null
+                ? registry.Unregister(source)
+                : candidate == null || registry.Register(candidate);
+        if (!succeeded)
+            throw new InvalidOperationException(
+                "Building optional world projection failed after exact preflight.");
+    }
+
+    private void TransferTransientOwnership(
+        BuildableObject source,
+        BuildableObject candidate)
+    {
+        if (!transientCharactersByBuilding.TryGetValue(
+                source,
+                out HashSet<CharacterId> characters))
+        {
+            return;
+        }
+        if (transientCharactersByBuilding.ContainsKey(candidate))
+            throw new InvalidOperationException(
+                "Building replacement candidate already owns transient characters.");
+
+        CharacterId[] snapshot = characters.ToArray();
+        foreach (CharacterId characterId in snapshot)
+        {
+            if (!transientBuildingsByCharacter.TryGetValue(
+                    characterId,
+                    out Dictionary<BuildableObject,
+                        BuildingTransientOwnershipKind> owned)
+                || !owned.TryGetValue(
+                    source,
+                    out BuildingTransientOwnershipKind kind)
+                || owned.ContainsKey(candidate))
+            {
+                throw new InvalidOperationException(
+                    "Building transient ownership diverged during replacement.");
+            }
+            owned.Remove(source);
+            owned.Add(candidate, kind);
+        }
+        transientCharactersByBuilding.Remove(source);
+        transientCharactersByBuilding.Add(candidate, characters);
+    }
+
     public void TrackTransientCharacterOwnership(
         IBuildingWorldEntryPort building,
         CharacterId characterId,

@@ -1,0 +1,62 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "관절식 판금"
+    },
+    {
+      "label": "제작 작업",
+      "value": "256"
+    },
+    {
+      "label": "무게",
+      "value": "13kg"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "combat",
+  "relations": [
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-articulated-plate",
+      "target_spoiler_tier": "none",
+      "target_title": "관절식 판금",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-growth-frame",
+      "target_spoiler_tier": "none",
+      "target_title": "성장형 장비 골격",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-textile-hardener",
+      "target_spoiler_tier": "none",
+      "target_title": "직물 경화제",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-plate-blank",
+      "target_spoiler_tier": "none",
+      "target_title": "판금 소재판",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "equipment-item-armor-articulated-plate",
+  "spoiler_tier": "none",
+  "summary": "관절식 판금갑 전투 장비",
+  "title": "관절식 판금갑"
+}

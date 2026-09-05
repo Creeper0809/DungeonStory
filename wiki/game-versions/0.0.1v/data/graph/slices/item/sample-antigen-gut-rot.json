@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "sample-antigen-gut-rot",
+    "spoiler_tier": "none",
+    "title": "장부패증 항원 표본"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medicine-vaccine-gut-rot",
+      "label": "필요 조건",
+      "to": "item/sample-antigen-gut-rot",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

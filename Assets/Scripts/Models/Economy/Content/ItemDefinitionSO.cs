@@ -10,6 +10,11 @@ public abstract class ItemFeatureDefinition
 {
     public abstract string FeatureId { get; }
 
+    // Fail closed for future feature kinds. A feature may opt into the generic
+    // definition-only production codec only when it introduces no per-instance
+    // physical state at output creation time.
+    public virtual bool RequiresProductionOutputInstanceState => true;
+
     public virtual IEnumerable<string> Validate(ItemDefinitionSO owner)
     {
         yield break;
@@ -25,6 +30,7 @@ public sealed class ProductionItemFeature : ItemFeatureDefinition
     public bool sharedIntermediate;
 
     public override string FeatureId => "production";
+    public override bool RequiresProductionOutputInstanceState => false;
 
     public override IEnumerable<string> Validate(ItemDefinitionSO owner)
     {
@@ -41,6 +47,7 @@ public sealed class MarketItemFeature : ItemFeatureDefinition
 {
     [Range(0f, 1f)] public float saleRate = 0.6f;
     public override string FeatureId => "market";
+    public override bool RequiresProductionOutputInstanceState => false;
 }
 
 [Serializable]
@@ -49,6 +56,7 @@ public sealed class ResearchGateItemFeature : ItemFeatureDefinition
 {
     public string requiredResearchId = string.Empty;
     public override string FeatureId => "research-gate";
+    public override bool RequiresProductionOutputInstanceState => false;
 
     public override IEnumerable<string> Validate(ItemDefinitionSO owner)
     {
@@ -72,6 +80,8 @@ public sealed class FoodItemFeature : ItemFeatureDefinition
     public bool preserved;
 
     public override string FeatureId => "food";
+    public override bool RequiresProductionOutputInstanceState =>
+        freshnessSeconds > 0f;
 }
 
 [Serializable]
@@ -85,6 +95,7 @@ public sealed class MedicineItemFeature : ItemFeatureDefinition
     [Min(0f)] public float painReduction;
 
     public override string FeatureId => "medicine";
+    public override bool RequiresProductionOutputInstanceState => false;
 }
 
 [Serializable]
@@ -97,6 +108,7 @@ public sealed class PackagedLotItemFeature : ItemFeatureDefinition
     public string containerItemId = string.Empty;
 
     public override string FeatureId => "packaged-lot";
+    public override bool RequiresProductionOutputInstanceState => false;
 
     public override IEnumerable<string> Validate(ItemDefinitionSO owner)
     {
@@ -167,6 +179,7 @@ public sealed class VaccineItemFeature : ItemFeatureDefinition
     [Min(1)] public int doses = 1;
 
     public override string FeatureId => "vaccine";
+    public override bool RequiresProductionOutputInstanceState => false;
 
     public override IEnumerable<string> Validate(ItemDefinitionSO owner)
     {
@@ -188,6 +201,7 @@ public sealed class PathogenSampleItemFeature : ItemFeatureDefinition
     public string diseaseId = string.Empty;
 
     public override string FeatureId => "pathogen-sample";
+    public override bool RequiresProductionOutputInstanceState => false;
 
     public override IEnumerable<string> Validate(ItemDefinitionSO owner)
     {
@@ -204,6 +218,7 @@ public sealed class MedicalProcedureSupplyItemFeature : ItemFeatureDefinition
 {
     public string procedureId = string.Empty;
     public override string FeatureId => "medical-procedure-supply";
+    public override bool RequiresProductionOutputInstanceState => false;
 
     public override IEnumerable<string> Validate(ItemDefinitionSO owner)
     {
@@ -262,6 +277,7 @@ public sealed class CropTreatmentItemFeature : ItemFeatureDefinition
     [Min(0.1f)] public float effectAmount = 1f;
     [Min(0)] public int cooldownDays = 1;
     public override string FeatureId => "crop-treatment";
+    public override bool RequiresProductionOutputInstanceState => false;
 
     public CropTreatmentPolicy ToPolicy() => new(
         treatmentKind,
@@ -295,6 +311,7 @@ public sealed class SubstanceItemFeature : ItemFeatureDefinition
     [Min(1f)] public float durationSeconds = 120f;
 
     public override string FeatureId => "substance";
+    public override bool RequiresProductionOutputInstanceState => false;
 
     public override IEnumerable<string> Validate(ItemDefinitionSO owner)
     {
@@ -324,6 +341,7 @@ public sealed class FacilitySupplyItemFeature : ItemFeatureDefinition
     public bool feedEligible;
 
     public override string FeatureId => "facility-supply";
+    public override bool RequiresProductionOutputInstanceState => false;
 
     public override IEnumerable<string> Validate(ItemDefinitionSO owner)
     {
@@ -361,6 +379,19 @@ public sealed class AmmunitionItemFeature : ItemFeatureDefinition
 {
     public string ammunitionKindId = string.Empty;
     public override string FeatureId => "ammunition";
+    public override bool RequiresProductionOutputInstanceState => true;
+
+    public override IEnumerable<string> Validate(ItemDefinitionSO owner)
+    {
+        if (string.IsNullOrWhiteSpace(ammunitionKindId)
+            || !string.Equals(
+                ammunitionKindId,
+                ammunitionKindId.Trim(),
+                StringComparison.Ordinal))
+        {
+            yield return "Ammunition feature has a noncanonical ammunition kind ID.";
+        }
+    }
 }
 
 [Serializable]
@@ -416,6 +447,7 @@ public sealed class EvolutionCatalystItemFeature : ItemFeatureDefinition
     [Range(1, MaximumPotency)] public int potency = 1;
     public bool residue;
     public override string FeatureId => "evolution-catalyst";
+    public override bool RequiresProductionOutputInstanceState => false;
 
     public override IEnumerable<string> Validate(ItemDefinitionSO owner)
     {

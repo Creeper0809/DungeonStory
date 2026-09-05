@@ -466,6 +466,7 @@ public static class OffenseStrategicDebugScenarios
                     catalog,
                     new FixedBuildingWorldQuery(facility),
                     items,
+                    new RecordingUrgentMitigationInputOwnerRuntime(),
                     clock, workforce: null, facilityCandidates: null);
             runtime.Initialize();
 
@@ -520,6 +521,7 @@ public static class OffenseStrategicDebugScenarios
                 catalog,
                 new FixedBuildingWorldQuery(facility),
                 items,
+                new RecordingUrgentMitigationInputOwnerRuntime(),
                 clock,
                 workforce: null,
                 facilityCandidates: null);
@@ -971,13 +973,13 @@ public static class OffenseStrategicDebugScenarios
             RecordingOffenseSupplyPhysicalCustodyGateway custody = new();
             FacilityBufferDestinationClaimRegistry destinationClaims = new();
             DungeonOffensePreparationService preparation =
-                new DungeonOffensePreparationService(
+                CreatePreparationService(
                     new EmptyWarehouseInventoryQuery(),
                     items,
                     new FixedExteriorZoneQuery(staging),
                     destinationClaims,
-                    destinationClaims,
-                    custody);
+                    custody,
+                    out FacilityBufferMassAdmissionService destinationCapacities);
             OffenseSupplyLoadout loadout = new OffenseSupplyLoadout();
             loadout.Add(OffenseSupplyType.Rations, 2);
 
@@ -1004,8 +1006,15 @@ public static class OffenseStrategicDebugScenarios
                     cancelClaim.OwnerOperationId,
                     "packing:cancel",
                     StringComparison.Ordinal)
-                && cancelClaim.OwnerFacilityId == null,
-                "원정 보급 집결지의 exact ReservedTarget claim이 없습니다.");
+                && cancelClaim.OwnerFacilityId == null
+                && destinationCapacities.TryGetCapacity(
+                    cancelDestination,
+                    staging.centerPos,
+                    out FacilityBufferMassCapacitySnapshot cancelCapacity)
+                && cancelCapacity.Profile.MaxMassGrams == 2_000L
+                && cancelCapacity.Profile.CapacityRevision == 1L
+                && cancelCapacity.Profile.OwnerFacilityId == null,
+                "원정 보급 집결지의 exact ReservedTarget claim/profile pair가 없습니다.");
             OffenseSupplyPackingSnapshot pending =
                 preparation.GetPackingSnapshot("packing:cancel");
             Require(
@@ -1040,9 +1049,10 @@ public static class OffenseStrategicDebugScenarios
                             amount = 2
                         }
                     }
-                };
+            };
             preparation.BeginRestoreCandidate();
             destinationClaims.BeginRestoreCandidate();
+            destinationCapacities.BeginRestoreCandidate();
             FacilityBufferDestinationClaim foreignCandidateClaim = new(
                 "qa:foreign-buffer-destination",
                 new Vector2Int(3, 7),
@@ -1058,6 +1068,7 @@ public static class OffenseStrategicDebugScenarios
                 $"foreign candidate claim staging failed: {foreignFailure}: {foreignReason}");
             bool preparationPublished = false;
             bool claimsPublished = false;
+            bool capacitiesPublished = false;
             try
             {
                 preparation.RestorePackingState(new[] { transactionPackage });
@@ -1068,8 +1079,16 @@ public static class OffenseStrategicDebugScenarios
                     && destinationClaims.TryGetClaim(
                         cancelDestination,
                         staging.centerPos,
+                        out _)
+                    && destinationCapacities.TryGetCapacity(
+                        cancelDestination,
+                        staging.centerPos,
+                        out _)
+                    && !destinationCapacities.TryGetCapacity(
+                        transactionPackage.destinationId,
+                        transactionPackage.StagingPosition,
                         out _),
-                    "restore staging이 publish 전에 live package/claim을 변경했습니다.");
+                    "restore staging이 publish 전에 live package/claim/profile을 변경했습니다.");
 
                 preparation.PublishRestoreCandidate();
                 preparationPublished = true;
@@ -1085,6 +1104,8 @@ public static class OffenseStrategicDebugScenarios
 
                 destinationClaims.PublishRestoreCandidate();
                 claimsPublished = true;
+                destinationCapacities.PublishRestoreCandidate();
+                capacitiesPublished = true;
                 Require(
                     destinationClaims.TryGetClaim(
                         transactionPackage.destinationId,
@@ -1097,8 +1118,13 @@ public static class OffenseStrategicDebugScenarios
                     && destinationClaims.TryGetClaim(
                         foreignCandidateClaim.DestinationId,
                         foreignCandidateClaim.DropPosition,
-                        out _),
-                    "claim participant가 staged 원정 목적지를 publish하지 않았습니다.");
+                        out _)
+                    && destinationCapacities.TryGetCapacity(
+                        transactionPackage.destinationId,
+                        transactionPackage.StagingPosition,
+                        out FacilityBufferMassCapacitySnapshot restoredCapacity)
+                    && restoredCapacity.Profile.MaxMassGrams == 2_000L,
+                    "claim/profile participant가 staged 원정 목적지를 publish하지 않았습니다.");
                 Require(
                     !destinationClaims.TryClaim(
                         new FacilityBufferDestinationClaim(
@@ -1116,6 +1142,8 @@ public static class OffenseStrategicDebugScenarios
                             .RestoreMutationAfterPublish,
                     "claim registry가 restore publish 뒤 mutation을 fail-loud하지 않았습니다.");
 
+                destinationCapacities.RollbackPublishedRestoreCandidate();
+                capacitiesPublished = false;
                 destinationClaims.RollbackPublishedRestoreCandidate();
                 claimsPublished = false;
                 preparation.RollbackPublishedRestoreCandidate();
@@ -1135,11 +1163,23 @@ public static class OffenseStrategicDebugScenarios
                     && !destinationClaims.TryGetClaim(
                         foreignCandidateClaim.DestinationId,
                         foreignCandidateClaim.DropPosition,
+                        out _)
+                    && destinationCapacities.TryGetCapacity(
+                        cancelDestination,
+                        staging.centerPos,
+                        out _)
+                    && !destinationCapacities.TryGetCapacity(
+                        transactionPackage.destinationId,
+                        transactionPackage.StagingPosition,
                         out _),
-                    "later restore failure 뒤 package/claim live image가 함께 rollback되지 않았습니다.");
+                    "later restore failure 뒤 package/claim/profile live image가 함께 rollback되지 않았습니다.");
             }
             finally
             {
+                if (capacitiesPublished)
+                    destinationCapacities.RollbackPublishedRestoreCandidate();
+                else
+                    destinationCapacities.DiscardRestoreCandidate();
                 if (claimsPublished)
                     destinationClaims.RollbackPublishedRestoreCandidate();
                 else
@@ -1153,13 +1193,13 @@ public static class OffenseStrategicDebugScenarios
             FacilityBufferDestinationClaimRegistry restoredDestinationClaims =
                 new();
             DungeonOffensePreparationService restoredPreparation =
-                new DungeonOffensePreparationService(
+                CreatePreparationService(
                     new EmptyWarehouseInventoryQuery(),
                     items,
                     new FixedExteriorZoneQuery(staging),
                     restoredDestinationClaims,
-                    restoredDestinationClaims,
-                    custody);
+                    custody,
+                    out FacilityBufferMassAdmissionService restoredCapacities);
             restoredPreparation.RestorePackingState(savedPacking);
             Require(
                 restoredPreparation.GetPackingSnapshot("packing:cancel")
@@ -1179,10 +1219,16 @@ public static class OffenseStrategicDebugScenarios
                     restoredClaim.OwnerOperationId,
                     "packing:cancel",
                     StringComparison.Ordinal)
-                && restoredDestinationClaims.CaptureClaims().Count == 1,
+                && restoredDestinationClaims.CaptureClaims().Count == 1
+                && restoredCapacities.TryGetCapacity(
+                    cancelDestination,
+                    staging.centerPos,
+                    out FacilityBufferMassCapacitySnapshot restoredPackageCapacity)
+                && restoredPackageCapacity.Profile.MaxMassGrams == 2_000L,
                 "로드 후 보급 패키지 또는 기존 물리 예약이 중복 없이 복원되지 않았습니다.");
             preparation = restoredPreparation;
             destinationClaims = restoredDestinationClaims;
+            destinationCapacities = restoredCapacities;
 
             preparation.ReturnSupplies(loadout, "packing:cancel");
             Require(
@@ -1193,7 +1239,8 @@ public static class OffenseStrategicDebugScenarios
                     StringComparison.Ordinal)
                 && items.LastReleasedPosition == staging.centerPos
                 && !preparation.GetPackingSnapshot("packing:cancel").Exists
-                && destinationClaims.CaptureClaims().Count == 0,
+                && destinationClaims.CaptureClaims().Count == 0
+                && destinationCapacities.CaptureProfiles().Count == 0,
                 "출정 취소 시 예약 물자가 정상 운반 흐름으로 반환되지 않았습니다.");
 
             Require(
@@ -1219,7 +1266,8 @@ public static class OffenseStrategicDebugScenarios
                 && custody.TransferredQuantity == 2
                 && custody.TransferredMassGrams == 2_000L
                 && custody.AcknowledgedTransferCount == 1
-                && destinationClaims.CaptureClaims().Count == 0,
+                && destinationClaims.CaptureClaims().Count == 0
+                && destinationCapacities.CaptureProfiles().Count == 0,
                 "실제 출발 시 집결지 보급품을 exact Transfer custody로 넘기지 않았습니다.");
 
             OffenseSupplyLoadout unownedReturn = new();
@@ -1272,13 +1320,13 @@ public static class OffenseStrategicDebugScenarios
             RecordingOffenseSupplyPhysicalCustodyGateway returnRestoreCustody =
                 new();
             DungeonOffensePreparationService returnRestored =
-                new DungeonOffensePreparationService(
+                CreatePreparationService(
                     new EmptyWarehouseInventoryQuery(),
                     items,
                     new FixedExteriorZoneQuery(staging),
                     returnRestoreClaims,
-                    returnRestoreClaims,
-                    returnRestoreCustody);
+                    returnRestoreCustody,
+                    out _);
             returnRestored.RestorePackingState(returnedState);
             OffenseSupplyPackingStateData roundTrippedReturn =
                 returnRestored.CapturePackingState().Single(value =>
@@ -1317,13 +1365,13 @@ public static class OffenseStrategicDebugScenarios
             RecordingOffenseSupplyPhysicalCustodyGateway custody = new();
             FacilityBufferDestinationClaimRegistry destinationClaims = new();
             DungeonOffensePreparationService preparation =
-                new DungeonOffensePreparationService(
+                CreatePreparationService(
                     new EmptyWarehouseInventoryQuery(),
                     items,
                     new FixedExteriorZoneQuery(staging),
                     destinationClaims,
-                    destinationClaims,
-                    custody);
+                    custody,
+                    out _);
             OffenseSupplyLoadout loadout = new OffenseSupplyLoadout();
             loadout.Add(OffenseSupplyType.Tools, 2);
 
@@ -1392,7 +1440,12 @@ public static class OffenseStrategicDebugScenarios
                     facilityPersistentId = "facility:save",
                     facilityX = 4,
                     facilityY = 2,
-                    destinationId = "mitigation:save:materials",
+                    destinationId = OffenseUrgentMitigationInputOwnerAuthority
+                        .BuildDestinationId("mitigation:save"),
+                    inputBufferCapacityGrams = 3_000L,
+                    inputMassAuthorityRevision = 1L,
+                    inputCapacityFingerprint =
+                        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                     requiredWork = 32f,
                     completedWork = 11f,
                     status = OffenseUrgentMitigationOrderStatus.InProgress,
@@ -1522,18 +1575,19 @@ public static class OffenseStrategicDebugScenarios
                 catalog,
                 new FixedBuildingWorldQuery(),
                 new RecordingProductionItemGateway(),
+                new RecordingUrgentMitigationInputOwnerRuntime(),
                 new MutableGameClock(),
                 workforce: null,
                 facilityCandidates: null);
         FacilityBufferDestinationClaimRegistry restoredDestinationClaims = new();
         DungeonOffensePreparationService restoredPreparation =
-            new DungeonOffensePreparationService(
+            CreatePreparationService(
                 new EmptyWarehouseInventoryQuery(),
                 new RecordingProductionItemGateway(),
                 new FixedExteriorZoneQuery(staging),
                 restoredDestinationClaims,
-                restoredDestinationClaims,
-                new RecordingOffenseSupplyPhysicalCustodyGateway());
+                new RecordingOffenseSupplyPhysicalCustodyGateway(),
+                out _);
         OffenseWorldStateSaveCodec restoredSection = new OffenseWorldStateSaveCodec(
             restoredWorld,
             restoredTravel,
@@ -1836,6 +1890,10 @@ public static class OffenseStrategicDebugScenarios
                 facilityX = source.facilityX,
                 facilityY = source.facilityY,
                 destinationId = source.destinationId,
+                inputBufferCapacityGrams = source.inputBufferCapacityGrams,
+                inputMassAuthorityRevision =
+                    source.inputMassAuthorityRevision,
+                inputCapacityFingerprint = source.inputCapacityFingerprint,
                 requiredWork = source.requiredWork,
                 completedWork = source.completedWork,
                 status = source.status,
@@ -2007,6 +2065,69 @@ public static class OffenseStrategicDebugScenarios
 
         public int BuildingVersion => 1;
         public IReadOnlyList<BuildableObject> Buildings => buildings;
+    }
+
+    private sealed class RecordingUrgentMitigationInputOwnerRuntime :
+        IOffenseUrgentMitigationInputOwnerRuntime
+    {
+        private const string Fingerprint =
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+        public bool TryEnsure(
+            OffenseUrgentMitigationOrderStateData order,
+            BuildableObject facility,
+            out string failureReason)
+        {
+            if (order == null
+                || facility == null
+                || !string.Equals(
+                    order.destinationId,
+                    OffenseUrgentMitigationInputOwnerAuthority
+                        .BuildDestinationId(order.orderId),
+                    StringComparison.Ordinal))
+            {
+                failureReason = "qa-urgent-input-owner-invalid";
+                return false;
+            }
+            order.inputBufferCapacityGrams = 3_000L;
+            order.inputMassAuthorityRevision = 1L;
+            order.inputCapacityFingerprint = Fingerprint;
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryRetire(
+            OffenseUrgentMitigationOrderStateData order,
+            string reasonCode,
+            out string failureReason)
+        {
+            OffenseUrgentMitigationInputOwnerAuthority
+                .ClearStoredProjection(order);
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryReplaceForRestore(
+            IReadOnlyList<OffenseUrgentMitigationOrderStateData> orders,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return (orders ?? Array.Empty<
+                    OffenseUrgentMitigationOrderStateData>())
+                .All(order => order != null
+                    && order.inputBufferCapacityGrams > 0L
+                    && order.inputMassAuthorityRevision > 0L
+                    && order.inputCapacityFingerprint?.Length == 64);
+        }
+
+        public bool TryValidateForCapture(
+            IReadOnlyList<OffenseUrgentMitigationOrderStateData> orders,
+            IReadOnlyList<BuildableObject> facilities,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
     }
 
     private sealed class EmptyWarehouseInventoryQuery :
@@ -2252,6 +2373,49 @@ public static class OffenseStrategicDebugScenarios
         }
     }
 
+    private static DungeonOffensePreparationService CreatePreparationService(
+        IFacilityEvolutionWarehouseInventoryQuery inventory,
+        IProductionItemGateway items,
+        IExteriorZoneQuery exteriorZones,
+        FacilityBufferDestinationClaimRegistry claims,
+        IOffenseSupplyPhysicalCustodyGateway custody,
+        out FacilityBufferMassAdmissionService capacities)
+    {
+        capacities = new FacilityBufferMassAdmissionService(
+            claims,
+            new EmptyFacilityBufferOccupancyQuery());
+        FacilityBufferDestinationLifecycleService lifecycle = new(
+            claims,
+            claims,
+            capacities,
+            capacities);
+        return new DungeonOffensePreparationService(
+            inventory,
+            items,
+            exteriorZones,
+            claims,
+            capacities,
+            lifecycle,
+            custody);
+    }
+
+    private sealed class EmptyFacilityBufferOccupancyQuery :
+        IFacilityBufferPhysicalOccupancyQuery
+    {
+        public FacilityBufferPhysicalOccupancySnapshot Capture(
+            string destinationId) => new(0L, 0L);
+
+        public bool TryCaptureExactLot(
+            IReadOnlyList<FacilityBufferMassLotSlice> slices,
+            out FacilityBufferExactLotSnapshot lot,
+            out string failureReason)
+        {
+            lot = default;
+            failureReason = "qa-offense-no-physical-lot";
+            return false;
+        }
+    }
+
     private sealed class RecordingProductionItemGateway :
         IProductionItemGateway
     {
@@ -2275,6 +2439,15 @@ public static class OffenseStrategicDebugScenarios
         public string LastReleasedDestinationId { get; private set; } =
             string.Empty;
         public Vector2Int LastReleasedPosition { get; private set; }
+
+        public bool TryGetStockCategory(
+            string itemId,
+            out StockCategory category)
+        {
+            category = StockCategory.General;
+            return !string.IsNullOrWhiteSpace(itemId)
+                && string.Equals(itemId, itemId.Trim(), StringComparison.Ordinal);
+        }
 
         public int CountDelivered(string itemId, string destinationId)
         {

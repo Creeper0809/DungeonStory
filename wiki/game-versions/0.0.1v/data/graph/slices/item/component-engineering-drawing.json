@@ -1,0 +1,144 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "component-engineering-drawing",
+    "spoiler_tier": "none",
+    "title": "공학 도면"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-arquebus",
+      "label": "필요 조건",
+      "to": "item/component-engineering-drawing",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-handgonne",
+      "label": "필요 조건",
+      "to": "item/component-engineering-drawing",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-heavy-matchlock",
+      "label": "필요 조건",
+      "to": "item/component-engineering-drawing",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-matchlock-long-gun",
+      "label": "필요 조건",
+      "to": "item/component-engineering-drawing",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-matchlock-pistol",
+      "label": "필요 조건",
+      "to": "item/component-engineering-drawing",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-shotgun",
+      "label": "필요 조건",
+      "to": "item/component-engineering-drawing",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-siege-arbalest",
+      "label": "필요 조건",
+      "to": "item/component-engineering-drawing",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-sniper-arquebus",
+      "label": "필요 조건",
+      "to": "item/component-engineering-drawing",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-blacksteel-defense-plate",
+      "label": "필요 조건",
+      "to": "item/component-engineering-drawing",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-factory-installation-plan",
+      "label": "필요 조건",
+      "to": "item/component-engineering-drawing",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-prototype-package",
+      "label": "필요 조건",
+      "to": "item/component-engineering-drawing",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-precision-gauge",
+      "label": "필요 조건",
+      "to": "item/component-engineering-drawing",
+      "type": "requires"
+    },
+    {
+      "amount": "18",
+      "from": "event/faction-contract-kobold-strategic",
+      "label": "필요 조건",
+      "to": "item/component-engineering-drawing",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "event/guest-request-sealed-archive",
+      "label": "필요 조건",
+      "to": "item/component-engineering-drawing",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-engineering-drawing",
+      "label": "생산·해금",
+      "to": "item/component-engineering-drawing",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "3",
+      "from": "event/faction-chapter-kobold-3",
+      "label": "필요 조건",
+      "to": "item/component-engineering-drawing",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "from": "event/faction-chapter-kobold-6",
+      "label": "필요 조건",
+      "to": "item/component-engineering-drawing",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "event/faction-chapter-kobold-3",
+      "label": "필요 조건",
+      "to": "item/component-engineering-drawing",
+      "type": "requires"
+    },
+    {
+      "amount": "9",
+      "from": "event/faction-chapter-kobold-6",
+      "label": "필요 조건",
+      "to": "item/component-engineering-drawing",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

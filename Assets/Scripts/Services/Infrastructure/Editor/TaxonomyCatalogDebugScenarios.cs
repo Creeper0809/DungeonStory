@@ -100,12 +100,14 @@ public static class TaxonomyCatalogDebugScenarios
                 && general.Id == "stock:general",
             "authored general stock category is missing");
 
-        WarehouseInventory inventory = new WarehouseInventory(100);
+        WarehouseInventory inventory = new WarehouseInventory(
+            100L, StockCategory.General, restrictCategory: false);
         inventory.SeedPhysicalStockForTest(StockCategory.General, 10);
         Require(StockCategoryPersistenceId.ToId(StockCategory.General) == "stock:general",
             "stable category id was not used");
 
-        WarehouseInventory restored = new WarehouseInventory();
+        WarehouseInventory restored = new WarehouseInventory(
+            100L, StockCategory.General, restrictCategory: false);
         Require(restored.TryApplySnapshot(inventory.CreateSnapshot(), out string restoreError), restoreError);
         restored.SeedPhysicalStockForTest(StockCategory.General, 0);
         Require(restored.GetStock(StockCategory.General) == 0,
@@ -123,11 +125,11 @@ public static class TaxonomyCatalogDebugScenarios
             {
                 new WarehouseManagementSnapshot(
                     restored.TotalStock,
-                    restored.MaxCapacity,
-                    restored.HasCapacityLimit,
                     restored.EnumerateStock().ToDictionary(
                         pair => pair.Key,
-                        pair => pair.Value))
+                        pair => pair.Value),
+                    restored.StoredMassGrams,
+                    restored.MaxMassGrams)
             });
         Require(summary.GetStock(StockCategory.General) == 0,
             "management summary fabricated stock");

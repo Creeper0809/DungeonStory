@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-component-rune-leather-lining",
+    "spoiler_tier": "none",
+    "title": "룬가죽 장비 안감"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-rune-leather-lining",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-rune-leather-lining",
+      "target_spoiler_tier": "none",
+      "target_title": "룬가죽 장비 안감",
+      "to": "item/component-rune-leather-lining",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-rune-leather-lining",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-mana-crystal",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 결정",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-rune-leather-lining",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "천",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-rune-leather-lining",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-rune-leather",
+      "target_spoiler_tier": "none",
+      "target_title": "룬가죽",
+      "to": "item/material-rune-leather",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-rune-leather-lining",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-rune-leather",
+      "target_spoiler_tier": "none",
+      "target_title": "룬가죽",
+      "to": "research/research-textile-rune-leather",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

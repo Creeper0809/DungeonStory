@@ -1,0 +1,29 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "facility-blueprint-6191",
+    "spoiler_tier": "none",
+    "title": "상권 통합 설계도"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/facility-blueprint-6191",
+      "label": "관련",
+      "target_kind": "research",
+      "target_slug": "research-commerce-secure-trade",
+      "target_spoiler_tier": "none",
+      "target_title": "상권 통합",
+      "to": "research/research-commerce-secure-trade",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-secure-trade",
+      "label": "관련",
+      "to": "facility/facility-blueprint-6191",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

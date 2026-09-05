@@ -1,0 +1,62 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "mire-leech",
+    "spoiler_tier": "none",
+    "title": "진흙거머리"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/mire-leech",
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-blood-wasting",
+      "target_spoiler_tier": "none",
+      "target_title": "혈액소모병",
+      "to": "medical/disease-blood-wasting",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/mire-leech",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "deep-goat",
+      "target_spoiler_tier": "none",
+      "target_title": "심층염소",
+      "to": "nature/deep-goat",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/mire-leech",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "rune-deer",
+      "target_spoiler_tier": "none",
+      "target_title": "룬사슴",
+      "to": "nature/rune-deer",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/mire-leech",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "spore-elk",
+      "target_spoiler_tier": "none",
+      "target_title": "포자큰사슴",
+      "to": "nature/spore-elk",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/spore-elk",
+      "label": "관련",
+      "to": "nature/mire-leech",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

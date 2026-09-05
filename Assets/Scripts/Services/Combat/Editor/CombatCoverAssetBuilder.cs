@@ -22,8 +22,9 @@ public static class CombatCoverAssetBuilder
             35,
             60f,
             45,
-            24f,
-            3,
+            476f,
+            8.4f,
+            5,
             CreateWoodBarricade);
         BuildCover(
             "C02_SackBulwark",
@@ -32,8 +33,9 @@ public static class CombatCoverAssetBuilder
             55,
             90f,
             70,
-            34f,
-            4,
+            458f,
+            11.9f,
+            6,
             CreateSackBulwark);
         BuildCover(
             "C03_ArrowScreen",
@@ -42,8 +44,9 @@ public static class CombatCoverAssetBuilder
             70,
             110f,
             95,
-            42f,
-            5,
+            463f,
+            14.7f,
+            8,
             CreateArrowScreen);
 
         AssetDatabase.SaveAssets();
@@ -59,6 +62,7 @@ public static class CombatCoverAssetBuilder
         float hitPoints,
         int constructionCost,
         float constructionWork,
+        float repairWork,
         int materialAmount,
         Action<Texture2D> draw)
     {
@@ -117,7 +121,7 @@ public static class CombatCoverAssetBuilder
         BuildingWorkAmountAbility workAmount = new BuildingWorkAmountAbility
         {
             constructionWorkRequired = constructionWork,
-            repairWorkRequired = Mathf.Max(8f, constructionWork * 0.35f),
+            repairWorkRequired = repairWork,
             cleanWorkRequired = 4f,
             researchWorkRequired = 6f,
             operateWorkRequired = 10f

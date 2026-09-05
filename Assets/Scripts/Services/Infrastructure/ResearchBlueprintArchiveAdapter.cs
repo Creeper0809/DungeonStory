@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEngine;
 
 [Serializable]
@@ -14,6 +15,7 @@ public sealed class BuildingResearchArchiveAbility : BuildingAbility
 public static class ResearchBlueprintArchiveDestinationAuthority
 {
     public const string OwnerDomain = "research.blueprint-archive";
+    public const long CapacitySchemaRevision = 1L;
 
     public static FacilityBufferDestinationClaim[] BuildClaims(
         IEnumerable<BuildableObject> buildings) =>
@@ -41,7 +43,88 @@ public static class ResearchBlueprintArchiveDestinationAuthority
             OwnerDomain,
             destinationId,
             facilityId,
-            FacilityBufferDestinationAnchorKind.LiveBuilding);
+            FacilityBufferDestinationAnchorKind.LiveBuilding,
+            FacilityBufferDestinationAdmissionPolicy.ExactGramRequired);
+    }
+
+    public static FacilityBufferCapacityProfile[] BuildProfiles(
+        IEnumerable<BuildableObject> buildings,
+        IEnumerable<FacilityBlueprintSO> blueprints,
+        IPhysicalItemMassQuery massQuery)
+    {
+        BuildableObject[] archives = (buildings ?? Array.Empty<BuildableObject>())
+            .Where(IsAuthoredArchiveFacility)
+            .OrderBy(
+                building => building.RequirePersistentInstanceId().Value,
+                StringComparer.Ordinal)
+            .ToArray();
+        if (archives.Length == 0)
+        {
+            return Array.Empty<FacilityBufferCapacityProfile>();
+        }
+
+        long maximumBlueprintUnitMass = ResolveMaximumBlueprintUnitMass(
+            blueprints,
+            massQuery);
+        return archives.Select(archive =>
+        {
+            BuildingResearchArchiveAbility ability = archive.BuildingData
+                .GetAbility<BuildingResearchArchiveAbility>();
+            if (ability == null || ability.capacity <= 0)
+            {
+                throw new InvalidOperationException(
+                    "Research archive capacity must be positive.");
+            }
+
+            string facilityId = archive.RequirePersistentInstanceId().Value;
+            string destinationId = BuildDestinationId(facilityId);
+            long maxMassGrams = checked(
+                maximumBlueprintUnitMass * ability.capacity);
+            return new FacilityBufferCapacityProfile(
+                destinationId,
+                archive.centerPos,
+                OwnerDomain,
+                destinationId,
+                facilityId,
+                new PhysicalMassGrams(maxMassGrams),
+                CapacitySchemaRevision);
+        }).ToArray();
+    }
+
+    public static long ResolveMaximumBlueprintUnitMass(
+        IEnumerable<FacilityBlueprintSO> blueprints,
+        IPhysicalItemMassQuery massQuery)
+    {
+        if (massQuery == null)
+        {
+            throw new ArgumentNullException(nameof(massQuery));
+        }
+
+        string[] itemIds = (blueprints ?? Array.Empty<FacilityBlueprintSO>())
+            .Where(blueprint => blueprint != null)
+            .Select(blueprint => blueprint.PhysicalItemId)
+            .OrderBy(itemId => itemId, StringComparer.Ordinal)
+            .ToArray();
+        if (itemIds.Length == 0
+            || itemIds.Any(itemId => string.IsNullOrWhiteSpace(itemId)
+                || !string.Equals(itemId, itemId.Trim(), StringComparison.Ordinal))
+            || itemIds.Distinct(StringComparer.Ordinal).Count() != itemIds.Length)
+        {
+            throw new InvalidOperationException(
+                "Research archive requires unique canonical physical blueprint item IDs.");
+        }
+
+        long[] unitMasses = itemIds.Select(itemId => massQuery
+                .GetDefinitionUnitMass((ItemDefinitionId)itemId)
+                .Value)
+            .ToArray();
+        if (unitMasses.Any(unitMass => unitMass <= 0L))
+        {
+            throw new InvalidOperationException(
+                "Research archive blueprint unit mass must be positive.");
+        }
+
+        return unitMasses.Max();
     }
 
     public static string BuildDestinationId(string facilityId)
@@ -80,6 +163,24 @@ public static class ResearchBlueprintArchiveDestinationAuthority
         && right != null
         && left.DropPosition == right.DropPosition
         && left.AnchorKind == right.AnchorKind
+        && left.AdmissionPolicy == right.AdmissionPolicy
+        && string.Equals(left.DestinationId, right.DestinationId,
+            StringComparison.Ordinal)
+        && string.Equals(left.OwnerDomain, right.OwnerDomain,
+            StringComparison.Ordinal)
+        && string.Equals(left.OwnerOperationId, right.OwnerOperationId,
+            StringComparison.Ordinal)
+        && string.Equals(left.OwnerFacilityId, right.OwnerFacilityId,
+            StringComparison.Ordinal);
+
+    public static bool ProfilesMatch(
+        FacilityBufferCapacityProfile left,
+        FacilityBufferCapacityProfile right) =>
+        left != null
+        && right != null
+        && left.DropPosition == right.DropPosition
+        && left.MaxMassGrams == right.MaxMassGrams
+        && left.CapacityRevision == right.CapacityRevision
         && string.Equals(left.DestinationId, right.DestinationId,
             StringComparison.Ordinal)
         && string.Equals(left.OwnerDomain, right.OwnerDomain,
@@ -107,12 +208,20 @@ public sealed class ResearchBlueprintArchiveQuery : IResearchBlueprintArchiveQue
     private readonly ICharacterWorldQuery characterWorld;
     private readonly IRoomLayoutCache roomLayoutCache;
     private readonly IWorldItemStackRuntime itemRuntime;
+    private readonly IFacilityShopCatalog facilityCatalog;
+    private readonly IPhysicalItemMassQuery massQuery;
+    private readonly IFacilityBufferPhysicalOccupancyQuery occupancy;
+    private readonly IFacilityBufferMassCapacityQuery capacities;
 
     public ResearchBlueprintArchiveQuery(
         IBuildingWorldQuery buildingWorld,
         ICharacterWorldQuery characterWorld,
         IRoomLayoutCache roomLayoutCache,
-        IWorldItemStackRuntime itemRuntime)
+        IWorldItemStackRuntime itemRuntime,
+        IFacilityShopCatalog facilityCatalog,
+        IPhysicalItemMassQuery massQuery,
+        IFacilityBufferPhysicalOccupancyQuery occupancy,
+        IFacilityBufferMassCapacityQuery capacities)
     {
         this.buildingWorld = buildingWorld
             ?? throw new ArgumentNullException(nameof(buildingWorld));
@@ -122,6 +231,14 @@ public sealed class ResearchBlueprintArchiveQuery : IResearchBlueprintArchiveQue
             ?? throw new ArgumentNullException(nameof(roomLayoutCache));
         this.itemRuntime = itemRuntime
             ?? throw new ArgumentNullException(nameof(itemRuntime));
+        this.facilityCatalog = facilityCatalog
+            ?? throw new ArgumentNullException(nameof(facilityCatalog));
+        this.massQuery = massQuery
+            ?? throw new ArgumentNullException(nameof(massQuery));
+        this.occupancy = occupancy
+            ?? throw new ArgumentNullException(nameof(occupancy));
+        this.capacities = capacities
+            ?? throw new ArgumentNullException(nameof(capacities));
     }
 
     public int Version
@@ -131,7 +248,8 @@ public sealed class ResearchBlueprintArchiveQuery : IResearchBlueprintArchiveQue
             unchecked
             {
                 return buildingWorld.BuildingVersion * 397
-                    ^ itemRuntime.ItemStackVersion;
+                    ^ itemRuntime.ItemStackVersion * 31
+                    ^ capacities.Revision.GetHashCode();
             }
         }
     }
@@ -227,21 +345,42 @@ public sealed class ResearchBlueprintArchiveQuery : IResearchBlueprintArchiveQue
     {
         archive = GetValidArchives().FirstOrDefault(candidate =>
         {
-            BuildingResearchArchiveAbility ability =
-                candidate.BuildingData?.GetAbility<BuildingResearchArchiveAbility>();
-            int used = itemRuntime.GetAllStacks().Count(stack =>
-                stack != null
-                && stack.Quantity > 0
-                && stack.State == WorldItemStackState.FacilityBuffer
-                && string.Equals(
-                    stack.DestinationId,
-                    GetDestinationId(candidate),
-                    StringComparison.Ordinal));
-            return used < Mathf.Max(1, ability?.capacity ?? 1);
+            if (!IsCatalogBlueprint(blueprint))
+            {
+                return false;
+            }
+
+            string candidateDestination = GetDestinationId(candidate);
+            if (!capacities.TryGetCapacity(
+                    candidateDestination,
+                    candidate.centerPos,
+                    out FacilityBufferMassCapacitySnapshot capacity))
+            {
+                return false;
+            }
+
+            long requestedMass = massQuery.GetDefinitionUnitMass(
+                (ItemDefinitionId)blueprint.PhysicalItemId).Value;
+            FacilityBufferPhysicalOccupancySnapshot used =
+                occupancy.Capture(candidateDestination);
+            return checked(
+                used.TotalMassGrams
+                + capacity.ReservedMassGrams
+                + requestedMass) <= capacity.Profile.MaxMassGrams;
         });
         destinationId = archive != null ? GetDestinationId(archive) : string.Empty;
         return archive != null;
     }
+
+    private bool IsCatalogBlueprint(FacilityBlueprintSO blueprint) =>
+        blueprint != null
+        && facilityCatalog.Blueprints.Any(candidate =>
+            candidate != null
+            && candidate.id == blueprint.id
+            && string.Equals(
+                candidate.PhysicalItemId,
+                blueprint.PhysicalItemId,
+                StringComparison.Ordinal));
 
     public static string GetDestinationId(BuildableObject archive)
     {

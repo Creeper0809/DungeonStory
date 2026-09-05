@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "drug-vitality-tonic",
+    "spoiler_tier": "none",
+    "title": "활력 강장제"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-vitality-tonic",
+      "label": "생산·해금",
+      "to": "item/drug-vitality-tonic",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

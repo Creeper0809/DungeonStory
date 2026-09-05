@@ -1,0 +1,27 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Partnership Family"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-household-meal",
+      "target_spoiler_tier": "warning",
+      "target_title": "늦은 가족 식사",
+      "type": "changes-relationship"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "life-event-household-meal",
+  "spoiler_tier": "warning",
+  "summary": "엇갈리던 가구 구성원들이 오랜만에 같은 식탁에 앉았다.",
+  "title": "늦은 가족 식사"
+}

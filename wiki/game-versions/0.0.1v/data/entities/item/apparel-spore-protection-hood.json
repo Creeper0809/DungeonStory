@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.35kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "25"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "얼굴 둘레를 조이고 숨구멍에 여과천을 덧대 포자 먼지를 거르는 두건이다. 므네실라의 포자 방호 두건은 삶으면 포자 무늬가 사라지고, 오염이 남으면 자줏빛 점이 다시 피어난다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "apparel-spore-protection-hood",
+  "spoiler_tier": "none",
+  "summary": "포자 방호 두건 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다.",
+  "title": "포자 방호 두건"
+}

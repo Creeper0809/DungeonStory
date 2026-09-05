@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "component-prototype-package",
+    "spoiler_tier": "none",
+    "title": "시제품 설계 묶음"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-powered-harness",
+      "label": "필요 조건",
+      "to": "item/component-prototype-package",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-siege-arbalest",
+      "label": "필요 조건",
+      "to": "item/component-prototype-package",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-prototype-package",
+      "label": "생산·해금",
+      "to": "item/component-prototype-package",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

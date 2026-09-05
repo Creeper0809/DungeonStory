@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "genome-shade-fiber-base",
+    "spoiler_tier": "none",
+    "title": "Genome_shade-fiber"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/crop-shade-fiber",
+      "label": "관련",
+      "to": "nature/genome-shade-fiber-base",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

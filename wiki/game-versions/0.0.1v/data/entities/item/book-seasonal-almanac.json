@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "22"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "파종과 수확, 우기와 한기의 시작을 해마다 적어 둔 계절력 책자다. 아일라세라의 새벽 합창은 계절력 책자의 날짜가 빗나갈 때마다 실제 바람과 이동 시기를 노래로 바로잡는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "book-seasonal-almanac",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 계절력 책자.",
+  "title": "계절력 책자"
+}

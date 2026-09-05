@@ -145,12 +145,25 @@ public static class V22ApparelDebugScenarios
             BuildingWorkAmountAbility work = facility.GetAbility<BuildingWorkAmountAbility>();
             Require(work != null && work.ConstructionMaterials.Count > 0,
                 $"Facility {facility.id} requires concrete construction materials.");
-            Require(
-                facility.ResearchFacilityCommand != ResearchFacilityCommandKind.None
+            BuildingProductionOutputDispositionAbility disposition =
+                facility.GetProductionOutputDispositionAbility();
+            bool connectedCommand = facility.ResearchFacilityCommand
+                    != ResearchFacilityCommandKind.None
                 && ResearchFacilityCommandConsumerRegistry.HasExecutionContract(
-                    facility.ResearchFacilityCommand),
-                $"Facility {facility.id} has no typed apparel execution contract.");
+                    facility.ResearchFacilityCommand);
+            bool deferredContent = disposition != null
+                && disposition.dispositionKind
+                    == ProductionOutputDispositionAuthoringKind.DeclaredNoOutput
+                && disposition.ReasonCode.StartsWith(
+                    "content-gap:",
+                    StringComparison.Ordinal);
+            Require(connectedCommand || deferredContent,
+                $"Facility {facility.id} has neither a typed apparel execution contract nor an explicit content-gap disposition.");
         }
+
+        Require(facilities.Count(value =>
+                value.GetProductionOutputDispositionAbility() != null) == 5,
+            "Exactly five V22 apparel facilities must retain explicit deferred-output content-gap markers.");
 
         ProductionRecipeSO[] recipes = LoadAll<ProductionRecipeSO>(RecipeRoot);
         Require(recipes.Length == 89, $"Expected 89 V22 textile recipes, found {recipes.Length}.");
@@ -213,8 +226,8 @@ public static class V22ApparelDebugScenarios
     {
         Require(DungeonGameSaveData.CurrentVersion == 24,
             "The full-world save generation must be V23.");
-        Require(DungeonCharacterEnvironmentSaveData.CurrentVersion == 8,
-            "The character environment section must include apparel terminal authority.");
+        Require(DungeonCharacterEnvironmentSaveData.CurrentVersion >= 8,
+            "The current character environment section must include apparel terminal authority.");
         Require(new DungeonCharacterEnvironmentSaveData().apparelWorkOrders == null,
             "Missing apparel work-order arrays must remain distinguishable from captured empties.");
         Require(new DungeonCharacterEnvironmentSaveData()

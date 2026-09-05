@@ -250,8 +250,22 @@ public static class EnvironmentalFieldDebugScenarios
                 .GetParameters()
                 .Select(parameter => parameter.ParameterType)
                 .ToArray();
-        Require(outputDependencies.Contains(typeof(IWorldItemStackRuntime)),
-            "workwear production does not create physical item stacks");
+        Require(
+            outputDependencies.Contains(
+                typeof(IFacilityBufferMassAdmissionService))
+            && outputDependencies.Contains(
+                typeof(IFacilityBufferPlannedOutputPublicationService))
+            && outputDependencies.Contains(typeof(IPhysicalItemMassQuery))
+            && outputDependencies.Contains(typeof(IItemInstanceRepository))
+            && outputDependencies.Contains(
+                typeof(IProductionFacilityHandleQuery))
+            && outputDependencies.Contains(
+                typeof(IProductionOutputBufferCapacityProjector))
+            && !outputDependencies.Contains(typeof(IWorldItemStackRuntime))
+            && !outputDependencies.Contains(typeof(IProductionAssemblyBridge))
+            && !outputDependencies.Contains(
+                typeof(IEnvironmentalWorkwearCatalog)),
+            "workwear production does not use the common planned gram publication authority");
         return true;
     }
 
@@ -283,7 +297,8 @@ public static class EnvironmentalFieldDebugScenarios
                 .IsolatedSectionFixtureOnly,
             new ApparelRejectedDismantleRestoreGuard(
                 EmptyDispositionRestoreCandidateQuery.Instance,
-                EmptyFacilityBufferPlannedOutputRestoreCandidateQuery.Instance));
+                EmptyFacilityBufferPlannedOutputRestoreCandidateQuery.Instance),
+            AcceptingApparelOutputDetachedCapacityRestoreGuard.Instance);
         DungeonCharacterEnvironmentSaveData invalid = new()
         {
             version = DungeonCharacterEnvironmentSaveData.CurrentVersion,
@@ -333,6 +348,38 @@ public static class EnvironmentalFieldDebugScenarios
         CharacterEnvironmentSaveValidation.Validate(valid, validValidation);
         Require(validValidation.Success && runtime.RestoreCount == 0,
             "valid empty environment arrays failed preflight or published state");
+        CharacterEnvironmentSaveSection unavailableCrossAggregateSection = new(
+            runtime,
+            ProductionOutputLifecycleRestoreCandidatePublisher
+                .IsolatedSectionFixtureOnly,
+            new ApparelRejectedDismantleRestoreGuard(
+                UnavailableDispositionRestoreCandidateQuery.Instance,
+                UnavailableFacilityBufferPlannedOutputRestoreCandidateQuery
+                    .Instance),
+            AcceptingApparelOutputDetachedCapacityRestoreGuard.Instance);
+        DungeonGameRestoreReport detachedPreflight = new();
+        unavailableCrossAggregateSection.ValidatePayload(
+            JsonUtility.ToJson(valid),
+            unavailableCrossAggregateSection.SectionVersion,
+            detachedPreflight);
+        Require(detachedPreflight.Success && runtime.RestoreCount == 0,
+            "environment preflight required cross-aggregate restore candidates");
+        bool unavailableStageRejected = false;
+        try
+        {
+            unavailableCrossAggregateSection.StageRestore(
+                JsonUtility.ToJson(valid),
+                unavailableCrossAggregateSection.SectionVersion,
+                new DungeonGameRestoreReport());
+        }
+        catch (InvalidOperationException exception)
+        {
+            unavailableStageRejected = exception.Message.Contains(
+                "physical restore candidate is unavailable",
+                StringComparison.Ordinal);
+        }
+        Require(unavailableStageRejected && runtime.RestoreCount == 0,
+            "environment staging did not require its detached physical candidate");
         DungeonGameRestoreReport validReport = new();
         IDungeonSaveRestoreStage validStage = section.StageRestore(
             JsonUtility.ToJson(valid),
@@ -932,6 +979,60 @@ public static class EnvironmentalFieldDebugScenarios
         {
             disposition = null;
             return false;
+        }
+    }
+
+    private sealed class UnavailableDispositionRestoreCandidateQuery :
+        IPhysicalItemRestoreCandidateQuery
+    {
+        internal static readonly
+            UnavailableDispositionRestoreCandidateQuery Instance = new();
+
+        public bool IsCandidateAvailable => false;
+        public IReadOnlyList<PhysicalItemRestoreCandidateDispositionSnapshot>
+            PendingBatchDispositions =>
+                Array.Empty<PhysicalItemRestoreCandidateDispositionSnapshot>();
+
+        public bool TryGetPendingBatchDisposition(
+            string operationId,
+            out PhysicalItemRestoreCandidateDispositionSnapshot disposition)
+        {
+            disposition = null;
+            return false;
+        }
+    }
+
+    private sealed class UnavailableFacilityBufferPlannedOutputRestoreCandidateQuery :
+        IFacilityBufferPlannedOutputRestoreCandidateQuery
+    {
+        internal static readonly
+            UnavailableFacilityBufferPlannedOutputRestoreCandidateQuery
+                Instance = new();
+
+        public bool IsCandidateAvailable => false;
+        public IReadOnlyList<FacilityBufferPlannedOutputRestoreBatchSnapshot>
+            Batches =>
+                Array.Empty<FacilityBufferPlannedOutputRestoreBatchSnapshot>();
+
+        public bool TryGetBatch(
+            string batchCommitId,
+            out FacilityBufferPlannedOutputRestoreBatchSnapshot batch)
+        {
+            batch = null;
+            return false;
+        }
+    }
+
+    private sealed class AcceptingApparelOutputDetachedCapacityRestoreGuard :
+        IApparelOutputDetachedCapacityRestoreGuard
+    {
+        internal static readonly
+            AcceptingApparelOutputDetachedCapacityRestoreGuard Instance = new();
+
+        public void Validate(
+            IReadOnlyList<ApparelWorkOrderSaveData> liveOrders,
+            IReadOnlyList<ApparelWorkOrderTerminalStateSaveData> terminalStates)
+        {
         }
     }
 

@@ -1,0 +1,116 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-defense-corridor-mechanisms",
+    "spoiler_tier": "none",
+    "title": "복도 기구학"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-defense-corridor-mechanisms",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-supply",
+      "target_spoiler_tier": "none",
+      "target_title": "방어 보급학",
+      "to": "research/research-defense-supply",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-corridor-mechanisms",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-supply",
+      "target_spoiler_tier": "none",
+      "target_title": "방어 보급학",
+      "to": "research/research-defense-supply",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-corridor-mechanisms",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-supply",
+      "target_spoiler_tier": "none",
+      "target_title": "방어 보급학",
+      "to": "research/research-defense-supply",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-corridor-mechanisms",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-corridor-mechanisms",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-corridor-mechanisms",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-corridor-mechanisms",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1804",
+      "target_spoiler_tier": "none",
+      "target_title": "문 연동 강화 낙하문",
+      "to": "facility/building-1804",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-corridor-detonator",
+      "label": "필요 조건",
+      "to": "research/research-defense-corridor-mechanisms",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-rune-identification",
+      "label": "선행 연구",
+      "to": "research/research-defense-corridor-mechanisms",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-rune-identification",
+      "label": "선행 연구",
+      "to": "research/research-defense-corridor-mechanisms",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-rune-identification",
+      "label": "선행 연구",
+      "to": "research/research-defense-corridor-mechanisms",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

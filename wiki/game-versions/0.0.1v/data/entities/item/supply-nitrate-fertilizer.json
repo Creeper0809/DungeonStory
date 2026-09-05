@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "15"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "질소가 부족한 밭에 나눠 뿌려 작물의 성장을 돕는 비료다. 므네실라의 질산 비료 자루에는 식용 균사와 어린 작물에 직접 닿지 않게 하라는 붉은 포자표가 붙는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "supply-nitrate-fertilizer",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 질산 비료.",
+  "title": "질산 비료"
+}

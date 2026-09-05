@@ -1,0 +1,69 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "ember-lizard",
+    "spoiler_tier": "none",
+    "title": "잿불도마뱀"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/ember-lizard",
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-ember-fever",
+      "target_spoiler_tier": "none",
+      "target_title": "잿불열",
+      "to": "medical/disease-ember-fever",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/ember-lizard",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "ash-crawler",
+      "target_spoiler_tier": "none",
+      "target_title": "재먼지 기는벌레",
+      "to": "nature/ash-crawler",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/ember-lizard",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-hound",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴사냥개",
+      "to": "nature/cave-hound",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/ember-lizard",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "crystal-beetle",
+      "target_spoiler_tier": "none",
+      "target_title": "수정딱정벌레",
+      "to": "nature/crystal-beetle",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/ash-crawler",
+      "label": "관련",
+      "to": "nature/ember-lizard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/crystal-beetle",
+      "label": "관련",
+      "to": "nature/ember-lizard",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

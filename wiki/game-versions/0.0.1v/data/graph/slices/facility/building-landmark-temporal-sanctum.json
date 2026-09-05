@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-landmark-temporal-sanctum",
+    "spoiler_tier": "none",
+    "title": "시간 고정 성소"
+  },
+  "edges": [],
+  "schema_version": 1
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "110"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "대형보관선반에 재고를 모아 두고 반출 순서를 관리하도록 만든 설치 부품이다. 크릭 제7굴식 대형보관선반의 각 칸은 씨족마다 톱니 모양이 달라 빌린 공구가 돌아갈 자리를 손으로도 찾는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "facility-kit-1050",
+  "spoiler_tier": "none",
+  "summary": "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.",
+  "title": "대형보관선반 설치 키트"
+}

@@ -1,0 +1,16 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+DefenseSlowEffectSO|asset:DefenseLinkedDropGate_2_Slow,asset:DefenseLinkedDropGate_2_Slow,m_Name,DefenseLinkedDropGate_2_Slow,,,explicit-serialized
+DefenseSlowEffectSO|asset:DefenseLinkedDropGate_2_Slow,asset:DefenseLinkedDropGate_2_Slow,amount,0.55,,,explicit-serialized
+DefenseSlowEffectSO|asset:DefenseLinkedDropGate_2_Slow,asset:DefenseLinkedDropGate_2_Slow,duration,3,,,explicit-serialized
+DefenseSlowEffectSO|asset:DefenseLinkedDropGate_2_Slow,asset:DefenseLinkedDropGate_2_Slow,stacks,1,,,explicit-serialized
+DefenseSlowEffectSO|asset:DefenseLinkedDropGate_2_Slow,asset:DefenseLinkedDropGate_2_Slow,logTag,통로 봉쇄,,,explicit-serialized
+DefenseSlowEffectSO|asset:P1_CorrosionFreezer_3_Slow,asset:P1_CorrosionFreezer_3_Slow,m_Name,P1_CorrosionFreezer_3_Slow,,,explicit-serialized
+DefenseSlowEffectSO|asset:P1_CorrosionFreezer_3_Slow,asset:P1_CorrosionFreezer_3_Slow,amount,0.75,,,explicit-serialized
+DefenseSlowEffectSO|asset:P1_CorrosionFreezer_3_Slow,asset:P1_CorrosionFreezer_3_Slow,duration,5,,,explicit-serialized
+DefenseSlowEffectSO|asset:P1_CorrosionFreezer_3_Slow,asset:P1_CorrosionFreezer_3_Slow,stacks,1,,,explicit-serialized
+DefenseSlowEffectSO|asset:P1_CorrosionFreezer_3_Slow,asset:P1_CorrosionFreezer_3_Slow,logTag,감속,,,explicit-serialized
+DefenseSlowEffectSO|asset:P1_IceVent_2_Slow,asset:P1_IceVent_2_Slow,m_Name,P1_IceVent_2_Slow,,,explicit-serialized
+DefenseSlowEffectSO|asset:P1_IceVent_2_Slow,asset:P1_IceVent_2_Slow,amount,0.7,,,explicit-serialized
+DefenseSlowEffectSO|asset:P1_IceVent_2_Slow,asset:P1_IceVent_2_Slow,duration,4,,,explicit-serialized
+DefenseSlowEffectSO|asset:P1_IceVent_2_Slow,asset:P1_IceVent_2_Slow,stacks,1,,,explicit-serialized
+DefenseSlowEffectSO|asset:P1_IceVent_2_Slow,asset:P1_IceVent_2_Slow,logTag,감속,,,explicit-serialized

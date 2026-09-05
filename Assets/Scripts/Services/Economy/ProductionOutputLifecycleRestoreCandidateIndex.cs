@@ -81,7 +81,7 @@ public sealed class ProductionOutputLifecycleRestoreCandidateBundle
     }
 
     public const string Schema =
-        "production-output-lifecycle-restore-candidates@2";
+        "production-output-lifecycle-restore-candidates@3";
 
     internal ModularFacilityWorldSaveData World { get; }
     internal DungeonCharacterWorldSaveData Characters { get; }

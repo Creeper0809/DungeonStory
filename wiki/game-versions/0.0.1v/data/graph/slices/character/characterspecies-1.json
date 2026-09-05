@@ -1,0 +1,65 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "characterspecies-1",
+    "spoiler_tier": "none",
+    "title": "슬라임"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/characterspecies-1",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "funeral-culture-slime",
+      "target_spoiler_tier": "none",
+      "target_title": "Funeral_Slime",
+      "to": "character/funeral-culture-slime",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/characterspecies-1",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "life-history-slime",
+      "target_spoiler_tier": "none",
+      "target_title": "Life_Slime",
+      "to": "character/life-history-slime",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/characterspecies-1",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "reproduction-slime",
+      "target_spoiler_tier": "none",
+      "target_title": "Reproduction_Slime",
+      "to": "character/reproduction-slime",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/character-archetype-1",
+      "label": "관련",
+      "to": "character/characterspecies-1",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/character-archetype-1001",
+      "label": "관련",
+      "to": "character/characterspecies-1",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/character-archetype-1101",
+      "label": "관련",
+      "to": "character/characterspecies-1",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

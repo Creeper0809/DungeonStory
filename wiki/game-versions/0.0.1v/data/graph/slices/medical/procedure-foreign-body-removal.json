@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "medical",
+    "slug": "procedure-foreign-body-removal",
+    "spoiler_tier": "none",
+    "title": "이물 제거"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "medical/procedure-foreign-body-removal",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "medicine-disinfectant",
+      "target_spoiler_tier": "none",
+      "target_title": "소독제",
+      "to": "item/medicine-disinfectant",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-foreign-body-removal",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-survival-medical",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 회복",
+      "to": "research/research-survival-medical",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

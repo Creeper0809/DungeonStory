@@ -1,0 +1,11 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+FacilityEvolutionRecordTokenDefinitionSO,content-type,,type-reference,services:infrastructure,content-loading,structural-type-consumer,Assets/Scripts/Services/Infrastructure/FacilityRecipeCatalogServices.cs
+FacilityEvolutionRecordTokenDefinitionSO,stable-id,CleanServiceStreak,stable-id-literal,models:evolution,runtime,exact-literal-consumer,Assets/Scripts/Models/Evolution/Facility/FacilityEvolutionTerms.cs
+FacilityEvolutionRecordTokenDefinitionSO,stable-id,FrequentBrawls,stable-id-literal,models:evolution,runtime,exact-literal-consumer,Assets/Scripts/Models/Evolution/Facility/FacilityEvolutionTerms.cs
+FacilityEvolutionRecordTokenDefinitionSO,stable-id,GuardRallyPoint,stable-id-literal,models:evolution,runtime,exact-literal-consumer,Assets/Scripts/Models/Evolution/Facility/FacilityEvolutionTerms.cs
+FacilityEvolutionRecordTokenDefinitionSO,stable-id,HighMeatConsumption,stable-id-literal,models:evolution,runtime,exact-literal-consumer,Assets/Scripts/Models/Evolution/Facility/FacilityEvolutionTerms.cs
+FacilityEvolutionRecordTokenDefinitionSO,stable-id,HighTurnoverService,stable-id-literal,models:evolution,runtime,exact-literal-consumer,Assets/Scripts/Models/Evolution/Facility/FacilityEvolutionTerms.cs
+FacilityEvolutionRecordTokenDefinitionSO,stable-id,IntruderBloodied,stable-id-literal,models:evolution,runtime,exact-literal-consumer,Assets/Scripts/Models/Evolution/Facility/FacilityEvolutionTerms.cs
+FacilityEvolutionRecordTokenDefinitionSO,stable-id,MercenaryHangout,stable-id-literal,models:evolution,runtime,exact-literal-consumer,Assets/Scripts/Models/Evolution/Facility/FacilityEvolutionTerms.cs
+FacilityEvolutionRecordTokenDefinitionSO,stable-id,NoblePatronage,stable-id-literal,models:evolution,runtime,exact-literal-consumer,Assets/Scripts/Models/Evolution/Facility/FacilityEvolutionTerms.cs
+FacilityEvolutionRecordTokenDefinitionSO,stable-id,OutlawRumor,stable-id-literal,models:evolution,runtime,exact-literal-consumer,Assets/Scripts/Models/Evolution/Facility/FacilityEvolutionTerms.cs

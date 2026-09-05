@@ -9,7 +9,8 @@ public sealed class WorldItemReadServices
         WorldItemQueryService queries,
         IItemMarkerPresenter markers,
         ICharacterAiPerformanceRecorder performance,
-        IDungeonDebugRuleQuery debugRules)
+        IDungeonDebugRuleQuery debugRules,
+        IFacilityOutputClearanceTelemetrySink outputClearanceTelemetry)
     {
         Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         Mass = mass ?? throw new ArgumentNullException(nameof(mass));
@@ -20,6 +21,8 @@ public sealed class WorldItemReadServices
         Performance = performance
             ?? throw new ArgumentNullException(nameof(performance));
         DebugRules = debugRules ?? throw new ArgumentNullException(nameof(debugRules));
+        OutputClearanceTelemetry = outputClearanceTelemetry
+            ?? throw new ArgumentNullException(nameof(outputClearanceTelemetry));
     }
 
     public IDungeonItemCatalogProvider Catalog { get; }
@@ -29,6 +32,7 @@ public sealed class WorldItemReadServices
     public IItemMarkerPresenter Markers { get; }
     public ICharacterAiPerformanceRecorder Performance { get; }
     public IDungeonDebugRuleQuery DebugRules { get; }
+    public IFacilityOutputClearanceTelemetrySink OutputClearanceTelemetry { get; }
 }
 
 public sealed class WorldItemMutationServices

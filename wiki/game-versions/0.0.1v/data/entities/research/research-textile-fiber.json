@@ -1,0 +1,229 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "17"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Textiles"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9309",
+      "target_spoiler_tier": "none",
+      "target_title": "섬유 선별대",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9303",
+      "target_spoiler_tier": "none",
+      "target_title": "손세탁 수조",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9311",
+      "target_spoiler_tier": "none",
+      "target_title": "수동 방적기",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9304",
+      "target_spoiler_tier": "none",
+      "target_title": "실내 건조대",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1623",
+      "target_spoiler_tier": "none",
+      "target_title": "직조 보조 선반",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1083",
+      "target_spoiler_tier": "none",
+      "target_title": "직조기",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9310",
+      "target_spoiler_tier": "none",
+      "target_title": "침지·정련조",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-chest-wrap",
+      "target_spoiler_tier": "none",
+      "target_title": "가슴 감개 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-shade-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "그늘천 방적",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-weave-shade-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "그늘천 직조",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-long-underpants",
+      "target_spoiler_tier": "none",
+      "target_title": "내의 바지 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-footwraps",
+      "target_spoiler_tier": "none",
+      "target_title": "발싸개 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-frost-linen",
+      "target_spoiler_tier": "none",
+      "target_title": "서리 린넨 방적",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-weave-frost-linen",
+      "target_spoiler_tier": "none",
+      "target_title": "서리 린넨 직조",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-undershirt",
+      "target_spoiler_tier": "none",
+      "target_title": "속셔츠 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-socks",
+      "target_spoiler_tier": "none",
+      "target_title": "양말 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-common-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "일반 모직 방적",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-weave-common-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "일반 모직 직조",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-sewing-thread",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉실",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-ember-cotton",
+      "target_spoiler_tier": "none",
+      "target_title": "잿불 면직물 방적",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-weave-ember-cotton",
+      "target_spoiler_tier": "none",
+      "target_title": "잿불 면직물 직조",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-lower-underwear",
+      "target_spoiler_tier": "none",
+      "target_title": "하의 속옷 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-loincloth-underwear",
+      "target_spoiler_tier": "none",
+      "target_title": "허리 두름 속옷 재단",
+      "type": "unlocks-recipe"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-textile-fiber",
+  "spoiler_tier": "none",
+  "summary": "그늘섬유와 털을 천, 붕대와 활시위로 잣는다.",
+  "title": "섬유 가공"
+}

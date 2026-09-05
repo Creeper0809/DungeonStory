@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "6.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "2053"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "긴 총신과 정밀 조준부로 먼 표적 하나를 겨누는 아쿼버스다. 특히 오르데나식 저격 아쿼버스의 군번은 개머리판 깊숙이 찍혀 있어 칼로 긁어도 흔적이 남는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-weapon-sniper-arquebus",
+  "spoiler_tier": "none",
+  "summary": "저격 아쿼버스 전투 장비",
+  "title": "저격 아쿼버스"
+}

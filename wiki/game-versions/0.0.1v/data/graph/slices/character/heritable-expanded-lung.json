@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "heritable-expanded-lung",
+    "spoiler_tier": "none",
+    "title": "확장 폐낭"
+  },
+  "edges": [],
+  "schema_version": 1
+}

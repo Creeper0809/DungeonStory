@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "nature",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-glass-blood",
+      "target_spoiler_tier": "none",
+      "target_title": "유리혈증",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "moss-boar",
+      "target_spoiler_tier": "none",
+      "target_title": "이끼멧돼지",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "ember-lizard",
+      "target_spoiler_tier": "none",
+      "target_title": "잿불도마뱀",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "crystal-beetle",
+  "spoiler_tier": "none",
+  "summary": "마나 결정 가루를 먹고 단단한 갑각을 남기는 군집 곤충.",
+  "title": "수정딱정벌레"
+}

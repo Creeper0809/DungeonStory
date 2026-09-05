@@ -66,7 +66,7 @@ public sealed class ClimateRuntime :
     private readonly IGameEventBus events;
     private readonly IRandomStream random;
     private readonly IFacilityCapabilityQuery facilities;
-    private readonly IWorldItemStackRuntime items;
+    private readonly ClimateDurableEquipmentRuntime observationEquipment;
     private IDisposable dayEndedSubscription;
     private int version = 1;
 
@@ -77,7 +77,10 @@ public sealed class ClimateRuntime :
         IGameEventBus events,
         IRandomStreamProvider randomStreams,
         IFacilityCapabilityQuery facilities,
-        IWorldItemStackRuntime items)
+        IDurableFacilityEquipmentPolicyQuery equipmentPolicies,
+        IDurableFacilityEquipmentSlotCommand equipmentSlots,
+        IDurableFacilityEquipmentSlotQuery equipmentSlotQuery,
+        IDurableFacilityEquipmentUseCommand equipmentUse)
     {
         this.rootStore = rootStore ?? throw new ArgumentNullException(nameof(rootStore));
         this.definitions = definitions ?? throw new ArgumentNullException(nameof(definitions));
@@ -87,7 +90,11 @@ public sealed class ClimateRuntime :
             .Get(ClimateRandomStreamId);
         this.facilities = facilities
             ?? throw new ArgumentNullException(nameof(facilities));
-        this.items = items ?? throw new ArgumentNullException(nameof(items));
+        observationEquipment = new ClimateDurableEquipmentRuntime(
+            equipmentPolicies,
+            equipmentSlots,
+            equipmentSlotQuery,
+            equipmentUse);
     }
 
     public int Version => version;
@@ -96,8 +103,10 @@ public sealed class ClimateRuntime :
     public string WeatherFrontId => Current.WeatherFrontId;
     public int FrontRemainingDays => Current.FrontRemainingDays;
     public float OutdoorTemperatureC => Current.GetOutdoorTemperature(definitions);
-    public bool ObservationToolsOperational =>
-        TryGetForecastEquipment(out _, out _, out _);
+    public bool ObservationToolsOperational => TryResolveObservationTower(
+            out BuildableObject tower)
+        && observationEquipment.IsOperational(
+            tower.RequirePersistentInstanceId());
     public int ForecastHorizonDays => ObservationToolsOperational
         ? Math.Min(3, Math.Max(1, Current.FrontRemainingDays))
         : 0;
@@ -151,95 +160,20 @@ public sealed class ClimateRuntime :
             return;
         }
 
-        string destinationId = tower.PersistentInstanceId.Value;
-        WorldItemStackSnapshot almanac = FindDurableFacilityItem(
-            destinationId,
-            DurableToolItemRules.SeasonalAlmanac);
-        WorldItemStackSnapshot kit = FindDurableFacilityItem(
-            destinationId,
-            DurableToolItemRules.WeatherObservationKit);
-        RequestForecastItem(tower, destinationId, DurableToolItemRules.SeasonalAlmanac, almanac != null);
-        RequestForecastItem(tower, destinationId, DurableToolItemRules.WeatherObservationKit, kit != null);
-        if (!wear || almanac == null || kit == null)
-        {
-            return;
-        }
-
-        WearForecastItem(almanac, 0.25f);
-        WearForecastItem(kit, 1f);
+        observationEquipment.TryMaintain(
+            tower.RequirePersistentInstanceId(),
+            tower.centerPos,
+            wear);
     }
 
-    private bool TryGetForecastEquipment(
-        out BuildableObject tower,
-        out WorldItemStackSnapshot almanac,
-        out WorldItemStackSnapshot kit)
+    private bool TryResolveObservationTower(out BuildableObject tower)
     {
         tower = facilities.FindOperational(
                 FacilityCapabilityKind.None,
                 "building:8851")
             .OrderBy(value => value.PersistentInstanceId.Value, StringComparer.Ordinal)
             .FirstOrDefault();
-        if (tower == null)
-        {
-            almanac = null;
-            kit = null;
-            return false;
-        }
-        string destinationId = tower.PersistentInstanceId.Value;
-        almanac = FindDurableFacilityItem(
-            destinationId,
-            DurableToolItemRules.SeasonalAlmanac);
-        kit = FindDurableFacilityItem(
-            destinationId,
-            DurableToolItemRules.WeatherObservationKit);
-        return almanac != null && kit != null;
-    }
-
-    private WorldItemStackSnapshot FindDurableFacilityItem(
-        string destinationId,
-        string itemId)
-    {
-        return items.GetAllStacks()
-            .Where(stack => stack != null
-                && stack.State == WorldItemStackState.FacilityBuffer
-                && string.Equals(stack.DestinationId, destinationId, StringComparison.Ordinal)
-                && string.Equals(stack.ItemId, itemId, StringComparison.Ordinal)
-                && DurableToolItemRules.ReadCurrentDurability(stack.ItemId, stack.Components) > 0f)
-            .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
-            .FirstOrDefault();
-    }
-
-    private void RequestForecastItem(
-        BuildableObject tower,
-        string destinationId,
-        string itemId,
-        bool available)
-    {
-        if (available || items.GetAllStacks().Any(stack => stack != null
-                && string.Equals(stack.ItemId, itemId, StringComparison.Ordinal)
-                && string.Equals(stack.DestinationId, destinationId, StringComparison.Ordinal)))
-        {
-            return;
-        }
-        items.TryRequestItemDelivery(
-            itemId,
-            1,
-            tower.centerPos,
-            destinationId,
-            out _,
-            out _);
-    }
-
-    private void WearForecastItem(WorldItemStackSnapshot tool, float wear)
-    {
-        float current = DurableToolItemRules.ReadCurrentDurability(tool.ItemId, tool.Components);
-        if (!items.TrySetInstanceComponent(
-                tool.StackId,
-                DurableToolItemRules.CreateDurability(tool.ItemId, current - wear)))
-        {
-            throw new InvalidOperationException(
-                $"Validated forecast tool '{tool.StackId}' disappeared during observation.");
-        }
+        return tower != null;
     }
 
     private ClimateAggregateState Current => rootStore.GetOrCreate(() =>

@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "weather-cold-snap",
+    "spoiler_tier": "none",
+    "title": "한파"
+  },
+  "edges": [],
+  "schema_version": 1
+}

@@ -1,0 +1,169 @@
+{
+  "schema_version": 3,
+  "game_version": "0.0.1v",
+  "sources": [
+    {"handbook":"01-game-vision-and-player-loop.md","claims":[
+      {"id":"game-nature","section":"게임의 성격","destinations":[{"kind":"guide","id":"overview"}]},
+      {"id":"player-experience","section":"플레이어가 경험해야 하는 것","destinations":[{"kind":"guide","id":"overview"}]},
+      {"id":"causal-loop","section":"운영의 인과 구조","destinations":[{"kind":"guide","id":"overview"}]},
+      {"id":"player-resources","section":"플레이어가 다루는 자원","destinations":[{"kind":"guide","id":"production"}]},
+      {"id":"nested-loops","section":"중첩된 플레이 주기","destinations":[{"kind":"guide","id":"research"}]},
+      {"id":"starting-party","section":"출발 인원과 던전 주인","destinations":[{"kind":"guide","id":"starting-party"}]},
+      {"id":"run-change","section":"한 런의 변화","destinations":[{"kind":"guide","id":"research"}]},
+      {"id":"operating-skill","section":"운영 숙련이 쌓이는 방식","destinations":[{"kind":"guide","id":"world-state"}]},
+      {"id":"failure-recovery","section":"실패와 회복의 태도","destinations":[{"kind":"guide","id":"world-state"}]},
+      {"id":"systems-meet","section":"한 장면에서 여러 시스템이 만나는 예","destinations":[{"kind":"guide","id":"overview"}]}
+    ],"excluded":[{"id":"content-scale","section":"콘텐츠 규모를 다루는 원칙","reason":"콘텐츠 작성 규모를 정하는 개발 기준이다."}]},
+    {"handbook":"02-system-map-and-authority.md","claims":[
+      {"id":"structure-reason","section":"이 구조를 택한 이유","destinations":[{"kind":"guide","id":"overview"}]},
+      {"id":"content-catalogue","section":"콘텐츠 카탈로그","destinations":[{"kind":"category","id":"items"}]},
+      {"id":"visible-actions","section":"여러 시스템이 함께 참여하는 행동","destinations":[{"kind":"guide","id":"events-and-choices"}]},
+      {"id":"event-authority","section":"사건 편성에서 지켜야 할 권위 분리","destinations":[{"kind":"guide","id":"events-and-choices"}]},
+      {"id":"player-experience","section":"구조가 보호하려는 플레이 경험","destinations":[{"kind":"guide","id":"overview"}]}
+    ],"excluded":[
+      {"id":"runtime-composition","section":"런타임의 조립 구조","reason":"런타임 구현 구조다."},
+      {"id":"layer-responsibility","section":"계층별 책임","reason":"개발 계층의 책임 분리다."},
+      {"id":"runtime-foundation","section":"공통 런타임 기반","reason":"런타임 구현 기반이다."},
+      {"id":"state-ownership","section":"도메인별 상태 소유권","reason":"상태 소유권 구현 규칙이다."},
+      {"id":"state-request","section":"상태 읽기와 변경 요청의 분리","reason":"명령 처리 구현 규칙이다."},
+      {"id":"composable-content","section":"조립식 콘텐츠 구조","reason":"콘텐츠 데이터 작성 구조다."},
+      {"id":"new-content-order","section":"새 콘텐츠를 추가하는 판단 순서","reason":"콘텐츠 작성 절차다."}
+    ]},
+    {"handbook":"03-world-building-facilities-environment.md","claims":[
+      {"id":"construction-role","section":"건설이 맡는 역할","destinations":[{"kind":"guide","id":"getting-started"}]},
+      {"id":"facility-definition","section":"시설 정의와 능력 조립","destinations":[{"kind":"guide","id":"infrastructure"}]},
+      {"id":"construction-life","section":"건설의 수명주기","destinations":[{"kind":"guide","id":"getting-started"}]},
+      {"id":"room-space","section":"방과 공간의 운영 의미","destinations":[{"kind":"guide","id":"spaces"}]},
+      {"id":"environment","section":"환경 시뮬레이션","destinations":[{"kind":"guide","id":"weather-seasons-and-environment"}]},
+      {"id":"power","section":"전력망","destinations":[{"kind":"guide","id":"infrastructure"}]},
+      {"id":"fluid-sanitation","section":"유체와 위생망","destinations":[{"kind":"guide","id":"infrastructure"}]},
+      {"id":"conveyor","section":"컨베이어와 자동 물류","destinations":[{"kind":"guide","id":"production"}]},
+      {"id":"infrastructure-failure","section":"기반망의 장애 범위와 복구","destinations":[{"kind":"guide","id":"infrastructure"}]},
+      {"id":"ecology","section":"농업, 축산과 생태","destinations":[{"kind":"guide","id":"food-and-ecology"}]},
+      {"id":"facility-evolution","section":"시설 합성과 사용 기반 진화","destinations":[{"kind":"guide","id":"facility-growth"}]},
+      {"id":"space-decisions","section":"공간 설계에서 생기는 대표 판단","destinations":[{"kind":"guide","id":"spaces"}]}
+    ],"excluded":[{"id":"facility-authoring","section":"시설 콘텐츠를 작성하는 기준","reason":"시설 콘텐츠를 작성하는 개발 기준이다."}]},
+    {"handbook":"04-items-production-logistics-economy.md","claims":[
+      {"id":"economy-purpose","section":"경제 설계의 목적","destinations":[{"kind":"guide","id":"economy-and-trade"}]},
+      {"id":"item-definition","section":"아이템 정의와 기능 조합","destinations":[{"kind":"category","id":"items"}]},
+      {"id":"physical-inventory","section":"하나의 물리 재고","destinations":[{"kind":"guide","id":"inventory-and-carrying"}]},
+      {"id":"reservation-custody","section":"예약과 인계 상태","destinations":[{"kind":"guide","id":"inventory-and-carrying"}]},
+      {"id":"mass-carrying","section":"중량과 운반 능력","destinations":[{"kind":"guide","id":"inventory-and-carrying"}]},
+      {"id":"production-orders","section":"생산 주문과 진행 상태","destinations":[{"kind":"guide","id":"production"}]},
+      {"id":"material-balance","section":"물질수지와 공정 이력","destinations":[{"kind":"guide","id":"production"}]},
+      {"id":"branching-production","section":"분기형 생산망","destinations":[{"kind":"guide","id":"production"}]},
+      {"id":"fuel-feed","section":"연료와 사료의 선택 규칙","destinations":[{"kind":"guide","id":"production-quality-and-supply"}]},
+      {"id":"buffers","section":"버퍼, 목표 재고와 자동화","destinations":[{"kind":"guide","id":"inventory-and-carrying"}]},
+      {"id":"bottlenecks","section":"병목을 설명하고 계획과 결과를 비교하는 기준","destinations":[{"kind":"guide","id":"world-state"}]},
+      {"id":"quality","section":"작업자, 숙련과 품질","destinations":[{"kind":"guide","id":"production-quality-and-supply"}]},
+      {"id":"external-economy","section":"금고와 외부 경제","destinations":[{"kind":"guide","id":"economy-and-trade"}]},
+      {"id":"economic-situations","section":"경제가 만드는 대표 상황","destinations":[{"kind":"guide","id":"economy-and-trade"}]}
+    ],"excluded":[{"id":"production-authoring","section":"생산 콘텐츠를 작성하는 기준","reason":"생산 콘텐츠를 작성하는 개발 기준이다."}]},
+    {"handbook":"05-characters-ai-society-health.md","claims":[
+      {"id":"resident-view","section":"주민을 다루는 관점","destinations":[{"kind":"guide","id":"residents-and-work"}]},
+      {"id":"person-layers","section":"한 인물을 구성하는 층","destinations":[{"kind":"guide","id":"species-culture-and-life"}]},
+      {"id":"species-physiology","section":"종족과 생리","destinations":[{"kind":"guide","id":"species-culture-and-life"}]},
+      {"id":"culture-life","section":"문화와 생활 방식","destinations":[{"kind":"guide","id":"species-culture-and-life"}]},
+      {"id":"autonomous-action","section":"자율 행동과 플레이어의 통제 수준","destinations":[{"kind":"guide","id":"residents-and-work"}]},
+      {"id":"work-composition","section":"작업의 조립 구조","destinations":[{"kind":"guide","id":"residents-and-work"}]},
+      {"id":"proficiency-career","section":"숙련과 경력","destinations":[{"kind":"guide","id":"residents-and-work"}]},
+      {"id":"needs","section":"욕구, 생존과 자기관리","destinations":[{"kind":"guide","id":"residents-and-work"}]},
+      {"id":"body-medical","section":"신체와 의료","destinations":[{"kind":"guide","id":"medical-care-and-surgery"}]},
+      {"id":"disease-public-health","section":"질병과 공중보건","destinations":[{"kind":"guide","id":"disease-and-public-health"}]},
+      {"id":"family","section":"번식, 가족과 가계","destinations":[{"kind":"guide","id":"family-education-and-legacy"}]},
+      {"id":"aging-legacy","section":"노화, 죽음과 계승","destinations":[{"kind":"guide","id":"family-education-and-legacy"}]},
+      {"id":"education","section":"아동, 교육과 멘토링","destinations":[{"kind":"guide","id":"family-education-and-legacy"}]},
+      {"id":"guests-service","section":"사회, 손님과 서비스","destinations":[{"kind":"guide","id":"guests-services-and-performance"}]},
+      {"id":"traits","section":"성격이 선택과 행동에 남는 방식","destinations":[{"kind":"guide","id":"species-culture-and-life"}]},
+      {"id":"memory","section":"기억의 보존과 압축","destinations":[{"kind":"guide","id":"continuity"}]},
+      {"id":"character-fun","section":"인물 시스템이 만드는 재미","destinations":[{"kind":"guide","id":"overview"}]}
+    ],"excluded":[{"id":"character-authoring","section":"인물 콘텐츠를 작성하는 기준","reason":"인물 콘텐츠를 작성하는 개발 기준이다."}]},
+    {"handbook":"06-research-progression-and-strategy.md","claims":[
+      {"id":"research-role","section":"연구가 맡는 역할","destinations":[{"kind":"guide","id":"research"}]},
+      {"id":"research-structure","section":"현재 연구 구조","destinations":[{"kind":"guide","id":"research"}]},
+      {"id":"research-action","section":"연구 결과는 행동으로 확인한다","destinations":[{"kind":"guide","id":"research"}]},
+      {"id":"prerequisites","section":"선행 관계의 의미","destinations":[{"kind":"guide","id":"research"}]},
+      {"id":"unlock-package","section":"해금 패키지","destinations":[{"kind":"guide","id":"research"}]},
+      {"id":"progress-layers","section":"진행의 여러 층","destinations":[{"kind":"guide","id":"research"}]},
+      {"id":"strategy-conditions","section":"전략 선택이 성립하는 조건","destinations":[{"kind":"guide","id":"research"}]},
+      {"id":"run-candidates","section":"이번 런의 실질적 후보","destinations":[{"kind":"guide","id":"research"}]},
+      {"id":"solutions","section":"문제별 해법의 설계 방향","destinations":[{"kind":"guide","id":"research"}]},
+      {"id":"species-environment","section":"종족, 문화와 환경이 최적해를 바꾸는 방식","destinations":[{"kind":"guide","id":"species-culture-and-life"}]},
+      {"id":"transition","section":"전환과 혼합","destinations":[{"kind":"guide","id":"research"}]},
+      {"id":"milestones","section":"이정표와 장기 수렴","destinations":[{"kind":"guide","id":"milestones-runs-and-meta"}]},
+      {"id":"research-fun","section":"연구 선택이 재미있어지는 순간","destinations":[{"kind":"guide","id":"research"}]}
+    ],"excluded":[{"id":"research-authoring","section":"연구 콘텐츠를 작성하는 기준","reason":"연구 콘텐츠를 작성하는 개발 기준이다."}]},
+    {"handbook":"07-combat-invasions-expeditions-factions.md","claims":[
+      {"id":"combat-role","section":"무력 충돌이 맡는 역할","destinations":[{"kind":"guide","id":"combat-and-equipment"}]},
+      {"id":"combat-rules","section":"하나의 전투 규칙과 두 전장","destinations":[{"kind":"guide","id":"combat-and-equipment"}]},
+      {"id":"warnings","section":"침입 위협과 경고","destinations":[{"kind":"guide","id":"invasions-and-defence"}]},
+      {"id":"defence","section":"던전 방어","destinations":[{"kind":"guide","id":"invasions-and-defence"}]},
+      {"id":"enemy-tactics","section":"적과 전술 콘텐츠","destinations":[{"kind":"guide","id":"invasions-and-defence"}]},
+      {"id":"equipment","section":"장비, 탄약과 역할","destinations":[{"kind":"guide","id":"combat-and-equipment"}]},
+      {"id":"expedition-life","section":"원정 수명주기","destinations":[{"kind":"guide","id":"expeditions"}]},
+      {"id":"faction-economy","section":"세력 관계와 외부 경제","destinations":[{"kind":"guide","id":"factions-contracts-and-prisoners"}]},
+      {"id":"prisoners","section":"포로와 포획 개체","destinations":[{"kind":"guide","id":"factions-contracts-and-prisoners"}]},
+      {"id":"combat-aftermath","section":"전투 이후가 만드는 이야기","destinations":[{"kind":"guide","id":"invasions-and-defence"}]},
+      {"id":"combat-summary","section":"사후 결산이 비교해야 할 것","destinations":[{"kind":"guide","id":"invasions-and-defence"}]}
+    ],"excluded":[{"id":"combat-authoring","section":"전투와 세력 콘텐츠를 작성하는 기준","reason":"전투 콘텐츠를 작성하는 개발 기준이다."}]},
+    {"handbook":"08-content-events-and-authoring.md","claims":[
+      {"id":"event-loop","section":"사건이 따라야 하는 인과 순환","destinations":[{"kind":"guide","id":"events-and-choices"}]},
+      {"id":"event-causes","section":"발생 원인","destinations":[{"kind":"guide","id":"events-and-choices"}]},
+      {"id":"event-context","section":"문맥 고정","destinations":[{"kind":"guide","id":"events-and-choices"}]},
+      {"id":"event-choices","section":"선택지는 다른 행동이어야 한다","destinations":[{"kind":"guide","id":"events-and-choices"}]},
+      {"id":"event-progress","section":"진행과 결과 판정","destinations":[{"kind":"guide","id":"events-and-choices"}]},
+      {"id":"event-residue","section":"최종 효과와 흔적","destinations":[{"kind":"guide","id":"events-and-choices"}]},
+      {"id":"event-category","section":"콘텐츠 범주별 존재 이유","destinations":[{"kind":"guide","id":"events-and-choices"}]},
+      {"id":"event-pacing","section":"사건 편성이 따라야 할 호흡","destinations":[{"kind":"guide","id":"events-and-choices"}]},
+      {"id":"event-density","section":"사건 밀도와 플레이어의 주의력","destinations":[{"kind":"guide","id":"events-and-choices"}]},
+      {"id":"narrative-rule","section":"서사 문구와 규칙의 경계","destinations":[{"kind":"guide","id":"events-and-choices"}]}
+    ],"excluded":[
+      {"id":"content-goal","section":"콘텐츠 작성의 목표","reason":"콘텐츠 작성 기준이다."},
+      {"id":"content-judgement","section":"콘텐츠가 통과해야 하는 판단","reason":"콘텐츠 검수 기준이다."},
+      {"id":"content-unit","section":"콘텐츠 유형별 작성 단위","reason":"콘텐츠 작성 구조다."},
+      {"id":"runtime-foundation","section":"현재 공통 기반","reason":"런타임 구현 기반이다."},
+      {"id":"event-example","section":"사건 작성 예시","reason":"콘텐츠 작성 예시다."},
+      {"id":"event-procedure","section":"조립식 사건 작성 절차","reason":"콘텐츠 작성 절차다."}
+    ]},
+    {"handbook":"09-save-restore-determinism-and-validation.md","claims":[
+      {"id":"save-protects","section":"저장이 지켜야 하는 것","destinations":[{"kind":"guide","id":"continuity"}]},
+      {"id":"in-progress","section":"진행 중인 일도 세계 상태다","destinations":[{"kind":"guide","id":"continuity"}]},
+      {"id":"responsibility","section":"현재 누가 책임지고 있는가","destinations":[{"kind":"guide","id":"continuity"}]},
+      {"id":"mass-recalculation","section":"질량은 정의와 구성요소에서 다시 계산한다","destinations":[{"kind":"guide","id":"production"}]},
+      {"id":"resume","section":"중간에 끊겨도 같은 결과로 이어지는 방식","destinations":[{"kind":"guide","id":"continuity"}]},
+      {"id":"player-cases","section":"플레이에서 드러나는 사례","destinations":[{"kind":"guide","id":"continuity"}]},
+      {"id":"corrupt-save","section":"손상된 저장을 억지로 열지 않는 이유","destinations":[{"kind":"guide","id":"continuity"}]},
+      {"id":"same-state","section":"같은 상태에서는 같은 판정","destinations":[{"kind":"guide","id":"continuity"}]},
+      {"id":"restore","section":"복원 구조","destinations":[{"kind":"guide","id":"continuity"}]}
+    ],"excluded":[{"id":"validation-layers","section":"검증의 층","reason":"자동 검증과 개발 절차를 설명하는 절이다."}]}
+  ],
+  "checklist": {
+    "file": "system-implementation-checklist.md",
+    "claims": [
+      {"id":"facility-composition","section":"시설 정의와 ability 조립","destinations":[{"kind":"guide","id":"infrastructure"}]},
+      {"id":"typed-items","section":"아이템 정의와 타입화된 feature","destinations":[{"kind":"category","id":"items"}]},
+      {"id":"physical-inventory","section":"물리 아이템·예약·custody·목적지 수용량","destinations":[{"kind":"guide","id":"inventory-and-carrying"}]},
+      {"id":"production-lifecycle","section":"생산 bill·WIP·prepared output·출력 확정","destinations":[{"kind":"guide","id":"production"}]},
+      {"id":"work-allocation","section":"작업 registry와 AI 노동 배분","destinations":[{"kind":"guide","id":"residents-and-work"}]},
+      {"id":"infrastructure-networks","section":"방·환경·전기·유체·컨베이어","destinations":[{"kind":"guide","id":"infrastructure"}]},
+      {"id":"ecology","section":"농업·축산·야생동물 생태","destinations":[{"kind":"guide","id":"food-and-ecology"}]},
+      {"id":"resident-life","section":"캐릭터 생존·소비·사회·직업·숙련","destinations":[{"kind":"guide","id":"residents-and-work"}]},
+      {"id":"starting-party","section":"시작 구성과 던전 주인 권위","destinations":[{"kind":"guide","id":"starting-party"}]},
+      {"id":"health-life","section":"신체 건강·의료·수술·질병·번식","destinations":[{"kind":"guide","id":"health-and-community"}]},
+      {"id":"research-progression","section":"연구 프로젝트·선행 topology·청사진·시설 요구","destinations":[{"kind":"guide","id":"research"}]},
+      {"id":"facility-evolution","section":"시설 합성·작성 계보 교체·개체 진화 실행 경로","destinations":[{"kind":"guide","id":"facility-growth"}]},
+      {"id":"invasion-defence","section":"침입 위협·방어 정책·침입자·교전","destinations":[{"kind":"guide","id":"invasions-and-defence"}]},
+      {"id":"expedition-combat","section":"원정·전투·보상·귀환/도착","destinations":[{"kind":"guide","id":"expeditions"}]},
+      {"id":"faction-relations","section":"세력 관계·경로·호의·배상 outbox","destinations":[{"kind":"guide","id":"factions-contracts-and-prisoners"}]},
+      {"id":"events","section":"사건 요구 조건·즉시 effect·경보 action","destinations":[{"kind":"guide","id":"events-and-choices"}]},
+      {"id":"meta-progression","section":"메타 진행과 런 생명주기","destinations":[{"kind":"guide","id":"milestones-runs-and-meta"}]},
+      {"id":"save-restore","section":"section 기반 트랜잭션 저장·복원","destinations":[{"kind":"guide","id":"continuity"}]},
+      {"id":"canonical-mass","section":"canonical gram 질의와 질량 입고 기반","destinations":[{"kind":"guide","id":"inventory-and-carrying"}]}
+    ],
+    "excluded": [
+      {"id":"runtime-composition","section":"런타임 조립과 공통 기반","reason":"플레이 규칙이 아닌 런타임 조립 구조다."},
+      {"id":"content-ports","section":"통합 콘텐츠 카탈로그와 도메인별 읽기 port","reason":"플레이 규칙이 아닌 구현 계층 계약이다."},
+      {"id":"generated-knowledge","section":"자동 동기화 기술·콘텐츠 지식베이스","reason":"플레이 규칙이 아닌 문서 생성 기반이다."}
+    ]
+  }
+}

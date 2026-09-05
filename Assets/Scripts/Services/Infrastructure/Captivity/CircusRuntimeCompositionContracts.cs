@@ -11,8 +11,7 @@ public sealed class CircusProgramContext
         ICaptivityCommandService captivityCommands,
         IWildlifeCaptureRuntime wildlifeCapture,
         IExternalInfluenceRuntime externalInfluence,
-        IWorldItemStackRuntime items,
-        IPhysicalItemBatchDispositionService batchDispositions)
+        CircusPerformanceSupplyRuntime performanceSupplies)
     {
         Programs = programs ?? throw new ArgumentNullException(nameof(programs));
         Captivity = captivity ?? throw new ArgumentNullException(nameof(captivity));
@@ -22,9 +21,8 @@ public sealed class CircusProgramContext
             ?? throw new ArgumentNullException(nameof(wildlifeCapture));
         ExternalInfluence = externalInfluence
             ?? throw new ArgumentNullException(nameof(externalInfluence));
-        Items = items ?? throw new ArgumentNullException(nameof(items));
-        BatchDispositions = batchDispositions
-            ?? throw new ArgumentNullException(nameof(batchDispositions));
+        PerformanceSupplies = performanceSupplies
+            ?? throw new ArgumentNullException(nameof(performanceSupplies));
     }
 
     public CircusProgramRegistry Programs { get; }
@@ -32,8 +30,7 @@ public sealed class CircusProgramContext
     public ICaptivityCommandService CaptivityCommands { get; }
     public IWildlifeCaptureRuntime WildlifeCapture { get; }
     public IExternalInfluenceRuntime ExternalInfluence { get; }
-    public IWorldItemStackRuntime Items { get; }
-    public IPhysicalItemBatchDispositionService BatchDispositions { get; }
+    public CircusPerformanceSupplyRuntime PerformanceSupplies { get; }
 }
 
 public sealed class CircusWorldContext

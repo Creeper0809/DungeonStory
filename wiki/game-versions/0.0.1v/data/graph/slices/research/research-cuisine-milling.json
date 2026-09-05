@@ -1,0 +1,136 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-cuisine-milling",
+    "spoiler_tier": "none",
+    "title": "제분·제빵"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-cuisine-milling",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-crops",
+      "target_spoiler_tier": "none",
+      "target_title": "농산 조리",
+      "to": "research/research-cuisine-crops",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-milling",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-crops",
+      "target_spoiler_tier": "none",
+      "target_title": "농산 조리",
+      "to": "research/research-cuisine-crops",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-milling",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-crops",
+      "target_spoiler_tier": "none",
+      "target_title": "농산 조리",
+      "to": "research/research-cuisine-crops",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-milling",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1073",
+      "target_spoiler_tier": "none",
+      "target_title": "제분소",
+      "to": "facility/building-1073",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-milling",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1600",
+      "target_spoiler_tier": "none",
+      "target_title": "미세 체 선반",
+      "to": "facility/building-1600",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-paper-paste",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-milling",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-malt",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-milling",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-milling-flour",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-milling",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-starch",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-milling",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-baking",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-milling",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-baking",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-milling",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-baking",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-milling",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-vegan",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-milling",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-vegan",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-milling",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-vegan",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-milling",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

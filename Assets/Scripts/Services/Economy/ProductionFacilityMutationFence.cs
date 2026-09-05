@@ -18,7 +18,9 @@ public sealed class ProductionFacilityEmptyMutationCandidate
         ProductionFacilityHandle facility,
         string preparedFingerprint,
         bool hadOutputAuthority,
-        long priorCapacityMassGrams)
+        long priorCapacityMassGrams,
+        bool hadStockSensorAuthority,
+        long priorStockSensorCapacityMassGrams)
     {
         Kind = kind;
         OperationId = operationId;
@@ -27,6 +29,8 @@ public sealed class ProductionFacilityEmptyMutationCandidate
         PreparedFingerprint = preparedFingerprint;
         HadOutputAuthority = hadOutputAuthority;
         PriorCapacityMassGrams = priorCapacityMassGrams;
+        HadStockSensorAuthority = hadStockSensorAuthority;
+        PriorStockSensorCapacityMassGrams = priorStockSensorCapacityMassGrams;
     }
 
     public ProductionFacilityMutationKind Kind { get; }
@@ -37,7 +41,10 @@ public sealed class ProductionFacilityEmptyMutationCandidate
     public string PreparedFingerprint { get; }
     public bool HadOutputAuthority { get; }
     public long PriorCapacityMassGrams { get; }
+    public bool HadStockSensorAuthority { get; }
+    public long PriorStockSensorCapacityMassGrams { get; }
     public bool AuthorityRevoked { get; internal set; }
+    public bool StockSensorAuthorityRevoked { get; internal set; }
     public bool IsClosed { get; internal set; }
 }
 
@@ -79,18 +86,27 @@ public sealed class ProductionFacilityMutationFence :
     private readonly IProductionFacilityHandleQuery facilities;
     private readonly IProductionOutputDestinationLifecycleQuery lifecycle;
     private readonly IProductionOutputDestinationAuthorityRuntime outputAuthority;
+    private readonly IProductionStockSensorDestinationAuthorityRuntime
+        stockSensorAuthority;
+    private readonly IProductionStockSensorRuntime stockSensors;
     private readonly IProductionFacilityMutationEpochAuthority epochs;
 
     public ProductionFacilityMutationFence(
         IProductionFacilityHandleQuery facilities,
         IProductionOutputDestinationLifecycleQuery lifecycle,
         IProductionOutputDestinationAuthorityRuntime outputAuthority,
+        IProductionStockSensorDestinationAuthorityRuntime stockSensorAuthority,
+        IProductionStockSensorRuntime stockSensors,
         IProductionFacilityMutationEpochAuthority epochs)
     {
         this.facilities = facilities ?? throw new ArgumentNullException(nameof(facilities));
         this.lifecycle = lifecycle ?? throw new ArgumentNullException(nameof(lifecycle));
         this.outputAuthority = outputAuthority
             ?? throw new ArgumentNullException(nameof(outputAuthority));
+        this.stockSensorAuthority = stockSensorAuthority
+            ?? throw new ArgumentNullException(nameof(stockSensorAuthority));
+        this.stockSensors = stockSensors
+            ?? throw new ArgumentNullException(nameof(stockSensors));
         this.epochs = epochs ?? throw new ArgumentNullException(nameof(epochs));
     }
 
@@ -123,6 +139,17 @@ public sealed class ProductionFacilityMutationFence :
 
         try
         {
+            if (stockSensors.HasOwnedPhysicalState(handle))
+            {
+                failureReason =
+                    "production-facility-mutation-stock-sensor-state-active";
+                EndPreparedEpoch(
+                    handle.InstanceId,
+                    operationId,
+                    epoch,
+                    ref failureReason);
+                return false;
+            }
             ProductionOutputDestinationLifecycleSnapshot snapshot =
                 lifecycle.Capture(handle.InstanceId);
             if (!snapshot.CanRevokeEmpty)
@@ -150,6 +177,43 @@ public sealed class ProductionFacilityMutationFence :
                 priorCapacity = profile.MaxMassGrams;
             }
 
+            bool hasStockSensorAuthority =
+                !string.IsNullOrEmpty(handle.StockSensorInstallationItemId);
+            long priorStockSensorCapacity = 0L;
+            if (hasStockSensorAuthority)
+            {
+                if (!stockSensorAuthority.TryEnsure(
+                        handle,
+                        out priorStockSensorCapacity,
+                        out string sensorEnsureFailure)
+                    || priorStockSensorCapacity <= 0L)
+                {
+                    failureReason =
+                        "production-facility-mutation-stock-sensor-authority-invalid:"
+                        + sensorEnsureFailure;
+                    EndPreparedEpoch(
+                        handle.InstanceId,
+                        operationId,
+                        epoch,
+                        ref failureReason);
+                    return false;
+                }
+                if (!stockSensorAuthority.TryRequireEmpty(
+                        handle,
+                        out string sensorEmptyFailure))
+                {
+                    failureReason =
+                        "production-facility-mutation-stock-sensor-authority-invalid:"
+                        + sensorEmptyFailure;
+                    EndPreparedEpoch(
+                        handle.InstanceId,
+                        operationId,
+                        epoch,
+                        ref failureReason);
+                    return false;
+                }
+            }
+
             candidate = new ProductionFacilityEmptyMutationCandidate(
                 kind,
                 operationId,
@@ -157,7 +221,9 @@ public sealed class ProductionFacilityMutationFence :
                 handle,
                 snapshot.SemanticFingerprint,
                 snapshot.HasAnyAuthority,
-                priorCapacity);
+                priorCapacity,
+                hasStockSensorAuthority,
+                priorStockSensorCapacity);
             return true;
         }
         catch (Exception exception)
@@ -175,7 +241,8 @@ public sealed class ProductionFacilityMutationFence :
     {
         failureReason = string.Empty;
         if (!TryRequireOpenCurrent(candidate, out failureReason)
-            || candidate.AuthorityRevoked)
+            || candidate.AuthorityRevoked
+            || candidate.StockSensorAuthorityRevoked)
         {
             failureReason = string.IsNullOrEmpty(failureReason)
                 ? "production-facility-mutation-already-committed"
@@ -196,16 +263,37 @@ public sealed class ProductionFacilityMutationFence :
             return false;
         }
 
+        if (candidate.HadStockSensorAuthority)
+        {
+            if (!stockSensorAuthority.TryRevoke(
+                    candidate.FacilityId,
+                    out failureReason))
+            {
+                return false;
+            }
+            candidate.StockSensorAuthorityRevoked = true;
+        }
+
         if (!candidate.HadOutputAuthority)
             return true;
         if (!outputAuthority.TryRevoke(candidate.FacilityId, out failureReason))
+        {
+            if (!TryRestoreStockSensorAuthority(
+                    candidate,
+                    out string sensorRestoreFailure))
+            {
+                failureReason += ":stock-sensor-rollback-failed:"
+                    + sensorRestoreFailure;
+            }
             return false;
+        }
 
         ProductionOutputDestinationLifecycleSnapshot revoked =
             lifecycle.Capture(candidate.FacilityId);
         if (revoked.HasAnyAuthority || !revoked.CanRevokeEmpty)
         {
-            if (!TryRestoreAuthority(candidate, out string restoreFailure))
+            candidate.AuthorityRevoked = true;
+            if (!TryRestoreAuthorities(candidate, out string restoreFailure))
             {
                 failureReason = "production-facility-mutation-revoke-postcondition-failed:"
                     + restoreFailure;
@@ -225,8 +313,9 @@ public sealed class ProductionFacilityMutationFence :
         failureReason = string.Empty;
         if (!TryRequireOpenCurrent(candidate, out failureReason))
             return false;
-        if (candidate.AuthorityRevoked
-            && !TryRestoreAuthority(candidate, out failureReason))
+        if ((candidate.AuthorityRevoked
+                || candidate.StockSensorAuthorityRevoked)
+            && !TryRestoreAuthorities(candidate, out failureReason))
         {
             return false;
         }
@@ -254,6 +343,13 @@ public sealed class ProductionFacilityMutationFence :
             failureReason = "production-facility-mutation-authority-not-revoked";
             return false;
         }
+        if (candidate.HadStockSensorAuthority
+            && !candidate.StockSensorAuthorityRevoked)
+        {
+            failureReason =
+                "production-facility-mutation-stock-sensor-authority-not-revoked";
+            return false;
+        }
         if (!epochs.TryEnd(
                 candidate.FacilityId,
                 candidate.OperationId,
@@ -274,6 +370,14 @@ public sealed class ProductionFacilityMutationFence :
         failureReason = string.Empty;
         if (!TryCaptureFacility(facility, out ProductionFacilityHandle handle, out failureReason))
             return false;
+        if (stockSensors.HasOwnedPhysicalState(handle))
+        {
+            failureReason =
+                "production-facility-mutation-stock-sensor-state-active";
+            return false;
+        }
+        if (!TryRequireStockSensorAuthorityEmpty(handle, out failureReason))
+            return false;
         ProductionOutputDestinationLifecycleSnapshot snapshot =
             lifecycle.Capture(handle.InstanceId);
         if (!snapshot.HasAnyAuthority && snapshot.CanRevokeEmpty)
@@ -283,34 +387,73 @@ public sealed class ProductionFacilityMutationFence :
         return false;
     }
 
-    private bool TryRestoreAuthority(
+    private bool TryRestoreAuthorities(
         ProductionFacilityEmptyMutationCandidate candidate,
         out string failureReason)
     {
         failureReason = string.Empty;
-        if (!candidate.HadOutputAuthority)
-            return true;
-        if (!outputAuthority.TryEnsure(
+        if (candidate.AuthorityRevoked
+            && (!outputAuthority.TryEnsure(
                 candidate.Facility,
                 candidate.PriorCapacityMassGrams,
                 out FacilityBufferCapacityProfile restored,
                 out failureReason)
             || restored == null
-            || restored.MaxMassGrams != candidate.PriorCapacityMassGrams)
+            || restored.MaxMassGrams != candidate.PriorCapacityMassGrams))
         {
             failureReason = "production-facility-mutation-authority-restore-failed:"
                 + failureReason;
             return false;
         }
-        ProductionOutputDestinationLifecycleSnapshot snapshot =
-            lifecycle.Capture(candidate.FacilityId);
-        if (!snapshot.HasAnyAuthority || !snapshot.CanRevokeEmpty)
+        if (candidate.AuthorityRevoked)
         {
-            failureReason = "production-facility-mutation-authority-restore-postcondition-failed";
+            ProductionOutputDestinationLifecycleSnapshot snapshot =
+                lifecycle.Capture(candidate.FacilityId);
+            if (!snapshot.HasAnyAuthority || !snapshot.CanRevokeEmpty)
+            {
+                failureReason =
+                    "production-facility-mutation-authority-restore-postcondition-failed";
+                return false;
+            }
+            candidate.AuthorityRevoked = false;
+        }
+        return TryRestoreStockSensorAuthority(candidate, out failureReason);
+    }
+
+    private bool TryRestoreStockSensorAuthority(
+        ProductionFacilityEmptyMutationCandidate candidate,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (!candidate.StockSensorAuthorityRevoked)
+            return true;
+        if (!stockSensorAuthority.TryEnsure(
+                candidate.Facility,
+                out long restoredMassGrams,
+                out failureReason)
+            || restoredMassGrams != candidate.PriorStockSensorCapacityMassGrams
+            || !stockSensorAuthority.TryRequireEmpty(
+                candidate.Facility,
+                out failureReason))
+        {
+            failureReason =
+                "production-facility-mutation-stock-sensor-restore-failed:"
+                + failureReason;
             return false;
         }
-        candidate.AuthorityRevoked = false;
+        candidate.StockSensorAuthorityRevoked = false;
         return true;
+    }
+
+    private bool TryRequireStockSensorAuthorityEmpty(
+        ProductionFacilityHandle handle,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (string.IsNullOrEmpty(handle.StockSensorInstallationItemId))
+            return true;
+        return stockSensorAuthority.TryEnsure(handle, out _, out failureReason)
+            && stockSensorAuthority.TryRequireEmpty(handle, out failureReason);
     }
 
     private bool TryCaptureFacility(

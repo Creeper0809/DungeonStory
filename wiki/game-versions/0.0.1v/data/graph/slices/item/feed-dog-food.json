@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "feed-dog-food",
+    "spoiler_tier": "none",
+    "title": "개밥"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-dog-food",
+      "label": "생산·해금",
+      "to": "item/feed-dog-food",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

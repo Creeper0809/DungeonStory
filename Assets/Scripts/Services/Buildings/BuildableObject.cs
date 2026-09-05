@@ -205,6 +205,65 @@ public class BuildableObject : MonoBehaviour,
         DestroyImmediate(gameObject);
     }
 
+    internal bool CanTransferWorldRegistryRegistrationTo(
+        BuildableObject replacement)
+    {
+        return replacement != null
+            && !ReferenceEquals(this, replacement)
+            && registeredWithWorldRegistry
+            && !replacement.registeredWithWorldRegistry
+            && !detachedRestoreCandidate
+            && replacement.detachedRestoreCandidate
+            && worldRegistry != null
+            && ReferenceEquals(worldRegistry, replacement.worldRegistry)
+            && !isDestroy
+            && !replacement.isDestroy
+            && PersistentInstanceId.IsValid
+            && PersistentInstanceId.Equals(replacement.PersistentInstanceId);
+    }
+
+    internal void TransferWorldRegistryRegistrationTo(
+        BuildableObject replacement)
+    {
+        if (!CanTransferWorldRegistryRegistrationTo(replacement))
+        {
+            throw new InvalidOperationException(
+                "Building world-registry registration transfer was not preflighted.");
+        }
+
+        registeredWithWorldRegistry = false;
+        replacement.registeredWithWorldRegistry = true;
+    }
+
+    internal bool CanRollbackWorldRegistryRegistrationTo(
+        BuildableObject original)
+    {
+        return original != null
+            && !ReferenceEquals(this, original)
+            && registeredWithWorldRegistry
+            && !original.registeredWithWorldRegistry
+            && !original.detachedRestoreCandidate
+            && worldRegistry != null
+            && ReferenceEquals(worldRegistry, original.worldRegistry)
+            && !isDestroy
+            && !original.isDestroy
+            && PersistentInstanceId.IsValid
+            && PersistentInstanceId.Equals(original.PersistentInstanceId);
+    }
+
+    internal void RollbackWorldRegistryRegistrationTo(
+        BuildableObject original)
+    {
+        if (!CanRollbackWorldRegistryRegistrationTo(original))
+        {
+            throw new InvalidOperationException(
+                "Building world-registry registration rollback was not preflighted.");
+        }
+
+        registeredWithWorldRegistry = false;
+        original.registeredWithWorldRegistry = true;
+    }
+
     [Inject]
     public void ConstructBuildableObject(
         IBuildingResearchWorkPort blueprintResearchWorkService,

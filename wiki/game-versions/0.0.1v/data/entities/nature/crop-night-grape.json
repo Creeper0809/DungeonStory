@@ -1,0 +1,36 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "관개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "nature",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "genome-night-grape-base",
+      "target_spoiler_tier": "none",
+      "target_title": "Genome_night-grape",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-irrigation",
+      "target_spoiler_tier": "none",
+      "target_title": "관개",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "crop-night-grape",
+  "spoiler_tier": "none",
+  "summary": "밤포도 종자를 54시간 재배해 밤포도 5개를 생산하며 하루 물 0.5를 소비한다. 관개가 재배 시점을 제한한다.",
+  "title": "밤포도"
+}

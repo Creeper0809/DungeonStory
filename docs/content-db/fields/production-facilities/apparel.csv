@@ -1,0 +1,1737 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+ApparelDefinitionSO|apparel:23001,apparel:23001,m_Name,apparel_lower_underwear,,,explicit-serialized
+ApparelDefinitionSO|apparel:23001,apparel:23001,id,23001,,,explicit-serialized
+ApparelDefinitionSO|apparel:23001,apparel:23001,apparelId,apparel:lower-underwear,,,explicit-serialized
+ApparelDefinitionSO|apparel:23001,apparel:23001,physicalItemId,apparel:lower-underwear,,,explicit-serialized
+ApparelDefinitionSO|apparel:23001,apparel:23001,displayName,하의 속옷,,,explicit-serialized
+ApparelDefinitionSO|apparel:23001,apparel:23001,description,하의 속옷. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23001,apparel:23001,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23001,apparel:23001,layer,0,ApparelLayer,Underwear,explicit-serialized
+ApparelDefinitionSO|apparel:23001,apparel:23001,fitMode,0,ApparelFitMode,Sized,explicit-serialized
+ApparelDefinitionSO|apparel:23001,apparel:23001,requiredPoints,16,AnatomyAttachmentPoint,Wing Left,explicit-serialized
+ApparelDefinitionSO|apparel:23001,apparel:23001,occupiedPoints,16,AnatomyAttachmentPoint,Wing Left,explicit-serialized
+ApparelDefinitionSO|apparel:23001,apparel:23001,sealedOptionalPoints,16384,AnatomyAttachmentPoint,알 수 없음 (16384),explicit-serialized
+ApparelDefinitionSO|apparel:23001,apparel:23001,supportedModifications,1,ApparelModificationKind,Tail Opening,explicit-serialized
+ApparelDefinitionSO|apparel:23001,apparel:23001,useTags,1,ApparelUseTag,Underwear,explicit-serialized
+ApparelDefinitionSO|apparel:23001,apparel:23001,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23001,apparel:23001,tailoringCoefficient,0.75,,,explicit-serialized
+ApparelDefinitionSO|apparel:23001,apparel:23001,baseWeight,0.18,,,explicit-serialized
+ApparelDefinitionSO|apparel:23001,apparel:23001,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23001,apparel:23001,requiredResearchId,research:textile:fiber,,,explicit-serialized
+ApparelDefinitionSO|apparel:23001,apparel:23001,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23001,apparel:23001,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23001,apparel:23001,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23001,apparel:23001,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23001,apparel:23001,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23001,apparel:23001,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23001,apparel:23001,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23001,apparel:23001,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23001,apparel:23001,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23001,apparel:23001,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23001,apparel:23001,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23001,apparel:23001,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23002,apparel:23002,m_Name,apparel_loincloth_underwear,,,explicit-serialized
+ApparelDefinitionSO|apparel:23002,apparel:23002,id,23002,,,explicit-serialized
+ApparelDefinitionSO|apparel:23002,apparel:23002,apparelId,apparel:loincloth-underwear,,,explicit-serialized
+ApparelDefinitionSO|apparel:23002,apparel:23002,physicalItemId,apparel:loincloth-underwear,,,explicit-serialized
+ApparelDefinitionSO|apparel:23002,apparel:23002,displayName,허리 두름 속옷,,,explicit-serialized
+ApparelDefinitionSO|apparel:23002,apparel:23002,description,허리 두름 속옷. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23002,apparel:23002,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23002,apparel:23002,layer,0,ApparelLayer,Underwear,explicit-serialized
+ApparelDefinitionSO|apparel:23002,apparel:23002,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23002,apparel:23002,requiredPoints,16,AnatomyAttachmentPoint,Wing Left,explicit-serialized
+ApparelDefinitionSO|apparel:23002,apparel:23002,occupiedPoints,16,AnatomyAttachmentPoint,Wing Left,explicit-serialized
+ApparelDefinitionSO|apparel:23002,apparel:23002,sealedOptionalPoints,0,AnatomyAttachmentPoint,None,explicit-serialized
+ApparelDefinitionSO|apparel:23002,apparel:23002,supportedModifications,0,ApparelModificationKind,None,explicit-serialized
+ApparelDefinitionSO|apparel:23002,apparel:23002,useTags,1,ApparelUseTag,Underwear,explicit-serialized
+ApparelDefinitionSO|apparel:23002,apparel:23002,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23002,apparel:23002,tailoringCoefficient,0.65,,,explicit-serialized
+ApparelDefinitionSO|apparel:23002,apparel:23002,baseWeight,0.16,,,explicit-serialized
+ApparelDefinitionSO|apparel:23002,apparel:23002,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23002,apparel:23002,requiredResearchId,research:textile:fiber,,,explicit-serialized
+ApparelDefinitionSO|apparel:23002,apparel:23002,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23002,apparel:23002,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23002,apparel:23002,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23002,apparel:23002,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23002,apparel:23002,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23002,apparel:23002,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23002,apparel:23002,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23002,apparel:23002,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23002,apparel:23002,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23002,apparel:23002,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23002,apparel:23002,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23002,apparel:23002,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23003,apparel:23003,m_Name,apparel_undershirt,,,explicit-serialized
+ApparelDefinitionSO|apparel:23003,apparel:23003,id,23003,,,explicit-serialized
+ApparelDefinitionSO|apparel:23003,apparel:23003,apparelId,apparel:undershirt,,,explicit-serialized
+ApparelDefinitionSO|apparel:23003,apparel:23003,physicalItemId,apparel:undershirt,,,explicit-serialized
+ApparelDefinitionSO|apparel:23003,apparel:23003,displayName,속셔츠,,,explicit-serialized
+ApparelDefinitionSO|apparel:23003,apparel:23003,description,속셔츠. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23003,apparel:23003,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23003,apparel:23003,layer,0,ApparelLayer,Underwear,explicit-serialized
+ApparelDefinitionSO|apparel:23003,apparel:23003,fitMode,0,ApparelFitMode,Sized,explicit-serialized
+ApparelDefinitionSO|apparel:23003,apparel:23003,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23003,apparel:23003,occupiedPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23003,apparel:23003,sealedOptionalPoints,98304,AnatomyAttachmentPoint,알 수 없음 (98304),explicit-serialized
+ApparelDefinitionSO|apparel:23003,apparel:23003,supportedModifications,2,ApparelModificationKind,Wing Slits,explicit-serialized
+ApparelDefinitionSO|apparel:23003,apparel:23003,useTags,1,ApparelUseTag,Underwear,explicit-serialized
+ApparelDefinitionSO|apparel:23003,apparel:23003,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23003,apparel:23003,tailoringCoefficient,0.78,,,explicit-serialized
+ApparelDefinitionSO|apparel:23003,apparel:23003,baseWeight,0.2,,,explicit-serialized
+ApparelDefinitionSO|apparel:23003,apparel:23003,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23003,apparel:23003,requiredResearchId,research:textile:fiber,,,explicit-serialized
+ApparelDefinitionSO|apparel:23003,apparel:23003,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23003,apparel:23003,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23003,apparel:23003,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23003,apparel:23003,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23003,apparel:23003,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23003,apparel:23003,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23003,apparel:23003,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23003,apparel:23003,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23003,apparel:23003,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23003,apparel:23003,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23003,apparel:23003,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23003,apparel:23003,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23004,apparel:23004,m_Name,apparel_chest_wrap,,,explicit-serialized
+ApparelDefinitionSO|apparel:23004,apparel:23004,id,23004,,,explicit-serialized
+ApparelDefinitionSO|apparel:23004,apparel:23004,apparelId,apparel:chest-wrap,,,explicit-serialized
+ApparelDefinitionSO|apparel:23004,apparel:23004,physicalItemId,apparel:chest-wrap,,,explicit-serialized
+ApparelDefinitionSO|apparel:23004,apparel:23004,displayName,가슴 감개,,,explicit-serialized
+ApparelDefinitionSO|apparel:23004,apparel:23004,description,가슴 감개. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23004,apparel:23004,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23004,apparel:23004,layer,0,ApparelLayer,Underwear,explicit-serialized
+ApparelDefinitionSO|apparel:23004,apparel:23004,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23004,apparel:23004,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23004,apparel:23004,occupiedPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23004,apparel:23004,sealedOptionalPoints,0,AnatomyAttachmentPoint,None,explicit-serialized
+ApparelDefinitionSO|apparel:23004,apparel:23004,supportedModifications,0,ApparelModificationKind,None,explicit-serialized
+ApparelDefinitionSO|apparel:23004,apparel:23004,useTags,1,ApparelUseTag,Underwear,explicit-serialized
+ApparelDefinitionSO|apparel:23004,apparel:23004,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23004,apparel:23004,tailoringCoefficient,0.65,,,explicit-serialized
+ApparelDefinitionSO|apparel:23004,apparel:23004,baseWeight,0.15,,,explicit-serialized
+ApparelDefinitionSO|apparel:23004,apparel:23004,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23004,apparel:23004,requiredResearchId,research:textile:fiber,,,explicit-serialized
+ApparelDefinitionSO|apparel:23004,apparel:23004,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23004,apparel:23004,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23004,apparel:23004,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23004,apparel:23004,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23004,apparel:23004,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23004,apparel:23004,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23004,apparel:23004,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23004,apparel:23004,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23004,apparel:23004,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23004,apparel:23004,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23004,apparel:23004,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23004,apparel:23004,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23005,apparel:23005,m_Name,apparel_long_underpants,,,explicit-serialized
+ApparelDefinitionSO|apparel:23005,apparel:23005,id,23005,,,explicit-serialized
+ApparelDefinitionSO|apparel:23005,apparel:23005,apparelId,apparel:long-underpants,,,explicit-serialized
+ApparelDefinitionSO|apparel:23005,apparel:23005,physicalItemId,apparel:long-underpants,,,explicit-serialized
+ApparelDefinitionSO|apparel:23005,apparel:23005,displayName,내의 바지,,,explicit-serialized
+ApparelDefinitionSO|apparel:23005,apparel:23005,description,내의 바지. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23005,apparel:23005,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23005,apparel:23005,layer,1,ApparelLayer,Inner,explicit-serialized
+ApparelDefinitionSO|apparel:23005,apparel:23005,fitMode,0,ApparelFitMode,Sized,explicit-serialized
+ApparelDefinitionSO|apparel:23005,apparel:23005,requiredPoints,1552,AnatomyAttachmentPoint,알 수 없음 (1552),explicit-serialized
+ApparelDefinitionSO|apparel:23005,apparel:23005,occupiedPoints,1552,AnatomyAttachmentPoint,알 수 없음 (1552),explicit-serialized
+ApparelDefinitionSO|apparel:23005,apparel:23005,sealedOptionalPoints,16384,AnatomyAttachmentPoint,알 수 없음 (16384),explicit-serialized
+ApparelDefinitionSO|apparel:23005,apparel:23005,supportedModifications,1,ApparelModificationKind,Tail Opening,explicit-serialized
+ApparelDefinitionSO|apparel:23005,apparel:23005,useTags,17,ApparelUseTag,알 수 없음 (17),explicit-serialized
+ApparelDefinitionSO|apparel:23005,apparel:23005,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23005,apparel:23005,tailoringCoefficient,0.9,,,explicit-serialized
+ApparelDefinitionSO|apparel:23005,apparel:23005,baseWeight,0.35,,,explicit-serialized
+ApparelDefinitionSO|apparel:23005,apparel:23005,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23005,apparel:23005,requiredResearchId,research:textile:fiber,,,explicit-serialized
+ApparelDefinitionSO|apparel:23005,apparel:23005,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23005,apparel:23005,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23005,apparel:23005,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23005,apparel:23005,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23005,apparel:23005,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23005,apparel:23005,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23005,apparel:23005,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23005,apparel:23005,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23005,apparel:23005,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23005,apparel:23005,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23005,apparel:23005,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23005,apparel:23005,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23006,apparel:23006,m_Name,apparel_socks,,,explicit-serialized
+ApparelDefinitionSO|apparel:23006,apparel:23006,id,23006,,,explicit-serialized
+ApparelDefinitionSO|apparel:23006,apparel:23006,apparelId,apparel:socks,,,explicit-serialized
+ApparelDefinitionSO|apparel:23006,apparel:23006,physicalItemId,apparel:socks,,,explicit-serialized
+ApparelDefinitionSO|apparel:23006,apparel:23006,displayName,양말,,,explicit-serialized
+ApparelDefinitionSO|apparel:23006,apparel:23006,description,양말. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23006,apparel:23006,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23006,apparel:23006,layer,0,ApparelLayer,Underwear,explicit-serialized
+ApparelDefinitionSO|apparel:23006,apparel:23006,fitMode,0,ApparelFitMode,Sized,explicit-serialized
+ApparelDefinitionSO|apparel:23006,apparel:23006,requiredPoints,6144,AnatomyAttachmentPoint,알 수 없음 (6144),explicit-serialized
+ApparelDefinitionSO|apparel:23006,apparel:23006,occupiedPoints,6144,AnatomyAttachmentPoint,알 수 없음 (6144),explicit-serialized
+ApparelDefinitionSO|apparel:23006,apparel:23006,sealedOptionalPoints,0,AnatomyAttachmentPoint,None,explicit-serialized
+ApparelDefinitionSO|apparel:23006,apparel:23006,supportedModifications,0,ApparelModificationKind,None,explicit-serialized
+ApparelDefinitionSO|apparel:23006,apparel:23006,useTags,1,ApparelUseTag,Underwear,explicit-serialized
+ApparelDefinitionSO|apparel:23006,apparel:23006,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23006,apparel:23006,tailoringCoefficient,0.72,,,explicit-serialized
+ApparelDefinitionSO|apparel:23006,apparel:23006,baseWeight,0.12,,,explicit-serialized
+ApparelDefinitionSO|apparel:23006,apparel:23006,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23006,apparel:23006,requiredResearchId,research:textile:fiber,,,explicit-serialized
+ApparelDefinitionSO|apparel:23006,apparel:23006,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23006,apparel:23006,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23006,apparel:23006,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23006,apparel:23006,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23006,apparel:23006,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23006,apparel:23006,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23006,apparel:23006,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23006,apparel:23006,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23006,apparel:23006,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23006,apparel:23006,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23006,apparel:23006,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23006,apparel:23006,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23007,apparel:23007,m_Name,apparel_footwraps,,,explicit-serialized
+ApparelDefinitionSO|apparel:23007,apparel:23007,id,23007,,,explicit-serialized
+ApparelDefinitionSO|apparel:23007,apparel:23007,apparelId,apparel:footwraps,,,explicit-serialized
+ApparelDefinitionSO|apparel:23007,apparel:23007,physicalItemId,apparel:footwraps,,,explicit-serialized
+ApparelDefinitionSO|apparel:23007,apparel:23007,displayName,발싸개,,,explicit-serialized
+ApparelDefinitionSO|apparel:23007,apparel:23007,description,발싸개. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23007,apparel:23007,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23007,apparel:23007,layer,0,ApparelLayer,Underwear,explicit-serialized
+ApparelDefinitionSO|apparel:23007,apparel:23007,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23007,apparel:23007,requiredPoints,6144,AnatomyAttachmentPoint,알 수 없음 (6144),explicit-serialized
+ApparelDefinitionSO|apparel:23007,apparel:23007,occupiedPoints,6144,AnatomyAttachmentPoint,알 수 없음 (6144),explicit-serialized
+ApparelDefinitionSO|apparel:23007,apparel:23007,sealedOptionalPoints,0,AnatomyAttachmentPoint,None,explicit-serialized
+ApparelDefinitionSO|apparel:23007,apparel:23007,supportedModifications,0,ApparelModificationKind,None,explicit-serialized
+ApparelDefinitionSO|apparel:23007,apparel:23007,useTags,1,ApparelUseTag,Underwear,explicit-serialized
+ApparelDefinitionSO|apparel:23007,apparel:23007,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23007,apparel:23007,tailoringCoefficient,0.62,,,explicit-serialized
+ApparelDefinitionSO|apparel:23007,apparel:23007,baseWeight,0.1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23007,apparel:23007,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23007,apparel:23007,requiredResearchId,research:textile:fiber,,,explicit-serialized
+ApparelDefinitionSO|apparel:23007,apparel:23007,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23007,apparel:23007,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23007,apparel:23007,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23007,apparel:23007,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23007,apparel:23007,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23007,apparel:23007,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23007,apparel:23007,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23007,apparel:23007,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23007,apparel:23007,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23007,apparel:23007,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23007,apparel:23007,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23007,apparel:23007,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23008,apparel:23008,m_Name,apparel_sleep_top,,,explicit-serialized
+ApparelDefinitionSO|apparel:23008,apparel:23008,id,23008,,,explicit-serialized
+ApparelDefinitionSO|apparel:23008,apparel:23008,apparelId,apparel:sleep-top,,,explicit-serialized
+ApparelDefinitionSO|apparel:23008,apparel:23008,physicalItemId,apparel:sleep-top,,,explicit-serialized
+ApparelDefinitionSO|apparel:23008,apparel:23008,displayName,잠옷 상의,,,explicit-serialized
+ApparelDefinitionSO|apparel:23008,apparel:23008,description,잠옷 상의. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23008,apparel:23008,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23008,apparel:23008,layer,1,ApparelLayer,Inner,explicit-serialized
+ApparelDefinitionSO|apparel:23008,apparel:23008,fitMode,0,ApparelFitMode,Sized,explicit-serialized
+ApparelDefinitionSO|apparel:23008,apparel:23008,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23008,apparel:23008,occupiedPoints,104,AnatomyAttachmentPoint,알 수 없음 (104),explicit-serialized
+ApparelDefinitionSO|apparel:23008,apparel:23008,sealedOptionalPoints,98304,AnatomyAttachmentPoint,알 수 없음 (98304),explicit-serialized
+ApparelDefinitionSO|apparel:23008,apparel:23008,supportedModifications,2,ApparelModificationKind,Wing Slits,explicit-serialized
+ApparelDefinitionSO|apparel:23008,apparel:23008,useTags,2,ApparelUseTag,Sleep,explicit-serialized
+ApparelDefinitionSO|apparel:23008,apparel:23008,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23008,apparel:23008,tailoringCoefficient,0.82,,,explicit-serialized
+ApparelDefinitionSO|apparel:23008,apparel:23008,baseWeight,0.35,,,explicit-serialized
+ApparelDefinitionSO|apparel:23008,apparel:23008,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23008,apparel:23008,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23008,apparel:23008,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23008,apparel:23008,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23008,apparel:23008,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23008,apparel:23008,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23008,apparel:23008,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23008,apparel:23008,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23008,apparel:23008,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23008,apparel:23008,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23008,apparel:23008,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23008,apparel:23008,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23008,apparel:23008,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23008,apparel:23008,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23009,apparel:23009,m_Name,apparel_sleep_bottom,,,explicit-serialized
+ApparelDefinitionSO|apparel:23009,apparel:23009,id,23009,,,explicit-serialized
+ApparelDefinitionSO|apparel:23009,apparel:23009,apparelId,apparel:sleep-bottom,,,explicit-serialized
+ApparelDefinitionSO|apparel:23009,apparel:23009,physicalItemId,apparel:sleep-bottom,,,explicit-serialized
+ApparelDefinitionSO|apparel:23009,apparel:23009,displayName,잠옷 하의,,,explicit-serialized
+ApparelDefinitionSO|apparel:23009,apparel:23009,description,잠옷 하의. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23009,apparel:23009,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23009,apparel:23009,layer,1,ApparelLayer,Inner,explicit-serialized
+ApparelDefinitionSO|apparel:23009,apparel:23009,fitMode,0,ApparelFitMode,Sized,explicit-serialized
+ApparelDefinitionSO|apparel:23009,apparel:23009,requiredPoints,1552,AnatomyAttachmentPoint,알 수 없음 (1552),explicit-serialized
+ApparelDefinitionSO|apparel:23009,apparel:23009,occupiedPoints,1552,AnatomyAttachmentPoint,알 수 없음 (1552),explicit-serialized
+ApparelDefinitionSO|apparel:23009,apparel:23009,sealedOptionalPoints,16384,AnatomyAttachmentPoint,알 수 없음 (16384),explicit-serialized
+ApparelDefinitionSO|apparel:23009,apparel:23009,supportedModifications,1,ApparelModificationKind,Tail Opening,explicit-serialized
+ApparelDefinitionSO|apparel:23009,apparel:23009,useTags,2,ApparelUseTag,Sleep,explicit-serialized
+ApparelDefinitionSO|apparel:23009,apparel:23009,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23009,apparel:23009,tailoringCoefficient,0.82,,,explicit-serialized
+ApparelDefinitionSO|apparel:23009,apparel:23009,baseWeight,0.32,,,explicit-serialized
+ApparelDefinitionSO|apparel:23009,apparel:23009,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23009,apparel:23009,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23009,apparel:23009,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23009,apparel:23009,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23009,apparel:23009,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23009,apparel:23009,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23009,apparel:23009,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23009,apparel:23009,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23009,apparel:23009,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23009,apparel:23009,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23009,apparel:23009,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23009,apparel:23009,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23009,apparel:23009,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23009,apparel:23009,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23010,apparel:23010,m_Name,apparel_golem_functional_lining,,,explicit-serialized
+ApparelDefinitionSO|apparel:23010,apparel:23010,id,23010,,,explicit-serialized
+ApparelDefinitionSO|apparel:23010,apparel:23010,apparelId,apparel:golem-functional-lining,,,explicit-serialized
+ApparelDefinitionSO|apparel:23010,apparel:23010,physicalItemId,apparel:golem-functional-lining,,,explicit-serialized
+ApparelDefinitionSO|apparel:23010,apparel:23010,displayName,골렘 기능성 내피,,,explicit-serialized
+ApparelDefinitionSO|apparel:23010,apparel:23010,description,골렘 기능성 내피. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23010,apparel:23010,bodyForm,1,ApparelBodyForm,Construct,explicit-serialized
+ApparelDefinitionSO|apparel:23010,apparel:23010,layer,1,ApparelLayer,Inner,explicit-serialized
+ApparelDefinitionSO|apparel:23010,apparel:23010,fitMode,0,ApparelFitMode,Sized,explicit-serialized
+ApparelDefinitionSO|apparel:23010,apparel:23010,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23010,apparel:23010,occupiedPoints,9848,AnatomyAttachmentPoint,알 수 없음 (9848),explicit-serialized
+ApparelDefinitionSO|apparel:23010,apparel:23010,sealedOptionalPoints,0,AnatomyAttachmentPoint,None,explicit-serialized
+ApparelDefinitionSO|apparel:23010,apparel:23010,supportedModifications,0,ApparelModificationKind,None,explicit-serialized
+ApparelDefinitionSO|apparel:23010,apparel:23010,useTags,2048,ApparelUseTag,Protective,explicit-serialized
+ApparelDefinitionSO|apparel:23010,apparel:23010,allowedMaterialTags,3,TextileMaterialTag,알 수 없음 (3),explicit-serialized
+ApparelDefinitionSO|apparel:23010,apparel:23010,tailoringCoefficient,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23010,apparel:23010,baseWeight,0.7,,,explicit-serialized
+ApparelDefinitionSO|apparel:23010,apparel:23010,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23010,apparel:23010,requiredResearchId,research:textile:layered,,,explicit-serialized
+ApparelDefinitionSO|apparel:23010,apparel:23010,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23010,apparel:23010,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23010,apparel:23010,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23010,apparel:23010,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23010,apparel:23010,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23010,apparel:23010,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23010,apparel:23010,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23010,apparel:23010,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23010,apparel:23010,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23010,apparel:23010,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23010,apparel:23010,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23010,apparel:23010,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23011,apparel:23011,m_Name,apparel_tunic,,,explicit-serialized
+ApparelDefinitionSO|apparel:23011,apparel:23011,id,23011,,,explicit-serialized
+ApparelDefinitionSO|apparel:23011,apparel:23011,apparelId,apparel:tunic,,,explicit-serialized
+ApparelDefinitionSO|apparel:23011,apparel:23011,physicalItemId,apparel:tunic,,,explicit-serialized
+ApparelDefinitionSO|apparel:23011,apparel:23011,displayName,튜닉,,,explicit-serialized
+ApparelDefinitionSO|apparel:23011,apparel:23011,description,튜닉. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23011,apparel:23011,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23011,apparel:23011,layer,1,ApparelLayer,Inner,explicit-serialized
+ApparelDefinitionSO|apparel:23011,apparel:23011,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23011,apparel:23011,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23011,apparel:23011,occupiedPoints,104,AnatomyAttachmentPoint,알 수 없음 (104),explicit-serialized
+ApparelDefinitionSO|apparel:23011,apparel:23011,sealedOptionalPoints,98304,AnatomyAttachmentPoint,알 수 없음 (98304),explicit-serialized
+ApparelDefinitionSO|apparel:23011,apparel:23011,supportedModifications,2,ApparelModificationKind,Wing Slits,explicit-serialized
+ApparelDefinitionSO|apparel:23011,apparel:23011,useTags,4,ApparelUseTag,Daily,explicit-serialized
+ApparelDefinitionSO|apparel:23011,apparel:23011,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23011,apparel:23011,tailoringCoefficient,0.9,,,explicit-serialized
+ApparelDefinitionSO|apparel:23011,apparel:23011,baseWeight,0.45,,,explicit-serialized
+ApparelDefinitionSO|apparel:23011,apparel:23011,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23011,apparel:23011,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23011,apparel:23011,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23011,apparel:23011,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23011,apparel:23011,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23011,apparel:23011,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23011,apparel:23011,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23011,apparel:23011,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23011,apparel:23011,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23011,apparel:23011,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23011,apparel:23011,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23011,apparel:23011,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23011,apparel:23011,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23011,apparel:23011,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23012,apparel:23012,m_Name,apparel_blouse,,,explicit-serialized
+ApparelDefinitionSO|apparel:23012,apparel:23012,id,23012,,,explicit-serialized
+ApparelDefinitionSO|apparel:23012,apparel:23012,apparelId,apparel:blouse,,,explicit-serialized
+ApparelDefinitionSO|apparel:23012,apparel:23012,physicalItemId,apparel:blouse,,,explicit-serialized
+ApparelDefinitionSO|apparel:23012,apparel:23012,displayName,블라우스,,,explicit-serialized
+ApparelDefinitionSO|apparel:23012,apparel:23012,description,블라우스. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23012,apparel:23012,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23012,apparel:23012,layer,1,ApparelLayer,Inner,explicit-serialized
+ApparelDefinitionSO|apparel:23012,apparel:23012,fitMode,0,ApparelFitMode,Sized,explicit-serialized
+ApparelDefinitionSO|apparel:23012,apparel:23012,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23012,apparel:23012,occupiedPoints,104,AnatomyAttachmentPoint,알 수 없음 (104),explicit-serialized
+ApparelDefinitionSO|apparel:23012,apparel:23012,sealedOptionalPoints,98304,AnatomyAttachmentPoint,알 수 없음 (98304),explicit-serialized
+ApparelDefinitionSO|apparel:23012,apparel:23012,supportedModifications,2,ApparelModificationKind,Wing Slits,explicit-serialized
+ApparelDefinitionSO|apparel:23012,apparel:23012,useTags,4,ApparelUseTag,Daily,explicit-serialized
+ApparelDefinitionSO|apparel:23012,apparel:23012,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23012,apparel:23012,tailoringCoefficient,0.88,,,explicit-serialized
+ApparelDefinitionSO|apparel:23012,apparel:23012,baseWeight,0.38,,,explicit-serialized
+ApparelDefinitionSO|apparel:23012,apparel:23012,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23012,apparel:23012,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23012,apparel:23012,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23012,apparel:23012,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23012,apparel:23012,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23012,apparel:23012,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23012,apparel:23012,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23012,apparel:23012,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23012,apparel:23012,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23012,apparel:23012,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23012,apparel:23012,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23012,apparel:23012,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23012,apparel:23012,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23012,apparel:23012,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23013,apparel:23013,m_Name,apparel_work_shirt,,,explicit-serialized
+ApparelDefinitionSO|apparel:23013,apparel:23013,id,23013,,,explicit-serialized
+ApparelDefinitionSO|apparel:23013,apparel:23013,apparelId,apparel:work-shirt,,,explicit-serialized
+ApparelDefinitionSO|apparel:23013,apparel:23013,physicalItemId,apparel:work-shirt,,,explicit-serialized
+ApparelDefinitionSO|apparel:23013,apparel:23013,displayName,작업 셔츠,,,explicit-serialized
+ApparelDefinitionSO|apparel:23013,apparel:23013,description,작업 셔츠. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23013,apparel:23013,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23013,apparel:23013,layer,1,ApparelLayer,Inner,explicit-serialized
+ApparelDefinitionSO|apparel:23013,apparel:23013,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23013,apparel:23013,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23013,apparel:23013,occupiedPoints,104,AnatomyAttachmentPoint,알 수 없음 (104),explicit-serialized
+ApparelDefinitionSO|apparel:23013,apparel:23013,sealedOptionalPoints,98304,AnatomyAttachmentPoint,알 수 없음 (98304),explicit-serialized
+ApparelDefinitionSO|apparel:23013,apparel:23013,supportedModifications,2,ApparelModificationKind,Wing Slits,explicit-serialized
+ApparelDefinitionSO|apparel:23013,apparel:23013,useTags,12,ApparelUseTag,알 수 없음 (12),explicit-serialized
+ApparelDefinitionSO|apparel:23013,apparel:23013,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23013,apparel:23013,tailoringCoefficient,0.95,,,explicit-serialized
+ApparelDefinitionSO|apparel:23013,apparel:23013,baseWeight,0.48,,,explicit-serialized
+ApparelDefinitionSO|apparel:23013,apparel:23013,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23013,apparel:23013,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23013,apparel:23013,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23013,apparel:23013,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23013,apparel:23013,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23013,apparel:23013,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23013,apparel:23013,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23013,apparel:23013,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23013,apparel:23013,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23013,apparel:23013,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23013,apparel:23013,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23013,apparel:23013,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23013,apparel:23013,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23013,apparel:23013,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23014,apparel:23014,m_Name,apparel_trousers,,,explicit-serialized
+ApparelDefinitionSO|apparel:23014,apparel:23014,id,23014,,,explicit-serialized
+ApparelDefinitionSO|apparel:23014,apparel:23014,apparelId,apparel:trousers,,,explicit-serialized
+ApparelDefinitionSO|apparel:23014,apparel:23014,physicalItemId,apparel:trousers,,,explicit-serialized
+ApparelDefinitionSO|apparel:23014,apparel:23014,displayName,바지,,,explicit-serialized
+ApparelDefinitionSO|apparel:23014,apparel:23014,description,바지. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23014,apparel:23014,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23014,apparel:23014,layer,1,ApparelLayer,Inner,explicit-serialized
+ApparelDefinitionSO|apparel:23014,apparel:23014,fitMode,0,ApparelFitMode,Sized,explicit-serialized
+ApparelDefinitionSO|apparel:23014,apparel:23014,requiredPoints,1552,AnatomyAttachmentPoint,알 수 없음 (1552),explicit-serialized
+ApparelDefinitionSO|apparel:23014,apparel:23014,occupiedPoints,1552,AnatomyAttachmentPoint,알 수 없음 (1552),explicit-serialized
+ApparelDefinitionSO|apparel:23014,apparel:23014,sealedOptionalPoints,16384,AnatomyAttachmentPoint,알 수 없음 (16384),explicit-serialized
+ApparelDefinitionSO|apparel:23014,apparel:23014,supportedModifications,1,ApparelModificationKind,Tail Opening,explicit-serialized
+ApparelDefinitionSO|apparel:23014,apparel:23014,useTags,4,ApparelUseTag,Daily,explicit-serialized
+ApparelDefinitionSO|apparel:23014,apparel:23014,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23014,apparel:23014,tailoringCoefficient,0.92,,,explicit-serialized
+ApparelDefinitionSO|apparel:23014,apparel:23014,baseWeight,0.5,,,explicit-serialized
+ApparelDefinitionSO|apparel:23014,apparel:23014,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23014,apparel:23014,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23014,apparel:23014,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23014,apparel:23014,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23014,apparel:23014,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23014,apparel:23014,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23014,apparel:23014,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23014,apparel:23014,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23014,apparel:23014,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23014,apparel:23014,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23014,apparel:23014,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23014,apparel:23014,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23014,apparel:23014,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23014,apparel:23014,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23015,apparel:23015,m_Name,apparel_skirt,,,explicit-serialized
+ApparelDefinitionSO|apparel:23015,apparel:23015,id,23015,,,explicit-serialized
+ApparelDefinitionSO|apparel:23015,apparel:23015,apparelId,apparel:skirt,,,explicit-serialized
+ApparelDefinitionSO|apparel:23015,apparel:23015,physicalItemId,apparel:skirt,,,explicit-serialized
+ApparelDefinitionSO|apparel:23015,apparel:23015,displayName,치마,,,explicit-serialized
+ApparelDefinitionSO|apparel:23015,apparel:23015,description,치마. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23015,apparel:23015,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23015,apparel:23015,layer,1,ApparelLayer,Inner,explicit-serialized
+ApparelDefinitionSO|apparel:23015,apparel:23015,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23015,apparel:23015,requiredPoints,16,AnatomyAttachmentPoint,Wing Left,explicit-serialized
+ApparelDefinitionSO|apparel:23015,apparel:23015,occupiedPoints,1552,AnatomyAttachmentPoint,알 수 없음 (1552),explicit-serialized
+ApparelDefinitionSO|apparel:23015,apparel:23015,sealedOptionalPoints,0,AnatomyAttachmentPoint,None,explicit-serialized
+ApparelDefinitionSO|apparel:23015,apparel:23015,supportedModifications,0,ApparelModificationKind,None,explicit-serialized
+ApparelDefinitionSO|apparel:23015,apparel:23015,useTags,4,ApparelUseTag,Daily,explicit-serialized
+ApparelDefinitionSO|apparel:23015,apparel:23015,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23015,apparel:23015,tailoringCoefficient,0.82,,,explicit-serialized
+ApparelDefinitionSO|apparel:23015,apparel:23015,baseWeight,0.42,,,explicit-serialized
+ApparelDefinitionSO|apparel:23015,apparel:23015,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23015,apparel:23015,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23015,apparel:23015,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23015,apparel:23015,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23015,apparel:23015,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23015,apparel:23015,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23015,apparel:23015,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23015,apparel:23015,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23015,apparel:23015,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23015,apparel:23015,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23015,apparel:23015,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23015,apparel:23015,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23015,apparel:23015,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23015,apparel:23015,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23016,apparel:23016,m_Name,apparel_shorts,,,explicit-serialized
+ApparelDefinitionSO|apparel:23016,apparel:23016,id,23016,,,explicit-serialized
+ApparelDefinitionSO|apparel:23016,apparel:23016,apparelId,apparel:shorts,,,explicit-serialized
+ApparelDefinitionSO|apparel:23016,apparel:23016,physicalItemId,apparel:shorts,,,explicit-serialized
+ApparelDefinitionSO|apparel:23016,apparel:23016,displayName,반바지,,,explicit-serialized
+ApparelDefinitionSO|apparel:23016,apparel:23016,description,반바지. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23016,apparel:23016,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23016,apparel:23016,layer,1,ApparelLayer,Inner,explicit-serialized
+ApparelDefinitionSO|apparel:23016,apparel:23016,fitMode,0,ApparelFitMode,Sized,explicit-serialized
+ApparelDefinitionSO|apparel:23016,apparel:23016,requiredPoints,16,AnatomyAttachmentPoint,Wing Left,explicit-serialized
+ApparelDefinitionSO|apparel:23016,apparel:23016,occupiedPoints,1552,AnatomyAttachmentPoint,알 수 없음 (1552),explicit-serialized
+ApparelDefinitionSO|apparel:23016,apparel:23016,sealedOptionalPoints,16384,AnatomyAttachmentPoint,알 수 없음 (16384),explicit-serialized
+ApparelDefinitionSO|apparel:23016,apparel:23016,supportedModifications,1,ApparelModificationKind,Tail Opening,explicit-serialized
+ApparelDefinitionSO|apparel:23016,apparel:23016,useTags,36,ApparelUseTag,알 수 없음 (36),explicit-serialized
+ApparelDefinitionSO|apparel:23016,apparel:23016,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23016,apparel:23016,tailoringCoefficient,0.76,,,explicit-serialized
+ApparelDefinitionSO|apparel:23016,apparel:23016,baseWeight,0.32,,,explicit-serialized
+ApparelDefinitionSO|apparel:23016,apparel:23016,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23016,apparel:23016,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23016,apparel:23016,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23016,apparel:23016,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23016,apparel:23016,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23016,apparel:23016,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23016,apparel:23016,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23016,apparel:23016,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23016,apparel:23016,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23016,apparel:23016,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23016,apparel:23016,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23016,apparel:23016,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23016,apparel:23016,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23016,apparel:23016,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23017,apparel:23017,m_Name,apparel_apron,,,explicit-serialized
+ApparelDefinitionSO|apparel:23017,apparel:23017,id,23017,,,explicit-serialized
+ApparelDefinitionSO|apparel:23017,apparel:23017,apparelId,apparel:apron,,,explicit-serialized
+ApparelDefinitionSO|apparel:23017,apparel:23017,physicalItemId,apparel:apron,,,explicit-serialized
+ApparelDefinitionSO|apparel:23017,apparel:23017,displayName,앞치마,,,explicit-serialized
+ApparelDefinitionSO|apparel:23017,apparel:23017,description,앞치마. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23017,apparel:23017,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23017,apparel:23017,layer,2,ApparelLayer,Outer,explicit-serialized
+ApparelDefinitionSO|apparel:23017,apparel:23017,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23017,apparel:23017,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23017,apparel:23017,occupiedPoints,24,AnatomyAttachmentPoint,알 수 없음 (24),explicit-serialized
+ApparelDefinitionSO|apparel:23017,apparel:23017,sealedOptionalPoints,0,AnatomyAttachmentPoint,None,explicit-serialized
+ApparelDefinitionSO|apparel:23017,apparel:23017,supportedModifications,0,ApparelModificationKind,None,explicit-serialized
+ApparelDefinitionSO|apparel:23017,apparel:23017,useTags,12,ApparelUseTag,알 수 없음 (12),explicit-serialized
+ApparelDefinitionSO|apparel:23017,apparel:23017,allowedMaterialTags,3,TextileMaterialTag,알 수 없음 (3),explicit-serialized
+ApparelDefinitionSO|apparel:23017,apparel:23017,tailoringCoefficient,0.9,,,explicit-serialized
+ApparelDefinitionSO|apparel:23017,apparel:23017,baseWeight,0.42,,,explicit-serialized
+ApparelDefinitionSO|apparel:23017,apparel:23017,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23017,apparel:23017,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23017,apparel:23017,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23017,apparel:23017,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23017,apparel:23017,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23017,apparel:23017,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23017,apparel:23017,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23017,apparel:23017,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23017,apparel:23017,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23017,apparel:23017,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23017,apparel:23017,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23017,apparel:23017,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23017,apparel:23017,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23017,apparel:23017,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23018,apparel:23018,m_Name,apparel_vest,,,explicit-serialized
+ApparelDefinitionSO|apparel:23018,apparel:23018,id,23018,,,explicit-serialized
+ApparelDefinitionSO|apparel:23018,apparel:23018,apparelId,apparel:vest,,,explicit-serialized
+ApparelDefinitionSO|apparel:23018,apparel:23018,physicalItemId,apparel:vest,,,explicit-serialized
+ApparelDefinitionSO|apparel:23018,apparel:23018,displayName,조끼,,,explicit-serialized
+ApparelDefinitionSO|apparel:23018,apparel:23018,description,조끼. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23018,apparel:23018,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23018,apparel:23018,layer,2,ApparelLayer,Outer,explicit-serialized
+ApparelDefinitionSO|apparel:23018,apparel:23018,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23018,apparel:23018,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23018,apparel:23018,occupiedPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23018,apparel:23018,sealedOptionalPoints,98304,AnatomyAttachmentPoint,알 수 없음 (98304),explicit-serialized
+ApparelDefinitionSO|apparel:23018,apparel:23018,supportedModifications,2,ApparelModificationKind,Wing Slits,explicit-serialized
+ApparelDefinitionSO|apparel:23018,apparel:23018,useTags,4,ApparelUseTag,Daily,explicit-serialized
+ApparelDefinitionSO|apparel:23018,apparel:23018,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23018,apparel:23018,tailoringCoefficient,0.9,,,explicit-serialized
+ApparelDefinitionSO|apparel:23018,apparel:23018,baseWeight,0.4,,,explicit-serialized
+ApparelDefinitionSO|apparel:23018,apparel:23018,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23018,apparel:23018,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23018,apparel:23018,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23018,apparel:23018,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23018,apparel:23018,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23018,apparel:23018,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23018,apparel:23018,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23018,apparel:23018,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23018,apparel:23018,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23018,apparel:23018,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23018,apparel:23018,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23018,apparel:23018,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23018,apparel:23018,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23018,apparel:23018,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23019,apparel:23019,m_Name,apparel_daily_robe,,,explicit-serialized
+ApparelDefinitionSO|apparel:23019,apparel:23019,id,23019,,,explicit-serialized
+ApparelDefinitionSO|apparel:23019,apparel:23019,apparelId,apparel:daily-robe,,,explicit-serialized
+ApparelDefinitionSO|apparel:23019,apparel:23019,physicalItemId,apparel:daily-robe,,,explicit-serialized
+ApparelDefinitionSO|apparel:23019,apparel:23019,displayName,일상 로브,,,explicit-serialized
+ApparelDefinitionSO|apparel:23019,apparel:23019,description,일상 로브. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23019,apparel:23019,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23019,apparel:23019,layer,2,ApparelLayer,Outer,explicit-serialized
+ApparelDefinitionSO|apparel:23019,apparel:23019,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23019,apparel:23019,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23019,apparel:23019,occupiedPoints,9848,AnatomyAttachmentPoint,알 수 없음 (9848),explicit-serialized
+ApparelDefinitionSO|apparel:23019,apparel:23019,sealedOptionalPoints,245760,AnatomyAttachmentPoint,알 수 없음 (245760),explicit-serialized
+ApparelDefinitionSO|apparel:23019,apparel:23019,supportedModifications,7,ApparelModificationKind,알 수 없음 (7),explicit-serialized
+ApparelDefinitionSO|apparel:23019,apparel:23019,useTags,4,ApparelUseTag,Daily,explicit-serialized
+ApparelDefinitionSO|apparel:23019,apparel:23019,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23019,apparel:23019,tailoringCoefficient,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23019,apparel:23019,baseWeight,0.85,,,explicit-serialized
+ApparelDefinitionSO|apparel:23019,apparel:23019,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23019,apparel:23019,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23019,apparel:23019,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23019,apparel:23019,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23019,apparel:23019,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23019,apparel:23019,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23019,apparel:23019,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23019,apparel:23019,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23019,apparel:23019,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23019,apparel:23019,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23019,apparel:23019,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23019,apparel:23019,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23019,apparel:23019,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23019,apparel:23019,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23020,apparel:23020,m_Name,apparel_hooded_robe,,,explicit-serialized
+ApparelDefinitionSO|apparel:23020,apparel:23020,id,23020,,,explicit-serialized
+ApparelDefinitionSO|apparel:23020,apparel:23020,apparelId,apparel:hooded-robe,,,explicit-serialized
+ApparelDefinitionSO|apparel:23020,apparel:23020,physicalItemId,apparel:hooded-robe,,,explicit-serialized
+ApparelDefinitionSO|apparel:23020,apparel:23020,displayName,후드 로브,,,explicit-serialized
+ApparelDefinitionSO|apparel:23020,apparel:23020,description,후드 로브. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23020,apparel:23020,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23020,apparel:23020,layer,2,ApparelLayer,Outer,explicit-serialized
+ApparelDefinitionSO|apparel:23020,apparel:23020,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23020,apparel:23020,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23020,apparel:23020,occupiedPoints,9849,AnatomyAttachmentPoint,알 수 없음 (9849),explicit-serialized
+ApparelDefinitionSO|apparel:23020,apparel:23020,sealedOptionalPoints,245760,AnatomyAttachmentPoint,알 수 없음 (245760),explicit-serialized
+ApparelDefinitionSO|apparel:23020,apparel:23020,supportedModifications,7,ApparelModificationKind,알 수 없음 (7),explicit-serialized
+ApparelDefinitionSO|apparel:23020,apparel:23020,useTags,20,ApparelUseTag,알 수 없음 (20),explicit-serialized
+ApparelDefinitionSO|apparel:23020,apparel:23020,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23020,apparel:23020,tailoringCoefficient,1.05,,,explicit-serialized
+ApparelDefinitionSO|apparel:23020,apparel:23020,baseWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23020,apparel:23020,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23020,apparel:23020,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23020,apparel:23020,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23020,apparel:23020,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23020,apparel:23020,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23020,apparel:23020,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23020,apparel:23020,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23020,apparel:23020,proficiency.recommendedRank,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23020,apparel:23020,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23020,apparel:23020,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23020,apparel:23020,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23020,apparel:23020,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23020,apparel:23020,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23020,apparel:23020,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23021,apparel:23021,m_Name,apparel_cloak,,,explicit-serialized
+ApparelDefinitionSO|apparel:23021,apparel:23021,id,23021,,,explicit-serialized
+ApparelDefinitionSO|apparel:23021,apparel:23021,apparelId,apparel:cloak,,,explicit-serialized
+ApparelDefinitionSO|apparel:23021,apparel:23021,physicalItemId,apparel:cloak,,,explicit-serialized
+ApparelDefinitionSO|apparel:23021,apparel:23021,displayName,망토,,,explicit-serialized
+ApparelDefinitionSO|apparel:23021,apparel:23021,description,망토. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23021,apparel:23021,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23021,apparel:23021,layer,2,ApparelLayer,Outer,explicit-serialized
+ApparelDefinitionSO|apparel:23021,apparel:23021,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23021,apparel:23021,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23021,apparel:23021,occupiedPoints,8200,AnatomyAttachmentPoint,알 수 없음 (8200),explicit-serialized
+ApparelDefinitionSO|apparel:23021,apparel:23021,sealedOptionalPoints,98304,AnatomyAttachmentPoint,알 수 없음 (98304),explicit-serialized
+ApparelDefinitionSO|apparel:23021,apparel:23021,supportedModifications,2,ApparelModificationKind,Wing Slits,explicit-serialized
+ApparelDefinitionSO|apparel:23021,apparel:23021,useTags,20,ApparelUseTag,알 수 없음 (20),explicit-serialized
+ApparelDefinitionSO|apparel:23021,apparel:23021,allowedMaterialTags,3,TextileMaterialTag,알 수 없음 (3),explicit-serialized
+ApparelDefinitionSO|apparel:23021,apparel:23021,tailoringCoefficient,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23021,apparel:23021,baseWeight,0.72,,,explicit-serialized
+ApparelDefinitionSO|apparel:23021,apparel:23021,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23021,apparel:23021,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23021,apparel:23021,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23021,apparel:23021,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23021,apparel:23021,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23021,apparel:23021,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23021,apparel:23021,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23021,apparel:23021,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23021,apparel:23021,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23021,apparel:23021,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23021,apparel:23021,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23021,apparel:23021,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23021,apparel:23021,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23021,apparel:23021,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23022,apparel:23022,m_Name,apparel_raincoat,,,explicit-serialized
+ApparelDefinitionSO|apparel:23022,apparel:23022,id,23022,,,explicit-serialized
+ApparelDefinitionSO|apparel:23022,apparel:23022,apparelId,apparel:raincoat,,,explicit-serialized
+ApparelDefinitionSO|apparel:23022,apparel:23022,physicalItemId,apparel:raincoat,,,explicit-serialized
+ApparelDefinitionSO|apparel:23022,apparel:23022,displayName,우비,,,explicit-serialized
+ApparelDefinitionSO|apparel:23022,apparel:23022,description,우비. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23022,apparel:23022,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23022,apparel:23022,layer,2,ApparelLayer,Outer,explicit-serialized
+ApparelDefinitionSO|apparel:23022,apparel:23022,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23022,apparel:23022,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23022,apparel:23022,occupiedPoints,9848,AnatomyAttachmentPoint,알 수 없음 (9848),explicit-serialized
+ApparelDefinitionSO|apparel:23022,apparel:23022,sealedOptionalPoints,245760,AnatomyAttachmentPoint,알 수 없음 (245760),explicit-serialized
+ApparelDefinitionSO|apparel:23022,apparel:23022,supportedModifications,7,ApparelModificationKind,알 수 없음 (7),explicit-serialized
+ApparelDefinitionSO|apparel:23022,apparel:23022,useTags,2116,ApparelUseTag,알 수 없음 (2116),explicit-serialized
+ApparelDefinitionSO|apparel:23022,apparel:23022,allowedMaterialTags,3,TextileMaterialTag,알 수 없음 (3),explicit-serialized
+ApparelDefinitionSO|apparel:23022,apparel:23022,tailoringCoefficient,1.08,,,explicit-serialized
+ApparelDefinitionSO|apparel:23022,apparel:23022,baseWeight,1.1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23022,apparel:23022,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23022,apparel:23022,requiredResearchId,research:textile:layered,,,explicit-serialized
+ApparelDefinitionSO|apparel:23022,apparel:23022,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23022,apparel:23022,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23022,apparel:23022,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23022,apparel:23022,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23022,apparel:23022,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23022,apparel:23022,proficiency.recommendedRank,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23022,apparel:23022,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23022,apparel:23022,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23022,apparel:23022,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23022,apparel:23022,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23022,apparel:23022,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23022,apparel:23022,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23023,apparel:23023,m_Name,apparel_hauling_harness,,,explicit-serialized
+ApparelDefinitionSO|apparel:23023,apparel:23023,id,23023,,,explicit-serialized
+ApparelDefinitionSO|apparel:23023,apparel:23023,apparelId,apparel:hauling-harness,,,explicit-serialized
+ApparelDefinitionSO|apparel:23023,apparel:23023,physicalItemId,tool:hauling-harness,,,explicit-serialized
+ApparelDefinitionSO|apparel:23023,apparel:23023,displayName,운반 멜빵,,,explicit-serialized
+ApparelDefinitionSO|apparel:23023,apparel:23023,description,운반 멜빵. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23023,apparel:23023,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23023,apparel:23023,layer,4,ApparelLayer,Accessory,explicit-serialized
+ApparelDefinitionSO|apparel:23023,apparel:23023,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23023,apparel:23023,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23023,apparel:23023,occupiedPoints,8200,AnatomyAttachmentPoint,알 수 없음 (8200),explicit-serialized
+ApparelDefinitionSO|apparel:23023,apparel:23023,sealedOptionalPoints,0,AnatomyAttachmentPoint,None,explicit-serialized
+ApparelDefinitionSO|apparel:23023,apparel:23023,supportedModifications,0,ApparelModificationKind,None,explicit-serialized
+ApparelDefinitionSO|apparel:23023,apparel:23023,useTags,1032,ApparelUseTag,알 수 없음 (1032),explicit-serialized
+ApparelDefinitionSO|apparel:23023,apparel:23023,allowedMaterialTags,3,TextileMaterialTag,알 수 없음 (3),explicit-serialized
+ApparelDefinitionSO|apparel:23023,apparel:23023,tailoringCoefficient,0.9,,,explicit-serialized
+ApparelDefinitionSO|apparel:23023,apparel:23023,baseWeight,0.9,,,explicit-serialized
+ApparelDefinitionSO|apparel:23023,apparel:23023,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23023,apparel:23023,requiredResearchId,research:commerce:logistics,,,explicit-serialized
+ApparelDefinitionSO|apparel:23023,apparel:23023,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23023,apparel:23023,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23023,apparel:23023,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23023,apparel:23023,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23023,apparel:23023,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23023,apparel:23023,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23023,apparel:23023,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23023,apparel:23023,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23023,apparel:23023,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23023,apparel:23023,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23023,apparel:23023,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23023,apparel:23023,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23024,apparel:23024,m_Name,apparel_slime_warming_pad,,,explicit-serialized
+ApparelDefinitionSO|apparel:23024,apparel:23024,id,23024,,,explicit-serialized
+ApparelDefinitionSO|apparel:23024,apparel:23024,apparelId,apparel:slime-warming-pad,,,explicit-serialized
+ApparelDefinitionSO|apparel:23024,apparel:23024,physicalItemId,equipment:slime-warming-pad,,,explicit-serialized
+ApparelDefinitionSO|apparel:23024,apparel:23024,displayName,보온 점액 패드,,,explicit-serialized
+ApparelDefinitionSO|apparel:23024,apparel:23024,description,보온 점액 패드. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23024,apparel:23024,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23024,apparel:23024,layer,1,ApparelLayer,Inner,explicit-serialized
+ApparelDefinitionSO|apparel:23024,apparel:23024,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23024,apparel:23024,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23024,apparel:23024,occupiedPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23024,apparel:23024,sealedOptionalPoints,0,AnatomyAttachmentPoint,None,explicit-serialized
+ApparelDefinitionSO|apparel:23024,apparel:23024,supportedModifications,0,ApparelModificationKind,None,explicit-serialized
+ApparelDefinitionSO|apparel:23024,apparel:23024,useTags,24,ApparelUseTag,알 수 없음 (24),explicit-serialized
+ApparelDefinitionSO|apparel:23024,apparel:23024,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23024,apparel:23024,tailoringCoefficient,1.1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23024,apparel:23024,baseWeight,0.45,,,explicit-serialized
+ApparelDefinitionSO|apparel:23024,apparel:23024,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23024,apparel:23024,requiredResearchId,research:environment:cold-work,,,explicit-serialized
+ApparelDefinitionSO|apparel:23024,apparel:23024,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23024,apparel:23024,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23024,apparel:23024,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23024,apparel:23024,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23024,apparel:23024,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23024,apparel:23024,proficiency.recommendedRank,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23024,apparel:23024,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23024,apparel:23024,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23024,apparel:23024,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23024,apparel:23024,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23024,apparel:23024,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23024,apparel:23024,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23025,apparel:23025,m_Name,apparel_cold_work_suit,,,explicit-serialized
+ApparelDefinitionSO|apparel:23025,apparel:23025,id,23025,,,explicit-serialized
+ApparelDefinitionSO|apparel:23025,apparel:23025,apparelId,apparel:cold-work-suit,,,explicit-serialized
+ApparelDefinitionSO|apparel:23025,apparel:23025,physicalItemId,equipment:cold-work-suit,,,explicit-serialized
+ApparelDefinitionSO|apparel:23025,apparel:23025,displayName,방한 작업복,,,explicit-serialized
+ApparelDefinitionSO|apparel:23025,apparel:23025,description,방한 작업복. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23025,apparel:23025,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23025,apparel:23025,layer,2,ApparelLayer,Outer,explicit-serialized
+ApparelDefinitionSO|apparel:23025,apparel:23025,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23025,apparel:23025,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23025,apparel:23025,occupiedPoints,9848,AnatomyAttachmentPoint,알 수 없음 (9848),explicit-serialized
+ApparelDefinitionSO|apparel:23025,apparel:23025,sealedOptionalPoints,245760,AnatomyAttachmentPoint,알 수 없음 (245760),explicit-serialized
+ApparelDefinitionSO|apparel:23025,apparel:23025,supportedModifications,7,ApparelModificationKind,알 수 없음 (7),explicit-serialized
+ApparelDefinitionSO|apparel:23025,apparel:23025,useTags,2072,ApparelUseTag,알 수 없음 (2072),explicit-serialized
+ApparelDefinitionSO|apparel:23025,apparel:23025,allowedMaterialTags,3,TextileMaterialTag,알 수 없음 (3),explicit-serialized
+ApparelDefinitionSO|apparel:23025,apparel:23025,tailoringCoefficient,1.18,,,explicit-serialized
+ApparelDefinitionSO|apparel:23025,apparel:23025,baseWeight,1.4,,,explicit-serialized
+ApparelDefinitionSO|apparel:23025,apparel:23025,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23025,apparel:23025,requiredResearchId,research:environment:cold-work,,,explicit-serialized
+ApparelDefinitionSO|apparel:23025,apparel:23025,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23025,apparel:23025,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23025,apparel:23025,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23025,apparel:23025,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23025,apparel:23025,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23025,apparel:23025,proficiency.recommendedRank,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23025,apparel:23025,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23025,apparel:23025,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23025,apparel:23025,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23025,apparel:23025,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23025,apparel:23025,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23025,apparel:23025,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23026,apparel:23026,m_Name,apparel_rune_cold_suit,,,explicit-serialized
+ApparelDefinitionSO|apparel:23026,apparel:23026,id,23026,,,explicit-serialized
+ApparelDefinitionSO|apparel:23026,apparel:23026,apparelId,apparel:rune-cold-suit,,,explicit-serialized
+ApparelDefinitionSO|apparel:23026,apparel:23026,physicalItemId,equipment:rune-cold-suit,,,explicit-serialized
+ApparelDefinitionSO|apparel:23026,apparel:23026,displayName,룬 방한복,,,explicit-serialized
+ApparelDefinitionSO|apparel:23026,apparel:23026,description,룬 방한복. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23026,apparel:23026,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23026,apparel:23026,layer,2,ApparelLayer,Outer,explicit-serialized
+ApparelDefinitionSO|apparel:23026,apparel:23026,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23026,apparel:23026,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23026,apparel:23026,occupiedPoints,9848,AnatomyAttachmentPoint,알 수 없음 (9848),explicit-serialized
+ApparelDefinitionSO|apparel:23026,apparel:23026,sealedOptionalPoints,245760,AnatomyAttachmentPoint,알 수 없음 (245760),explicit-serialized
+ApparelDefinitionSO|apparel:23026,apparel:23026,supportedModifications,7,ApparelModificationKind,알 수 없음 (7),explicit-serialized
+ApparelDefinitionSO|apparel:23026,apparel:23026,useTags,2072,ApparelUseTag,알 수 없음 (2072),explicit-serialized
+ApparelDefinitionSO|apparel:23026,apparel:23026,allowedMaterialTags,3,TextileMaterialTag,알 수 없음 (3),explicit-serialized
+ApparelDefinitionSO|apparel:23026,apparel:23026,tailoringCoefficient,1.3,,,explicit-serialized
+ApparelDefinitionSO|apparel:23026,apparel:23026,baseWeight,1.55,,,explicit-serialized
+ApparelDefinitionSO|apparel:23026,apparel:23026,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23026,apparel:23026,requiredResearchId,research:environment:rune-insulation,,,explicit-serialized
+ApparelDefinitionSO|apparel:23026,apparel:23026,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23026,apparel:23026,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23026,apparel:23026,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23026,apparel:23026,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23026,apparel:23026,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23026,apparel:23026,proficiency.recommendedRank,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23026,apparel:23026,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23026,apparel:23026,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23026,apparel:23026,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23026,apparel:23026,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23026,apparel:23026,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23026,apparel:23026,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23027,apparel:23027,m_Name,apparel_heat_work_suit,,,explicit-serialized
+ApparelDefinitionSO|apparel:23027,apparel:23027,id,23027,,,explicit-serialized
+ApparelDefinitionSO|apparel:23027,apparel:23027,apparelId,apparel:heat-work-suit,,,explicit-serialized
+ApparelDefinitionSO|apparel:23027,apparel:23027,physicalItemId,apparel:heat-work-suit,,,explicit-serialized
+ApparelDefinitionSO|apparel:23027,apparel:23027,displayName,내열 작업복,,,explicit-serialized
+ApparelDefinitionSO|apparel:23027,apparel:23027,description,내열 작업복. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23027,apparel:23027,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23027,apparel:23027,layer,2,ApparelLayer,Outer,explicit-serialized
+ApparelDefinitionSO|apparel:23027,apparel:23027,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23027,apparel:23027,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23027,apparel:23027,occupiedPoints,9848,AnatomyAttachmentPoint,알 수 없음 (9848),explicit-serialized
+ApparelDefinitionSO|apparel:23027,apparel:23027,sealedOptionalPoints,245760,AnatomyAttachmentPoint,알 수 없음 (245760),explicit-serialized
+ApparelDefinitionSO|apparel:23027,apparel:23027,supportedModifications,7,ApparelModificationKind,알 수 없음 (7),explicit-serialized
+ApparelDefinitionSO|apparel:23027,apparel:23027,useTags,2088,ApparelUseTag,알 수 없음 (2088),explicit-serialized
+ApparelDefinitionSO|apparel:23027,apparel:23027,allowedMaterialTags,3,TextileMaterialTag,알 수 없음 (3),explicit-serialized
+ApparelDefinitionSO|apparel:23027,apparel:23027,tailoringCoefficient,1.15,,,explicit-serialized
+ApparelDefinitionSO|apparel:23027,apparel:23027,baseWeight,1.35,,,explicit-serialized
+ApparelDefinitionSO|apparel:23027,apparel:23027,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23027,apparel:23027,requiredResearchId,research:textile:layered,,,explicit-serialized
+ApparelDefinitionSO|apparel:23027,apparel:23027,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23027,apparel:23027,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23027,apparel:23027,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23027,apparel:23027,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23027,apparel:23027,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23027,apparel:23027,proficiency.recommendedRank,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23027,apparel:23027,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23027,apparel:23027,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23027,apparel:23027,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23027,apparel:23027,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23027,apparel:23027,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23027,apparel:23027,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23028,apparel:23028,m_Name,apparel_waterproof_work_suit,,,explicit-serialized
+ApparelDefinitionSO|apparel:23028,apparel:23028,id,23028,,,explicit-serialized
+ApparelDefinitionSO|apparel:23028,apparel:23028,apparelId,apparel:waterproof-work-suit,,,explicit-serialized
+ApparelDefinitionSO|apparel:23028,apparel:23028,physicalItemId,apparel:waterproof-work-suit,,,explicit-serialized
+ApparelDefinitionSO|apparel:23028,apparel:23028,displayName,방수 작업복,,,explicit-serialized
+ApparelDefinitionSO|apparel:23028,apparel:23028,description,방수 작업복. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23028,apparel:23028,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23028,apparel:23028,layer,2,ApparelLayer,Outer,explicit-serialized
+ApparelDefinitionSO|apparel:23028,apparel:23028,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23028,apparel:23028,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23028,apparel:23028,occupiedPoints,9848,AnatomyAttachmentPoint,알 수 없음 (9848),explicit-serialized
+ApparelDefinitionSO|apparel:23028,apparel:23028,sealedOptionalPoints,245760,AnatomyAttachmentPoint,알 수 없음 (245760),explicit-serialized
+ApparelDefinitionSO|apparel:23028,apparel:23028,supportedModifications,7,ApparelModificationKind,알 수 없음 (7),explicit-serialized
+ApparelDefinitionSO|apparel:23028,apparel:23028,useTags,2120,ApparelUseTag,알 수 없음 (2120),explicit-serialized
+ApparelDefinitionSO|apparel:23028,apparel:23028,allowedMaterialTags,3,TextileMaterialTag,알 수 없음 (3),explicit-serialized
+ApparelDefinitionSO|apparel:23028,apparel:23028,tailoringCoefficient,1.15,,,explicit-serialized
+ApparelDefinitionSO|apparel:23028,apparel:23028,baseWeight,1.38,,,explicit-serialized
+ApparelDefinitionSO|apparel:23028,apparel:23028,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23028,apparel:23028,requiredResearchId,research:textile:layered,,,explicit-serialized
+ApparelDefinitionSO|apparel:23028,apparel:23028,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23028,apparel:23028,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23028,apparel:23028,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23028,apparel:23028,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23028,apparel:23028,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23028,apparel:23028,proficiency.recommendedRank,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23028,apparel:23028,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23028,apparel:23028,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23028,apparel:23028,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23028,apparel:23028,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23028,apparel:23028,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23028,apparel:23028,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23029,apparel:23029,m_Name,apparel_spore_protection_hood,,,explicit-serialized
+ApparelDefinitionSO|apparel:23029,apparel:23029,id,23029,,,explicit-serialized
+ApparelDefinitionSO|apparel:23029,apparel:23029,apparelId,apparel:spore-protection-hood,,,explicit-serialized
+ApparelDefinitionSO|apparel:23029,apparel:23029,physicalItemId,apparel:spore-protection-hood,,,explicit-serialized
+ApparelDefinitionSO|apparel:23029,apparel:23029,displayName,포자 방호 두건,,,explicit-serialized
+ApparelDefinitionSO|apparel:23029,apparel:23029,description,포자 방호 두건. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23029,apparel:23029,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23029,apparel:23029,layer,2,ApparelLayer,Outer,explicit-serialized
+ApparelDefinitionSO|apparel:23029,apparel:23029,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23029,apparel:23029,requiredPoints,3,AnatomyAttachmentPoint,Neck,explicit-serialized
+ApparelDefinitionSO|apparel:23029,apparel:23029,occupiedPoints,3,AnatomyAttachmentPoint,Neck,explicit-serialized
+ApparelDefinitionSO|apparel:23029,apparel:23029,sealedOptionalPoints,131072,AnatomyAttachmentPoint,알 수 없음 (131072),explicit-serialized
+ApparelDefinitionSO|apparel:23029,apparel:23029,supportedModifications,4,ApparelModificationKind,Horn Clearance,explicit-serialized
+ApparelDefinitionSO|apparel:23029,apparel:23029,useTags,2056,ApparelUseTag,알 수 없음 (2056),explicit-serialized
+ApparelDefinitionSO|apparel:23029,apparel:23029,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23029,apparel:23029,tailoringCoefficient,1.05,,,explicit-serialized
+ApparelDefinitionSO|apparel:23029,apparel:23029,baseWeight,0.35,,,explicit-serialized
+ApparelDefinitionSO|apparel:23029,apparel:23029,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23029,apparel:23029,requiredResearchId,research:textile:layered,,,explicit-serialized
+ApparelDefinitionSO|apparel:23029,apparel:23029,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23029,apparel:23029,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23029,apparel:23029,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23029,apparel:23029,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23029,apparel:23029,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23029,apparel:23029,proficiency.recommendedRank,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23029,apparel:23029,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23029,apparel:23029,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23029,apparel:23029,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23029,apparel:23029,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23029,apparel:23029,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23029,apparel:23029,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23030,apparel:23030,m_Name,apparel_smoke_protection_hood,,,explicit-serialized
+ApparelDefinitionSO|apparel:23030,apparel:23030,id,23030,,,explicit-serialized
+ApparelDefinitionSO|apparel:23030,apparel:23030,apparelId,apparel:smoke-protection-hood,,,explicit-serialized
+ApparelDefinitionSO|apparel:23030,apparel:23030,physicalItemId,apparel:smoke-protection-hood,,,explicit-serialized
+ApparelDefinitionSO|apparel:23030,apparel:23030,displayName,연기 방호 두건,,,explicit-serialized
+ApparelDefinitionSO|apparel:23030,apparel:23030,description,연기 방호 두건. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23030,apparel:23030,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23030,apparel:23030,layer,2,ApparelLayer,Outer,explicit-serialized
+ApparelDefinitionSO|apparel:23030,apparel:23030,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23030,apparel:23030,requiredPoints,3,AnatomyAttachmentPoint,Neck,explicit-serialized
+ApparelDefinitionSO|apparel:23030,apparel:23030,occupiedPoints,3,AnatomyAttachmentPoint,Neck,explicit-serialized
+ApparelDefinitionSO|apparel:23030,apparel:23030,sealedOptionalPoints,131072,AnatomyAttachmentPoint,알 수 없음 (131072),explicit-serialized
+ApparelDefinitionSO|apparel:23030,apparel:23030,supportedModifications,4,ApparelModificationKind,Horn Clearance,explicit-serialized
+ApparelDefinitionSO|apparel:23030,apparel:23030,useTags,2056,ApparelUseTag,알 수 없음 (2056),explicit-serialized
+ApparelDefinitionSO|apparel:23030,apparel:23030,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23030,apparel:23030,tailoringCoefficient,1.08,,,explicit-serialized
+ApparelDefinitionSO|apparel:23030,apparel:23030,baseWeight,0.38,,,explicit-serialized
+ApparelDefinitionSO|apparel:23030,apparel:23030,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23030,apparel:23030,requiredResearchId,research:textile:layered,,,explicit-serialized
+ApparelDefinitionSO|apparel:23030,apparel:23030,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23030,apparel:23030,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23030,apparel:23030,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23030,apparel:23030,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23030,apparel:23030,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23030,apparel:23030,proficiency.recommendedRank,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23030,apparel:23030,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23030,apparel:23030,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23030,apparel:23030,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23030,apparel:23030,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23030,apparel:23030,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23030,apparel:23030,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23031,apparel:23031,m_Name,apparel_sterile_gown,,,explicit-serialized
+ApparelDefinitionSO|apparel:23031,apparel:23031,id,23031,,,explicit-serialized
+ApparelDefinitionSO|apparel:23031,apparel:23031,apparelId,apparel:sterile-gown,,,explicit-serialized
+ApparelDefinitionSO|apparel:23031,apparel:23031,physicalItemId,apparel:sterile-gown,,,explicit-serialized
+ApparelDefinitionSO|apparel:23031,apparel:23031,displayName,무균 가운,,,explicit-serialized
+ApparelDefinitionSO|apparel:23031,apparel:23031,description,무균 가운. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23031,apparel:23031,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23031,apparel:23031,layer,2,ApparelLayer,Outer,explicit-serialized
+ApparelDefinitionSO|apparel:23031,apparel:23031,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23031,apparel:23031,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23031,apparel:23031,occupiedPoints,104,AnatomyAttachmentPoint,알 수 없음 (104),explicit-serialized
+ApparelDefinitionSO|apparel:23031,apparel:23031,sealedOptionalPoints,98304,AnatomyAttachmentPoint,알 수 없음 (98304),explicit-serialized
+ApparelDefinitionSO|apparel:23031,apparel:23031,supportedModifications,2,ApparelModificationKind,Wing Slits,explicit-serialized
+ApparelDefinitionSO|apparel:23031,apparel:23031,useTags,136,ApparelUseTag,알 수 없음 (136),explicit-serialized
+ApparelDefinitionSO|apparel:23031,apparel:23031,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23031,apparel:23031,tailoringCoefficient,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23031,apparel:23031,baseWeight,0.52,,,explicit-serialized
+ApparelDefinitionSO|apparel:23031,apparel:23031,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23031,apparel:23031,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23031,apparel:23031,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23031,apparel:23031,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23031,apparel:23031,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23031,apparel:23031,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23031,apparel:23031,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23031,apparel:23031,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23031,apparel:23031,proficiency.minimumRiskRank,2,,,explicit-serialized
+ApparelDefinitionSO|apparel:23031,apparel:23031,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23031,apparel:23031,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23031,apparel:23031,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23031,apparel:23031,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23031,apparel:23031,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23032,apparel:23032,m_Name,apparel_surgical_apron,,,explicit-serialized
+ApparelDefinitionSO|apparel:23032,apparel:23032,id,23032,,,explicit-serialized
+ApparelDefinitionSO|apparel:23032,apparel:23032,apparelId,apparel:surgical-apron,,,explicit-serialized
+ApparelDefinitionSO|apparel:23032,apparel:23032,physicalItemId,apparel:surgical-apron,,,explicit-serialized
+ApparelDefinitionSO|apparel:23032,apparel:23032,displayName,외과 앞치마,,,explicit-serialized
+ApparelDefinitionSO|apparel:23032,apparel:23032,description,외과 앞치마. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23032,apparel:23032,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23032,apparel:23032,layer,2,ApparelLayer,Outer,explicit-serialized
+ApparelDefinitionSO|apparel:23032,apparel:23032,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23032,apparel:23032,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23032,apparel:23032,occupiedPoints,24,AnatomyAttachmentPoint,알 수 없음 (24),explicit-serialized
+ApparelDefinitionSO|apparel:23032,apparel:23032,sealedOptionalPoints,0,AnatomyAttachmentPoint,None,explicit-serialized
+ApparelDefinitionSO|apparel:23032,apparel:23032,supportedModifications,0,ApparelModificationKind,None,explicit-serialized
+ApparelDefinitionSO|apparel:23032,apparel:23032,useTags,136,ApparelUseTag,알 수 없음 (136),explicit-serialized
+ApparelDefinitionSO|apparel:23032,apparel:23032,allowedMaterialTags,3,TextileMaterialTag,알 수 없음 (3),explicit-serialized
+ApparelDefinitionSO|apparel:23032,apparel:23032,tailoringCoefficient,1.05,,,explicit-serialized
+ApparelDefinitionSO|apparel:23032,apparel:23032,baseWeight,0.62,,,explicit-serialized
+ApparelDefinitionSO|apparel:23032,apparel:23032,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23032,apparel:23032,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23032,apparel:23032,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23032,apparel:23032,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23032,apparel:23032,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23032,apparel:23032,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23032,apparel:23032,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23032,apparel:23032,proficiency.recommendedRank,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23032,apparel:23032,proficiency.minimumRiskRank,2,,,explicit-serialized
+ApparelDefinitionSO|apparel:23032,apparel:23032,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23032,apparel:23032,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23032,apparel:23032,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23032,apparel:23032,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23032,apparel:23032,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23033,apparel:23033,m_Name,apparel_miner_workwear,,,explicit-serialized
+ApparelDefinitionSO|apparel:23033,apparel:23033,id,23033,,,explicit-serialized
+ApparelDefinitionSO|apparel:23033,apparel:23033,apparelId,apparel:miner-workwear,,,explicit-serialized
+ApparelDefinitionSO|apparel:23033,apparel:23033,physicalItemId,apparel:miner-workwear,,,explicit-serialized
+ApparelDefinitionSO|apparel:23033,apparel:23033,displayName,광부 작업복,,,explicit-serialized
+ApparelDefinitionSO|apparel:23033,apparel:23033,description,광부 작업복. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23033,apparel:23033,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23033,apparel:23033,layer,2,ApparelLayer,Outer,explicit-serialized
+ApparelDefinitionSO|apparel:23033,apparel:23033,fitMode,0,ApparelFitMode,Sized,explicit-serialized
+ApparelDefinitionSO|apparel:23033,apparel:23033,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23033,apparel:23033,occupiedPoints,9848,AnatomyAttachmentPoint,알 수 없음 (9848),explicit-serialized
+ApparelDefinitionSO|apparel:23033,apparel:23033,sealedOptionalPoints,245760,AnatomyAttachmentPoint,알 수 없음 (245760),explicit-serialized
+ApparelDefinitionSO|apparel:23033,apparel:23033,supportedModifications,7,ApparelModificationKind,알 수 없음 (7),explicit-serialized
+ApparelDefinitionSO|apparel:23033,apparel:23033,useTags,2056,ApparelUseTag,알 수 없음 (2056),explicit-serialized
+ApparelDefinitionSO|apparel:23033,apparel:23033,allowedMaterialTags,3,TextileMaterialTag,알 수 없음 (3),explicit-serialized
+ApparelDefinitionSO|apparel:23033,apparel:23033,tailoringCoefficient,1.08,,,explicit-serialized
+ApparelDefinitionSO|apparel:23033,apparel:23033,baseWeight,1.25,,,explicit-serialized
+ApparelDefinitionSO|apparel:23033,apparel:23033,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23033,apparel:23033,requiredResearchId,research:textile:layered,,,explicit-serialized
+ApparelDefinitionSO|apparel:23033,apparel:23033,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23033,apparel:23033,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23033,apparel:23033,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23033,apparel:23033,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23033,apparel:23033,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23033,apparel:23033,proficiency.recommendedRank,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23033,apparel:23033,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23033,apparel:23033,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23033,apparel:23033,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23033,apparel:23033,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23033,apparel:23033,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23033,apparel:23033,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23034,apparel:23034,m_Name,apparel_smith_apron,,,explicit-serialized
+ApparelDefinitionSO|apparel:23034,apparel:23034,id,23034,,,explicit-serialized
+ApparelDefinitionSO|apparel:23034,apparel:23034,apparelId,apparel:smith-apron,,,explicit-serialized
+ApparelDefinitionSO|apparel:23034,apparel:23034,physicalItemId,apparel:smith-apron,,,explicit-serialized
+ApparelDefinitionSO|apparel:23034,apparel:23034,displayName,대장장이 앞치마,,,explicit-serialized
+ApparelDefinitionSO|apparel:23034,apparel:23034,description,대장장이 앞치마. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23034,apparel:23034,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23034,apparel:23034,layer,2,ApparelLayer,Outer,explicit-serialized
+ApparelDefinitionSO|apparel:23034,apparel:23034,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23034,apparel:23034,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23034,apparel:23034,occupiedPoints,24,AnatomyAttachmentPoint,알 수 없음 (24),explicit-serialized
+ApparelDefinitionSO|apparel:23034,apparel:23034,sealedOptionalPoints,0,AnatomyAttachmentPoint,None,explicit-serialized
+ApparelDefinitionSO|apparel:23034,apparel:23034,supportedModifications,0,ApparelModificationKind,None,explicit-serialized
+ApparelDefinitionSO|apparel:23034,apparel:23034,useTags,2088,ApparelUseTag,알 수 없음 (2088),explicit-serialized
+ApparelDefinitionSO|apparel:23034,apparel:23034,allowedMaterialTags,3,TextileMaterialTag,알 수 없음 (3),explicit-serialized
+ApparelDefinitionSO|apparel:23034,apparel:23034,tailoringCoefficient,1.12,,,explicit-serialized
+ApparelDefinitionSO|apparel:23034,apparel:23034,baseWeight,0.9,,,explicit-serialized
+ApparelDefinitionSO|apparel:23034,apparel:23034,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23034,apparel:23034,requiredResearchId,research:textile:layered,,,explicit-serialized
+ApparelDefinitionSO|apparel:23034,apparel:23034,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23034,apparel:23034,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23034,apparel:23034,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23034,apparel:23034,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23034,apparel:23034,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23034,apparel:23034,proficiency.recommendedRank,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23034,apparel:23034,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23034,apparel:23034,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23034,apparel:23034,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23034,apparel:23034,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23034,apparel:23034,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23034,apparel:23034,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23035,apparel:23035,m_Name,apparel_farmer_workwear,,,explicit-serialized
+ApparelDefinitionSO|apparel:23035,apparel:23035,id,23035,,,explicit-serialized
+ApparelDefinitionSO|apparel:23035,apparel:23035,apparelId,apparel:farmer-workwear,,,explicit-serialized
+ApparelDefinitionSO|apparel:23035,apparel:23035,physicalItemId,apparel:farmer-workwear,,,explicit-serialized
+ApparelDefinitionSO|apparel:23035,apparel:23035,displayName,농부 작업복,,,explicit-serialized
+ApparelDefinitionSO|apparel:23035,apparel:23035,description,농부 작업복. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23035,apparel:23035,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23035,apparel:23035,layer,2,ApparelLayer,Outer,explicit-serialized
+ApparelDefinitionSO|apparel:23035,apparel:23035,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23035,apparel:23035,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23035,apparel:23035,occupiedPoints,9848,AnatomyAttachmentPoint,알 수 없음 (9848),explicit-serialized
+ApparelDefinitionSO|apparel:23035,apparel:23035,sealedOptionalPoints,245760,AnatomyAttachmentPoint,알 수 없음 (245760),explicit-serialized
+ApparelDefinitionSO|apparel:23035,apparel:23035,supportedModifications,7,ApparelModificationKind,알 수 없음 (7),explicit-serialized
+ApparelDefinitionSO|apparel:23035,apparel:23035,useTags,72,ApparelUseTag,알 수 없음 (72),explicit-serialized
+ApparelDefinitionSO|apparel:23035,apparel:23035,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23035,apparel:23035,tailoringCoefficient,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23035,apparel:23035,baseWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23035,apparel:23035,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23035,apparel:23035,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23035,apparel:23035,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23035,apparel:23035,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23035,apparel:23035,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23035,apparel:23035,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23035,apparel:23035,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23035,apparel:23035,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23035,apparel:23035,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23035,apparel:23035,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23035,apparel:23035,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23035,apparel:23035,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23035,apparel:23035,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23035,apparel:23035,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23036,apparel:23036,m_Name,apparel_keeper_coat,,,explicit-serialized
+ApparelDefinitionSO|apparel:23036,apparel:23036,id,23036,,,explicit-serialized
+ApparelDefinitionSO|apparel:23036,apparel:23036,apparelId,apparel:keeper-coat,,,explicit-serialized
+ApparelDefinitionSO|apparel:23036,apparel:23036,physicalItemId,apparel:keeper-coat,,,explicit-serialized
+ApparelDefinitionSO|apparel:23036,apparel:23036,displayName,사육사 외투,,,explicit-serialized
+ApparelDefinitionSO|apparel:23036,apparel:23036,description,사육사 외투. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23036,apparel:23036,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23036,apparel:23036,layer,2,ApparelLayer,Outer,explicit-serialized
+ApparelDefinitionSO|apparel:23036,apparel:23036,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23036,apparel:23036,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23036,apparel:23036,occupiedPoints,9848,AnatomyAttachmentPoint,알 수 없음 (9848),explicit-serialized
+ApparelDefinitionSO|apparel:23036,apparel:23036,sealedOptionalPoints,245760,AnatomyAttachmentPoint,알 수 없음 (245760),explicit-serialized
+ApparelDefinitionSO|apparel:23036,apparel:23036,supportedModifications,7,ApparelModificationKind,알 수 없음 (7),explicit-serialized
+ApparelDefinitionSO|apparel:23036,apparel:23036,useTags,2056,ApparelUseTag,알 수 없음 (2056),explicit-serialized
+ApparelDefinitionSO|apparel:23036,apparel:23036,allowedMaterialTags,3,TextileMaterialTag,알 수 없음 (3),explicit-serialized
+ApparelDefinitionSO|apparel:23036,apparel:23036,tailoringCoefficient,1.05,,,explicit-serialized
+ApparelDefinitionSO|apparel:23036,apparel:23036,baseWeight,1.15,,,explicit-serialized
+ApparelDefinitionSO|apparel:23036,apparel:23036,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23036,apparel:23036,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23036,apparel:23036,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23036,apparel:23036,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23036,apparel:23036,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23036,apparel:23036,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23036,apparel:23036,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23036,apparel:23036,proficiency.recommendedRank,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23036,apparel:23036,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23036,apparel:23036,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23036,apparel:23036,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23036,apparel:23036,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23036,apparel:23036,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23036,apparel:23036,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23037,apparel:23037,m_Name,apparel_formal_coat,,,explicit-serialized
+ApparelDefinitionSO|apparel:23037,apparel:23037,id,23037,,,explicit-serialized
+ApparelDefinitionSO|apparel:23037,apparel:23037,apparelId,apparel:formal-coat,,,explicit-serialized
+ApparelDefinitionSO|apparel:23037,apparel:23037,physicalItemId,apparel:formal-coat,,,explicit-serialized
+ApparelDefinitionSO|apparel:23037,apparel:23037,displayName,정장 외투,,,explicit-serialized
+ApparelDefinitionSO|apparel:23037,apparel:23037,description,정장 외투. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23037,apparel:23037,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23037,apparel:23037,layer,2,ApparelLayer,Outer,explicit-serialized
+ApparelDefinitionSO|apparel:23037,apparel:23037,fitMode,0,ApparelFitMode,Sized,explicit-serialized
+ApparelDefinitionSO|apparel:23037,apparel:23037,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23037,apparel:23037,occupiedPoints,8296,AnatomyAttachmentPoint,알 수 없음 (8296),explicit-serialized
+ApparelDefinitionSO|apparel:23037,apparel:23037,sealedOptionalPoints,98304,AnatomyAttachmentPoint,알 수 없음 (98304),explicit-serialized
+ApparelDefinitionSO|apparel:23037,apparel:23037,supportedModifications,2,ApparelModificationKind,Wing Slits,explicit-serialized
+ApparelDefinitionSO|apparel:23037,apparel:23037,useTags,256,ApparelUseTag,Formal,explicit-serialized
+ApparelDefinitionSO|apparel:23037,apparel:23037,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23037,apparel:23037,tailoringCoefficient,1.08,,,explicit-serialized
+ApparelDefinitionSO|apparel:23037,apparel:23037,baseWeight,0.82,,,explicit-serialized
+ApparelDefinitionSO|apparel:23037,apparel:23037,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23037,apparel:23037,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23037,apparel:23037,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23037,apparel:23037,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23037,apparel:23037,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23037,apparel:23037,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23037,apparel:23037,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23037,apparel:23037,proficiency.recommendedRank,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23037,apparel:23037,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23037,apparel:23037,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23037,apparel:23037,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23037,apparel:23037,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23037,apparel:23037,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23037,apparel:23037,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23038,apparel:23038,m_Name,apparel_ceremonial_dress,,,explicit-serialized
+ApparelDefinitionSO|apparel:23038,apparel:23038,id,23038,,,explicit-serialized
+ApparelDefinitionSO|apparel:23038,apparel:23038,apparelId,apparel:ceremonial-dress,,,explicit-serialized
+ApparelDefinitionSO|apparel:23038,apparel:23038,physicalItemId,apparel:ceremonial-dress,,,explicit-serialized
+ApparelDefinitionSO|apparel:23038,apparel:23038,displayName,예복 드레스,,,explicit-serialized
+ApparelDefinitionSO|apparel:23038,apparel:23038,description,예복 드레스. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23038,apparel:23038,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23038,apparel:23038,layer,2,ApparelLayer,Outer,explicit-serialized
+ApparelDefinitionSO|apparel:23038,apparel:23038,fitMode,0,ApparelFitMode,Sized,explicit-serialized
+ApparelDefinitionSO|apparel:23038,apparel:23038,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23038,apparel:23038,occupiedPoints,9848,AnatomyAttachmentPoint,알 수 없음 (9848),explicit-serialized
+ApparelDefinitionSO|apparel:23038,apparel:23038,sealedOptionalPoints,245760,AnatomyAttachmentPoint,알 수 없음 (245760),explicit-serialized
+ApparelDefinitionSO|apparel:23038,apparel:23038,supportedModifications,7,ApparelModificationKind,알 수 없음 (7),explicit-serialized
+ApparelDefinitionSO|apparel:23038,apparel:23038,useTags,768,ApparelUseTag,알 수 없음 (768),explicit-serialized
+ApparelDefinitionSO|apparel:23038,apparel:23038,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23038,apparel:23038,tailoringCoefficient,1.12,,,explicit-serialized
+ApparelDefinitionSO|apparel:23038,apparel:23038,baseWeight,1.05,,,explicit-serialized
+ApparelDefinitionSO|apparel:23038,apparel:23038,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23038,apparel:23038,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23038,apparel:23038,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23038,apparel:23038,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23038,apparel:23038,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23038,apparel:23038,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23038,apparel:23038,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23038,apparel:23038,proficiency.recommendedRank,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23038,apparel:23038,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23038,apparel:23038,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23038,apparel:23038,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23038,apparel:23038,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23038,apparel:23038,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23038,apparel:23038,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23039,apparel:23039,m_Name,apparel_ritual_robe,,,explicit-serialized
+ApparelDefinitionSO|apparel:23039,apparel:23039,id,23039,,,explicit-serialized
+ApparelDefinitionSO|apparel:23039,apparel:23039,apparelId,apparel:ritual-robe,,,explicit-serialized
+ApparelDefinitionSO|apparel:23039,apparel:23039,physicalItemId,apparel:ritual-robe,,,explicit-serialized
+ApparelDefinitionSO|apparel:23039,apparel:23039,displayName,의식 로브,,,explicit-serialized
+ApparelDefinitionSO|apparel:23039,apparel:23039,description,의식 로브. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23039,apparel:23039,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23039,apparel:23039,layer,2,ApparelLayer,Outer,explicit-serialized
+ApparelDefinitionSO|apparel:23039,apparel:23039,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23039,apparel:23039,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23039,apparel:23039,occupiedPoints,9848,AnatomyAttachmentPoint,알 수 없음 (9848),explicit-serialized
+ApparelDefinitionSO|apparel:23039,apparel:23039,sealedOptionalPoints,245760,AnatomyAttachmentPoint,알 수 없음 (245760),explicit-serialized
+ApparelDefinitionSO|apparel:23039,apparel:23039,supportedModifications,7,ApparelModificationKind,알 수 없음 (7),explicit-serialized
+ApparelDefinitionSO|apparel:23039,apparel:23039,useTags,768,ApparelUseTag,알 수 없음 (768),explicit-serialized
+ApparelDefinitionSO|apparel:23039,apparel:23039,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23039,apparel:23039,tailoringCoefficient,1.1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23039,apparel:23039,baseWeight,0.95,,,explicit-serialized
+ApparelDefinitionSO|apparel:23039,apparel:23039,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23039,apparel:23039,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23039,apparel:23039,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23039,apparel:23039,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23039,apparel:23039,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23039,apparel:23039,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23039,apparel:23039,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23039,apparel:23039,proficiency.recommendedRank,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23039,apparel:23039,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23039,apparel:23039,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23039,apparel:23039,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23039,apparel:23039,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23039,apparel:23039,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23039,apparel:23039,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23040,apparel:23040,m_Name,apparel_mourning_clothes,,,explicit-serialized
+ApparelDefinitionSO|apparel:23040,apparel:23040,id,23040,,,explicit-serialized
+ApparelDefinitionSO|apparel:23040,apparel:23040,apparelId,apparel:mourning-clothes,,,explicit-serialized
+ApparelDefinitionSO|apparel:23040,apparel:23040,physicalItemId,apparel:mourning-clothes,,,explicit-serialized
+ApparelDefinitionSO|apparel:23040,apparel:23040,displayName,상복,,,explicit-serialized
+ApparelDefinitionSO|apparel:23040,apparel:23040,description,상복. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23040,apparel:23040,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23040,apparel:23040,layer,2,ApparelLayer,Outer,explicit-serialized
+ApparelDefinitionSO|apparel:23040,apparel:23040,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23040,apparel:23040,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23040,apparel:23040,occupiedPoints,9848,AnatomyAttachmentPoint,알 수 없음 (9848),explicit-serialized
+ApparelDefinitionSO|apparel:23040,apparel:23040,sealedOptionalPoints,245760,AnatomyAttachmentPoint,알 수 없음 (245760),explicit-serialized
+ApparelDefinitionSO|apparel:23040,apparel:23040,supportedModifications,7,ApparelModificationKind,알 수 없음 (7),explicit-serialized
+ApparelDefinitionSO|apparel:23040,apparel:23040,useTags,768,ApparelUseTag,알 수 없음 (768),explicit-serialized
+ApparelDefinitionSO|apparel:23040,apparel:23040,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23040,apparel:23040,tailoringCoefficient,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23040,apparel:23040,baseWeight,0.85,,,explicit-serialized
+ApparelDefinitionSO|apparel:23040,apparel:23040,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23040,apparel:23040,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23040,apparel:23040,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23040,apparel:23040,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23040,apparel:23040,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23040,apparel:23040,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23040,apparel:23040,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23040,apparel:23040,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23040,apparel:23040,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23040,apparel:23040,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23040,apparel:23040,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23040,apparel:23040,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23040,apparel:23040,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23040,apparel:23040,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23041,apparel:23041,m_Name,apparel_festival_vest,,,explicit-serialized
+ApparelDefinitionSO|apparel:23041,apparel:23041,id,23041,,,explicit-serialized
+ApparelDefinitionSO|apparel:23041,apparel:23041,apparelId,apparel:festival-vest,,,explicit-serialized
+ApparelDefinitionSO|apparel:23041,apparel:23041,physicalItemId,apparel:festival-vest,,,explicit-serialized
+ApparelDefinitionSO|apparel:23041,apparel:23041,displayName,축제 조끼,,,explicit-serialized
+ApparelDefinitionSO|apparel:23041,apparel:23041,description,축제 조끼. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23041,apparel:23041,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23041,apparel:23041,layer,2,ApparelLayer,Outer,explicit-serialized
+ApparelDefinitionSO|apparel:23041,apparel:23041,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23041,apparel:23041,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23041,apparel:23041,occupiedPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23041,apparel:23041,sealedOptionalPoints,98304,AnatomyAttachmentPoint,알 수 없음 (98304),explicit-serialized
+ApparelDefinitionSO|apparel:23041,apparel:23041,supportedModifications,2,ApparelModificationKind,Wing Slits,explicit-serialized
+ApparelDefinitionSO|apparel:23041,apparel:23041,useTags,768,ApparelUseTag,알 수 없음 (768),explicit-serialized
+ApparelDefinitionSO|apparel:23041,apparel:23041,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23041,apparel:23041,tailoringCoefficient,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23041,apparel:23041,baseWeight,0.48,,,explicit-serialized
+ApparelDefinitionSO|apparel:23041,apparel:23041,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23041,apparel:23041,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23041,apparel:23041,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23041,apparel:23041,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23041,apparel:23041,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23041,apparel:23041,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23041,apparel:23041,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23041,apparel:23041,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23041,apparel:23041,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23041,apparel:23041,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23041,apparel:23041,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23041,apparel:23041,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23041,apparel:23041,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23041,apparel:23041,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23042,apparel:23042,m_Name,apparel_envoy_coat,,,explicit-serialized
+ApparelDefinitionSO|apparel:23042,apparel:23042,id,23042,,,explicit-serialized
+ApparelDefinitionSO|apparel:23042,apparel:23042,apparelId,apparel:envoy-coat,,,explicit-serialized
+ApparelDefinitionSO|apparel:23042,apparel:23042,physicalItemId,apparel:envoy-coat,,,explicit-serialized
+ApparelDefinitionSO|apparel:23042,apparel:23042,displayName,사절 외투,,,explicit-serialized
+ApparelDefinitionSO|apparel:23042,apparel:23042,description,사절 외투. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23042,apparel:23042,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23042,apparel:23042,layer,2,ApparelLayer,Outer,explicit-serialized
+ApparelDefinitionSO|apparel:23042,apparel:23042,fitMode,0,ApparelFitMode,Sized,explicit-serialized
+ApparelDefinitionSO|apparel:23042,apparel:23042,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23042,apparel:23042,occupiedPoints,8296,AnatomyAttachmentPoint,알 수 없음 (8296),explicit-serialized
+ApparelDefinitionSO|apparel:23042,apparel:23042,sealedOptionalPoints,98304,AnatomyAttachmentPoint,알 수 없음 (98304),explicit-serialized
+ApparelDefinitionSO|apparel:23042,apparel:23042,supportedModifications,2,ApparelModificationKind,Wing Slits,explicit-serialized
+ApparelDefinitionSO|apparel:23042,apparel:23042,useTags,256,ApparelUseTag,Formal,explicit-serialized
+ApparelDefinitionSO|apparel:23042,apparel:23042,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23042,apparel:23042,tailoringCoefficient,1.08,,,explicit-serialized
+ApparelDefinitionSO|apparel:23042,apparel:23042,baseWeight,0.9,,,explicit-serialized
+ApparelDefinitionSO|apparel:23042,apparel:23042,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23042,apparel:23042,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23042,apparel:23042,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23042,apparel:23042,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23042,apparel:23042,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23042,apparel:23042,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23042,apparel:23042,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23042,apparel:23042,proficiency.recommendedRank,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23042,apparel:23042,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23042,apparel:23042,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23042,apparel:23042,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23042,apparel:23042,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23042,apparel:23042,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23042,apparel:23042,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23043,apparel:23043,m_Name,apparel_contract_sash,,,explicit-serialized
+ApparelDefinitionSO|apparel:23043,apparel:23043,id,23043,,,explicit-serialized
+ApparelDefinitionSO|apparel:23043,apparel:23043,apparelId,apparel:contract-sash,,,explicit-serialized
+ApparelDefinitionSO|apparel:23043,apparel:23043,physicalItemId,apparel:contract-sash,,,explicit-serialized
+ApparelDefinitionSO|apparel:23043,apparel:23043,displayName,계약 어깨띠,,,explicit-serialized
+ApparelDefinitionSO|apparel:23043,apparel:23043,description,계약 어깨띠. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23043,apparel:23043,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23043,apparel:23043,layer,4,ApparelLayer,Accessory,explicit-serialized
+ApparelDefinitionSO|apparel:23043,apparel:23043,fitMode,2,ApparelFitMode,Accessory,explicit-serialized
+ApparelDefinitionSO|apparel:23043,apparel:23043,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23043,apparel:23043,occupiedPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23043,apparel:23043,sealedOptionalPoints,0,AnatomyAttachmentPoint,None,explicit-serialized
+ApparelDefinitionSO|apparel:23043,apparel:23043,supportedModifications,0,ApparelModificationKind,None,explicit-serialized
+ApparelDefinitionSO|apparel:23043,apparel:23043,useTags,1792,ApparelUseTag,알 수 없음 (1792),explicit-serialized
+ApparelDefinitionSO|apparel:23043,apparel:23043,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23043,apparel:23043,tailoringCoefficient,0.65,,,explicit-serialized
+ApparelDefinitionSO|apparel:23043,apparel:23043,baseWeight,0.15,,,explicit-serialized
+ApparelDefinitionSO|apparel:23043,apparel:23043,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23043,apparel:23043,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23043,apparel:23043,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23043,apparel:23043,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23043,apparel:23043,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23043,apparel:23043,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23043,apparel:23043,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23043,apparel:23043,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23043,apparel:23043,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23043,apparel:23043,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23043,apparel:23043,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23043,apparel:23043,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23043,apparel:23043,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23043,apparel:23043,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23044,apparel:23044,m_Name,apparel_weapon_vigil_cloak,,,explicit-serialized
+ApparelDefinitionSO|apparel:23044,apparel:23044,id,23044,,,explicit-serialized
+ApparelDefinitionSO|apparel:23044,apparel:23044,apparelId,apparel:weapon-vigil-cloak,,,explicit-serialized
+ApparelDefinitionSO|apparel:23044,apparel:23044,physicalItemId,apparel:weapon-vigil-cloak,,,explicit-serialized
+ApparelDefinitionSO|apparel:23044,apparel:23044,displayName,무기 철야 망토,,,explicit-serialized
+ApparelDefinitionSO|apparel:23044,apparel:23044,description,무기 철야 망토. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23044,apparel:23044,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23044,apparel:23044,layer,2,ApparelLayer,Outer,explicit-serialized
+ApparelDefinitionSO|apparel:23044,apparel:23044,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23044,apparel:23044,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23044,apparel:23044,occupiedPoints,8200,AnatomyAttachmentPoint,알 수 없음 (8200),explicit-serialized
+ApparelDefinitionSO|apparel:23044,apparel:23044,sealedOptionalPoints,98304,AnatomyAttachmentPoint,알 수 없음 (98304),explicit-serialized
+ApparelDefinitionSO|apparel:23044,apparel:23044,supportedModifications,2,ApparelModificationKind,Wing Slits,explicit-serialized
+ApparelDefinitionSO|apparel:23044,apparel:23044,useTags,528,ApparelUseTag,알 수 없음 (528),explicit-serialized
+ApparelDefinitionSO|apparel:23044,apparel:23044,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23044,apparel:23044,tailoringCoefficient,1.08,,,explicit-serialized
+ApparelDefinitionSO|apparel:23044,apparel:23044,baseWeight,0.8,,,explicit-serialized
+ApparelDefinitionSO|apparel:23044,apparel:23044,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23044,apparel:23044,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23044,apparel:23044,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23044,apparel:23044,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23044,apparel:23044,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23044,apparel:23044,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23044,apparel:23044,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23044,apparel:23044,proficiency.recommendedRank,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23044,apparel:23044,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23044,apparel:23044,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23044,apparel:23044,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23044,apparel:23044,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23044,apparel:23044,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23044,apparel:23044,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23045,apparel:23045,m_Name,apparel_sky_chorus_shawl,,,explicit-serialized
+ApparelDefinitionSO|apparel:23045,apparel:23045,id,23045,,,explicit-serialized
+ApparelDefinitionSO|apparel:23045,apparel:23045,apparelId,apparel:sky-chorus-shawl,,,explicit-serialized
+ApparelDefinitionSO|apparel:23045,apparel:23045,physicalItemId,apparel:sky-chorus-shawl,,,explicit-serialized
+ApparelDefinitionSO|apparel:23045,apparel:23045,displayName,하늘 합창 숄,,,explicit-serialized
+ApparelDefinitionSO|apparel:23045,apparel:23045,description,하늘 합창 숄. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23045,apparel:23045,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23045,apparel:23045,layer,4,ApparelLayer,Accessory,explicit-serialized
+ApparelDefinitionSO|apparel:23045,apparel:23045,fitMode,2,ApparelFitMode,Accessory,explicit-serialized
+ApparelDefinitionSO|apparel:23045,apparel:23045,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23045,apparel:23045,occupiedPoints,8200,AnatomyAttachmentPoint,알 수 없음 (8200),explicit-serialized
+ApparelDefinitionSO|apparel:23045,apparel:23045,sealedOptionalPoints,0,AnatomyAttachmentPoint,None,explicit-serialized
+ApparelDefinitionSO|apparel:23045,apparel:23045,supportedModifications,0,ApparelModificationKind,None,explicit-serialized
+ApparelDefinitionSO|apparel:23045,apparel:23045,useTags,1536,ApparelUseTag,알 수 없음 (1536),explicit-serialized
+ApparelDefinitionSO|apparel:23045,apparel:23045,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23045,apparel:23045,tailoringCoefficient,0.72,,,explicit-serialized
+ApparelDefinitionSO|apparel:23045,apparel:23045,baseWeight,0.22,,,explicit-serialized
+ApparelDefinitionSO|apparel:23045,apparel:23045,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23045,apparel:23045,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23045,apparel:23045,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23045,apparel:23045,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23045,apparel:23045,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23045,apparel:23045,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23045,apparel:23045,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23045,apparel:23045,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23045,apparel:23045,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23045,apparel:23045,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23045,apparel:23045,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23045,apparel:23045,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23045,apparel:23045,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23045,apparel:23045,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23046,apparel:23046,m_Name,apparel_spore_garden_cloak,,,explicit-serialized
+ApparelDefinitionSO|apparel:23046,apparel:23046,id,23046,,,explicit-serialized
+ApparelDefinitionSO|apparel:23046,apparel:23046,apparelId,apparel:spore-garden-cloak,,,explicit-serialized
+ApparelDefinitionSO|apparel:23046,apparel:23046,physicalItemId,apparel:spore-garden-cloak,,,explicit-serialized
+ApparelDefinitionSO|apparel:23046,apparel:23046,displayName,포자 정원 망토,,,explicit-serialized
+ApparelDefinitionSO|apparel:23046,apparel:23046,description,포자 정원 망토. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23046,apparel:23046,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23046,apparel:23046,layer,2,ApparelLayer,Outer,explicit-serialized
+ApparelDefinitionSO|apparel:23046,apparel:23046,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23046,apparel:23046,requiredPoints,8,AnatomyAttachmentPoint,Hand Left,explicit-serialized
+ApparelDefinitionSO|apparel:23046,apparel:23046,occupiedPoints,8200,AnatomyAttachmentPoint,알 수 없음 (8200),explicit-serialized
+ApparelDefinitionSO|apparel:23046,apparel:23046,sealedOptionalPoints,98304,AnatomyAttachmentPoint,알 수 없음 (98304),explicit-serialized
+ApparelDefinitionSO|apparel:23046,apparel:23046,supportedModifications,2,ApparelModificationKind,Wing Slits,explicit-serialized
+ApparelDefinitionSO|apparel:23046,apparel:23046,useTags,2560,ApparelUseTag,알 수 없음 (2560),explicit-serialized
+ApparelDefinitionSO|apparel:23046,apparel:23046,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23046,apparel:23046,tailoringCoefficient,1.02,,,explicit-serialized
+ApparelDefinitionSO|apparel:23046,apparel:23046,baseWeight,0.78,,,explicit-serialized
+ApparelDefinitionSO|apparel:23046,apparel:23046,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23046,apparel:23046,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23046,apparel:23046,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23046,apparel:23046,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23046,apparel:23046,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23046,apparel:23046,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23046,apparel:23046,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23046,apparel:23046,proficiency.recommendedRank,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23046,apparel:23046,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23046,apparel:23046,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23046,apparel:23046,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23046,apparel:23046,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23046,apparel:23046,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23046,apparel:23046,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23047,apparel:23047,m_Name,apparel_belt,,,explicit-serialized
+ApparelDefinitionSO|apparel:23047,apparel:23047,id,23047,,,explicit-serialized
+ApparelDefinitionSO|apparel:23047,apparel:23047,apparelId,apparel:belt,,,explicit-serialized
+ApparelDefinitionSO|apparel:23047,apparel:23047,physicalItemId,apparel:belt,,,explicit-serialized
+ApparelDefinitionSO|apparel:23047,apparel:23047,displayName,허리띠,,,explicit-serialized
+ApparelDefinitionSO|apparel:23047,apparel:23047,description,허리띠. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23047,apparel:23047,bodyForm,2,ApparelBodyForm,Any,explicit-serialized
+ApparelDefinitionSO|apparel:23047,apparel:23047,layer,4,ApparelLayer,Accessory,explicit-serialized
+ApparelDefinitionSO|apparel:23047,apparel:23047,fitMode,2,ApparelFitMode,Accessory,explicit-serialized
+ApparelDefinitionSO|apparel:23047,apparel:23047,requiredPoints,16,AnatomyAttachmentPoint,Wing Left,explicit-serialized
+ApparelDefinitionSO|apparel:23047,apparel:23047,occupiedPoints,16,AnatomyAttachmentPoint,Wing Left,explicit-serialized
+ApparelDefinitionSO|apparel:23047,apparel:23047,sealedOptionalPoints,0,AnatomyAttachmentPoint,None,explicit-serialized
+ApparelDefinitionSO|apparel:23047,apparel:23047,supportedModifications,0,ApparelModificationKind,None,explicit-serialized
+ApparelDefinitionSO|apparel:23047,apparel:23047,useTags,1024,ApparelUseTag,Accessory,explicit-serialized
+ApparelDefinitionSO|apparel:23047,apparel:23047,allowedMaterialTags,3,TextileMaterialTag,알 수 없음 (3),explicit-serialized
+ApparelDefinitionSO|apparel:23047,apparel:23047,tailoringCoefficient,0.62,,,explicit-serialized
+ApparelDefinitionSO|apparel:23047,apparel:23047,baseWeight,0.2,,,explicit-serialized
+ApparelDefinitionSO|apparel:23047,apparel:23047,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23047,apparel:23047,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23047,apparel:23047,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23047,apparel:23047,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23047,apparel:23047,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23047,apparel:23047,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23047,apparel:23047,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23047,apparel:23047,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23047,apparel:23047,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23047,apparel:23047,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23047,apparel:23047,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23047,apparel:23047,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23047,apparel:23047,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23047,apparel:23047,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23048,apparel:23048,m_Name,apparel_gloves,,,explicit-serialized
+ApparelDefinitionSO|apparel:23048,apparel:23048,id,23048,,,explicit-serialized
+ApparelDefinitionSO|apparel:23048,apparel:23048,apparelId,apparel:gloves,,,explicit-serialized
+ApparelDefinitionSO|apparel:23048,apparel:23048,physicalItemId,apparel:gloves,,,explicit-serialized
+ApparelDefinitionSO|apparel:23048,apparel:23048,displayName,장갑,,,explicit-serialized
+ApparelDefinitionSO|apparel:23048,apparel:23048,description,장갑. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23048,apparel:23048,bodyForm,2,ApparelBodyForm,Any,explicit-serialized
+ApparelDefinitionSO|apparel:23048,apparel:23048,layer,4,ApparelLayer,Accessory,explicit-serialized
+ApparelDefinitionSO|apparel:23048,apparel:23048,fitMode,0,ApparelFitMode,Sized,explicit-serialized
+ApparelDefinitionSO|apparel:23048,apparel:23048,requiredPoints,384,AnatomyAttachmentPoint,알 수 없음 (384),explicit-serialized
+ApparelDefinitionSO|apparel:23048,apparel:23048,occupiedPoints,384,AnatomyAttachmentPoint,알 수 없음 (384),explicit-serialized
+ApparelDefinitionSO|apparel:23048,apparel:23048,sealedOptionalPoints,0,AnatomyAttachmentPoint,None,explicit-serialized
+ApparelDefinitionSO|apparel:23048,apparel:23048,supportedModifications,0,ApparelModificationKind,None,explicit-serialized
+ApparelDefinitionSO|apparel:23048,apparel:23048,useTags,3072,ApparelUseTag,알 수 없음 (3072),explicit-serialized
+ApparelDefinitionSO|apparel:23048,apparel:23048,allowedMaterialTags,3,TextileMaterialTag,알 수 없음 (3),explicit-serialized
+ApparelDefinitionSO|apparel:23048,apparel:23048,tailoringCoefficient,0.82,,,explicit-serialized
+ApparelDefinitionSO|apparel:23048,apparel:23048,baseWeight,0.25,,,explicit-serialized
+ApparelDefinitionSO|apparel:23048,apparel:23048,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23048,apparel:23048,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23048,apparel:23048,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23048,apparel:23048,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23048,apparel:23048,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23048,apparel:23048,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23048,apparel:23048,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23048,apparel:23048,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23048,apparel:23048,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23048,apparel:23048,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23048,apparel:23048,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23048,apparel:23048,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23048,apparel:23048,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23048,apparel:23048,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23049,apparel:23049,m_Name,apparel_boots,,,explicit-serialized
+ApparelDefinitionSO|apparel:23049,apparel:23049,id,23049,,,explicit-serialized
+ApparelDefinitionSO|apparel:23049,apparel:23049,apparelId,apparel:boots,,,explicit-serialized
+ApparelDefinitionSO|apparel:23049,apparel:23049,physicalItemId,apparel:boots,,,explicit-serialized
+ApparelDefinitionSO|apparel:23049,apparel:23049,displayName,장화,,,explicit-serialized
+ApparelDefinitionSO|apparel:23049,apparel:23049,description,장화. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23049,apparel:23049,bodyForm,2,ApparelBodyForm,Any,explicit-serialized
+ApparelDefinitionSO|apparel:23049,apparel:23049,layer,4,ApparelLayer,Accessory,explicit-serialized
+ApparelDefinitionSO|apparel:23049,apparel:23049,fitMode,0,ApparelFitMode,Sized,explicit-serialized
+ApparelDefinitionSO|apparel:23049,apparel:23049,requiredPoints,6144,AnatomyAttachmentPoint,알 수 없음 (6144),explicit-serialized
+ApparelDefinitionSO|apparel:23049,apparel:23049,occupiedPoints,6144,AnatomyAttachmentPoint,알 수 없음 (6144),explicit-serialized
+ApparelDefinitionSO|apparel:23049,apparel:23049,sealedOptionalPoints,0,AnatomyAttachmentPoint,None,explicit-serialized
+ApparelDefinitionSO|apparel:23049,apparel:23049,supportedModifications,0,ApparelModificationKind,None,explicit-serialized
+ApparelDefinitionSO|apparel:23049,apparel:23049,useTags,3072,ApparelUseTag,알 수 없음 (3072),explicit-serialized
+ApparelDefinitionSO|apparel:23049,apparel:23049,allowedMaterialTags,3,TextileMaterialTag,알 수 없음 (3),explicit-serialized
+ApparelDefinitionSO|apparel:23049,apparel:23049,tailoringCoefficient,0.9,,,explicit-serialized
+ApparelDefinitionSO|apparel:23049,apparel:23049,baseWeight,0.65,,,explicit-serialized
+ApparelDefinitionSO|apparel:23049,apparel:23049,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23049,apparel:23049,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23049,apparel:23049,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23049,apparel:23049,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23049,apparel:23049,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23049,apparel:23049,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23049,apparel:23049,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23049,apparel:23049,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23049,apparel:23049,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23049,apparel:23049,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23049,apparel:23049,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23049,apparel:23049,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23049,apparel:23049,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23049,apparel:23049,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23050,apparel:23050,m_Name,apparel_hat,,,explicit-serialized
+ApparelDefinitionSO|apparel:23050,apparel:23050,id,23050,,,explicit-serialized
+ApparelDefinitionSO|apparel:23050,apparel:23050,apparelId,apparel:hat,,,explicit-serialized
+ApparelDefinitionSO|apparel:23050,apparel:23050,physicalItemId,apparel:hat,,,explicit-serialized
+ApparelDefinitionSO|apparel:23050,apparel:23050,displayName,모자,,,explicit-serialized
+ApparelDefinitionSO|apparel:23050,apparel:23050,description,모자. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23050,apparel:23050,bodyForm,2,ApparelBodyForm,Any,explicit-serialized
+ApparelDefinitionSO|apparel:23050,apparel:23050,layer,4,ApparelLayer,Accessory,explicit-serialized
+ApparelDefinitionSO|apparel:23050,apparel:23050,fitMode,1,ApparelFitMode,Adjustable,explicit-serialized
+ApparelDefinitionSO|apparel:23050,apparel:23050,requiredPoints,1,AnatomyAttachmentPoint,Head,explicit-serialized
+ApparelDefinitionSO|apparel:23050,apparel:23050,occupiedPoints,1,AnatomyAttachmentPoint,Head,explicit-serialized
+ApparelDefinitionSO|apparel:23050,apparel:23050,sealedOptionalPoints,131072,AnatomyAttachmentPoint,알 수 없음 (131072),explicit-serialized
+ApparelDefinitionSO|apparel:23050,apparel:23050,supportedModifications,4,ApparelModificationKind,Horn Clearance,explicit-serialized
+ApparelDefinitionSO|apparel:23050,apparel:23050,useTags,1024,ApparelUseTag,Accessory,explicit-serialized
+ApparelDefinitionSO|apparel:23050,apparel:23050,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23050,apparel:23050,tailoringCoefficient,0.78,,,explicit-serialized
+ApparelDefinitionSO|apparel:23050,apparel:23050,baseWeight,0.2,,,explicit-serialized
+ApparelDefinitionSO|apparel:23050,apparel:23050,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23050,apparel:23050,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23050,apparel:23050,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23050,apparel:23050,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23050,apparel:23050,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23050,apparel:23050,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23050,apparel:23050,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23050,apparel:23050,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23050,apparel:23050,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23050,apparel:23050,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23050,apparel:23050,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23050,apparel:23050,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23050,apparel:23050,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23050,apparel:23050,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23051,apparel:23051,m_Name,apparel_scarf,,,explicit-serialized
+ApparelDefinitionSO|apparel:23051,apparel:23051,id,23051,,,explicit-serialized
+ApparelDefinitionSO|apparel:23051,apparel:23051,apparelId,apparel:scarf,,,explicit-serialized
+ApparelDefinitionSO|apparel:23051,apparel:23051,physicalItemId,apparel:scarf,,,explicit-serialized
+ApparelDefinitionSO|apparel:23051,apparel:23051,displayName,목도리,,,explicit-serialized
+ApparelDefinitionSO|apparel:23051,apparel:23051,description,목도리. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23051,apparel:23051,bodyForm,2,ApparelBodyForm,Any,explicit-serialized
+ApparelDefinitionSO|apparel:23051,apparel:23051,layer,4,ApparelLayer,Accessory,explicit-serialized
+ApparelDefinitionSO|apparel:23051,apparel:23051,fitMode,2,ApparelFitMode,Accessory,explicit-serialized
+ApparelDefinitionSO|apparel:23051,apparel:23051,requiredPoints,4,AnatomyAttachmentPoint,Torso,explicit-serialized
+ApparelDefinitionSO|apparel:23051,apparel:23051,occupiedPoints,4,AnatomyAttachmentPoint,Torso,explicit-serialized
+ApparelDefinitionSO|apparel:23051,apparel:23051,sealedOptionalPoints,0,AnatomyAttachmentPoint,None,explicit-serialized
+ApparelDefinitionSO|apparel:23051,apparel:23051,supportedModifications,0,ApparelModificationKind,None,explicit-serialized
+ApparelDefinitionSO|apparel:23051,apparel:23051,useTags,1040,ApparelUseTag,알 수 없음 (1040),explicit-serialized
+ApparelDefinitionSO|apparel:23051,apparel:23051,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23051,apparel:23051,tailoringCoefficient,0.82,,,explicit-serialized
+ApparelDefinitionSO|apparel:23051,apparel:23051,baseWeight,0.18,,,explicit-serialized
+ApparelDefinitionSO|apparel:23051,apparel:23051,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23051,apparel:23051,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23051,apparel:23051,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23051,apparel:23051,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23051,apparel:23051,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23051,apparel:23051,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23051,apparel:23051,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23051,apparel:23051,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23051,apparel:23051,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23051,apparel:23051,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23051,apparel:23051,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23051,apparel:23051,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23051,apparel:23051,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23051,apparel:23051,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23052,apparel:23052,m_Name,apparel_tail_ribbon,,,explicit-serialized
+ApparelDefinitionSO|apparel:23052,apparel:23052,id,23052,,,explicit-serialized
+ApparelDefinitionSO|apparel:23052,apparel:23052,apparelId,apparel:tail-ribbon,,,explicit-serialized
+ApparelDefinitionSO|apparel:23052,apparel:23052,physicalItemId,apparel:tail-ribbon,,,explicit-serialized
+ApparelDefinitionSO|apparel:23052,apparel:23052,displayName,꼬리 리본,,,explicit-serialized
+ApparelDefinitionSO|apparel:23052,apparel:23052,description,꼬리 리본. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23052,apparel:23052,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23052,apparel:23052,layer,4,ApparelLayer,Accessory,explicit-serialized
+ApparelDefinitionSO|apparel:23052,apparel:23052,fitMode,2,ApparelFitMode,Accessory,explicit-serialized
+ApparelDefinitionSO|apparel:23052,apparel:23052,requiredPoints,16384,AnatomyAttachmentPoint,알 수 없음 (16384),explicit-serialized
+ApparelDefinitionSO|apparel:23052,apparel:23052,occupiedPoints,16384,AnatomyAttachmentPoint,알 수 없음 (16384),explicit-serialized
+ApparelDefinitionSO|apparel:23052,apparel:23052,sealedOptionalPoints,0,AnatomyAttachmentPoint,None,explicit-serialized
+ApparelDefinitionSO|apparel:23052,apparel:23052,supportedModifications,0,ApparelModificationKind,None,explicit-serialized
+ApparelDefinitionSO|apparel:23052,apparel:23052,useTags,1536,ApparelUseTag,알 수 없음 (1536),explicit-serialized
+ApparelDefinitionSO|apparel:23052,apparel:23052,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23052,apparel:23052,tailoringCoefficient,0.55,,,explicit-serialized
+ApparelDefinitionSO|apparel:23052,apparel:23052,baseWeight,0.08,,,explicit-serialized
+ApparelDefinitionSO|apparel:23052,apparel:23052,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23052,apparel:23052,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23052,apparel:23052,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23052,apparel:23052,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23052,apparel:23052,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23052,apparel:23052,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23052,apparel:23052,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23052,apparel:23052,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23052,apparel:23052,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23052,apparel:23052,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23052,apparel:23052,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23052,apparel:23052,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23052,apparel:23052,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23052,apparel:23052,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23053,apparel:23053,m_Name,apparel_tail_guard,,,explicit-serialized
+ApparelDefinitionSO|apparel:23053,apparel:23053,id,23053,,,explicit-serialized
+ApparelDefinitionSO|apparel:23053,apparel:23053,apparelId,apparel:tail-guard,,,explicit-serialized
+ApparelDefinitionSO|apparel:23053,apparel:23053,physicalItemId,apparel:tail-guard,,,explicit-serialized
+ApparelDefinitionSO|apparel:23053,apparel:23053,displayName,꼬리 보호대,,,explicit-serialized
+ApparelDefinitionSO|apparel:23053,apparel:23053,description,꼬리 보호대. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23053,apparel:23053,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23053,apparel:23053,layer,4,ApparelLayer,Accessory,explicit-serialized
+ApparelDefinitionSO|apparel:23053,apparel:23053,fitMode,2,ApparelFitMode,Accessory,explicit-serialized
+ApparelDefinitionSO|apparel:23053,apparel:23053,requiredPoints,16384,AnatomyAttachmentPoint,알 수 없음 (16384),explicit-serialized
+ApparelDefinitionSO|apparel:23053,apparel:23053,occupiedPoints,16384,AnatomyAttachmentPoint,알 수 없음 (16384),explicit-serialized
+ApparelDefinitionSO|apparel:23053,apparel:23053,sealedOptionalPoints,0,AnatomyAttachmentPoint,None,explicit-serialized
+ApparelDefinitionSO|apparel:23053,apparel:23053,supportedModifications,0,ApparelModificationKind,None,explicit-serialized
+ApparelDefinitionSO|apparel:23053,apparel:23053,useTags,3072,ApparelUseTag,알 수 없음 (3072),explicit-serialized
+ApparelDefinitionSO|apparel:23053,apparel:23053,allowedMaterialTags,3,TextileMaterialTag,알 수 없음 (3),explicit-serialized
+ApparelDefinitionSO|apparel:23053,apparel:23053,tailoringCoefficient,0.9,,,explicit-serialized
+ApparelDefinitionSO|apparel:23053,apparel:23053,baseWeight,0.35,,,explicit-serialized
+ApparelDefinitionSO|apparel:23053,apparel:23053,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23053,apparel:23053,requiredResearchId,research:textile:layered,,,explicit-serialized
+ApparelDefinitionSO|apparel:23053,apparel:23053,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23053,apparel:23053,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23053,apparel:23053,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23053,apparel:23053,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23053,apparel:23053,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23053,apparel:23053,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23053,apparel:23053,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23053,apparel:23053,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23053,apparel:23053,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23053,apparel:23053,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23053,apparel:23053,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23053,apparel:23053,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23054,apparel:23054,m_Name,apparel_horn_ring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23054,apparel:23054,id,23054,,,explicit-serialized
+ApparelDefinitionSO|apparel:23054,apparel:23054,apparelId,apparel:horn-ring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23054,apparel:23054,physicalItemId,apparel:horn-ring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23054,apparel:23054,displayName,뿔 고리,,,explicit-serialized
+ApparelDefinitionSO|apparel:23054,apparel:23054,description,뿔 고리. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23054,apparel:23054,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23054,apparel:23054,layer,4,ApparelLayer,Accessory,explicit-serialized
+ApparelDefinitionSO|apparel:23054,apparel:23054,fitMode,2,ApparelFitMode,Accessory,explicit-serialized
+ApparelDefinitionSO|apparel:23054,apparel:23054,requiredPoints,131072,AnatomyAttachmentPoint,알 수 없음 (131072),explicit-serialized
+ApparelDefinitionSO|apparel:23054,apparel:23054,occupiedPoints,131072,AnatomyAttachmentPoint,알 수 없음 (131072),explicit-serialized
+ApparelDefinitionSO|apparel:23054,apparel:23054,sealedOptionalPoints,0,AnatomyAttachmentPoint,None,explicit-serialized
+ApparelDefinitionSO|apparel:23054,apparel:23054,supportedModifications,0,ApparelModificationKind,None,explicit-serialized
+ApparelDefinitionSO|apparel:23054,apparel:23054,useTags,1536,ApparelUseTag,알 수 없음 (1536),explicit-serialized
+ApparelDefinitionSO|apparel:23054,apparel:23054,allowedMaterialTags,3,TextileMaterialTag,알 수 없음 (3),explicit-serialized
+ApparelDefinitionSO|apparel:23054,apparel:23054,tailoringCoefficient,0.5,,,explicit-serialized
+ApparelDefinitionSO|apparel:23054,apparel:23054,baseWeight,0.1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23054,apparel:23054,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23054,apparel:23054,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23054,apparel:23054,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23054,apparel:23054,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23054,apparel:23054,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23054,apparel:23054,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23054,apparel:23054,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23054,apparel:23054,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23054,apparel:23054,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23054,apparel:23054,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23054,apparel:23054,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23054,apparel:23054,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23054,apparel:23054,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23054,apparel:23054,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23055,apparel:23055,m_Name,apparel_wing_harness,,,explicit-serialized
+ApparelDefinitionSO|apparel:23055,apparel:23055,id,23055,,,explicit-serialized
+ApparelDefinitionSO|apparel:23055,apparel:23055,apparelId,apparel:wing-harness,,,explicit-serialized
+ApparelDefinitionSO|apparel:23055,apparel:23055,physicalItemId,apparel:wing-harness,,,explicit-serialized
+ApparelDefinitionSO|apparel:23055,apparel:23055,displayName,날개 멜빵,,,explicit-serialized
+ApparelDefinitionSO|apparel:23055,apparel:23055,description,날개 멜빵. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23055,apparel:23055,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23055,apparel:23055,layer,4,ApparelLayer,Accessory,explicit-serialized
+ApparelDefinitionSO|apparel:23055,apparel:23055,fitMode,2,ApparelFitMode,Accessory,explicit-serialized
+ApparelDefinitionSO|apparel:23055,apparel:23055,requiredPoints,98304,AnatomyAttachmentPoint,알 수 없음 (98304),explicit-serialized
+ApparelDefinitionSO|apparel:23055,apparel:23055,occupiedPoints,106496,AnatomyAttachmentPoint,알 수 없음 (106496),explicit-serialized
+ApparelDefinitionSO|apparel:23055,apparel:23055,sealedOptionalPoints,0,AnatomyAttachmentPoint,None,explicit-serialized
+ApparelDefinitionSO|apparel:23055,apparel:23055,supportedModifications,0,ApparelModificationKind,None,explicit-serialized
+ApparelDefinitionSO|apparel:23055,apparel:23055,useTags,1032,ApparelUseTag,알 수 없음 (1032),explicit-serialized
+ApparelDefinitionSO|apparel:23055,apparel:23055,allowedMaterialTags,3,TextileMaterialTag,알 수 없음 (3),explicit-serialized
+ApparelDefinitionSO|apparel:23055,apparel:23055,tailoringCoefficient,0.82,,,explicit-serialized
+ApparelDefinitionSO|apparel:23055,apparel:23055,baseWeight,0.5,,,explicit-serialized
+ApparelDefinitionSO|apparel:23055,apparel:23055,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23055,apparel:23055,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23055,apparel:23055,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23055,apparel:23055,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23055,apparel:23055,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23055,apparel:23055,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23055,apparel:23055,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23055,apparel:23055,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23055,apparel:23055,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23055,apparel:23055,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23055,apparel:23055,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23055,apparel:23055,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23055,apparel:23055,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23055,apparel:23055,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default
+ApparelDefinitionSO|apparel:23056,apparel:23056,m_Name,apparel_wing_cloak,,,explicit-serialized
+ApparelDefinitionSO|apparel:23056,apparel:23056,id,23056,,,explicit-serialized
+ApparelDefinitionSO|apparel:23056,apparel:23056,apparelId,apparel:wing-cloak,,,explicit-serialized
+ApparelDefinitionSO|apparel:23056,apparel:23056,physicalItemId,apparel:wing-cloak,,,explicit-serialized
+ApparelDefinitionSO|apparel:23056,apparel:23056,displayName,날개 망토,,,explicit-serialized
+ApparelDefinitionSO|apparel:23056,apparel:23056,description,날개 망토. 실제 부착점·크기·레이어·개조와 한 종류의 주원단으로 성능을 결정한다.,,,explicit-serialized
+ApparelDefinitionSO|apparel:23056,apparel:23056,bodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+ApparelDefinitionSO|apparel:23056,apparel:23056,layer,4,ApparelLayer,Accessory,explicit-serialized
+ApparelDefinitionSO|apparel:23056,apparel:23056,fitMode,2,ApparelFitMode,Accessory,explicit-serialized
+ApparelDefinitionSO|apparel:23056,apparel:23056,requiredPoints,98304,AnatomyAttachmentPoint,알 수 없음 (98304),explicit-serialized
+ApparelDefinitionSO|apparel:23056,apparel:23056,occupiedPoints,106496,AnatomyAttachmentPoint,알 수 없음 (106496),explicit-serialized
+ApparelDefinitionSO|apparel:23056,apparel:23056,sealedOptionalPoints,0,AnatomyAttachmentPoint,None,explicit-serialized
+ApparelDefinitionSO|apparel:23056,apparel:23056,supportedModifications,0,ApparelModificationKind,None,explicit-serialized
+ApparelDefinitionSO|apparel:23056,apparel:23056,useTags,1040,ApparelUseTag,알 수 없음 (1040),explicit-serialized
+ApparelDefinitionSO|apparel:23056,apparel:23056,allowedMaterialTags,1,TextileMaterialTag,Woven,explicit-serialized
+ApparelDefinitionSO|apparel:23056,apparel:23056,tailoringCoefficient,0.9,,,explicit-serialized
+ApparelDefinitionSO|apparel:23056,apparel:23056,baseWeight,0.6,,,explicit-serialized
+ApparelDefinitionSO|apparel:23056,apparel:23056,allowMythicInspiration,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23056,apparel:23056,requiredResearchId,research:textile:tailoring,,,explicit-serialized
+ApparelDefinitionSO|apparel:23056,apparel:23056,sprite.fileID,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23056,apparel:23056,proficiency.primaryProficiencyId,proficiency:crafting,,,explicit-serialized
+ApparelDefinitionSO|apparel:23056,apparel:23056,proficiency.secondaryProficiencyId,,,,explicit-serialized
+ApparelDefinitionSO|apparel:23056,apparel:23056,proficiency.primaryWeight,1,,,explicit-serialized
+ApparelDefinitionSO|apparel:23056,apparel:23056,proficiency.combinationMode,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23056,apparel:23056,proficiency.recommendedRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23056,apparel:23056,proficiency.minimumRiskRank,0,,,explicit-serialized
+ApparelDefinitionSO|apparel:23056,apparel:23056,closedOpenings,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23056,apparel:23056,craftsmanshipQuality,0,CraftsmanshipQualityTier,Awful,implicit-csharp-default
+ApparelDefinitionSO|apparel:23056,apparel:23056,modifications,0,ApparelModificationKind,None,implicit-csharp-default
+ApparelDefinitionSO|apparel:23056,apparel:23056,size,0,ApparelSizeClass,Small,implicit-csharp-default
+ApparelDefinitionSO|apparel:23056,apparel:23056,sourceKind,0,TextileSourceKind,Unknown,implicit-csharp-default

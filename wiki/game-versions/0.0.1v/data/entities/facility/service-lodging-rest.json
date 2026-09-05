@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "service-lodging-rest",
+  "spoiler_tier": "none",
+  "summary": "숙박 서비스는 세 가지 방식을 제공하며, 결제와 청소 조건을 같은 공정에 묶는다.",
+  "title": "숙박 서비스"
+}

@@ -1,0 +1,67 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "textile-quilted-liner",
+    "spoiler_tier": "none",
+    "title": "층상 충전재"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-blast-coat",
+      "label": "필요 조건",
+      "to": "item/textile-quilted-liner",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-brigandine",
+      "label": "필요 조건",
+      "to": "item/textile-quilted-liner",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-gambeson",
+      "label": "필요 조건",
+      "to": "item/textile-quilted-liner",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-jack-of-plates",
+      "label": "필요 조건",
+      "to": "item/textile-quilted-liner",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-padded-hood",
+      "label": "필요 조건",
+      "to": "item/textile-quilted-liner",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-blast-coat-shell",
+      "label": "필요 조건",
+      "to": "item/textile-quilted-liner",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-brigandine-padding",
+      "label": "필요 조건",
+      "to": "item/textile-quilted-liner",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-textile-quilted-liner",
+      "label": "생산·해금",
+      "to": "item/textile-quilted-liner",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

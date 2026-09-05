@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.45kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "10개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "48"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "슬라임 외막과 응집핵의 누출을 임시 봉합한다. 하르나크의 맑은물 합류 치료사는 룬 점액 패치를 맑은 물에 한 방울 풀어 색이 핵 쪽으로 번지는지 먼저 본다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "medicine-rune-slime-patch",
+  "spoiler_tier": "none",
+  "summary": "슬라임 외막과 응집핵의 누출을 임시 봉합한다.",
+  "title": "룬 점액 패치"
+}

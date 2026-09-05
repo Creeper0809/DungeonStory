@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "140"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "경비 동선과 병영을 강화하는 전술·보안 파츠를 즉시 해금한다. 오르데나의 요새화 설계도는 방어선 안쪽의 주민보다 우르단 관문에서 들어오는 적의 동선을 먼저 그린다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "research-blueprint-6102",
+  "spoiler_tier": "none",
+  "summary": "경비 동선과 병영을 강화하는 전술·보안 파츠를 즉시 해금한다.",
+  "title": "요새화 설계도"
+}

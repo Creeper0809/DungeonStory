@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "22kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "4"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "몸에 흐릿한 룬빛이 도는 희귀한 초식동물. 고기와 마나 부산물을 남긴다. 죽은 룬사슴의 사체는 도축 시설로 옮겨 식량과 부산물로 나눈다. 라카쉬 세갈래길의 무리는 룬사슴 사체에서 얻은 고기와 가죽을 사냥한 사람보다 피난 행렬의 필요에 따라 나눈다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "wild-carcass-rune-deer",
+  "spoiler_tier": "none",
+  "summary": "도축 시설로 옮기면 식량과 부산물을 얻는다.",
+  "title": "룬사슴 사체"
+}

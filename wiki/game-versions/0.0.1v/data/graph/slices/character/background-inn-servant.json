@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "background-inn-servant",
+    "spoiler_tier": "none",
+    "title": "여관 심부름꾼"
+  },
+  "edges": [],
+  "schema_version": 1
+}

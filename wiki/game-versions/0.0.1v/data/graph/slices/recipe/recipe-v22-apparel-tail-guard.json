@@ -1,0 +1,51 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-v22-apparel-tail-guard",
+    "spoiler_tier": "none",
+    "title": "꼬리 보호대 재단"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-tail-guard",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "apparel-tail-guard",
+      "target_spoiler_tier": "none",
+      "target_title": "꼬리 보호대",
+      "to": "item/apparel-tail-guard",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-tail-guard",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "천",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-tail-guard",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "제작식 해금",
+      "to": "recipe/recipe-v22-apparel-tail-guard",
+      "type": "unlocks-recipe"
+    }
+  ],
+  "schema_version": 1
+}

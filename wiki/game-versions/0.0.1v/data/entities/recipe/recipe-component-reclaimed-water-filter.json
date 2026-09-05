@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "38"
+    },
+    {
+      "label": "필요 연구",
+      "value": "정수와 재이용"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-reclaimed-water-filter",
+      "target_spoiler_tier": "none",
+      "target_title": "재생수 필터 카트리지",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "textile-sterile-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "무균 천",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-reuse",
+      "target_spoiler_tier": "none",
+      "target_title": "정수와 재이용",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-component-reclaimed-water-filter",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 재생수 필터 카트리지을(를) 생산한다.",
+  "title": "재생수 필터 카트리지"
+}

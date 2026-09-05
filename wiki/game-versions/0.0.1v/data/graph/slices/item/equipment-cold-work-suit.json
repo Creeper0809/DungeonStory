@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "equipment-cold-work-suit",
+    "spoiler_tier": "none",
+    "title": "방한 작업복"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-cold-work-suit",
+      "label": "생산·해금",
+      "to": "item/equipment-cold-work-suit",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-cold-work-suit",
+      "label": "생산·해금",
+      "to": "item/equipment-cold-work-suit",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "combat/workwear-cold-work-suit",
+      "label": "관련",
+      "to": "item/equipment-cold-work-suit",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

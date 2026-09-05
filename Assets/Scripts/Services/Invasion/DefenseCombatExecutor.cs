@@ -77,6 +77,7 @@ public sealed class DefenseCombatSupportServices
         IRunMilestoneCommand milestoneCommands,
         IFacilityCapabilityQuery facilityCapabilities,
         IWorldItemStackRuntime worldItems,
+        InvasionDefenseKitSupplyRuntime defenseKitSupply,
         ICharacterProficiencyCommand proficiencyCommands)
     {
         WorldThreatModifiers = worldThreatModifiers
@@ -94,6 +95,8 @@ public sealed class DefenseCombatSupportServices
             ?? throw new ArgumentNullException(nameof(facilityCapabilities));
         WorldItems = worldItems
             ?? throw new ArgumentNullException(nameof(worldItems));
+        DefenseKitSupply = defenseKitSupply
+            ?? throw new ArgumentNullException(nameof(defenseKitSupply));
         ProficiencyCommands = proficiencyCommands
             ?? throw new ArgumentNullException(nameof(proficiencyCommands));
     }
@@ -106,6 +109,7 @@ public sealed class DefenseCombatSupportServices
     public IRunMilestoneCommand MilestoneCommands { get; }
     public IFacilityCapabilityQuery FacilityCapabilities { get; }
     public IWorldItemStackRuntime WorldItems { get; }
+    public InvasionDefenseKitSupplyRuntime DefenseKitSupply { get; }
     public ICharacterProficiencyCommand ProficiencyCommands { get; }
 }
 
@@ -124,6 +128,7 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
     private readonly IMilestoneGameplayModifierQuery milestoneModifiers;
     private readonly IRunMilestoneCommand milestoneCommands;
     private readonly IFacilityCapabilityQuery facilityCapabilities;
+    private readonly InvasionDefenseKitSupplyRuntime defenseKitSupply;
     private readonly ICharacterProficiencyCommand proficiencyCommands;
     private readonly ICharacterPerformanceQuery performance;
 
@@ -158,6 +163,7 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
         milestoneModifiers = requiredSupport.MilestoneModifiers;
         milestoneCommands = requiredSupport.MilestoneCommands;
         facilityCapabilities = requiredSupport.FacilityCapabilities;
+        defenseKitSupply = requiredSupport.DefenseKitSupply;
         proficiencyCommands = requiredSupport.ProficiencyCommands;
         this.performance = performance
             ?? throw new ArgumentNullException(nameof(performance));
@@ -667,40 +673,46 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
             return 1.15f;
         }
 
-        BuildableObject signalPost = facilityCapabilities
-            .FindOperational(FacilityCapabilityKind.Security)
-            .FirstOrDefault();
+        BuildableObject signalPost = AllianceSignalPostEligibility.SelectFirst(
+            facilityCapabilities.FindOperational(
+                FacilityCapabilityKind.Security));
         if (signalPost == null)
         {
             return 1f;
         }
 
-        const string kitId = "supply:alliance-signal-kit";
-        string destinationId = signalPost.PersistentInstanceId.Value;
-        WorldItemStackSnapshot kit = itemStackRuntime.GetAllStacks().FirstOrDefault(stack => stack != null
-            && stack.ItemId == kitId && stack.DestinationId == destinationId && stack.State == WorldItemStackState.FacilityBuffer
-            && stack.AvailableQuantity > 0);
-        if (kit == null)
+        if (!defenseKitSupply.TryEnsureReady(
+                signalPost,
+                out string destinationId,
+                out _))
         {
-            if (!itemStackRuntime.GetAllStacks().Any(stack => stack != null
-                    && string.Equals(stack.ItemId, kitId, StringComparison.Ordinal)
-                    && string.Equals(
-                        stack.DestinationId,
-                        destinationId,
-                        StringComparison.Ordinal)))
-            {
-                itemStackRuntime.TryRequestItemDelivery(
-                    kitId,
-                    1,
-                    signalPost.centerPos,
-                    destinationId,
-                    out _,
-                    out _);
-            }
             return 1f;
         }
 
-        return milestoneCommands.TryActivateAccordSignalSupport(calendar.Day, kit.StackId)
+        WorldItemStackSnapshot[] kits = itemStackRuntime.GetAllStacks()
+            .Where(stack => stack != null
+                && string.Equals(
+                    stack.ItemId,
+                    InvasionDefenseKitSupplyPolicySource.ItemId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    stack.DestinationId,
+                    destinationId,
+                    StringComparison.Ordinal)
+                && stack.State == WorldItemStackState.FacilityBuffer
+                && stack.AvailableQuantity > 0)
+            .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
+            .ToArray();
+        if (kits.Length != 1 || kits[0].AvailableQuantity != 1)
+        {
+            throw new InvalidOperationException(
+                "The alliance signal post must own exactly one available "
+                + "defense-kit unit in its exact physical slot.");
+        }
+
+        return milestoneCommands.TryActivateAccordSignalSupport(
+                calendar.Day,
+                kits[0].StackId)
             ? 1.15f
             : 1f;
     }

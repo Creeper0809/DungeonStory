@@ -1,0 +1,101 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "cave-hound",
+    "spoiler_tier": "none",
+    "title": "동굴사냥개"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/cave-hound",
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-red-fever",
+      "target_spoiler_tier": "none",
+      "target_title": "적열병",
+      "to": "medical/disease-red-fever",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/cave-hound",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "carrion-drake",
+      "target_spoiler_tier": "none",
+      "target_title": "시체청소 비룡",
+      "to": "nature/carrion-drake",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/cave-hound",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-rat",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴쥐",
+      "to": "nature/cave-rat",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/cave-hound",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "shadow-hare",
+      "target_spoiler_tier": "none",
+      "target_title": "그림자토끼",
+      "to": "nature/shadow-hare",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/cave-hound",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "tunnel-mole",
+      "target_spoiler_tier": "none",
+      "target_title": "굴착두더지",
+      "to": "nature/tunnel-mole",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/ash-crawler",
+      "label": "관련",
+      "to": "nature/cave-hound",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/deep-goat",
+      "label": "관련",
+      "to": "nature/cave-hound",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/ember-lizard",
+      "label": "관련",
+      "to": "nature/cave-hound",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/silk-spider",
+      "label": "관련",
+      "to": "nature/cave-hound",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/tunnel-mole",
+      "label": "관련",
+      "to": "nature/cave-hound",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

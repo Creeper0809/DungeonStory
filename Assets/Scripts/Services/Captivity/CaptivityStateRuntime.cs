@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEngine;
 
 internal sealed class CaptivityStateRuntime
@@ -10,6 +11,7 @@ internal sealed class CaptivityStateRuntime
     private readonly CaptivityInteractionRuntime interactions;
     private readonly ICaptivityEscortRestoreLifecycle escortRestore;
     private readonly IDoorAccessSubjectRegistry doorSubjects;
+    private readonly IGameClock gameClock;
 
     private int captureSequence
     {
@@ -22,7 +24,8 @@ internal sealed class CaptivityStateRuntime
         CaptivityPolicyRuntime policies,
         CaptivityInteractionRuntime interactions,
         ICaptivityEscortRestoreLifecycle escortRestore,
-        IDoorAccessSubjectRegistry doorSubjects)
+        IDoorAccessSubjectRegistry doorSubjects,
+        IGameClock gameClock)
     {
         this.actors = actors ?? throw new ArgumentNullException(nameof(actors));
         this.policies = policies ?? throw new ArgumentNullException(nameof(policies));
@@ -30,6 +33,7 @@ internal sealed class CaptivityStateRuntime
         this.escortRestore = escortRestore
             ?? throw new ArgumentNullException(nameof(escortRestore));
         this.doorSubjects = doorSubjects ?? throw new ArgumentNullException(nameof(doorSubjects));
+        this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
     }
 
     public void OnCharacterDowned(CharacterActor actor)
@@ -48,7 +52,7 @@ internal sealed class CaptivityStateRuntime
         CaptiveState state = actors.FindState(
             CaptivityActorAccess.RequireCharacterId(
                 actor?.Identity?.PersistentId));
-        if (state == null || !state.IsActive)
+        if (state == null || !state.IsInCustody)
         {
             return;
         }
@@ -102,6 +106,7 @@ internal sealed class CaptivityStateRuntime
             policyId = defaultPolicy.policyId,
             laborPermissions = defaultPolicy.allowedLabor,
             health = EstimateHealth(actor),
+            capturedAbsoluteDay = CurrentAbsoluteDay,
             lastResult = "포획 가능"
         };
         captureSequence++;
@@ -142,4 +147,8 @@ internal sealed class CaptivityStateRuntime
             0f,
             100f);
     }
+
+    private int CurrentAbsoluteDay => Mathf.Max(
+        0,
+        Mathf.FloorToInt(gameClock.Time / GameCalendarRules.SecondsPerDay));
 }

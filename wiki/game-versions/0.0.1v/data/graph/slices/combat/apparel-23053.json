@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "apparel-23053",
+    "spoiler_tier": "none",
+    "title": "꼬리 보호대"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "combat/apparel-23053",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

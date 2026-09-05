@@ -1,0 +1,39 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "ammo-arrow",
+    "spoiler_tier": "none",
+    "title": "화살"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-composite-bow",
+      "label": "관련",
+      "to": "item/ammo-arrow",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-longbow",
+      "label": "관련",
+      "to": "item/ammo-arrow",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-rune-bow",
+      "label": "관련",
+      "to": "item/ammo-arrow",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-shortbow",
+      "label": "관련",
+      "to": "item/ammo-arrow",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

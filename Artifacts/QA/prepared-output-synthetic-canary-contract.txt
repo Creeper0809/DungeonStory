@@ -1,0 +1,8 @@
+Synthetic Prepared Output Canary Contract
+baselineItems=1074
+baselineRecipes=355
+requestRoundTrip=PASS
+reentryOwnership=PASS
+sceneMutation=0
+assetMutation=0
+RESULT=PASS; failures=0

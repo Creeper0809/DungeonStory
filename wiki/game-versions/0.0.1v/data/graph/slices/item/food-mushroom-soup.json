@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "food-mushroom-soup",
+    "spoiler_tier": "none",
+    "title": "동굴버섯국"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-mushroom-soup",
+      "label": "생산·해금",
+      "to": "item/food-mushroom-soup",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

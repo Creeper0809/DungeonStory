@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "40"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "화덕·가마솥에서 식재료를 손질하고 조리해 끼니를 내는 데 필요한 설치 부품이다. 하르나크의 화덕·가마솥에서는 큰솥의 몫이 끝날 때까지 조리사가 자기 그릇을 들지 않는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "facility-kit-1607",
+  "spoiler_tier": "none",
+  "summary": "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.",
+  "title": "화덕·가마솥 설치 키트"
+}

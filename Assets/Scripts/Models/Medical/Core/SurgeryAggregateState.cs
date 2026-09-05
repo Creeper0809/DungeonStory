@@ -177,6 +177,32 @@ public static class SurgeryStateCloner
             doctorId = source.doctorId ?? string.Empty,
             facilityId = source.facilityId ?? string.Empty,
             materialDestinationId = source.materialDestinationId ?? string.Empty,
+            materialBufferCapacityGrams = source.materialBufferCapacityGrams,
+            materialMassAuthorityRevision = source.materialMassAuthorityRevision,
+            materialCapacityFingerprint = source.materialCapacityFingerprint
+                ?? string.Empty,
+            materialSinkOperationId = source.materialSinkOperationId
+                ?? string.Empty,
+            materialSinkCommitId = source.materialSinkCommitId
+                ?? string.Empty,
+            materialSinkInputMassGrams = source.materialSinkInputMassGrams,
+            materialSinkAcknowledged = source.materialSinkAcknowledged,
+            materialTerminalDrainPhase = source.materialTerminalDrainPhase,
+            materialTerminalTargetState = source.materialTerminalTargetState,
+            materialTerminalParentOperationId =
+                source.materialTerminalParentOperationId ?? string.Empty,
+            materialTerminalStepOperationId =
+                source.materialTerminalStepOperationId ?? string.Empty,
+            materialTerminalRequestFingerprint =
+                source.materialTerminalRequestFingerprint ?? string.Empty,
+            materialTerminalCommitId =
+                source.materialTerminalCommitId ?? string.Empty,
+            materialTerminalReceiptFingerprint =
+                source.materialTerminalReceiptFingerprint ?? string.Empty,
+            materialTerminalInputQuantity = source.materialTerminalInputQuantity,
+            materialTerminalInputMassGrams = source.materialTerminalInputMassGrams,
+            materialTerminalOwnerX = source.materialTerminalOwnerX,
+            materialTerminalOwnerY = source.materialTerminalOwnerY,
             state = source.state,
             requiredWork = source.requiredWork,
             completedWork = source.completedWork,

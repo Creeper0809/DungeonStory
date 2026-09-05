@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.7kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "10개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "42"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "생물형 부위를 귀환 가능한 수준으로 가고정한다. 므네실라의 야전 응급 키트 포장끈은 상처 종류마다 매듭이 달라 어두운 원정길에서도 손끝으로 고를 수 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "medicine-field-emergency-kit",
+  "spoiler_tier": "none",
+  "summary": "생물형 부위를 귀환 가능한 수준으로 가고정한다.",
+  "title": "야전 응급 키트"
+}

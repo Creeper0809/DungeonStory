@@ -1,0 +1,121 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "873"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Industry And Automation"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-junctions",
+      "target_spoiler_tier": "none",
+      "target_title": "분기·필터·우선순위 제어",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-junctions",
+      "target_spoiler_tier": "none",
+      "target_title": "분기·필터·우선순위 제어",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-junctions",
+      "target_spoiler_tier": "none",
+      "target_title": "분기·필터·우선순위 제어",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-automatic-bills",
+      "target_spoiler_tier": "none",
+      "target_title": "자동 주문과 재고 감지",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-automatic-bills",
+      "target_spoiler_tier": "none",
+      "target_title": "자동 주문과 재고 감지",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-automatic-bills",
+      "target_spoiler_tier": "none",
+      "target_title": "자동 주문과 재고 감지",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-tactical-command",
+      "target_spoiler_tier": "none",
+      "target_title": "전술 지휘",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-tactical-command",
+      "target_spoiler_tier": "none",
+      "target_title": "전술 지휘",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-tactical-command",
+      "target_spoiler_tier": "none",
+      "target_title": "전술 지휘",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8824",
+      "target_spoiler_tier": "none",
+      "target_title": "방어시설 장전기",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8829",
+      "target_spoiler_tier": "none",
+      "target_title": "유량계",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-industry-line-balancing",
+  "spoiler_tier": "none",
+  "summary": "라인 균형과 방어 보급에 필요한 이론, 제작 절차, 안전 기준과 운용 보상을 하나의 완결된 연구 패키지로 통합한다.",
+  "title": "라인 균형과 방어 보급"
+}

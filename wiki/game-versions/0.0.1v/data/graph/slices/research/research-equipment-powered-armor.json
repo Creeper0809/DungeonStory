@@ -1,0 +1,105 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-equipment-powered-armor",
+    "spoiler_tier": "none",
+    "title": "동력 보조 갑주"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-equipment-powered-armor",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-articulated-plate",
+      "target_spoiler_tier": "none",
+      "target_title": "관절식 판금",
+      "to": "research/research-equipment-articulated-plate",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-powered-armor",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-articulated-plate",
+      "target_spoiler_tier": "none",
+      "target_title": "관절식 판금",
+      "to": "research/research-equipment-articulated-plate",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-powered-armor",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-articulated-plate",
+      "target_spoiler_tier": "none",
+      "target_title": "관절식 판금",
+      "to": "research/research-equipment-articulated-plate",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-powered-armor",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-precision-fitting",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품 장착",
+      "to": "research/research-equipment-precision-fitting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-powered-armor",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-precision-fitting",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품 장착",
+      "to": "research/research-equipment-precision-fitting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-powered-armor",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-precision-fitting",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품 장착",
+      "to": "research/research-equipment-precision-fitting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-armor-powered-harness",
+      "label": "필요 조건",
+      "to": "research/research-equipment-powered-armor",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-shield-powered",
+      "label": "필요 조건",
+      "to": "research/research-equipment-powered-armor",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-powered-striking-gauntlet",
+      "label": "필요 조건",
+      "to": "research/research-equipment-powered-armor",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-powered-armor-joint",
+      "label": "필요 조건",
+      "to": "research/research-equipment-powered-armor",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

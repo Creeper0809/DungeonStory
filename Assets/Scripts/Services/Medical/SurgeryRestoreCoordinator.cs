@@ -17,7 +17,10 @@ public sealed class SurgeryRestoreCoordinator :
     private readonly DungeonRuntimeAggregateRootStore rootStore;
     private readonly IGridSystemProvider gridProvider;
     private readonly IPhysicalItemRestoreCandidateQuery physicalCandidates;
+    private readonly IFacilityBufferDestinationCustodyDrainRestoreCandidateQuery
+        materialTerminalCandidates;
     private readonly SurgeryRestoreProjection projection;
+    private readonly ISurgicalPartStorageInputOwnerAuthority storageInputOwners;
     private List<SurgeryOrder> previousOrders = new();
     private SurgeryRestorePublication activePublication;
     private bool restoreTransactionActive;
@@ -30,7 +33,15 @@ public sealed class SurgeryRestoreCoordinator :
         SurgeryAggregateStateStore stateStore,
         DungeonRuntimeAggregateRootStore rootStore,
         IGridSystemProvider gridProvider,
-        IPhysicalItemRestoreCandidateQuery physicalCandidates)
+        IPhysicalItemRestoreCandidateQuery physicalCandidates,
+        IFacilityBufferDestinationCustodyDrainRestoreCandidateQuery
+            materialTerminalCandidates,
+        ISurgicalFacilityQuery surgicalFacilities,
+        IItemDefinitionCatalog itemCatalog,
+        IFacilityBufferDestinationClaimAuthorityQuery destinationClaims,
+        IFacilityBufferMassCapacityAuthorityQuery destinationCapacities,
+        IFacilityBufferDestinationLifecycleCommand destinationLifecycle,
+        IFacilityBufferDestinationReleaseService destinationReleases)
     {
         this.content = content ?? throw new ArgumentNullException(nameof(content));
         this.world = world ?? throw new ArgumentNullException(nameof(world));
@@ -42,6 +53,17 @@ public sealed class SurgeryRestoreCoordinator :
             ?? throw new ArgumentNullException(nameof(gridProvider));
         this.physicalCandidates = physicalCandidates
             ?? throw new ArgumentNullException(nameof(physicalCandidates));
+        this.materialTerminalCandidates = materialTerminalCandidates
+            ?? throw new ArgumentNullException(nameof(materialTerminalCandidates));
+        storageInputOwners = new SurgicalPartStorageInputOwnerAuthority(
+            this.world.Buildings,
+            surgicalFacilities,
+            itemCatalog,
+            this.resources.PhysicalMass,
+            destinationClaims,
+            destinationCapacities,
+            destinationLifecycle,
+            destinationReleases);
         projection = new SurgeryRestoreProjection(this.world, this.stateStore);
     }
 
@@ -52,6 +74,9 @@ public sealed class SurgeryRestoreCoordinator :
     {
         SurgeryAggregateState state = PrepareLocalState(saveData);
         ValidatePreservationPhysicalJoin(state, physicalCandidates);
+        ValidateMaterialTerminalCustodyJoin(
+            state,
+            materialTerminalCandidates);
         DungeonGameRestoreReport report = new();
         ValidateWorldReferences(state, report);
         if (!report.Success)
@@ -120,6 +145,21 @@ public sealed class SurgeryRestoreCoordinator :
         }
     }
 
+    public static void ValidateMaterialTerminalCustodyJoin(
+        SurgeryAggregateState state,
+        IFacilityBufferDestinationCustodyDrainRestoreCandidateQuery query)
+    {
+        if (state == null || query == null || !query.IsCandidateAvailable)
+        {
+            throw new InvalidOperationException(
+                "Surgery restore requires the incoming destination custody candidate.");
+        }
+
+        SurgeryMaterialTerminalCrossAggregateJoin.Validate(
+            state.Orders,
+            query.Drains);
+    }
+
     public void PublishRestore(SurgeryRestoreCandidate candidate)
     {
         if (candidate == null)
@@ -139,6 +179,13 @@ public sealed class SurgeryRestoreCoordinator :
 
         ReconcilePartInstallationDispositions(candidate.State);
 
+        if (!storageInputOwners.TryReconcile(out string storageOwnerFailure))
+        {
+            throw new InvalidOperationException(
+                "Could not stage surgical storage destination authorities: "
+                + storageOwnerFailure);
+        }
+
         // doctorId is live execution ownership, not authored scheduling intent.
         // Restore cannot recreate the matching AI action/coroutine atomically,
         // so retaining it produces a timing-dependent half-owned order. Keep
@@ -150,17 +197,16 @@ public sealed class SurgeryRestoreCoordinator :
             order.doctorId = string.Empty;
         }
 
-        FacilityBufferDestinationClaim[] destinationClaims =
-            BuildActiveMaterialDestinationClaims(candidate.State);
-        if (!resources.DestinationClaimCommands.TryReplaceOwnedClaims(
-                SurgeryMaterialDestinationAuthority.OwnerDomain,
-                destinationClaims,
-                out FacilityBufferDestinationClaimFailureCode failureCode,
+        IReadOnlyDictionary<string, Vector2Int> materialFacilityPositions =
+            BuildActiveMaterialFacilityPositions(candidate.State);
+        if (!resources.MaterialDestinations.TryReplace(
+                candidate.State.Orders,
+                materialFacilityPositions,
                 out string failureReason))
         {
             throw new InvalidOperationException(
-                "Could not stage surgery material destination claims: "
-                + $"{failureCode}: {failureReason}");
+                "Could not stage surgery material destination authorities: "
+                + failureReason);
         }
 
         stateStore.Replace(candidate.State);
@@ -187,8 +233,8 @@ public sealed class SurgeryRestoreCoordinator :
         }
     }
 
-    private FacilityBufferDestinationClaim[]
-        BuildActiveMaterialDestinationClaims(SurgeryAggregateState candidate)
+    private IReadOnlyDictionary<string, Vector2Int>
+        BuildActiveMaterialFacilityPositions(SurgeryAggregateState candidate)
     {
         if (candidate == null)
             throw new ArgumentNullException(nameof(candidate));
@@ -211,26 +257,39 @@ public sealed class SurgeryRestoreCoordinator :
                     group => group.Single().Building,
                     StringComparer.Ordinal);
 
-        List<FacilityBufferDestinationClaim> claims = new();
+        Dictionary<string, Vector2Int> positions = new(StringComparer.Ordinal);
         foreach (SurgeryOrder order in candidate.Orders
                      .Where(order => order?.IsActive == true))
         {
-            if (!facilitiesById.TryGetValue(
-                    order.facilityId,
-                    out BuildableObject facility))
+            Vector2Int position;
+            if (order.state == SurgeryOrderState.TerminalDraining)
             {
-                throw new InvalidOperationException(
-                    $"Active surgery order '{order.orderId}' has no exact live "
-                    + $"facility '{order.facilityId}' for material destination restore.");
+                position = new Vector2Int(
+                    order.materialTerminalOwnerX,
+                    order.materialTerminalOwnerY);
+            }
+            else
+            {
+                if (!facilitiesById.TryGetValue(
+                        order.facilityId,
+                        out BuildableObject facility))
+                {
+                    throw new InvalidOperationException(
+                        $"Active surgery order '{order.orderId}' has no exact live "
+                        + $"facility '{order.facilityId}' for material destination restore.");
+                }
+                position = facility.centerPos;
             }
 
-            claims.Add(
-                SurgeryMaterialDestinationAuthority.CreateClaim(
-                    order,
-                    facility.centerPos));
+            if (!positions.TryAdd(order.facilityId, position)
+                && positions[order.facilityId] != position)
+            {
+                throw new InvalidOperationException(
+                    $"Active surgery facility '{order.facilityId}' has conflicting positions.");
+            }
         }
 
-        return claims.ToArray();
+        return positions;
     }
 
     public void BeginRestoreCandidate()
@@ -448,12 +507,19 @@ public sealed class SurgeryRestoreCoordinator :
             content.Procedures.TryGet(
                 order.procedureId,
                 out SurgicalProcedureSO procedure);
-            if (!buildings.TryGetValue(order.facilityId, out BuildableObject facility))
+            bool terminalDraining = order.state ==
+                SurgeryOrderState.TerminalDraining;
+            if (!buildings.TryGetValue(
+                    order.facilityId,
+                    out BuildableObject facility))
             {
-                report.AddError(
-                    $"Active surgery order '{order.orderId}' references missing facility '{order.facilityId}'.");
+                if (!terminalDraining)
+                {
+                    report.AddError(
+                        $"Active surgery order '{order.orderId}' references missing facility '{order.facilityId}'.");
+                }
             }
-            else if (procedure != null)
+            else if (procedure != null && !terminalDraining)
             {
                 SurgicalFacilitySnapshot snapshot = content.Facilities.Evaluate(
                     facility,
@@ -495,6 +561,14 @@ public sealed class SurgeryRestoreCoordinator :
             {
                 report.AddError(
                     $"Surgery order '{order.orderId}' has an invalid saved patient position.");
+            }
+            if (terminalDraining
+                && !grid.IsValidGridPos(new Vector2Int(
+                    order.materialTerminalOwnerX,
+                    order.materialTerminalOwnerY)))
+            {
+                report.AddError(
+                    $"Surgery order '{order.orderId}' has an invalid terminal custody owner position.");
             }
             if ((order.materialsRequested || order.materialsConsumed)
                 && string.IsNullOrWhiteSpace(order.materialDestinationId))

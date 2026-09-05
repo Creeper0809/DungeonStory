@@ -1,0 +1,162 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-agriculture-indoor",
+    "spoiler_tier": "none",
+    "title": "실내 재배"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-agriculture-indoor",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-irrigation",
+      "target_spoiler_tier": "none",
+      "target_title": "관개",
+      "to": "research/research-agriculture-irrigation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-indoor",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-irrigation",
+      "target_spoiler_tier": "none",
+      "target_title": "관개",
+      "to": "research/research-agriculture-irrigation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-indoor",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-irrigation",
+      "target_spoiler_tier": "none",
+      "target_title": "관개",
+      "to": "research/research-agriculture-irrigation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-indoor",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-support",
+      "target_spoiler_tier": "none",
+      "target_title": "생활 지원",
+      "to": "research/research-survival-support",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-indoor",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-support",
+      "target_spoiler_tier": "none",
+      "target_title": "생활 지원",
+      "to": "research/research-survival-support",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-indoor",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-support",
+      "target_spoiler_tier": "none",
+      "target_title": "생활 지원",
+      "to": "research/research-survival-support",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-indoor",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1096",
+      "target_spoiler_tier": "none",
+      "target_title": "실내 재배조",
+      "to": "facility/building-1096",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-indoor",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1627",
+      "target_spoiler_tier": "none",
+      "target_title": "실내 생장 제어기",
+      "to": "facility/building-1627",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-greenhouse-horticulture",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-indoor",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-greenhouse-horticulture",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-indoor",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-greenhouse-horticulture",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-indoor",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-subterranean",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-indoor",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-subterranean",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-indoor",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-subterranean",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-indoor",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-forestry-fungal",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-indoor",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-forestry-fungal",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-indoor",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-forestry-fungal",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-indoor",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

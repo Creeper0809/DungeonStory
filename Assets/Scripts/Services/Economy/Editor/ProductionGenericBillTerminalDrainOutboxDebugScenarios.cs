@@ -23,9 +23,278 @@ public static class ProductionGenericBillTerminalDrainOutboxDebugScenarios
         VerifyPrepareReplayConflictAndExactChildReceipt();
         VerifyProducerAheadCrashWindow();
         VerifyWipReceiptClaimAndExactBillRemovalOrdering();
+        VerifyFacilityDestroyedMidWipCurrentFormatIntegration();
         VerifyCrashRecoveryPhaseMatrix();
         VerifyAcknowledgementAndChildFirstGarbageCollection();
+        VerifyCheckpointGarbageCollectionTransactions();
         VerifyCurrentFormatRestoreTamperAndOrdering();
+    }
+
+    private static void VerifyFacilityDestroyedMidWipCurrentFormatIntegration()
+    {
+        Fixture live = new();
+        BillCase subject = live.AddBill(
+            "facility-destroy-mid-wip",
+            outputOutcomeResolved: false,
+            includeInputDestinationStock: false);
+        Require(subject.SourceBill.materialsConsumed
+            && !subject.SourceBill.outputOutcomeResolved
+            && subject.SourceBill.resolvedOutputs.Count == 0
+            && subject.SourceBill.wipInputMassGrams == ExactInputMassGrams,
+            "Facility-destroy fixture was not frozen after exact input consumption and before output resolution.");
+
+        AdvanceTo(live, subject, ProductionGenericBillTerminalDrainPhase
+            .InputDestinationAcknowledgedAwaitingBillTerminal);
+        DungeonProductionBillSaveData beforeTerminalProduction =
+            live.Persistence.Capture();
+        ProductionGenericBillTerminalDrainSaveData beforeTerminalProducer =
+            live.Outbox.CaptureCurrentFormat().Single().Clone();
+        Require(live.Child.TryCapture(
+                subject.ChildStepOperationId,
+                out ProductionInputDestinationCustodyDrainSaveData
+                    beforeTerminalChild)
+            && beforeTerminalChild.inputQuantity == 0
+            && beforeTerminalChild.inputMassGrams == 0L
+            && beforeTerminalChild.sourceStacks.Count == 0,
+            "Facility-destroy fixture lost its exact input-destination child before the restore boundary.");
+
+        Fixture restoredBeforeTerminal = Fixture.RestoreCurrentFormat(
+            beforeTerminalProduction,
+            new[] { beforeTerminalProducer },
+            new[] { beforeTerminalChild });
+        ProductionGenericBillTerminalDrainResult terminal =
+            restoredBeforeTerminal.Outbox.TryProgress(subject.StepOperationId);
+        ProductionWipTerminalReceiptSaveData wip = restoredBeforeTerminal
+            .Session.WipTerminalReceipts.Single();
+        Require(terminal.Status ==
+                ProductionGenericBillTerminalDrainStatus.Applied
+            && terminal.Phase == ProductionGenericBillTerminalDrainPhase
+                .BillTerminalCommittedAwaitingOwnerAcknowledgement
+            && restoredBeforeTerminal.Session.Bills.Count == 0
+            && wip.reason == ProductionWipTerminalReason.FacilityDestroyed
+            && wip.inputQuantity == ExactInputQuantity
+            && wip.inputMassGrams == ExactInputMassGrams
+            && wip.committedOutputMassGrams == 0L
+            && wip.processCleanWaterMassGrams == 0L
+            && wip.processWastewaterMassGrams == 0L
+            && wip.declaredLossMassGrams == ExactInputMassGrams
+            && wip.inputMassGrams + wip.processCleanWaterMassGrams ==
+                wip.committedOutputMassGrams
+                + wip.processWastewaterMassGrams
+                + wip.declaredLossMassGrams,
+            "Facility destruction did not terminalize the unresolved WIP with exact quantity and gram conservation.");
+
+        DungeonProductionBillSaveData terminalProduction =
+            restoredBeforeTerminal.Persistence.Capture();
+        ProductionGenericBillTerminalDrainSaveData terminalProducer =
+            restoredBeforeTerminal.Outbox.CaptureCurrentFormat().Single().Clone();
+        Require(restoredBeforeTerminal.Child.TryCapture(
+                subject.ChildStepOperationId,
+                out ProductionInputDestinationCustodyDrainSaveData terminalChild),
+            "Facility-destroy terminal child authority was not current-format capturable.");
+
+        Fixture restoredTerminal = Fixture.RestoreCurrentFormat(
+            terminalProduction,
+            new[] { terminalProducer },
+            new[] { terminalChild });
+        string productionBeforeReplay = JsonUtility.ToJson(terminalProduction);
+        ProductionGenericBillTerminalDrainResult replay = restoredTerminal
+            .Outbox.TryRecover(subject.StepOperationId);
+        Require(replay.Status == ProductionGenericBillTerminalDrainStatus.Replay
+            && replay.Phase == ProductionGenericBillTerminalDrainPhase
+                .BillTerminalCommittedAwaitingOwnerAcknowledgement
+            && restoredTerminal.Session.WipTerminalReceipts.Count == 1
+            && string.Equals(
+                JsonUtility.ToJson(restoredTerminal.Persistence.Capture()),
+                productionBeforeReplay,
+                StringComparison.Ordinal),
+            "Current-format terminal restore replay duplicated or deleted WIP authority.");
+
+        Debug.Log(
+            "BATCH_G_FACILITY_DESTROY_MID_WIP_CURRENT_FORMAT_EXACT=PASS");
+    }
+
+    private static void VerifyCheckpointGarbageCollectionTransactions()
+    {
+        VerifyCheckpointPublishOrderAndRollback();
+        VerifyCheckpointWipPrepareExceptionReleasesChildForRetry();
+        VerifyCheckpointWipFailureRollsBackChild();
+        VerifyCheckpointProducerDriftRollsBackLowerAuthorities();
+        VerifyCheckpointMultiProducerRollbackPreflight();
+    }
+
+    private static void VerifyCheckpointWipPrepareExceptionReleasesChildForRetry()
+    {
+        Fixture fixture = CreateCheckpointFixture("gc-wip-prepare-exception",
+            out BillCase bill,
+            out ProductionGenericBillTerminalDrainSaveData producer);
+        ProductionFacilityDestructiveDrainEntrySaveData entry =
+            CreateCheckpointEntry(bill, producer);
+        ProductionFacilityDestructiveDrainCheckpointGcContext context = new(
+            1L,
+            new string('a', 64),
+            "slot:qa-generic-checkpoint-gc-prepare-exception");
+        fixture.Persistence.ThrowNextCheckpointPrepare = true;
+        RequireThrows(
+            () => fixture.Outbox.PrepareCheckpointGarbageCollection(
+                context,
+                new[] { entry },
+                out _),
+            "Injected WIP prepare exception did not escape the participant.");
+
+        ProductionFacilityDestructiveDrainCheckpointGcResult retry = fixture
+            .Outbox.PrepareCheckpointGarbageCollection(
+                context,
+                new[] { entry },
+                out IProductionFacilityDestructiveDrainCheckpointGcCandidate
+                    retryCandidate);
+        Require(retry.Status ==
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied
+            && retryCandidate != null,
+            "WIP prepare exception leaked the child candidate and blocked retry: "
+            + retry.Message);
+        fixture.Outbox.CompleteCheckpointGarbageCollection(retryCandidate);
+    }
+
+    private static void VerifyCheckpointPublishOrderAndRollback()
+    {
+        Fixture fixture = CreateCheckpointFixture("gc-order", out BillCase bill,
+            out ProductionGenericBillTerminalDrainSaveData producer);
+        ProductionFacilityDestructiveDrainEntrySaveData entry =
+            CreateCheckpointEntry(bill, producer);
+        bool childFirst = false;
+        bool wipSecond = false;
+        fixture.Child.OnCheckpointPublished = () => childFirst =
+            fixture.Persistence.HasWip(producer)
+            && fixture.Outbox.TryCapture(bill.StepOperationId, out _);
+        fixture.Persistence.OnCheckpointPublished = () => wipSecond =
+            !fixture.Child.TryCapture(bill.ChildStepOperationId, out _)
+            && fixture.Outbox.TryCapture(bill.StepOperationId, out _);
+
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate =
+            PrepareCheckpoint(fixture, new[] { entry });
+        Require(fixture.Outbox.PublishCheckpointGarbageCollection(candidate)
+                    .Status ==
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied
+            && childFirst
+            && wipSecond
+            && !fixture.Child.TryCapture(bill.ChildStepOperationId, out _)
+            && !fixture.Persistence.HasWip(producer)
+            && !fixture.Outbox.TryCapture(bill.StepOperationId, out _),
+            "Generic checkpoint GC did not publish child, WIP, then producer.");
+
+        bool childRollbackLast = false;
+        fixture.Child.OnCheckpointRolledBack = () => childRollbackLast =
+            fixture.Persistence.HasWip(producer)
+            && fixture.Outbox.TryCapture(bill.StepOperationId, out _);
+        fixture.Outbox.RollbackCheckpointGarbageCollection(candidate);
+        Require(childRollbackLast
+            && fixture.Child.TryCapture(bill.ChildStepOperationId, out _)
+            && fixture.Persistence.HasWip(producer)
+            && fixture.Outbox.TryCapture(bill.StepOperationId, out _),
+            "Generic checkpoint GC reverse rollback did not restore all rows.");
+        fixture.Outbox.CompleteCheckpointGarbageCollection(candidate);
+        RequireThrows(
+            () => fixture.Outbox.PublishCheckpointGarbageCollection(candidate),
+            "Completed generic checkpoint candidate was reusable.");
+    }
+
+    private static void VerifyCheckpointWipFailureRollsBackChild()
+    {
+        Fixture fixture = CreateCheckpointFixture("gc-wip-failure",
+            out BillCase bill,
+            out ProductionGenericBillTerminalDrainSaveData producer);
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate =
+            PrepareCheckpoint(fixture,
+                new[] { CreateCheckpointEntry(bill, producer) });
+        fixture.Persistence.FailNextCheckpointPublish = true;
+        Require(fixture.Outbox.PublishCheckpointGarbageCollection(candidate)
+                    .Status ==
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Deferred
+            && !fixture.Child.TryCapture(bill.ChildStepOperationId, out _)
+            && fixture.Persistence.HasWip(producer)
+            && fixture.Outbox.TryCapture(bill.StepOperationId, out _),
+            "Injected WIP publish failure crossed into producer authority.");
+        fixture.Outbox.RollbackCheckpointGarbageCollection(candidate);
+        Require(fixture.Child.TryCapture(bill.ChildStepOperationId, out _)
+            && fixture.Persistence.HasWip(producer)
+            && fixture.Outbox.TryCapture(bill.StepOperationId, out _),
+            "WIP publish failure did not roll back the published child.");
+        fixture.Outbox.CompleteCheckpointGarbageCollection(candidate);
+    }
+
+    private static void VerifyCheckpointProducerDriftRollsBackLowerAuthorities()
+    {
+        Fixture fixture = CreateCheckpointFixture("gc-producer-drift",
+            out BillCase bill,
+            out ProductionGenericBillTerminalDrainSaveData producer);
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate =
+            PrepareCheckpoint(fixture,
+                new[] { CreateCheckpointEntry(bill, producer) });
+        Require(fixture.Outbox.TryRestoreCurrentFormat(
+                Array.Empty<ProductionGenericBillTerminalDrainSaveData>(),
+                out _), "Producer drift fixture could not remove the live row.");
+        Require(fixture.Outbox.PublishCheckpointGarbageCollection(candidate)
+                    .Status ==
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Deferred
+            && !fixture.Child.TryCapture(bill.ChildStepOperationId, out _)
+            && !fixture.Persistence.HasWip(producer),
+            "Producer drift was not detected after lower publication.");
+        fixture.Outbox.RollbackCheckpointGarbageCollection(candidate);
+        Require(fixture.Child.TryCapture(bill.ChildStepOperationId, out _)
+            && fixture.Persistence.HasWip(producer)
+            && !fixture.Outbox.TryCapture(bill.StepOperationId, out _),
+            "Producer drift did not roll back both lower authorities exactly.");
+        fixture.Outbox.CompleteCheckpointGarbageCollection(candidate);
+    }
+
+    private static void VerifyCheckpointMultiProducerRollbackPreflight()
+    {
+        Fixture fixture = new();
+        BillCase first = fixture.AddBill("gc-multi-a");
+        BillCase second = fixture.AddBill("gc-multi-b");
+        AdvanceTo(fixture, first, ProductionGenericBillTerminalDrainPhase
+            .OwnerAcknowledgedAwaitingCheckpointGc);
+        AdvanceTo(fixture, second, ProductionGenericBillTerminalDrainPhase
+            .OwnerAcknowledgedAwaitingCheckpointGc);
+        bool capturedFirst = fixture.Outbox.TryCapture(first.StepOperationId, out var firstRow);
+        bool capturedSecond = fixture.Outbox.TryCapture(second.StepOperationId, out var secondRow);
+        Require(capturedFirst && capturedSecond,
+            "Multi-producer checkpoint fixture was not terminal.");
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate =
+            PrepareCheckpoint(fixture, new[]
+            {
+                CreateCheckpointEntry(first, firstRow),
+                CreateCheckpointEntry(second, secondRow)
+            });
+        Require(fixture.Outbox.PublishCheckpointGarbageCollection(candidate)
+                    .Status ==
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied,
+            "Multi-producer checkpoint publish failed.");
+        Require(fixture.Outbox.TryRestoreCurrentFormat(new[] { firstRow }, out _),
+            "Multi-producer rollback conflict fixture could not inject one row.");
+        RequireThrows(
+            () => fixture.Outbox.RollbackCheckpointGarbageCollection(candidate),
+            "Multi-producer rollback did not preflight the complete producer set.");
+        Require(fixture.Outbox.TryCapture(first.StepOperationId, out _)
+            && !fixture.Outbox.TryCapture(second.StepOperationId, out _)
+            && !fixture.Child.TryCapture(first.ChildStepOperationId, out _)
+            && !fixture.Child.TryCapture(second.ChildStepOperationId, out _)
+            && !fixture.Persistence.HasWip(firstRow)
+            && !fixture.Persistence.HasWip(secondRow),
+            "Failed multi-producer preflight partially rolled back authority.");
+        Require(fixture.Outbox.TryRestoreCurrentFormat(
+                Array.Empty<ProductionGenericBillTerminalDrainSaveData>(), out _),
+            "Multi-producer rollback fixture could not clear injected drift.");
+        fixture.Outbox.RollbackCheckpointGarbageCollection(candidate);
+        Require(fixture.Outbox.TryCapture(first.StepOperationId, out _)
+            && fixture.Outbox.TryCapture(second.StepOperationId, out _)
+            && fixture.Child.TryCapture(first.ChildStepOperationId, out _)
+            && fixture.Child.TryCapture(second.ChildStepOperationId, out _)
+            && fixture.Persistence.HasWip(firstRow)
+            && fixture.Persistence.HasWip(secondRow),
+            "Multi-producer rollback did not restore the exact candidate set.");
+        fixture.Outbox.CompleteCheckpointGarbageCollection(candidate);
     }
 
     private static void VerifyPrepareReplayConflictAndExactChildReceipt()
@@ -541,7 +810,8 @@ public static class ProductionGenericBillTerminalDrainOutboxDebugScenarios
             string stepOperationId,
             string ownerStableId,
             ProductionBillSaveData sourceBill,
-            string suffix)
+            string suffix,
+            bool includeInputDestinationStock = true)
     {
         ProductionInputDestinationDrainStackSaveData stack = new()
         {
@@ -560,6 +830,16 @@ public static class ProductionGenericBillTerminalDrainOutboxDebugScenarios
         };
         string sourceClaimFingerprint = new string('a', 64);
         string sourceOwnershipFingerprint = new string('b', 64);
+        ProductionInputDestinationDrainStackSaveData[] sourceStacks =
+            includeInputDestinationStock
+                ? new[] { stack }
+                : Array.Empty<ProductionInputDestinationDrainStackSaveData>();
+        int inputQuantity = includeInputDestinationStock
+            ? ExactInputQuantity
+            : 0;
+        long inputMassGrams = includeInputDestinationStock
+            ? ExactInputMassGrams
+            : 0L;
         string requestFingerprint =
             ProductionInputDestinationCustodyDrainFingerprint.CreateRequest(
                 parentOperationId,
@@ -572,11 +852,11 @@ public static class ProductionGenericBillTerminalDrainOutboxDebugScenarios
                 9,
                 sourceClaimFingerprint,
                 sourceOwnershipFingerprint,
-                new[] { stack },
+                sourceStacks,
                 Array.Empty<ProductionInputDestinationDrainOperationSaveData>(),
                 Array.Empty<ProductionInputDestinationDrainActorSaveData>(),
-                ExactInputQuantity,
-                ExactInputMassGrams);
+                inputQuantity,
+                inputMassGrams);
         string resultFingerprint = new string('d', 64);
         string commitId = ProductionInputDestinationCustodyDrainFingerprint
             .CreateCommit(stepOperationId, requestFingerprint);
@@ -595,30 +875,27 @@ public static class ProductionGenericBillTerminalDrainOutboxDebugScenarios
             requestFingerprint = requestFingerprint,
             phase = ProductionInputDestinationCustodyDrainPhase
                 .EffectCommittedAwaitingBillAck,
-            sourceStacks = new List<ProductionInputDestinationDrainStackSaveData>
-            {
-                stack.Clone()
-            },
+            sourceStacks = sourceStacks.Select(value => value.Clone()).ToList(),
             sourceOperations = new List<
                 ProductionInputDestinationDrainOperationSaveData>(),
             sourceActors = new List<
                 ProductionInputDestinationDrainActorSaveData>(),
             completedActorIds = new List<string>(),
             releasedOperationIds = new List<string>(),
-            releasedStackIds = new List<string> { stack.stackId },
-            inputQuantity = ExactInputQuantity,
-            inputMassGrams = ExactInputMassGrams,
-            releasedQuantity = ExactInputQuantity,
-            releasedMassGrams = ExactInputMassGrams,
+            releasedStackIds = sourceStacks.Select(value => value.stackId).ToList(),
+            inputQuantity = inputQuantity,
+            inputMassGrams = inputMassGrams,
+            releasedQuantity = inputQuantity,
+            releasedMassGrams = inputMassGrams,
             resultFingerprint = resultFingerprint,
             commitId = commitId,
             receiptFingerprint =
                 ProductionInputDestinationCustodyDrainFingerprint.CreateReceipt(
                     requestFingerprint,
                     resultFingerprint,
-                    ExactInputQuantity,
-                    ExactInputMassGrams,
-                    new[] { stack.stackId },
+                    inputQuantity,
+                    inputMassGrams,
+                    sourceStacks.Select(value => value.stackId),
                     Array.Empty<string>())
         };
         Require(ProductionInputDestinationCustodyDrainContract.IsValidSave(result),
@@ -631,6 +908,96 @@ public static class ProductionGenericBillTerminalDrainOutboxDebugScenarios
         string.Join("\n", (records ?? Array.Empty<
                 ProductionGenericBillTerminalDrainSaveData>())
             .Select(JsonUtility.ToJson));
+
+    private static Fixture CreateCheckpointFixture(
+        string suffix,
+        out BillCase bill,
+        out ProductionGenericBillTerminalDrainSaveData producer)
+    {
+        Fixture fixture = new();
+        bill = fixture.AddBill(suffix);
+        AdvanceTo(
+            fixture,
+            bill,
+            ProductionGenericBillTerminalDrainPhase
+                .OwnerAcknowledgedAwaitingCheckpointGc);
+        Require(fixture.Outbox.TryCapture(bill.StepOperationId, out producer),
+            "Checkpoint fixture did not capture its terminal producer row.");
+        return fixture;
+    }
+
+    private static ProductionFacilityDestructiveDrainEntrySaveData
+        CreateCheckpointEntry(
+            BillCase bill,
+            ProductionGenericBillTerminalDrainSaveData producer) => new()
+        {
+            operationId = bill.ParentOperationId,
+            cause = ProductionFacilityDestructiveDrainCause.ExplicitDemolition,
+            facilityId = bill.SourceBill.buildingInstanceId,
+            phase = ProductionFacilityDestructiveDrainPhase
+                .WorldRemovedAwaitingCheckpointGc,
+            participants = new List<
+                ProductionFacilityDestructiveDrainParticipantSaveData>
+            {
+                new()
+                {
+                    participantId = ProductionFacilityDestructiveDrainParticipantIds
+                        .GenericProductionBills,
+                    contractVersion = 1,
+                    owners = new List<
+                        ProductionFacilityDestructiveDrainOwnerSaveData>
+                    {
+                        new()
+                        {
+                            ownerStableId = bill.OwnerStableId,
+                            disposition = ProductionFacilityDestructiveDrainDisposition
+                                .Terminalize,
+                            stepOperationId = bill.StepOperationId,
+                            phase = ProductionFacilityDestructiveDrainStepPhase
+                                .OwnerAcknowledged,
+                            requestFingerprint = producer.requestFingerprint,
+                            commitId = producer.commitId,
+                            receiptFingerprint = producer.receiptFingerprint
+                        }
+                    }
+                }
+            }
+        };
+
+    private static IProductionFacilityDestructiveDrainCheckpointGcCandidate
+        PrepareCheckpoint(
+            Fixture fixture,
+            IReadOnlyList<ProductionFacilityDestructiveDrainEntrySaveData> entries)
+    {
+        ProductionFacilityDestructiveDrainCheckpointGcContext context = new(
+            1L,
+            new string('a', 64),
+            "slot:qa-generic-checkpoint-gc");
+        ProductionFacilityDestructiveDrainCheckpointGcResult result = fixture
+            .Outbox.PrepareCheckpointGarbageCollection(
+                context,
+                entries,
+                out IProductionFacilityDestructiveDrainCheckpointGcCandidate
+                    candidate);
+        Require(result.Status ==
+                    ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied
+                && candidate != null,
+            "Generic checkpoint GC prepare did not apply: " + result.Message);
+        return candidate;
+    }
+
+    private static void RequireThrows(Action action, string message)
+    {
+        try
+        {
+            action();
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+        throw new InvalidOperationException(message);
+    }
 
     private static void Require(bool condition, string message)
     {
@@ -673,7 +1040,10 @@ public static class ProductionGenericBillTerminalDrainOutboxDebugScenarios
         internal RecordingChildOutbox Child { get; }
         internal ProductionGenericBillTerminalDrainOutbox Outbox { get; }
 
-        internal BillCase AddBill(string suffix)
+        internal BillCase AddBill(
+            string suffix,
+            bool outputOutcomeResolved = true,
+            bool includeInputDestinationStock = true)
         {
             string billId = "production-bill:qa:generic-terminal:" + suffix;
             string facilityId = "building:qa:generic-terminal:" + suffix;
@@ -691,17 +1061,36 @@ public static class ProductionGenericBillTerminalDrainOutboxDebugScenarios
                 wipInputCommitId = "production-wip-input:qa:" + suffix,
                 wipInputQuantity = ExactInputQuantity,
                 wipInputMassGrams = ExactInputMassGrams,
-                outputOutcomeResolved = true,
-                resolvedOutputs = new List<ProductionResolvedOutputSaveData>
-                {
-                    new()
+                outputOutcomeResolved = outputOutcomeResolved,
+                resolvedOutputs = outputOutcomeResolved
+                    ? new List<ProductionResolvedOutputSaveData>
                     {
+                        new()
+                        {
+                        outputLineId = "output:qa-generic-terminal",
                         itemId = "material:qa:generic-terminal-output",
+                        outputCapabilityId =
+                            ProductionOutputCapabilityIds.StandardDefinition,
+                        outputCapabilityVersion =
+                            ProductionOutputCapabilityIds.StandardDefinitionVersion,
+                        outputComponentCodecId =
+                            ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+                        outputComponentCodecVersion =
+                            ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion,
+                        outputCapabilityFingerprint =
+                            ProductionOutputCapabilityDescriptorFingerprint.Capture(
+                                "output:qa-generic-terminal",
+                                "material:qa:generic-terminal-output",
+                                ProductionOutputCapabilityIds.StandardDefinition,
+                                ProductionOutputCapabilityIds.StandardDefinitionVersion,
+                                ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+                                ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion),
                         amount = 2,
                         committedAmount = 2,
-                        committedMassGrams = 2_000L
+                            committedMassGrams = 2_000L
+                        }
                     }
-                },
+                    : new List<ProductionResolvedOutputSaveData>(),
                 preparedOutput = ProductionPreparedOutputBatchSaveData.Unresolved(),
                 processWastewaterComponents = new List<
                     ProductionWastewaterComponentSaveData>(),
@@ -729,7 +1118,8 @@ public static class ProductionGenericBillTerminalDrainOutboxDebugScenarios
                 source.wipInputCommitId,
                 source.wipInputQuantity,
                 source.wipInputMassGrams));
-            record.SetResolvedOutputs(source.resolvedOutputs);
+            if (source.outputOutcomeResolved)
+                record.SetResolvedOutputs(source.resolvedOutputs);
             Session.AddBill(record);
             Persistence.Track(source);
 
@@ -749,7 +1139,8 @@ public static class ProductionGenericBillTerminalDrainOutboxDebugScenarios
                     childStepOperationId,
                     ownerStableId,
                     source,
-                    suffix);
+                    suffix,
+                    includeInputDestinationStock);
             return new BillCase
             {
                 ParentOperationId = parentOperationId,
@@ -768,13 +1159,40 @@ public static class ProductionGenericBillTerminalDrainOutboxDebugScenarios
                     child.requestFingerprint)
             };
         }
+
+        internal static Fixture RestoreCurrentFormat(
+            DungeonProductionBillSaveData production,
+            IEnumerable<ProductionGenericBillTerminalDrainSaveData> producers,
+            IEnumerable<ProductionInputDestinationCustodyDrainSaveData> children)
+        {
+            Fixture restored = new();
+            foreach (ProductionBillSaveData bill in production?.bills
+                         ?? new List<ProductionBillSaveData>())
+            {
+                restored.Persistence.Track(bill);
+            }
+            restored.Persistence.Restore(
+                restored.Persistence.BuildRestore(production));
+            Require(restored.Child.TryRestoreCurrentFormat(
+                    children,
+                    out string childFailure),
+                "Current-format child restore failed: " + childFailure);
+            Require(restored.Outbox.TryRestoreCurrentFormat(
+                    producers,
+                    out string producerFailure),
+                "Current-format producer restore failed: " + producerFailure);
+            return restored;
+        }
     }
 
-    private sealed class RootBackedBillPersistence : IProductionBillPersistence
+    private sealed class RootBackedBillPersistence :
+        IProductionBillPersistence,
+        IProductionGenericBillWipTerminalCheckpointGcPort
     {
         private readonly ProductionAggregateStateSession session;
         private readonly Dictionary<string, ProductionBillSaveData> byBillId =
             new(StringComparer.Ordinal);
+        private WipCheckpointGcCandidate activeCheckpointCandidate;
 
         internal RootBackedBillPersistence(ProductionAggregateStateSession session) =>
             this.session = session ?? throw new ArgumentNullException(nameof(session));
@@ -782,6 +1200,26 @@ public static class ProductionGenericBillTerminalDrainOutboxDebugScenarios
         internal void Track(ProductionBillSaveData source) =>
             byBillId[source.billId] = ProductionGenericBillTerminalDrainCanonical
                 .CloneBill(source);
+
+        internal Action OnCheckpointPublished { get; set; }
+        internal bool ThrowNextCheckpointPrepare { get; set; }
+        internal bool FailNextCheckpointPublish { get; set; }
+
+        internal bool HasWip(
+            ProductionGenericBillTerminalDrainSaveData producer)
+        {
+            if (producer?.sourceBill == null
+                || !ProductionGenericBillTerminalDrainCanonical
+                    .TryCreateWipTerminalReceipt(
+                        producer.sourceBill,
+                        out ProductionWipTerminalReceiptSaveData expected,
+                        out _))
+                return false;
+            return session.WipTerminalReceipts.Count(value =>
+                    ProductionGenericBillTerminalDrainCanonical.WipReceiptEquals(
+                        value,
+                        expected)) == 1;
+        }
 
         public DungeonProductionBillSaveData Capture() => new()
         {
@@ -807,6 +1245,180 @@ public static class ProductionGenericBillTerminalDrainOutboxDebugScenarios
 
         public void Restore(ProductionBillRestoreCandidate candidate) =>
             session.Restore(candidate);
+
+        public bool TryPrepareCheckpointGarbageCollection(
+            IReadOnlyList<ProductionGenericBillTerminalDrainSaveData> producers,
+            out IProductionGenericBillWipTerminalCheckpointGcCandidate candidate,
+            out string failureReason)
+        {
+            candidate = null;
+            failureReason = string.Empty;
+            if (ThrowNextCheckpointPrepare)
+            {
+                ThrowNextCheckpointPrepare = false;
+                throw new InvalidOperationException(
+                    "fixture-wip-checkpoint-injected-prepare-exception");
+            }
+            if (activeCheckpointCandidate != null)
+            {
+                failureReason = "fixture-wip-checkpoint-already-active";
+                return false;
+            }
+            ProductionGenericBillTerminalDrainSaveData[] ordered = (producers
+                    ?? Array.Empty<ProductionGenericBillTerminalDrainSaveData>())
+                .OrderBy(value => value?.billId, StringComparer.Ordinal)
+                .ToArray();
+            if (ordered.Any(value => value == null)
+                || ordered.Select(value => value.billId)
+                    .Distinct(StringComparer.Ordinal).Count() != ordered.Length)
+            {
+                failureReason = "fixture-wip-checkpoint-producer-invalid";
+                return false;
+            }
+
+            List<ProductionWipTerminalReceiptSaveData> rows = new();
+            foreach (ProductionGenericBillTerminalDrainSaveData producer in ordered)
+            {
+                if (producer.phase != ProductionGenericBillTerminalDrainPhase
+                        .OwnerAcknowledgedAwaitingCheckpointGc
+                    || !ProductionGenericBillTerminalDrainCanonical.IsValidSave(
+                        producer)
+                    || !ProductionGenericBillTerminalDrainCanonical
+                        .TryCreateWipTerminalReceipt(
+                            producer.sourceBill,
+                            out ProductionWipTerminalReceiptSaveData expected,
+                            out failureReason)
+                    || !string.Equals(
+                        producer.wipTerminalCommitId,
+                        expected.commitId,
+                        StringComparison.Ordinal)
+                    || session.WipTerminalReceipts.Count(value =>
+                        ProductionGenericBillTerminalDrainCanonical.WipReceiptEquals(
+                            value,
+                            expected)) != 1)
+                {
+                    failureReason = string.IsNullOrEmpty(failureReason)
+                        ? "fixture-wip-checkpoint-row-conflict"
+                        : failureReason;
+                    return false;
+                }
+                rows.Add(expected);
+            }
+
+            activeCheckpointCandidate = new WipCheckpointGcCandidate(
+                session.BillVersion,
+                rows);
+            candidate = activeCheckpointCandidate;
+            return true;
+        }
+
+        public bool TryPublishCheckpointGarbageCollection(
+            IProductionGenericBillWipTerminalCheckpointGcCandidate candidate,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            WipCheckpointGcCandidate exact = RequireCandidate(candidate);
+            if (exact.Published)
+                return true;
+            if (FailNextCheckpointPublish)
+            {
+                FailNextCheckpointPublish = false;
+                failureReason = "fixture-wip-checkpoint-injected-failure";
+                return false;
+            }
+            if (session.BillVersion != exact.ExpectedVersion
+                || exact.Rows.Any(expected => session.WipTerminalReceipts.Count(
+                    value => ProductionGenericBillTerminalDrainCanonical
+                        .WipReceiptEquals(value, expected)) != 1))
+            {
+                failureReason = "fixture-wip-checkpoint-live-drift";
+                return false;
+            }
+            foreach (ProductionWipTerminalReceiptSaveData row in exact.Rows)
+            {
+                if (!session.TryRemoveWipTerminalReceiptExact(row))
+                    throw new InvalidOperationException(
+                        "Fixture WIP checkpoint row vanished during publish.");
+            }
+            if (exact.Rows.Count > 0)
+                session.IncrementBillVersion();
+            exact.PublishedVersion = session.BillVersion;
+            exact.Published = true;
+            OnCheckpointPublished?.Invoke();
+            return true;
+        }
+
+        public void RollbackCheckpointGarbageCollection(
+            IProductionGenericBillWipTerminalCheckpointGcCandidate candidate)
+        {
+            WipCheckpointGcCandidate exact = RequireCandidate(candidate);
+            if (!exact.Published)
+                return;
+            if (session.BillVersion != exact.PublishedVersion
+                || exact.Rows.Any(expected => session.WipTerminalReceipts.Any(
+                    value => string.Equals(value?.commitId, expected.commitId,
+                        StringComparison.Ordinal))))
+            {
+                throw new InvalidOperationException(
+                    "Fixture WIP checkpoint rollback encountered authority drift.");
+            }
+            foreach (ProductionWipTerminalReceiptSaveData row in exact.Rows)
+            {
+                if (!session.AddWipTerminalReceipt(row))
+                    throw new InvalidOperationException(
+                        "Fixture WIP checkpoint rollback could not restore a row.");
+            }
+            if (exact.Rows.Count > 0
+                && !session.TryRestoreBillVersionForCheckpointGc(
+                    exact.PublishedVersion,
+                    exact.ExpectedVersion))
+            {
+                throw new InvalidOperationException(
+                    "Fixture WIP checkpoint rollback could not restore its version.");
+            }
+            exact.Published = false;
+        }
+
+        public void CompleteCheckpointGarbageCollection(
+            IProductionGenericBillWipTerminalCheckpointGcCandidate candidate)
+        {
+            RequireCandidate(candidate);
+            activeCheckpointCandidate = null;
+        }
+
+        private WipCheckpointGcCandidate RequireCandidate(
+            IProductionGenericBillWipTerminalCheckpointGcCandidate candidate)
+        {
+            if (candidate is not WipCheckpointGcCandidate exact
+                || !ReferenceEquals(exact, activeCheckpointCandidate))
+            {
+                throw new InvalidOperationException(
+                    "Fixture WIP checkpoint candidate is stale or foreign.");
+            }
+            return exact;
+        }
+
+        private sealed class WipCheckpointGcCandidate :
+            IProductionGenericBillWipTerminalCheckpointGcCandidate
+        {
+            internal WipCheckpointGcCandidate(
+                int expectedVersion,
+                IReadOnlyList<ProductionWipTerminalReceiptSaveData> rows)
+            {
+                ExpectedVersion = expectedVersion;
+                PublishedVersion = expectedVersion;
+                Rows = (rows ?? Array.Empty<ProductionWipTerminalReceiptSaveData>())
+                    .Select(value => value.Clone())
+                    .OrderBy(value => value.commitId, StringComparer.Ordinal)
+                    .ToArray();
+            }
+
+            internal int ExpectedVersion { get; }
+            internal int PublishedVersion { get; set; }
+            internal IReadOnlyList<ProductionWipTerminalReceiptSaveData> Rows
+                { get; }
+            internal bool Published { get; set; }
+        }
     }
 
     private sealed class RecordingInputClaims :
@@ -860,13 +1472,17 @@ public static class ProductionGenericBillTerminalDrainOutboxDebugScenarios
     }
 
     private sealed class RecordingChildOutbox :
-        IProductionInputDestinationCustodyDrainOutbox
+        IProductionInputDestinationCustodyDrainOutbox,
+        IProductionInputDestinationCustodyDrainCheckpointGcPort
     {
         private readonly Dictionary<string,
             ProductionInputDestinationCustodyDrainSaveData> records =
             new(StringComparer.Ordinal);
+        private ChildCheckpointGcCandidate activeCheckpointCandidate;
 
         internal Action<string> OnGarbageCollected { get; set; }
+        internal Action OnCheckpointPublished { get; set; }
+        internal Action OnCheckpointRolledBack { get; set; }
         internal int AcknowledgementCount { get; private set; }
         internal int GarbageCollectionCount { get; private set; }
 
@@ -886,6 +1502,35 @@ public static class ProductionGenericBillTerminalDrainOutboxDebugScenarios
         internal void PublishUncheckedForTamperScenario(
             ProductionInputDestinationCustodyDrainSaveData value) =>
             records[value.stepOperationId] = value.Clone();
+
+        internal bool TryRestoreCurrentFormat(
+            IEnumerable<ProductionInputDestinationCustodyDrainSaveData> source,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            ProductionInputDestinationCustodyDrainSaveData[] ordered = (source
+                    ?? Array.Empty<
+                        ProductionInputDestinationCustodyDrainSaveData>())
+                .Select(value => value?.Clone())
+                .OrderBy(value => value?.stepOperationId, StringComparer.Ordinal)
+                .ToArray();
+            if (ordered.Any(value => value == null
+                    || !ProductionInputDestinationCustodyDrainContract
+                        .IsValidSave(value))
+                || ordered.Select(value => value.stepOperationId)
+                    .Distinct(StringComparer.Ordinal).Count() != ordered.Length)
+            {
+                failureReason = "fixture-child-current-format-invalid";
+                return false;
+            }
+            records.Clear();
+            foreach (ProductionInputDestinationCustodyDrainSaveData value in
+                     ordered)
+            {
+                records.Add(value.stepOperationId, value);
+            }
+            return true;
+        }
 
         public ProductionInputDestinationCustodyDrainResult TryAcknowledge(
             string stepOperationId,
@@ -956,6 +1601,91 @@ public static class ProductionGenericBillTerminalDrainOutboxDebugScenarios
             return true;
         }
 
+        public bool TryPrepareCheckpointGarbageCollection(
+            IReadOnlyList<ProductionInputDestinationCustodyDrainSaveData> source,
+            out IProductionInputDestinationCustodyDrainCheckpointGcCandidate
+                candidate,
+            out string failureReason)
+        {
+            candidate = null;
+            failureReason = string.Empty;
+            if (activeCheckpointCandidate != null)
+            {
+                failureReason = "fixture-child-checkpoint-already-active";
+                return false;
+            }
+            ProductionInputDestinationCustodyDrainSaveData[] expected = (source
+                    ?? Array.Empty<ProductionInputDestinationCustodyDrainSaveData>())
+                .Select(value => value?.Clone())
+                .OrderBy(value => value?.stepOperationId, StringComparer.Ordinal)
+                .ToArray();
+            if (expected.Any(value => value == null)
+                || expected.Select(value => value.stepOperationId)
+                    .Distinct(StringComparer.Ordinal).Count() != expected.Length
+                || expected.Any(value => value.phase !=
+                        ProductionInputDestinationCustodyDrainPhase
+                            .BillAcknowledgedAwaitingCheckpointGc
+                    || !ProductionInputDestinationCustodyDrainContract.IsValidSave(
+                        value)
+                    || !records.TryGetValue(value.stepOperationId, out var live)
+                    || !RowsEqual(live, value)))
+            {
+                failureReason = "fixture-child-checkpoint-row-conflict";
+                return false;
+            }
+            activeCheckpointCandidate = new ChildCheckpointGcCandidate(expected);
+            candidate = activeCheckpointCandidate;
+            return true;
+        }
+
+        public bool TryPublishCheckpointGarbageCollection(
+            IProductionInputDestinationCustodyDrainCheckpointGcCandidate candidate,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            ChildCheckpointGcCandidate exact = RequireCandidate(candidate);
+            if (exact.Published)
+                return true;
+            if (exact.Rows.Any(value => !records.TryGetValue(
+                    value.stepOperationId,
+                    out var live) || !RowsEqual(live, value)))
+            {
+                failureReason = "fixture-child-checkpoint-live-drift";
+                return false;
+            }
+            foreach (ProductionInputDestinationCustodyDrainSaveData row in
+                     exact.Rows)
+                records.Remove(row.stepOperationId);
+            exact.Published = true;
+            OnCheckpointPublished?.Invoke();
+            return true;
+        }
+
+        public void RollbackCheckpointGarbageCollection(
+            IProductionInputDestinationCustodyDrainCheckpointGcCandidate candidate)
+        {
+            ChildCheckpointGcCandidate exact = RequireCandidate(candidate);
+            if (!exact.Published)
+                return;
+            if (exact.Rows.Any(value => records.ContainsKey(value.stepOperationId)))
+            {
+                throw new InvalidOperationException(
+                    "Fixture child checkpoint rollback encountered authority drift.");
+            }
+            foreach (ProductionInputDestinationCustodyDrainSaveData row in
+                     exact.Rows)
+                records.Add(row.stepOperationId, row.Clone());
+            exact.Published = false;
+            OnCheckpointRolledBack?.Invoke();
+        }
+
+        public void CompleteCheckpointGarbageCollection(
+            IProductionInputDestinationCustodyDrainCheckpointGcCandidate candidate)
+        {
+            RequireCandidate(candidate);
+            activeCheckpointCandidate = null;
+        }
+
         public ProductionInputDestinationCustodyDrainResult TryPrepare(
             ProductionInputDestinationCustodyDrainRequest request) =>
             Unexpected(nameof(TryPrepare));
@@ -1015,6 +1745,46 @@ public static class ProductionGenericBillTerminalDrainOutboxDebugScenarios
             string operation) => throw new InvalidOperationException(
             "Generic bill terminal fixture unexpectedly invoked child "
             + operation + ".");
+
+        private ChildCheckpointGcCandidate RequireCandidate(
+            IProductionInputDestinationCustodyDrainCheckpointGcCandidate candidate)
+        {
+            if (candidate is not ChildCheckpointGcCandidate exact
+                || !ReferenceEquals(exact, activeCheckpointCandidate))
+            {
+                throw new InvalidOperationException(
+                    "Fixture child checkpoint candidate is stale or foreign.");
+            }
+            return exact;
+        }
+
+        private static bool RowsEqual(
+            ProductionInputDestinationCustodyDrainSaveData left,
+            ProductionInputDestinationCustodyDrainSaveData right) => left != null
+            && right != null
+            && string.Equals(
+                JsonUtility.ToJson(left),
+                JsonUtility.ToJson(right),
+                StringComparison.Ordinal);
+
+        private sealed class ChildCheckpointGcCandidate :
+            IProductionInputDestinationCustodyDrainCheckpointGcCandidate
+        {
+            internal ChildCheckpointGcCandidate(
+                IReadOnlyList<ProductionInputDestinationCustodyDrainSaveData> rows)
+            {
+                Rows = (rows
+                        ?? Array.Empty<
+                            ProductionInputDestinationCustodyDrainSaveData>())
+                    .Select(value => value.Clone())
+                    .OrderBy(value => value.stepOperationId, StringComparer.Ordinal)
+                    .ToArray();
+            }
+
+            internal IReadOnlyList<ProductionInputDestinationCustodyDrainSaveData>
+                Rows { get; }
+            internal bool Published { get; set; }
+        }
     }
 }
 #endif

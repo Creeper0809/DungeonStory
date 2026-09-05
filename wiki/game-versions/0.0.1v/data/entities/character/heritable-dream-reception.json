@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Arcane"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "heritable-dream-reception",
+  "spoiler_tier": "none",
+  "summary": "비전 꿈과 기억에 민감해 예지 단서를 얻지만 수면 장애 위험이 있다.",
+  "title": "꿈 수신"
+}

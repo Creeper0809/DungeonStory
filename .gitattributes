@@ -22,9 +22,9 @@
 *.raytrace              text linguist-language=hlsl
 *.shader                text
 
-# V27 balance ledger artifacts use format-specific deterministic line endings.
-Artifacts/QA/v27-balance-before-after.csv text eol=crlf
-Artifacts/QA/v27-facility-buffer-owner-manifest.csv text eol=crlf
+# V27 balance ledger CSVs use RFC 4180 CRLF on every platform. The wildcard
+# keeps newly added evidence tables from silently changing byte hashes on Linux.
+Artifacts/QA/v27-*.csv text eol=crlf
 Artifacts/QA/v27-facility-buffer-owner-manifest.txt text eol=lf
 Artifacts/QA/v27-balance-economy-256-seed.txt text eol=crlf
 Artifacts/QA/v27-balance-vertical-slice-full-loop-playmode.txt text eol=crlf
@@ -195,3 +195,9 @@ Packages/packages-lock.json linguist-generated
 
 # Exceptions for .asset files such as lightning pre-baking
 LightingData.asset     binary
+
+# V27 deterministic review and no-op evidence
+docs/game-design/v27-balance-market-review-decisions.json text eol=lf
+Artifacts/QA/v27-balance-market-application-receipts/*.json text eol=lf
+Artifacts/QA/v27-balance-market-second-apply-noop.json text eol=lf
+Artifacts/QA/v27-balance-audit-second-generation-noop.json text eol=lf

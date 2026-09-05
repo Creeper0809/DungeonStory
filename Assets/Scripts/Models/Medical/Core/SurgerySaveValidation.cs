@@ -167,6 +167,9 @@ public static class SurgerySaveValidation
             if (!Enum.IsDefined(typeof(SurgeryOrderState), order.state)
                 || !Enum.IsDefined(typeof(SurgeryFailureSeverity), order.failureSeverity)
                 || !Enum.IsDefined(
+                    typeof(SurgeryMaterialTerminalDrainPhase),
+                    order.materialTerminalDrainPhase)
+                || !Enum.IsDefined(
                     typeof(SurgeryOrderState),
                     order.environmentResumeStage))
             {
@@ -193,6 +196,70 @@ public static class SurgerySaveValidation
                     $"Active surgery order '{id}' has non-canonical material destination "
                     + $"'{order.materialDestinationId}'.");
             }
+            bool materialProjectionValid = !order.IsActive;
+            if (order.IsActive)
+            {
+                try
+                {
+                    materialProjectionValid =
+                        order.materialBufferCapacityGrams > 0L
+                        && order.materialMassAuthorityRevision > 0L
+                        && IsLowercaseSha256(
+                            order.materialCapacityFingerprint)
+                        && string.Equals(
+                            order.materialCapacityFingerprint,
+                            SurgeryMaterialCapacityFingerprint.Create(order),
+                            StringComparison.Ordinal);
+                }
+                catch (Exception exception) when (exception is
+                    ArgumentException or InvalidOperationException
+                    or OverflowException)
+                {
+                    materialProjectionValid = false;
+                }
+            }
+            if (!materialProjectionValid)
+            {
+                report.AddError(
+                    $"Active surgery order '{id}' has invalid material mass authority.");
+            }
+            bool hasRequiredMaterial = order.materials?.Any(requirement =>
+                requirement != null && !requirement.optional) == true;
+            if (order.materialsConsumed && hasRequiredMaterial)
+            {
+                string expectedSinkOperation =
+                    SurgeryMaterialSinkIdentity.FormatOperationId(order.orderId);
+                if (!string.Equals(
+                        order.materialSinkOperationId,
+                        expectedSinkOperation,
+                        StringComparison.Ordinal)
+                    || !IsCanonical(order.materialSinkCommitId)
+                    || order.materialSinkInputMassGrams <= 0L
+                    || !order.IsActive && !order.materialSinkAcknowledged)
+                {
+                    report.AddError(
+                        $"Surgery order '{id}' has an invalid material sink join.");
+                }
+            }
+            else if (order.materialsConsumed
+                     && (!string.IsNullOrEmpty(order.materialSinkOperationId)
+                         || !string.IsNullOrEmpty(order.materialSinkCommitId)
+                         || order.materialSinkInputMassGrams != 0L
+                         || order.materialSinkAcknowledged))
+            {
+                report.AddError(
+                    $"Material-free surgery order '{id}' retains material sink authority.");
+            }
+            else if (!order.materialsConsumed
+                     && (!string.IsNullOrEmpty(order.materialSinkOperationId)
+                         || !string.IsNullOrEmpty(order.materialSinkCommitId)
+                         || order.materialSinkInputMassGrams != 0L
+                         || order.materialSinkAcknowledged))
+            {
+                report.AddError(
+                    $"Unconsumed surgery order '{id}' retains material sink authority.");
+            }
+            ValidateMaterialTerminalDrain(order, id, report);
             if (order.risk == null
                 || order.materials == null
                 || order.reachedClinicalStages == null
@@ -417,6 +484,104 @@ public static class SurgerySaveValidation
     private static bool IsCanonical(string value) =>
         !string.IsNullOrEmpty(value)
         && string.Equals(value, value.Trim(), StringComparison.Ordinal);
+
+    private static void ValidateMaterialTerminalDrain(
+        SurgeryOrder order,
+        string id,
+        DungeonGameRestoreReport report)
+    {
+        if (order.materialTerminalDrainPhase ==
+            SurgeryMaterialTerminalDrainPhase.None)
+        {
+            if (order.materialTerminalTargetState !=
+                    SurgeryOrderState.PatientWaiting
+                || !string.IsNullOrEmpty(order.materialTerminalParentOperationId)
+                || !string.IsNullOrEmpty(order.materialTerminalStepOperationId)
+                || !string.IsNullOrEmpty(
+                    order.materialTerminalRequestFingerprint)
+                || !string.IsNullOrEmpty(order.materialTerminalCommitId)
+                || !string.IsNullOrEmpty(
+                    order.materialTerminalReceiptFingerprint)
+                || order.materialTerminalInputQuantity != 0
+                || order.materialTerminalInputMassGrams != 0L
+                || order.materialTerminalOwnerX != 0
+                || order.materialTerminalOwnerY != 0)
+            {
+                report.AddError(
+                    $"Surgery order '{id}' retains terminal drain data without a phase.");
+            }
+            return;
+        }
+
+        bool targetValid = order.materialTerminalTargetState is
+            SurgeryOrderState.Completed
+            or SurgeryOrderState.Failed
+            or SurgeryOrderState.Cancelled;
+        bool closed = order.materialTerminalDrainPhase ==
+            SurgeryMaterialTerminalDrainPhase.ClosedAwaitingCheckpointGc;
+        if (!targetValid
+            || closed && order.state != order.materialTerminalTargetState
+            || !closed && order.state != SurgeryOrderState.TerminalDraining
+            || !string.Equals(
+                order.materialTerminalParentOperationId,
+                SurgeryMaterialTerminalIdentity.FormatParentOperationId(id),
+                StringComparison.Ordinal)
+            || !string.Equals(
+                order.materialTerminalStepOperationId,
+                SurgeryMaterialTerminalIdentity.FormatStepOperationId(id),
+                StringComparison.Ordinal)
+            || !IsLowercaseSha256(
+                order.materialTerminalRequestFingerprint)
+            || order.materialTerminalInputQuantity < 0
+            || order.materialTerminalInputMassGrams < 0L
+            || (order.materialTerminalInputQuantity == 0)
+                != (order.materialTerminalInputMassGrams == 0L))
+        {
+            report.AddError(
+                $"Surgery order '{id}' has an invalid terminal drain join.");
+            return;
+        }
+
+        bool effectCommitted = order.materialTerminalDrainPhase is
+            SurgeryMaterialTerminalDrainPhase.EffectCommittedAwaitingAck
+            or SurgeryMaterialTerminalDrainPhase
+                .OwnerAcknowledgedAwaitingClosure
+            or SurgeryMaterialTerminalDrainPhase.ClosedAwaitingCheckpointGc;
+        if (effectCommitted)
+        {
+            if (!IsCanonical(order.materialTerminalCommitId)
+                || !IsLowercaseSha256(
+                    order.materialTerminalReceiptFingerprint))
+            {
+                report.AddError(
+                    $"Surgery order '{id}' has incomplete terminal drain receipt authority.");
+            }
+        }
+        else if (!string.IsNullOrEmpty(order.materialTerminalCommitId)
+                 || !string.IsNullOrEmpty(
+                     order.materialTerminalReceiptFingerprint))
+        {
+            report.AddError(
+                $"Surgery order '{id}' has a premature terminal drain receipt.");
+        }
+    }
+
+    private static bool IsLowercaseSha256(string value)
+    {
+        if (value == null || value.Length != 64)
+        {
+            return false;
+        }
+        foreach (char character in value)
+        {
+            if (!(character is >= '0' and <= '9')
+                && !(character is >= 'a' and <= 'f'))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
 
     private static void ValidateStorage(
         IReadOnlyList<SurgicalOrganStorageState> states,

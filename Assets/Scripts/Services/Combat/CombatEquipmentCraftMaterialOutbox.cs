@@ -267,6 +267,12 @@ public static class CombatEquipmentCraftMaterialOutbox
         order.outputOperationId = string.Empty;
         order.outputItemId = string.Empty;
         order.outputQuantity = 0;
+        order.outputCapability = new ProductionOutputCapabilitySaveData();
+        order.outputPhase = CombatEquipmentCraftOutputPhase.None;
+        order.outputPublication =
+            new ProductionDomainOutputPublicationSaveData();
+        order.outputMarketRouted = false;
+        order.outputPreparedComponent = null;
         order.outputCommitId = string.Empty;
         order.outputInstanceId = string.Empty;
         order.outputStackId = string.Empty;

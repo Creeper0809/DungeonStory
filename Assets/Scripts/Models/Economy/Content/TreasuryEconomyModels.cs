@@ -31,6 +31,8 @@ public enum EconomyTransactionKind
     ExpeditionFieldFundReturn = 36,
     CatalystExchange = 37,
     CatalystExchangeRefund = 38,
+    FactionTradePurchase = 39,
+    FactionTradePurchaseRefund = 40,
     DebugAdjustment = 90
 }
 

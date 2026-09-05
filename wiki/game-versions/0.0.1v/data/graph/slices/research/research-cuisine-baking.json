@@ -1,0 +1,97 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-cuisine-baking",
+    "spoiler_tier": "none",
+    "title": "제빵"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-cuisine-baking",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-milling",
+      "target_spoiler_tier": "none",
+      "target_title": "제분·제빵",
+      "to": "research/research-cuisine-milling",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-baking",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-milling",
+      "target_spoiler_tier": "none",
+      "target_title": "제분·제빵",
+      "to": "research/research-cuisine-milling",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-baking",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-milling",
+      "target_spoiler_tier": "none",
+      "target_title": "제분·제빵",
+      "to": "research/research-cuisine-milling",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-baking",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1608",
+      "target_spoiler_tier": "none",
+      "target_title": "벽돌 오븐",
+      "to": "facility/building-1608",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-dough",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-baking",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-meat-pie",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-baking",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-vegetable-pie",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-baking",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-lavish",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-baking",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-lavish",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-baking",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-lavish",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-baking",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

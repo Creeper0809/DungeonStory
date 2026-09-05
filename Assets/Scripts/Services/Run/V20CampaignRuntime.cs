@@ -469,6 +469,25 @@ public interface IContentWorkDelayQuery
     float GetWorkSpeedMultiplier(WorkTypeId workTypeId);
 }
 
+public static class ContentWorkDelaySpeedAuthority
+{
+    public const string Schema = "content-work-delay-speed-authority@1";
+    public const float PerActiveDelayMultiplier = 0.8f;
+    public const float MinimumMultiplier = 0.5f;
+    public const float MaximumMultiplier = 1f;
+
+    public static float Resolve(int activeDelayCount)
+    {
+        if (activeDelayCount < 0)
+            throw new ArgumentOutOfRangeException(nameof(activeDelayCount));
+        return activeDelayCount == 0
+            ? MaximumMultiplier
+            : Math.Max(
+                MinimumMultiplier,
+                (float)Math.Pow(PerActiveDelayMultiplier, activeDelayCount));
+    }
+}
+
 public interface IContentWorkDelayCommand
 {
     void ApplyWorkDelay(string scopeId, int days, int absoluteDay);
@@ -690,9 +709,7 @@ public sealed class V20CampaignRuntime :
         int active = Society.Data.workDelays.Count(value => value != null
             && value.untilAbsoluteDayExclusive > currentDay
             && WorkDelayAffects(value.scopeId, workId));
-        return active == 0
-            ? 1f
-            : Math.Max(0.5f, (float)Math.Pow(0.8f, active));
+        return ContentWorkDelaySpeedAuthority.Resolve(active);
     }
 
     public void ApplyWorkDelay(

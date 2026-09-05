@@ -253,7 +253,7 @@ public static class GameplayFlowDiagnosticsDebugScenarios
             Name = "테스트 창고",
             HasInventory = true,
             CanAcceptLooseStack = canAcceptLooseStack,
-            RemainingCapacity = canAcceptLooseStack ? 20 : 0
+            HasRemainingMassCapacity = canAcceptLooseStack
         };
     }
 

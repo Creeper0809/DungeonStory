@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1504",
+    "spoiler_tier": "none",
+    "title": "송풍구"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-environment-cold-work",
+      "label": "시설 해금",
+      "to": "facility/building-1504",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

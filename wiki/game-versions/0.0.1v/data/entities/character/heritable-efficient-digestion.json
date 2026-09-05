@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Metabolism"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "heritable-efficient-digestion",
+  "spoiler_tier": "none",
+  "summary": "같은 식사에서 더 많은 영양을 얻는다.",
+  "title": "고효율 소화"
+}

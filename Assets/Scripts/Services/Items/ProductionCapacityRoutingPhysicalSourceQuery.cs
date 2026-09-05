@@ -94,6 +94,8 @@ public sealed class ProductionCapacityRoutingPhysicalSourceQuery :
         List<ProductionCapacityRoutingDrainActorCarrySaveData> actorRows = new();
         List<string> stackIds = new();
         List<Vector2Int> origins = new();
+        Dictionary<string, WorldItemStackSnapshot> carriedWorldRows = new(
+            StringComparer.Ordinal);
         long totalMass = 0L;
         int totalQuantity = 0;
 
@@ -126,6 +128,23 @@ public sealed class ProductionCapacityRoutingPhysicalSourceQuery :
                 failureReason =
                     "production-capacity-routing-world-custody-invalid";
                 return false;
+            }
+
+            // Carried and in-transit records remain in the world repository,
+            // while CharacterCarryInventory owns their actor/operation join.
+            // Counting both projections duplicates the same physical stack.
+            // Freeze the repository row here, then add its grams exactly once
+            // from the carry authority after validating the 1:1 join below.
+            if (stack.State is WorldItemStackState.Carried
+                or WorldItemStackState.InTransit)
+            {
+                if (!carriedWorldRows.TryAdd(stack.StackId, stack))
+                {
+                    failureReason =
+                        "production-capacity-routing-carried-world-row-duplicate";
+                    return false;
+                }
+                continue;
             }
 
             stackIds.Add(stack.StackId);
@@ -180,6 +199,38 @@ public sealed class ProductionCapacityRoutingPhysicalSourceQuery :
                         "production-capacity-routing-carried-custody-mass-drift";
                     return false;
                 }
+                if (!carriedWorldRows.TryGetValue(
+                        item.carriedStackId,
+                        out WorldItemStackSnapshot carriedWorld)
+                    || carriedWorld == null
+                    || carriedWorld.Quantity != item.quantity
+                    || !string.Equals(
+                        carriedWorld.ItemId,
+                        item.itemId,
+                        StringComparison.Ordinal)
+                    || GetMass(
+                        carriedWorld.ItemId,
+                        carriedWorld.ItemInstanceId,
+                        carriedWorld.Components,
+                        carriedWorld.Quantity) != itemMass
+                    || !string.Equals(
+                        ProductionCapacityRoutingDrainFingerprint
+                            .CreateActorCarryStackSignature(
+                                carriedWorld.ItemId,
+                                carriedWorld.ItemInstanceId,
+                                carriedWorld.Components),
+                        ProductionCapacityRoutingDrainFingerprint
+                            .CreateActorCarryStackSignature(
+                                item.itemId,
+                                item.itemInstanceId,
+                                item.components),
+                        StringComparison.Ordinal))
+                {
+                    failureReason =
+                        "production-capacity-routing-carried-world-join-invalid:"
+                        + item.carriedStackId;
+                    return false;
+                }
                 actorRows.Add(new ProductionCapacityRoutingDrainActorCarrySaveData
                 {
                     actorPersistentId = inventory.CharacterId.Value,
@@ -200,6 +251,22 @@ public sealed class ProductionCapacityRoutingPhysicalSourceQuery :
                 totalQuantity = checked(totalQuantity + item.quantity);
                 totalMass = checked(totalMass + itemMass);
             }
+        }
+
+        string[] joinedCarryStackIds = actorRows
+            .Select(value => value.carriedStackId)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string[] carriedWorldStackIds = carriedWorldRows.Keys
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        if (!joinedCarryStackIds.SequenceEqual(
+                carriedWorldStackIds,
+                StringComparer.Ordinal))
+        {
+            failureReason =
+                "production-capacity-routing-carried-world-join-incomplete";
+            return false;
         }
 
         string[] canonicalStackIds = stackIds

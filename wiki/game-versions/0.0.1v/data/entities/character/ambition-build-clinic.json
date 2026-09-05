@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Community"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ambition-build-clinic",
+  "spoiler_tier": "none",
+  "summary": "신분과 종족에 관계없이 치료받는 시설을 세우려 한다.",
+  "title": "모두를 위한 진료소"
+}

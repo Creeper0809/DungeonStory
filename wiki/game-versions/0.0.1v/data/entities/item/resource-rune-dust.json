@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.05kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "13"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "고위험 야생동물에서 얻는 원정 길잡이 촉매이다. 특히 베르사디온산 룬 가루의 봉인에는 마나가 새면 가장 먼저 빛을 잃는 세 번째 매듭이 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "resource-rune-dust",
+  "spoiler_tier": "none",
+  "summary": "고위험 야생동물에서 얻는 원정 길잡이 촉매.",
+  "title": "룬 가루"
+}

@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "apparel-cloak",
+    "spoiler_tier": "none",
+    "title": "망토"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-cloak",
+      "label": "생산·해금",
+      "to": "item/apparel-cloak",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

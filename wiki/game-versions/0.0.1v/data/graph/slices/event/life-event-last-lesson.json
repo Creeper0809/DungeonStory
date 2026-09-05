@@ -1,0 +1,47 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "life-event-last-lesson",
+    "spoiler_tier": "warning",
+    "title": "마지막 수업"
+  },
+  "edges": [
+    {
+      "amount": "-5",
+      "from": "event/life-event-last-lesson",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-last-lesson",
+      "target_spoiler_tier": "warning",
+      "target_title": "마지막 수업",
+      "to": "event/life-event-last-lesson",
+      "type": "changes-health"
+    },
+    {
+      "amount": "25",
+      "from": "event/life-event-last-lesson",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-last-lesson",
+      "target_spoiler_tier": "warning",
+      "target_title": "마지막 수업",
+      "to": "event/life-event-last-lesson",
+      "type": "grants-skill-experience"
+    },
+    {
+      "amount": "-5",
+      "from": "event/life-event-last-lesson",
+      "label": "연결",
+      "to": "event/life-event-last-lesson",
+      "type": "changes-health"
+    },
+    {
+      "amount": "25",
+      "from": "event/life-event-last-lesson",
+      "label": "연결",
+      "to": "event/life-event-last-lesson",
+      "type": "grants-skill-experience"
+    }
+  ],
+  "schema_version": 1
+}

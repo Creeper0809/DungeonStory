@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.02kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "100개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "4"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "잿불 목화의 품종과 품질, 병원체 검사 기록을 함께 보존한 파종용 종자 묶음이다. 사르베니아 내해산 잿불 목화 종자 로트 포대에서는 마른 뒤에도 옅은 소금바람 냄새가 난다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "seed-lot-ember-cotton",
+  "spoiler_tier": "none",
+  "summary": "작물·품종·품질·병원체 상태를 가진 물리 종자 로트.",
+  "title": "잿불 목화 종자 로트"
+}

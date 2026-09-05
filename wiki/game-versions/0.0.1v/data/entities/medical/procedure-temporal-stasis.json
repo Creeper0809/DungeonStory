@@ -1,0 +1,44 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "140"
+    },
+    {
+      "label": "필요 연구",
+      "value": "시간 고정"
+    },
+    {
+      "label": "효과",
+      "value": "1개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "medical",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "component-temporal-stasis-seal",
+      "target_spoiler_tier": "none",
+      "target_title": "시간 고정 인장",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-temporal-stasis",
+      "target_spoiler_tier": "none",
+      "target_title": "시간 고정",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "procedure-temporal-stasis",
+  "spoiler_tier": "none",
+  "summary": "시간 고정 인장을 결속해 동력 공급 중 노화와 신규 노화 질환을 멈춘다.",
+  "title": "시간 고정"
+}

@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "character-archetype-9007",
+    "spoiler_tier": "none",
+    "title": "모르"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/character-archetype-9007",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "characterspecies-7",
+      "target_spoiler_tier": "none",
+      "target_title": "균사인",
+      "to": "character/characterspecies-7",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

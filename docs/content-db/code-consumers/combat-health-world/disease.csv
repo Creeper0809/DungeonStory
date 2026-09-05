@@ -1,0 +1,8 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+DiseaseDefinitionSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/PopulationHealthRuntime.cs
+DiseaseDefinitionSO,content-type,,type-reference; save-restore-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20CampaignRuntime.cs
+DiseaseDefinitionSO,stable-id,condition:core-corrosion,stable-id-literal,views,player-observation,exact-literal-consumer,Assets/Scripts/Views/UI/CharacterSummaryPopulationPresenter.cs
+DiseaseDefinitionSO,stable-id,disease:blood-wasting,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/PopulationHealthRuntime.cs
+DiseaseDefinitionSO,stable-id,disease:gut-rot,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/PopulationHealthRuntime.cs
+DiseaseDefinitionSO,stable-id,disease:mana-pox,stable-id-literal,services:infrastructure,runtime,exact-literal-consumer,Assets/Scripts/Services/Infrastructure/Rooms/RoomEnvironmentExperienceAdapter.cs
+DiseaseDefinitionSO,stable-id,disease:slime-blight,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/SpeciesRuntime.cs

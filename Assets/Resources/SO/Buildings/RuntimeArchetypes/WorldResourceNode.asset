@@ -31,9 +31,9 @@ MonoBehaviour:
   objectName: "\uC678\uBD80 \uC790\uC6D0"
   sprite: {fileID: 0}
   icon: {fileID: 0}
-  contentDefinitionId: 
+  contentDefinitionId: building:runtime:world-resource-node
   authoringRevision: 1
-  sourceNote: 
+  sourceNote: Generated immutable runtime building archetype authority.
   deprecatedCompatibilityAsset: 0
   useClassification: 0
   researchFacilityCommand: 0

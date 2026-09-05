@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "facilityevolutionrecipe-9105",
+    "spoiler_tier": "none",
+    "title": "비전 연구 진화"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9105",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1030",
+      "target_spoiler_tier": "none",
+      "target_title": "연구책상",
+      "to": "facility/building-1030",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9105",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1031",
+      "target_spoiler_tier": "none",
+      "target_title": "연금술작업대",
+      "to": "facility/building-1031",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9105",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-1032",
+      "target_spoiler_tier": "none",
+      "target_title": "연구용책장",
+      "to": "facility/building-1032",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9105",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-1038",
+      "target_spoiler_tier": "none",
+      "target_title": "룬안정기",
+      "to": "facility/building-1038",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

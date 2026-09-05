@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "98"
+    },
+    {
+      "label": "필요 연구",
+      "value": "흑색화약 배합"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "6",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "ammo-incendiary-bolt",
+      "target_spoiler_tier": "none",
+      "target_title": "소이 볼트",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "6",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "ammo-bolt-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "강철촉 볼트",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-granulated-powder",
+      "target_spoiler_tier": "none",
+      "target_title": "과립 화약",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-black-powder",
+      "target_spoiler_tier": "none",
+      "target_title": "흑색화약 배합",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-ammo-incendiary-bolt",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 소이 볼트을(를) 생산한다.",
+  "title": "소이 볼트"
+}

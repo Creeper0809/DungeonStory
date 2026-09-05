@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "apparel-formal-coat",
+    "spoiler_tier": "none",
+    "title": "정장 외투"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-formal-coat",
+      "label": "생산·해금",
+      "to": "item/apparel-formal-coat",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

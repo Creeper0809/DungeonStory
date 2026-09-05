@@ -11,11 +11,65 @@ public static class ProductionOutputDestinationAuthorityDebugScenarios
     public static void RunAll()
     {
         VerifySharedFacilityExactAuthority();
+        VerifyCapacitySourceDigestAtomicReplacement();
         VerifyProjectedSetRetirementPreflight();
         VerifyPartialAuthorityFailsLoud();
+        VerifyLifecycleRejectsPartialAuthority();
         VerifyConflictingAuthorityFailsLoud();
         Debug.Log("V27_PRODUCTION_OUTPUT_DESTINATION_AUTHORITY=PASS");
     }
+
+    private static void VerifyCapacitySourceDigestAtomicReplacement()
+    {
+        Fixture fixture = new();
+        ProductionFacilityHandle facility = Facility(
+            "building:qa:production-output:digest",
+            new Vector2Int(17, 11));
+        ProductionOutputBufferCapacitySourceSnapshot first = Source('a', 'b');
+        Require(fixture.Runtime.TryEnsureCapacitySource(
+                facility,
+                first,
+                out FacilityBufferCapacityProfile published,
+                out string firstFailure),
+            "Capacity-source authority publication failed: " + firstFailure);
+        Require(string.Equals(
+                published.AuthorityDigest,
+                first.ClearanceGateDigest,
+                StringComparison.Ordinal),
+            "Published FacilityBuffer profile lost clearance gate authority digest.");
+
+        ProductionOutputBufferCapacitySourceSnapshot replacement =
+            Source('c', 'd');
+        Require(fixture.Runtime.TryEnsureCapacitySource(
+                facility,
+                replacement,
+                out FacilityBufferCapacityProfile replaced,
+                out string replaceFailure),
+            "Same-capacity source replacement failed: " + replaceFailure);
+        Require(replaced.MaxMassGrams == published.MaxMassGrams
+            && string.Equals(
+                replaced.AuthorityDigest,
+                replacement.ClearanceGateDigest,
+                StringComparison.Ordinal)
+            && !string.Equals(
+                replaced.AuthorityDigest,
+                published.AuthorityDigest,
+                StringComparison.Ordinal),
+            "Same-capacity authority digest was not atomically replaced.");
+    }
+
+    private static ProductionOutputBufferCapacitySourceSnapshot Source(
+        char source,
+        char gate) => new(
+        cycleCapacity: 2,
+        maximumBatchMassGrams: 2_000L,
+        projectedPortfolioCapacityGrams: 4_000L,
+        batchMinimumCapacityGrams: 4_000L,
+        requiredMinimumCapacityGrams: 4_000L,
+        sourceDigest: new string(source, 64),
+        clearanceProfileDigest: new string('e', 64),
+        clearanceGateDigest: new string(gate, 64),
+        clearanceAuthorityDigest: new string('f', 64));
 
     private static void VerifyProjectedSetRetirementPreflight()
     {
@@ -194,6 +248,15 @@ public static class ProductionOutputDestinationAuthorityDebugScenarios
             && fixture.Claims.CaptureClaims().Count == 1
             && fixture.Admission.CaptureProfiles().Count == 0,
             "Partial claim/profile authority was hidden or mutated: " + failure);
+        Require(!fixture.Runtime.TryRevoke(
+                facility.InstanceId,
+                out string revokeFailure)
+            && revokeFailure.StartsWith(
+                "production-output-authority-revoke-invalid:",
+                StringComparison.Ordinal)
+            && fixture.Claims.CaptureClaims().Count == 1
+            && fixture.Admission.CaptureProfiles().Count == 0,
+            "Partial authority was revoked or hidden: " + revokeFailure);
     }
 
     private static void VerifyConflictingAuthorityFailsLoud()
@@ -254,6 +317,36 @@ public static class ProductionOutputDestinationAuthorityDebugScenarios
                 StringComparison.Ordinal),
             "Exact validation accepted conflicting facility ownership.");
     }
+
+    private static void VerifyLifecycleRejectsPartialAuthority()
+    {
+        ProductionFacilityHandle claimOnlyFacility = Facility(
+            "building:qa:production-output:lifecycle-claim-only",
+            new Vector2Int(7, 12));
+        Fixture claimOnly = new();
+        Require(claimOnly.Claims.TryReplaceOwnedClaims(
+                ProductionOutputDestinationAuthorityRuntime.OwnerDomain,
+                new[] { ExpectedClaim(claimOnlyFacility) },
+                out _,
+                out string claimFailure),
+            "Claim-only lifecycle fixture setup failed: " + claimFailure);
+        ProductionOutputCapacityRoutingLifecycleContributor claimContributor =
+            Contributor(claimOnly);
+        ExpectMessage<InvalidOperationException>(
+            () => claimContributor.Capture(
+                claimOnlyFacility.InstanceId,
+                ProductionOutputDestinationId.FromFacility(
+                    claimOnlyFacility.InstanceId)),
+            "Partial production output destination authority");
+    }
+
+    private static ProductionOutputCapacityRoutingLifecycleContributor Contributor(
+        Fixture fixture) => new(
+        fixture.Claims,
+        fixture.Admission,
+        fixture.Occupancy,
+        new ProductionPreparedOutputRoutingAuthority(),
+        EmptyExactRouteOutbox.Instance);
 
     private static ProductionFacilityHandle Facility(
         string instanceId,
@@ -345,6 +438,23 @@ public static class ProductionOutputDestinationAuthorityDebugScenarios
         }
     }
 
+    private static void ExpectMessage<T>(Action action, string token)
+        where T : Exception
+    {
+        try
+        {
+            action();
+        }
+        catch (T exception)
+        {
+            Require(exception.Message.Contains(token, StringComparison.Ordinal),
+                $"Expected failure token '{token}', got '{exception.Message}'.");
+            return;
+        }
+        throw new InvalidOperationException(
+            "Expected exception was not thrown: " + typeof(T).Name + ".");
+    }
+
     private sealed class Fixture
     {
         internal Fixture()
@@ -392,6 +502,16 @@ public static class ProductionOutputDestinationAuthorityDebugScenarios
             failureReason = "fixture-has-no-physical-lots";
             return false;
         }
+    }
+
+    private sealed class EmptyExactRouteOutbox :
+        IFacilityOutputExactRouteOutboxQuery
+    {
+        internal static readonly EmptyExactRouteOutbox Instance = new();
+
+        public IReadOnlyList<FacilityOutputExactRoutePendingSnapshot>
+            CapturePendingRoutes() =>
+            Array.Empty<FacilityOutputExactRoutePendingSnapshot>();
     }
 }
 #endif

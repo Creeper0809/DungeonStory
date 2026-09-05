@@ -1,0 +1,123 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-meat",
+    "spoiler_tier": "none",
+    "title": "생고기"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "event/practice-beastkin-pack-meal",
+      "label": "필요 조건",
+      "to": "item/resource-meat",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "nature/cave-rat",
+      "label": "관련",
+      "to": "item/resource-meat",
+      "type": "references"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-dog-food-fresh",
+      "label": "필요 조건",
+      "to": "item/resource-meat",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-supply-pest-lure",
+      "label": "필요 조건",
+      "to": "item/resource-meat",
+      "type": "requires"
+    },
+    {
+      "amount": "18",
+      "from": "character/festival-pack-first-hunt",
+      "label": "필요 조건",
+      "to": "item/resource-meat",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "nature/shadow-hare",
+      "label": "관련",
+      "to": "item/resource-meat",
+      "type": "references"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-boar-stew",
+      "label": "필요 조건",
+      "to": "item/resource-meat",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-lavish-meat",
+      "label": "필요 조건",
+      "to": "item/resource-meat",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-roasted-meat",
+      "label": "필요 조건",
+      "to": "item/resource-meat",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-seasoned-filling",
+      "label": "필요 조건",
+      "to": "item/resource-meat",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-salted-meat",
+      "label": "필요 조건",
+      "to": "item/resource-meat",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "nature/shadow-wolf",
+      "label": "관련",
+      "to": "item/resource-meat",
+      "type": "references"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/source-animal-meat",
+      "label": "생산·해금",
+      "to": "item/resource-meat",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "6",
+      "from": "nature/rune-deer",
+      "label": "관련",
+      "to": "item/resource-meat",
+      "type": "references"
+    },
+    {
+      "amount": "8",
+      "from": "nature/moss-boar",
+      "label": "관련",
+      "to": "item/resource-meat",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-beastkin-pack",
+      "label": "관련",
+      "to": "item/resource-meat",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

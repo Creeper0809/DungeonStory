@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 
 /// <summary>
-/// Unregistered current-format section for the Production-owned generic bill
-/// terminal producer. Registration is intentionally deferred until the upper
-/// destructive-drain journal joins the complete participant set.
+/// Current-format section for the Production-owned generic bill terminal
+/// producer. It is registered together with the complete upper destructive-
+/// drain participant set so no lower producer can persist alone.
 /// </summary>
 public sealed class ProductionGenericBillTerminalDrainSaveSection :
     DungeonStrictJsonSaveSection<

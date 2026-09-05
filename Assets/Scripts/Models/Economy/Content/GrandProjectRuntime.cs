@@ -23,6 +23,11 @@ public sealed class GrandProjectRestoreCandidate
     }
 
     internal GrandProjectAggregateState State { get; }
+
+    // Cross-assembly restore validators may inspect the detached runtime
+    // payload, but the aggregate wrapper and publication authority remain
+    // internal to the model assembly.
+    public GrandProjectRuntimeState RuntimeState => State.RuntimeState;
 }
 
 public sealed class GrandProjectOfficeSnapshot
@@ -69,9 +74,6 @@ public interface IGrandProjectOperationsPort
     bool AcknowledgeMaterials(
         string commitId,
         out string failureReason);
-    int ReleaseDestination(
-        string destinationId,
-        Vector2Int releasePosition);
     void PrioritizeDestination(string destinationId);
     void RequestGrandProjectWorker();
     void RequestHauler();
@@ -164,6 +166,7 @@ public sealed class GrandProjectRuntime :
     private readonly IGrandProjectOperationsPort operations;
     private readonly IGameClock gameClock;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly IEconomyProjectInputOwnerPort inputOwners;
 
     private GrandProjectAggregateState aggregateState =>
         aggregateRootStore.GetOrCreate(() => new GrandProjectAggregateState());
@@ -191,7 +194,8 @@ public sealed class GrandProjectRuntime :
         IGrandProjectWorldPort world,
         IGrandProjectOperationsPort operations,
         IGameClock gameClock,
-        DungeonRuntimeAggregateRootStore aggregateRootStore)
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IEconomyProjectInputOwnerPort inputOwners)
     {
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.operations = operations
@@ -199,6 +203,8 @@ public sealed class GrandProjectRuntime :
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.inputOwners = inputOwners
+            ?? throw new ArgumentNullException(nameof(inputOwners));
     }
 
     public int Version
@@ -238,11 +244,25 @@ public sealed class GrandProjectRuntime :
         GrandProjectOfficeSnapshot office = world.FindOffice();
         if (definition == null || office == null)
         {
+            if (definition != null
+                && !string.IsNullOrEmpty(state.destinationId)
+                && inputOwners.TryRetireDestination(
+                    EconomyProjectInputOwnerAuthority.GrandProjectDomain,
+                    state.destinationId,
+                    EconomyProjectInputOwnerAuthority
+                        .GrandProjectFacilityLostReason,
+                    out _))
+                ClearInputOwnerProjection(state);
             SetStatus("사업을 진행할 영주 집무실이 필요합니다.");
             return;
         }
 
         EnsureDestination(definition);
+        if (!TryEnsureInputOwner(definition, office, out string ownerFailure))
+        {
+            SetStatus("사업 자재 목적지 권위 오류: " + ownerFailure);
+            return;
+        }
         RequestMissingMaterials(definition, office);
         if (HasAllDelivered(definition))
         {
@@ -326,7 +346,18 @@ public sealed class GrandProjectRuntime :
 
         state.activeProjectId = definition.ProjectId;
         state.completedWork = 0f;
-        state.destinationId = $"grand-project:{definition.ProjectId}";
+        state.destinationId = EconomyProjectInputOwnerAuthority
+            .BuildGrandProjectDestinationId(definition.ProjectId);
+        if (!TryEnsureInputOwner(definition, office, out string ownerFailure))
+        {
+            state.activeProjectId = string.Empty;
+            state.destinationId = string.Empty;
+            state.completedWork = 0f;
+            ClearInputOwnerProjection(state);
+            message = "대형 사업 자재 목적지를 열지 못했습니다: "
+                + ownerFailure;
+            return false;
+        }
         RequestMissingMaterials(definition, office);
         SetStatus("사업 자재를 집무실로 운반하는 중입니다.");
         Touch();
@@ -349,12 +380,20 @@ public sealed class GrandProjectRuntime :
         }
 
         string cancelledId = state.activeProjectId;
-        operations.ReleaseDestination(
-            state.destinationId,
-            ResolveReleasePosition());
+        if (!inputOwners.TryRetireDestination(
+                EconomyProjectInputOwnerAuthority.GrandProjectDomain,
+                state.destinationId,
+                EconomyProjectInputOwnerAuthority.GrandProjectCancelledReason,
+                out string releaseFailure))
+        {
+            message = "대형 사업 자재 목적지를 해제하지 못했습니다: "
+                + releaseFailure;
+            return false;
+        }
         state.activeProjectId = string.Empty;
         state.destinationId = string.Empty;
         state.completedWork = 0f;
+        ClearInputOwnerProjection(state);
         state.lastStatus = "사업이 취소되어 자재 예약을 해제했습니다.";
         Touch();
         message = $"{FindDefinition(cancelledId)?.DisplayName ?? cancelledId} 사업을 취소했습니다.";
@@ -490,6 +529,7 @@ public sealed class GrandProjectRuntime :
 
     public DungeonGrandProjectSaveData Capture()
     {
+        ValidateInputOwnerForCapture();
         return new DungeonGrandProjectSaveData
         {
             state = new GrandProjectRuntimeState
@@ -498,6 +538,12 @@ public sealed class GrandProjectRuntime :
                 destinationId = state.destinationId,
                 completedWork = state.completedWork,
                 lastStatus = state.lastStatus,
+                inputOwnerFacilityId = state.inputOwnerFacilityId,
+                inputDestinationX = state.inputDestinationX,
+                inputDestinationY = state.inputDestinationY,
+                inputCapacityGrams = state.inputCapacityGrams,
+                inputMassAuthorityRevision = state.inputMassAuthorityRevision,
+                inputCapacityFingerprint = state.inputCapacityFingerprint,
                 completedProjectIds = state.completedProjectIds
                     .Where(id => !string.IsNullOrWhiteSpace(id))
                     .Distinct(StringComparer.Ordinal)
@@ -524,6 +570,12 @@ public sealed class GrandProjectRuntime :
             destinationId = source.destinationId,
             completedWork = source.completedWork,
             lastStatus = source.lastStatus,
+            inputOwnerFacilityId = source.inputOwnerFacilityId,
+            inputDestinationX = source.inputDestinationX,
+            inputDestinationY = source.inputDestinationY,
+            inputCapacityGrams = source.inputCapacityGrams,
+            inputMassAuthorityRevision = source.inputMassAuthorityRevision,
+            inputCapacityFingerprint = source.inputCapacityFingerprint,
             completedProjectIds = new List<string>(source.completedProjectIds),
             pendingPhysicalCommit = source.pendingPhysicalCommit?.Clone()
                 ?? new GrandProjectPhysicalCommitSaveData()
@@ -559,12 +611,12 @@ public sealed class GrandProjectRuntime :
             target.activeProjectId = string.Empty;
             target.destinationId = string.Empty;
             target.completedWork = 0f;
+            ClearInputOwnerProjection(target);
             return;
         }
 
-        target.destinationId = string.IsNullOrWhiteSpace(target.destinationId)
-            ? $"grand-project:{active.ProjectId}"
-            : target.destinationId.Trim();
+        target.destinationId = EconomyProjectInputOwnerAuthority
+            .BuildGrandProjectDestinationId(active.ProjectId);
         target.completedWork = Mathf.Clamp(
             target.completedWork,
             0f,
@@ -575,7 +627,8 @@ public sealed class GrandProjectRuntime :
     {
         if (string.IsNullOrWhiteSpace(state.destinationId))
         {
-            state.destinationId = $"grand-project:{definition.ProjectId}";
+            state.destinationId = EconomyProjectInputOwnerAuthority
+                .BuildGrandProjectDestinationId(definition.ProjectId);
         }
     }
 
@@ -645,23 +698,12 @@ public sealed class GrandProjectRuntime :
             || world.IsResearchCompleted(researchId);
     }
 
-    private Vector2Int ResolveReleasePosition()
-    {
-        GrandProjectOfficeSnapshot office = world.FindOffice();
-        if (office != null)
-        {
-            return office.Position;
-        }
-
-        return world.ResolveReleasePosition();
-    }
-
     private static GrandProjectDefinition FindDefinition(string projectId)
     {
         return BuiltInDefinitions.FirstOrDefault(definition =>
             string.Equals(
                 definition.ProjectId,
-                projectId?.Trim(),
+                projectId,
                 StringComparison.Ordinal));
     }
 
@@ -778,6 +820,15 @@ public sealed class GrandProjectRuntime :
                 throw new InvalidOperationException(
                     "Grand-project physical input owner does not match its before-state envelope.");
 
+            if (!inputOwners.TryRetireDestination(
+                    EconomyProjectInputOwnerAuthority.GrandProjectDomain,
+                    state.destinationId,
+                    EconomyProjectInputOwnerAuthority.GrandProjectCompletedReason,
+                    out string retireFailure))
+                throw new InvalidOperationException(
+                    "Grand-project input destination retirement failed: "
+                    + retireFailure);
+
             if (!state.completedProjectIds.Contains(owner.projectId))
                 state.completedProjectIds.Add(owner.projectId);
             state.completedProjectIds = state.completedProjectIds
@@ -786,6 +837,7 @@ public sealed class GrandProjectRuntime :
             state.activeProjectId = string.Empty;
             state.destinationId = string.Empty;
             state.completedWork = 0f;
+            ClearInputOwnerProjection(state);
             state.lastStatus = $"{definition.DisplayName} 사업이 완공되었습니다.";
             owner.phase = GrandProjectPhysicalCommitPhase.OutcomePublished;
             owner.stateAfterFingerprint = CreateStateFingerprint(state);
@@ -825,4 +877,87 @@ public sealed class GrandProjectRuntime :
         && owner.sourceStackIds.SequenceEqual(
             receipt.SourceStackIds.OrderBy(id => id, StringComparer.Ordinal),
             StringComparer.Ordinal);
+
+    private bool TryEnsureInputOwner(
+        GrandProjectDefinition definition,
+        GrandProjectOfficeSnapshot office,
+        out string failureReason)
+    {
+        if (!string.Equals(
+                state.inputOwnerFacilityId,
+                office.InstanceId.Value,
+                StringComparison.Ordinal)
+            || state.inputDestinationX != office.Position.x
+            || state.inputDestinationY != office.Position.y)
+        {
+            state.inputCapacityGrams = 0L;
+            state.inputMassAuthorityRevision = 0L;
+            state.inputCapacityFingerprint = string.Empty;
+        }
+        state.inputOwnerFacilityId = office.InstanceId.Value;
+        state.inputDestinationX = office.Position.x;
+        state.inputDestinationY = office.Position.y;
+        if (!inputOwners.TryEnsure(
+                EconomyProjectInputOwnerAuthority.GrandProjectDomain,
+                definition.ProjectId,
+                state.destinationId,
+                new Vector2Int(state.inputDestinationX, state.inputDestinationY),
+                EconomyProjectInputOwnerAnchorKind.LiveFacility,
+                state.inputOwnerFacilityId,
+                BuildRequirements(definition),
+                state.inputCapacityGrams,
+                state.inputMassAuthorityRevision,
+                state.inputCapacityFingerprint,
+                out EconomyProjectInputOwnerProjection projection,
+                out failureReason))
+            return false;
+        state.inputCapacityGrams = projection.CapacityGrams;
+        state.inputMassAuthorityRevision = projection.MassAuthorityRevision;
+        state.inputCapacityFingerprint = projection.Fingerprint;
+        return true;
+    }
+
+    private void ValidateInputOwnerForCapture()
+    {
+        if (string.IsNullOrEmpty(state.activeProjectId))
+            return;
+        GrandProjectDefinition definition = FindDefinition(state.activeProjectId)
+            ?? throw new InvalidOperationException(
+                "Grand-project capture has an unknown active project.");
+        if (!inputOwners.TryValidate(
+                EconomyProjectInputOwnerAuthority.GrandProjectDomain,
+                definition.ProjectId,
+                state.destinationId,
+                new Vector2Int(state.inputDestinationX, state.inputDestinationY),
+                EconomyProjectInputOwnerAnchorKind.LiveFacility,
+                state.inputOwnerFacilityId,
+                BuildRequirements(definition),
+                state.inputCapacityGrams,
+                state.inputMassAuthorityRevision,
+                state.inputCapacityFingerprint,
+                out string failureReason))
+            throw new InvalidOperationException(
+                "Grand-project input owner capture validation failed: "
+                + failureReason);
+    }
+
+    private static IReadOnlyDictionary<string, int> BuildRequirements(
+        GrandProjectDefinition definition) =>
+        definition.Requirements
+            .GroupBy(value => value.ItemId, StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Sum(value => value.Amount),
+                StringComparer.Ordinal);
+
+    private static void ClearInputOwnerProjection(
+        GrandProjectRuntimeState ownerState)
+    {
+        ownerState.inputOwnerFacilityId = string.Empty;
+        ownerState.inputDestinationX = 0;
+        ownerState.inputDestinationY = 0;
+        ownerState.inputCapacityGrams = 0L;
+        ownerState.inputMassAuthorityRevision = 0L;
+        ownerState.inputCapacityFingerprint = string.Empty;
+    }
 }

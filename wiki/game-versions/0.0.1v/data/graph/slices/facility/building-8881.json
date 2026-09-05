@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-8881",
+    "spoiler_tier": "none",
+    "title": "교차계통 배양기"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-genetics-cross-lineage-stabilization",
+      "label": "시설 해금",
+      "to": "facility/building-8881",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

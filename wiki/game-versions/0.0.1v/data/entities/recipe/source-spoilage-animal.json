@@ -1,0 +1,40 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "4"
+    },
+    {
+      "label": "필요 연구",
+      "value": "퇴비·윤작"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "waste-animal-rot",
+      "target_spoiler_tier": "none",
+      "target_title": "동물성 부패물",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-compost",
+      "target_spoiler_tier": "none",
+      "target_title": "퇴비·윤작",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "source-spoilage-animal",
+  "spoiler_tier": "none",
+  "summary": "동물식 부패 자원 산출",
+  "title": "동물식 부패"
+}

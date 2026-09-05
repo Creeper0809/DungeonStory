@@ -10,6 +10,13 @@ public sealed class SurgicalPartProductionOutputHandler :
     IProductionOutputHandler,
     IIdempotentProductionOutputHandler
 {
+    public const string HandlerCapabilityId =
+        "production-output:surgical-part";
+    public const int HandlerContractVersion = 2;
+    public const string HandlerComponentCodecId =
+        "production-output-codec:surgical-part";
+    public const int HandlerComponentCodecVersion = 1;
+
     public static readonly string ProstheticArmOutputId =
         SurgeryItemDefinitions.GetProstheticItemId("arm:left");
     public static readonly string ProstheticLegOutputId =
@@ -17,22 +24,24 @@ public sealed class SurgicalPartProductionOutputHandler :
     public static readonly string ArtificialEyeOutputId =
         SurgeryItemDefinitions.GetProstheticItemId("eye:left");
 
-    private const string PublicationOperationPrefix =
-        "surgical-part-output-publication:";
-    private const string OutputLinePrefix = "surgical-part-output-line:";
-
     private readonly ISurgicalPartPreparedOutputRuntime preparedParts;
     private readonly IItemDefinitionCatalog itemCatalog;
-    private readonly IProductionAssemblyBridge bridge;
+    private readonly IProductionFacilityHandleQuery facilities;
     private readonly IProductionOutputDestinationAuthorityRuntime destinations;
+    private readonly IProductionOutputBufferCapacityProjector capacityProjector;
+    private readonly IProductionOutputMaximumMassRegistry outputMaximumMass;
+    private readonly IItemInstanceRepository itemInstances;
     private readonly ISurgicalPartOutputAdmissionPort admission;
     private readonly ISurgicalPartOutputPublicationPort publication;
 
     public SurgicalPartProductionOutputHandler(
         ISurgicalPartRuntime parts,
         IItemDefinitionCatalog itemCatalog,
-        IProductionAssemblyBridge bridge,
+        IProductionFacilityHandleQuery facilities,
         IProductionOutputDestinationAuthorityRuntime destinations,
+        IProductionOutputBufferCapacityProjector capacityProjector,
+        IProductionOutputMaximumMassRegistry outputMaximumMass,
+        IItemInstanceRepository itemInstances,
         IFacilityBufferMassAdmissionService admission,
         IFacilityBufferPlannedOutputPublicationService publication)
     {
@@ -42,9 +51,16 @@ public sealed class SurgicalPartProductionOutputHandler :
                 nameof(parts));
         this.itemCatalog = itemCatalog
             ?? throw new ArgumentNullException(nameof(itemCatalog));
-        this.bridge = bridge ?? throw new ArgumentNullException(nameof(bridge));
+        this.facilities = facilities
+            ?? throw new ArgumentNullException(nameof(facilities));
         this.destinations = destinations
             ?? throw new ArgumentNullException(nameof(destinations));
+        this.capacityProjector = capacityProjector
+            ?? throw new ArgumentNullException(nameof(capacityProjector));
+        this.outputMaximumMass = outputMaximumMass
+            ?? throw new ArgumentNullException(nameof(outputMaximumMass));
+        this.itemInstances = itemInstances
+            ?? throw new ArgumentNullException(nameof(itemInstances));
         this.admission = new SurgicalPartOutputAdmissionPort(
             admission ?? throw new ArgumentNullException(nameof(admission)));
         this.publication = new SurgicalPartOutputPublicationPort(
@@ -63,10 +79,17 @@ public sealed class SurgicalPartProductionOutputHandler :
             ?? throw new ArgumentNullException(nameof(publication));
     }
 
+    public string CapabilityId => HandlerCapabilityId;
+    public int ContractVersion => HandlerContractVersion;
+    public string ComponentCodecId => HandlerComponentCodecId;
+    public int ComponentCodecVersion => HandlerComponentCodecVersion;
+    public bool SupportsAutomaticSelection => true;
+
     public bool CanHandle(string itemId) =>
-        string.Equals(itemId, ProstheticArmOutputId, StringComparison.Ordinal)
-        || string.Equals(itemId, ProstheticLegOutputId, StringComparison.Ordinal)
-        || string.Equals(itemId, ArtificialEyeOutputId, StringComparison.Ordinal);
+        SurgicalPartProductionOutputSemantics.TryResolveDefinition(
+            itemId,
+            out _,
+            out _);
 
     public bool TryProduce(
         ProductionOutputContext context,
@@ -85,6 +108,8 @@ public sealed class SurgicalPartProductionOutputHandler :
         if (!CanHandle(context.ItemId)
             || context.Amount != 1
             || context.Facility == null
+            || !ProductionOutputDefinition.IsCanonicalOutputLineId(
+                context.OutputLineId)
             || !IsCanonicalRequired(context.CommitId))
         {
             failure = new DomainFailure(FailureCode.SurgeryPartUnavailable);
@@ -107,19 +132,21 @@ public sealed class SurgicalPartProductionOutputHandler :
         {
             return false;
         }
-        if (prepared.IsReplay)
+        if (!prepared.IsReplay
+            && !((ItemInstanceId)prepared.PhysicalItemInstanceId).IsValid)
         {
-            return preparedParts.TryValidateCommittedCraftedOutput(
-                context.CommitId,
-                requireAcknowledged: false,
-                out _,
-                out failure);
+            if (itemInstances == null)
+            {
+                failure = Fail("physical-item-instance-authority-missing");
+                return false;
+            }
+            prepared.PhysicalItemInstanceId = itemInstances
+                .AllocateItemInstanceId().Value;
         }
-
         ProductionFacilityHandle facility;
         try
         {
-            facility = bridge.CaptureFacility(context.Facility);
+            facility = facilities.CaptureFacility(context.Facility);
         }
         catch (Exception exception) when (exception is ArgumentException
                                            or InvalidOperationException)
@@ -127,8 +154,107 @@ public sealed class SurgicalPartProductionOutputHandler :
             failure = Fail("facility-capture-failed", exception.Message);
             return false;
         }
-        if (!destinations.TryValidate(
+        string expectedDestinationId = ProductionOutputDestinationId
+            .FromFacility(facility.InstanceId)
+            .Value;
+        if (!string.Equals(
+                context.OutputDestinationId,
+                expectedDestinationId,
+                StringComparison.Ordinal))
+        {
+            failure = Fail(
+                "output-destination-mismatch",
+                context.OutputDestinationId);
+            return false;
+        }
+        ProductionOutputBatchMaximumMassProof maximumMassProof;
+        ProductionOutputBufferCapacitySourceSnapshot capacity;
+        try
+        {
+            ProductionOutputMaximumMassProjection maximumProjection =
+                outputMaximumMass.CaptureAutomatic(
+                    context.OutputLineId,
+                    context.ItemId,
+                    context.Amount);
+            if (!string.Equals(
+                    maximumProjection.Descriptor.CapabilityId,
+                    HandlerCapabilityId,
+                    StringComparison.Ordinal)
+                || maximumProjection.Descriptor.CapabilityVersion
+                    != HandlerContractVersion
+                || !string.Equals(
+                    maximumProjection.Descriptor.ComponentCodecId,
+                    HandlerComponentCodecId,
+                    StringComparison.Ordinal)
+                || maximumProjection.Descriptor.ComponentCodecVersion
+                    != HandlerComponentCodecVersion)
+            {
+                failure = Fail("maximum-mass-capability-execution-drift");
+                return false;
+            }
+            maximumMassProof = new ProductionOutputBatchMaximumMassProof(
+                new[] { maximumProjection });
+            capacity = capacityProjector.CaptureSource(
                 facility,
+                maximumMassProof);
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidOperationException
+                                           or OverflowException)
+        {
+            failure = Fail("maximum-mass-proof-invalid", exception.Message);
+            return false;
+        }
+        ItemInstanceComponentSaveData replayComponent =
+            SurgicalPartPreparedOutputComponentCodec.Create(prepared);
+        string expectedOutcomeFingerprint = CreateOutcomeFingerprint(
+            prepared,
+            context.OutputLineId,
+            SurgicalPartPreparedOutputComponentCodec.Hash(
+                replayComponent.ToCanonicalString()),
+            maximumMassProof,
+            capacity);
+        if (publication.TryCaptureBatch(
+                context.CommitId,
+                allowAcknowledged: true,
+                out FacilityBufferPlannedOutputRestoreBatchSnapshot existing,
+                out bool acknowledged,
+                out _,
+                out string captureFailure))
+        {
+            if (!prepared.IsReplay
+                || !TryValidateExistingBatch(
+                    context,
+                    facility,
+                    existing,
+                    acknowledged,
+                    expectedOutcomeFingerprint,
+                    maximumMassProof,
+                    out failure))
+            {
+                failure = !failure.IsFailure
+                    ? Fail("existing-publication-conflict")
+                    : failure;
+                return false;
+            }
+            return preparedParts.TryValidateCommittedCraftedOutput(
+                context.CommitId,
+                requireAcknowledged: false,
+                out _,
+                out failure);
+        }
+        if (prepared.IsReplay || !IsMissingBatch(captureFailure))
+        {
+            failure = Fail(
+                prepared.IsReplay
+                    ? "commit-replay-batch-missing"
+                    : "existing-publication-conflict",
+                captureFailure);
+            return false;
+        }
+        if (!destinations.TryEnsureCapacitySource(
+                facility,
+                capacity,
                 out FacilityBufferCapacityProfile profile,
                 out string destinationFailure))
         {
@@ -140,6 +266,9 @@ public sealed class SurgicalPartProductionOutputHandler :
             prepared,
             profile,
             facility.Position,
+            context.OutputLineId,
+            maximumMassProof,
+            capacity,
             out failure);
     }
 
@@ -147,37 +276,63 @@ public sealed class SurgicalPartProductionOutputHandler :
         SurgicalPartPreparedOutput prepared,
         FacilityBufferCapacityProfile profile,
         Vector2Int position,
+        string outputLineId,
+        ProductionOutputBatchMaximumMassProof maximumMassProof,
+        ProductionOutputBufferCapacitySourceSnapshot capacity,
         out DomainFailure failure) => TryPublishPreparedOutput(
         prepared,
         profile,
         position,
+        outputLineId,
+        maximumMassProof,
+        capacity,
         out failure);
 
     private bool TryPublishPreparedOutput(
         SurgicalPartPreparedOutput prepared,
         FacilityBufferCapacityProfile profile,
         Vector2Int position,
+        string outputLineId,
+        ProductionOutputBatchMaximumMassProof maximumMassProof,
+        ProductionOutputBufferCapacitySourceSnapshot capacity,
         out DomainFailure failure)
     {
         failure = DomainFailure.None;
-        if (prepared == null || profile == null || prepared.IsReplay)
+        if (prepared == null
+            || profile == null
+            || prepared.IsReplay
+            || !((ItemInstanceId)prepared.PhysicalItemInstanceId).IsValid
+            || !TryValidateProofAndCapacity(
+                prepared,
+                outputLineId,
+                profile,
+                maximumMassProof,
+                capacity)
+            || position != profile.DropPosition
+            || capacity.RequiredMinimumCapacityGrams <= 0L
+            || !string.Equals(
+                capacity.SourceDigest,
+                capacity.SourceDigest?.Trim(),
+                StringComparison.Ordinal))
         {
             failure = Fail("prepared-output-request-invalid");
             return false;
         }
         ItemInstanceComponentSaveData component =
             SurgicalPartPreparedOutputComponentCodec.Create(prepared);
-        string componentFingerprint = component.ToCanonicalString();
-        SurgicalPartOutputCapacitySource capacitySource =
-            SurgicalPartOutputCapacitySource.Capture(
-                prepared,
-                profile,
-                position,
-                componentFingerprint);
+        string componentFingerprint = SurgicalPartPreparedOutputComponentCodec.Hash(
+            component.ToCanonicalString());
+        string outcomeFingerprint = CreateOutcomeFingerprint(
+            prepared,
+            outputLineId,
+            componentFingerprint,
+            maximumMassProof,
+            capacity);
         FacilityBufferPlannedOutputRequest request = new(
-            PublicationOperationPrefix + prepared.CommitId,
+            SurgicalPartProductionOutputSemantics.PublicationOperationId(
+                prepared.CommitId),
             prepared.CommitId,
-            SurgicalPartPreparedOutputComponentCodec.Hash(componentFingerprint),
+            outcomeFingerprint,
             profile.DestinationId,
             position,
             profile.OwnerDomain,
@@ -187,15 +342,20 @@ public sealed class SurgicalPartProductionOutputHandler :
             new[]
             {
                 new FacilityBufferPlannedOutputSlice(
-                    OutputLinePrefix + prepared.ItemId,
-                    PhysicalItemMassSubject.ForDefinition(
-                        new ItemDefinitionId(prepared.ItemId)),
+                    outputLineId,
+                    new PhysicalItemMassSubject(
+                        new ItemDefinitionId(prepared.ItemId),
+                        prepared.PhysicalItemInstanceId,
+                        PhysicalItemMassSubjectKind.GenericDefinition,
+                        Array.Empty<PhysicalItemComponentSnapshot>(),
+                        string.Empty),
                     1,
                     new[] { component },
                     componentFingerprint)
             },
-            capacitySource.Digest,
-            capacitySource.RequiredMinimumCapacityGrams);
+            capacity.SourceDigest,
+            capacity.RequiredMinimumCapacityGrams,
+            profile.AuthorityDigest);
         if (!admission.TryReserve(
                 request,
                 out FacilityBufferPlannedOutputToken token,
@@ -208,6 +368,20 @@ public sealed class SurgicalPartProductionOutputHandler :
                     : FailureCode.ProductionOutputUnavailable,
                 prepared.CommitId,
                 admissionFailure);
+            return false;
+        }
+        if (token.ReservedMassGrams
+            > maximumMassProof.MaximumBatchMassGrams)
+        {
+            bool released = admission.TryRelease(
+                token,
+                out _,
+                out string releaseFailure);
+            failure = Fail(
+                released
+                    ? "surgical-part-output-mass-exceeds-capability-maximum"
+                    : "surgical-part-output-maximum-release-failed",
+                releaseFailure);
             return false;
         }
 
@@ -293,22 +467,179 @@ public sealed class SurgicalPartProductionOutputHandler :
             out failure);
     }
 
-    public bool TryGetCommittedMassGrams(
-        string commitId,
-        out long massGrams,
+    public bool TryCaptureCommittedOutput(
+        ProductionOutputContext context,
+        out ProductionCommittedOutputSnapshot snapshot,
         out DomainFailure failure)
     {
-        massGrams = 0L;
+        snapshot = null;
+        failure = DomainFailure.None;
+        if (!CanHandle(context.ItemId)
+            || context.Amount != 1
+            || context.Facility == null
+            || itemCatalog == null
+            || facilities == null
+            || destinations == null
+            || capacityProjector == null
+            || outputMaximumMass == null
+            || !ProductionOutputDefinition.IsCanonicalOutputLineId(
+                context.OutputLineId)
+            || !IsCanonicalRequired(context.CommitId))
+        {
+            failure = Fail("committed-output-snapshot-context-invalid");
+            return false;
+        }
         if (!preparedParts.TryValidateCommittedCraftedOutput(
-                commitId,
+                context.CommitId,
                 requireAcknowledged: false,
                 out SurgicalPartPublishedOutputSnapshot joined,
                 out failure))
         {
             return false;
         }
-        massGrams = joined.MassGrams;
-        return massGrams > 0L;
+
+        ResolveDefinition(
+            context.ItemId,
+            out string nodeId,
+            out SurgicalPartKind kind);
+        string displayName = itemCatalog
+            .GetRequired(new ItemDefinitionId(context.ItemId))
+            .DisplayName;
+        if (!preparedParts.TryPrepareCraftedOutput(
+                context.ItemId,
+                nodeId,
+                displayName,
+                kind,
+                context.WorkerQuality,
+                context.CommitId,
+                out SurgicalPartPreparedOutput prepared,
+                out failure)
+            || !prepared.IsReplay)
+        {
+            if (!failure.IsFailure)
+                failure = Fail("committed-output-snapshot-replay-missing");
+            return false;
+        }
+
+        ProductionFacilityHandle facility;
+        ProductionOutputBatchMaximumMassProof maximumMassProof;
+        ProductionOutputBufferCapacitySourceSnapshot capacity;
+        try
+        {
+            facility = facilities.CaptureFacility(context.Facility);
+            ProductionOutputMaximumMassProjection projection =
+                outputMaximumMass.CaptureAutomatic(
+                    context.OutputLineId,
+                    context.ItemId,
+                    context.Amount);
+            maximumMassProof = new ProductionOutputBatchMaximumMassProof(
+                new[] { projection });
+            capacity = capacityProjector.CaptureSource(
+                facility,
+                maximumMassProof);
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidOperationException
+                                           or OverflowException)
+        {
+            failure = Fail(
+                "committed-output-snapshot-authority-invalid",
+                exception.Message);
+            return false;
+        }
+        ItemInstanceComponentSaveData component =
+            SurgicalPartPreparedOutputComponentCodec.Create(prepared);
+        string expectedOutcomeFingerprint = CreateOutcomeFingerprint(
+            prepared,
+            context.OutputLineId,
+            SurgicalPartPreparedOutputComponentCodec.Hash(
+                component.ToCanonicalString()),
+            maximumMassProof,
+            capacity);
+        if (!publication.TryCaptureBatch(
+                context.CommitId,
+                allowAcknowledged: true,
+                out FacilityBufferPlannedOutputRestoreBatchSnapshot batch,
+                out bool acknowledged,
+                out _,
+                out string captureFailure)
+            || !TryValidateExistingBatch(
+                context,
+                facility,
+                batch,
+                acknowledged,
+                expectedOutcomeFingerprint,
+                maximumMassProof,
+                out failure)
+            || batch.TotalMassGrams != joined.MassGrams)
+        {
+            if (!failure.IsFailure)
+            {
+                failure = Fail(
+                    "committed-output-snapshot-missing",
+                    captureFailure);
+            }
+            return false;
+        }
+        string expectedDestinationId = ProductionOutputDestinationId
+            .FromFacility(facility.InstanceId)
+            .Value;
+        if (!destinations.TryValidate(
+                facility,
+                out FacilityBufferCapacityProfile profile,
+                out string destinationFailure)
+            || !string.Equals(
+                context.OutputDestinationId,
+                expectedDestinationId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                profile.DestinationId,
+                expectedDestinationId,
+                StringComparison.Ordinal)
+            || profile.DropPosition != facility.Position
+            || profile.MaxMassGrams < capacity.RequiredMinimumCapacityGrams)
+        {
+            failure = Fail(
+                "committed-output-snapshot-destination-invalid",
+                destinationFailure);
+            return false;
+        }
+        ProductionCommittedOutputStackSnapshot[] stacks = batch.Stacks
+            .OrderBy(value => value.OutputLineId, StringComparer.Ordinal)
+            .ThenBy(value => value.StackId, StringComparer.Ordinal)
+            .Select(value => new ProductionCommittedOutputStackSnapshot(
+                value.OutputLineId,
+                value.StackId,
+                value.ItemId,
+                value.Quantity,
+                value.MassGrams,
+                value.ComponentSignature,
+                value.ItemInstanceId))
+            .ToArray();
+        snapshot = new ProductionCommittedOutputSnapshot(
+            context.CommitId,
+            facility.InstanceId.Value,
+            HandlerCapabilityId,
+            HandlerContractVersion,
+            HandlerComponentCodecId,
+            HandlerComponentCodecVersion,
+            maximumMassProof.SourceDigest,
+            maximumMassProof.MaximumBatchMassGrams,
+            capacity.SourceDigest,
+            capacity.RequiredMinimumCapacityGrams,
+            batch.TotalMassGrams,
+            batch.OutcomeFingerprint,
+            batch.PlannedOutputFingerprint,
+            profile.DestinationId,
+            profile.DropPosition.x,
+            profile.DropPosition.y,
+            profile.OwnerDomain,
+            profile.OwnerOperationId,
+            profile.OwnerFacilityId,
+            profile.CapacityRevision,
+            acknowledged,
+            stacks);
+        return true;
     }
 
     private void RollbackUncommitted(
@@ -336,75 +667,180 @@ public sealed class SurgicalPartProductionOutputHandler :
         !string.IsNullOrWhiteSpace(value)
         && string.Equals(value, value.Trim(), StringComparison.Ordinal);
 
+    private static string CreateOutcomeFingerprint(
+        SurgicalPartPreparedOutput prepared,
+        string outputLineId,
+        string componentFingerprint,
+        ProductionOutputBatchMaximumMassProof maximumMassProof,
+        ProductionOutputBufferCapacitySourceSnapshot capacity)
+    {
+        return SurgicalPartProductionOutputSemantics.CreateOutcomeFingerprint(
+            prepared.CommitId,
+            outputLineId,
+            prepared.ItemId,
+            componentFingerprint,
+            maximumMassProof,
+            capacity);
+    }
+
+    private static bool TryValidateProofAndCapacity(
+        SurgicalPartPreparedOutput prepared,
+        string outputLineId,
+        FacilityBufferCapacityProfile profile,
+        ProductionOutputBatchMaximumMassProof maximumMassProof,
+        ProductionOutputBufferCapacitySourceSnapshot capacity)
+    {
+        if (prepared == null
+            || profile == null
+            || maximumMassProof == null
+            || !ProductionOutputDefinition.IsCanonicalOutputLineId(outputLineId)
+            || maximumMassProof.Projections.Count != 1)
+        {
+            return false;
+        }
+        ProductionOutputMaximumMassProjection projection =
+            maximumMassProof.Projections[0];
+        ProductionOutputCapabilityDescriptor descriptor =
+            projection.Descriptor;
+        long expectedBatchMinimum;
+        try
+        {
+            expectedBatchMinimum = checked(
+                maximumMassProof.MaximumBatchMassGrams
+                * capacity.CycleCapacity);
+        }
+        catch (OverflowException)
+        {
+            return false;
+        }
+        return string.Equals(
+                descriptor.OutputLineId,
+                outputLineId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                descriptor.ItemId,
+                prepared.ItemId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                descriptor.CapabilityId,
+                HandlerCapabilityId,
+                StringComparison.Ordinal)
+            && descriptor.CapabilityVersion == HandlerContractVersion
+            && string.Equals(
+                descriptor.ComponentCodecId,
+                HandlerComponentCodecId,
+                StringComparison.Ordinal)
+            && descriptor.ComponentCodecVersion == HandlerComponentCodecVersion
+            && projection.MaximumQuantity == 1
+            && capacity.BatchMinimumCapacityGrams == expectedBatchMinimum
+            && capacity.MaximumBatchMassGrams
+                >= maximumMassProof.MaximumBatchMassGrams
+            && profile.MaxMassGrams
+                >= capacity.RequiredMinimumCapacityGrams;
+    }
+
+    private static bool TryValidateExistingBatch(
+        ProductionOutputContext context,
+        ProductionFacilityHandle facility,
+        FacilityBufferPlannedOutputRestoreBatchSnapshot batch,
+        bool acknowledged,
+        string expectedOutcomeFingerprint,
+        ProductionOutputBatchMaximumMassProof maximumMassProof,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        FacilityBufferPlannedOutputRestoreStackSnapshot stack =
+            batch?.Stacks?.Count == 1 ? batch.Stacks[0] : null;
+        string destinationId = ProductionOutputDestinationId
+            .FromFacility(facility.InstanceId)
+            .Value;
+        bool exact = batch != null
+            && stack != null
+            && string.Equals(
+                batch.BatchCommitId,
+                context.CommitId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                batch.OutcomeFingerprint,
+                expectedOutcomeFingerprint,
+                StringComparison.Ordinal)
+            && batch.TotalQuantity == 1
+            && batch.TotalMassGrams > 0L
+            && batch.TotalMassGrams <= maximumMassProof.MaximumBatchMassGrams
+            && string.Equals(
+                stack.OutputLineId,
+                context.OutputLineId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                stack.ItemId,
+                context.ItemId,
+                StringComparison.Ordinal)
+            && stack.Quantity == 1
+            && stack.MassGrams == batch.TotalMassGrams
+            && !string.IsNullOrEmpty(stack.ComponentSignature)
+            && (acknowledged
+                || stack.State == WorldItemStackState.FacilityOutputBuffer
+                    && stack.Position == facility.Position
+                    && string.Equals(
+                        stack.DestinationId,
+                        destinationId,
+                        StringComparison.Ordinal));
+        if (exact)
+            return true;
+        failure = Fail("commit-replay-batch-mismatch");
+        return false;
+    }
+
+    private static bool IsMissingBatch(string failureReason) =>
+        (failureReason ?? string.Empty).StartsWith(
+            "planned-output-batch-missing:",
+            StringComparison.Ordinal);
+
     private static void ResolveDefinition(
         string itemId,
         out string nodeId,
         out SurgicalPartKind kind)
     {
-        kind = SurgicalPartKind.Prosthetic;
-        if (string.Equals(itemId, ProstheticLegOutputId, StringComparison.Ordinal))
-        {
-            nodeId = "leg:left";
-            return;
-        }
-        if (string.Equals(itemId, ArtificialEyeOutputId, StringComparison.Ordinal))
-        {
-            nodeId = "eye:left";
-            kind = SurgicalPartKind.Implant;
-            return;
-        }
-        nodeId = "arm:left";
+        SurgicalPartProductionOutputSemantics.ResolveDefinition(
+            itemId,
+            out nodeId,
+            out kind);
     }
 }
 
-internal readonly struct SurgicalPartOutputCapacitySource
+/// <summary>
+/// Pure maximum-mass companion for crafted surgical parts. The surgical
+/// component describes the fitted node and kind but adds no separate matter;
+/// production therefore uses the definition mass as its complete bound.
+/// </summary>
+public sealed class SurgicalPartProductionOutputMaximumMassCapability :
+    IProductionOutputMaximumMassCapability
 {
-    internal const string SchemaToken =
-        "surgical-part-output-capacity-source@1";
+    public string CapabilityId =>
+        SurgicalPartProductionOutputHandler.HandlerCapabilityId;
+    public int ContractVersion =>
+        SurgicalPartProductionOutputHandler.HandlerContractVersion;
+    public string ComponentCodecId =>
+        SurgicalPartProductionOutputHandler.HandlerComponentCodecId;
+    public int ComponentCodecVersion =>
+        SurgicalPartProductionOutputHandler.HandlerComponentCodecVersion;
+    public bool SupportsAutomaticSelection => true;
 
-    private SurgicalPartOutputCapacitySource(
-        string digest,
-        long requiredMinimumCapacityGrams)
-    {
-        Digest = digest;
-        RequiredMinimumCapacityGrams = requiredMinimumCapacityGrams;
-    }
+    public bool CanHandle(string itemId) =>
+        SurgicalPartProductionOutputSemantics.TryResolveDefinition(
+            itemId,
+            out _,
+            out _);
 
-    internal string Digest { get; }
-    internal long RequiredMinimumCapacityGrams { get; }
-
-    internal static SurgicalPartOutputCapacitySource Capture(
-        SurgicalPartPreparedOutput prepared,
-        FacilityBufferCapacityProfile profile,
-        Vector2Int position,
-        string componentFingerprint)
-    {
-        if (prepared == null
-            || profile == null
-            || position != profile.DropPosition
-            || string.IsNullOrWhiteSpace(componentFingerprint)
-            || profile.MaxMassGrams <= 0L)
-        {
-            throw new InvalidOperationException(
-                "Surgical-part capacity source is incomplete.");
-        }
-
-        CanonicalSemanticDigestBuilder canonical = new();
-        canonical.Append(SchemaToken);
-        canonical.Append(prepared.ItemId);
-        canonical.Append(componentFingerprint);
-        canonical.Append(profile.DestinationId);
-        canonical.Append(profile.DropPosition.x);
-        canonical.Append(profile.DropPosition.y);
-        canonical.Append(profile.OwnerDomain);
-        canonical.Append(profile.OwnerOperationId);
-        canonical.Append(profile.OwnerFacilityId);
-        canonical.Append(profile.CapacityRevision);
-        canonical.Append(profile.MaxMassGrams);
-        return new SurgicalPartOutputCapacitySource(
-            canonical.ComputeSha256(),
-            profile.MaxMassGrams);
-    }
+    public ProductionOutputMaximumMassProjection CaptureDefinitionMaximum(
+        ProductionOutputCapabilityDescriptor descriptor,
+        int maximumQuantity,
+        IPhysicalItemMassQuery massQuery) =>
+        ProductionOutputDefinitionMaximumMassProjection.Capture(
+            this,
+            descriptor,
+            maximumQuantity,
+            massQuery);
 }
 
 internal interface ISurgicalPartOutputAdmissionPort
@@ -428,6 +864,13 @@ internal interface ISurgicalPartOutputAdmissionPort
 
 internal interface ISurgicalPartOutputPublicationPort
 {
+    bool TryCaptureBatch(
+        string batchCommitId,
+        bool allowAcknowledged,
+        out FacilityBufferPlannedOutputRestoreBatchSnapshot candidate,
+        out bool acknowledged,
+        out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+        out string failureReason);
     bool TryPublish(
         FacilityBufferPlannedOutputToken token,
         out FacilityBufferPlannedOutputPublicationReceipt receipt,
@@ -498,6 +941,20 @@ internal sealed class SurgicalPartOutputPublicationPort :
         IFacilityBufferPlannedOutputPublicationService inner) =>
         this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
 
+    public bool TryCaptureBatch(
+        string batchCommitId,
+        bool allowAcknowledged,
+        out FacilityBufferPlannedOutputRestoreBatchSnapshot candidate,
+        out bool acknowledged,
+        out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+        out string failureReason) => inner.TryCaptureBatch(
+        batchCommitId,
+        allowAcknowledged,
+        out candidate,
+        out acknowledged,
+        out failureCode,
+        out failureReason);
+
     public bool TryPublish(
         FacilityBufferPlannedOutputToken token,
         out FacilityBufferPlannedOutputPublicationReceipt receipt,
@@ -538,6 +995,7 @@ internal sealed class SurgicalPartOutputPublicationPort :
 internal sealed class SurgicalPartPreparedOutput
 {
     internal string ItemId { get; set; }
+    internal string PhysicalItemInstanceId { get; set; }
     internal string PartInstanceId { get; set; }
     internal string NodeId { get; set; }
     internal string DisplayName { get; set; }

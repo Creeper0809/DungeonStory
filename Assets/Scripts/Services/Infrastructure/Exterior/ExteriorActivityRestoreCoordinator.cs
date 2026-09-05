@@ -136,6 +136,47 @@ internal sealed class ExteriorActivityRestoreCoordinator
             }
         }
 
+        IExteriorIncidentExactSourceRestoreContributor[] contributors = domain
+            .IncidentHandlers.All
+            .OfType<IExteriorIncidentExactSourceRestoreContributor>()
+            .OrderBy(value => value.ExactSourceOwnerDomain, StringComparer.Ordinal)
+            .ToArray();
+        List<PhysicalItemExactSourceRestoreDescriptor> retainedSources = new();
+        foreach (ExteriorIncidentRuntimeState incident in restored.IncidentStates
+                     .Where(value => !value.IsTerminal))
+        {
+            if (!domain.IncidentHandlers.TryGet(
+                    incident.kind,
+                    out IExteriorIncidentHandler handler)
+                || handler is not IExteriorIncidentExactSourceRestoreContributor
+                    contributor)
+                continue;
+            if (!contributor.TryCreateRestoreDescriptor(
+                    incident,
+                    zonesById[incident.zoneId],
+                    out PhysicalItemExactSourceRestoreDescriptor descriptor,
+                    out string descriptorFailure))
+            {
+                DiscardZones(restored.Zones);
+                throw new InvalidOperationException(
+                    "Exterior exact source restore descriptor failed: "
+                    + descriptorFailure);
+            }
+            retainedSources.Add(descriptor);
+        }
+        if (contributors.Length > 0
+            && !world.ExactSourceRestore.TryReplaceRestoreAuthorities(
+                contributors.Select(value => value.ExactSourceOwnerDomain)
+                    .ToArray(),
+                retainedSources,
+                out string sourceRestoreFailure))
+        {
+            DiscardZones(restored.Zones);
+            throw new InvalidOperationException(
+                "Exterior exact source restore authority failed: "
+                + sourceRestoreFailure);
+        }
+
         restored.DiscardAction = DiscardDetachedCandidate;
         world.CandidatePublisher.SetExteriorZoneCandidate(
             restored.Zones);
@@ -283,6 +324,17 @@ internal sealed class ExteriorActivityRestoreCoordinator
             .Where(stack => stack != null)
             .Select(stack => stack.StackId)
             .ToHashSet(StringComparer.Ordinal);
+        if (!world.AcknowledgedOutputs.IsCandidateAvailable)
+        {
+            report.AddError(
+                "Exterior activity restore requires acknowledged physical-output candidates.");
+        }
+        else
+        {
+            itemStackIds.UnionWith(world.AcknowledgedOutputs.Batches
+                .SelectMany(batch => batch.Stacks)
+                .Select(stack => stack.StackId));
+        }
 
         foreach (ExteriorIncidentRuntimeState incident in
                  payload.incidentStates.Where(value => !value.IsTerminal))

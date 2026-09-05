@@ -1,0 +1,47 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "life-event-first-forbidden-door",
+    "spoiler_tier": "warning",
+    "title": "잠긴 문 너머"
+  },
+  "edges": [
+    {
+      "amount": "-2",
+      "from": "event/life-event-first-forbidden-door",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-first-forbidden-door",
+      "target_spoiler_tier": "warning",
+      "target_title": "잠긴 문 너머",
+      "to": "event/life-event-first-forbidden-door",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "4",
+      "from": "event/life-event-first-forbidden-door",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-first-forbidden-door",
+      "target_spoiler_tier": "warning",
+      "target_title": "잠긴 문 너머",
+      "to": "event/life-event-first-forbidden-door",
+      "type": "changes-relationship"
+    },
+    {
+      "amount": "-2",
+      "from": "event/life-event-first-forbidden-door",
+      "label": "연결",
+      "to": "event/life-event-first-forbidden-door",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "4",
+      "from": "event/life-event-first-forbidden-door",
+      "label": "연결",
+      "to": "event/life-event-first-forbidden-door",
+      "type": "changes-relationship"
+    }
+  ],
+  "schema_version": 1
+}

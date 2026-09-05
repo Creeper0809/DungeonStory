@@ -31,6 +31,35 @@ public static class GridDoorPlacementRules
     }
 }
 
+public enum GridBuildingDestroyRequestDisposition
+{
+    Conflict = 0,
+    DeferredAccepted = 1,
+    Removed = 2
+}
+
+public readonly struct GridBuildingDestroyRequestResult
+{
+    public GridBuildingDestroyRequestResult(
+        GridBuildingDestroyRequestDisposition disposition,
+        BuildingSO buildingData,
+        ProductionFacilityDestructiveDrainOperationId operationId,
+        string failureReason)
+    {
+        Disposition = disposition;
+        BuildingData = buildingData;
+        OperationId = operationId;
+        FailureReason = failureReason ?? string.Empty;
+    }
+
+    public GridBuildingDestroyRequestDisposition Disposition { get; }
+    public BuildingSO BuildingData { get; }
+    public ProductionFacilityDestructiveDrainOperationId OperationId { get; }
+    public string FailureReason { get; }
+    public bool Accepted => Disposition != GridBuildingDestroyRequestDisposition.Conflict;
+    public bool Removed => Disposition == GridBuildingDestroyRequestDisposition.Removed;
+}
+
 public class GridBuildingPlacementService
 {
     private Grid grid;
@@ -41,7 +70,26 @@ public class GridBuildingPlacementService
     private readonly IWorkOrderRuntime workOrderRuntime;
     private readonly Action<BuildableObject> onConstructionSiteCreated;
     private readonly IWarehouseLifecycleOccupancyQuery warehouseLifecycle;
-    private readonly IProductionFacilityMutationFence productionMutationFence;
+    private readonly IBuildingDestructiveLossRuntime destructiveLoss;
+    private readonly Dictionary<string, PendingDestroyCompletion>
+        pendingDestroyCompletions = new(StringComparer.Ordinal);
+
+    private sealed class PendingDestroyCompletion
+    {
+        internal PendingDestroyCompletion(
+            BuildableObject building,
+            BuildingSO buildingData,
+            Action handler)
+        {
+            Building = building;
+            BuildingData = buildingData;
+            Handler = handler;
+        }
+
+        internal BuildableObject Building { get; }
+        internal BuildingSO BuildingData { get; }
+        internal Action Handler { get; }
+    }
 
     public GridBuildingPlacementService(Grid grid, BuildingSO hallwayBuilding)
         : this(grid, hallwayBuilding, null)
@@ -68,7 +116,7 @@ public class GridBuildingPlacementService
         IWorkOrderRuntime workOrderRuntime,
         Action<BuildableObject> onConstructionSiteCreated = null,
         IWarehouseLifecycleOccupancyQuery warehouseLifecycle = null,
-        IProductionFacilityMutationFence productionMutationFence = null)
+        IBuildingDestructiveLossRuntime destructiveLoss = null)
     {
         this.grid = grid;
         this.hallwayBuilding = hallwayBuilding;
@@ -79,7 +127,7 @@ public class GridBuildingPlacementService
         this.workOrderRuntime = workOrderRuntime;
         this.onConstructionSiteCreated = onConstructionSiteCreated;
         this.warehouseLifecycle = warehouseLifecycle;
-        this.productionMutationFence = productionMutationFence;
+        this.destructiveLoss = destructiveLoss;
         if (onConstructionSiteCreated != null
             && workOrderRuntime is WorkOrderRuntime concreteRuntime)
         {
@@ -272,50 +320,87 @@ public class GridBuildingPlacementService
         return placementValidator.CanBuild(grid, buildingData, position, out errorMessage);
     }
 
-    public bool TryDestroyBuilding(BuildableObject building, out BuildingSO buildingData, out string errorMessage)
+    public bool TryDestroyBuilding(
+        BuildableObject building,
+        out BuildingSO buildingData,
+        out string errorMessage)
     {
-        buildingData = null;
+        GridBuildingDestroyRequestResult result = RequestDestroyBuilding(building);
+        buildingData = result.BuildingData;
+        errorMessage = result.FailureReason;
+        return result.Removed;
+    }
+
+    public GridBuildingDestroyRequestResult RequestDestroyBuilding(
+        BuildableObject building)
+    {
+        BuildingSO buildingData = null;
+        ProductionFacilityDestructiveDrainOperationId operationId = default;
 
         if (grid == null)
         {
-            errorMessage = "그리드가 초기화되지 않았습니다";
-            return false;
+            return DestroyConflict(
+                buildingData,
+                operationId,
+                "그리드가 초기화되지 않았습니다");
         }
 
         if (building == null)
         {
-            errorMessage = "삭제할 건물이 없습니다";
-            return false;
+            return DestroyConflict(
+                buildingData,
+                operationId,
+                "삭제할 건물이 없습니다");
         }
+
+        if (!building.PersistentInstanceId.IsValid)
+        {
+            return DestroyConflict(
+                buildingData,
+                operationId,
+                "삭제할 건물의 영속 ID가 없습니다");
+        }
+        operationId = ProductionFacilityDestructiveDrainOperationId.FromFacility(
+            building.PersistentInstanceId);
 
         buildingData = findBuildingData?.Invoke(building.id);
         if (buildingData == null)
         {
-            errorMessage = "건물 데이터를 찾을 수 없습니다";
-            return false;
+            return DestroyConflict(
+                buildingData,
+                operationId,
+                "건물 데이터를 찾을 수 없습니다");
         }
 
-        if (!placementValidator.CanDestroy(grid, buildingData, building, out errorMessage))
+        if (!placementValidator.CanDestroy(
+                grid,
+                buildingData,
+                building,
+                out string errorMessage))
         {
-            return false;
+            return DestroyConflict(buildingData, operationId, errorMessage);
         }
 
         if (building is IWarehouseFacility warehouse
-            && warehouse.Inventory?.HasMassCapacityAuthority == true)
+            && warehouse.HasWarehouseInventory)
         {
             if (warehouseLifecycle == null)
             {
-                errorMessage = "창고 수명주기 점유 권위를 찾을 수 없습니다.";
-                return false;
+                return DestroyConflict(
+                    buildingData,
+                    operationId,
+                    "창고 수명주기 점유 권위를 찾을 수 없습니다.");
             }
             if (!warehouseLifecycle.TryRequireEmpty(
                     warehouse,
                     out _,
                     out string lifecycleFailure))
             {
-                errorMessage = "재고·예약·운반 중 화물이 남은 창고는 철거할 수 없습니다. "
-                    + lifecycleFailure;
-                return false;
+                return DestroyConflict(
+                    buildingData,
+                    operationId,
+                    "재고·예약·운반 중 화물이 남은 창고는 철거할 수 없습니다. "
+                    + lifecycleFailure);
             }
         }
 
@@ -326,92 +411,121 @@ public class GridBuildingPlacementService
                 || (building as IRetailRestockOperationOwner)?
                     .ActiveRestockOperationCount > 0))
         {
-            errorMessage = "재고·고객·직원·보충 중 화물이 남은 상점은 철거할 수 없습니다.";
-            return false;
+            return DestroyConflict(
+                buildingData,
+                operationId,
+                "재고·고객·직원·보충 중 화물이 남은 상점은 철거할 수 없습니다.");
         }
 
-        ProductionFacilityEmptyMutationCandidate productionCandidate = null;
-        bool canOwnProduction = buildingData.GetProductionWorkstationAbility() != null
-            || buildingData.GetProductionBufferAbility() != null;
-        if (productionMutationFence == null)
+        if (destructiveLoss == null)
         {
-            if (canOwnProduction)
-            {
-                errorMessage = "생산 시설 철거 수명주기 권위를 찾을 수 없습니다.";
-                return false;
-            }
+            return DestroyConflict(
+                buildingData,
+                operationId,
+                "건물 파괴 수명주기 권위를 찾을 수 없습니다.");
         }
-        else
-        {
-            string operationId = "production-mutation:demolition:"
-                + building.PersistentInstanceId.Value;
-            if (!productionMutationFence.TryPrepareEmpty(
-                    building,
-                    ProductionFacilityMutationKind.Demolition,
-                    operationId,
-                    out productionCandidate,
-                    out string prepareFailure))
-            {
-                errorMessage = "생산 주문·재공품·출력 화물이 남은 시설은 철거할 수 없습니다. "
-                    + prepareFailure;
-                return false;
-            }
-            if (!productionMutationFence.TryCommitAuthorityRevoke(
-                    productionCandidate,
-                    out string revokeFailure))
-            {
-                bool aborted = productionMutationFence.TryAbort(
-                    productionCandidate,
-                    out string abortFailure);
-                errorMessage = "생산 시설 철거 권위를 확정하지 못했습니다. "
-                    + revokeFailure
-                    + (aborted ? string.Empty : " rollback=" + abortFailure);
-                return false;
-            }
-        }
-
-        if (!grid.RemoveOccupant(
+        if (!TryEnsureDestroyCompletion(
                 building,
-                buildingData.Placement.Layer,
-                building.buildPoses,
-                buildingData.Placement.IsMovement))
+                buildingData,
+                operationId,
+                out errorMessage))
         {
-            string rollbackFailure = string.Empty;
-            bool rolledBack = productionCandidate == null
-                || productionMutationFence.TryAbort(
-                    productionCandidate,
-                    out rollbackFailure);
-            errorMessage = "건물 점유를 제거하지 못해 철거를 취소했습니다."
-                + (rolledBack ? string.Empty : " production-rollback=" + rollbackFailure);
+            return DestroyConflict(buildingData, operationId, errorMessage);
+        }
+        BuildingDestructiveLossResult removal = destructiveLoss.Apply(
+            building,
+            ProductionFacilityDestructiveDrainCause.ExplicitDemolition);
+        if (!removal.Accepted)
+        {
+            RemoveDestroyCompletion(operationId);
+            return DestroyConflict(
+                buildingData,
+                operationId,
+                "건물 철거를 시작하지 못했습니다. " + removal.FailureReason);
+        }
+        if (!removal.Removed)
+        {
+            return new GridBuildingDestroyRequestResult(
+                GridBuildingDestroyRequestDisposition.DeferredAccepted,
+                buildingData,
+                operationId,
+                "철거 회수·정리 작업이 진행 중입니다. "
+                + removal.FailureReason);
+        }
+
+        CompleteDestroySuccess(operationId);
+        return new GridBuildingDestroyRequestResult(
+            GridBuildingDestroyRequestDisposition.Removed,
+            buildingData,
+            operationId,
+            removal.FailureReason);
+    }
+
+    private bool TryEnsureDestroyCompletion(
+        BuildableObject building,
+        BuildingSO buildingData,
+        ProductionFacilityDestructiveDrainOperationId operationId,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (pendingDestroyCompletions.TryGetValue(
+                operationId.Value,
+                out PendingDestroyCompletion existing))
+        {
+            if (ReferenceEquals(existing.Building, building)
+                && ReferenceEquals(existing.BuildingData, buildingData))
+            {
+                return true;
+            }
+            failureReason =
+                "동일한 철거 작업 ID가 다른 건물에 이미 연결되어 있습니다.";
             return false;
         }
 
-        if (productionCandidate != null
-            && !productionMutationFence.TryComplete(
-                productionCandidate,
-                out string completeFailure))
-        {
-            bool gridRestored = grid.RegisterOccupant(
-                building,
-                buildingData.Placement.Layer,
-                building.buildPoses,
-                buildingData.Placement.IsMovement);
-            bool authorityRestored = productionMutationFence.TryAbort(
-                productionCandidate,
-                out string rollbackFailure);
-            errorMessage = "생산 시설 철거 커밋을 종료하지 못해 철거를 취소했습니다. "
-                + completeFailure
-                + " grid-restored=" + gridRestored
-                + " authority-restored=" + authorityRestored
-                + (authorityRestored ? string.Empty : " rollback=" + rollbackFailure);
-            return false;
-        }
-
-        buildingFactory.DeleteVisual(buildingData, building.centerPos);
-        building.DestroySelf();
-        placementValidator.ApplyDestroySuccess(buildingData);
+        Action handler = null;
+        handler = () => CompleteDestroySuccess(operationId);
+        pendingDestroyCompletions.Add(
+            operationId.Value,
+            new PendingDestroyCompletion(building, buildingData, handler));
+        building.OnBuildingDestroyed += handler;
         return true;
     }
+
+    private void CompleteDestroySuccess(
+        ProductionFacilityDestructiveDrainOperationId operationId)
+    {
+        if (!pendingDestroyCompletions.Remove(
+                operationId.Value,
+                out PendingDestroyCompletion pending))
+        {
+            return;
+        }
+        if (pending.Building != null)
+            pending.Building.OnBuildingDestroyed -= pending.Handler;
+        placementValidator.ApplyDestroySuccess(pending.BuildingData);
+    }
+
+    private void RemoveDestroyCompletion(
+        ProductionFacilityDestructiveDrainOperationId operationId)
+    {
+        if (!pendingDestroyCompletions.Remove(
+                operationId.Value,
+                out PendingDestroyCompletion pending))
+        {
+            return;
+        }
+        if (pending.Building != null)
+            pending.Building.OnBuildingDestroyed -= pending.Handler;
+    }
+
+    private static GridBuildingDestroyRequestResult DestroyConflict(
+        BuildingSO buildingData,
+        ProductionFacilityDestructiveDrainOperationId operationId,
+        string failureReason) => new(
+        GridBuildingDestroyRequestDisposition.Conflict,
+        buildingData,
+        operationId,
+        failureReason);
 
     public void PlaceInitialBuildings(IEnumerable<InitialBuildInfo> initialPlacement)
     {
@@ -753,6 +867,15 @@ public interface IGridBuildingVisual
 public interface IGridBuildingFactory
 {
     BuildableObject Create(Grid grid, BuildingSO buildingData, Vector2Int selectPos);
+    BuildableObject CreateDetached(
+        Grid grid,
+        BuildingSO buildingData,
+        Vector2Int selectPos);
+    void PublishDetached(
+        BuildableObject candidate,
+        BuildingSO buildingData,
+        Vector2Int selectPos);
+    void DiscardDetached(BuildableObject candidate);
     void DeleteVisual(BuildingSO buildingData, Vector2Int selectPos);
 }
 
@@ -796,6 +919,69 @@ public class GridBuildingFactory : IGridBuildingFactory
         ValidateBuildingVisual(buildingData);
         onBuildingCreated?.Invoke(buildableObject);
         return buildableObject;
+    }
+
+    public BuildableObject CreateDetached(
+        Grid grid,
+        BuildingSO buildingData,
+        Vector2Int selectPos)
+    {
+        BuildableObject candidate = objectFactory.CreateDetached(
+            grid,
+            buildingData,
+            selectPos);
+        if (candidate == null)
+            return null;
+
+        try
+        {
+            candidate.PrepareForDetachedRestore();
+            onBuildingCreated?.Invoke(candidate);
+            return candidate;
+        }
+        catch
+        {
+            if (candidate != null)
+            {
+                if (Application.isPlaying)
+                    UnityEngine.Object.Destroy(candidate.gameObject);
+                else
+                    UnityEngine.Object.DestroyImmediate(candidate.gameObject);
+            }
+            throw;
+        }
+    }
+
+    public void PublishDetached(
+        BuildableObject candidate,
+        BuildingSO buildingData,
+        Vector2Int selectPos)
+    {
+        if (candidate == null)
+            throw new ArgumentNullException(nameof(candidate));
+        if (buildingData == null)
+            throw new ArgumentNullException(nameof(buildingData));
+
+        bool wasActive = candidate.gameObject.activeSelf;
+        candidate.gameObject.SetActive(true);
+        try
+        {
+            candidate.PublishDetachedRestore();
+        }
+        catch
+        {
+            candidate.gameObject.SetActive(wasActive);
+            throw;
+        }
+        buildingVisual?.DrawBuilding(buildingData, selectPos);
+        ValidateBuildingVisual(buildingData);
+    }
+
+    public void DiscardDetached(BuildableObject candidate)
+    {
+        if (candidate == null)
+            return;
+        candidate.DiscardDetachedRestore();
     }
 
     public void DeleteVisual(BuildingSO buildingData, Vector2Int selectPos)

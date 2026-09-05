@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using VContainer;
 
 public sealed class ProductionBillsSaveSection :
     IDungeonSaveSection,
@@ -17,20 +18,48 @@ public sealed class ProductionBillsSaveSection :
         ModularFacilityWorldSaveSection.Id
     };
 
-    private readonly IProductionBillPersistence persistence;
+    private readonly IProductionBillDetachedFacilityPersistence persistence;
     private readonly IPhysicalItemRestoreCandidateQuery physicalCandidates;
     private readonly IPhysicalItemRestoreCandidateOutputQuery outputCandidates;
     private readonly IProductionPreparedOutputRestoreJoin preparedOutputJoin;
+    private readonly IProductionExactCapabilityOutputRestoreJoin exactOutputJoin;
     private readonly IProductionOutputLifecycleRestoreCandidatePublisher
         lifecycleRestoreCandidates;
+    private readonly IRestoreWorldCandidateQuery restoreWorldCandidates;
+    private readonly IProductionFacilityHandleQuery facilityHandles;
 
     public ProductionBillsSaveSection(
-        IProductionBillPersistence persistence,
+        IProductionBillDetachedFacilityPersistence persistence,
         IPhysicalItemRestoreCandidateQuery physicalCandidates,
         IPhysicalItemRestoreCandidateOutputQuery outputCandidates,
         IProductionPreparedOutputRestoreJoin preparedOutputJoin,
         IProductionOutputLifecycleRestoreCandidatePublisher
-            lifecycleRestoreCandidates)
+            lifecycleRestoreCandidates,
+        IRestoreWorldCandidateQuery restoreWorldCandidates,
+        IProductionFacilityHandleQuery facilityHandles)
+        : this(
+            persistence,
+            physicalCandidates,
+            outputCandidates,
+            preparedOutputJoin,
+            lifecycleRestoreCandidates,
+            EmptyProductionExactCapabilityOutputRestoreJoin.Instance,
+            restoreWorldCandidates,
+            facilityHandles)
+    {
+    }
+
+    [Inject]
+    public ProductionBillsSaveSection(
+        IProductionBillDetachedFacilityPersistence persistence,
+        IPhysicalItemRestoreCandidateQuery physicalCandidates,
+        IPhysicalItemRestoreCandidateOutputQuery outputCandidates,
+        IProductionPreparedOutputRestoreJoin preparedOutputJoin,
+        IProductionOutputLifecycleRestoreCandidatePublisher
+            lifecycleRestoreCandidates,
+        IProductionExactCapabilityOutputRestoreJoin exactOutputJoin,
+        IRestoreWorldCandidateQuery restoreWorldCandidates,
+        IProductionFacilityHandleQuery facilityHandles)
     {
         this.persistence = persistence
             ?? throw new ArgumentNullException(nameof(persistence));
@@ -40,8 +69,14 @@ public sealed class ProductionBillsSaveSection :
             ?? throw new ArgumentNullException(nameof(outputCandidates));
         this.preparedOutputJoin = preparedOutputJoin
             ?? throw new ArgumentNullException(nameof(preparedOutputJoin));
+        this.exactOutputJoin = exactOutputJoin
+            ?? throw new ArgumentNullException(nameof(exactOutputJoin));
         this.lifecycleRestoreCandidates = lifecycleRestoreCandidates
             ?? throw new ArgumentNullException(nameof(lifecycleRestoreCandidates));
+        this.restoreWorldCandidates = restoreWorldCandidates
+            ?? throw new ArgumentNullException(nameof(restoreWorldCandidates));
+        this.facilityHandles = facilityHandles
+            ?? throw new ArgumentNullException(nameof(facilityHandles));
     }
 
     public string SectionId => Id;
@@ -95,7 +130,9 @@ public sealed class ProductionBillsSaveSection :
             {
                 lifecycleRestoreCandidates.SetProduction(
                     candidate.PreparedOutput.NormalizedPayload);
-                persistence.Restore(candidate.Bills);
+                persistence.Restore(
+                    candidate.Bills,
+                    candidate.DetachedFacilities);
                 preparedOutputJoin.Acknowledge(candidate.PreparedOutput);
             });
     }
@@ -154,24 +191,76 @@ public sealed class ProductionBillsSaveSection :
         ValidateStockSensorRemovalOutputCandidate(payload, outputCandidates);
         ProductionPreparedOutputRestoreJoinPlan prepared =
             preparedOutputJoin.Build(payload);
+        exactOutputJoin.Validate(prepared.NormalizedPayload);
+        ProductionFacilityHandle[] detachedFacilities =
+            CaptureDetachedProductionFacilities(prepared.NormalizedPayload);
         return new PreparedOutputRestoreStageCandidate(
             persistence.BuildRestore(prepared.NormalizedPayload),
-            prepared);
+            prepared,
+            detachedFacilities);
+    }
+
+    private ProductionFacilityHandle[] CaptureDetachedProductionFacilities(
+        DungeonProductionBillSaveData payload)
+    {
+        if (!restoreWorldCandidates.TryGetBuildings(
+                out IReadOnlyList<BuildableObject> candidateBuildings)
+            || candidateBuildings == null)
+        {
+            throw new InvalidOperationException(
+                "Production restore requires the detached facility-world candidate.");
+        }
+
+        ProductionFacilityHandle[] facilities = candidateBuildings
+            .Where(ProductionFacilityDefinitionIdentity.IsProductionWorkstation)
+            .Select(value => facilityHandles.CaptureFacility(value)
+                ?? throw new InvalidOperationException(
+                    "Production restore projected a null facility handle."))
+            .OrderBy(value => value.InstanceId.Value, StringComparer.Ordinal)
+            .ToArray();
+        if (facilities.Select(value => value.InstanceId.Value)
+            .Distinct(StringComparer.Ordinal).Count() != facilities.Length)
+        {
+            throw new InvalidOperationException(
+                "Production restore contains duplicate detached facility identities.");
+        }
+
+        HashSet<string> facilityIds = facilities
+            .Select(value => value.InstanceId.Value)
+            .ToHashSet(StringComparer.Ordinal);
+        ProductionBillSaveData orphan = (payload?.bills
+                ?? new List<ProductionBillSaveData>())
+            .Where(value => value != null)
+            .OrderBy(value => value.billId, StringComparer.Ordinal)
+            .FirstOrDefault(value => !facilityIds.Contains(
+                value.buildingInstanceId));
+        if (orphan != null)
+        {
+            throw new InvalidOperationException(
+                $"Production bill '{orphan.billId}' has no detached facility '{orphan.buildingInstanceId}'.");
+        }
+        return facilities;
     }
 
     private sealed class PreparedOutputRestoreStageCandidate
     {
         internal PreparedOutputRestoreStageCandidate(
             ProductionBillRestoreCandidate bills,
-            ProductionPreparedOutputRestoreJoinPlan preparedOutput)
+            ProductionPreparedOutputRestoreJoinPlan preparedOutput,
+            IReadOnlyList<ProductionFacilityHandle> detachedFacilities)
         {
             Bills = bills ?? throw new ArgumentNullException(nameof(bills));
             PreparedOutput = preparedOutput
                 ?? throw new ArgumentNullException(nameof(preparedOutput));
+            DetachedFacilities = (detachedFacilities
+                    ?? throw new ArgumentNullException(nameof(detachedFacilities)))
+                .ToArray();
         }
 
         internal ProductionBillRestoreCandidate Bills { get; }
         internal ProductionPreparedOutputRestoreJoinPlan PreparedOutput { get; }
+        internal IReadOnlyList<ProductionFacilityHandle> DetachedFacilities
+            { get; }
     }
 
     public static void ValidateStockSensorRemovalOutputCandidate(
@@ -211,8 +300,10 @@ public sealed class ProductionBillsSaveSection :
 
             string expectedCommit =
                 ProductionStockSensorRuntime.BuildRemovalOutputCommitId(owner);
-            if (owner.phase !=
+            if (owner.phase is not
                     ProductionStockSensorRemovalPhase.OutputPublished
+                    and not ProductionStockSensorRemovalPhase
+                        .OwnerAcknowledgedAwaitingCheckpointGc
                 || owner.outputCommitIds == null
                 || owner.outputCommitIds.Count != 1
                 || !string.Equals(

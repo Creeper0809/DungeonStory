@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "medical",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "disease-dream-mold",
+  "spoiler_tier": "none",
+  "summary": "수면 중 포자성 환각을 공유하게 만들어 집단 판단을 흐린다.",
+  "title": "꿈곰팡이증"
+}

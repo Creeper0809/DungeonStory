@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Partnership Family"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "life-event-inherited-debt",
+  "spoiler_tier": "warning",
+  "summary": "사망자의 세력 의무가 남은 가족에게 청구됐다.",
+  "title": "가구에 남은 빚"
+}

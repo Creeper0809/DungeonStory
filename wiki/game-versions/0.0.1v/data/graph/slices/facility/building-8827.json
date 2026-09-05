@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-8827",
+    "spoiler_tier": "none",
+    "title": "기계 기초대"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "시설 해금",
+      "to": "facility/building-8827",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

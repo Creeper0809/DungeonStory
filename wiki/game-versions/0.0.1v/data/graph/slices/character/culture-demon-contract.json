@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "culture-demon-contract",
+    "spoiler_tier": "none",
+    "title": "재의 계약 문화"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/culture-demon-contract",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-demon-oath-embers",
+      "target_spoiler_tier": "none",
+      "target_title": "맹세의 잿불",
+      "to": "event/practice-demon-oath-embers",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-demon-contract",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-demon-third-bell",
+      "target_spoiler_tier": "none",
+      "target_title": "세 번째 종",
+      "to": "event/practice-demon-third-bell",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

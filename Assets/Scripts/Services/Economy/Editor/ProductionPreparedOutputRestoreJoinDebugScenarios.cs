@@ -352,6 +352,22 @@ public static class ProductionPreparedOutputRestoreJoinDebugScenarios
                         outputLineId = OutputLineId,
                         role = ProductionOutputRole.Main,
                         itemId = ItemId,
+                        outputCapabilityId =
+                            ProductionOutputCapabilityIds.StandardDefinition,
+                        outputCapabilityVersion =
+                            ProductionOutputCapabilityIds.StandardDefinitionVersion,
+                        outputComponentCodecId =
+                            ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+                        outputComponentCodecVersion =
+                            ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion,
+                        outputCapabilityFingerprint =
+                            ProductionOutputCapabilityDescriptorFingerprint.Capture(
+                                OutputLineId,
+                                ItemId,
+                                ProductionOutputCapabilityIds.StandardDefinition,
+                                ProductionOutputCapabilityIds.StandardDefinitionVersion,
+                                ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+                                ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion),
                         quantity = Quantity,
                         componentPayload = string.Empty,
                         componentFingerprint = ComponentFingerprint,

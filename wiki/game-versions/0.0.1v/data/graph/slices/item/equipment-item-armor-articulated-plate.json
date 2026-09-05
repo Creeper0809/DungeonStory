@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "equipment-item-armor-articulated-plate",
+    "spoiler_tier": "none",
+    "title": "관절식 판금갑"
+  },
+  "edges": [],
+  "schema_version": 1
+}

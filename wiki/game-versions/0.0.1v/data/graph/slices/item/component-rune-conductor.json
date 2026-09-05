@@ -1,0 +1,207 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "component-rune-conductor",
+    "spoiler_tier": "none",
+    "title": "룬 도체"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-rune-ward-mail",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-shield-mana-buckler",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-shield-rune",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-mana-lance",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-rune-blade",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "event/faction-contract-demon-crisis",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-dreamweave-rune-lining",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-golem-core-case",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-rune-bus-coupler",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-rune-conductor",
+      "label": "생산·해금",
+      "to": "item/component-rune-conductor",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-rune-control-panel",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-rune-leather-strap",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-rune-tuning-shield",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-cross-lineage-medium",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-mana-core-case",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-rune-hibernation-catalyst",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-temporal-stasis-seal",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "event/faction-chapter-demon-2",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "event/faction-chapter-demon-3",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "event/faction-chapter-golem-3",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "event/faction-chapter-demon-5",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "from": "event/faction-chapter-demon-2",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "from": "event/faction-chapter-golem-6",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "event/faction-chapter-demon-3",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "event/faction-chapter-golem-3",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "from": "event/faction-chapter-demon-5",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "from": "event/faction-contract-golem-strategic",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": "9",
+      "from": "event/faction-chapter-golem-6",
+      "label": "필요 조건",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

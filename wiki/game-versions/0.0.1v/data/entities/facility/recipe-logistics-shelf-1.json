@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1050",
+      "target_spoiler_tier": "none",
+      "target_title": "대형보관선반",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1051",
+      "target_spoiler_tier": "none",
+      "target_title": "상자더미",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1009",
+      "target_spoiler_tier": "none",
+      "target_title": "식재료선반",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-logistics-shelf-1",
+  "spoiler_tier": "none",
+  "summary": "식재료선반과 상자더미를 묶어 대량 보관이 가능한 물류 선반으로 조립한다.",
+  "title": "대형보관선반 조립"
+}

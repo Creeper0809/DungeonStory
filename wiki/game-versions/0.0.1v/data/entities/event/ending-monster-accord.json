@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ending-monster-accord",
+  "spoiler_tier": "warning",
+  "summary": "여섯 던전 세력의 이해관계를 조정해 상호 방위 협약을 성립시킨다.",
+  "title": "괴물 대협약"
+}
