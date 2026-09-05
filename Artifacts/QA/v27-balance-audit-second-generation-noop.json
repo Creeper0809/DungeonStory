@@ -7,7 +7,7 @@
   "currentSourcePathDigest": "3fc6b7ae15ac7744a754eb7ab63fb03c0850c688646bc8d57f8d20ad65365802",
   "gameplaySceneSha256": "6c35a17693d3cedca2c85b89b22a8bff9b5bae6de88c01b255481c058d2aee40",
   "generatorVersion": "v27.13.3",
-  "ledgerSourceDigest": "8ac81fc249db8914d000581eaa78924c5e787c0de666e7b1077116c3239ad553",
+  "ledgerSourceDigest": "c9228addef3f5c691a1795e2ec9b4f4369b823889852d28aa7aa478b221f71df",
   "ledgerSourceCount": 3558,
   "approvalDigest": "eb3ad2627b37b1f94e611b6ef01614d8dda30d6977420f0e6821266b4be5b895",
   "assetPatchDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -21,23 +21,23 @@
   "approvedCount": 2131,
   "sccCount": 298,
   "integrityFailureCount": 0,
-  "firstSemanticDigest": "bc7b4dbb4a06f06e03b552c606ac82ffb99d85f117732746f260c6175b8ed969",
-  "secondSemanticDigest": "bc7b4dbb4a06f06e03b552c606ac82ffb99d85f117732746f260c6175b8ed969",
+  "firstSemanticDigest": "d45d0231ac8561d092f4bdee524eb9885c37941bdf2da9f4a777abed84ed0866",
+  "secondSemanticDigest": "d45d0231ac8561d092f4bdee524eb9885c37941bdf2da9f4a777abed84ed0866",
   "firstWriterInvocationCount": 6,
   "secondWriterInvocationCount": 6,
   "secondChangedCount": 0,
   "byteDiffCount": 0,
   "lengthDiffCount": 0,
   "runtimeMtimeDiffCount": 0,
-  "artifactSetDigest": "2126459a4c05a98f01ed10d626c648e4c87d52d5f28c099417ebddb3515db8f4",
+  "artifactSetDigest": "fc37cb19ab711297be5849ea757e76a7afd91002192c477a7154636d60b0550d",
   "files": [
     {"path":"Artifacts/QA/v27-balance-before-after.csv","sha256":"8a4a68b845cda436e9dc11f099cb624ed8ec69fd1f398b98e630d5bc8caf234e","length":67831664,"secondWriteChanged":false},
     {"path":"docs/generated/V27_Balance_Before_After.md","sha256":"ba6334b8762d4592cba679369d5c2694422f9fbdf2d4579a9c967bc9431c263d","length":10113993,"secondWriteChanged":false},
     {"path":"Artifacts/QA/v27-balance-anomaly-graph.json","sha256":"8e13808ded53f6a27c88c37b7099e2a08b0358f274fa1b54ddde9e4d16e1cc93","length":147036,"secondWriteChanged":false},
     {"path":"Artifacts/QA/v27-balance-recalibration-audit.txt","sha256":"8b765dacddd0f92da6b2cd7f47c5824d62767cd374c28e52fc8ec2e1a19bf89f","length":5598,"secondWriteChanged":false},
-    {"path":"Artifacts/QA/v27-balance-source-inventory.json","sha256":"4a3b7fced03433b860e8ab078de6a6ee40ca1041a1f5863c5ca0c6ee21675fa6","length":576891,"secondWriteChanged":false},
-    {"path":"Artifacts/QA/v27-balance-artifact-manifest.json","sha256":"9929530ec1f1ea1a13a3807d7ac189076502a6514c34ad46b00b91fcb375d7a5","length":5581,"secondWriteChanged":false}
+    {"path":"Artifacts/QA/v27-balance-source-inventory.json","sha256":"c7dabfbaf09e8ccdbdb4fe93c5761e747e10a1aeb2298c5811bbf0793d876e8d","length":576891,"secondWriteChanged":false},
+    {"path":"Artifacts/QA/v27-balance-artifact-manifest.json","sha256":"2e113f121db0262e1696518250accc02e3dfea302947eddceeb8c4d2f9283d3e","length":5581,"secondWriteChanged":false}
   ],
-  "executionEpochDigest": "40ef6b6239bf2afcbf62a711b35cea34bf1e5148b68f9ce4be0c4bf411815cea",
-  "receiptDigest": "9a392a173e2aeceb6edb6ce89f26448029b5ac48a8219788f651dc432fc2dd5e"
+  "executionEpochDigest": "6879e5b266510a3bb6117b2604238f77af91f3b9558867238019bd44d303ab9c",
+  "receiptDigest": "fb0aa68822103261e0542ade8b7a16a96bafa9ab5aa69f62d2e0cd24979e1c9f"
 }
