@@ -20,8 +20,8 @@
 
 ## 기록 성격
 
-- 루트 `task_plan.md`, `findings.md`, `progress.md`는 작업 연속성을 위한 누적 운영 로그다.
-- `.planning/`은 완료되거나 분리된 작업의 세션별 기록이다. 현재 구현 권위로 사용하지 않는다.
+- 루트 `task_plan.md`, `findings.md`, `progress.md`는 현재 작업 연속성을 위한 요약이다. 이전 전문은 Git 이력에서 복구한다.
+- `.planning/`은 진행 중에만 사용하는 Git 비추적 로컬 임시 기록이다. 현재 구현 권위나 영구 보관소가 아니며, 작업 종료 후 삭제할 수 있다.
 - `docs/generated/`, `docs/implementation-reports/`, `docs/qa/`는 특정 시점의 생성·검증 결과다.
 - `wiki/`는 사이트 애플리케이션이며, `docs_final/`을 읽기 전용 입력으로 사용한다.
 - 루트의 대형 audit 문서는 특정 감사의 원문이다. 현행 설계 진입점은 `docs/README.md`다.
@@ -32,6 +32,6 @@
 - 구현 계약과 검증 절차: `Tools/Documentation/`
 - 자동 생성 문서: 생성기가 관리하는 `docs_final/` 또는 `docs/generated/`
 - 버전별 실행·검수 증거: 새 이름의 `Artifacts/.../` 디렉터리
-- 세션 작업 기록: `.planning/<날짜-작업명>/`
+- 세션 임시 기록: `.planning/<날짜-작업명>/` (Git 비추적·완료 후 정리 가능)
 
 기존 증거를 보기 좋게 만들기 위해 이동하거나 이름을 바꾸지 않는다. 링크 인덱스로 탐색하고, 오래된 기록은 해당 버전 위치에 그대로 보존한다.
