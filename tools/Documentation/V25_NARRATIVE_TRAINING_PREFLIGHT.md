@@ -5,7 +5,7 @@
 Unity Editor가 이 저장소에서 열려 있고 Play/컴파일/import/다른 명령이 끝난 상태에서 실행한다. 기본 Python 대신 NarrativeAI 검증 의존성이 설치된 환경을 사용한다.
 
 ```powershell
-F:/01_Programming/01_Project/02_Unity/DungeonStoryNarrativeAI/.venv-scenarios/Scripts/python.exe -B -X utf8 Tools/Documentation/capture_v25_narrative_training_preflight.py --narrative-ai-root F:/01_Programming/01_Project/02_Unity/DungeonStoryNarrativeAI --version <새로운-버전>
+F:/01_Programming/01_Project/02_Unity/DungeonStoryNarrativeAI/.venv-scenarios/Scripts/python.exe -B -X utf8 tools/Documentation/capture_v25_narrative_training_preflight.py --narrative-ai-root F:/01_Programming/01_Project/02_Unity/DungeonStoryNarrativeAI --version <새로운-버전>
 ```
 
 결과는 `Artifacts/QA/NarrativeTrainingPreflight/<버전>`, `Artifacts/Exports/NarrativeMechanicCatalog/<버전>` 및 전달용 `Artifacts/Exports/NarrativeTrainingPreflight/<버전>`에 생성된다. 기존 디렉터리가 있으면 거부한다. baseline도 별도 보존한다.

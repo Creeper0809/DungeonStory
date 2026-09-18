@@ -8,7 +8,7 @@ pre-cleanup planning history is recoverable from Git commit
 
 ## Active authority
 
-- Implementation contract: `Tools/Documentation/gameplay-outcome-narrative-ledger-plan.md`
+- Implementation contract: `tools/Documentation/gameplay-outcome-narrative-ledger-plan.md`
 - Narrative-AI handoff: `../DungeonStoryNarrativeAI/HANDOFF.md`
 - Documentation map: `DOCUMENTATION.md`
 - Unity MCP and `dungeon-player` MCP remain disabled and must not be used.
