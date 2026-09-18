@@ -120,13 +120,17 @@ public readonly struct PopulationDiseaseRouteExposureEvent
         string diseaseId,
         DiseaseTransmissionRoute route,
         float exposureHours,
-        float environmentCoefficient)
+        float environmentCoefficient,
+        string sourceKind = "population-route-event",
+        string sourceId = "unspecified-source")
     {
         CharacterId = characterId;
         DiseaseId = diseaseId?.Trim() ?? string.Empty;
         Route = route;
         ExposureHours = Math.Max(0f, exposureHours);
         EnvironmentCoefficient = Math.Max(0f, environmentCoefficient);
+        SourceKind = sourceKind?.Trim() ?? string.Empty;
+        SourceId = sourceId?.Trim() ?? string.Empty;
     }
 
     public CharacterId CharacterId { get; }
@@ -134,6 +138,8 @@ public readonly struct PopulationDiseaseRouteExposureEvent
     public DiseaseTransmissionRoute Route { get; }
     public float ExposureHours { get; }
     public float EnvironmentCoefficient { get; }
+    public string SourceKind { get; }
+    public string SourceId { get; }
 }
 
 public interface IDiseaseDefinitionCatalog

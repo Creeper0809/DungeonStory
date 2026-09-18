@@ -1,0 +1,59 @@
+# WIM023 authored effect composition / WIM017 weather focused integration
+result=PASS
+project=F:/01_Programming/01_Project/02_Unity/DungeonStory
+mainUnity=6000.3.8f1
+editorReadyUtc=2026-09-12T13:31:46.8532208Z
+compile=controlled recompile completed; failed=false; errors=[]
+runtimeAssemblySha256=630D6BB9BBDB702325EF47831BDFE67B19559EE78762AF3069FEB7B8125775CD
+editorAssemblySha256=ED3D9C25E75DF0C61AD0A6CDA49685EFFA6C3B28F60535843381437369E5B882
+productionSource=Assets/Scripts/Services/Effects/Runtime/CharacterDerivedStatsSnapshot.cs
+productionSha256=0422A3013907C3639AE304F727293A86CD77E459C25E7895024040C590548029
+compositionTest=Assets/Scripts/Services/Medical/Editor/SurgeryDebugScenarios.cs
+compositionTestSha256=85DE8A939F2EE271B01E3742B6998BB894FAA564E3B9F3A2F8FAF33FB6C86070
+compositionEntry=SurgeryDebugScenarios.RunAuthoredInstalledEffectCompositionFocused
+compositionActual=PASS actual authored5 effect definitions; beastkin-sprint-joint=PASS; demon-heat-sac=PASS; orc-combat-heart=PASS; kobold-tail-balance=PASS; human-neural-assist=PASS
+compositionExpected=paired full1.08; paired half1.04; mixed1.0598113033; surviving single1.0392304845; heat full0.80/half0.90; HP100->110/105; evasion0.10->0.13/0.115; work1->1.05/1.025
+compositionBoundaries=authored compatible slots, not installed count; strength once; removal cannot strengthen survivor; nonfunctional and ordinary prosthetic neutral; scratch record JSON roundtrip; query has no source mutation
+compositionScope=controlled part/anatomy/order adapters, real authored definitions and production source/projector; NOT live species eligibility, actual installation transaction, whole-save, or uncontrolled balance
+weatherTest=Assets/Scripts/Services/Offense/Editor/OffenseStrategicDebugScenarios.cs
+weatherTestSha256=351ED3B8FC998D6EAF00482ECA1F4B19DEBA7F82C2C2A471347CE0B7ED604B03
+weatherEntry=OffenseStrategicDebugScenarios.RunWeatherTravelFocused
+weatherActual=WIM017 focused service scenarios passed (4): root catalog/narrative publication; authored card definitions/explicit no-effect choices; frozen weather segment and real service restore; weather-qualified candidates and exact-once choice
+weatherPublication=exact6 weather cards via actual root/domain catalog; exact15 new narrative keys via actual ResourceInGameNarrativeTextQuery
+weatherScope=authored assets and production service fixture; NOT live UI, whole-save, natural whole expedition or balance playthrough
+consoleSince=34099
+consoleEndCursor=34106
+consoleReturnedWarningsErrors=0
+consoleDropped=false
+sceneSha256=E1181C098CB05DC0CD87CF47861831835F95BD4740026CC0C50D9E34288AD10F
+playMode=stopped throughout this focused batch
+remaining=WIM023 authored-effect preview and required remaining integration; WIM017 actual weather UI plus aggregate save/restore. Prior accepted clinical/custody evidence was not rerun.
+balanceStatus=authored composition formula verified, not balance completion
+orchestration=READY-before-review; one controlled compile; two relevant focused runs, each once; no whole-suite replay
+
+## Surgical preview follow-up, same logical batch
+previewResult=PASS
+previewEntry=SurgeryDebugScenarios.RunAuthoredPartPreviewFocused
+previewScope=actual main Play DI CharacterSurgeryWindowService with scratch parts and authored Beastkin anatomy; display projection/body text, NOT actual modal pointer, installation transaction or natural world save
+previewRuntimeSha256=9C74E1825030E69F7F543189B632BD0EA36ACB33CDFE5B91528D41B5EF711BB7
+previewEditorSha256=4988A84E595652A3A796B322F5F894ED57CB58037DB7376E3F2826C459FCCFB7
+previewTestSha256=098DCBDD8774B316EDCCA79209583241F6489E865B7554CFA9A465DACC2F78FC
+previewUiSource=Assets/Scripts/Views/UI/CharacterSurgeryWindow.cs
+previewUiSha256=B3F9CC3DB9E8BC26E569CCAD928D54336423E0D80EB534105062DC807FEB6A2C
+previewValueFormatterSource=Assets/Scripts/Views/Character/UI/StartPartyPreparationPresentation.cs
+previewValueFormatterSha256=429C578DE988C10C573B918BB703E1072516B78455616BEADE895C060A11EE33
+previewTargetFormatterSource=Assets/Scripts/Views/UI/CharacterDetailedStatsTextFormatter.cs
+previewTargetFormatterSha256=063250C173BF11163AD8AD2077BF1B6A83052E5F5386868EBB83DB04FFEDD705
+previewActual=quality0.50 plus explicit baseline/complete configuration: movement x1.08, heat exposure x0.8, maximum HP x1.1, evasion probability(0..1)+0.03, work speed x1.05
+previewBody=selected authored-compatible slots2; complete baseline shared across slots, not full bonus per selected slot; current quality0.50 disclosed; ordinary part has no enhancement-baseline wording
+previewBoundaries=repeated query identical/nonmutating; actual plain prosthetic no enhancement; unknown item definition rejected; existing item catalog injection resolved through main DI
+previewCallers=CharacterSurgeryWindowService.GetOptions->GetPartLabel and GetDetails->GetPartLabel/AppendSelectedPartPreview; CharacterSurgeryWindowView.RefreshDetails consumes actual GetDetails projection
+previewPersistence=user SaveCommand/MetaProfilePersistence disposed in disposable Play before test; no gameplay mutation or owner selection; test culture restored in finally; protected6 files exact before/after
+previewConsole=since34106->34113, returned0 warnings/errors, droppedfalse
+previewCleanup=main stopped/ready2026-09-12T13:46:16.6870862Z, no compile/reload/test in flight
+previewReview=one initial READY review plus affected correction review; no Unity test failures/retries; follow-up compile required by real missing UI connection, not prior passing fixtures
+retainedEvidence=prior composition and weather method bodies unchanged by new preview method/UI-only patch; accepted clinical/ownership/pending-state runs not repeated
+independentPreviewReview=Terra verified reflection/authored expectations; main correctly resolved ICharacterSurgeryWindowService then cast, not unregistered concrete .AsSelf resolution
+finalWim023ClosureReview=OPEN only for concrete non-HP4 live consumers (movement, thermal exposure, combat evasion, work progress); no repetition of accepted clinical/HP/custody/current-save or exhaustive all-species requirement
+closedChildrenThisBatch=3 (authored5/composition, weather publication/service, surgical preview)
+wholeWimCount=39/47 (83.0% item count, not effort/time)

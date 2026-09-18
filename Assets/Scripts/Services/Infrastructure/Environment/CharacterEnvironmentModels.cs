@@ -61,7 +61,7 @@ public sealed class EnvironmentalWorkwearSaveData
 [Serializable]
 public sealed class DungeonCharacterEnvironmentSaveData
 {
-    public const int CurrentVersion = 11;
+    public const int CurrentVersion = 12;
 
     public int version = CurrentVersion;
     // Arrays intentionally have no initializer. Unity JsonUtility preserves a
@@ -70,6 +70,7 @@ public sealed class DungeonCharacterEnvironmentSaveData
     public CharacterEnvironmentExposure[] exposures;
     public EnvironmentalWorkwearSaveData[] equippedWorkwear;
     public EquippedApparelSaveData[] equippedApparel;
+    public CharacterApparelPolicySaveData[] apparelPolicies;
     public ApparelWorkOrderSaveData[] apparelWorkOrders;
     public ApparelWorkOrderTerminalStateSaveData[] apparelWorkOrderTerminalStates;
 }
@@ -166,9 +167,45 @@ public readonly struct WorkEnvironmentAssessment
     public EnvironmentExposureProjection Projection { get; }
 }
 
+public readonly struct CharacterLightAdaptationSnapshot
+{
+    public CharacterLightAdaptationSnapshot(
+        bool enabled,
+        float actualLight,
+        float comfortableMinimum,
+        float comfortableMaximum,
+        float sensitivity,
+        float discomfort,
+        float moodContribution,
+        float workSpeedContribution)
+    {
+        Enabled = enabled;
+        ActualLight = actualLight;
+        ComfortableMinimum = comfortableMinimum;
+        ComfortableMaximum = comfortableMaximum;
+        Sensitivity = sensitivity;
+        Discomfort = discomfort;
+        MoodContribution = moodContribution;
+        WorkSpeedContribution = workSpeedContribution;
+    }
+
+    public bool Enabled { get; }
+    public float ActualLight { get; }
+    public float ComfortableMinimum { get; }
+    public float ComfortableMaximum { get; }
+    public float Sensitivity { get; }
+    public float Discomfort { get; }
+    public float MoodContribution { get; }
+    public float WorkSpeedContribution { get; }
+    public float WorkSpeedMultiplier => 1f + WorkSpeedContribution;
+}
+
 public interface ICharacterEnvironmentStatusQuery
 {
     CharacterEnvironmentExposure GetExposure(CharacterId characterId);
+    bool TryGetLightAdaptation(
+        CharacterId characterId,
+        out CharacterLightAdaptationSnapshot snapshot);
     EnvironmentalExposureBand GetPhysiologicalBand(CharacterId characterId);
     EnvironmentalExposureBand GetVisualBand(CharacterId characterId);
     float GetWorkSpeedMultiplier(CharacterId characterId);
@@ -180,6 +217,7 @@ public interface ICharacterEnvironmentStatusQuery
 public interface ICharacterEnvironmentExposureCommand
 {
     bool AddAirborneExposure(CharacterId characterId, float amount);
+    bool AddHeatExposure(CharacterId characterId, float amount);
 }
 
 public sealed class NoOpCharacterEnvironmentExposureCommand :
@@ -194,6 +232,8 @@ public sealed class NoOpCharacterEnvironmentExposureCommand :
 
     public bool AddAirborneExposure(CharacterId characterId, float amount) =>
         false;
+
+    public bool AddHeatExposure(CharacterId characterId, float amount) => false;
 }
 
 public interface ICharacterEnvironmentWorkContext
@@ -250,6 +290,13 @@ public interface IEnvironmentWorkPolicy
         EnvironmentalWorkKind workKind,
         bool forced);
     WorkEnvironmentAssessment AssessStart(
+        CharacterActor actor,
+        Vector2Int destination,
+        IReadOnlyList<GridMoveStep> route,
+        float expectedSeconds,
+        EnvironmentalWorkKind workKind,
+        bool forced);
+    WorkEnvironmentAssessment PrepareActiveWork(
         CharacterActor actor,
         Vector2Int destination,
         IReadOnlyList<GridMoveStep> route,

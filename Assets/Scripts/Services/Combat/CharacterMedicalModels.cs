@@ -98,6 +98,8 @@ public sealed class CharacterMedicalOrder
 {
     public string orderId = string.Empty;
     public string patientId = string.Empty;
+    public string societyResponseOperationId = string.Empty;
+    public string societyResponseReceiptId = string.Empty;
     public string rescuerId = string.Empty;
     public string treatmentFacilityId = string.Empty;
     public CharacterMedicalOrderState state;
@@ -201,7 +203,7 @@ public readonly struct CharacterMedicalBloodContactEvent
 [Serializable]
 public sealed class DungeonCharacterMedicalSaveData
 {
-    public const int CurrentVersion = 6;
+    public const int CurrentVersion = 7;
 
     public int version = CurrentVersion;
     public List<CharacterMedicalOrder> orders = new List<CharacterMedicalOrder>();

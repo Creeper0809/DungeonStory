@@ -5,6 +5,7 @@ import {
   fencedCodeForBlock,
   renderFencedCode,
   renderInlineMarkdown,
+  stripHtmlComments,
 } from '../lib/guide-markdown.mjs';
 
 interface Props { body: string; version?: string; historical?: boolean }
@@ -12,7 +13,7 @@ interface Props { body: string; version?: string; historical?: boolean }
 const { body, version, historical = false } = Astro.props;
 interface RevealBlock { title: string; body: string }
 const revealBlocks: RevealBlock[] = [];
-const preparedBody = body.replace(
+const preparedBody = stripHtmlComments(body).replace(
   /:::reveal[ \t]+([^\r\n]+)\r?\n([\s\S]*?)\r?\n:::/g,
   (_, title, revealBody) => {
     const index = revealBlocks.push({ title: title.trim(), body: revealBody.trim() }) - 1;

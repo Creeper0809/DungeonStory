@@ -1,0 +1,11 @@
+PASS
+main-gameplay-container=PASS
+authored-equipment-definitions=61
+canonical-base-preview=PASS
+module-ammunition-live-burden=PASS
+physical-component-roundtrip=PASS
+material-quality-durability-charge-invariant=PASS
+invalid-module-negative-ammo=PASS
+warehouse-exact-gram-admission=PASS
+apparel-harness-single-count=PASS
+carry-capacity-unchanged=PASS

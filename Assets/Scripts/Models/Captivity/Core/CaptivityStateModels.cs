@@ -88,6 +88,32 @@ public sealed class CaptivePolicyData
 
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class CaptivityInterrogationTerminalState
+{
+    [Min(0)] public int attemptId;
+    public string subjectDisplayName = string.Empty;
+    public bool hasInformation;
+    public string codexEntryId = string.Empty;
+    public string codexEntryTitle = string.Empty;
+    public string originEnemyArchetypeId = string.Empty;
+    public string originFactionId = string.Empty;
+    public string enemyDisplayName = string.Empty;
+    public string formationTag = string.Empty;
+    public string informationText = string.Empty;
+    public bool highFearCaution;
+    public bool codexPublicationCompleted;
+    public bool noticePublicationCompleted;
+
+    public bool HasOutcome => attemptId > 0;
+    public bool HasPendingPublication => HasOutcome
+        && !noticePublicationCompleted;
+
+    public CaptivityInterrogationTerminalState Clone() =>
+        (CaptivityInterrogationTerminalState)MemberwiseClone();
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class CaptiveState
 {
     public string captiveId = string.Empty;
@@ -116,7 +142,6 @@ public sealed class CaptiveState
     [Range(0f, 100f)] public float corruption;
     [Range(0f, 100f)] public float compliance;
     [Range(0f, 100f)] public float escapeRisk = 30f;
-    [Range(0f, 100f)] public float health = 40f;
     public bool falseCompliance;
     public bool equipmentConfiscated;
     public bool stabilized;
@@ -138,6 +163,9 @@ public sealed class CaptiveState
     public bool interactionMaterialsConsumed;
     public float completedInteractionWork;
     public float requiredInteractionWork;
+    [Min(0)] public int interrogationAttemptSequence;
+    [Min(0)] public int currentInterrogationAttemptId;
+    public CaptivityInterrogationTerminalState interrogationTerminal = new();
     public string lastResult = string.Empty;
     public float performerSkill;
     public float performerFame;
@@ -179,18 +207,48 @@ public sealed class CaptiveState
         or CaptivityStatus.Dead;
     [Obsolete("Use IsInCustody, IsMinion, or IsTerminal explicitly.")]
     public bool IsActive => IsInCustody;
-    public bool CanLabor => compliance >= 50f && health >= 40f
+    public bool CanLaborWithBody(float healthPercent, bool bodyAvailable) =>
+        bodyAvailable
+        && compliance >= 50f
+        && CaptivityBodyHealthRules.NormalizeHealthPercent(healthPercent) >= 40f
         && status is CaptivityStatus.Confined or CaptivityStatus.Labor;
     public bool CanRecruit => trust >= 70f && grudge <= 30f && corruption < 60f;
     public bool CanBecomeMinion => corruption >= 80f;
-    public int RansomValue => Mathf.Max(
+    public int CalculateRansomValue(float healthPercent) => Mathf.Max(
         50,
         Mathf.RoundToInt(
             60f
-            + health * 0.8f
+            + CaptivityBodyHealthRules.NormalizeHealthPercent(healthPercent) * 0.8f
             + performerFame * 1.5f
             + (100f - will) * 0.25f));
-    public CaptiveState Clone() => (CaptiveState)MemberwiseClone();
+    public CaptiveState Clone()
+    {
+        CaptiveState clone = (CaptiveState)MemberwiseClone();
+        clone.interrogationTerminal = interrogationTerminal?.Clone();
+        return clone;
+    }
+}
+
+public static class CaptivityBodyHealthRules
+{
+    public static float NormalizeHealthPercent(float healthPercent)
+    {
+        return float.IsNaN(healthPercent) || float.IsInfinity(healthPercent)
+            ? 0f
+            : Mathf.Clamp(healthPercent, 0f, 100f);
+    }
+
+    public static float GetHealthPercent(
+        float currentHealth,
+        float maximumHealth) =>
+        NormalizeHealthPercent(
+            currentHealth / Mathf.Max(1f, maximumHealth) * 100f);
+
+    public static bool IsBodyAvailable(
+        bool actorDead,
+        bool vitalsDead,
+        bool downed) =>
+        !actorDead && !vitalsDead && !downed;
 }
 
 public static class CaptivityStateTransitionRules
@@ -261,6 +319,7 @@ public static class CaptivityStateTransitionRules
         state.interactionMaterialsConsumed = false;
         state.completedInteractionWork = 0f;
         state.requiredInteractionWork = 0f;
+        state.currentInterrogationAttemptId = 0;
         state.carePriorityUnlocked = false;
         state.nextCareSupplyAt = 0f;
     }
@@ -288,11 +347,31 @@ public static class CaptivityLaborToolAssignmentIdentity
         $"captive-labor-tool-assign:{captiveId ?? string.Empty}:{itemInstanceId ?? string.Empty}";
 }
 
+public static class CaptivityInterrogationAttemptIdentity
+{
+    public const string InteractionId = "captivity:interrogation";
+    public const float HighFearCautionThreshold = 75f;
+
+    public static string FormatNoticeSourceId(
+        string captiveId,
+        int attemptId) =>
+        $"captivity:interrogation:{captiveId ?? string.Empty}:{attemptId.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+
+    public static string FormatInformationText(
+        string originEnemyArchetypeId,
+        string originFactionId,
+        string formationTag) =>
+        "미확인 진술: 출신 부대 "
+        + $"{originEnemyArchetypeId ?? string.Empty} / 세력 "
+        + $"{originFactionId ?? string.Empty} / 전열·전술 표식 "
+        + $"'{formationTag ?? string.Empty}'";
+}
+
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class CaptivitySaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 5;
     public int version = CurrentVersion;
     public int captureSequence;
     public int policySequence;

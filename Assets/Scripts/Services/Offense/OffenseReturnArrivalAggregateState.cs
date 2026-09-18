@@ -170,6 +170,28 @@ internal static class OffenseReturnArrivalSaveValidation
                     $"Offense return-arrival '{arrivalId}' has inconsistent entity counts.");
             }
 
+            bool terminal = arrival.stage is OffenseReturnArrivalStage.Secured
+                or OffenseReturnArrivalStage.Escaped;
+            if (terminal
+                ? arrival.settledMaterializedAmount != arrival.requestedAmount
+                    || arrival.settledSecuredAmount < 0
+                    || arrival.settledEscapedAmount < 0
+                    || (long)arrival.settledSecuredAmount
+                        + arrival.settledEscapedAmount
+                        != arrival.settledMaterializedAmount
+                    || (arrival.stage == OffenseReturnArrivalStage.Secured
+                        ? arrival.settledSecuredAmount
+                            != arrival.requestedAmount
+                            || arrival.settledEscapedAmount != 0
+                        : arrival.settledEscapedAmount <= 0)
+                : arrival.settledMaterializedAmount != 0
+                    || arrival.settledSecuredAmount != 0
+                    || arrival.settledEscapedAmount != 0)
+            {
+                report.AddError(
+                    $"Offense return-arrival '{arrivalId}' has invalid frozen settlement counts.");
+            }
+
             int expectedIndividuals = arrival.kind == OffenseReturnArrivalKind.Prisoner
                 ? arrival.requestedAmount
                 : 0;
@@ -284,6 +306,9 @@ internal static class OffenseReturnArrivalSaveValidation
                 returningMembers = source.returningMembers,
                 stage = source.stage,
                 escapeRisk = source.escapeRisk,
+                settledMaterializedAmount = source.settledMaterializedAmount,
+                settledSecuredAmount = source.settledSecuredAmount,
+                settledEscapedAmount = source.settledEscapedAmount,
                 materializedIds = CanonicalizeEntityIdsForRestore(source,
                     source.materializedIds),
                 escapedIds = CanonicalizeEntityIdsForRestore(source,

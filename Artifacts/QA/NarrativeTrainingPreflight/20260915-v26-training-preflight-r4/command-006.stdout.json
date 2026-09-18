@@ -1,0 +1,12 @@
+{
+  "success": true,
+  "command": "command eval",
+  "data": {
+    "command": "eval",
+    "jobId": "b2f9f2f96edf455a812beeca46054d21",
+    "state": "queued",
+    "detached": true
+  },
+  "errors": [],
+  "warnings": []
+}

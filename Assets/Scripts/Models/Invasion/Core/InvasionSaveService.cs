@@ -67,7 +67,7 @@ public sealed class InvasionRestoreCandidate :
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonInvasionSaveData
 {
-    public const int CurrentVersion = 6;
+    public const int CurrentVersion = 8;
 
     public int version = CurrentVersion;
     public DungeonInvasionThreatSaveData threat = new DungeonInvasionThreatSaveData();
@@ -99,6 +99,9 @@ public sealed class DungeonInvasionThreatSaveData
     public float reputationFactor;
     public float timeFactor;
     public float riskFactor;
+    public string endlessCrisisCandidateEffectOwnerId = string.Empty;
+    public string endlessCrisisDirectResponseOwnerId = string.Empty;
+    public string endlessCrisisDirectResponseRuntimeId = string.Empty;
 }
 
 [Serializable]

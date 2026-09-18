@@ -391,10 +391,25 @@ internal sealed class AutomationRuntime :
 
         IReadOnlyList<ProductionBillSnapshot> bills =
             productionQuery.GetBills(facility);
-        ProductionBillSnapshot bill = bills.FirstOrDefault(candidate =>
-            string.IsNullOrWhiteSpace(candidate.ReservedWorkerId)
-            && candidate.Status is ProductionBillStatus.Ready
-                or ProductionBillStatus.InProgress);
+        ProductionBillSnapshot bill = null;
+        foreach (ProductionBillSnapshot candidate in bills)
+        {
+            if (!string.IsNullOrWhiteSpace(candidate.ReservedWorkerId)
+                || candidate.Status is not (ProductionBillStatus.Ready
+                    or ProductionBillStatus.InProgress or ProductionBillStatus.WaitingForMaterials))
+                continue;
+            if (candidate.MaterialsConsumed)
+            {
+                bill = candidate;
+                break;
+            }
+            // BeginWork refreshes missing exact-input requests without consuming an
+            // incomplete batch. Stock arriving after AddBill must not remain orphaned.
+            ProductionWorkBeginResult begin = productionWork.BeginWork(null, facility, candidate.WorkTypeId);
+            if (!begin.Succeeded) continue;
+            bill = begin.Bill;
+            break; // At most one successfully started cycle and one work tick.
+        }
         if (bill == null)
         {
             state.SetStatus(new InfrastructureStatus(
@@ -402,21 +417,6 @@ internal sealed class AutomationRuntime :
                     ? InfrastructureStatusCode.ProductionMaterialUnavailable
                     : InfrastructureStatusCode.ProductionOrderUnavailable));
             return;
-        }
-
-        if (!bill.MaterialsConsumed)
-        {
-            ProductionWorkBeginResult begin = productionWork.BeginWork(
-                null,
-                facility,
-                bill.WorkTypeId);
-            if (!begin.Succeeded)
-            {
-                state.SetStatus(new InfrastructureStatus(
-                    InfrastructureStatusCode.ProductionMaterialUnavailable));
-                return;
-            }
-            bill = begin.Bill;
         }
 
         float work = Mathf.Max(

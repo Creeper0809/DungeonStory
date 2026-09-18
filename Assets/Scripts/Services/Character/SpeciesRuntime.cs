@@ -220,7 +220,6 @@ public sealed class SpeciesIncidentHandlerRegistry :
             new SlimeContaminationHandler(filth, water),
             new BeastkinCommotionHandler(world),
             new DemonContractCurseHandler(world),
-            new KoboldPartsHoardingHandler(items, relocations),
             new MyconidSporeBloomHandler(filth),
             new HarpyGaleCommotionHandler(items, relocations),
             new GolemCoreOverloadHandler(world)
@@ -267,6 +266,12 @@ public sealed class CharacterSpeciesRuntime :
     private readonly IStockQuery stock;
     private readonly IItemReservationService reservations;
     private readonly IAtomicItemConsumptionService atomicItems;
+    private readonly IWorldFilthQuery filth;
+    private readonly IWorldWaterQuery water;
+    private readonly ICharacterBodyHealthMutationTransaction bodyHealthMutation;
+    private readonly IEnvironmentGameplayOutcomeCommitter environmentOutcomes;
+    private readonly IGameCalendar calendar;
+    private readonly IPreparedPhysicalItemRelocationService preparedRelocations;
 
     private CharacterSpeciesAggregateState aggregateState
     {
@@ -291,7 +296,13 @@ public sealed class CharacterSpeciesRuntime :
         IRunSeedProvider runSeed,
         IStockQuery stock,
         IItemReservationService reservations,
-        IAtomicItemConsumptionService atomicItems)
+        IAtomicItemConsumptionService atomicItems,
+        IWorldFilthQuery filth,
+        IWorldWaterQuery water,
+        ICharacterBodyHealthMutationTransaction bodyHealthMutation,
+        IEnvironmentGameplayOutcomeCommitter environmentOutcomes,
+        IGameCalendar calendar,
+        IPreparedPhysicalItemRelocationService preparedRelocations)
     {
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.speciesCatalog = speciesCatalog
@@ -313,6 +324,15 @@ public sealed class CharacterSpeciesRuntime :
             ?? throw new ArgumentNullException(nameof(reservations));
         this.atomicItems = atomicItems
             ?? throw new ArgumentNullException(nameof(atomicItems));
+        this.filth = filth ?? throw new ArgumentNullException(nameof(filth));
+        this.water = water ?? throw new ArgumentNullException(nameof(water));
+        this.bodyHealthMutation = bodyHealthMutation
+            ?? throw new ArgumentNullException(nameof(bodyHealthMutation));
+        this.environmentOutcomes = environmentOutcomes
+            ?? throw new ArgumentNullException(nameof(environmentOutcomes));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.preparedRelocations = preparedRelocations
+            ?? throw new ArgumentNullException(nameof(preparedRelocations));
     }
 
     public void Tick()
@@ -849,6 +869,7 @@ public sealed class CharacterSpeciesRuntime :
         if (string.IsNullOrWhiteSpace(incidentId)
             || incidentId is CharacterSpeciesIncidentIds.OrcRampage
                 or CharacterSpeciesIncidentIds.VampireFear
+                or CharacterSpeciesIncidentIds.KoboldPartsHoarding
             || state.NextIncidentAt > clock.Time)
         {
             return;
@@ -875,16 +896,125 @@ public sealed class CharacterSpeciesRuntime :
             return;
         }
 
-        SpeciesIncidentContext context =
-            new SpeciesIncidentContext(actor, species, state);
-        if (!incidents.TryExecute(context, out string summary))
+        if (incidentId == CharacterSpeciesIncidentIds.HarpyGaleCommotion)
         {
+            TryTriggerHarpyGaleIncident(actor, species, state);
             return;
+        }
+
+        long ownerRevision = checked((long)state.IncidentCount + 1L);
+        var resultKey = new GameplayResultKey(
+            EnvironmentOutcomeIds.SpeciesIncidentProducer,
+            new GameplayOperationId(
+                "species-incident:" + state.CharacterId.Value + ":" + state.IncidentCount),
+            ownerRevision,
+            0);
+        var reservationSpec = new EnvironmentOutcomeReservationSpec(
+            resultKey,
+            EnvironmentOutcomeIds.SpeciesIncidentTriggered,
+            calendar.Day,
+            GameplayOutcomeStatus.Failed,
+            ownerRevision,
+            participantCount: 2,
+            metricCount: 1,
+            subjectCount: 1,
+            tagCount: 1,
+            provenanceCount: 1,
+            factCount: 3);
+        if (!environmentOutcomes.TryReserve(
+                reservationSpec,
+                out ReservedEnvironmentOutcome reserved,
+                out string reserveFailure))
+            throw new InvalidOperationException(
+                "Species incident outcome reservation failed: " + reserveFailure);
+
+        SpeciesIncidentRollbackSnapshot before = CaptureIncidentRollback(actor, state);
+        SpeciesIncidentContext context = new(actor, species, state);
+        string summary;
+        bool executed;
+        try
+        {
+            executed = incidents.TryExecute(context, out summary);
+        }
+        catch
+        {
+            RestoreIncidentRollback(actor, state, before);
+            environmentOutcomes.Cancel(reserved);
+            throw;
+        }
+        if (!executed)
+        {
+            RestoreIncidentRollback(actor, state, before);
+            environmentOutcomes.Cancel(reserved);
+            return;
+        }
+
+        string actorDisplayName = actor.Identity?.DisplayName?.Trim() ?? string.Empty;
+        string speciesDisplayName = species.displayName?.Trim() ?? string.Empty;
+        if (actorDisplayName.Length == 0 || speciesDisplayName.Length == 0)
+        {
+            RestoreIncidentRollback(actor, state, before);
+            environmentOutcomes.Cancel(reserved);
+            throw new InvalidOperationException(
+                "Species incident requires immutable actor and species display snapshots.");
+        }
+        Vector2Int incidentPosition = actor.GetNowXY();
+        SpeciesIncidentOutcomeReceipt receipt;
+        try
+        {
+            receipt = EnvironmentOutcomeReceiptFactory.CreateSpeciesIncident(
+                resultKey,
+                ownerRevision,
+                state.CharacterId,
+                actorDisplayName,
+                species.DefinitionId,
+                speciesDisplayName,
+                incidentId,
+                summary,
+                new CoreGridCell(incidentPosition.x, incidentPosition.y),
+                calendar.Day);
+        }
+        catch
+        {
+            RestoreIncidentRollback(actor, state, before);
+            environmentOutcomes.Cancel(reserved);
+            throw;
+        }
+        if (!environmentOutcomes.TryWriteReserved(
+                receipt,
+                reserved,
+                out PreparedEnvironmentOutcome prepared,
+                out string writeFailure))
+        {
+            RestoreIncidentRollback(actor, state, before);
+            throw new InvalidOperationException(
+                "Species incident outcome write failed: " + writeFailure);
         }
 
         state.LastIncidentId = incidentId;
         state.IncidentCount++;
         state.NextIncidentAt = clock.Time + IncidentCooldown;
+        EnvironmentOutcomeCommitResult committed;
+        try
+        {
+            committed = environmentOutcomes.Commit(prepared, ownerRevision);
+        }
+        catch
+        {
+            committed = environmentOutcomes.Reconcile(receipt.Payload.ResultKey);
+            if (!committed.DurablyCommitted)
+            {
+                RestoreIncidentRollback(actor, state, before);
+                environmentOutcomes.Cancel(prepared);
+                throw;
+            }
+        }
+        if (!committed.DurablyCommitted)
+        {
+            RestoreIncidentRollback(actor, state, before);
+            throw new InvalidOperationException(
+                "Species incident outcome commit failed: " + committed.DetailCode);
+        }
         actor.AddActivity(CharacterActivityEvent.Facility(
             CharacterActivityKinds.Social,
             CharacterActivityOutcomes.Failed,
@@ -899,6 +1029,251 @@ public sealed class CharacterSpeciesRuntime :
             incidentId,
             actor.GetNowXY(),
             summary));
+    }
+
+    private void TryTriggerHarpyGaleIncident(
+        CharacterActor actor,
+        CharacterSpeciesSO species,
+        CharacterSpeciesRuntimeState state)
+    {
+        Vector2Int origin = actor.GetNowXY();
+        WorldItemStackSnapshot source = (stock.GetAllStacks()
+                ?? Array.Empty<WorldItemStackSnapshot>())
+            .Where(stack => stack != null
+                && stack.State == WorldItemStackState.Loose
+                && stack.Quantity > 0
+                && !stack.HasUniqueMetadata
+                && Mathf.Abs(stack.Position.x - origin.x)
+                    + Mathf.Abs(stack.Position.y - origin.y) <= 3)
+            .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (source == null)
+            return;
+
+        Vector2Int destination = source.Position
+            + ((CharacterGrowthRules.StableHash(source.StackId) & 1) == 0
+                ? Vector2Int.left
+                : Vector2Int.up);
+        string operationId =
+            $"species-harpy-gale:{state.CharacterId.Value}:{state.IncidentCount}";
+        if (!preparedRelocations.TryPrepare(
+                source.StackId,
+                1,
+                destination,
+                WorldItemStackState.Loose,
+                string.Empty,
+                operationId,
+                "species-harpy-gale-relocation",
+                out IPreparedPhysicalItemRelocation preparedPhysical,
+                out _))
+        {
+            return;
+        }
+
+        long ownerRevision = checked((long)state.IncidentCount + 1L);
+        var resultKey = new GameplayResultKey(
+            EnvironmentOutcomeIds.SpeciesIncidentProducer,
+            new GameplayOperationId(operationId),
+            ownerRevision,
+            0);
+        string actorDisplayName = actor.Identity?.DisplayName?.Trim()
+            ?? string.Empty;
+        string speciesDisplayName = species.displayName?.Trim() ?? string.Empty;
+        if (actorDisplayName.Length == 0 || speciesDisplayName.Length == 0)
+        {
+            preparedPhysical.Cancel();
+            throw new InvalidOperationException(
+                "Harpy incident requires immutable actor and species display snapshots.");
+        }
+
+        HarpyGaleRelocationOutcomeReceipt receipt;
+        try
+        {
+            receipt = EnvironmentOutcomeReceiptFactory.CreateHarpyGaleRelocation(
+                resultKey,
+                ownerRevision,
+                state.CharacterId,
+                actorDisplayName,
+                species.DefinitionId,
+                speciesDisplayName,
+                preparedPhysical.Preview,
+                calendar.Day);
+        }
+        catch
+        {
+            preparedPhysical.Cancel();
+            throw;
+        }
+        if (!environmentOutcomes.TryPrepare(
+                receipt,
+                out PreparedEnvironmentOutcome preparedOutcome,
+                out string prepareFailure))
+        {
+            preparedPhysical.Cancel();
+            throw new InvalidOperationException(
+                "Harpy incident outcome prepare failed: " + prepareFailure);
+        }
+        CharacterSpeciesRuntimeState before = state.Clone();
+        if (!preparedPhysical.TryApply(
+                out IReversiblePhysicalItemRelocation relocation,
+                out string applyFailure))
+        {
+            environmentOutcomes.Cancel(preparedOutcome);
+            throw new InvalidOperationException(
+                "Harpy relocation apply failed: " + applyFailure);
+        }
+
+        state.LastIncidentId = CharacterSpeciesIncidentIds.HarpyGaleCommotion;
+        state.IncidentCount = checked(state.IncidentCount + 1);
+        state.NextIncidentAt = clock.Time + IncidentCooldown;
+        EnvironmentOutcomeCommitResult committed;
+        try
+        {
+            committed = environmentOutcomes.Commit(
+                preparedOutcome,
+                ownerRevision);
+        }
+        catch
+        {
+            committed = environmentOutcomes.Reconcile(resultKey);
+        }
+        if (!committed.DurablyCommitted)
+        {
+            CopySpeciesState(before, state);
+            environmentOutcomes.Cancel(preparedOutcome);
+            if (!relocation.TryRollback(out string rollbackFailure))
+            {
+                throw new InvalidOperationException(
+                    "Harpy relocation rollback failed: " + rollbackFailure);
+            }
+            return;
+        }
+
+        // The physical change and the ledger result are now canonical. From
+        // this point forward neither side may be rolled back independently.
+        relocation.TryAcknowledge(out _);
+        string summary =
+            $"{preparedPhysical.Preview.DisplayName.DisplayText} 1개가 돌풍에 "
+            + "인접 칸으로 흩어졌습니다.";
+        try
+        {
+            actor.AddActivity(CharacterActivityEvent.Facility(
+                CharacterActivityKinds.Social,
+                CharacterActivityOutcomes.Failed,
+                summary,
+                null,
+                actionId: CharacterSpeciesIncidentIds.HarpyGaleCommotion,
+                reasonCode: "species-discontent",
+                bubbleEligible: true));
+            events.Publish(new SpeciesIncidentTriggeredEvent(
+                state.CharacterId,
+                species.DefinitionId,
+                CharacterSpeciesIncidentIds.HarpyGaleCommotion,
+                destination,
+                summary));
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException
+                                           and not StackOverflowException
+                                           and not AccessViolationException)
+        {
+            Debug.LogException(exception);
+        }
+    }
+
+    private SpeciesIncidentRollbackSnapshot CaptureIncidentRollback(
+        CharacterActor actor,
+        CharacterSpeciesRuntimeState state)
+    {
+        var moods = new Dictionary<CharacterActor, CharacterMoodDeliveryTransactionSnapshot>();
+        foreach (CharacterActor candidate in world.Characters)
+        {
+            if (candidate?.Stats != null)
+                moods[candidate] = candidate.Stats.CaptureMoodDeliveryTransactionState();
+        }
+        var damaged = new Dictionary<BuildableObject, bool>();
+        foreach (BuildableObject building in world.Buildings)
+        {
+            if (building != null)
+                damaged[building] = building.IsDamaged;
+        }
+        return new SpeciesIncidentRollbackSnapshot(
+            state.Clone(),
+            filth.CaptureFilth(),
+            filth.NextFilthSequence,
+            water.CaptureWaterSources(),
+            water.NextWaterSequence,
+            moods,
+            damaged,
+            bodyHealthMutation.CaptureCombatMutation(actor));
+    }
+
+    private void RestoreIncidentRollback(
+        CharacterActor actor,
+        CharacterSpeciesRuntimeState state,
+        SpeciesIncidentRollbackSnapshot snapshot)
+    {
+        filth.RestoreFilth(snapshot.Filth, snapshot.NextFilthSequence);
+        water.RestoreWaterSources(snapshot.Water, snapshot.NextWaterSequence);
+        foreach (KeyValuePair<CharacterActor, CharacterMoodDeliveryTransactionSnapshot> row
+                 in snapshot.Moods)
+            row.Key.Stats?.RestoreMoodDeliveryTransactionState(row.Value);
+        foreach (KeyValuePair<BuildableObject, bool> row in snapshot.DamagedBuildings)
+            row.Key.SetDamaged(row.Value);
+        bodyHealthMutation.RestoreCombatMutation(
+            actor,
+            snapshot.Body,
+            "species-incident-outcome-rollback");
+        CopySpeciesState(snapshot.SpeciesState, state);
+    }
+
+    private static void CopySpeciesState(
+        CharacterSpeciesRuntimeState source,
+        CharacterSpeciesRuntimeState target)
+    {
+        target.CharacterId = source.CharacterId;
+        target.SpeciesId = source.SpeciesId;
+        target.Charge = source.Charge;
+        target.Integrity = source.Integrity;
+        target.NextIncidentAt = source.NextIncidentAt;
+        target.LastIncidentId = source.LastIncidentId;
+        target.IncidentCount = source.IncidentCount;
+        target.WearWorkRemainder = source.WearWorkRemainder;
+        target.CompletedWorkIndex = source.CompletedWorkIndex;
+        target.RechargeWorkerId = source.RechargeWorkerId;
+        target.RechargeFacilityId = source.RechargeFacilityId;
+        target.RechargeMaterialStackId = source.RechargeMaterialStackId;
+        target.RechargeProgressWork = source.RechargeProgressWork;
+    }
+
+    private sealed class SpeciesIncidentRollbackSnapshot
+    {
+        public SpeciesIncidentRollbackSnapshot(
+            CharacterSpeciesRuntimeState speciesState,
+            List<WorldFilthSaveData> filth,
+            int nextFilthSequence,
+            List<WorldWaterSourceSaveData> water,
+            int nextWaterSequence,
+            Dictionary<CharacterActor, CharacterMoodDeliveryTransactionSnapshot> moods,
+            Dictionary<BuildableObject, bool> damagedBuildings,
+            CharacterBodyHealthMutationSnapshot body)
+        {
+            SpeciesState = speciesState;
+            Filth = filth;
+            NextFilthSequence = nextFilthSequence;
+            Water = water;
+            NextWaterSequence = nextWaterSequence;
+            Moods = moods;
+            DamagedBuildings = damagedBuildings;
+            Body = body;
+        }
+        public CharacterSpeciesRuntimeState SpeciesState { get; }
+        public List<WorldFilthSaveData> Filth { get; }
+        public int NextFilthSequence { get; }
+        public List<WorldWaterSourceSaveData> Water { get; }
+        public int NextWaterSequence { get; }
+        public Dictionary<CharacterActor, CharacterMoodDeliveryTransactionSnapshot> Moods { get; }
+        public Dictionary<BuildableObject, bool> DamagedBuildings { get; }
+        public CharacterBodyHealthMutationSnapshot Body { get; }
     }
 
     private CharacterSpeciesRuntimeState GetOrCreate(
@@ -1040,62 +1415,6 @@ internal sealed class DemonContractCurseHandler :
         }
 
         summary = "불이행된 대가를 요구하는 계약 저주가 주변 인원에게 남았습니다.";
-        return true;
-    }
-}
-
-internal sealed class KoboldPartsHoardingHandler :
-    SpeciesIncidentHandlerBase
-{
-    private readonly IWorldItemStackRuntime items;
-    private readonly IPhysicalItemRelocationService relocations;
-    public KoboldPartsHoardingHandler(
-        IWorldItemStackRuntime items,
-        IPhysicalItemRelocationService relocations)
-    {
-        this.items = items;
-        this.relocations = relocations;
-    }
-    public override string IncidentId =>
-        CharacterSpeciesIncidentIds.KoboldPartsHoarding;
-
-    public override bool Execute(
-        SpeciesIncidentContext context,
-        out string summary)
-    {
-        Vector2Int origin = context.Actor.GetNowXY();
-        WorldItemStackSnapshot source = items.GetAllStacks()
-            .Where(stack => stack != null
-                && stack.Quantity > 0
-                && !stack.HasUniqueMetadata
-                && stack.StockCategory == StockCategory.General
-                && stack.State is WorldItemStackState.Loose
-                    or WorldItemStackState.Stored)
-            .OrderBy(stack =>
-                Mathf.Abs(stack.Position.x - origin.x)
-                + Mathf.Abs(stack.Position.y - origin.y))
-            .ThenBy(stack => stack.StackId, StringComparer.Ordinal)
-            .FirstOrDefault();
-        Vector2Int hidePosition = origin + Vector2Int.right;
-        if (source == null
-            || !relocations.TryRelocateQuantity(
-                source.StackId,
-                1,
-                hidePosition,
-                WorldItemStackState.Loose,
-                string.Empty,
-                $"species-kobold-hoard:{context.State.CharacterId.Value}:{context.State.IncidentCount}",
-                "species-kobold-parts-hoarding",
-                out PhysicalItemRelocationReceipt receipt,
-                out _))
-        {
-            summary = "숨길 부품을 찾지 못해 코볼트의 사재기가 미수에 그쳤습니다.";
-            return true;
-        }
-
-        items.SetForbidden(receipt.DestinationStackId, true);
-
-        summary = $"{source.DisplayName} 1개를 인접 칸에 숨기고 금지 표시했습니다.";
         return true;
     }
 }

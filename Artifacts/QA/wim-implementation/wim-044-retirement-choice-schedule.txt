@@ -1,0 +1,19 @@
+WIM044_RETIREMENT_CHOICE_SCHEDULE_LIVE=PASS
+WIM-044 live retirement choice schedule verification
+utc=2026-09-13T15:49:32.2150068Z
+[INFO] FIXTURE_BOOTSTRAP committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; tierZero=changed=True;columns=27->29;startX=17;entrance=(17, 0); liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Arin:-9235786:character:staff:1:02:active=True,Roma:-9235718:character:staff:1:01:active=True; diagnostics=prepared-1:name=Roma;go=-9235690;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-9235758;id=character:staff:1:02;active=False || scan:name=Roma;go=-9235690;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-9235758;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-9235690;id=character:staff:1:01;active=True || retained:name=Arin;go=-9235758;id=character:staff:1:02;active=True
+[PASS] TYPED_PRODUCER weighted-selection=sole-eligible; ineligible=rejected; constructed-category-cooldown-delay-days=3
+[PASS] SAVE_PREFLIGHT v3/malformed schedule rejected; live=unchanged
+[PASS] DEAD_BEFORE_CHOICE actual-death/tombstone; choice=rejected; schedule=none
+[PASS] IMMEDIATE actual-ui/dispatcher; sameActor=character:staff:1:01; decision=due=terminal=1; mood=+6
+[PASS] SCHEDULE actual-ui/dispatcher; sameActor=character:staff:1:01; decision=1; due=31; awayParticipant=accepted; restoreRevision=isolated
+[PASS] LAST_LESSON actual CareerApplicationAdapter.Tick; physical-lesson=controlled prerequisite; durable-ledger=wear-once; quiet-promotion=actual proficiency rank crossing; Society receipts/occurrences=exact; whole-save replay=idempotent
+[PASS] DUE_ORDER actual-adapter; unrelatedDaily=failure; retirement=completed-at-stored-due
+[PASS] ACTIVE_WORK actual-assignment/recheck; unsafe=blocked; reason=career:retiree-unsafe-work
+[PASS] WORK unsafe=blocked; MentorAcademyOperate=assigned; cap=4h; academy=authored-fixture
+[PASS] MISSED_DAY due=31; observed=34; retiredHistory=1
+[PASS] DEATH_CANCELLED actual-body-health/death-event; terminal=2; retiredHistory=0; dueReplay=no-op; save=exact
+[PASS] CLEANUP baseline whole-save restored
+[PASS] CLEANUP clock restored; paused=True; timeScale=0
+[PASS] CLEANUP autosave remained isolated through PlayMode exit
+failures=0

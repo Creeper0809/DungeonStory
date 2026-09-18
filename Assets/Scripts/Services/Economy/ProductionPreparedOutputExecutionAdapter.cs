@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using UnityEngine;
 
 /// <summary>
 /// Default-assembly bridge for the positive exact-profile generic production recipes.
@@ -33,6 +34,9 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
     private readonly IFacilityBufferPhysicalOccupancyQuery occupancy;
     private readonly IFacilityBufferMassAdmissionService admission;
     private readonly IFacilityBufferPlannedOutputPublicationService publication;
+    private readonly IPreparedFacilityBufferOutputPublicationService
+        preparedPublication;
+    private readonly ProductionCompletedOutcomeBridge gameplayOutcomes;
     private readonly IProductionPreparedOutputRoutingAuthority routingAuthority;
     private readonly ProductionMassExplanationCapabilityRegistry
         massExplanations;
@@ -57,7 +61,8 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
         IFacilityBufferMassAdmissionService admission,
         IFacilityBufferPlannedOutputPublicationService publication,
         IProductionPreparedOutputRoutingAuthority routingAuthority,
-        ProductionMassExplanationCapabilityRegistry massExplanations = null)
+        ProductionMassExplanationCapabilityRegistry massExplanations = null,
+        ProductionCompletedOutcomeBridge gameplayOutcomes = null)
     {
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         this.outputPlanning = outputPlanning
@@ -79,10 +84,16 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
         this.admission = admission ?? throw new ArgumentNullException(nameof(admission));
         this.publication = publication
             ?? throw new ArgumentNullException(nameof(publication));
+        preparedPublication = publication
+            as IPreparedFacilityBufferOutputPublicationService
+            ?? throw new ArgumentException(
+                "Prepared publication must expose a reversible prepare port.",
+                nameof(publication));
         this.routingAuthority = routingAuthority
             ?? throw new ArgumentNullException(nameof(routingAuthority));
         this.massExplanations = massExplanations
             ?? ProductionMassExplanationCapabilityRegistry.CreateDefault();
+        this.gameplayOutcomes = gameplayOutcomes;
     }
 
     public void RestoreDestinationAuthorities(
@@ -483,7 +494,11 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                         break;
 
                     case ProductionPreparedOutputPhase.PublicationPrepared:
-                        if (!TryPublishOrJoin(record, out failure))
+                        if (!TryPublishOrJoin(
+                                record,
+                                facility,
+                                worker,
+                                out failure))
                             return Block(record, SafePhase(record), failure);
                         break;
 
@@ -494,6 +509,12 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                         break;
 
                     case ProductionPreparedOutputPhase.Completed:
+                        if (!TryRequireAcknowledgedGameplayOutcome(
+                                record,
+                                out failure))
+                        {
+                            return Block(record, phase, failure);
+                        }
                         routingAuthority.PublishCommittedBatch(
                             record.preparedOutput,
                             facility.InstanceId);
@@ -576,7 +597,11 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                         break;
 
                     case ProductionPreparedOutputPhase.PublicationPrepared:
-                        if (!TryPublishOrJoin(record, out failure))
+                        if (!TryPublishOrJoin(
+                                record,
+                                facility,
+                                null,
+                                out failure))
                             return RuinedBlocked(record, failure);
                         break;
 
@@ -587,6 +612,12 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                         break;
 
                     case ProductionPreparedOutputPhase.Completed:
+                        if (!TryRequireAcknowledgedGameplayOutcome(
+                                record,
+                                out failure))
+                        {
+                            return RuinedBlocked(record, failure);
+                        }
                         if (!IsExactRuinedBatch(
                                 record.preparedOutput,
                                 recipe,
@@ -817,9 +848,15 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
 
     private bool TryPublishOrJoin(
         ProductionBillRecord record,
+        ProductionFacilityHandle facility,
+        ProductionWorkerHandle worker,
         out DomainFailure failure)
     {
         ProductionPreparedOutputBatchSaveData batch = record.preparedOutput;
+#if UNITY_EDITOR
+        if (gameplayOutcomes == null)
+            return TryPublishOrJoinDetachedEditorFixture(record, out failure);
+#endif
         if (!liveByBatch.TryGetValue(batch.batchCommitId, out LivePublication live))
         {
             if (publication.TryCapturePendingBatch(
@@ -833,8 +870,50 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                         restored,
                         out ProductionPreparedOutputPhysicalCandidateSaveData[] candidates,
                         out failure))
+                {
                     return false;
+                }
+                FacilityBufferPlannedOutputPublicationReceipt restoredReceipt =
+                    RestorePublicationReceipt(batch, restored, facility);
+                if (!TryPrepareGameplayOutcome(
+                        record,
+                        facility,
+                        worker,
+                        restoredReceipt,
+                        out PreparedProductionGameplayOutcome restoredOutcome,
+                        out failure))
+                {
+                    return false;
+                }
                 record.MarkPreparedOutputPhysicalBatchCommitted(candidates);
+                OwnerOutcomeCommitResult restoredCommit = gameplayOutcomes.Commit(
+                    restoredOutcome);
+                if (!restoredCommit.DurablyCommitted)
+                {
+                    if (!publication.TryRollbackRestoreCandidate(
+                            restored,
+                            out _,
+                            out string rollbackFailure))
+                    {
+                        // Keep the aggregate in the matching physical-pending
+                        // phase.  The repository remains authoritative and a
+                        // later retry can prepare a fresh outcome token for
+                        // this same immutable batch.
+                        failure = Fail(
+                            record,
+                            "prepared-output-outcome-rollback-failed",
+                            rollbackFailure);
+                        return false;
+                    }
+                    record.RollbackPreparedOutputPhysicalBatch();
+                    gameplayOutcomes.Cancel(restoredOutcome);
+                    failure = Fail(
+                        record,
+                        "prepared-output-outcome-commit-failed",
+                        restoredCommit.DetailCode);
+                    return false;
+                }
+                failure = DomainFailure.None;
                 return true;
             }
             if (!restoreFailure.StartsWith(MissingBatchPrefix, StringComparison.Ordinal))
@@ -850,24 +929,185 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
             return false;
         }
 
-        if (!live.HasReceipt)
+        if (live.HasReceipt)
         {
-            if (!publication.TryPublishFullBatch(
-                    live.Token,
-                    out FacilityBufferPlannedOutputPublicationReceipt receipt,
-                    out _,
-                    out string publicationFailure))
+            if (!TryCreatePhysicalCandidates(
+                    batch,
+                    live.Receipt,
+                    out ProductionPreparedOutputPhysicalCandidateSaveData[] existing,
+                    out failure))
             {
-                admission.TryReleasePlannedOutput(
-                    live.Token,
-                    FacilityBufferMassAdmissionReleaseReason.TransactionRollback,
-                    out _,
-                    out _);
-                liveByBatch.Remove(batch.batchCommitId);
-                record.ReturnPreparedOutputToWaitingForSpace();
-                failure = Fail(record, "prepared-output-publication-failed", publicationFailure);
                 return false;
             }
+            record.MarkPreparedOutputPhysicalBatchCommitted(existing);
+            return true;
+        }
+
+        if (!preparedPublication.TryPrepareFullBatch(
+                live.Token,
+                out IPreparedFacilityBufferOutputPublication preparedPhysical,
+                out _,
+                out string publicationFailure))
+        {
+            admission.TryReleasePlannedOutput(
+                live.Token,
+                FacilityBufferMassAdmissionReleaseReason.TransactionRollback,
+                out _,
+                out _);
+            liveByBatch.Remove(batch.batchCommitId);
+            record.ReturnPreparedOutputToWaitingForSpace();
+            failure = Fail(
+                record,
+                "prepared-output-publication-prepare-failed",
+                publicationFailure);
+            return false;
+        }
+
+        FacilityBufferPlannedOutputPublicationReceipt receipt =
+            preparedPhysical.Preview.Receipt;
+        if (!TryCreatePhysicalCandidates(
+                batch,
+                receipt,
+                out ProductionPreparedOutputPhysicalCandidateSaveData[] physical,
+                out failure))
+        {
+            preparedPhysical.Cancel();
+            return false;
+        }
+        if (!TryPrepareGameplayOutcome(
+                record,
+                facility,
+                worker,
+                receipt,
+                out PreparedProductionGameplayOutcome preparedOutcome,
+                out failure))
+        {
+            preparedPhysical.Cancel();
+            return false;
+        }
+        if (preparedOutcome.IsReplay)
+        {
+            // A durable outcome without the matching physical publication is
+            // a split-brain conflict; never mint a second batch.
+            preparedPhysical.Cancel();
+            failure = Fail(
+                record,
+                "prepared-output-outcome-replay-without-physical-owner");
+            return false;
+        }
+        if (!preparedPhysical.TryApply(
+                out IReversibleFacilityBufferOutputPublication applied,
+                out _,
+                out publicationFailure))
+        {
+            gameplayOutcomes.Cancel(preparedOutcome);
+            failure = Fail(
+                record,
+                "prepared-output-publication-failed",
+                publicationFailure);
+            return false;
+        }
+        try
+        {
+            record.MarkPreparedOutputPhysicalBatchCommitted(physical);
+        }
+        catch
+        {
+            applied.TryRollback(out _, out _);
+            gameplayOutcomes.Cancel(preparedOutcome);
+            throw;
+        }
+
+        OwnerOutcomeCommitResult outcomeCommit = gameplayOutcomes.Commit(
+            preparedOutcome);
+        if (!outcomeCommit.DurablyCommitted)
+        {
+            if (!applied.TryRollback(out _, out string rollbackFailure))
+            {
+                // Do not publish an aggregate rollback while the physical
+                // repository still owns the exact batch.  The pending owner
+                // state makes the split recoverable on the next retry.
+                failure = Fail(
+                    record,
+                    "prepared-output-outcome-rollback-failed",
+                    rollbackFailure);
+                return false;
+            }
+            record.RollbackPreparedOutputPhysicalBatch();
+            gameplayOutcomes.Cancel(preparedOutcome);
+            failure = Fail(
+                record,
+                "prepared-output-outcome-commit-failed",
+                outcomeCommit.DetailCode);
+            return false;
+        }
+        live.SetReceipt(receipt);
+        failure = DomainFailure.None;
+        return true;
+    }
+
+#if UNITY_EDITOR
+    [Obsolete(
+        "Detached physical-publication fixtures do not stand in for the mandatory runtime gameplay-outcome transaction.")]
+    private bool TryPublishOrJoinDetachedEditorFixture(
+        ProductionBillRecord record,
+        out DomainFailure failure)
+    {
+        ProductionPreparedOutputBatchSaveData batch = record.preparedOutput;
+        if (!liveByBatch.TryGetValue(batch.batchCommitId, out LivePublication live))
+        {
+            if (publication.TryCapturePendingBatch(
+                    batch.batchCommitId,
+                    out FacilityBufferPlannedOutputRestoreBatchSnapshot restored,
+                    out _,
+                    out string restoreFailure))
+            {
+                if (!TryCreatePhysicalCandidates(
+                        batch,
+                        restored,
+                        out ProductionPreparedOutputPhysicalCandidateSaveData[] restoredPhysical,
+                        out failure))
+                {
+                    return false;
+                }
+                record.MarkPreparedOutputPhysicalBatchCommitted(restoredPhysical);
+                return true;
+            }
+            if (!restoreFailure.StartsWith(MissingBatchPrefix, StringComparison.Ordinal))
+            {
+                failure = Fail(record, "prepared-output-publication-conflict", restoreFailure);
+                return false;
+            }
+            record.ReturnPreparedOutputToWaitingForSpace();
+            failure = new DomainFailure(
+                FailureCode.ProductionOutputSpaceUnavailable,
+                record.outputDestinationId,
+                "prepared-output-admission-restored-as-waiting");
+            return false;
+        }
+        FacilityBufferPlannedOutputPublicationReceipt receipt = default;
+        if (!live.HasReceipt
+            && !publication.TryPublishFullBatch(
+                live.Token,
+                out receipt,
+                out _,
+                out string publicationFailure))
+        {
+            admission.TryReleasePlannedOutput(
+                live.Token,
+                FacilityBufferMassAdmissionReleaseReason.TransactionRollback,
+                out _,
+                out _);
+            liveByBatch.Remove(batch.batchCommitId);
+            record.ReturnPreparedOutputToWaitingForSpace();
+            failure = Fail(
+                record,
+                "prepared-output-publication-failed",
+                publicationFailure);
+            return false;
+        }
+        else if (!live.HasReceipt)
+        {
             live.SetReceipt(receipt);
         }
         if (!TryCreatePhysicalCandidates(
@@ -881,6 +1121,7 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
         record.MarkPreparedOutputPhysicalBatchCommitted(physical);
         return true;
     }
+#endif
 
     private bool TryCommitAndAcknowledge(
         ProductionBillRecord record,
@@ -940,6 +1181,105 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
         }
         failure = DomainFailure.None;
         return true;
+    }
+
+    private bool TryPrepareGameplayOutcome(
+        ProductionBillRecord record,
+        ProductionFacilityHandle facility,
+        ProductionWorkerHandle worker,
+        in FacilityBufferPlannedOutputPublicationReceipt receipt,
+        out PreparedProductionGameplayOutcome prepared,
+        out DomainFailure failure)
+    {
+        prepared = default;
+        if (gameplayOutcomes == null)
+        {
+            failure = Fail(
+                record,
+                "production-gameplay-outcome-bridge-missing");
+            return false;
+        }
+        if (!gameplayOutcomes.TryPreparePreparedOutput(
+                record,
+                facility,
+                worker,
+                receipt,
+                out prepared,
+                out bool capacityDeferred,
+                out string outcomeFailure))
+        {
+            failure = new DomainFailure(
+                capacityDeferred
+                    ? FailureCode.ProductionOutputSpaceUnavailable
+                    : FailureCode.ProductionOutputUnavailable,
+                record.billId.Value,
+                outcomeFailure);
+            return false;
+        }
+        failure = DomainFailure.None;
+        return true;
+    }
+
+    private bool TryRequireAcknowledgedGameplayOutcome(
+        ProductionBillRecord record,
+        out DomainFailure failure)
+    {
+        string outcomeFailure = string.Empty;
+#if UNITY_EDITOR
+        if (gameplayOutcomes == null)
+        {
+            failure = DomainFailure.None;
+            return true;
+        }
+#endif
+        if (gameplayOutcomes != null
+            && gameplayOutcomes.TryRequireAcknowledgedPreparedOutcome(
+                record.billId,
+                record.cycleSequence,
+                out outcomeFailure))
+        {
+            failure = DomainFailure.None;
+            return true;
+        }
+        failure = Fail(
+            record,
+            "production-gameplay-outcome-awaiting-acknowledgement",
+            gameplayOutcomes == null
+                ? "production-gameplay-outcome-bridge-missing"
+                : outcomeFailure);
+        return false;
+    }
+
+    private static FacilityBufferPlannedOutputPublicationReceipt
+        RestorePublicationReceipt(
+            ProductionPreparedOutputBatchSaveData batch,
+            FacilityBufferPlannedOutputRestoreBatchSnapshot restored,
+            ProductionFacilityHandle facility)
+    {
+        FacilityBufferPublishedOutputStackReceipt[] stacks = restored.Stacks
+            .Select(value => new FacilityBufferPublishedOutputStackReceipt(
+                value.StackId,
+                value.OutputLineId,
+                (ItemDefinitionId)value.ItemId,
+                value.Quantity,
+                new PhysicalMassGrams(value.MassGrams),
+                value.ItemInstanceId))
+            .ToArray();
+        Vector2Int position = restored.Stacks.Count == 0
+            ? facility.Position
+            : restored.Stacks[0].Position;
+        return new FacilityBufferPlannedOutputPublicationReceipt(
+            string.Empty,
+            restored.BatchCommitId,
+            restored.OutcomeFingerprint,
+            batch.destinationId,
+            position,
+            ProductionOutputDestinationAuthorityRuntime.OwnerDomain,
+            batch.destinationId,
+            facility.InstanceId.Value,
+            ProductionOutputDestinationAuthorityRuntime.CapacitySchemaRevision,
+            restored.PlannedOutputFingerprint,
+            stacks);
     }
 
     private bool TryResolveBatch(

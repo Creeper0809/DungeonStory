@@ -1,0 +1,31 @@
+{
+  "success": true,
+  "command": "job wait",
+  "data": {
+    "jobId": "523bdcb12a15459895e7d73a95b6bdf1",
+    "command": "eval",
+    "state": "completed",
+    "cancellationRequested": false,
+    "result": {
+      "output": null,
+      "diagnostics": [],
+      "success": true,
+      "command": "eval",
+      "result": {
+        "passed": true,
+        "owner": "V25NarrativeInferenceDebugScenarios",
+        "method": "VerifyPublicNarrativeContinuityContract"
+      },
+      "executionTimeMs": 246,
+      "message": null,
+      "error": null,
+      "errorDetails": null,
+      "executedAt": "2026-09-15T15:12:15.7190275Z"
+    },
+    "error": null,
+    "errorDetails": null,
+    "progress": null
+  },
+  "errors": [],
+  "warnings": []
+}

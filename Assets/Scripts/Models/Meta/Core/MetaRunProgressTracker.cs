@@ -62,7 +62,9 @@ public sealed class MetaRunProgressTracker
         return new MetaRunResultBuildContext(ownerName, reason, ElapsedSeconds, current.CurrentDay, current.SettlementCount,
             current.DefendedInvasionCount, current.MaxThreatStage, current.FinalInvasionThreat, current.DiscoveredFacilityIds.Count,
             current.UnlockedRecipeIds.Count, current.OffenseSuccessCount, environment.DifficultyMultiplier, environment.Difficulty,
-            environment.SurvivalPressure, outcome);
+            environment.SurvivalPressure, outcome,
+            environment.CompletedMilestoneIds,
+            environment.CommittedChoices);
     }
 
     public void Restore(float elapsedSeconds, int day, int settlements, int defended, InvasionThreatStage stage, float threat,

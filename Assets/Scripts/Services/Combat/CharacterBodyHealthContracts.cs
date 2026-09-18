@@ -124,6 +124,9 @@ public interface ICharacterManaCommand
 public interface ICharacterBodyHealthCommand
 {
     void ConfigureVitals(CharacterActor actor, float maximumHealth, bool resetCurrentHealth);
+    void RefreshMaximumHealthPreservingCurrent(
+        CharacterActor actor,
+        float maximumHealth);
     void RestoreLegacyVitalsProjection(
         CharacterActor actor,
         float maximumHealth,
@@ -140,6 +143,12 @@ public interface ICharacterBodyHealthCommand
         CharacterDeathCauseCode deathCause,
         string reasonCode,
         bool allowDeath);
+    void ApplyLocalizedDamage(
+        CharacterActor actor,
+        CombatBodyPart bodyPart,
+        float amount,
+        string reason,
+        bool allowDeath);
     void HealLegacyVitals(CharacterActor actor, float amount);
     void ScaleLegacyVitals(CharacterActor actor, float multiplier);
     void SetLegacyInjurySeverity(CharacterActor actor, float injurySeverity);
@@ -155,6 +164,46 @@ public interface ICharacterBodyHealthCommand
     void Heal(CharacterActor target, float amount, bool stopBleeding);
     bool Stabilize(CharacterActor target);
     bool ApplyTreatment(CharacterActor target, float partHealthAmount, float bloodLossReduction);
+}
+
+public readonly struct CharacterBodyHealthMutationSnapshot
+{
+    internal CharacterBodyHealthMutationSnapshot(
+        CharacterId characterId,
+        CharacterBodyHealthState state)
+    {
+        CharacterId = characterId;
+        State = state;
+    }
+
+    public CharacterId CharacterId { get; }
+    internal CharacterBodyHealthState State { get; }
+    public bool IsValid => CharacterId.IsValid && State != null;
+}
+
+public interface ICharacterBodyHealthMutationTransaction
+{
+    CharacterBodyHealthMutationSnapshot CaptureCombatMutation(
+        CharacterActor actor);
+    void RestoreCombatMutation(
+        CharacterActor actor,
+        in CharacterBodyHealthMutationSnapshot snapshot,
+        string reason);
+    void ApplyPreparedCombatMutation(
+        CharacterActor actor,
+        CombatAttackResult result,
+        string reason);
+    void CompletePreparedCombatMutation(
+        CharacterActor actor,
+        in CharacterBodyHealthMutationSnapshot before,
+        CombatAttackResult result,
+        string reason);
+    void ApplyPreparedSuppressionReduction(
+        CharacterActor actor,
+        float amount);
+    void CompletePreparedSuppressionReduction(
+        CharacterActor actor,
+        in CharacterBodyHealthMutationSnapshot before);
 }
 
 public interface ICharacterBodyHealthPersistence

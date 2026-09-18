@@ -272,6 +272,7 @@ public interface IApparelWorkOrderQuery
 {
     int Version { get; }
     IReadOnlyList<ApparelWorkOrderSaveData> Orders { get; }
+    CraftQualityAttemptEstimate CaptureQualityEstimate(string orderId);
 }
 
 public interface IApparelWorkOrderPersistence
@@ -420,6 +421,50 @@ public sealed class ApparelWorkOrderRuntime :
         private set => authority.Version = value;
     }
     public IReadOnlyList<ApparelWorkOrderSaveData> Orders => orders;
+
+    public CraftQualityAttemptEstimate CaptureQualityEstimate(string orderId)
+    {
+        ApparelWorkOrderSaveData order = orders.FirstOrDefault(value => value.orderId == orderId);
+        if (order == null || order.kind != ApparelWorkOrderKind.Craft)
+            return CraftQualityAttemptEstimate.Unavailable("제작 주문 없음");
+        if (qualityResolver is not ICraftQualityProbabilityQuery probabilityQuery)
+            return CraftQualityAttemptEstimate.Unavailable("현재 품질 계산기가 확률 미리보기를 제공하지 않음");
+        if (!apparel.TryGet(order.apparelDefinitionId, out ApparelDefinitionSO definition)
+            || !TryGetFacility(order, out BuildableObject facility)
+            || !materials.TryGet(order.materialDefinitionId, out TextileMaterialDefinitionSO material))
+            return CraftQualityAttemptEstimate.Unavailable("시설·재료 정의 확인 필요");
+        double bestProbability = -1d;
+        foreach (CharacterActor actor in characterWorld?.Characters ?? Array.Empty<CharacterActor>())
+        {
+            if (actor == null || !WorkerSelectionPolicyRules.IsEligible(
+                    order.workerPolicy, actor, narrativeQualifications, out _)) continue;
+            double probability = probabilityQuery.EstimateSuccessProbability(
+                order.minimumCraftsmanshipQuality, GetApparelQualitySkill(actor, order),
+                (facility.Craftsmanship.Score - 50f) * 0.08f, 0f,
+                Mathf.Max(0f, definition.TailoringCoefficient - 1f) * 4f);
+            // Conditional single-worker attempts satisfy that worker's contribution share.
+            if (definition.AllowMythicInspiration
+                && ExtremeCraftInspirationRuntime.TryResolveRule(actor, out ExtremeCraftInspirationRule rule))
+            {
+                double mythic = Math.Round(Mathf.Clamp01(rule.mythicChance)
+                    * MythicCraftInspirationRules.RollScale, MidpointRounding.AwayFromZero)
+                    / MythicCraftInspirationRules.RollScale;
+                probability += (1d - probability) * mythic;
+            }
+            bestProbability = Math.Max(bestProbability, probability);
+        }
+        if (bestProbability < 0d)
+            return CraftQualityAttemptEstimate.Unavailable("조건에 맞는 작업자 미정 — 확률 산정 보류");
+        if (bestProbability > 0d && order.state == ApparelWorkOrderState.TargetCurrentlyUnreachable)
+            return CraftQualityAttemptEstimate.Unavailable("주문은 현재 도달 불가 상태 — 특수 품질 조건 재검증 필요");
+        int? limit = order.repeatLimitMode == QualityRepeatLimitMode.SafeLimits
+            ? Mathf.Max(1, order.maximumAttempts) : null;
+        return CraftQualityAttemptEstimate.Create(bestProbability, limit,
+            order.craftWorkPerAttempt, material.PhysicalItemId,
+            Mathf.Max(1, Mathf.CeilToInt(2f * definition.TailoringCoefficient)),
+            "현재 적격 작업자 중 최고 성공률·단독 새 시도·조건 고정 추정"
+            + (order.workBudget > 0f ? " / WU 예산으로 조기 종료 가능" : string.Empty));
+    }
     public string ParticipantId => RestoreParticipantId;
 
     public bool CreateCraft(

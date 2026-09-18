@@ -37,7 +37,10 @@ public sealed class WildlifeSpeciesDefinition
         Season breedingSeason = Season.Spring,
         string migrationPatternId = "",
         IEnumerable<string> diseaseVectorIds = null,
-        IEnumerable<Season> activeSeasons = null)
+        IEnumerable<Season> activeSeasons = null,
+        WildlifeMigrationProfile migrationProfile = null,
+        WildlifeCompanionRoleProfile companionRoleProfile = null,
+        WildlifeHaulRoleProfile haulRoleProfile = null)
     {
         SpeciesId = string.IsNullOrWhiteSpace(speciesId)
             ? throw new ArgumentException(
@@ -87,6 +90,24 @@ public sealed class WildlifeSpeciesDefinition
         NestTag = nestTag?.Trim() ?? string.Empty;
         BreedingSeason = breedingSeason;
         MigrationPatternId = migrationPatternId?.Trim() ?? string.Empty;
+        if (migrationProfile == null)
+        {
+            throw new ArgumentNullException(
+                nameof(migrationProfile),
+                $"Wildlife species '{SpeciesId}' requires an authored migration profile.");
+        }
+        migrationProfile.RequireValid(SpeciesId);
+        MigrationProfile = migrationProfile.Snapshot();
+        if (companionRoleProfile != null)
+        {
+            companionRoleProfile.RequireValid(SpeciesId);
+        }
+        CompanionRoleProfile = companionRoleProfile?.Snapshot();
+        if (haulRoleProfile != null)
+        {
+            haulRoleProfile.RequireValid(SpeciesId);
+        }
+        HaulRoleProfile = haulRoleProfile?.Snapshot();
         DiseaseVectorIds = NormalizeIds(diseaseVectorIds);
         ActiveSeasons = (activeSeasons ?? Array.Empty<Season>())
             .Distinct()
@@ -116,12 +137,19 @@ public sealed class WildlifeSpeciesDefinition
     public float PredationDrive { get; }
     public float FleePreference { get; }
     public WildlifeHusbandryProfile Husbandry { get; }
+    public float ProductComfortMinimumTemperatureC =>
+        Husbandry.ProductComfortMinimumTemperatureC;
+    public float ProductComfortMaximumTemperatureC =>
+        Husbandry.ProductComfortMaximumTemperatureC;
     public IReadOnlyList<WildlifeButcherYield> ButcherYields { get; }
     public IReadOnlyList<string> PreySpeciesIds { get; }
     public IReadOnlyList<string> PredatorSpeciesIds { get; }
     public string NestTag { get; }
     public Season BreedingSeason { get; }
     public string MigrationPatternId { get; }
+    public WildlifeMigrationProfile MigrationProfile { get; }
+    public WildlifeCompanionRoleProfile CompanionRoleProfile { get; }
+    public WildlifeHaulRoleProfile HaulRoleProfile { get; }
     public IReadOnlyList<string> DiseaseVectorIds { get; }
     public IReadOnlyList<Season> ActiveSeasons { get; }
     public string CarcassItemId => WildlifeItemDefinitions.GetCarcassItemId(SpeciesId);

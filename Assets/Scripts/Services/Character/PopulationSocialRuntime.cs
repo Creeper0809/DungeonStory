@@ -60,8 +60,18 @@ public sealed class KinshipHouseholdRuntime :
     IKinshipHouseholdPersistence
 {
     private readonly DungeonRuntimeAggregateRootStore rootStore;
-    public KinshipHouseholdRuntime(DungeonRuntimeAggregateRootStore rootStore) =>
-        this.rootStore = rootStore ?? throw new ArgumentNullException(nameof(rootStore));
+    private readonly V20CampaignRuntime campaign;
+    private readonly IGameEventBus events;
+    public KinshipHouseholdRuntime(
+        DungeonRuntimeAggregateRootStore rootStore,
+        V20CampaignRuntime campaign,
+        IGameEventBus events)
+    {
+        this.rootStore = rootStore
+            ?? throw new ArgumentNullException(nameof(rootStore));
+        this.campaign = campaign ?? throw new ArgumentNullException(nameof(campaign));
+        this.events = events ?? throw new ArgumentNullException(nameof(events));
+    }
 
     public IReadOnlyCollection<CharacterTombstoneSaveData> Tombstones =>
         Current.Kinship.Tombstones;
@@ -93,9 +103,53 @@ public sealed class KinshipHouseholdRuntime :
         HouseholdId householdId, int generation) =>
         Writable.Kinship.ArchiveDeath(characterId, phenotypeSpeciesId, birthAbsoluteDay,
             deathAbsoluteDay, famous, householdId, generation);
-    public void ArchiveColdData(int currentAbsoluteDay,
-        IReadOnlyCollection<CharacterId> livingCharacters) =>
-        Writable.Kinship.ArchiveColdData(currentAbsoluteDay, livingCharacters);
+    public void ArchiveColdData(
+        int currentAbsoluteDay,
+        IReadOnlyCollection<CharacterId> livingCharacters)
+    {
+        KinshipHouseholdAggregateState candidate = PrepareRestore(Capture());
+        CharacterTombstoneSaveData[] before = candidate.Kinship.Capture()
+            .tombstones
+            .Where(value => value != null)
+            .ToArray();
+        candidate.Kinship.ArchiveColdData(
+            currentAbsoluteDay,
+            livingCharacters);
+        KinshipWorldSaveData committed = candidate.Kinship.Capture();
+        HashSet<string> remaining = committed.tombstones
+            .Where(value => value != null)
+            .Select(value => value.characterId)
+            .ToHashSet(StringComparer.Ordinal);
+        ObservedLineageCompressionLifeEventReceipt[] receipts = before
+            .Where(value => !remaining.Contains(value.characterId))
+            .OrderBy(value => value.characterId, StringComparer.Ordinal)
+            .Select(tombstone => new ObservedLineageCompressionLifeEventReceipt(
+                tombstone,
+                currentAbsoluteDay,
+                committed.lineageSummaries.Single(summary => summary != null
+                    && summary.generation == tombstone.generation
+                    && string.Equals(
+                        summary.householdId,
+                        string.IsNullOrWhiteSpace(tombstone.householdId)
+                            ? "household:unassigned"
+                            : tombstone.householdId,
+                        StringComparison.Ordinal))))
+            .ToArray();
+        foreach (ObservedLineageCompressionLifeEventReceipt receipt in receipts)
+            campaign.RequireCanRecordObservedLineageCompressionLifeEvent(receipt);
+
+        PublishRestore(candidate);
+        foreach (ObservedLineageCompressionLifeEventReceipt receipt in receipts)
+        {
+            ObservedLifeEventCommitResult observed =
+                campaign.RecordObservedLineageCompressionLifeEvent(receipt);
+            if (!observed.Resolution.HasValue) continue;
+            V20SocietyEventAlertProjection.PublishResolved(
+                events,
+                observed.Resolution.Value,
+                physicalEffectsApplied: true);
+        }
+    }
     public void Assign(CharacterId characterId, HouseholdId householdId,
         BuildingInstanceId roomId, BuildingInstanceId bedId) =>
         Writable.Households.Assign(characterId, householdId, roomId, bedId);
@@ -346,9 +400,23 @@ public sealed class CareerRuntime : ICareerService, ICareerPersistence
             ?? NeutralMilestoneGameplayModifierQuery.Instance;
     }
     public IReadOnlyList<CareerMentorshipSnapshot> Mentorships => Current.Mentorships;
+    public IReadOnlyList<RetirementScheduleSnapshot> RetirementSchedules =>
+        Current.RetirementSchedules;
     public bool TryGet(CharacterId characterId, out CharacterCareerSnapshot snapshot) =>
         Current.TryGet(characterId, out snapshot);
     public void Retire(CharacterId characterId, int absoluteDay) => Writable.Retire(characterId, absoluteDay);
+    public bool CanScheduleRetirement(
+        CharacterId characterId,
+        out string reason) => Current.CanScheduleRetirement(
+        characterId,
+        out reason);
+    public int CompleteDueRetirements(int absoluteDay) =>
+        Writable.CompleteDueRetirements(absoluteDay);
+    public bool CancelRetirementByDeath(
+        CharacterId characterId,
+        int absoluteDay) => Writable.CancelRetirementByDeath(
+        characterId,
+        absoluteDay);
     public void AssignPosition(CharacterId characterId, CareerPositionKind position, string scopeId, int absoluteDay) =>
         Writable.AssignPosition(characterId, position, scopeId, absoluteDay);
     public bool CanPerformRetiredWork(

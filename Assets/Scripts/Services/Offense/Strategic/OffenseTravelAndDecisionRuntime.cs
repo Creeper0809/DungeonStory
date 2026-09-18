@@ -261,7 +261,7 @@ public interface IOffenseTravelRuntime
 {
     IReadOnlyCollection<OffenseTravelStateData> ActiveTravel { get; }
     event Action<string, OffenseTravelStepResult> StepCompleted;
-    event Action<string> DecisionRequired;
+    event Action<string, string> DecisionRequired;
     event Action<string, string> SiteReached;
 
     bool TryCreateExpedition(string expeditionId, out string reason);
@@ -293,9 +293,13 @@ public interface IOffenseTravelRuntime
 
 public sealed class OffenseTravelRuntime : IOffenseTravelRuntime
 {
+    private const float BaseSegmentDurationSeconds = 2.5f;
+    private const float SegmentComparisonTolerance = 0.0001f;
     private readonly IOffenseWorldSimulation world;
     private readonly IOffenseReturnSafetyRuntime returnSafety;
     private readonly IOffenseFieldMedicalRuntime fieldMedical;
+    private readonly IClimateQuery climate;
+    private readonly IClimateDefinitionCatalog climateDefinitions;
     private readonly IMilestoneGameplayModifierQuery milestoneModifiers;
     private readonly IFacilityCapabilityQuery facilities;
     private Dictionary<string, OffenseTravelStateData> states =
@@ -305,6 +309,8 @@ public sealed class OffenseTravelRuntime : IOffenseTravelRuntime
         IOffenseWorldSimulation world,
         IOffenseReturnSafetyRuntime returnSafety,
         IOffenseFieldMedicalRuntime fieldMedical,
+        IClimateQuery climate,
+        IClimateDefinitionCatalog climateDefinitions,
         IMilestoneGameplayModifierQuery milestoneModifiers = null,
         IFacilityCapabilityQuery facilities = null)
     {
@@ -312,6 +318,9 @@ public sealed class OffenseTravelRuntime : IOffenseTravelRuntime
         this.returnSafety = returnSafety
             ?? throw new ArgumentNullException(nameof(returnSafety));
         this.fieldMedical = fieldMedical;
+        this.climate = climate ?? throw new ArgumentNullException(nameof(climate));
+        this.climateDefinitions = climateDefinitions
+            ?? throw new ArgumentNullException(nameof(climateDefinitions));
         this.milestoneModifiers = milestoneModifiers
             ?? NeutralMilestoneGameplayModifierQuery.Instance;
         this.facilities = facilities;
@@ -320,7 +329,7 @@ public sealed class OffenseTravelRuntime : IOffenseTravelRuntime
     public IReadOnlyCollection<OffenseTravelStateData> ActiveTravel =>
         states.Values;
     public event Action<string, OffenseTravelStepResult> StepCompleted;
-    public event Action<string> DecisionRequired;
+    public event Action<string, string> DecisionRequired;
     public event Action<string, string> SiteReached;
 
     public bool TryCreateExpedition(string expeditionId, out string reason)
@@ -343,7 +352,9 @@ public sealed class OffenseTravelRuntime : IOffenseTravelRuntime
             currentQ = world.DungeonCoord.Q,
             currentR = world.DungeonCoord.R,
             destinationQ = world.DungeonCoord.Q,
-            destinationR = world.DungeonCoord.R
+            destinationR = world.DungeonCoord.R,
+            activeSegmentQ = world.DungeonCoord.Q,
+            activeSegmentR = world.DungeonCoord.R
         });
         reason = string.Empty;
         return true;
@@ -379,14 +390,41 @@ public sealed class OffenseTravelRuntime : IOffenseTravelRuntime
             return false;
         }
 
+        if (!IsFinite(profile.RoadMultiplier)
+            || !IsFinite(profile.WeatherMultiplier)
+            || !IsFinite(profile.InjuryMultiplier)
+            || !IsFinite(profile.LoadMultiplier)
+            || Mathf.Abs(profile.InjuryMultiplier - 1f)
+                > SegmentComparisonTolerance)
+        {
+            reason = "원정 부상 이동 보정은 fieldMedical에서 한 번만 제공해야 합니다.";
+            return false;
+        }
+
+        OffenseTravelProfile traversalProfile = WithoutMedicalProfile(profile);
         if (!world.TryFindPath(
                 state.CurrentCoord,
                 destination,
-                profile,
+                traversalProfile,
                 out IReadOnlyList<OffenseHexCoord> path,
                 out _))
         {
             reason = "목적지까지 도달 가능한 경로가 없습니다.";
+            return false;
+        }
+
+        OffenseTravelStateData candidate = Clone(state);
+        candidate.destinationQ = destination.Q;
+        candidate.destinationR = destination.R;
+        candidate.destinationSiteId = destinationSiteId ?? string.Empty;
+        candidate.remainingPath = path.Select(OffenseHexCoordSaveData.From).ToList();
+        candidate.routeRoadMultiplier = traversalProfile.RoadMultiplier;
+        candidate.routeWeatherMultiplier = traversalProfile.WeatherMultiplier;
+        candidate.routeLoadMultiplier = traversalProfile.LoadMultiplier;
+        ClearActiveSegment(candidate);
+        if (candidate.remainingPath.Count > 0
+            && !TryFreezeNextSegment(candidate, out reason))
+        {
             return false;
         }
 
@@ -395,11 +433,8 @@ public sealed class OffenseTravelRuntime : IOffenseTravelRuntime
             returnSafety.ClearForSiteAttack(expeditionId);
         }
 
-        state.destinationQ = destination.Q;
-        state.destinationR = destination.R;
-        state.destinationSiteId = destinationSiteId ?? string.Empty;
-        state.remainingPath = path.Select(OffenseHexCoordSaveData.From).ToList();
-        state.progressToNextTile = 0f;
+        CommitDestination(state, candidate);
+
         reason = string.Empty;
         return true;
     }
@@ -410,7 +445,25 @@ public sealed class OffenseTravelRuntime : IOffenseTravelRuntime
         out OffenseTravelStepResult result,
         out string reason)
     {
+        return TryAdvanceOneStep(
+            expeditionId,
+            forcedMovement,
+            fromNormalTick: false,
+            out result,
+            out reason,
+            out _);
+    }
+
+    private bool TryAdvanceOneStep(
+        string expeditionId,
+        bool forcedMovement,
+        bool fromNormalTick,
+        out OffenseTravelStepResult result,
+        out string reason,
+        out bool canCarryElapsed)
+    {
         result = default;
+        canCarryElapsed = false;
         if (!states.TryGetValue(
                 expeditionId ?? string.Empty,
                 out OffenseTravelStateData state))
@@ -433,26 +486,53 @@ public sealed class OffenseTravelRuntime : IOffenseTravelRuntime
             return false;
         }
 
+        if (!fromNormalTick)
+        {
+            state.progressToNextTile = 0f;
+        }
+
         if (state.remainingPath == null || state.remainingPath.Count == 0)
         {
             reason = "이동 경로가 비어 있습니다.";
             return false;
         }
 
+        if (!TryEnsureActiveSegment(state, out reason))
+        {
+            return false;
+        }
+
+        if (state.remainingPath[0] == null)
+        {
+            reason = "다음 이동 구간 좌표가 없습니다.";
+            return false;
+        }
+
         OffenseHexCoord next = state.remainingPath[0].ToCoord();
         if (state.CurrentCoord.DistanceTo(next) != 1
+            || state.ActiveSegmentCoord != next
             || !world.TryGetTile(next, out OffenseHexTileState tile)
             || tile.blocked)
         {
             state.remainingPath.Clear();
+            ClearActiveSegment(state);
             reason = "경로가 변경되어 목적지를 다시 선택해야 합니다.";
             return false;
         }
 
+        string completedSegmentWeatherFrontId =
+            state.activeSegmentWeatherFrontId;
+        List<OffenseHexCoordSaveData> continuingPath = state.remainingPath;
+        int expectedDestinationQ = state.destinationQ;
+        int expectedDestinationR = state.destinationR;
+        string expectedDestinationSiteId = state.destinationSiteId;
         state.remainingPath.RemoveAt(0);
         state.currentQ = next.Q;
         state.currentR = next.R;
-        state.progressToNextTile = 0f;
+        ClearActiveSegment(state);
+        OffenseHexCoord[] expectedRemainingPath = state.remainingPath
+            .Select(value => value.ToCoord())
+            .ToArray();
         bool consumedSafeStep = returnSafety.ConsumeMovedStep(expeditionId);
         bool arrived = state.remainingPath.Count == 0
             && next == state.DestinationCoord;
@@ -464,25 +544,96 @@ public sealed class OffenseTravelRuntime : IOffenseTravelRuntime
             arrived ? state.destinationSiteId : string.Empty);
         StepCompleted?.Invoke(expeditionId, result);
 
+        if (arrived && next == world.DungeonCoord)
+        {
+            returnSafety.ClearOnArrival(expeditionId);
+            fieldMedical?.ClearOnDungeonArrival(expeditionId);
+        }
+
+        if (!TryGetUnchangedRouteState(
+                expeditionId,
+                state,
+                continuingPath,
+                expectedRemainingPath,
+                expectedDestinationQ,
+                expectedDestinationR,
+                expectedDestinationSiteId,
+                out state))
+        {
+            reason = string.Empty;
+            return true;
+        }
+
+        arrived = state.remainingPath.Count == 0
+            && state.CurrentCoord == state.DestinationCoord
+            && state.CurrentCoord == next;
         if (arrived)
         {
-            if (next == world.DungeonCoord)
-            {
-                returnSafety.ClearOnArrival(expeditionId);
-                fieldMedical?.ClearOnDungeonArrival(expeditionId);
-            }
-
             if (!string.IsNullOrWhiteSpace(state.destinationSiteId))
             {
                 SiteReached?.Invoke(expeditionId, state.destinationSiteId);
             }
-        }
-        else if (ShouldRequireTravelDecision(state, forcedMovement))
-        {
-            state.pausedForDecision = true;
-            DecisionRequired?.Invoke(expeditionId);
+
+            reason = string.Empty;
+            return true;
         }
 
+        if (state.pausedForBattle
+            || state.pausedForDecision
+            || state.stranded
+            || fieldMedical?.IsStranded(expeditionId) == true)
+        {
+            reason = string.Empty;
+            return true;
+        }
+
+        if (ShouldRequireTravelDecision(state, forcedMovement))
+        {
+            state.pausedForDecision = true;
+            DecisionRequired?.Invoke(
+                expeditionId,
+                completedSegmentWeatherFrontId);
+            if (TryGetUnchangedRouteState(
+                    expeditionId,
+                    state,
+                    continuingPath,
+                    expectedRemainingPath,
+                    expectedDestinationQ,
+                    expectedDestinationR,
+                    expectedDestinationSiteId,
+                    out OffenseTravelStateData resumedState)
+                && !resumedState.pausedForDecision
+                && !resumedState.pausedForBattle
+                && !resumedState.stranded
+                && fieldMedical?.IsStranded(expeditionId) != true)
+            {
+                TryEnsureActiveSegment(resumedState, out _);
+            }
+
+            reason = string.Empty;
+            return true;
+        }
+
+        if (!TryGetUnchangedRouteState(
+                expeditionId,
+                state,
+                continuingPath,
+                expectedRemainingPath,
+                expectedDestinationQ,
+                expectedDestinationR,
+                expectedDestinationSiteId,
+                out state)
+            || state.pausedForBattle
+            || state.pausedForDecision
+            || state.stranded
+            || fieldMedical?.IsStranded(expeditionId) == true
+            || !TryEnsureActiveSegment(state, out _))
+        {
+            reason = string.Empty;
+            return true;
+        }
+
+        canCarryElapsed = fromNormalTick;
         reason = string.Empty;
         return true;
     }
@@ -538,11 +689,12 @@ public sealed class OffenseTravelRuntime : IOffenseTravelRuntime
 
     public void Tick(float deltaTime)
     {
-        float elapsed = Mathf.Max(0f, deltaTime);
-        if (elapsed <= 0f)
+        if (!IsFinite(deltaTime) || deltaTime <= 0f)
         {
             return;
         }
+
+        float elapsed = deltaTime;
 
         string[] movingExpeditions = states.Values
             .Where(state => state != null
@@ -555,36 +707,54 @@ public sealed class OffenseTravelRuntime : IOffenseTravelRuntime
             .ToArray();
         foreach (string expeditionId in movingExpeditions)
         {
-            if (!states.TryGetValue(
-                    expeditionId,
-                    out OffenseTravelStateData state))
+            float remainingElapsed = elapsed;
+            while (remainingElapsed > 0f
+                && TryGetTickableState(expeditionId, out OffenseTravelStateData state))
             {
-                continue;
-            }
+                if (!TryEnsureActiveSegment(state, out _))
+                {
+                    break;
+                }
 
-            state.movementTimeMultiplier = fieldMedical?.GetMovementTimeMultiplier(
-                    expeditionId)
-                ?? Mathf.Max(1f, state.movementTimeMultiplier);
-            float stepSeconds = 2.5f
-                * Mathf.Max(1f, state.movementTimeMultiplier)
-                * Mathf.Clamp(
-                    milestoneModifiers.ExpeditionTravelTimeMultiplier,
-                    0.1f,
-                    1f)
-                * FacilityTravelMultiplier();
-            state.progressToNextTile += elapsed;
-            if (state.progressToNextTile < stepSeconds)
-            {
-                continue;
-            }
+                float required = Mathf.Max(
+                    0f,
+                    state.activeSegmentDurationSeconds
+                    - state.progressToNextTile);
+                if (remainingElapsed + SegmentComparisonTolerance < required)
+                {
+                    state.progressToNextTile += remainingElapsed;
+                    break;
+                }
 
-            state.progressToNextTile -= stepSeconds;
-            TryAdvanceOneStep(
-                expeditionId,
-                forcedMovement: false,
-                out _,
-                out _);
+                remainingElapsed = Mathf.Max(0f, remainingElapsed - required);
+                state.progressToNextTile = state.activeSegmentDurationSeconds;
+                if (!TryAdvanceOneStep(
+                        expeditionId,
+                        forcedMovement: false,
+                        fromNormalTick: true,
+                        out _,
+                        out _,
+                        out bool canCarryElapsed)
+                    || !canCarryElapsed)
+                {
+                    break;
+                }
+            }
         }
+    }
+
+    private bool TryGetTickableState(
+        string expeditionId,
+        out OffenseTravelStateData state)
+    {
+        return states.TryGetValue(expeditionId, out state)
+            && state != null
+            && !state.pausedForBattle
+            && !state.pausedForDecision
+            && !state.stranded
+            && fieldMedical?.IsStranded(expeditionId) != true
+            && state.remainingPath != null
+            && state.remainingPath.Count > 0;
     }
 
     private float FacilityTravelMultiplier()
@@ -605,6 +775,223 @@ public sealed class OffenseTravelRuntime : IOffenseTravelRuntime
             multiplier *= 0.95f;
         }
         return multiplier;
+    }
+
+    private bool TryEnsureActiveSegment(
+        OffenseTravelStateData state,
+        out string reason)
+    {
+        if (state.activeSegmentDurationSeconds > 0f)
+        {
+            if (state.remainingPath == null
+                || state.remainingPath.Count == 0
+                || state.remainingPath[0] == null)
+            {
+                reason = "활성 이동 구간에 다음 경로가 없습니다.";
+                return false;
+            }
+
+            OffenseHexCoord expected = state.remainingPath[0].ToCoord();
+            if (state.ActiveSegmentCoord == expected
+                && state.activeSegmentTraversalCost
+                    >= OffenseTraversalCostRules.MinimumStepCost
+                && state.progressToNextTile >= 0f
+                && state.progressToNextTile
+                    <= state.activeSegmentDurationSeconds
+                        + SegmentComparisonTolerance)
+            {
+                reason = string.Empty;
+                return true;
+            }
+
+            reason = "활성 이동 구간 상태가 현재 경로와 일치하지 않습니다.";
+            return false;
+        }
+
+        return TryFreezeNextSegment(state, out reason);
+    }
+
+    private bool TryFreezeNextSegment(
+        OffenseTravelStateData state,
+        out string reason)
+    {
+        if (state.remainingPath == null || state.remainingPath.Count == 0)
+        {
+            ClearActiveSegment(state);
+            reason = string.Empty;
+            return true;
+        }
+
+        if (state.remainingPath[0] == null)
+        {
+            reason = "다음 이동 구간 좌표가 없습니다.";
+            return false;
+        }
+
+        OffenseHexCoord next = state.remainingPath[0].ToCoord();
+        if (state.CurrentCoord.DistanceTo(next) != 1
+            || !world.TryGetTile(next, out OffenseHexTileState tile)
+            || tile.blocked)
+        {
+            reason = "다음 이동 구간을 확정할 수 없습니다.";
+            return false;
+        }
+
+        string weatherFrontId = climate.WeatherFrontId?.Trim() ?? string.Empty;
+        if (weatherFrontId.Length == 0)
+        {
+            reason = "현재 원정 날씨 식별자가 없습니다.";
+            return false;
+        }
+
+        WeatherFrontDefinition weatherFront;
+        try
+        {
+            weatherFront = climateDefinitions.RequireFront(weatherFrontId);
+        }
+        catch (KeyNotFoundException exception)
+        {
+            reason = exception.Message;
+            return false;
+        }
+        if (!weatherFront.IsValid
+            || !string.Equals(
+                weatherFront.Id,
+                weatherFrontId,
+                StringComparison.Ordinal))
+        {
+            reason = $"현재 원정 날씨 정의 '{weatherFrontId}'가 유효하지 않습니다.";
+            return false;
+        }
+
+        float activeWeatherMultiplier =
+            weatherFront.ExpeditionTravelMultiplier;
+        float composedWeatherMultiplier =
+            state.routeWeatherMultiplier * activeWeatherMultiplier;
+        if (!IsFinite(activeWeatherMultiplier)
+            || !IsFinite(composedWeatherMultiplier)
+            || activeWeatherMultiplier < 0.1f
+            || composedWeatherMultiplier < 0.1f)
+        {
+            reason = "현재 원정 날씨 이동 보정이 유효하지 않습니다.";
+            return false;
+        }
+
+        OffenseTravelProfile profile = new OffenseTravelProfile(
+            state.routeRoadMultiplier,
+            composedWeatherMultiplier,
+            1f,
+            state.routeLoadMultiplier);
+        float traversalCost = OffenseTraversalCostRules.GetStepCost(tile, profile);
+        float medicalMultiplier = fieldMedical?.GetMovementTimeMultiplier(
+                state.expeditionId)
+            ?? 1f;
+        float milestoneMultiplier = Mathf.Clamp(
+            milestoneModifiers.ExpeditionTravelTimeMultiplier,
+            0.1f,
+            1f);
+        float facilityMultiplier = FacilityTravelMultiplier();
+        float duration = BaseSegmentDurationSeconds
+            * traversalCost
+            * Mathf.Max(1f, medicalMultiplier)
+            * milestoneMultiplier
+            * facilityMultiplier;
+        if (!IsFinite(traversalCost)
+            || !IsFinite(medicalMultiplier)
+            || !IsFinite(milestoneMultiplier)
+            || !IsFinite(facilityMultiplier)
+            || !IsFinite(duration)
+            || duration <= 0f)
+        {
+            reason = "다음 이동 구간의 시간 보정이 유효하지 않습니다.";
+            return false;
+        }
+
+        state.activeSegmentQ = next.Q;
+        state.activeSegmentR = next.R;
+        state.activeSegmentWeatherFrontId = weatherFrontId;
+        state.activeSegmentWeatherMultiplier = activeWeatherMultiplier;
+        state.activeSegmentTraversalCost = traversalCost;
+        state.progressToNextTile = 0f;
+        state.movementTimeMultiplier = Mathf.Max(1f, medicalMultiplier);
+        state.milestoneTimeMultiplier = milestoneMultiplier;
+        state.facilityTimeMultiplier = facilityMultiplier;
+        state.activeSegmentDurationSeconds = duration;
+        reason = string.Empty;
+        return true;
+    }
+
+    private static void ClearActiveSegment(OffenseTravelStateData state)
+    {
+        state.activeSegmentQ = state.currentQ;
+        state.activeSegmentR = state.currentR;
+        state.activeSegmentWeatherFrontId = string.Empty;
+        state.activeSegmentWeatherMultiplier = 1f;
+        state.activeSegmentTraversalCost = 0f;
+        state.progressToNextTile = 0f;
+        state.movementTimeMultiplier = 1f;
+        state.milestoneTimeMultiplier = 1f;
+        state.facilityTimeMultiplier = 1f;
+        state.activeSegmentDurationSeconds = 0f;
+    }
+
+    private static void CommitDestination(
+        OffenseTravelStateData state,
+        OffenseTravelStateData candidate)
+    {
+        state.destinationQ = candidate.destinationQ;
+        state.destinationR = candidate.destinationR;
+        state.destinationSiteId = candidate.destinationSiteId;
+        state.remainingPath = candidate.remainingPath;
+        state.routeRoadMultiplier = candidate.routeRoadMultiplier;
+        state.routeWeatherMultiplier = candidate.routeWeatherMultiplier;
+        state.routeLoadMultiplier = candidate.routeLoadMultiplier;
+        state.activeSegmentQ = candidate.activeSegmentQ;
+        state.activeSegmentR = candidate.activeSegmentR;
+        state.activeSegmentWeatherFrontId = candidate.activeSegmentWeatherFrontId;
+        state.activeSegmentWeatherMultiplier = candidate.activeSegmentWeatherMultiplier;
+        state.activeSegmentTraversalCost = candidate.activeSegmentTraversalCost;
+        state.progressToNextTile = candidate.progressToNextTile;
+        state.movementTimeMultiplier = candidate.movementTimeMultiplier;
+        state.milestoneTimeMultiplier = candidate.milestoneTimeMultiplier;
+        state.facilityTimeMultiplier = candidate.facilityTimeMultiplier;
+        state.activeSegmentDurationSeconds = candidate.activeSegmentDurationSeconds;
+    }
+
+    private static OffenseTravelProfile WithoutMedicalProfile(
+        OffenseTravelProfile profile)
+    {
+        return new OffenseTravelProfile(
+            profile.RoadMultiplier,
+            profile.WeatherMultiplier,
+            1f,
+            profile.LoadMultiplier);
+    }
+
+    private bool TryGetUnchangedRouteState(
+        string expeditionId,
+        OffenseTravelStateData expectedState,
+        List<OffenseHexCoordSaveData> expectedPath,
+        IReadOnlyList<OffenseHexCoord> expectedPathCoordinates,
+        int expectedDestinationQ,
+        int expectedDestinationR,
+        string expectedDestinationSiteId,
+        out OffenseTravelStateData state)
+    {
+        return states.TryGetValue(expeditionId, out state)
+            && ReferenceEquals(state, expectedState)
+            && ReferenceEquals(state.remainingPath, expectedPath)
+            && state.remainingPath != null
+            && state.remainingPath.All(value => value != null)
+            && state.remainingPath
+                .Select(value => value.ToCoord())
+                .SequenceEqual(expectedPathCoordinates)
+            && state.destinationQ == expectedDestinationQ
+            && state.destinationR == expectedDestinationR
+            && string.Equals(
+                state.destinationSiteId,
+                expectedDestinationSiteId,
+                StringComparison.Ordinal);
     }
 
     public IReadOnlyList<OffenseTravelStateData> Capture()
@@ -632,14 +1019,31 @@ public sealed class OffenseTravelRuntime : IOffenseTravelRuntime
                 || !TryGetRestoreTile(source.CurrentCoord, out _)
                 || !TryGetRestoreTile(source.DestinationCoord, out _)
                 || source.remainingPath == null
+                || source.remainingPath.Any(value => value == null)
                 || source.progressToNextTile < 0f
                 || source.exposure < 0f
                 || source.exposure > 100f
                 || source.eventSequence < 0
-                || source.movementTimeMultiplier < 1f
+                || source.routeRoadMultiplier < 0.1f
+                || source.routeWeatherMultiplier < 0.1f
+                || source.routeLoadMultiplier < 0.1f
+                || source.movementTimeMultiplier is < 1f or > 2.5f
+                || source.milestoneTimeMultiplier is < 0.1f or > 1f
+                || source.facilityTimeMultiplier is <= 0f or > 1f
+                || source.activeSegmentWeatherMultiplier < 0f
+                || source.activeSegmentTraversalCost < 0f
+                || source.activeSegmentDurationSeconds < 0f
                 || !IsFinite(source.progressToNextTile)
                 || !IsFinite(source.exposure)
-                || !IsFinite(source.movementTimeMultiplier))
+                || !IsFinite(source.routeRoadMultiplier)
+                || !IsFinite(source.routeWeatherMultiplier)
+                || !IsFinite(source.routeLoadMultiplier)
+                || !IsFinite(source.movementTimeMultiplier)
+                || !IsFinite(source.milestoneTimeMultiplier)
+                || !IsFinite(source.facilityTimeMultiplier)
+                || !IsFinite(source.activeSegmentWeatherMultiplier)
+                || !IsFinite(source.activeSegmentTraversalCost)
+                || !IsFinite(source.activeSegmentDurationSeconds))
             {
                 throw new InvalidOperationException(
                     $"Invalid or duplicate offense travel state '{source?.expeditionId ?? "null"}'.");
@@ -656,6 +1060,8 @@ public sealed class OffenseTravelRuntime : IOffenseTravelRuntime
                     $"Offense travel state '{source.expeditionId}' contains an invalid or blocked path tile.");
             }
 
+            ValidateRestoredRoute(clone);
+
             candidate.Add(clone.expeditionId, clone);
         }
 
@@ -670,6 +1076,109 @@ public sealed class OffenseTravelRuntime : IOffenseTravelRuntime
                 ? restoredWorldTiles.TryGetValue(coordinate, out tile)
                 : world.TryGetTile(coordinate, out tile);
         }
+
+        void ValidateRestoredRoute(OffenseTravelStateData travel)
+        {
+            OffenseHexCoord previous = travel.CurrentCoord;
+            foreach (OffenseHexCoordSaveData pathCoordinate in travel.remainingPath)
+            {
+                OffenseHexCoord coordinate = pathCoordinate.ToCoord();
+                if (previous.DistanceTo(coordinate) != 1)
+                {
+                    throw new InvalidOperationException(
+                        $"Offense travel state '{travel.expeditionId}' contains a non-adjacent path segment.");
+                }
+                previous = coordinate;
+            }
+
+            if (travel.remainingPath.Count > 0
+                && previous != travel.DestinationCoord)
+            {
+                throw new InvalidOperationException(
+                    $"Offense travel state '{travel.expeditionId}' path does not end at its destination.");
+            }
+
+            bool hasActiveSegment = travel.activeSegmentDurationSeconds > 0f;
+            if (!hasActiveSegment)
+            {
+                if (travel.activeSegmentTraversalCost != 0f
+                    || travel.progressToNextTile != 0f
+                    || travel.ActiveSegmentCoord != travel.CurrentCoord
+                    || travel.movementTimeMultiplier != 1f
+                    || travel.milestoneTimeMultiplier != 1f
+                    || travel.facilityTimeMultiplier != 1f
+                    || !string.IsNullOrEmpty(
+                        travel.activeSegmentWeatherFrontId)
+                    || !IsLegacyNeutralWeatherMultiplier(
+                        travel.activeSegmentWeatherMultiplier))
+                {
+                    throw new InvalidOperationException(
+                        $"Offense travel state '{travel.expeditionId}' has a partial inactive segment.");
+                }
+                travel.activeSegmentWeatherFrontId = string.Empty;
+                travel.activeSegmentWeatherMultiplier = 1f;
+                return;
+            }
+
+            if (travel.remainingPath.Count == 0
+                || travel.ActiveSegmentCoord
+                    != travel.remainingPath[0].ToCoord()
+                || travel.activeSegmentTraversalCost
+                    < OffenseTraversalCostRules.MinimumStepCost
+                || travel.progressToNextTile
+                    > travel.activeSegmentDurationSeconds
+                        + SegmentComparisonTolerance)
+            {
+                throw new InvalidOperationException(
+                    $"Offense travel state '{travel.expeditionId}' has an inconsistent active segment.");
+            }
+
+            if (string.IsNullOrEmpty(travel.activeSegmentWeatherFrontId))
+            {
+                if (!IsLegacyNeutralWeatherMultiplier(
+                        travel.activeSegmentWeatherMultiplier))
+                {
+                    throw new InvalidOperationException(
+                        $"Offense travel state '{travel.expeditionId}' has invalid legacy weather provenance.");
+                }
+                travel.activeSegmentWeatherMultiplier = 1f;
+            }
+            else
+            {
+                if (!string.Equals(
+                        travel.activeSegmentWeatherFrontId,
+                        travel.activeSegmentWeatherFrontId.Trim(),
+                        StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        $"Offense travel state '{travel.expeditionId}' has a non-canonical weather front ID.");
+                }
+                WeatherFrontDefinition restoredFront =
+                    climateDefinitions.RequireFront(
+                        travel.activeSegmentWeatherFrontId);
+                if (Mathf.Abs(
+                        restoredFront.ExpeditionTravelMultiplier
+                        - travel.activeSegmentWeatherMultiplier)
+                    > SegmentComparisonTolerance)
+                {
+                    throw new InvalidOperationException(
+                        $"Offense travel state '{travel.expeditionId}' has a torn active-segment weather snapshot.");
+                }
+            }
+
+            float expectedDuration = BaseSegmentDurationSeconds
+                * travel.activeSegmentTraversalCost
+                * travel.movementTimeMultiplier
+                * travel.milestoneTimeMultiplier
+                * travel.facilityTimeMultiplier;
+            if (Mathf.Abs(
+                    expectedDuration - travel.activeSegmentDurationSeconds)
+                > SegmentComparisonTolerance)
+            {
+                throw new InvalidOperationException(
+                    $"Offense travel state '{travel.expeditionId}' has a torn active-segment duration.");
+            }
+        }
     }
 
     internal void PublishRestore(
@@ -681,6 +1190,10 @@ public sealed class OffenseTravelRuntime : IOffenseTravelRuntime
 
     private static bool IsFinite(float value) =>
         !float.IsNaN(value) && !float.IsInfinity(value);
+
+    private static bool IsLegacyNeutralWeatherMultiplier(float value) =>
+        value == 0f
+        || Mathf.Abs(value - 1f) <= SegmentComparisonTolerance;
 
     private bool SetPause(string expeditionId, bool decision, bool paused)
     {
@@ -698,6 +1211,26 @@ public sealed class OffenseTravelRuntime : IOffenseTravelRuntime
         else
         {
             state.pausedForBattle = paused;
+        }
+
+        if (!paused
+            && !state.pausedForDecision
+            && !state.pausedForBattle
+            && !state.stranded
+            && fieldMedical?.IsStranded(expeditionId) != true
+            && state.remainingPath != null
+            && state.remainingPath.Count > 0
+            && !TryEnsureActiveSegment(state, out _))
+        {
+            if (decision)
+            {
+                state.pausedForDecision = true;
+            }
+            else
+            {
+                state.pausedForBattle = true;
+            }
+            return false;
         }
 
         return true;
@@ -731,7 +1264,18 @@ public sealed class OffenseTravelRuntime : IOffenseTravelRuntime
             destinationQ = source.destinationQ,
             destinationR = source.destinationR,
             destinationSiteId = source.destinationSiteId,
+            routeRoadMultiplier = source.routeRoadMultiplier,
+            routeWeatherMultiplier = source.routeWeatherMultiplier,
+            routeLoadMultiplier = source.routeLoadMultiplier,
+            activeSegmentQ = source.activeSegmentQ,
+            activeSegmentR = source.activeSegmentR,
+            activeSegmentWeatherFrontId = source.activeSegmentWeatherFrontId,
+            activeSegmentWeatherMultiplier = source.activeSegmentWeatherMultiplier,
+            activeSegmentTraversalCost = source.activeSegmentTraversalCost,
             movementTimeMultiplier = source.movementTimeMultiplier,
+            milestoneTimeMultiplier = source.milestoneTimeMultiplier,
+            facilityTimeMultiplier = source.facilityTimeMultiplier,
+            activeSegmentDurationSeconds = source.activeSegmentDurationSeconds,
             stranded = source.stranded,
             strandedReason = source.strandedReason,
             remainingPath = source.remainingPath

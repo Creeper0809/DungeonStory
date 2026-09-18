@@ -243,6 +243,17 @@ public sealed class CharacterSubstanceState
 }
 
 [Serializable]
+public sealed class CharacterToxicityState
+{
+    public string characterId = string.Empty;
+    [Range(0f, CharacterToxicityPolicy.MaximumToxicity)]
+    public float toxicity;
+    public int lastNaturalRecoveryDay;
+
+    public CharacterId CharacterId => (CharacterId)characterId;
+}
+
+[Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class CharacterMealDeliveryState
 {
@@ -270,10 +281,13 @@ public sealed class CharacterConsumableOperationState
     public string characterId = string.Empty;
     public string itemDefinitionId = string.Empty;
     public string itemStackId = string.Empty;
+    public string facilityInstanceId = string.Empty;
     public bool meal;
+    public bool detox;
     public bool policyViolation;
     public bool contaminated;
     public float completedAt;
+    public float appliedEffect;
 
     public ConsumableOperationId OperationId =>
         (ConsumableOperationId)operationId;
@@ -281,6 +295,8 @@ public sealed class CharacterConsumableOperationState
     public ConsumableItemDefinitionId ItemDefinitionId =>
         (ConsumableItemDefinitionId)itemDefinitionId;
     public ItemStackId ItemStackId => (ItemStackId)itemStackId;
+    public BuildingInstanceId FacilityId =>
+        (BuildingInstanceId)facilityInstanceId;
 }
 
 [Serializable]
@@ -352,10 +368,39 @@ public sealed class CharacterSubstanceUsePlanSaveData
 }
 
 [Serializable]
+public sealed class CharacterDetoxTreatmentPlanSaveData
+{
+    public string operationId = string.Empty;
+    public string characterId = string.Empty;
+    public string facilityInstanceId = string.Empty;
+    public string itemDefinitionId = string.Empty;
+    public string sourceStackId = string.Empty;
+    public CharacterDetoxTreatmentPlanPhase phase =
+        CharacterDetoxTreatmentPlanPhase.ItemCommitted;
+    public float detoxReduction;
+    public float appliedReduction;
+    public string physicalCommitOperationId = string.Empty;
+    public string physicalCommitReasonCode = string.Empty;
+    public string physicalCommitId = string.Empty;
+    public List<string> physicalCommitSourceStackIds = new();
+    public int physicalCommitQuantity;
+    public long physicalCommitInputMassGrams;
+
+    public ConsumableOperationId OperationId =>
+        (ConsumableOperationId)operationId;
+    public CharacterId CharacterId => (CharacterId)characterId;
+    public BuildingInstanceId FacilityId =>
+        (BuildingInstanceId)facilityInstanceId;
+    public ConsumableItemDefinitionId ItemDefinitionId =>
+        (ConsumableItemDefinitionId)itemDefinitionId;
+    public ItemStackId SourceStackId => (ItemStackId)sourceStackId;
+}
+
+[Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonCharacterConsumablesSaveData
 {
-    public const int CurrentVersion = 8;
+    public const int CurrentVersion = 9;
 
     public int version = CurrentVersion;
     public long nextOperationSequence = 1;
@@ -363,12 +408,14 @@ public sealed class DungeonCharacterConsumablesSaveData
     public List<CharacterDietPolicyState> dietPolicies = new();
     public List<CharacterSubstancePolicyState> substancePolicies = new();
     public List<CharacterSubstanceState> substanceStates = new();
+    public List<CharacterToxicityState> toxicityStates = new();
     public List<CharacterMealDeliveryState> pendingMealDeliveries = new();
     public List<CharacterConsumableOperationState> completedOperations = new();
     public List<CharacterMealFollowupCooldownSaveData> mealFollowupCooldowns = new();
     public List<CharacterMealQualityPolicyState> mealQualityPolicies = new();
     public List<CharacterMealPlanSaveData> activeMealPlans = new();
     public List<CharacterSubstanceUsePlanSaveData> activeSubstanceUsePlans = new();
+    public List<CharacterDetoxTreatmentPlanSaveData> activeDetoxTreatmentPlans = new();
 }
 
 [Serializable]

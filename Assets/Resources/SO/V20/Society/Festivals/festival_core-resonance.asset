@@ -22,7 +22,22 @@ MonoBehaviour:
   dayOfSeason: 6
   convertsActiveGrief: 0
   cultureId: culture:golem-core
-  requiredBuildingDefinitionId: building:rune-tuning-room
+  requiredBuildingDefinitionId: ""
+  venueRequirements:
+    anchor:
+      exactBuildingDefinitionIds:
+      - building:9826
+      facilityRoles: 0
+    requiredRoomFacilityRoles: 0
+    requiredRoomFacilities: []
+    minimumSeats: 0
+    minimumTables: 0
+    minimumServiceCapacity: 0
+    minimumEventCells: 5
+    minimumVacantBeds: 0
+    requireResidentHeadroom: 0
+    requireWetBath: 0
+    requireEmergencySurgeryFacility: 0
   requiredItems:
   - itemDefinitionId: tool:maintenance-kit
     amount: 2

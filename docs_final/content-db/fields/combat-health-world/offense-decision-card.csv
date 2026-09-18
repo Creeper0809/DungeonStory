@@ -2080,27 +2080,28 @@ OffenseDecisionCardSO|travel_black_rain,travel_black_rain,id,170303,,,explicit-s
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,cardId,travel_black_rain,,,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,stage,0,OffenseDecisionStage,Travel,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,title,검은 비,,,explicit-serialized
-OffenseDecisionCardSO|travel_black_rain,travel_black_rain,situation,먹구름에서 기름 냄새가 나는 빗방울이 떨어지기 시작합니다.,,,explicit-serialized
-OffenseDecisionCardSO|travel_black_rain,travel_black_rain,requiredWorldTags,[],,,explicit-serialized
+OffenseDecisionCardSO|travel_black_rain,travel_black_rain,situation,폭풍 구름에서 기름 냄새가 나는 검은 빗방울이 쏟아집니다.,,,explicit-serialized
+OffenseDecisionCardSO|travel_black_rain,travel_black_rain,requiredWorldTags.0,weather:storm,,,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.0.choiceId,left,,,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.0.label,천막을 친다,,,explicit-serialized
-OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.0.description,보급을 보호하며 비가 잦아들기를 기다립니다.,,,explicit-serialized
+OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.0.description,보급을 보호하며 한 시간 동안 폭풍이 잦아들기를 기다립니다.,,,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.0.requiredTag,,,,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.0.transformedLabel,,,,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.0.transformedDescription,,,,explicit-serialized
-OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.0.directionLabel,피로 증가,,,explicit-serialized
+OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.0.directionLabel,대기 1시간·스트레스 +10,,,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.0.severity,1,,,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.0.mayStartCombat,0,,,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.0.mayCauseInjury,0,,,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.0.mayMoveExpedition,0,,,explicit-serialized
-OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.0.effects.0.rid,7302563269269258747,,,explicit-serialized
+OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.0.effects.0.rid,7170170000000000001,,,explicit-serialized
+OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.0.effects.1.rid,7302563269269258747,,,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.1.choiceId,right,,,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.1.label,행군을 계속한다,,,explicit-serialized
-OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.1.description,시간을 아끼지만 장비와 몸이 젖습니다.,,,explicit-serialized
+OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.1.description,장비 내구 13과 비치명 부상 11.5%를 감수하고 행군합니다.,,,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.1.requiredTag,,,,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.1.transformedLabel,,,,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.1.transformedDescription,,,,explicit-serialized
-OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.1.directionLabel,장비 손상 위험,,,explicit-serialized
+OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.1.directionLabel,장비 내구 -13·비치명 부상 11.5%,,,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.1.severity,2,,,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.1.mayStartCombat,0,,,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.1.mayCauseInjury,1,,,explicit-serialized
@@ -2108,22 +2109,27 @@ OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.1.mayMoveExped
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.1.effects.0.rid,7302563269269258748,,,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,choices.1.effects.1.rid,7302563269269258749,,,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.version,2,,,explicit-serialized
-OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.0.rid,7302563269269258747,,,explicit-serialized
-OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.0.type.class,OffenseStressDecisionEffect,,,explicit-serialized
+OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.0.rid,7170170000000000001,,,explicit-serialized
+OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.0.type.class,OffenseTimeDecisionEffect,,,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.0.type.ns,,,,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.0.type.asm,Assembly-CSharp,,,explicit-serialized
-OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.0.data.amount,10,,,explicit-serialized
-OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.1.rid,7302563269269258748,,,explicit-serialized
-OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.1.type.class,OffenseEquipmentWearDecisionEffect,,,explicit-serialized
+OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.0.data.elapsedHours,1,,,explicit-serialized
+OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.1.rid,7302563269269258747,,,explicit-serialized
+OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.1.type.class,OffenseStressDecisionEffect,,,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.1.type.ns,,,,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.1.type.asm,Assembly-CSharp,,,explicit-serialized
-OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.1.data.durabilityDamage,13,,,explicit-serialized
-OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.2.rid,7302563269269258749,,,explicit-serialized
-OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.2.type.class,OffenseInjuryDecisionEffect,,,explicit-serialized
+OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.1.data.amount,10,,,explicit-serialized
+OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.2.rid,7302563269269258748,,,explicit-serialized
+OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.2.type.class,OffenseEquipmentWearDecisionEffect,,,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.2.type.ns,,,,explicit-serialized
 OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.2.type.asm,Assembly-CSharp,,,explicit-serialized
-OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.2.data.maxHealthRatio,0.115,,,explicit-serialized
-OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.2.data.nonLethal,1,,,explicit-serialized
+OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.2.data.durabilityDamage,13,,,explicit-serialized
+OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.3.rid,7302563269269258749,,,explicit-serialized
+OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.3.type.class,OffenseInjuryDecisionEffect,,,explicit-serialized
+OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.3.type.ns,,,,explicit-serialized
+OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.3.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.3.data.maxHealthRatio,0.115,,,explicit-serialized
+OffenseDecisionCardSO|travel_black_rain,travel_black_rain,references.RefIds.3.data.nonLethal,1,,,explicit-serialized
 OffenseDecisionCardSO|travel_broken_bridge,travel_broken_bridge,m_Name,01_travel_broken_bridge,,,explicit-serialized
 OffenseDecisionCardSO|travel_broken_bridge,travel_broken_bridge,id,170300,,,explicit-serialized
 OffenseDecisionCardSO|travel_broken_bridge,travel_broken_bridge,cardId,travel_broken_bridge,,,explicit-serialized
@@ -2167,6 +2173,61 @@ OffenseDecisionCardSO|travel_broken_bridge,travel_broken_bridge,references.RefId
 OffenseDecisionCardSO|travel_broken_bridge,travel_broken_bridge,references.RefIds.1.type.ns,,,,explicit-serialized
 OffenseDecisionCardSO|travel_broken_bridge,travel_broken_bridge,references.RefIds.1.type.asm,Assembly-CSharp,,,explicit-serialized
 OffenseDecisionCardSO|travel_broken_bridge,travel_broken_bridge,references.RefIds.1.data.amount,14,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,m_Name,53_travel_cold_snap_frost_camp,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,id,170352,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,cardId,travel_cold_snap_frost_camp,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,stage,0,OffenseDecisionStage,Travel,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,title,서리 덮인 야영지,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,situation,한파에 버려진 야영지의 천막과 장작이 단단한 서리에 덮여 있습니다.,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,requiredWorldTags.0,weather:cold-snap,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,choices.0.choiceId,left,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,choices.0.label,마나등으로 대비한다,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,choices.0.description,마나등 보급 하나를 써서 얼어붙은 장비와 길을 안전하게 밝힙니다.,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,choices.0.requiredTag,,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,choices.0.transformedLabel,,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,choices.0.transformedDescription,,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,choices.0.directionLabel,마나등 -1·노출 -12,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,choices.0.severity,1,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,choices.0.mayStartCombat,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,choices.0.mayCauseInjury,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,choices.0.mayMoveExpedition,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,choices.0.effects.0.rid,7170170000000000063,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,choices.0.effects.1.rid,7170170000000000064,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,choices.1.choiceId,right,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,choices.1.label,추위를 견딘다,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,choices.1.description,보급을 아끼는 대신 한기와 긴장을 감수합니다.,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,choices.1.requiredTag,,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,choices.1.transformedLabel,,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,choices.1.transformedDescription,,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,choices.1.directionLabel,스트레스 +7·노출 +15,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,choices.1.severity,1,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,choices.1.mayStartCombat,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,choices.1.mayCauseInjury,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,choices.1.mayMoveExpedition,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,choices.1.effects.0.rid,7170170000000000065,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,choices.1.effects.1.rid,7170170000000000066,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,references.version,2,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,references.RefIds.0.rid,7170170000000000063,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,references.RefIds.0.type.class,OffenseSupplyDecisionEffect,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,references.RefIds.0.type.ns,,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,references.RefIds.0.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,references.RefIds.0.data.supplyType,3,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,references.RefIds.0.data.amount,-1,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,references.RefIds.1.rid,7170170000000000064,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,references.RefIds.1.type.class,OffenseExposureDecisionEffect,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,references.RefIds.1.type.ns,,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,references.RefIds.1.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,references.RefIds.1.data.amount,-12,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,references.RefIds.2.rid,7170170000000000065,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,references.RefIds.2.type.class,OffenseStressDecisionEffect,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,references.RefIds.2.type.ns,,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,references.RefIds.2.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,references.RefIds.2.data.amount,7,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,references.RefIds.3.rid,7170170000000000066,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,references.RefIds.3.type.class,OffenseExposureDecisionEffect,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,references.RefIds.3.type.ns,,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,references.RefIds.3.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseDecisionCardSO|travel_cold_snap_frost_camp,travel_cold_snap_frost_camp,references.RefIds.3.data.amount,15,,,explicit-serialized
 OffenseDecisionCardSO|travel_false_milestone,travel_false_milestone,m_Name,05_travel_false_milestone,,,explicit-serialized
 OffenseDecisionCardSO|travel_false_milestone,travel_false_milestone,id,170304,,,explicit-serialized
 OffenseDecisionCardSO|travel_false_milestone,travel_false_milestone,cardId,travel_false_milestone,,,explicit-serialized
@@ -2209,6 +2270,127 @@ OffenseDecisionCardSO|travel_false_milestone,travel_false_milestone,references.R
 OffenseDecisionCardSO|travel_false_milestone,travel_false_milestone,references.RefIds.1.type.ns,,,,explicit-serialized
 OffenseDecisionCardSO|travel_false_milestone,travel_false_milestone,references.RefIds.1.type.asm,Assembly-CSharp,,,explicit-serialized
 OffenseDecisionCardSO|travel_false_milestone,travel_false_milestone,references.RefIds.1.data,,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,m_Name,51_travel_fog_guide,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,id,170350,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,cardId,travel_fog_guide,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,stage,0,OffenseDecisionStage,Travel,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,title,안개 속 길잡이,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,situation,짙은 안개 속에서 이 길을 안다는 낯선 길잡이가 모습을 드러냅니다.,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,requiredWorldTags.0,weather:fog,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.0.choiceId,left,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.0.label,길잡이를 고용한다,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.0.description,현장 자금 100을 지불해 안전한 길과 주변 지형 정보를 얻습니다.,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.0.requiredTag,,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.0.transformedLabel,,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.0.transformedDescription,,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.0.directionLabel,현장 자금 -100·노출 -10·정찰 +1,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.0.severity,1,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.0.mayStartCombat,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.0.mayCauseInjury,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.0.mayMoveExpedition,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.0.effects.0.rid,7170170000000000053,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.0.effects.1.rid,7170170000000000054,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.0.effects.2.rid,7170170000000000055,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.1.choiceId,right,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.1.label,직접 길을 찾는다,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.1.description,한 시간 반을 들여 표식을 대조하지만 흔적이 더 드러납니다.,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.1.requiredTag,,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.1.transformedLabel,,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.1.transformedDescription,,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.1.directionLabel,대기 1.5시간·노출 +8,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.1.severity,1,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.1.mayStartCombat,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.1.mayCauseInjury,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.1.mayMoveExpedition,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.1.effects.0.rid,7170170000000000056,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,choices.1.effects.1.rid,7170170000000000057,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.version,2,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.RefIds.0.rid,7170170000000000053,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.RefIds.0.type.class,OffenseGoldDecisionEffect,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.RefIds.0.type.ns,,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.RefIds.0.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.RefIds.0.data.amount,-100,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.RefIds.0.data.bribe,,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.RefIds.1.rid,7170170000000000054,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.RefIds.1.type.class,OffenseExposureDecisionEffect,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.RefIds.1.type.ns,,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.RefIds.1.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.RefIds.1.data.amount,-10,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.RefIds.2.rid,7170170000000000055,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.RefIds.2.type.class,OffenseReconDecisionEffect,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.RefIds.2.type.ns,,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.RefIds.2.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.RefIds.2.data.revealCount,1,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.RefIds.3.rid,7170170000000000056,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.RefIds.3.type.class,OffenseTimeDecisionEffect,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.RefIds.3.type.ns,,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.RefIds.3.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.RefIds.3.data.elapsedHours,1.5,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.RefIds.4.rid,7170170000000000057,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.RefIds.4.type.class,OffenseExposureDecisionEffect,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.RefIds.4.type.ns,,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.RefIds.4.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseDecisionCardSO|travel_fog_guide,travel_fog_guide,references.RefIds.4.data.amount,8,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,m_Name,52_travel_heatwave_shade_shelter,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,id,170351,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,cardId,travel_heatwave_shade_shelter,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,stage,0,OffenseDecisionStage,Travel,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,title,그늘의 쉼터,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,situation,폭염 속 길가의 무너진 차양 아래에 잠시 몸을 숨길 그늘이 남아 있습니다.,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,requiredWorldTags.0,weather:heatwave,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.0.choiceId,left,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.0.label,그늘에서 쉰다,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.0.description,두 시간을 쉬어 열 노출과 대원의 스트레스를 낮춥니다.,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.0.requiredTag,,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.0.transformedLabel,,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.0.transformedDescription,,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.0.directionLabel,대기 2시간·스트레스 -9·노출 -8,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.0.severity,1,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.0.mayStartCombat,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.0.mayCauseInjury,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.0.mayMoveExpedition,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.0.effects.0.rid,7170170000000000058,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.0.effects.1.rid,7170170000000000059,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.0.effects.2.rid,7170170000000000060,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.1.choiceId,right,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.1.label,행군을 강행한다,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.1.description,시간을 아끼는 대신 더위와 긴장을 그대로 감수합니다.,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.1.requiredTag,,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.1.transformedLabel,,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.1.transformedDescription,,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.1.directionLabel,스트레스 +7·노출 +8,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.1.severity,1,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.1.mayStartCombat,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.1.mayCauseInjury,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.1.mayMoveExpedition,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.1.effects.0.rid,7170170000000000061,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,choices.1.effects.1.rid,7170170000000000062,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,references.version,2,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,references.RefIds.0.rid,7170170000000000058,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,references.RefIds.0.type.class,OffenseTimeDecisionEffect,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,references.RefIds.0.type.ns,,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,references.RefIds.0.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,references.RefIds.0.data.elapsedHours,2,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,references.RefIds.1.rid,7170170000000000059,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,references.RefIds.1.type.class,OffenseStressDecisionEffect,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,references.RefIds.1.type.ns,,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,references.RefIds.1.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,references.RefIds.1.data.amount,-9,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,references.RefIds.2.rid,7170170000000000060,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,references.RefIds.2.type.class,OffenseExposureDecisionEffect,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,references.RefIds.2.type.ns,,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,references.RefIds.2.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,references.RefIds.2.data.amount,-8,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,references.RefIds.3.rid,7170170000000000061,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,references.RefIds.3.type.class,OffenseStressDecisionEffect,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,references.RefIds.3.type.ns,,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,references.RefIds.3.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,references.RefIds.3.data.amount,7,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,references.RefIds.4.rid,7170170000000000062,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,references.RefIds.4.type.class,OffenseExposureDecisionEffect,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,references.RefIds.4.type.ns,,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,references.RefIds.4.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseDecisionCardSO|travel_heatwave_shade_shelter,travel_heatwave_shade_shelter,references.RefIds.4.data.amount,8,,,explicit-serialized
 OffenseDecisionCardSO|travel_narrow_pass,travel_narrow_pass,m_Name,07_travel_narrow_pass,,,explicit-serialized
 OffenseDecisionCardSO|travel_narrow_pass,travel_narrow_pass,id,170306,,,explicit-serialized
 OffenseDecisionCardSO|travel_narrow_pass,travel_narrow_pass,cardId,travel_narrow_pass,,,explicit-serialized
@@ -2252,6 +2434,107 @@ OffenseDecisionCardSO|travel_narrow_pass,travel_narrow_pass,references.RefIds.1.
 OffenseDecisionCardSO|travel_narrow_pass,travel_narrow_pass,references.RefIds.1.type.ns,,,,explicit-serialized
 OffenseDecisionCardSO|travel_narrow_pass,travel_narrow_pass,references.RefIds.1.type.asm,Assembly-CSharp,,,explicit-serialized
 OffenseDecisionCardSO|travel_narrow_pass,travel_narrow_pass,references.RefIds.1.data,,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,m_Name,50_travel_rain_drift_cargo,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,id,170349,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,cardId,travel_rain_drift_cargo,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,stage,0,OffenseDecisionStage,Travel,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,title,빗속의 떠내려온 짐,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,situation,불어난 빗물에 묶음 짐 하나가 떠내려와 바위틈에 걸렸습니다.,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,requiredWorldTags.0,weather:rain,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,choices.0.choiceId,left,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,choices.0.label,짐을 건져 낸다,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,choices.0.description,한 시간 반을 들여 급류에 접근해 쓸 만한 식량을 건집니다.,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,choices.0.requiredTag,,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,choices.0.transformedLabel,,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,choices.0.transformedDescription,,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,choices.0.directionLabel,대기 1.5시간·노출 +8·식량 +2,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,choices.0.severity,1,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,choices.0.mayStartCombat,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,choices.0.mayCauseInjury,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,choices.0.mayMoveExpedition,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,choices.0.effects.0.rid,7170170000000000050,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,choices.0.effects.1.rid,7170170000000000051,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,choices.0.effects.2.rid,7170170000000000052,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,choices.1.choiceId,right,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,choices.1.label,그대로 지나간다,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,choices.1.description,급류에 가까이 가지 않고 원래 행군을 계속합니다.,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,choices.1.requiredTag,,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,choices.1.transformedLabel,,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,choices.1.transformedDescription,,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,choices.1.directionLabel,변화 없음,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,choices.1.severity,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,choices.1.mayStartCombat,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,choices.1.mayCauseInjury,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,choices.1.mayMoveExpedition,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,choices.1.effects,[],,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,references.version,2,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,references.RefIds.0.rid,7170170000000000050,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,references.RefIds.0.type.class,OffenseTimeDecisionEffect,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,references.RefIds.0.type.ns,,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,references.RefIds.0.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,references.RefIds.0.data.elapsedHours,1.5,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,references.RefIds.1.rid,7170170000000000051,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,references.RefIds.1.type.class,OffenseExposureDecisionEffect,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,references.RefIds.1.type.ns,,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,references.RefIds.1.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,references.RefIds.1.data.amount,8,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,references.RefIds.2.rid,7170170000000000052,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,references.RefIds.2.type.class,OffenseSupplyDecisionEffect,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,references.RefIds.2.type.ns,,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,references.RefIds.2.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,references.RefIds.2.data.supplyType,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_rain_drift_cargo,travel_rain_drift_cargo,references.RefIds.2.data.amount,2,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,m_Name,54_travel_storm_exposed_hideout,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,id,170353,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,cardId,travel_storm_exposed_hideout,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,stage,0,OffenseDecisionStage,Travel,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,title,폭풍에 드러난 은닉처,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,situation,폭풍에 무너진 비탈 아래로 감춰져 있던 은닉처 입구가 드러났습니다.,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,requiredWorldTags.0,weather:storm,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,choices.0.choiceId,left,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,choices.0.label,은닉처를 수색한다,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,choices.0.description,한 시간 반을 수색해 물자를 얻고 비치명 부상 9%를 감수합니다.,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,choices.0.requiredTag,,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,choices.0.transformedLabel,,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,choices.0.transformedDescription,,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,choices.0.directionLabel,대기 1.5시간·비치명 부상 9%·전리품 +6,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,choices.0.severity,2,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,choices.0.mayStartCombat,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,choices.0.mayCauseInjury,1,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,choices.0.mayMoveExpedition,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,choices.0.effects.0.rid,7170170000000000067,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,choices.0.effects.1.rid,7170170000000000068,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,choices.0.effects.2.rid,7170170000000000069,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,choices.1.choiceId,right,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,choices.1.label,안전을 우선한다,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,choices.1.description,입구를 건드리지 않고 폭풍 속 행군에 집중합니다.,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,choices.1.requiredTag,,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,choices.1.transformedLabel,,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,choices.1.transformedDescription,,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,choices.1.directionLabel,변화 없음,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,choices.1.severity,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,choices.1.mayStartCombat,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,choices.1.mayCauseInjury,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,choices.1.mayMoveExpedition,0,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,choices.1.effects,[],,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,references.version,2,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,references.RefIds.0.rid,7170170000000000067,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,references.RefIds.0.type.class,OffenseTimeDecisionEffect,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,references.RefIds.0.type.ns,,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,references.RefIds.0.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,references.RefIds.0.data.elapsedHours,1.5,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,references.RefIds.1.rid,7170170000000000068,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,references.RefIds.1.type.class,OffenseInjuryDecisionEffect,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,references.RefIds.1.type.ns,,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,references.RefIds.1.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,references.RefIds.1.data.maxHealthRatio,0.09,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,references.RefIds.1.data.nonLethal,1,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,references.RefIds.2.rid,7170170000000000069,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,references.RefIds.2.type.class,OffenseLootDecisionEffect,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,references.RefIds.2.type.ns,,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,references.RefIds.2.type.asm,Assembly-CSharp,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,references.RefIds.2.data.stockCategory,1,,,explicit-serialized
+OffenseDecisionCardSO|travel_storm_exposed_hideout,travel_storm_exposed_hideout,references.RefIds.2.data.amount,6,,,explicit-serialized
 OffenseDecisionCardSO|travel_toll_gate,travel_toll_gate,m_Name,02_travel_toll_gate,,,explicit-serialized
 OffenseDecisionCardSO|travel_toll_gate,travel_toll_gate,id,170301,,,explicit-serialized
 OffenseDecisionCardSO|travel_toll_gate,travel_toll_gate,cardId,travel_toll_gate,,,explicit-serialized

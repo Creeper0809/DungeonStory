@@ -1,0 +1,4260 @@
+{
+  "schemaVersion": 1,
+  "gameVersion": "0.0.1v",
+  "status": "applied",
+  "sourceRegister": "Artifacts/QA/wiki-system-audit-2026-09-05/missing-register.json",
+  "sourceRegisterSha256": "69e67ff7d6bf5eb32c9d04c83e253eba3790f6125a82c30004162d1d9c464fec",
+  "editorialLayout": "tools/Wiki/gap_editorial_layout.ko.json",
+  "editorialLayoutSha256": "74d3a56c46da3c0b60838f1149a6c5f80f9e34e3d0db43bce5f021bd248f48c3",
+  "guideNavigation": "wiki/game-versions/0.0.1v/content/guides/guide-navigation.json",
+  "guideNavigationSha256": "dd4575a44b0db7923cc17dbe67938c8d340ff35db6224e03a2d365c68b9dbee3",
+  "redirectedGuideTargets": {
+    "facility-growth": "infrastructure",
+    "inventory-and-carrying": "production",
+    "milestones-runs-and-meta": "research",
+    "production-quality-and-supply": "production",
+    "starting-party": "getting-started"
+  },
+  "activeGapCount": 254,
+  "publishedGapCount": 252,
+  "documentationActionCount": 2,
+  "unpublishedGapCount": 0,
+  "publicationComplete": true,
+  "publishedClauseCount": 560,
+  "guideCount": 20,
+  "guideDistribution": {
+    "combat-and-equipment": 10,
+    "disease-and-public-health": 6,
+    "economy-and-trade": 4,
+    "events-and-choices": 3,
+    "expeditions": 4,
+    "factions-contracts-and-prisoners": 8,
+    "family-education-and-legacy": 10,
+    "food-and-ecology": 21,
+    "getting-started": 4,
+    "guests-services-and-performance": 18,
+    "health-and-community": 1,
+    "infrastructure": 37,
+    "invasions-and-defence": 6,
+    "medical-care-and-surgery": 20,
+    "production": 23,
+    "research": 12,
+    "residents-and-work": 33,
+    "spaces": 10,
+    "species-culture-and-life": 12,
+    "weather-seasons-and-environment": 10
+  },
+  "assignments": [
+    {
+      "id": "GAP-001",
+      "guide": "getting-started",
+      "sourceTitle": "시작 후보의 전체·부분 재추첨",
+      "publicTitle": "시작 후보의 전체·부분 재추첨",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "5694aa280a33851cc0afb54e4a6215d70ab38d920c27eca066d3d0e922bbcd80",
+        "67e38cb2e954076e0c4041f14961cb09394c219559a508ce558b4e9e9f0fd38f"
+      ],
+      "publishedClauses": [
+        "정체성·재능·기술 부분 재추첨은 인물별로 각각 3회다. 전체 재추첨은 정체성·숙련 시드·잠재력을 다시 만들고 세 부분 횟수를 모두 3회로 재충전한다.",
+        "정체성 재추첨은 잠재력 등급을 유지한다. 재능 재추첨은 정체성을 읽어 시작 프로필과 숙련 시드·잠재력을 갱신한다. 기술 재추첨은 준비된 기술 후보를 교체한다."
+      ],
+      "editorialGroup": "후보와 기술"
+    },
+    {
+      "id": "GAP-002",
+      "guide": "getting-started",
+      "sourceTitle": "시작 기술 자동 확정과 시작 가능 조건",
+      "publicTitle": "시작 기술 자동 확정과 시작 가능 조건",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "31b64a558054e715375e65f52d87e99cf3ba2e18cc718ddeae86be83e931636e",
+        "b66d0017f2db2720ceb3a43d5e86929cb4e8372da516008337009802cdda1559"
+      ],
+      "publishedClauses": [
+        "일반 시작 인물의 1레벨 액티브 후보는 준비 과정에서 자동 확정된다.",
+        "시작하려면 사장은 고정 기술 4칸을 갖추고, 일반 인물은 준비된 첫 액티브·선택된 액티브·첫 패시브를 모두 갖춰야 한다. 준비 인원 모두가 이 조건을 만족해야 시작 버튼이 활성화된다."
+      ],
+      "editorialGroup": "후보와 기술"
+    },
+    {
+      "id": "GAP-003",
+      "guide": "getting-started",
+      "sourceTitle": "던전 주인의 고정 기술",
+      "publicTitle": "던전 주인의 고정 기술",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "3b44f09543b196b3d5954ea40a4f84ea319b4063c965f85cc5fdaf04c4d5ab86"
+      ],
+      "publishedClauses": [
+        "사장은 일반 시작 액티브·패시브 선택 대신 전용 고정 기술 4칸을 사용한다."
+      ],
+      "editorialGroup": "후보와 기술"
+    },
+    {
+      "id": "GAP-004",
+      "guide": "getting-started",
+      "sourceTitle": "전투 난이도와 생존 압력의 분리",
+      "publicTitle": "전투 난이도와 생존 압력의 분리",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "de95dc76c536b2f30db556b11436b2edd20b17c55586e4822af7451c7b121a78",
+        "7b7ff0a826423c2721a6833c5006b45fcc6bcb36d1bb8e06c3acb114f0758a6b"
+      ],
+      "publishedClauses": [
+        "전투 난이도와 생존 압력은 독립 설정",
+        "원정 적 체력/공격/주도권: 쉬움 0.8/0.8/1, 보통 1/1/1, 어려움 1.25/1.2/1.1. 생존 압력은 느긋함·표준·가혹함"
+      ],
+      "editorialGroup": "난이도"
+    },
+    {
+      "id": "GAP-005",
+      "guide": "residents-and-work",
+      "sourceTitle": "생존 압력의 추가 보정과 붕괴 주기",
+      "publicTitle": "생존 압력의 추가 보정과 붕괴 주기",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "4e7b583eebb2cb4f13a42fe189ff24a8ba3c2077a69087813d38cb569a25a167",
+        "9624b14bdd0ba10771b0703acc1787de89311b6528db7c5785d40afa806ad9b3"
+      ],
+      "publishedClauses": [
+        "느긋함·표준·가혹함 순서로 결핍 부담 증가 배율은 0.75/1/1.25, 회복 배율은 1.15/1/0.85다.",
+        "강제 붕괴 유예는 각각 45/30/24게임초다."
+      ],
+      "editorialGroup": "생존과 회복"
+    },
+    {
+      "id": "GAP-006",
+      "guide": "residents-and-work",
+      "sourceTitle": "숙련 감소의 최종 정지점",
+      "publicTitle": "숙련 감소의 최종 정지점",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "722338308a71a29bb29ca9858133167ca46086b44f07b7bbdb290e3a0fbaa500"
+      ],
+      "publishedClauses": [
+        "숙련 감소로 전문가에서 기술자로 강등되면 1,199.999 XP에서 감소가 멈춘다. 기술자 등급의 시작점은 400 XP이므로 이를 기술자 하한이라고 부르면 안 된다."
+      ],
+      "editorialGroup": "성장과 훈련"
+    },
+    {
+      "id": "GAP-008",
+      "guide": "family-education-and-legacy",
+      "sourceTitle": "멘토·학생의 배정 조건",
+      "publicTitle": "멘토·학생의 배정 조건",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "1470575844de68ff9c20610d6286448245dfa43218f034b460607e4fda23f021",
+        "03cb4d54b419cc040da4921f8e44ad40a270f371fc62e5b39195a13fed9eb178"
+      ],
+      "publishedClauses": [
+        "멘토와 학생은 서로 다른 살아 있는 현재 던전 인물이어야 하고, 가르칠 숙련 및 파손되지 않은 멘토 학원이 필요하다.",
+        "멘토는 해당 숙련 전문가 이상이며 학생보다 최소 1등급·200 XP 높아야 한다. 양방향 관계 모두 -0.20 이상이어야 하고 한 멘토는 동시에 학생 3명까지 맡는다."
+      ],
+      "editorialGroup": "멘토링"
+    },
+    {
+      "id": "GAP-009",
+      "guide": "family-education-and-legacy",
+      "sourceTitle": "멘토링의 관계 배율과 멘토 보상",
+      "publicTitle": "멘토링의 관계 배율과 멘토 보상",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "0a58d1f989384829ee011db353e9869110ac947381ebe30aec72d88e76c8b599",
+        "341587e77f1c998b1ce43807e6e1069106907bcd2cc6ff8dde54e89b2927bd3a",
+        "bd2c7704e16ba9ca7bc8277b7b1745543b35c953ff6e448328325689700dbf88"
+      ],
+      "publishedClauses": [
+        "양방향 관계 중 낮은 값 사용: -0.20 미만 수업 중단, -0.20 이상 0 미만 0.8배, 0 이상 0.5 미만 1배, 0.5 이상 1.1배",
+        "학생 XP에는 멘토의 학생 경험치 보정 효과도 곱함",
+        "멘토는 30×0.08×0.25=0.6 XP를 받으며 연습 시각 갱신"
+      ],
+      "editorialGroup": "멘토링"
+    },
+    {
+      "id": "GAP-010",
+      "guide": "family-education-and-legacy",
+      "sourceTitle": "종족별 번식 방식·단계·기간",
+      "publicTitle": "종족별 번식 방식·단계·기간",
+      "clauseCount": 4,
+      "clauseHashes": [
+        "9c7348848e02140b86a93b2e05a5de62c832de2724b9828e9367e45aa84853bd",
+        "a176619ce971e946a97047e61a9bacfbcd1ab9f94fc546086c4daf9ed46250b8",
+        "2f83e4410d1ac9eddd251d88ad36ead82f8b3665c3d05ce4887f4f5f9ba82eb4",
+        "2ccb612e7c358580f39ec780727cbb92f0c26a33f99bfbd5684b5bf3e96ec5b5"
+      ],
+      "publishedClauses": [
+        "현재 번식 대상은 인간·모험가·오크·악마·야수인·흡혈귀·하피·코볼트·마이코니드·슬라임·골렘의 11종이다.",
+        "임신형의 시도/임신/출산/회복 기간은 인간·모험가·오크 1/40/1/20일, 악마 1/50/1/25일, 야수인 1/32/1/15일, 흡혈귀 1/60/1/30일이다.",
+        "슬라임은 시도1일·생체량 축적15일·핵 분열5일·안정10일, 골렘은 골격 조립15일·핵 각인10일·인격 각인10일·가동5일이다.",
+        "산란형의 시도/알 형성/부화/회복은 하피 1/12/24/12일, 코볼트 1/10/20/10일이다. 마이코니드는 시도1일·포자 혼합5일·균사 확장20일·자실체 형성10일이다."
+      ],
+      "editorialGroup": "번식 계획"
+    },
+    {
+      "id": "GAP-011",
+      "guide": "family-education-and-legacy",
+      "sourceTitle": "번식 가능한 조합과 교차 계통 조건",
+      "publicTitle": "번식 가능한 조합과 교차 계통 조건",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "68c4412b2297ca993740bf9b106af020e3f908b02997db190d7b0000470c8367",
+        "55d4b9f8dabc1ea5562dbf6caa41d260fffa15ad099157bffb68d8e0b6971081"
+      ],
+      "publishedClauses": [
+        "골렘 조립형과 유전적 교잡은 허용되지 않는다. 친족 제한 판정에 걸린 조합은 번식 계획을 만들 수 없다.",
+        "부모의 번식 방식이 다르면 교차 계통 배양 시설이 필요하다."
+      ],
+      "editorialGroup": "번식 계획"
+    },
+    {
+      "id": "GAP-012",
+      "guide": "family-education-and-legacy",
+      "sourceTitle": "번식 성공률과 유산 판정",
+      "publicTitle": "번식 성공률과 유산 판정",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "ac35039f3b766db1b9ca4eb86a50d12b157c54a21119d5bceb4f2b0b97f22630"
+      ],
+      "publishedClauses": [
+        "성공률=기본확률×clamp((건강+영양)/200,0.1,1)×clamp(가임계수,0,1). 임신 단계에서 건강30 미만 또는 영양20 미만이면 하루 유산 확률 0.10/임신안정도(0.5~1.5). 연령·유전 보정도 가임계수에 반영"
+      ],
+      "editorialGroup": "번식 계획"
+    },
+    {
+      "id": "GAP-013",
+      "guide": "family-education-and-legacy",
+      "sourceTitle": "부화·배양의 환경 대기와 실패",
+      "publicTitle": "부화·배양의 환경 대기와 실패",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "831dc1b48a5d78d1c14b56ed87ae9629be4772019dce08efe0ac30a63503e72e",
+        "14e6b5b51d47016c169d850cb532ba682e7a57a64f8bf138fee8a42025bcc637"
+      ],
+      "publishedClauses": [
+        "알·포자·핵분열은 온도 범위 밖에서 단계 일수 진행이 멈추며 연속 3일이면 실패한다. 정상 온도로 돌아오면 연속 위험일수가 0이 된다.",
+        "현재 일일 번식 환경 판정에는 실외 온도가 사용된다."
+      ],
+      "editorialGroup": "임신과 부화"
+    },
+    {
+      "id": "GAP-015",
+      "guide": "family-education-and-legacy",
+      "sourceTitle": "자녀의 종족·유전 특성·적성",
+      "publicTitle": "자녀의 종족·유전 특성·적성",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "b5a40e93de77d6474699c0353b9f6f0a2a4e3174b229eb8163034d50d4857754"
+      ],
+      "publishedClauses": [
+        "부모 종족 중 결정론적 선택, 부모별 최대3개 유전 후보에서 발현 최대4·잠재 최대2, 적성=부모 적성 정수평균+결정론적 -5~5(0~100 제한)"
+      ],
+      "editorialGroup": "자녀"
+    },
+    {
+      "id": "GAP-016",
+      "guide": "family-education-and-legacy",
+      "sourceTitle": "생식 치료제의 사용 시점과 효과",
+      "publicTitle": "생식 치료제의 사용 시점과 효과",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "59972829afc5e8feb7b952956b20be63f78e61581416ba21a88c4e0308d4606c",
+        "7c94e9ac0ad62a9cfe0b60a1553caa1936d241c781bd97024ca387a26fb7b5f7"
+      ],
+      "publishedClauses": [
+        "생식 치료제는 번식 계획을 시작할 때 1개 소비한다. 가임 계수는 1.2배(최대 1), 임신 안정도는 1.15배로 보정한다.",
+        "골렘 조립에는 이 생식 치료 보정을 적용하지 않는다."
+      ],
+      "editorialGroup": "임신과 부화"
+    },
+    {
+      "id": "GAP-017",
+      "guide": "family-education-and-legacy",
+      "sourceTitle": "가족 계획 정책과 자동 계획 주기",
+      "publicTitle": "가족 계획 정책과 자동 계획 주기",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "695569b5df82b0c363ca64e283adfff16540f276f689cac8bb27b7408c12dba6",
+        "f52f73cf9789ddd1fae3b4d5ba3d8bac10f8ee5055c314a0291d4ee24658cad1",
+        "6d6b7124b6fc84b691df1e9eaf59c2ab03325ef2eb15c8399899ba122f6d79c2"
+      ],
+      "publishedClauses": [
+        "중지·계획·허용 정책",
+        "허용 정책은 이전 평가부터10일마다 성인 후보를 검사하고 계획 가능한 첫 조합 하나를 생성",
+        "생식 역할 없음·조립자는 이 자동 평가에서 제외"
+      ],
+      "editorialGroup": "번식 계획"
+    },
+    {
+      "id": "GAP-018",
+      "guide": "production",
+      "sourceTitle": "번식 도감의 공통 문장이 모드별 예외를 숨김",
+      "publicTitle": "번식 도감의 공통 문장이 모드별 예외를 숨김",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "a8be28cd7bcef6811af957392ca23f79741cc6658b66e57957bb69ef5b989da1",
+        "12e43f80d81b176bba9de729bcd1dd9fc147898f379c3eca0cc33b987989f7f5"
+      ],
+      "publishedClauses": [
+        "골렘 조립은 골격·핵·인격·가동 단계를 진행하며 생식 시도 단계의 성공률 판정을 하지 않는다.",
+        "범위를 벗어난 온도로 단계가 중단되는 번식 모드는 알·포자·핵분열뿐이다. 임신·골렘은 이 규칙의 적용 대상에서 제외된다."
+      ],
+      "editorialGroup": "생산 도감과 자원 처리"
+    },
+    {
+      "id": "GAP-019",
+      "guide": "disease-and-public-health",
+      "sourceTitle": "동굴 독감·핵 부식의 개별 질병 수치·성격 누락",
+      "publicTitle": "동굴 독감·핵 부식의 개별 질병 수치·성격",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "274e9a5a4ec1b84b1fcaa3110ea8af025fece92b1260eb53813a594493222179",
+        "09ac9b7ca8cf45af5ef350b8665290aa6ba293db8f938200b94eeb882f158505"
+      ],
+      "publishedClauses": [
+        "동굴 독감은 잠복기 2일, 기본 전염 기간 6일, 기본 감염률 0.18, 중증도 25다.",
+        "핵 부식은 전염성 감염병과 구별되는 만성 상태이며 백신을 적용하지 않는다."
+      ],
+      "editorialGroup": "질병의 성격"
+    },
+    {
+      "id": "GAP-020",
+      "guide": "disease-and-public-health",
+      "sourceTitle": "질병 현장 대응의 물 끓이기·구충 비용과 효과",
+      "publicTitle": "질병 현장 대응의 물 끓이기·구충 비용과 효과",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "f84fd89aaaeb5ec5f19916d32d3f94b465e81411fccf7db639f7eaebbf7e1451"
+      ],
+      "publishedClauses": [
+        "질병 현장 대응 중 물 끓이기는 깨끗한 물 2개를 쓰고 대상 질병의 중증도를 12 낮춘다. 구충 대응은 해독제 1개를 쓰고 중증도를 26 낮춘다."
+      ],
+      "editorialGroup": "대응과 회복"
+    },
+    {
+      "id": "GAP-021",
+      "guide": "disease-and-public-health",
+      "sourceTitle": "질병 중증도가 기분과 장기에 주는 일일 부담",
+      "publicTitle": "질병 중증도가 기분과 장기에 주는 일일 부담",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "e71b5b4967b3f3db66b4bca5a4f17710dae786377cd022e1c0f9363cabff1579",
+        "cfa4b4b7ccab53ce79a68d1def69b886c9db5cade2c9533615e421cf96b02006",
+        "7443fc264767eb12e278abeab7b3ab86ee2d78b4e538256cde87a0df6676d07b"
+      ],
+      "publishedClauses": [
+        "증상 기간의 매일 기분 변화는 -max(1, clamp(중증도/100,0,1)×10)이며 같은 질병 기분 요인을 갱신한다",
+        "매일 해당 기능을 가진 장기 중 생명 유지 우선, 기능 가중치 우선, 노드 ID 순으로 하나를 골라 감염 부담을 중증도/max(1, 기본 전염 기간)만큼 더한다",
+        "만성 상태는 기간 대신 30을 쓴다"
+      ],
+      "editorialGroup": "노출과 증상"
+    },
+    {
+      "id": "GAP-022",
+      "guide": "disease-and-public-health",
+      "sourceTitle": "공기·비말 노출의 공간 묶음과 환경·감염자 수 배율",
+      "publicTitle": "공기·비말 노출의 공간 묶음과 환경·감염자 수 배율",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "5a825674064f8e949c5af4d485aad1506e175dcbfefad9c4f4ed5b6662a5d5f4",
+        "941ec59d93427d2e9cfd5f46f1e73c35417c87f2f7917bea78246c33f5262ded"
+      ],
+      "publishedClauses": [
+        "공기·비말 감염 노출은 같은 방에 있는 살아 있는 인물을 묶고, 방이 없으면 같은 칸을 묶어 계산한다. 같은 질병의 전염자를 제외한 나머지 인물이 대상이다.",
+        "한 번의 일일 노출에 24시간을 기록한다. 공기질 0~100의 환경 배율은 1.5~0.75로 선형 감소하고, 감염자 수 배율 min(2,1+0.15×(감염자 수-1))을 곱한다. 환경 조회 실패 시 환경 배율은 1이다."
+      ],
+      "editorialGroup": "노출과 증상"
+    },
+    {
+      "id": "GAP-023",
+      "guide": "disease-and-public-health",
+      "sourceTitle": "질병 회복 기간과 치료 완치 면역의 차이",
+      "publicTitle": "질병 회복 기간과 치료 완치 면역의 차이",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "9e406f5e9b931f6e4ef8e07cfe3eedbf0a23b531e467b2c6a649ad0fa18c2baa",
+        "beeb0ec78219b33bd46855b5967f156ed4be870d0d587da0ea9157d2fb61e5c5"
+      ],
+      "publishedClauses": [
+        "전염 기간은 max(1, ceil(max(1,기본 기간)/max(0.05,회복 속도)))일이다.",
+        "치료 완치의 기본 면역은 35, 기본 일일 면역 감소는 0.08이다. 획득 면역은 clamp(max(0,기본 면역)×max(0.05,면역 획득 배율),0,100), 일일 감소는 max(0,기본 감소)/max(0.05,면역 유지 배율)로 계산한다."
+      ],
+      "editorialGroup": "대응과 회복"
+    },
+    {
+      "id": "GAP-024",
+      "guide": "infrastructure",
+      "sourceTitle": "상업 화덕 진화의 성급·방 점수·정체성 조건",
+      "publicTitle": "상업 화덕 진화의 성급·방 점수·정체성 조건",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "8734c60a9669c0e3193db284163766752b8e2f0bca7e6b21a8ebce6009ae5110",
+        "25ac92c1a0034ea35a02bb3b46f01fe47a7d721a3b87341ceca525e6b8a5235d"
+      ],
+      "publishedClauses": [
+        "상업 화덕 진화는 성급 1에서 2로 바뀌며 사용 가능한 방, 식사 점수 20 이상, 요리 점수 14 이상을 요구한다.",
+        "정체성 점수의 서비스/물류 가중치는 0.6/0.4, 최소 정체성 점수는 0.1이다. 별도 작성 재료 비용과 기록 토큰 비용은 없다."
+      ],
+      "editorialGroup": "시설 진화"
+    },
+    {
+      "id": "GAP-025",
+      "guide": "infrastructure",
+      "sourceTitle": "시설 진화의 추가 변이 선택 기준",
+      "publicTitle": "시설 진화의 추가 변이 선택 기준",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "ad31367586ee5ee5052c50b77f8d4c64a14b3c556b4ba9787375f88270f4879a",
+        "7a33ed611e53732741121e8a29087de5b00c6127b4241f3a7d177c342965f2ab"
+      ],
+      "publishedClauses": [
+        "추가 변이는 허용 태그 중 제안된 태그를 먼저 검토한 뒤 증거 점수 내림차순·태그 순서로 보충하고 최대 2개 선택한다. 모든 추가 태그는 증거 점수 0.35 이상이어야 한다.",
+        "정체성 압력을 사용하는 진화에서 점수가 clamp01(최소 점수+0.2) 이상이고 태그 증거가 0.4 이상이면 추가 후보가 된다. 또는 태그 압력이 0.5 이상이거나 증거가 0.65 이상이면 후보가 된다."
+      ],
+      "editorialGroup": "시설 진화"
+    },
+    {
+      "id": "GAP-026",
+      "guide": "medical-care-and-surgery",
+      "sourceTitle": "오크 기본 신체의 체력·기능 가중치 누락",
+      "publicTitle": "오크 기본 신체의 체력·기능 가중치",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "9e949d725842a90fe05e456584ea8b9a63af3e15e976980d0366b2f3b2bf2498"
+      ],
+      "publishedClauses": [
+        "오크의 머리는 최대 체력22·의식/시야 가중치0.3, 뇌는 최대 체력15·의식 가중치0.7이며 두 부위 모두 생명 기관이다. 인간 기본 수치인 머리18·뇌12와 가중치0.35/0.65를 오크에 그대로 적용하지 않는다."
+      ],
+      "editorialGroup": "신체 기능"
+    },
+    {
+      "id": "GAP-027",
+      "guide": "medical-care-and-surgery",
+      "sourceTitle": "특수 기관이 기능을 전부 담당한다는 잘못된 설명",
+      "publicTitle": "특수 기관의 신체 기능 담당 범위",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "e7ca8f47ba3a12aa9fc24067aacf14794611755b30b6a3cdcb2d3e1f0d1c0778",
+        "4bf53d2374f24cc2d06bc1914721425bc5918369fe0d39870a0d513ff844d4c7",
+        "ed6e30fccb3dbd9a4699a25406c5493b390929d8ed90347f3e51330d17abd420"
+      ],
+      "publishedClauses": [
+        "슬라임 핵은 핵심 기능 가중치1, 외막0.7로 핵의 비중은약58.82%이며 의식만100%다",
+        "균사 중심 균핵과 골렘 동력핵은 몸체와 핵심/의식 기능을1:1로 나누고, 골렘 감응석 머리와 감응 핵도 시야를1:1로 나눈다",
+        "생명 기관의 체력이0이 되면 기능 기여율과 무관하게 사망 판정한다."
+      ],
+      "editorialGroup": "신체 기능"
+    },
+    {
+      "id": "GAP-028",
+      "guide": "medical-care-and-surgery",
+      "sourceTitle": "신체 기능 효율의 감염·이식·모듈 적용 순서",
+      "publicTitle": "신체 기능 효율의 감염·이식·모듈 적용 순서",
+      "clauseCount": 5,
+      "clauseHashes": [
+        "cec4eb501126cfe2642f2a050dbe75c78554aeed2f9d6dcecdc306abe2aa7062",
+        "3b9a9af376033760527ba69885814966d8aa7ca426dc97605d6049a955624615",
+        "6da0e1dc850b7749d47c8d8ba3bd2c1b8efca80ad36a1d20a294bcc6fef820cd",
+        "4d177a048dba4ed16ac33765d882fb14c3c528a1c81ab3f53580939fb54f56ba",
+        "4b6a1b5caddaa63f57a953448460b78e86e0a3194a3dae129bca69ca32859915"
+      ],
+      "publishedClauses": [
+        "결손이면 기능0. 그 외 기능=max(0,체력비율×(1-0.5×clamp01(감염/100))×(1-0.6×clamp01(거부부담/100))×max(0,이식효율)+모듈보너스)임을 명시한다",
+        "감염과 거부는 곱으로 함께 적용되고 모듈은 곱셈 뒤 더한다",
+        "기능별 결과는 연결 노드 효율을 max(0.01,노드가중치)로 가중 평균한다",
+        "예로 체력50%·감염100·거부100·이식효율1·모듈0이면 노드 기능10%다",
+        "혈액 손실의 의식·순환 보정과 다운 판정은 이 노드 식과 구별해 참조한다"
+      ],
+      "editorialGroup": "신체 기능"
+    },
+    {
+      "id": "GAP-029",
+      "guide": "medical-care-and-surgery",
+      "sourceTitle": "감염·이식 거부의 지속 피해와 생명기관 손상",
+      "publicTitle": "감염·이식 거부의 지속 피해와 생명기관 손상",
+      "clauseCount": 4,
+      "clauseHashes": [
+        "cae41b0110b196a3f92e135fbce73b0c548f875390126f165b62d16cac71f5bb",
+        "80a06683f38a9e310e416c16f10b5ce1d534fe73ea837d8013c839106403ef3b",
+        "ed730022cb478954f5ddab65d3ac0af0f863494437bb86c6486a8ee55338ca61",
+        "14819bc3a6bedd59abea076d3492ecde5a24bf20ef2bdd3d43f954fa8ff685ed"
+      ],
+      "publishedClauses": [
+        "주민의 부위 감염이40을 넘으면 초당 clamp01((감염-40)/60)×0.055, 거부부담이35를 넘으면 초당 clamp01((거부-35)/65)×0.04의 부위 피해가 발생한다",
+        "두 피해를 합산하고 그35%는 전체 체력에도 적용한다",
+        "이 합병증으로 생명기관 체력이0이 되면 전체 체력이 남아도 사망할 수 있으므로 단순 기능 저하와 구분해 치료 우선순위를 설명한다",
+        "결손 부위는 이 합병증 피해 계산에서 제외한다."
+      ],
+      "editorialGroup": "신체 기능"
+    },
+    {
+      "id": "GAP-030",
+      "guide": "residents-and-work",
+      "sourceTitle": "업무 우선순위 화면의 실제 설정과 행동 안내의 구분",
+      "publicTitle": "업무 우선순위 화면의 실제 설정과 행동 안내의 구분",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "0b05218a0e83c1b2692e9908e2a9f3c3dd39eedeea519c9b2a6fa763c423bdf4",
+        "e22af19e63257d32649723564fcb48222a9dfaf77834ef738b0eab1df1707e3f"
+      ],
+      "publishedClauses": [
+        "업무 우선순위 버튼은 1→2→3→꺼짐 순서로 바뀐다.",
+        "자율 운반의 점수 배율은 우선순위 1/2/3에 각각 1/0.78/0.48이다. 이미 인수한 배송은 자율 운반을 꺼도 재개 대상이며 운반 가능 조건을 다시 검사한다. 이 경우 점수는 최소 0.98이다."
+      ],
+      "editorialGroup": "인력과 노동"
+    },
+    {
+      "id": "GAP-031",
+      "guide": "residents-and-work",
+      "sourceTitle": "비상 예비 노동량과 부족·회복 판정 기준",
+      "publicTitle": "비상 예비 노동량과 부족·회복 판정 기준",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "b3d2f0ea705b1d834c5025dfdb69ec018f4163f7edfdc7179c1bd90c2be96365",
+        "61b8fb0d3d34a76e19872b9aa87ac5efa0ccbe5af5e560766387d4bf381c31cf"
+      ],
+      "publishedClauses": [
+        "기본 비상 예비 목표는 max(12 WU, 생산 가능 성인 수×3 WU, 위험별 예측 필요량의 최댓값)이다. 황색 경보는 1.5배, 적색 경보는 2배를 적용한다.",
+        "예비 가용률 75% 미만은 붕괴 위험, 75~100%는 취약, 100~125%는 적정, 125% 이상은 잉여다. 회복 시에는 현재 단계별 85/110/135%를 충족해 2시간 유지해야 한 단계 개선된다."
+      ],
+      "editorialGroup": "인력과 노동"
+    },
+    {
+      "id": "GAP-032",
+      "guide": "invasions-and-defence",
+      "sourceTitle": "정착지 위협 경보의 발생·유지·해제 조건",
+      "publicTitle": "정착지 위협 경보의 발생·유지·해제 조건",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "d86b2d8fd3534cf5be9189e4fe5a79f9fa2d41d741e7807503c1f48977ff1edf",
+        "209f86f5af2372a5d8e7fe7266fc1c09c7eae930b8a5a423913ffddef0624773"
+      ],
+      "publishedClauses": [
+        "정착지 위협 경보는 녹색·황색·적색으로 구분한다. 낮아진 위협이 2게임시간 유지되면 적색→황색 또는 황색→녹색으로 한 단계 내려간다.",
+        "의료 위협 집계에서 다운된 인물 2명 이상은 적색 경보 기준이다."
+      ],
+      "editorialGroup": "경보"
+    },
+    {
+      "id": "GAP-033",
+      "guide": "residents-and-work",
+      "sourceTitle": "비상 동원 인원·업무 중단과 평시 복귀",
+      "publicTitle": "비상 동원 인원·업무 중단과 평시 복귀",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "b7f47fb5cd2dad149ba576d96350e78f66dba055bca5e28ac20537ede769b88c",
+        "c4a2cc079912072f8d60d8538c003ad04a1a75f75954fee2791046b4633e37f5"
+      ],
+      "publishedClauses": [
+        "적색 동원의 목표 인원은 max(1,ceil(현재 예비 필요 WU/인당 최대 예비 대응 WU))이며 이미 배정된 인원을 뺀 만큼 추가로 선발한다.",
+        "중단 불가 핵심 업무, 보호된 회복 업무, 이미 비상 대응 중인 업무는 일반 강제 전환 후보에서 제외한다."
+      ],
+      "editorialGroup": "인력과 노동"
+    },
+    {
+      "id": "GAP-034",
+      "guide": "residents-and-work",
+      "sourceTitle": "수면 휴식·휴무 문서가 실제 응답 임계값과 불일치",
+      "publicTitle": "수면 휴식·휴무의 실제 응답 임계값",
+      "clauseCount": 4,
+      "clauseHashes": [
+        "b73d840d8be7a5b5847a742091b21afe2413678660264a41aeff7e8d3ee1bdde",
+        "e819496fe38f42a2918ff4fb735e1009b52af6272220d76ce3435bea08cb0a36",
+        "4dc5659286e3e79c76c6ae2b64dd53fcf1d3edb2c523b29ccb92b2c444c004c5",
+        "4ae62ada802a934c5375d717060e100b870056d78d8c827d22616680fbe6d521"
+      ],
+      "publishedClauses": [
+        "수면의 응답 기준은 일상 휴식 60, 긴급 휴식 30, 회복 목표 70이다.",
+        "휴식 업무가 켜져 있으면 수면 30 이하에서 휴식 보호에 들어가고, 수면 70 이상이면서 최소 6게임초를 쉬어야 보호가 해제된다.",
+        "일반 주민은 수면 30 이하일 때 자동 휴무에 들어갈 수 있다. 복귀에는 최소 8게임초와 수면 70·기분 45·배변 55·위생 45 이상을 모두 요구한다.",
+        "사장은 일반 주민의 자동 휴무 대상에서 제외된다. 생활 욕구로 중단한 작업은 해당 욕구의 회복 목표도 충족해야 하며, 수면 회복만으로 다른 작업 제약까지 해제되지는 않는다."
+      ],
+      "editorialGroup": "생존과 회복"
+    },
+    {
+      "id": "GAP-035",
+      "guide": "residents-and-work",
+      "sourceTitle": "일상 작업의 기분 저하 중단 기준",
+      "publicTitle": "일상 작업의 기분 저하 중단 기준",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "1e6472785f60feb3c9e321653634da432f19cf4be6d67d2d17a1c06ed9f4f20e"
+      ],
+      "publishedClauses": [
+        "일상 작업 중 기분이 최대치의 18% 이하이면 작업을 중단한다."
+      ],
+      "editorialGroup": "생존과 회복"
+    },
+    {
+      "id": "GAP-036",
+      "guide": "residents-and-work",
+      "sourceTitle": "시공·대형 사업의 동시 인원과 작업자별 기여 감소",
+      "publicTitle": "시공·대형 사업의 동시 인원과 작업자별 기여 감소",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "b7da2f35c5da7e4d1f650b25a8a1ae83bf1b1c0f3f1366cc2f259d9e17e06f05",
+        "843ea2325400f2a35fd1eda2becc4c3bdcecfde5625f80587b9a0712ee3b86f2"
+      ],
+      "publishedClauses": [
+        "시공 규모별 최대 인원은 소형 2, 중형 3, 산업 4, 대형 사업 6, 랜드마크 8명이다. 연구 규모별 기본 인원은 일반 1, 협력 2, 대규모 4명이다.",
+        "일반 프로젝트의 순번별 기여 배율은 1/0.85/0.75/0.65/0.55/0.45/0.40/0.35, 연구는 1/0.70/0.45/0.25다."
+      ],
+      "editorialGroup": "인력과 노동"
+    },
+    {
+      "id": "GAP-037",
+      "guide": "residents-and-work",
+      "sourceTitle": "운영 화면의 노동 WU 회계와 30일 인당 노동 지수",
+      "publicTitle": "운영 화면의 노동 WU 회계와 30일 인당 노동 지수",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "4439d920dd57907d735dbcb70527a00a320b2be85513e2654ecee67ce91b3449",
+        "33e9be1a1e30b72ece35fa73fa0cff4a6f1e173822da964c4bc05dc4c94c024c",
+        "35c8d262e5df7d0ab08533a4accd2b6f810222c4a204a5e6781dc96d9a1690de"
+      ],
+      "publishedClauses": [
+        "전환 가능한 산출 WU=max(0,실제 노동+공정 환산 산출-손실)이고 산출 등가 WU는 여기에 자동화 WU를 더한다.",
+        "실현 성장 WU=max(0,전환 가능 산출-필수 유지-장비·시설 유지), 보장 성장 WU=max(0,실현 성장-비상 예비 목표)다.",
+        "일별 인당 순노동 지수는 실현 성장 WU를 생산 가능 성인 수와 기준 인당 유효 WU로 나눈다. 완료된 최근 30일 이내의 기록으로 중앙값을 구하며, 짝수 개면 가운데 두 값의 평균을 쓴다."
+      ],
+      "editorialGroup": "인력과 노동"
+    },
+    {
+      "id": "GAP-038",
+      "guide": "guests-services-and-performance",
+      "sourceTitle": "일반 손님 영입의 이민 정책과 정착지 수용 심사",
+      "publicTitle": "일반 손님 영입의 이민 정책과 정착지 수용 심사",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "65813d0a56f357cc164069aabc0548a53757224962cb0b168ca57c87a4982b6c",
+        "6d6a0793cd0760bae2e187e143c7d28184c281848a7654628eb6a562a43709c9"
+      ],
+      "publishedClauses": [
+        "보수적/균형/개방 정책의 비축 기준은 각각 30/14/7일, 위생 위험 상한 25/40/60, 질병 위험 상한 20/35/50, 예비 가용률 하한 1.25/1/0.85, 인당 노동 지수 하한 1/0.9/0.8이다.",
+        "미치료 인물이 있거나 확정 적색 경보이면 일반 영입 완료를 거부한다. 인당 노동 지수와 최근 보장 성장 WU가 0이면 그 지표의 하한 검사를 건너뛰며, 양수일 때는 각각 정책 하한과 3 WU를 검사한다."
+      ],
+      "editorialGroup": "영입과 방문 기록"
+    },
+    {
+      "id": "GAP-039",
+      "guide": "guests-services-and-performance",
+      "sourceTitle": "단골·일반 영입 후보가 되는 방문 횟수와 만족도",
+      "publicTitle": "단골·일반 영입 후보가 되는 방문 횟수와 만족도",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "fa797cb0544a3434b0670cfcbe83053322a7647c8c35f356be6af163661fcb13"
+      ],
+      "publishedClauses": [
+        "현행 시작 씬의 단골 및 일반 영입 후보 기준은 누적 방문 2회 이상·평균 만족도 65 이상이다. 조건을 한 번 만족해 켜진 단골/후보 상태는 이후 기록 갱신에서 자동으로 꺼지지 않는다."
+      ],
+      "editorialGroup": "영입과 방문 기록"
+    },
+    {
+      "id": "GAP-040",
+      "guide": "guests-services-and-performance",
+      "sourceTitle": "후발 영입자의 숙련·레벨 보정과 원정 진행 기준",
+      "publicTitle": "후발 영입자의 숙련·레벨 보정과 원정 진행 기준",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "89ef86161e0fb620a32c550107af73ebbf091789645bcea3cb04ebfa3a01f4aa",
+        "7bd77ad0ea0ccccc56f6868cbb19a98f3e128b016f357ef1e9214b906b2a3d0c"
+      ],
+      "publishedClauses": [
+        "원정 완료 목표 수가 0/1/2/3/4개 이상이면 영입자의 상위 두 숙련 XP 하한은 0/100/250/400/600이다.",
+        "별도 레벨 하한은 1/18/32/44/최대레벨이다. 방문 3회 이상이고 완료 목표도 3개 이상이면 레벨 하한에 2를 더하되 최대레벨을 넘지 않는다."
+      ],
+      "editorialGroup": "영입과 방문 기록"
+    },
+    {
+      "id": "GAP-041",
+      "guide": "research",
+      "sourceTitle": "비전 색인철의 연구 보조 효과와 내구도 소비",
+      "publicTitle": "비전 색인철의 연구 보조 효과와 내구도 소비",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "ce4372f78ccfaca88e833f172ed6fc0c15f506f461e8536a826a175ef4c2b5b4"
+      ],
+      "publishedClauses": [
+        "연구 시설에 비전 색인철 1개가 준비되면 승인 연구 WU에 1.1배 효과를 적용하며 승인 WU당 내구도 0.01을 소비한다. 도구 공급이 준비되지 않으면 기본 연구 WU로 진행한다."
+      ],
+      "editorialGroup": "연구 조건과 청사진"
+    },
+    {
+      "id": "GAP-043",
+      "guide": "research",
+      "sourceTitle": "연구 180개의 시설 기능 요구와 제공 시설 수치 누락",
+      "publicTitle": "연구 180개의 시설 기능 요구와 제공 시설 수치",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "cd7c2d7fd6cb84c84817071d79f07927a75c4be79ea48bfbdc596721ed4cff96",
+        "3ae27ed5284652c79526442ea9c5b578737f42d573e022b63dff7d985bcdb0cd"
+      ],
+      "publishedClauses": [
+        "연구 시설 기능은 사용 가능한 연구 역할 방에 있고 활성·비파손 상태인 시설들에서 기능별로 정착지 전체 합산한다. 자체 완결 방은 제외하며 전력을 쓰는 시설은 가동 전력이 필요하다.",
+        "각 기능 기여는 작성 수용량의 최소 1을 더하며 연구가 요구하는 기능별 수용량과 비교한다."
+      ],
+      "editorialGroup": "연구 조건과 청사진"
+    },
+    {
+      "id": "GAP-044",
+      "guide": "research",
+      "sourceTitle": "필수·선행 우회 청사진과 물리 보관 조건 설명 누락",
+      "publicTitle": "필수·선행 우회 청사진과 물리 보관 조건 설명",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "43160b7c3876a8c3948a98d2848ba3b9b15fc8240bf27cba3f4d97d66f4fcb64",
+        "6b9ac64bbc114283d079a77c9f6dfca56074447ce6736eb17667a5fc799065b3"
+      ],
+      "publishedClauses": [
+        "필수 청사진 연구는 선행 연구 완료와 실물 청사진의 보관을 모두 요구한다.",
+        "선행 우회 청사진은 보관 중이면 선행 연구를 건너뛰지만 시설 기능 요구는 면제하지 않는다. 청사진 구매는 실물 배송이므로 구매 자체가 즉시 연구 완료를 뜻하지 않는다."
+      ],
+      "editorialGroup": "연구 조건과 청사진"
+    },
+    {
+      "id": "GAP-045",
+      "guide": "research",
+      "sourceTitle": "연구 대기열 제거 시 진척 보존과 다음 연구 선택",
+      "publicTitle": "연구 대기열 제거 시 진척 보존과 다음 연구 선택",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "a40b2c82e3259a17368b0857e707da40651615ec2e14fbf877f52d5b2d8ec5bf"
+      ],
+      "publishedClauses": [
+        "연구를 대기열에서 제거해도 이미 쌓인 연구 진척은 보존된다. 제거 후에는 남아 있는 대기열에서 다음으로 실행 가능한 연구를 다시 선택한다."
+      ],
+      "editorialGroup": "연구 조건과 청사진"
+    },
+    {
+      "id": "GAP-046",
+      "guide": "research",
+      "sourceTitle": "비전 기초 청사진(6104)의 즉시 해금 설명 오류",
+      "publicTitle": "비전 기초 청사진(6104)의 실제 해금 절차",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "bd4b818acd7b222c84a99812bd77ae79728243189331e9c641ffa01dee37fa8e"
+      ],
+      "publishedClauses": [
+        "비전 기초 청사진(6104)은 구매 시 실물 청사진이 하차장에 배송된다. 이후 관련 연구의 선행·보관·시설 조건을 충족해 연구를 진행해야 해금된다."
+      ],
+      "editorialGroup": "연구 조건과 청사진"
+    },
+    {
+      "id": "GAP-047",
+      "guide": "research",
+      "sourceTitle": "기억 잔재의 도감 분석·지역 정찰 비용과 처리 순서 누락",
+      "publicTitle": "기억 잔재의 도감 분석·지역 정찰 비용과 처리 순서",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "4af9b65753d1fffac69ac23f27f0f9ce79006058a4ba5548f2cd665c97921905",
+        "55f2dd99b7fa6eba8708d546b90acedf1a8d45a5c32cbfe2c5392f10f14dd65c"
+      ],
+      "publishedClauses": [
+        "기억 잔재 처리의 필요 작업량은 24 WU다. 지역 정찰 결과는 해당 지역의 정보망 약화 값을 10만큼 높인다.",
+        "정보망 약화가 이미 99.999 이상인 지역은 새 정찰 작업을 받지 않는다. 같은 지역의 대기 정찰이 이미 있어도 중복 예약을 거부한다."
+      ],
+      "editorialGroup": "위험한 연구와 재료"
+    },
+    {
+      "id": "GAP-048",
+      "guide": "research",
+      "sourceTitle": "금단의 도약 확률·진척량·사용 횟수·후유증 누락",
+      "publicTitle": "금단의 도약 확률·진척량·사용 횟수·후유증",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "4b66745329b2fef73610fb8308add4960b0c9f028cd29227d476b92a269aaa63",
+        "6da3870b78a41d0ebd49f4aebbd695d11cf6c18a5aaf702962b74b5a3581d6b9"
+      ],
+      "publishedClauses": [
+        "금단의 도약은 인물별로 같은 연구 프로젝트에서 한 번만 시도할 수 있다. 판정 확률은 돌파 10%, 퇴보 20%, 변화 없음 70%다.",
+        "시도 뒤 1일의 후유증이 남고 해당 연구 효과 배율은 0.7이다."
+      ],
+      "editorialGroup": "위험한 연구와 재료"
+    },
+    {
+      "id": "GAP-049",
+      "guide": "research",
+      "sourceTitle": "연구 작업시간과 승인 작업량 보정 공식 누락",
+      "publicTitle": "연구 작업시간과 승인 작업량 보정 공식",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "90ff15f21b8fe76317b84f3ee5db3feef5c80fcb53fb685503ef06afde562e3e"
+      ],
+      "publishedClauses": [
+        "연구 승인 WU를 A, 연구 보너스 모듈 합을 S라 하면 모듈 적용 후 작업량은 A×(1+S/4)다. 이는 하루 기준 연구량과 별도의 작업 기여 보정이다."
+      ],
+      "editorialGroup": "연구 작업량"
+    },
+    {
+      "id": "GAP-050",
+      "guide": "research",
+      "sourceTitle": "계승 강화 9종의 구매·효과·기록 보존 규칙 누락",
+      "publicTitle": "계승 강화 9종의 구매·효과·기록 보존 규칙",
+      "clauseCount": 4,
+      "clauseHashes": [
+        "4b2bb8b6bc286eab2b30f6099fffdfc7b7484adcbcd1800f6931aa5aa68ea5b5",
+        "b2d36ebc505a2787bb545fe942efe6d85db83ed0fb2a41aaed2bebbc0940dd8e",
+        "054a80db3827c484f35dfdcdb6f325f4e5050049b36e5bc6fce84a34dae51267",
+        "25c9a4fe960da404b515e42529dc9060e6d3ea250eb95be55f019800894f022f"
+      ],
+      "publishedClauses": [
+        "계승 강화는 재화가 충분하고 최대 레벨 미만일 때 가격을 지불하고 1레벨 오른다.",
+        "시작 시설 후보 +1: 가격80/최대2레벨; 사장 생성 특성 목표수·상한 +1:90/1; 첫날 기본 구매 목록 +1:100/3; 특수 조합식 기록 보존 슬롯 +1:120/3.",
+        "사장 최대체력 레벨당 +8%:110/3; 침입 경고 문턱 레벨당 -8%:90/2; 상단 보급 비용 레벨당 -4%:100/3; 방어 시설 구매가 레벨당 -5%:110/3; 연구 작업량 레벨당 +8%:110/3.",
+        "사장 특성 강화는 직원에게 적용되지 않으며, 후보 충돌·부족 때문에 실제 특성이 항상 정확히 1개 더 생긴다고 보장할 수 없다. 특수 조합식 기록 강화는 다음 런에 보존할 수 있는 슬롯을 늘린다."
+      ],
+      "editorialGroup": "계승 강화"
+    },
+    {
+      "id": "GAP-051",
+      "guide": "research",
+      "sourceTitle": "런 종료 계승 재화의 산식과 집계 기준 누락",
+      "publicTitle": "런 종료 계승 재화의 산식과 집계 기준",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "e0d33375641d7a2e99f813e788fd962622587d7e86258f4141a60d6f169c5c87",
+        "9bc7a5be556322ed2b4e3b13dd8b51c3cc8f1b1cb10a470a66c7e2b02bb4e82d"
+      ],
+      "publishedClauses": [
+        "런 종료 계승 재화는 다음 합에 난이도 배율(최소0.1)을 곱하고 정수 반올림한 뒤 최소0으로 제한한다: 생존초÷60×8 + 생존 운영일×35 + 결산 횟수×10 + 방어 성공×30 + 최대 위협단계 점수×12 + 최종 침입위협×0.25 + min(60,첫 시설발견 수×4) + min(60,첫 조합식해금 수×10) + 원정성공 수×25.",
+        "위협단계 점수는 Warning=1, Candidate/Safety=2, 그 외0이다. 각 횟수 항목은 음수를0으로 제한한다."
+      ],
+      "editorialGroup": "런 종료 정산"
+    },
+    {
+      "id": "GAP-052",
+      "guide": "infrastructure",
+      "sourceTitle": "자동화 모드별 작업 권한과 전환·생산 조건 누락",
+      "publicTitle": "자동화 모드별 작업 권한과 전환·생산 조건",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "d2eb79e984c649f9d572464e36c818cfa2c3c51c67c37e3736a62ba3ec8cf250",
+        "97b5b5e96c4565ac8d90607af6ffd72aba2c917b53741a8480309a16ffb46409"
+      ],
+      "publishedClauses": [
+        "자동화는 수동·보조·자동 모드로 구분하며 모드 전환 때 수동 작업 예약을 검사한다.",
+        "자동 모드는 작업자 예약이 없는 준비됨·진행 중·재료 대기 주문을 대상으로 한다. 재료 대기 주문도 시작 검사를 다시 실행해 입력 요청을 갱신하며, 재료를 확보한 주문 하나에 한 번의 작업을 제출한다."
+      ],
+      "editorialGroup": "자동화"
+    },
+    {
+      "id": "GAP-053",
+      "guide": "infrastructure",
+      "sourceTitle": "자동화의 정비·고장·작업 속도 공식과 대기 중 소모 누락",
+      "publicTitle": "자동화의 정비·고장·작업 속도 공식과 대기 중 소모",
+      "clauseCount": 4,
+      "clauseHashes": [
+        "6a9005298e998e8c3ad53c1588f6cc20ce9b351d799eebab94a07cccde84f619",
+        "c1a7054dae25fb4869f2729ea927d962183ec7dd2fe066d1f1fc2b57a0b7e942",
+        "3972f476d4ef6e822396ae22757c3eb0f76806bd00d4383301f147002ea7c463",
+        "368a9993127f322c2a11f8bfa8107236172eb7073e49e56af21b9ce38451f4e7"
+      ],
+      "publishedClauses": [
+        "전력이 있는 비수동 모드에서는 주문이 없어 대기 중이어도 정비가 감소한다. 정비 감소량은 시간당 작성 소모×이정표 정비배율(0.1~1)×경과 게임시간이다.",
+        "감소 후 정비 M이25 이하이면 고장 F가 (25-M)×0.006×경과초만큼 늘며 0~100에 제한한다. F가100이면 자동 가동을 멈춘다.",
+        "정비 배율은 M≥60이면1, 그 아래는0.45~1 선형 보간이다. 고장 배율은 F=0~100에서1~0.35 선형 보간이며 두 값의 곱을0.1~1에 제한한다.",
+        "자동 제출 WU=max(0.01,작성 초당WU)×상태 배율×경과초다."
+      ],
+      "editorialGroup": "자동화"
+    },
+    {
+      "id": "GAP-054",
+      "guide": "infrastructure",
+      "sourceTitle": "자동화 정비의 시작·종료 기준과 수리 WU 효과 누락",
+      "publicTitle": "자동화 정비의 시작·종료 기준과 수리 WU 효과",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "f77164ca57ea986681ad97af44f3ab28bc3227cc7494e6353b0f3f2b05a7a614",
+        "e8193e09b5ffc5ed3f26da7ecd245dabe7ec7863db06fc2729f7d3b9ec23d756"
+      ],
+      "publishedClauses": [
+        "자동화 정비는 정비 M<85 또는 고장 F>0.01인 시설이 대상이다. 남은 정비 WU는 max(85-M,2F)다.",
+        "승인 정비 1 WU마다 정비가1 증가하고 고장이0.5 감소한다. 목표 정비와 고장 해소 조건을 충족하면 완료한다."
+      ],
+      "editorialGroup": "자동화"
+    },
+    {
+      "id": "GAP-055",
+      "guide": "infrastructure",
+      "sourceTitle": "대장 작업대 자동화 모드·전력·품질·정비 설정 누락",
+      "publicTitle": "대장 작업대 자동화 모드·전력·품질·정비 설정",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "b1f5f68cf3fedaba54c1bf7f14780206cb46fe4de533394a16ed8e7377b782b6"
+      ],
+      "publishedClauses": [
+        "대장 작업대의 최대 모드는 자동이다. 보조 모드 전력2·작업배율1.35, 자동 모드 전력5·초당WU1·자동 품질상한75점이며 정비 소모는 게임시간당1이다."
+      ],
+      "editorialGroup": "자동화"
+    },
+    {
+      "id": "GAP-056",
+      "guide": "production",
+      "sourceTitle": "자동 품질 상한의 설계 범위를 현재 적용 수치로 안내",
+      "publicTitle": "자동 품질 상한의 설계 범위를 현재 적용 수치로 안내",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "0394bda0a39cad924676fb98d5f1dc273763a8dd0a0ca2e5ddb0f7e33daf1ae2",
+        "bb76a571f738f5544ec6ee55fe290511f6cd7a42e01260e513fba1e38114d3b4"
+      ],
+      "publishedClauses": [
+        "자동 작업이 참여한 생산은 시설의 자동 품질상한을 적용한다. 대장 작업대의 작성값0.75는 품질75점이다.",
+        "전체 완료 WU에서 수동 기여 WU를 뺀 값이 max(0.001,완료WU×0.000001)를 넘으면 자동 참여로 판정한다. 수동만 참여한 경우 이 자동 상한은100점이다."
+      ],
+      "editorialGroup": "품질 판정"
+    },
+    {
+      "id": "GAP-057",
+      "guide": "infrastructure",
+      "sourceTitle": "시설 구조 내구도·균열과 수리 시작·회복 기준 누락",
+      "publicTitle": "시설 구조 내구도·균열과 수리 시작·회복 기준",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "d1d113ff50034324f25475f68c94ee2c134012f7ee67af1473928301e08b5d3b",
+        "28b53c0b7b61b6f7cf1fce17cced1518c3f2ced78a73d2794d2c1c375c1f4ef5"
+      ],
+      "publishedClauses": [
+        "구조 체력이 최대의75% 초과이면 균열 없음,50% 초과~75% 이하이면 잔금,25% 초과~50% 이하이면 균열,25% 이하이면 심각한 균열이다. 파괴되지 않은 시설도 체력이50% 이하이면 손상 상태로 판정한다.",
+        "구조 수리는 현재 구조 HP를 시설의 최대HP까지 회복하는 작업이며 시설별 수리 HP/WU를 구분해 표시한다."
+      ],
+      "editorialGroup": "구조와 건설"
+    },
+    {
+      "id": "GAP-058",
+      "guide": "infrastructure",
+      "sourceTitle": "구조 모듈 시설12개와 기본 벽·문3개의 도감 수치60개 누락",
+      "publicTitle": "구조 모듈 시설12개와 기본 벽·문3개의 도감 수치60개",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "762ded2a0f26b9fc8888c0a07a9cb25b8e6c4725ffbf4734b017890df2fbd353",
+        "a92bd5a7b70cf579986978934e80975880599d6504b36d4fb9805b1ea3d3ba40",
+        "a85f3f524c10a8fc2bedbbf42c8633c508bb869a65e4197dd33747a31961b0be"
+      ],
+      "publishedClauses": [
+        "구조 모듈 작성 시설12개와 기본 벽·문3개를 구분한다. 표시 값은 최대HP/강도/수리HP·WU/돌파 가능 여부다.",
+        "강화 낙하문450/24/2, 기본 랜드마크5개1400/38/3, 후기 랜드마크4개2400/60/3, 대형보관선반112/8/7, 전기 제련 도가니148/12/2다.",
+        "기본 내벽300/18/2, 내벽 문120/8/2, 문220/14/2이며 이15개는 모두 돌파 가능이다."
+      ],
+      "editorialGroup": "구조와 건설"
+    },
+    {
+      "id": "GAP-059",
+      "guide": "invasions-and-defence",
+      "sourceTitle": "침입자의 구조물 피해·강도 보정·격노와 공격 간격 공식 누락",
+      "publicTitle": "침입자의 구조물 피해·강도 보정·격노와 공격 간격 공식",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "f7fed92a55c9ddef4375f2c0ec16a9a397de84720c68972c029a65ae775804d5",
+        "bc87148861dae9e7d1bf24700f9aecc1c08562c11be3db9203be60940b29b5f9"
+      ],
+      "publishedClauses": [
+        "침입자의 기본 구조 피해는 근접 명중 성능×5×0.75와 근접 위력 성능×5×0.45를 합한 뒤 전투·근접·구조 피해 배율을 적용하며 최소1이다.",
+        "최종 구조 피해=max(1,기본 구조피해-max(0,강도)×0.5)이며 격노 중에는1.25배다. 막힘이3초 이어지면 격노하며 공격 간격에0.65를 곱한다."
+      ],
+      "editorialGroup": "돌파"
+    },
+    {
+      "id": "GAP-060",
+      "guide": "invasions-and-defence",
+      "sourceTitle": "돌파 경로의 선택 비용·공격 칸 예약·우회로 전환 조건 누락",
+      "publicTitle": "돌파 경로의 선택 비용·공격 칸 예약·우회로 전환 조건",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "b89d065240bffa37fd4339c9c03f4dc866dfdcdff06e22b8e27247d126b9eb84"
+      ],
+      "publishedClauses": [
+        "돌파 경로 비용에는 구조 HP+강도×3+예상 공격 횟수×35와 위험도×30이 반영된다. 외부 차단으로 표시된 칸은 돌파 후보에서 제외한다."
+      ],
+      "editorialGroup": "돌파"
+    },
+    {
+      "id": "GAP-061",
+      "guide": "infrastructure",
+      "sourceTitle": "전력망 연결·우선 공급·최소 가동 비율과 저장 설명 누락·오류",
+      "publicTitle": "전력망 연결·우선 공급·최소 가동 비율과 저장 규칙",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "fefd3a1cb40ad306e49c99a02079b8a188cfc2093e317aeeaa148dbb0fde14ed",
+        "bf3c65255a417eba1fbbbb8c657fa69d44febe203380b313f1d416cf4163a102"
+      ],
+      "publishedClauses": [
+        "전력 공급은 연결망의 실제 전달 경로와 시설별 요청량·최소 공급 비율을 고려해 배분한다. 연결을 껐거나 차단됐거나 공급 비율이 최소 기준에 못 미친 시설은 가동 전력을 받지 못한다.",
+        "저장되는 전력 상태는 시설별 연결·우선순위·축전량·남은 연료 시간·열·고장·차단 상태 및 미완료 연료 처리 정보다. 생산량·수요량·공급률은 연결망에서 다시 계산하는 값이다."
+      ],
+      "editorialGroup": "전력망"
+    },
+    {
+      "id": "GAP-062",
+      "guide": "infrastructure",
+      "sourceTitle": "발전기 연료의 실제 소비·현장 버퍼·가동시간과 고장 보정 누락",
+      "publicTitle": "발전기 연료의 실제 소비·현장 버퍼·가동시간과 고장 보정",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "f0d50923947ec789977628aa2f46fb3d59c0546153ae0d2045a3bdd30304c654",
+        "4d3c50dac9eb93c3ab9fcbbfe89d9e583bd9fb50151f77ef8961481f230813ef"
+      ],
+      "publishedClauses": [
+        "연료 발전기는 지정된 현장 목적지에 실물 연료가 공급돼 소비 처리되어야 가동한다. 남은 연료 시간이 소진되면 다음 연료1개를 요구한다.",
+        "작성 발전량에는 clamp01(1-고장/125) 보정이 적용되고, 현재 망의 추가 용량 배율도 적용된다. 연료가 필요 없는 발전기에는 작성 연료ID·시간을 비용으로 적용하지 않는다."
+      ],
+      "editorialGroup": "전력망"
+    },
+    {
+      "id": "GAP-063",
+      "guide": "infrastructure",
+      "sourceTitle": "축전지 용량·충방전 한도·양방향 손실과 이정표 보정 누락",
+      "publicTitle": "축전지 용량·충방전 한도·양방향 손실과 이정표 보정",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "eadf9043b668439179554e9463131dda7687af6b8bb7efbf6806257ede2b1309",
+        "304d9c1ded0cb968d9b3a3b6979a35bc87ee39f5321ffce69578ef891fa787b4",
+        "59f4b3d111530aaea13659493ca52fdde7578cdb16bc22858f9609cb690887d3"
+      ],
+      "publishedClauses": [
+        "축전지의 작성 용량은240, 초당 충·방전 한도30, 효율0.92다. 실제 방전에 사용한 출력량만큼 저장량에서 출력×시간/효율을 뺀다.",
+        "충전 입력 요청은 min(빈 용량/(시간×효율),초당 이송한도)이며 저장 증가량은 실제 입력×시간×효율이다. 같은 틱에 방전한 축전지는 충전하지 않는다.",
+        "이정표는 잔여 손실에 곱해 효율을 보정한다: 최종 효율=1-(1-작성 효율)×손실 배율(0~1)."
+      ],
+      "editorialGroup": "전력망"
+    },
+    {
+      "id": "GAP-064",
+      "guide": "infrastructure",
+      "sourceTitle": "전력 과부하·열·고장 누적과 망 전체 차단·복구 기준 누락",
+      "publicTitle": "전력 과부하·열·고장 누적과 망 전체 차단·복구 기준",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "30e1d3bf6c09f4d9144eaff5e62c56ef9693a637f7d54a4526944307f51cfb07",
+        "4189f1e9e069574b126e45d16c4ef2b9be7b997fea8b14d40a48d01ba823a7e6",
+        "7a538ce5f40aabf64ebe58cc3f41ed648ea043eb8e17f662d682252d405f7a0b"
+      ],
+      "publishedClauses": [
+        "과부하 비율은 수요/(발전량+실사용 축전지 방전량)이다. 공급이0.001 이하이면 비율0으로 취급한다.",
+        "비율이1보다 크면 열이 초당(비율-1)×18 늘고, 그렇지 않으면 초당8 감소한다. 전력이 있는 상태에서 열이75를 넘으면 고장이 초당(열-75)×0.02 늘며0~100에 제한된다.",
+        "비율이 차단기 허용률(max(1,작성값))을 넘고 열이 차단열(max(1,작성값)) 이상이면 차단한다. 수동 복구는 열60 미만에서 가능하다."
+      ],
+      "editorialGroup": "전력망"
+    },
+    {
+      "id": "GAP-065",
+      "guide": "infrastructure",
+      "sourceTitle": "전력 시설75개의 도감 수치197개와 대체·비사용29개 구분 누락",
+      "publicTitle": "전력 시설75개의 도감 수치197개와 대체·비사용29개 구분",
+      "clauseCount": 5,
+      "clauseHashes": [
+        "23115557ebd5b0e4e5a7a784c385bb106dd930489192c66b13a5dd6c96e79428",
+        "578a7f610c9c2b587f4c0ddb0eeac8613cd4072ec1c5692444ad05bf1e8720ac",
+        "ee5421e29f7d5b392bd40d2ea4b01d5772740430e372a00e96a81b431514891d",
+        "3631161257a4cb329671c28223f2c06f29f7c144806b8f2eacfcedc73deae64e",
+        "b02bd55c0083a6ed00eb164d72e9da90eb0b54efe7b8c5afe5c332ce28ba380d"
+      ],
+      "publishedClauses": [
+        "증기·수차·마나 발전기의 기본 초당 발전량은18·10·32다. 증기는 저급 연료1개당60초, 마나는 마나 수정1개당90초 가동하며 수차는 연료가 필요 없다. 축전지는 용량240·초당 이송30·기본 효율0.92다.",
+        "소비시설69개의 기본 우선순위는 중요2·필수9·생산58개, 최소 공급 비율은1이25개·0.5가15개·0.75가29개다.",
+        "태양등은 전력4, 인공태양은12를 요구하며 둘 다 필수 우선순위·최소 공급 비율1이다.",
+        "자동화 시설27개의 작성 소비5는 모드별 소비 프로필로 대체된다. 수차의 연료ID·시간은 무연료 모드에서 쓰지 않는다.",
+        "회로 차단기의 과부하 허용비/차단 열은1.15/100, 변압 제어반은1.3/130이다."
+      ],
+      "editorialGroup": "전력망"
+    },
+    {
+      "id": "GAP-066",
+      "guide": "infrastructure",
+      "sourceTitle": "급수망의 수질별 사용 순서·공유 저장 공간·사용 실패 조건 누락",
+      "publicTitle": "급수망의 수질별 사용 순서·공유 저장 공간·사용 실패 조건",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "7d4b81761479a85abfea4a064d9a8f1c9fdc02fa6843a1ef65210d333144362e",
+        "3ad392cf7903c2377900d95a938a1a4f6eeace1570b950dfcb6fff475a3966ed",
+        "2ddfaa304864d7b2a0a132d5f1cb8b5128b69a15b527493381074586a0998963"
+      ],
+      "publishedClauses": [
+        "급수망의 깨끗한 물·비음용수·오염수는 별도 재고이지만 세 양의 합이 상수 저장 용량을 사용한다.",
+        "최소 수질이 깨끗한 물이면 그 물만, 비음용수이면 비음용수→깨끗한 물, 오염수이면 오염수→비음용수→깨끗한 물 순서로 찾는다.",
+        "한 요청은 한 수질의 재고만으로 전량을 충족해야 한다. 비음용수3과 깨끗한 물2가 있어도5의 단일 요청은 실패한다."
+      ],
+      "editorialGroup": "급수와 배수"
+    },
+    {
+      "id": "GAP-067",
+      "guide": "infrastructure",
+      "sourceTitle": "급수 생산·폐수 처리의 처리량·속도 보정·정지 조건 누락",
+      "publicTitle": "급수 생산·폐수 처리의 처리량·속도 보정·정지 조건",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "8b1797a16c8c445ab306741b1ba835e26f920b7815e0dd62d6960f05d2318d75",
+        "900d7cdea51481042723c3be56a165ca8923df59a0daf1a9c25c97b77eab4bd0"
+      ],
+      "publishedClauses": [
+        "급수 생산은 유효 생산량·필요 전력·상수망 연결을 갖췄을 때 작성 생산량×현재 유량 배율×경과시간만큼 생산한다.",
+        "폐수 처리기는 필요한 전력, 폐수망과 상수망 연결, 입력 폐수 전량, 출력 저장 여유를 모두 갖춰야 진척이 쌓인다. 처리시간은 최소0.1초로 제한하며 진척은 유량 배율을 적용해 쌓고 완료 배치만큼 입력을 빼고 출력을 더한다."
+      ],
+      "editorialGroup": "급수와 배수"
+    },
+    {
+      "id": "GAP-068",
+      "guide": "infrastructure",
+      "sourceTitle": "하수 역류·막힘·누수와 배관 업무의 실제 수리 공식 누락",
+      "publicTitle": "하수 역류·막힘·누수와 배관 업무의 실제 수리 공식",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "3f74a46c08047a6c84329fa694ca5e9f5206f13477cf714ee3460c813c584b0f",
+        "ff03b9ac83479ecf3a668736c0b702e732eda77173cf759a6f9cb254055afb2b",
+        "277c6541c4dfbf47d5ffdcfb473103702f704c714e4209507223224dbf18fbdd"
+      ],
+      "publishedClauses": [
+        "배관 정비 작업량은8+막힘×0.25+누수×0.3 WU다.",
+        "누수 손실은 min(해당 노드 총물량,누수×0.001×경과초×계량 보정)이며0.02를 넘게 새면 누수량×2의 하수 오물을 오염값0.25로 만든다.",
+        "폐수망이 용량에 가깝게 가득 차면 역류를 발생시킨다. 역류는 막힘을 max(1,역류량×2)만큼 늘리고0~100에 제한한다."
+      ],
+      "editorialGroup": "급수와 배수"
+    },
+    {
+      "id": "GAP-069",
+      "guide": "infrastructure",
+      "sourceTitle": "급수·저장·정수·물통 시설7개의 도감 설정34개와 역할 설명 누락",
+      "publicTitle": "급수·저장·정수·물통 시설7개의 도감 설정34개와 역할 설명",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "2a6173ed95f92ba68875a258f18e2b6819160a86b633e6cbea20e7adffa24031",
+        "76335013209e2699f027d5055b2ab6853e6238edde52f51e7d1c6f4a73277752",
+        "73b66414d4598065179b0ec0354462c763d6d8360a64b1cb6625919ddb330425"
+      ],
+      "publishedClauses": [
+        "전동 양수 펌프는 깨끗한 물을 초당0.75 생산한다. 상수 탱크는 상수120, 오수 탱크는 폐수140을 저장한다.",
+        "물통 충전소는 배치당 물1, 기준4초, 병입 목표 재고10이다.",
+        "오수 침전조는 폐수10→비음용수6/14초, 소독 정수기는10→깨끗한 물8.5/8초, 룬 정화 시설은10→깨끗한 물9/8초다. 세 처리기의 배치당 슬러지는1개다."
+      ],
+      "editorialGroup": "급수와 배수"
+    },
+    {
+      "id": "GAP-070",
+      "guide": "infrastructure",
+      "sourceTitle": "물통 충전소의 양방향 모드·공용 재고 목표·중단 조건 누락",
+      "publicTitle": "물통 충전소의 양방향 모드·공용 재고 목표·중단 조건",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "a8515d6e6a4f40537790cb868011c6d81c42d3a8fd65b0e1130a39e29b6267aa",
+        "805053e6d5721ce400a69692c62f4cc9defa3d6edd5238820507b65ef9afd3e6",
+        "444cb41c982a4f51162764cd681fbc351b451c2e6d81b8f8c445ea6c04735da9"
+      ],
+      "publishedClauses": [
+        "물통 충전소는 비활성·관로에서 병입·물통으로 관로 급수 모드를 가진다. 모드를 설정하면 같은 모드를 다시 지정해도 작업 진척이0으로 초기화된다.",
+        "병입 목표는 같은 깨끗한 물 아이템의 전체 스택 수량 합계를 기준으로 하며 충전소별 버퍼는 기준에서 제외한다. 목표 이상이면 병입을 멈춘다.",
+        "가동 중 완료 배치 하나를 처리하고 성공하면 필요 진척을 빼며 실패하면 진척을 한 배치분까지만 보존한다. 관로 급수는 출력 저장 여유가 필요하다."
+      ],
+      "editorialGroup": "급수와 배수"
+    },
+    {
+      "id": "GAP-071",
+      "guide": "infrastructure",
+      "sourceTitle": "생활 시설의 급수·배수량과 단수 시 이용·폐기물 처리 규칙 누락",
+      "publicTitle": "생활 시설의 급수·배수량과 단수 시 이용·폐기물 처리 규칙",
+      "clauseCount": 6,
+      "clauseHashes": [
+        "ce3b9c7dda8bd3181757a7e4eebd0f0b186100b864d02ebe1183bccccbc09558",
+        "55cd88ab608fd57c2cae42bb4433962322f6b95c90309a6df5746295f75e4f40",
+        "b10c85a22aadeb485fcbe05fd66340ef666bdeea08d6b0e11847facf8197d06a",
+        "2837c1268204b6d7efe59a06674b7825bec15e2db4d6917ee17fd56efd059fc8",
+        "28ad6db7aaf3202b03f8892223f2706e520a24ecf5d42487cfa8142f3e458f72",
+        "47b21e03767ec8286f8e27b9be5b0b7cc344cf19bdedc998ccccb4191bd121e5"
+      ],
+      "publishedClauses": [
+        "시설 사용 시작에 물을 소비하고 완료 때 폐수를 처리한다",
+        "작성 기준은 샤워0.45/0.45, 목욕통1/1, 세면대0.15/0.15, 변기0.25/0.25(물/폐수)이며 모두 깨끗한 물을 요구한다",
+        "생활용 물 배율은 물과 폐수 양을 함께 보정하므로 작성값과 실제 사용량을 구분한다",
+        "샤워·목욕통은 관로 급수가 필요하고, 세면대·변기는 지정 버퍼의 깨끗한 물로 수동 공급할 수 있다",
+        "변기만 물 없이 이용하는 분기가 있으며 완료 시 하수 오물8, 오염값0.45를 만든다",
+        "정상 이용의 폐수가 배수되지 않으면 세면대는 슬러지, 변기는 분뇨를 max(1,ceil(폐수량))개 만들고, 해당 대체물이 없는 시설은 폐수망에 배출을 시도해 역류 경로로 이어진다"
+      ],
+      "editorialGroup": "급수와 배수"
+    },
+    {
+      "id": "GAP-072",
+      "guide": "infrastructure",
+      "sourceTitle": "수동 급수의 시설별 잔량·물통 반올림·운반 목적지 조건 누락",
+      "publicTitle": "수동 급수의 시설별 잔량·물통 반올림·운반 목적지 조건",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "1e957ae04c5a56dc52b86474263fab02b331d4c7f2ff046a9d69c21c94276220",
+        "e33d016a9d06095bcccb34aac21d8610cb83f8364d06e6ffe40beed2b1e1678b"
+      ],
+      "publishedClauses": [
+        "수동 급수의 남은 물은 시설별로 보존한다. 필요한 추가 물통 수=max(0,ceil(요청 물량-시설 잔량-0.0001))이다.",
+        "해당 목적지로 배달된 미예약 입력을 사용하고 부족한 양에 대해서만 실물 배송을 요청한다. 현행 경로는 수동 급수 목적지를 동적으로 확보한다."
+      ],
+      "editorialGroup": "급수와 배수"
+    },
+    {
+      "id": "GAP-073",
+      "guide": "production",
+      "sourceTitle": "생산의 시설·조합식·보조 설비 급배수 합산과 의료 경로 차이 누락",
+      "publicTitle": "생산의 시설·조합식·보조 설비 급배수 합산과 의료 경로 차이",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "caddb259e2489a47bc3299c058b2655f7dc7e6da6b4e0bc41982c94a2fac294b",
+        "53300fce47a4bb5e1b763f30847c2604257d24e26195cefd66b09caff8f433c1",
+        "6f69fa7f72b633f35a52ba2f6dbefa64f5de19a5236cde2d10bf529cafd0e718"
+      ],
+      "publishedClauses": [
+        "생산 한 사이클의 물·폐수는 기본 시설, 조합식, 서로 다른 연결 보조시설의 요구를 더한다. 같은 보조시설ID는 한 번만 포함한다.",
+        "수동 급수는 참여하는 요구의 수동 허용을 모두 만족해야 한다.",
+        "수술은 일반 생산 주문 합산과 별도의 유체 사용 경로를 가지며 배수 실패 시 슬러지 대체물을 처리하는 분기가 있다."
+      ],
+      "editorialGroup": "생산 도감과 자원 처리"
+    },
+    {
+      "id": "GAP-074",
+      "guide": "infrastructure",
+      "sourceTitle": "생활·공정·생산 보조시설의 급배수 설정과 역할별 도감 누락",
+      "publicTitle": "생활·공정·생산 보조시설의 급배수 설정과 역할별 도감",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "c72b36e53ded1a769bf67b49d91392738bac076a9588136904305e9cc3b09481",
+        "657f5f718a04f0dda00a54414b313f579ae994148fe2c25318ee3df8e3477458",
+        "06df90b95950aabf04a4e1c655c68c5f79f43b3cfec48d397eb99396a0842906"
+      ],
+      "publishedClauses": [
+        "생활시설의 사용당 물/폐수는 변기0.25/0.25, 세면대0.15/0.15, 목욕통1/1, 샤워 시설0.45/0.45다. 변기·세면대는 수동 급수를 허용하고 목욕통·샤워는 허용하지 않는다. 무수 이용은 변기만 허용한다.",
+        "공정 시설18개 중 조리 시설5개는 사이클당 물/폐수0.25/0.25, 수술 시설13개는0.2/0.2를 요구한다.",
+        "급배수를 추가하는 생산 보조시설9개와 추가 요구가0인19개를 구분한다. 예를 들어 담금 당화조는 물0.25·폐수0·수동 급수 허용, 치즈 응고조는0.2/0.2·수동 불가, 실내 생장 제어기는0.2/0.05·수동 불가다."
+      ],
+      "editorialGroup": "급수와 배수"
+    },
+    {
+      "id": "GAP-075",
+      "guide": "production",
+      "sourceTitle": "조합식의 폐수량·폐수 종류·수동 공급 조건 누락과 물 수치의 범위 불명확",
+      "publicTitle": "조합식의 폐수량·폐수 종류·수동 공급과 물 수치 적용 범위",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "bbccf3f361fd15e2f36755f13a08ad8f8c42abd572094ff7bc24be0680a91bf0",
+        "d154593ed830a9e6d1bb6a8200132eef6d532138952985d0fcaed72da9b2f2d0"
+      ],
+      "publishedClauses": [
+        "응유 조합식 자체는 사이클당 물0.4·폐수4.2를 요구하고 수동 급수를 허용한다. 시설·보조 설비가 요구하는 추가 물은 이 물0.4에 별도로 더한다.",
+        "예를 들어 간이화덕0.25/0.25와 치즈 보조0.2/0.2를 함께 쓰면 총 물0.85·폐수4.65다."
+      ],
+      "editorialGroup": "생산 도감과 자원 처리"
+    },
+    {
+      "id": "GAP-076",
+      "guide": "infrastructure",
+      "sourceTitle": "컨베이어 반입·경로·속도·화물 수용량과 예약 제외 조건 누락",
+      "publicTitle": "컨베이어 반입·경로·속도·화물 수용량과 예약 제외 조건",
+      "clauseCount": 4,
+      "clauseHashes": [
+        "36c425d9aa0586a33a3686c2a1a122fc12b02cf5af2b19e35e200d28bafdbe8d",
+        "df2e8ac6e08917d80529dbd55c131607522f9e4c5dab92ad33574f32a21fe0fc",
+        "e1328a49da69bb7e4d68f6163c81c4a2b9b145bd93a60a86883b154bbc2c8ec1",
+        "94b212fd8bb7e1129cd96e25a51cbcce8fde230b0338869ac61b7e181bcfbf61"
+      ],
+      "publishedClauses": [
+        "자동 반입 포트는 목적지가 지정되어야 적재하며, 한 번의 반입 처리에서 포트마다 성공한 한 스택까지만 적재한다.",
+        "경로는 연결 구간 수가 가장 짧은 경로로 정한다. 같은 길이 후보의 탐색 순서는 시설 식별자 순으로 정해진다.",
+        "화물 진행도는 속도×경과시간만큼 증가하지만 한 번의 갱신에서 다음 한 구간까지만 이동한다. 화물 수용량은 개별 아이템 수량 대신 운송 화물 개수를 기준으로 한다.",
+        "산업 화면에서 목적지를 선택하거나 해제할 수 있다. 목적지 해제는 새 자동 적재를 막으며 이미 운반 중인 화물의 목적지는 유지한다."
+      ],
+      "editorialGroup": "컨베이어"
+    },
+    {
+      "id": "GAP-077",
+      "guide": "infrastructure",
+      "sourceTitle": "컨베이어 품목·소재·품질·신선도·오염 필터의 결합 조건 누락",
+      "publicTitle": "컨베이어 품목·소재·품질·신선도·오염 필터의 결합 조건",
+      "clauseCount": 4,
+      "clauseHashes": [
+        "b0e1bdb488012a4e034b755725c27f29f5eb9f042667c2e31e73974bc0744601",
+        "265f024cdce01aada1e06a2ebecf25b120198c9d377fb502d19c33ac40e5ead3",
+        "626b84b0d56a9ee9695bc30cf3cc4b2e1db0df2b08d0ac49bf2e658fa359b466",
+        "d98018f5892c5c9365b039f8abf49b4dbd9975003cf915e9b5d3f2272f5e6fd3"
+      ],
+      "publishedClauses": [
+        "품목 목록과 재고 분류 목록은 둘 중 하나에 맞으면 통과하며, 둘 다 비어 있으면 이 조건으로 제한하지 않는다. 에셋 기본 필터와 사용자가 지정한 필터는 모두 만족해야 한다.",
+        "소재·품질은 장비 인스턴스를 검사하고, 신선도·오염 허용은 식품 상태를 검사한다. 품목/분류 통과만으로 추가 조건이 면제되지는 않는다.",
+        "금지품 허용은 기본 설정과 사용자 설정 중 하나라도 허용하면 통과한다.",
+        "산업 화면에서 품목·분류·장비 소재 목록을 편집할 수 있다. 일반 원료의 소재를 고르는 기능으로 설명하지 않는다."
+      ],
+      "editorialGroup": "컨베이어"
+    },
+    {
+      "id": "GAP-078",
+      "guide": "infrastructure",
+      "sourceTitle": "컨베이어 정체·교착 판정과 넘침 배출 정책·대기시간 누락",
+      "publicTitle": "컨베이어 정체·교착 판정과 넘침 배출 정책·대기시간",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "539532b2a7cfa7d6c81d1e4e644591dace12343d34d4103757f457ff739b23a4",
+        "fbf3a44d8fe9690575a31cb4ee1eb13435f10e837862f6bbbbb07466867f2f4b",
+        "588a6be79c5b4e9fb3577aee6e6e0ad6541ac7595c023712ffb9ac9ba68159e4"
+      ],
+      "publishedClauses": [
+        "수동 정지나 정전으로 멈춘 동안은 정체 시간을 누적하지 않고 타이머를 초기화한다.",
+        "가까운 창고 우선·지정 예비창고 우선 정책은 입고에 실패해도 화물을 벨트에 보존한다. 정책 이름과 달리 창고 실패 뒤 자동 바닥 배출하지 않는다.",
+        "바닥 배출은 명시적 바닥 배출 정책 또는 화물별 수동 승인 정책에서만 가능하다. 수동 승인 정책은 해당 화물의 승인이 필요하며 배출 좌표 후보는 최대8개를 확인한다."
+      ],
+      "editorialGroup": "컨베이어"
+    },
+    {
+      "id": "GAP-079",
+      "guide": "infrastructure",
+      "sourceTitle": "컨베이어 기능 시설40개의 운송 설정·입출력 역할 도감 누락",
+      "publicTitle": "컨베이어 기능 시설40개의 운송 설정·입출력 역할 도감",
+      "clauseCount": 4,
+      "clauseHashes": [
+        "95c65e70cc4bbb3438a6290cf7b0e14195546cf7e40e812c792df685b9b90e09",
+        "7ca428cb4c10630ab948c27ced6848b8f2464446157e049d220a5a6da344ba6a",
+        "c5b5a1f3aba817a0232df56d035f98383b97bb9d8ff1708e78048dbd788061c1",
+        "8c7a4ad564df836199b6fae5741adb5e67b1ae8f05364f7e46f03015ae6254dc"
+      ],
+      "publishedClauses": [
+        "전용 운송 시설13개와 포트를 가진 일반 생산시설27개가 있다. 일반 생산시설27개는 입출력 양방향 포트와 화물4개 수용량을 가진다.",
+        "입력기·출력기의 실제 수용량은 화물2개다. 함께 작성된 포트 수용량4는 벨트 수용량2에 가려져 적용되지 않는다.",
+        "포트29개의 초기 목적지는 비어 있어 운송 목적지 설정이 필요하다.",
+        "전용 벨트13개는 초기 품목·분류·소재 제한이 없고 품질·신선도 필터는 꺼져 있다. 꺼진 필터의 품질0~7·신선도0~1 범위를 활성 제한으로 표시하지 않는다."
+      ],
+      "editorialGroup": "컨베이어"
+    },
+    {
+      "id": "GAP-080",
+      "guide": "infrastructure",
+      "sourceTitle": "컨베이어 경로 저장 설명 오류와 복원 후 재계산·승인 상태 누락",
+      "publicTitle": "컨베이어 경로 저장·복원 후 재계산·승인 상태",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "e8ac4b4e89513f31d013d6f51d6e4080c7755555b0d2d34aa447ddbe37c07250",
+        "57b657576628c28f2dc154491859a51d2a316464410061d4a5cfb4497b12f502",
+        "53273597d0d244f325eb41ff16ed423c5cab2587bdca3cc0ee1b4f45908a5602"
+      ],
+      "publishedClauses": [
+        "저장에는 화물·스택 식별자, 현재/이전 구간, 목적지, 진행도, 정지 경과와 노드 가동·필터·배출 설정이 포함된다.",
+        "전체 경로 목록과 경로 인덱스는 저장하지 않으며 복원 후 현재 연결망에서 다시 계산한다. 화물별 수동 배출 승인도 저장하지 않는다.",
+        "복원 후 연결망 투영을 초기화하거나 연결·필터·가동 설정을 바꾸면 경로와 정지 타이머·재시도 시점이 초기화된다."
+      ],
+      "editorialGroup": "컨베이어"
+    },
+    {
+      "id": "GAP-081",
+      "guide": "weather-seasons-and-environment",
+      "sourceTitle": "온도·공기·조명 확산과 벽·문·덕트의 실제 작용 누락",
+      "publicTitle": "온도·공기·조명 확산과 벽·문·덕트의 실제 작용",
+      "clauseCount": 4,
+      "clauseHashes": [
+        "9e6e184c13c794231be80819f2775aac7c45c597c8e645fe5549ee48d3445c84",
+        "b55e075d01562c9375693e31ddec533f7d42c952deecc53258b637816cdd286d",
+        "ec3b775f1cb74a74996262920595182aac0d1893ed959c3c30527f30e089f538",
+        "8975f2145b19c325dbd6929884c29dcd96a43ba2a96a08cd46eddfe2f3e65383"
+      ],
+      "publishedClauses": [
+        "주변 칸의 온도·공기 교환 계수는 일반0.12, 문이 있는 경계0.55다. 양쪽 칸의 덕트 계수가 더 크면 그 값을 사용하며, 주변 칸 기여는 이웃 수로 나눈다.",
+        "닫힌 문은 양끝 칸 사이의 온도·공기 교환을 차단하지만 빛 교환은 막지 않는다. 빛의 이웃 교환에는 선택된 교환 계수의0.6배를 적용한다.",
+        "외기 온도로 가까워지는 계수는 실외0.35·실내0.08, 공기100으로 가까워지는 계수는 실외0.5·실내0.015다. 이는 이웃 사이 교환과 별도 항이다.",
+        "환기덕트·송풍구·배기팬의 덕트 교환 계수는0.65다. 외부 공기와 교환하는 발생원의 목표 공기 상태는100이다."
+      ],
+      "editorialGroup": "환경 전파와 보호"
+    },
+    {
+      "id": "GAP-082",
+      "guide": "infrastructure",
+      "sourceTitle": "냉각·공조·환기·아크등의 확인된 성능과 목표 온도 조절 누락",
+      "publicTitle": "냉각·공조·환기·아크등의 확인된 성능과 목표 온도 조절",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "6371a5af5b50424b8e95495644fce900593eb26a2d3e4beb597d9d232931502f",
+        "94e365e8e85b7e36d87445c77b19302a013802a0d03a69dc2b33797c32c36526",
+        "319c1570426300a851dca86c82ce2304bae64e9ba3a3a2d655ee3f6dea37f649"
+      ],
+      "publishedClauses": [
+        "냉각기는 기본 목표8℃, 조절 범위2~8℃, 초당 변화량3℃, 반경3칸이다. 공조기는 기본22℃, 조절2~30℃, 초당2.5℃, 반경4칸이다. 시설 화면에서 목표 온도를2℃씩 조절하며 시설별 범위로 제한된다.",
+        "공조기·송풍구·배기팬의 공기 변화율은 각각 초당6·8·12, 반경은4·3·4칸이다. 모두 외부 공기 교환으로 목표100을 사용한다.",
+        "전기 아크등의 작성 광도는1.2, 반경5.5이며 격자 적용 반경은 올림하여6칸이다. 조명은 시설 활성 상태와 필요한 전력·연료 공급 조건을 확인한 뒤 환경값과 발광 표시를 함께 갱신한다."
+      ],
+      "editorialGroup": "환경 설비와 휴식"
+    },
+    {
+      "id": "GAP-083",
+      "guide": "weather-seasons-and-environment",
+      "sourceTitle": "추위·더위·공기 노출과 시각 피로의 누적·회복 공식 누락",
+      "publicTitle": "추위·더위·공기 노출과 시각 피로의 누적·회복 공식",
+      "clauseCount": 5,
+      "clauseHashes": [
+        "9a6aa5b11527ac8bde991a67866ddcef9822ed792566c4710820c65a3668fce8",
+        "ac7023bc59ff73833095141b3e08fd6b6b7a9853d1555508ef87ade3908294f5",
+        "d9ca8f0ad00a9a862dfb527546fad22696b013af356e646c9f2936e38aead6e0",
+        "1a661eded0c781be80bdbcfa2d952e7a85cb27fb4ea74630a7283828e4ef0883",
+        "47445b00e6f22b7458d6ec0cc676042881daa4121f4dd439ee779d7ef342ccae"
+      ],
+      "publishedClauses": [
+        "노출은0~100 범위다. 편안한 조건에서는 초당1.5씩 회복한다. 단계 상승 문턱은25/50/75/100이며 부담·기능 저하·위급에서 내려갈 때는 해당 문턱보다5 낮아져야 한다.",
+        "공기70 이상은 공기 노출이 늘지 않는다.70→40 구간은 나빠진 비율 x에 대해 초당0.15×x^1.5,40→20은0.5+1.5×x^1.5,20 미만은2씩 늘어난다.",
+        "온도는 종족별 편안함·안전·치명 경계와 보호 효과를 적용한다. 편안함→안전 경계 구간은0.15×x^1.5, 안전→치명 구간은0.5+1.5×x^1.5, 치명 경계 이상은2의 기본 노출률을 쓴다.",
+        "기존 시각 피로는 조명 적응 기능이 꺼진 정밀작업·수술·긴급수술에서만 누적된다. 조명50 이상은 누적0,50 미만에서는 어두워진 비율 x에 따라0.15+0.85×x^1.5씩 늘어난다. 조명 적응이 켜졌거나 정밀작업이 아니면 기존 시각 피로는 회복 조건으로 처리된다.",
+        "사망자와 원정 중인 인물은 이 현장 노출 갱신에서 제외된다."
+      ],
+      "editorialGroup": "환경 전파와 보호"
+    },
+    {
+      "id": "GAP-084",
+      "guide": "weather-seasons-and-environment",
+      "sourceTitle": "환경 노출의 작업·이동·기분·피해·명중률 보정 누락",
+      "publicTitle": "환경 노출의 작업·이동·기분·피해·명중률 보정",
+      "clauseCount": 4,
+      "clauseHashes": [
+        "5e9082249426c527bd28a3376f91b14da9ddf5ef44c44988cae0346df0e7ceca",
+        "e30172a84d92fd20f6698884a5636bde696ee63baf2f8c492bc2c3be4b44bb60",
+        "9adf5117d28b7ac22ed3f70b92d12af5965f99ea028d35cbf395339fecc5ccc4",
+        "3afd65eeb4236e6aa7e2c01f7219314d443422aa811d64979a5559db6f9f38b1"
+      ],
+      "publishedClauses": [
+        "부담/기능 저하/위급/붕괴의 일반 작업 기본 배율은0.9/0.75/0.5/0.1, 정밀작업 기본 배율은0.85/0.6/0.35/0.35다. 실제 작업 속도는 이 표에 현재 조명 적응 배율을 별도로 결합해 산정한다.",
+        "같은 단계의 이동 배율은0.95/0.85/0.7/0.1이며 생리 노출의 명중 감점은 기능 저하10%p, 위급·붕괴25%p다.",
+        "부담·기능 저하·위급 단계로 바뀌면15초 동안 기분이 각각5·10·20 감소한다. 붕괴 단계 진입은 억압100을 더한다.",
+        "위급 이상 노출은10초마다 최대 체력1%의 비치명 피해를 준다. 치명 온도 또는 공기20 미만에서는 별도로 초당 최대 체력1%의 사망 가능한 피해를 준다."
+      ],
+      "editorialGroup": "환경 전파와 보호"
+    },
+    {
+      "id": "GAP-085",
+      "guide": "residents-and-work",
+      "sourceTitle": "환경 위험에 따른 작업 거부·방한복 착용·재배정·대피 조건 누락",
+      "publicTitle": "환경 위험에 따른 작업 거부·방한복 착용·재배정·대피 조건",
+      "clauseCount": 4,
+      "clauseHashes": [
+        "4b1e12e634fec354a0210fea5aa6b2751483c4edfd959660f5226fbe5bea55f2",
+        "72bda60fb9ba4306a3981c35ee07349d5496b99edfe884b14c9d693985d78f7b",
+        "8741c1634974a5f3fe716861df282a028b71fd75ac1b3109f9696ecf9368b743",
+        "042edff364f0c18810beaafe341599ad20622c7dc9e56f5e618bd03859210daf"
+      ],
+      "publishedClauses": [
+        "냉기 노출15 이상이면 냉기 휴식 잠금이 켜지고10 미만이 되어야 풀린다.10 이상15 미만에서는 기존 잠금 상태를 유지한다.",
+        "일반 작업에서 보호가 필요하고 종료 시 냉기 노출이25 이상으로 예측되면 방한 보호복 자동 착용을 시도한 뒤 위험을 다시 예측한다. 강제 작업과 안전 예외 작업은 이 자동 착용 조건에서 제외된다.",
+        "진행 작업은1초 간격으로 환경을 다시 확인한다. 생리·시각 단계 중 높은 쪽이 기능 저하 이상이면 재배정, 위급 이상이거나 치명 환경이 예측되면 대피를 시도한다.",
+        "진행 중인 긴급수술·방어·안전 업무는 위1초 환경 중단 검사에서 제외된다."
+      ],
+      "editorialGroup": "환경과 시설 상태"
+    },
+    {
+      "id": "GAP-086",
+      "guide": "food-and-ecology",
+      "sourceTitle": "보관 온도에 따른 음식 신선도 감소 배율 누락",
+      "publicTitle": "보관 온도에 따른 음식 신선도 감소 배율",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "573a31b92a61b7fa9c401678fa41c752ddfc3e9747a8e0e8832c2889c27b5b0e",
+        "3530bca3238720d71247765528aa7e37a558eca7f56cacaec1b4fb22c0c44807"
+      ],
+      "publishedClauses": [
+        "음식 부패의 온도 배율은 2^((보관 온도−20)/10)이며0.25~4로 제한된다.20℃는1배,10℃는0.5배,0℃ 이하는0.25배,30℃는2배,40℃ 이상은4배다.",
+        "일일 신선도 감소 계산은180×온도 배율이며 보존 처리된 음식은 여기에0.25를 곱한다."
+      ],
+      "editorialGroup": "보관과 조리"
+    },
+    {
+      "id": "GAP-087",
+      "guide": "weather-seasons-and-environment",
+      "sourceTitle": "초기 기후 보호 기간과 계절별 외기 계산식 누락",
+      "publicTitle": "초기 기후 보호 기간과 계절별 외기 계산식",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "b92acc34b75386fada74d990f92a099bdeaf1590d1d0b33d97ec3595fd842543",
+        "045fe78d8761f4e4d314f1f0e20e4fd96e60a58e4681314514dc1ed3d713e4a5"
+      ],
+      "publishedClauses": [
+        "시작1~5일은 맑음·외기20℃·일일 잡음0으로 고정된다.6일부터 정상 날씨·계절 계산을 적용한다.",
+        "한 계절은30일,1년은120일이다. 정상 외기는 기후 평균+진폭×sin(2π×(연중일−30)/120)+현재 날씨 보정+일일 잡음으로 계산하며 일일 잡음 범위는−2~2℃다."
+      ],
+      "editorialGroup": "계절과 날씨 관측"
+    },
+    {
+      "id": "GAP-088",
+      "guide": "weather-seasons-and-environment",
+      "sourceTitle": "날씨 교체 시점·계절 가중치·지속일 선택 규칙 누락",
+      "publicTitle": "날씨 교체 시점·계절 가중치·지속일 선택 규칙",
+      "clauseCount": 4,
+      "clauseHashes": [
+        "09e027c9934adaa3ec8010f7322e5a44726b0dc3872a125b841ae51929bb1849",
+        "abb5cd9f627f02a488a6145ca18c54d5c4a3a0a173425c2af71687599b323975",
+        "c70061a69002a756f62608b10fb6f06aba849c124ec439ea610c3cf74063c81c",
+        "6cd084673d56ddc179ea01905de34275835424dc08b5dc3cb515e055ca98d96c"
+      ],
+      "publishedClauses": [
+        "보호기간 이후에는 현재 날씨의 남은 일수를 하루마다1 줄여0이 되면 그날의 계절 가중치로 날씨를 다시 고른다. 계절이 바뀌었다는 이유만으로 진행 중 날씨를 즉시 교체하지 않는다.",
+        "양수 가중치만 후보이며 선택 확률은 가중치/합계다. 현재6개 날씨의 가중치 합은 각 계절100이고 겨울 폭염은0이라 추첨에서 제외된다.",
+        "선택한 날씨의 지속기간은 작성된 최소~최대 정수 일수에서 별도로 고른다. 직전 날씨를 제외하지 않아 같은 날씨가 다시 선택될 수 있다.",
+        "가중치는 교체 때의 추첨 확률이다. 달력상의 점유 일수 비율과 구분하며 기후·현재 날씨·남은 일수·일일 잡음은 저장한다."
+      ],
+      "editorialGroup": "계절과 날씨 관측"
+    },
+    {
+      "id": "GAP-090",
+      "guide": "weather-seasons-and-environment",
+      "sourceTitle": "기상 관측탑의 장비·내구도·예보 표시 조건 누락",
+      "publicTitle": "기상 관측탑의 장비·내구도·예보 표시 조건",
+      "clauseCount": 4,
+      "clauseHashes": [
+        "4a38215a4ad91a354c35ab4be8eb4d52300410418deacc72f27e4d341ca266f0",
+        "2249ebc674bff8ea5c29272190ffd695f935e966f48c5917fc9f5b4cf7826574",
+        "4897b3573049c2a90a26305622050d2773b0f6115128c0150e1ef1e3e0ddf96d",
+        "5fcefc3a76619325291897b8019998cd6900237c9ffa1cf543937e2774896f12"
+      ],
+      "publishedClauses": [
+        "기상 관측탑은 계절 역서1개와 기상 관측 도구1개를 실물 장비 슬롯에 공급해야 관측 장비가 가동한다.",
+        "계절 역서의 내구도는180·일일 마모0.25, 기상 관측 도구는 내구도120·일일 마모1이다. 정상 일일 마모만 계산하면 각각720회·120회분이다.",
+        "관측 장비가 가동할 때 화면의 예보 일수는 현재 날씨 남은 일수를 최소1·최대3일로 제한한 값이며, 장비가 가동하지 않으면0이다.",
+        "일일 장비 유지 대상은 운영 가능한 관측탑을 지속 식별자 순으로 정렬한 첫 탑이다."
+      ],
+      "editorialGroup": "계절과 날씨 관측"
+    },
+    {
+      "id": "GAP-091",
+      "guide": "weather-seasons-and-environment",
+      "sourceTitle": "계절 사건의 결정적 선정·연도 초기화·마감일 규칙 누락",
+      "publicTitle": "계절 사건의 결정적 선정·연도 초기화·마감일 규칙",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "a12d00ef952dff5dfa853274e5d485346523f84232ac4d5d45e18c02a38a3359",
+        "0b9493f18383d18ffdd4964638a8dc8ab478d383af4bd26c3752c80d23b78fd9"
+      ],
+      "publishedClauses": [
+        "후보는 실행 시드·날짜·사건 ID로 정해지는 고정 순서에서 선정되며 같은 조건이면 같은 결과가 된다. 완료한 계절 사건의 후보 제외 목록은 게임 연도가 바뀌면 초기화된다.",
+        "마감일은 시작일+지속일이며 마감일 당일까지 활성 상태다. 표류 화물 사건은 기한이 지나도 만료 정산이 끝날 때까지 제거가 보류될 수 있다."
+      ],
+      "editorialGroup": "계절 사건"
+    },
+    {
+      "id": "GAP-092",
+      "guide": "weather-seasons-and-environment",
+      "sourceTitle": "떠돌이 종자상의 시작 호의 효과와 사건 효과 단계 누락",
+      "publicTitle": "떠돌이 종자상의 시작 호의 효과와 사건 효과 단계",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "5163166c148bbdd54c1d90c9654214fe2a7b7fbce4d69545f205998853bf5e1f"
+      ],
+      "publishedClauses": [
+        "떠돌이 종자상은 사건 시작 때 균사 세력 호의를 +4 적용한다. 시작 효과, 매일 효과, 종료 효과는 서로 다른 단계이며 이 사건의 일일 효과는 없다."
+      ],
+      "editorialGroup": "계절 사건"
+    },
+    {
+      "id": "GAP-093",
+      "guide": "events-and-choices",
+      "sourceTitle": "사건 작업 지연의 기간·범위·속도 배율 누락",
+      "publicTitle": "사건 작업 지연의 기간·범위·속도 배율",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "4c22b1a4659ee4c8fcdcfcc6ff4d36ca1ea97d806b74cc428838b8c4946848c2",
+        "0a976209793b3e6f3e0376a7f1d861ceb68eba840bcef5767a934d27104ca20a"
+      ],
+      "publishedClauses": [
+        "같은 작업 범위의 양수 지연은 기존 만료일과 오늘 중 늦은 날에 기간을 더한다. 음수 지연은 남은 기간을 줄이고 만료한 지연은 제거된다.",
+        "해당 작업에 걸리는 활성 지연 n개의 공통 속도 배율은 max(0.5, 0.8^n)이다. 홍수 범위는 파종·수확·운반·시설 재고 보충에 적용된다."
+      ],
+      "editorialGroup": "사건 효과와 발생"
+    },
+    {
+      "id": "GAP-094",
+      "guide": "species-culture-and-life",
+      "sourceTitle": "현재 종족 11종의 쾌적·안전·치명 온도66값 누락",
+      "publicTitle": "현재 종족 11종의 쾌적·안전·치명 온도66값",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "d511f24f0095ddd23a5e5d487a575e103920ea5ff2e1bea7c03153e427f055f8",
+        "68d32ab103e1d3af7c23d133655598ac9500320c6f78ee8236c13adb1b041a44"
+      ],
+      "publishedClauses": [
+        "각 종족의 쾌적/안전/치명 온도 범위를 °C로 표기한다: 모험가15~27/0~40/-10~48, 수인10~29/-4~40/-12~48, 악마20~34/10~46/-2~56, 골렘-5~35/-20~50/-35~65, 하피7~25/-5~36/-15~44, 인간15~27/0~40/-10~48.",
+        "코볼트11~28/-2~40/-10~48, 균사인8~22/0~32/-8~40, 오크12~30/-5~42/-15~50, 슬라임16~24/5~34/0~40, 뱀파이어8~22/0~34/-10~42. 수치는 보호 보정 전 종족 기본 범위이다."
+      ],
+      "editorialGroup": "기후와 종족 상태"
+    },
+    {
+      "id": "GAP-095",
+      "guide": "weather-seasons-and-environment",
+      "sourceTitle": "온도 보호의 치명 경계 제한과 대표 작업복 선택 누락",
+      "publicTitle": "온도 보호의 치명 경계 제한과 대표 작업복 선택",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "0248e206ef6c42eaa4b016203bec82c07718294082138b7f13138ef85b555973",
+        "4a3da03fa6145259a9dfe982be3a168e506dcc853363a0ed976c99a668e24f35"
+      ],
+      "publishedClauses": [
+        "보호 보정 후 안전 최저는 치명 최저+2°C보다 낮아질 수 없고 안전 최고는 치명 최고-2°C보다 높아질 수 없다. 쾌적 경계도 보정된 안전·치명 경계 안으로 제한되며 치명 최저·최고 자체는 바뀌지 않는다.",
+        "장착 작업복은 방한 제공 여부, 쾌적 최저 보정이 낮은 순서, 냉기 노출 배율이 낮은 순서, 인스턴스 ID 순서로 대표 한 벌을 정한다. 선택 특성 보호·의복 재질 보호·대표 작업복 보호를 합성한다."
+      ],
+      "editorialGroup": "환경 전파와 보호"
+    },
+    {
+      "id": "GAP-096",
+      "guide": "species-culture-and-life",
+      "sourceTitle": "환경 작업복4종의 보호 수치와 종족 기본 온도 조건 누락",
+      "publicTitle": "환경 작업복4종의 보호 수치와 종족 기본 온도 조건",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "d795d9d2ff7c00d1f03e4cfa0360e64e0e38d67c242e9a6af3f2c6be33bb36c5",
+        "f58c1e83044559da220dd4279a9217c973cda1b497af8c29dbd079a0b6a41176"
+      ],
+      "publishedClauses": [
+        "쾌적최저/안전최저 보정과 냉기노출배율은 방한작업복 -8/-8°C·0.35배, 룬방한복 -10/-10°C·0.2배, 슬라임보온패드 -4/-4°C·0.6배, 운반하네스0/0°C·1배다. 네 장비 모두 쾌적최고·안전최고 보정0, 열노출배율1이다.",
+        "이 값은 종족 기본 온도 프로필에 적용되는 보호 보정이므로 같은 작업복·8°C라도 종족별 결과가 같다고 보장하지 않는다."
+      ],
+      "editorialGroup": "기후와 종족 상태"
+    },
+    {
+      "id": "GAP-097",
+      "guide": "weather-seasons-and-environment",
+      "sourceTitle": "정식침대·이층침대의 휴식 배정 시 방한 보정 누락",
+      "publicTitle": "정식침대·이층침대의 휴식 배정 시 방한 보정",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "179e38b903f38cf039be39febf36b0ee378b658e1029c122da22191f43f3801b"
+      ],
+      "publishedClauses": [
+        "휴식 작업에 배정되어 있고 배정 시설이 휴식 역할을 지원할 때 정식침대는 쾌적최저-5°C·안전최저-2.5°C, 이층침대는 각각-4°C·-2°C를 더한다. 두 경우 냉기노출배율은0.6을 곱한다."
+      ],
+      "editorialGroup": "환경 전파와 보호"
+    },
+    {
+      "id": "GAP-098",
+      "guide": "species-culture-and-life",
+      "sourceTitle": "의복의 체형·크기·부위·개구부 장착 조건 누락",
+      "publicTitle": "의복의 체형·크기·부위·개구부 장착 조건",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "f07f557e6296606d85da0ef6a4bc6da099a43a4fabc74ffc52b73b1bd2c94261",
+        "d897a7b6712035a9e680f4d2e5406563de11737f96b53abfd32aa846789d2b7e"
+      ],
+      "publishedClauses": [
+        "의복 체형은 Any 또는 착용자의 실제 체형과 맞아야 하고 필요한 해부 부위가 모두 있어야 한다. 정사이즈형은 크기가 같아야 하며 조절형은 크기 차이1단계까지 허용한다.",
+        "봉인되는 특수 부위에 필요한 개구부는 해당 개조가 존재하고 닫히지 않은 상태여야 한다. 슬라임을 포함한 생물 주민은 기본 인간형 착용 표면을 가지며 실제 결손 부위는 착용 가능 부위에서 제외된다."
+      ],
+      "editorialGroup": "의복"
+    },
+    {
+      "id": "GAP-099",
+      "guide": "production",
+      "sourceTitle": "의복 원단 후보·정렬·단일 원단 수량 선택 규칙 누락",
+      "publicTitle": "의복 원단 후보·정렬·단일 원단 수량 선택 규칙",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "11bbcb59d14dd204b44da9609b2f0e3e0b98a9fe3de490b9158c0b11d028a737",
+        "910a9b7e1a14ac73ce90bd7f38028c8640f028785a5fc92974cadb2cb53ee884"
+      ],
+      "publishedClauses": [
+        "금지되지 않고 사용 가능 수량이 있으며 세탁·오염 조건을 통과하고 의복 허용 재질 태그에 맞는 물리 원단만 후보가 된다. 지정 원단 정책은 지정 ID만 선택한다.",
+        "최저가·최고보온·최저중량·최고내구 정책은 각각 가격 오름차순·보온 내림차순·중량배율 오름차순·내구 내림차순으로 정렬하고 같은 원단 종류만 묶어 필요 수량을 채운다."
+      ],
+      "editorialGroup": "원단과 반복 생산"
+    },
+    {
+      "id": "GAP-100",
+      "guide": "species-culture-and-life",
+      "sourceTitle": "의복 세탁·건조의 배치 작업량과 완료 상태 누락",
+      "publicTitle": "의복 세탁·건조의 배치 작업량과 완료 상태",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "22086d750f437864b83bc6bd7f2848432004bfa55a5538cb56fe69433f9c761b",
+        "190b5649de422e3c72aede98c287cd4e023669291c7e226403660d0a7e6a972f"
+      ],
+      "publishedClauses": [
+        "유효한 물리 의복을 중복 제거하여 세탁·건조 배치를 만든다. 동력 세탁은 배치4WU, 손세탁12WU, 건조24WU이며 품목 수를 곱하지 않는다.",
+        "손세탁 완료는 오염0·수분100, 동력 세탁 완료는 오염0·수분0, 건조 완료는 수분0으로 만들고 기존 오염은 유지한다."
+      ],
+      "editorialGroup": "의복"
+    },
+    {
+      "id": "GAP-101",
+      "guide": "species-culture-and-life",
+      "sourceTitle": "의복 수선의 내구도 경계·재료·회복량 누락",
+      "publicTitle": "의복 수선의 내구도 경계·재료·회복량",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "b049398644d3cece5601706bee3917245621f6e4b329ee2c32056ff865894340",
+        "76b58e82e93cb46e37f9ceb067a0a243c366f1c531092751cfbf20755aa1314e"
+      ],
+      "publishedClauses": [
+        "내구도20 미만은 수선 주문 대상이 될 수 없다. 내구도20이상60미만은 재봉실1+수선천1과18WU가 들고 완료 내구도70이 된다.",
+        "내구도60이상은8WU이며 완료 시 기존 내구도+25, 최대100으로 회복한다."
+      ],
+      "editorialGroup": "의복"
+    },
+    {
+      "id": "GAP-102",
+      "guide": "species-culture-and-life",
+      "sourceTitle": "탈의 칸막이의 기존 개구부 여닫기와 새 개조 구분 누락",
+      "publicTitle": "탈의 칸막이의 기존 개구부 여닫기와 새 개조 구분",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "53e7d2aba62bce63bf99ca0bc4edbfc872fcb74063d18140286895268c5766de"
+      ],
+      "publishedClauses": [
+        "탈의 칸막이의 짧은 작업은 이미 존재하는 개구부만 닫거나 다시 연다. 새 개구부 개조와 크기 변경은 별도 개조 작업으로 처리한다."
+      ],
+      "editorialGroup": "의복"
+    },
+    {
+      "id": "GAP-103",
+      "guide": "species-culture-and-life",
+      "sourceTitle": "의복 주문의 일반 실패·재시도·복원 경계 누락",
+      "publicTitle": "의복 주문의 일반 실패·재시도·복원 경계",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "83cfcde947cb98551cf46bf4d8ea7e5e54d982c5f0a4621ef81b75f4b253fd61",
+        "9ac3c91cfccb9f980d7ca5bd4f136fc14430894dbee98744b4ccac8d9125f956"
+      ],
+      "publishedClauses": [
+        "일반적인 예약·시설 실패로 대기 상태로 돌아가면 예약을 해제하고 해당 주문의 작업 진척을0으로 되돌린다. 재시도 간격은0.25→0.5→1게임시간으로 늘어난다.",
+        "일반 저장 주문 목록에는 완료 주문을 제외한다. 출력·최종 수선 확정 대기는 일반 실패와 구분하며 복원 시 재검증 또는 최종 확정 대기로 나뉜다."
+      ],
+      "editorialGroup": "의복"
+    },
+    {
+      "id": "GAP-104",
+      "guide": "production",
+      "sourceTitle": "의복 맞춤 제작의 원단 수량·크기·개조별 작업량 누락",
+      "publicTitle": "의복 맞춤 제작의 원단 수량·크기·개조별 작업량",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "6039963a3811e2494cfc9b013e69faf395d2275c74eadd3a0d615a5fbdc57388",
+        "486f7e417b00fe219333d5261f8a5563711439ba356141b1582fdeb0c2a1ace1"
+      ],
+      "publishedClauses": [
+        "필요 원단은 max(1,ceil(2×재봉계수))개다. 계산기의 기본 작업량은 [10+12×면적등급+4×착용부위수+개조WU]×크기배율×원단작업배율이며 면적등급은 ceil(재봉계수)를1~5로 제한한다.",
+        "꼬리 구멍+4WU·날개 틈+8WU·뿔 여유+3WU를 적용하고 크기 배율은 소형0.75·보통1·대형1.30이다. 결과를 가장 가까운2WU 단위로 반올림하고 최소2WU로 한다."
+      ],
+      "editorialGroup": "의복 맞춤"
+    },
+    {
+      "id": "GAP-105",
+      "guide": "production",
+      "sourceTitle": "의복 품질의 시설 숙련·복잡도 보정 누락",
+      "publicTitle": "의복 품질의 시설 숙련·복잡도 보정",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "a1eeca08e4f7ba63da6847875ce174aa44221b3c9df57137ff6c649f319b31d3"
+      ],
+      "publishedClauses": [
+        "의복 품질 판정의 시설 보정은 (시설 제작숙련점수-50)×0.08이고 도구 보정은0이다. 복잡도 페널티 인수는 max(0,재봉계수-1)×4다. 유효한 가중 관련 숙련이 없으면 숙련50을 사용한다."
+      ],
+      "editorialGroup": "품질 판정"
+    },
+    {
+      "id": "GAP-106",
+      "guide": "production",
+      "sourceTitle": "신들린 영감의 신화 조건·반복 권태·성공 초기화 누락",
+      "publicTitle": "신들린 영감의 신화 조건·반복 권태·성공 초기화",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "dac66d1b4e84f6ae5fdb296dadb1ac0fb77985952751be426b2295dfcefd9451",
+        "2e520570c645ca7fe30bda95ad20484069408b7974661d8f24a92f66001912ad"
+      ],
+      "publishedClauses": [
+        "신화 제작을 허용한 의복에서 마지막 기여자가 신들린 영감 특성을 갖고 작업 기여 비중60%이상이면 고정 판정값으로3% 신화 가능성을 평가한다.",
+        "같은 품목은2회까지 권태가 없고 이후 회마다 기분-2씩, 최저-10이 적용된다. 품목이 바뀌거나48시간이 지나면 반복 횟수가 초기화된다. 신화 성공도 반복 횟수를0으로 초기화하며 기분+10을2일 부여한다."
+      ],
+      "editorialGroup": "품질 판정"
+    },
+    {
+      "id": "GAP-107",
+      "guide": "production",
+      "sourceTitle": "의복 반복 제작의 목표 수량·시도 안전 한도·작업 예산 누락",
+      "publicTitle": "의복 반복 제작의 목표 수량·시도 안전 한도·작업 예산",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "68b1e19e0915b0c4d63c970eeb91af8b032ad214a314e91b6ca1d010c3b0623a",
+        "7ba3b3d8b8573dd700907412cedd3bd238d35d99c8735a1e5cb8031f11163ccf"
+      ],
+      "publishedClauses": [
+        "합격품 목표 수량을 채우면 반복을 끝낸다. 안전 한도 모드는 현재 반복 시도 단계와 누적 제작·해체 작업량이 한도에 닿으면 다음 반복을 중지하며 무제한 모드는 이 안전 한도를 사용하지 않는다.",
+        "안전 한도는 다음 반복 진입의 중단 기준이다. 설정 숫자는 불합격품의 제작·해체가 모두 완결되는 횟수를 보장하지 않는다."
+      ],
+      "editorialGroup": "원단과 반복 생산"
+    },
+    {
+      "id": "GAP-108",
+      "guide": "production",
+      "sourceTitle": "의복 불합격품 처리와 자동 해체 회수량 누락",
+      "publicTitle": "의복 불합격품 처리와 자동 해체 회수량",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "ddeebb4c814ffdd77fd50cf03412ef0992bde2f7b89f5cfbd171ca918e3600da",
+        "24cf90fa3cc19aa897155c3b341d115565c6cd7d90ca038a244e4223d809a2ff"
+      ],
+      "publishedClauses": [
+        "불합격품은 물리 의복으로 남고 정책에 따라 보관·판매 대기 또는 해체로 진행한다. 판매 대기 상태에서는 실제 거래가 확정될 때까지 현금이 늘지 않는다.",
+        "자동 해체의 원단 회수량은 floor(투입 원단×0.5×max(0,마지막 제작자 회수배율))이고 작업량은 max(0.1,제작WU×0.2)다. 해체에 들어가기 전에 안전 한도에 걸리면 불합격 의복이 남을 수 있다."
+      ],
+      "editorialGroup": "원단과 반복 생산"
+    },
+    {
+      "id": "GAP-110",
+      "guide": "infrastructure",
+      "sourceTitle": "룬 버스 결합기의 건설 재료 개별 도감 링크 누락",
+      "publicTitle": "룬 버스 결합기의 건설 재료 개별 도감 링크",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "778e510535f7feb5706f2a6ae8845b86441d81bc56bec10a36f95bfef3d0f051"
+      ],
+      "publishedClauses": [
+        "룬 버스 결합기의 건설 재료인 석재 블록16·강철10·정밀 부품6·룬 도체4·마나 차폐판2·마나 결정4·공학 도면2·룬 버스 결합기1을 각각 해당 아이템 도감으로 연결한다."
+      ],
+      "editorialGroup": "룬 버스"
+    },
+    {
+      "id": "GAP-112",
+      "guide": "production",
+      "sourceTitle": "운반 멜빵의 이번 운반용 장착과 완료 시 소모·해제 누락",
+      "publicTitle": "운반 멜빵의 이번 운반용 장착과 완료 시 소모·해제",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "f317128f30cc155b82834edd64791960d81bb4e4825e2199b847bd8bf463218e",
+        "09074a2ffc13729624237adb398a4352b3cb45905ae843d527cef64cd005dd4b"
+      ],
+      "publishedClauses": [
+        "이미 운반 멜빵을 착용했으면 이를 사용하고, 없으면 운반 멜빵 장착을 시도한다. 이번 운반에서 새로 장착한 경우에만 완료 정리가 수행된다.",
+        "이 완료 정리에서 소모 적용이 요청되고 멜빵 실물이 있으면 현재 내구도에서1을 빼며, 이어 장비 해제를 시도한다. 미리 착용하던 멜빵에는 이 경로의 완료 정리가 적용되지 않는다."
+      ],
+      "editorialGroup": "운반"
+    },
+    {
+      "id": "GAP-113",
+      "guide": "food-and-ecology",
+      "sourceTitle": "작물12종 파종·수확WU와 공통 온도 성장 조건 누락",
+      "publicTitle": "작물12종 파종·수확WU와 공통 온도 성장 조건",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "9d6adb2239752a2636611c110d3844bd014304042527bd0a85a0c24ba6f6788a",
+        "875cffb73d8a7c27f756e011ad55e9a1000b89d0cdc9d4d96c4412667ac2d1aa"
+      ],
+      "publishedClauses": [
+        "파종/수확WU·기본온도°C: 동굴버섯3/5·3~26, 혈엽4/7·8~30, 그늘섬유4/7·5~30, 황혼곡3/6·4~30, 월화5/9·5~24, 몽엽5/8·6~26, 밤포도5/8·8~32, 잿불뿌리4/7·2~28, 포자 삼4/7·6~30, 서리 아마4/7·-8~20, 습지 갈대4/7·8~34, 잿불 목화4/7·14~42.",
+        "성장은 실내·야외 모두 현재 재배지의 온도 관측이 필요하고 기본 범위에 품종의 내한·내열 확장을 적용한다. 실내와 야외의 성장 배율은 서로 다르며 광량과 물 부족도 별도로 성장을 제한한다."
+      ],
+      "editorialGroup": "재배"
+    },
+    {
+      "id": "GAP-114",
+      "guide": "food-and-ecology",
+      "sourceTitle": "재배 물의 파종 초기량·일일 소비·보충·성장 제한 누락",
+      "publicTitle": "재배 물의 파종 초기량·일일 소비·보충·성장 제한",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "943211d51382eb42154c3a7e7651d19a21be06193726ae0c294d7d8ce05e254c",
+        "9f9a7af03a3a49ff696b69eb379f491ed58f3f8407d4f456a2aa20ededd75dc4"
+      ],
+      "publishedClauses": [
+        "물 수요가 있는 작물은 파종할 때 깨끗한 물1을 투입하며 저장 용량은2다. 일일 수요는 작물 기본 일일물×시설 물배율이고 시간당 소비는 일일 수요/24다.",
+        "비·폭풍 때 현재 시간당 소비를0.5배로 한다. 이 소비 함수는 실내 여부로 구분하지 않는다. 현재 물이 일일 수요보다 적으면 보충을 요청하며1단위씩 보충한다. 물에 따른 성장 배율은 clamp01(현재물/일일수요), 수요0이면1이다."
+      ],
+      "editorialGroup": "재배"
+    },
+    {
+      "id": "GAP-115",
+      "guide": "food-and-ecology",
+      "sourceTitle": "작물의 야외 고사·해충·질병 일일 판정 누락",
+      "publicTitle": "작물의 야외 고사·해충·질병 일일 판정",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "233be20f1e606a19aa2618c5cb4f09232f2ddce7954b507407d511238785c11f",
+        "93241725cfe360841c634deca0fcb28df954fb2ad539d6d4bb9b91127eb40d7a"
+      ],
+      "publishedClauses": [
+        "야외에서 품종 내한·내열을 반영한 적정 범위보다5°C 넘게 벗어난 날이 연속3일이면 고사하며 정상 범위로 돌아오면 연속 일수가0이 된다. 실내는 이 일일 온도 고사 판정에서 제외한다.",
+        "해충압85이상은 일일25% 고사 판정을 하고, 질병 발병 확률은 질병압/500×품종 위험도에 따른다."
+      ],
+      "editorialGroup": "재배"
+    },
+    {
+      "id": "GAP-116",
+      "guide": "food-and-ecology",
+      "sourceTitle": "재배시설4종의 성장·물수요 배율과 주기 소모품 누락",
+      "publicTitle": "재배시설4종의 성장·물수요 배율과 주기 소모품",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "a845fa7d14e49e36ab6cfe81d3c9541cec8533b08670c119b3ee02fd58af1f59",
+        "47b90ed8344a3adee609fd4ef84851bdebd424ea3592e1636c506d1993484dda"
+      ],
+      "publishedClauses": [
+        "성장배율/물수요배율/주기퇴비/주기연료는 야외경작지1/1/0/0, 실내재배조1.25/0.85/1/1, 균사선반1.15/0.8/1/0, 온실1.5/0.75/1/1이다.",
+        "건설 재료와 별도로 파종 주기 소모품은 야외 질산염비료1, 실내 버섯배지1+질산염비료1, 균사선반 접종통나무1, 온실 영양제1이다. 퇴비에는 소모품 절감 배율을 적용해 올림하고 최소1이며 선택 연료와 추가 소모품은 요구량에 합산한다."
+      ],
+      "editorialGroup": "재배"
+    },
+    {
+      "id": "GAP-117",
+      "guide": "expeditions",
+      "sourceTitle": "원정 이동 구간 시간의 경로·날씨 배율과 잔여 시간 처리 누락",
+      "publicTitle": "원정 이동 구간 시간의 경로·날씨 배율과 잔여 시간 처리",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "f364b59688a907f4b7ef113267b8c23b2aa4257d3211a70851fa4bc418f7a2e2",
+        "5173cffbdece5a5c2e0cac6c7e88ed2f4806f78293d316ad933a756aa6acaf09"
+      ],
+      "publishedClauses": [
+        "구간 시간은2.5초×타일 경로비용×max(1,의료 이동배율)×이정표 배율(0.1~1)×시설 배율이다. 경로비용에는 저장된 경로 날씨배율과 현재 기상전선의 원정 이동배율을 곱한 값이 들어간다.",
+        "이동 구간 시작 때 비용·날씨·지속시간을 고정한다. 한 tick에 구간을 마치고 계속 이동 가능한 경우 남은 시간을 다음 구간에 쓰며 전투·결정 대기 등 계속할 수 없는 경계에서는 중지한다."
+      ],
+      "editorialGroup": "이동"
+    },
+    {
+      "id": "GAP-119",
+      "guide": "medical-care-and-surgery",
+      "sourceTitle": "수술 임상단계별 환경 위험0.25 가중치 누락",
+      "publicTitle": "수술 임상단계별 환경 위험0.25 가중치",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "5e83f3e9b7bfdc2ba39db7f50d72198ca550d797d1c1cdad66d6572fc44a9184",
+        "925edc33cef29992d8389ab2c028ba0c82b63decac09782e67c19104386a6283"
+      ],
+      "publishedClauses": [
+        "각 임상단계에 처음 도달할 때 환경 성공페널티의0.25배를 성공확률에서 빼고 결과를0.05~0.98로 제한한다. 감염·출혈·장기손상은 각각 환경 추가위험의0.25배를 더하고0~1로 제한한다.",
+        "같은 임상단계를 다시 기록하지 않으므로 같은 단계 도달 기록으로 위험을 중복 가산하지 않는다."
+      ],
+      "editorialGroup": "수술 절차와 신체 구조"
+    },
+    {
+      "id": "GAP-120",
+      "guide": "medical-care-and-surgery",
+      "sourceTitle": "수술15/20/50/15 단계WU와 성공 후 관찰시간 누락",
+      "publicTitle": "수술15/20/50/15 단계WU와 성공 후 관찰시간",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "545b1576447338ad1118d9c97f1a3af04599fe8d6317bcd4555144ce7d45c7f8",
+        "6ab837d10fd04ec64ef24673dd63074faa4fee49cad2c27657a2f1697a548e63"
+      ],
+      "publishedClauses": [
+        "수술 총 작업량은 마취15%·절개20%·처치50%·봉합15%로 나뉘고 누적WU로 단계를 진행한다.",
+        "성공 후 관찰시간은10초×max(0,환자의후유증기간배율)이며 관찰 종료시각에 도달해야 완료 정산으로 넘어간다."
+      ],
+      "editorialGroup": "수술 절차와 신체 구조"
+    },
+    {
+      "id": "GAP-121",
+      "guide": "medical-care-and-surgery",
+      "sourceTitle": "수술 도감의 조사 자리표시자 오류",
+      "publicTitle": "수술 도감의 조사 수치",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "f7c4a6e7e90edd19d85bfc9074948d54b147d1d8e00a4713284ab5a1c70dea72"
+      ],
+      "publishedClauses": [
+        "질주 관절 이식 도감의 '을(를)' 자리표시자를 문장에 맞는 한국어 조사로 바꾼다."
+      ],
+      "editorialGroup": "수술 절차와 신체 구조"
+    },
+    {
+      "id": "GAP-122",
+      "guide": "medical-care-and-surgery",
+      "sourceTitle": "구조 대상 선택의 치료 우선순위·미안정·거리 정렬 누락",
+      "publicTitle": "구조 대상 선택의 치료 우선순위·미안정·거리 정렬",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "9df95c8d8da0c177229b65207118d4f586678b46cec2f9d099a63ae74e81c3d2"
+      ],
+      "publishedClauses": [
+        "구조자는 가능한 주문을 치료 우선순위가 높은 순서, 아직 안정화하지 않은 환자 우선, 구조자와의 맨해튼 거리가 가까운 순서로 정렬하여 첫 후보를 예약한다."
+      ],
+      "editorialGroup": "수술 절차와 신체 구조"
+    },
+    {
+      "id": "GAP-123",
+      "guide": "medical-care-and-surgery",
+      "sourceTitle": "구조치료 추출혈액의 효율·기본 기분 요인 누락",
+      "publicTitle": "구조치료 추출혈액의 효율·기본 기분 요인",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "6b5baf82535e10567b307e06ead5a5d866aae81a67cd6eaf42f2eb4dfe939f09",
+        "d461c9e857cfd7ef8827f81858dbc9614e5424e6b13e03fda95292aa178c3150"
+      ],
+      "publishedClauses": [
+        "구조치료에 추출혈액을 쓰면 치료 회복 예산에0.55배를 적용한다. 치료 완료 시 추출혈액 기분요인 기본-4를240초, 최대1중첩으로 전달한다.",
+        "이 수치는 기분 정책 적용 전 기본 요인이다. 최종 기분 감소는 캐릭터별 면역과 보정을 적용한 뒤 결정된다."
+      ],
+      "editorialGroup": "수술 절차와 신체 구조"
+    },
+    {
+      "id": "GAP-124",
+      "guide": "combat-and-equipment",
+      "sourceTitle": "룬 활의 재장전 입력1.05초와 민첩 보정 누락",
+      "publicTitle": "룬 활의 재장전 입력1.05초와 민첩 보정",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "f59aaea6ffbbe3b36ed02952f7354a596898695426b8b0a9b75353188b8987b8"
+      ],
+      "publishedClauses": [
+        "룬 활 기본 재장전 입력은1.05초다. 실제 재장전 시간은 max(0.15초,1.05초×clamp(1.2-민첩×0.035,0.55,1.2))이다."
+      ],
+      "editorialGroup": "사격과 조준"
+    },
+    {
+      "id": "GAP-125",
+      "guide": "combat-and-equipment",
+      "sourceTitle": "정밀 조준기의 장착 조건·등급 및 상태 배율 누락",
+      "publicTitle": "정밀 조준기의 장착 조건·등급 및 상태 배율",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "20b67017ae41eec9666d169e6cf2f47381c303a098ea0cf351fa536cd45ce1c0",
+        "d50dfa1ef8b179c3a1f5e742623f67a9bb932a16ca46587e77410be726b05935"
+      ],
+      "publishedClauses": [
+        "정밀 조준기의 등급당 기본 power는0.045, utility는0.035다. 장착 모듈 배율은 max(0.1,1+Σ[해당 계수×clamp(등급,1,4)×clamp01(상태)])다.",
+        "장착하려면 장비와 계통이 같고 감정 완료·상태0.75이상·복원 또는 조율 완료여야 한다.4등급은 룬 조율도 필요하다."
+      ],
+      "editorialGroup": "사격과 조준"
+    },
+    {
+      "id": "GAP-126",
+      "guide": "food-and-ecology",
+      "sourceTitle": "야생동물의 비활동 계절 이탈·번식철 등장 가중치 누락",
+      "publicTitle": "야생동물의 비활동 계절 이탈·번식철 등장 가중치",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "b4f8fcfa5246ca4d47ca87ff0dcb114832c39c242219235bb7b6592aba22f439"
+      ],
+      "publishedClauses": [
+        "현재 계절이 해당 야생동물의 활동 계절이 아니면 맵 이탈 의도로 전환한다. 번식 계절이 일치하면 재스폰 후보 가중치에1.65를 곱한다."
+      ],
+      "editorialGroup": "야생동물과 생태"
+    },
+    {
+      "id": "GAP-128",
+      "guide": "economy-and-trade",
+      "sourceTitle": "직원·용병 임금·체불·예측 비용식 누락",
+      "publicTitle": "직원·용병 임금·체불·예측 비용식",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "686eb4e1991572433de1c971175cd90cb8192b92cf781849bcdb575e5ca34305",
+        "3111f0a72611c758ac2d1d1018dfe2160d01ac05f5ce53bef208c8ce1ae0b59a"
+      ],
+      "publishedClauses": [
+        "직원 일급은30+레벨×2+수당, 용병은60+레벨×4+장비수당이며 창립자·하수인 일급은0이다. 직원은 ID순으로 당일 임금+체불 전액을 지급하거나 체불로 남긴다.",
+        "용병 임금 지급 실패는 계약 종료로 이어진다. n일 예측 비용은 활성 계약 일급합×n+직원 체불액1회이다."
+      ],
+      "editorialGroup": "임금과 자동 구매"
+    },
+    {
+      "id": "GAP-129",
+      "guide": "economy-and-trade",
+      "sourceTitle": "자동구매의3일 보호금·가용예산·일일 중복방지 누락",
+      "publicTitle": "자동구매의3일 보호금·가용예산·일일 중복방지",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "bee7950456803ed3c4467ab0c9c180eaedb7b741ae9ff899ac5e2f797330596b",
+        "9f4f5c9038679b1d770e3793192e744d6bdc7d73e03018efbc36a49b1384b39e"
+      ],
+      "publishedClauses": [
+        "보호금은 max(설정최저잔액,직원·용병3일예측비용+유료시설계약3일예측비용)이다. 자동구매 가용예산은 min(설정일일예산,max(0,현재잔액-보호금))이다.",
+        "현재 기본 일일 예산은500이고 저장값이 없을 때 복원 기본값도500이다. 같은 날 또는 더 오래된 상점 갱신일은 처리하지 않으며 예산이 없어도 그 갱신일을 처리한 날로 기록한다."
+      ],
+      "editorialGroup": "임금과 자동 구매"
+    },
+    {
+      "id": "GAP-130",
+      "guide": "factions-contracts-and-prisoners",
+      "sourceTitle": "지역 공급 계약의 해금·주기·규모·보상식 누락",
+      "publicTitle": "지역 공급 계약의 해금·주기·규모·보상식",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "5dfd8446b8a2e6de3fc85c8191441e1554be3e2502bd27f74a87b75eaebc0863",
+        "7d299b4dd15c36a34617f98ebaf1ee65b2272090def069ac552c4db07b5502cf"
+      ],
+      "publishedClauses": [
+        "상권통합 해금 후3일 주기로 최대3개의 지역 공급 제안을 만든다. 세 번째 제안에는 보조 품목을 붙인다. P=clamp(floor(주민수/3),0,10), R=clamp(floor(완료연구수/12),0,5), i=제안인덱스0~2로 계산한다.",
+        "요구량은 원료 clamp(20+3P+5R+4i,20,80), 중간재 clamp(10+2P+3R+2i,10,40), 기타 clamp(2+floor(P/2)+R+i,2,12)이다. 보상은 내부 단가합(최소1)×1.2×clamp(사업배율,1,1.25)을 정수 반올림하고 최소1로 한다."
+      ],
+      "editorialGroup": "공급과 화물"
+    },
+    {
+      "id": "GAP-131",
+      "guide": "food-and-ecology",
+      "sourceTitle": "혈엽 기본종·동토불뿌리 품종명·유전형 효과 누락",
+      "publicTitle": "혈엽 기본종·동토불뿌리 품종명·유전형 효과",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "e33e18dbf8bb7618721be9de8e34e84f33fa99dfd66ef06155057630876dcab8",
+        "1abbaaf2358f502e2b05dc191d9ef5b86137f04899fd955cafc88279948a1a13"
+      ],
+      "publishedClauses": [
+        "혈엽 기본종은 혈엽 작물이며6유전자쌍이 모두0/0이다. 따라서 내한·내열 추가0°C, 성장·수량·질병위험 배율1, 추가 종자 보정0이다.",
+        "동토불뿌리는 잿불뿌리 품종이며 내한2/2·수량1/1, 나머지는0/0이다. 내한 범위를5°C 확장하고 수량 배율은1.05이며 성장·질병위험 배율1, 추가 종자0이다."
+      ],
+      "editorialGroup": "재배"
+    },
+    {
+      "id": "GAP-132",
+      "guide": "food-and-ecology",
+      "sourceTitle": "작물의 수확 변이·반환 종자와 미참조 동결품종 상한 누락",
+      "publicTitle": "작물의 수확 변이·반환 종자와 미참조 동결품종 상한",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "6eb0e79e6bdc10ffa12fbca4ebaebb67a514ad94b25de88f50aff10463a10000",
+        "59a656300ca06bcf790b4440bd750b8a7488363bb455942aa38cebd7f34a751f"
+      ],
+      "publishedClauses": [
+        "일반 수확에서 부모 유전형의 각 유전자 좌위는1% 변이 가능성을 평가하고 세대가1증가한다. 반환 종자 기본 수는2~4이며 종자 병원체 압력에는 부모 압력의0.5배를 적용한다.",
+        "작물당 활성 품종 상한은12, 외부 참조가 없는 동결 품종의 보관 상한은32다.32는 작물별 동결 품종 보관에 적용한다."
+      ],
+      "editorialGroup": "재배"
+    },
+    {
+      "id": "GAP-135",
+      "guide": "factions-contracts-and-prisoners",
+      "sourceTitle": "수인 위기 계약의7일 기한·관계 효과값 누락",
+      "publicTitle": "수인 위기 계약의7일 기한·관계 효과값",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "099f6b5fe236878fe5ef756be19af85b0a22ee8b48714ed99404f37a3a2844c8"
+      ],
+      "publishedClauses": [
+        "수인 위기 계약 기한은 수락일+7일이다. 성공하면 해당 세력 호의+8·의무+1을 적용하고 실패하면 원한+12를 적용한다."
+      ],
+      "editorialGroup": "위기와 배신"
+    },
+    {
+      "id": "GAP-136",
+      "guide": "factions-contracts-and-prisoners",
+      "sourceTitle": "균사 세력 교역·보급 화물과22/38일 재사용시간 누락",
+      "publicTitle": "균사 세력 교역·보급 화물과22/38일 재사용시간",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "f9e26210d6a25c1cc5b3e6cd8cb81af6bb22259855d5b325b696bc13d1498585"
+      ],
+      "publishedClauses": [
+        "균사 세력 교역 화물은 버섯10·퇴비8·습포5이며 교역 재사용시간은22일이다. 보급 화물은 해독제8·표준약8·수프10이며 보급 재사용시간은38일이다."
+      ],
+      "editorialGroup": "공급과 화물"
+    },
+    {
+      "id": "GAP-137",
+      "guide": "food-and-ecology",
+      "sourceTitle": "곡물죽의 영양35·기본 기분0·신선시간360초 누락",
+      "publicTitle": "곡물죽의 영양35·기본 기분0·신선시간360초",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "268b80693e3d122179ea145b1e602c4d169ccb81c0cd9760b331983243690d28"
+      ],
+      "publishedClauses": [
+        "곡물죽은 영양35, 기본 기분 효과0, 작성 신선시간360초다. 정상 식사 효과 적용에서 영양35만큼 허기 회복을 요청한다."
+      ],
+      "editorialGroup": "보관과 조리"
+    },
+    {
+      "id": "GAP-138",
+      "guide": "food-and-ecology",
+      "sourceTitle": "일반 식사 선택의 정책·품질상한과4초 계획·예약 만료 누락",
+      "publicTitle": "일반 식사 선택의 정책·품질상한과4초 계획·예약 만료",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "c6d3e66b1388d12039ef8116f9ccd57623fea7e1e725e188322103900c041958",
+        "d118df02a83494e0fa856e2a2fce66cf7b29b3471d26f4797a0e0116b7c8171f"
+      ],
+      "publishedClauses": [
+        "일반 자동 식사는 문화적으로 금지된 음식·식단 불허 음식·오염된 음식을 제외하고 개인 품질 상한 이하에서 선택한다. 품질상한 상속값은 Fine이다. 긴급 허기 선택은 문화·식단·오염 조건을 우회할 수 있으나 품질 상한은 유지한다.",
+        "시설 식사계획은 생성 뒤4초가 지나기 전 확정하지 않고 예약 만료 시 취소한다. 예약 재연결에 성공하면 만료 시각을 현재+15초 이상으로 연장한다."
+      ],
+      "editorialGroup": "보관과 조리"
+    },
+    {
+      "id": "GAP-139",
+      "guide": "production",
+      "sourceTitle": "품목 재고 정책 기본값·초과 처리5종·판매 정산 대기 누락",
+      "publicTitle": "품목 재고 정책 기본값·초과 처리5종·판매 정산 대기",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "13c52893820ba667e031710e8308b56a93ea8dec6ebd5d37bbd2eceaee24eb1f",
+        "bf625a47616131b45adfea64c9217000212074eb56ef57db5c573f5d92e43276"
+      ],
+      "publishedClauses": [
+        "새 품목 정책은 기본 비활성이고 최소10·목표20·최대40, 초과품 보류로 시작한다. 활성 정책의 초과량은 max(0,보유량-최대재고)다.",
+        "초과 처리는 판매·가공·퇴비화·분해·보류 중 정책을 따른다. 미완료 판매 정산이 있으면 새 초과 처리를 시작하지 않고 정산 복구를 기다린다."
+      ],
+      "editorialGroup": "재고와 보관"
+    },
+    {
+      "id": "GAP-140",
+      "guide": "guests-services-and-performance",
+      "sourceTitle": "소매 구매 확정 성공 후 재고·구매수·수입 집계 경계 누락",
+      "publicTitle": "소매 구매 확정 성공 후 재고·구매수·수입 집계 경계",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "4a059adab0bf859474f7cc71fa5aeb77ffd8d765d8e7984fdaf0bf856c736b0a"
+      ],
+      "publishedClauses": [
+        "소매 손님 구매가 확정 성공한 뒤에만 구매 수와 재고 소비 사건을 반영하고 수입 대상 방문자의 가격을 영업수입에 더한다. 구매확정이 실패하거나 결과가 미해결이면 그 구매를 성공 집계하지 않는다."
+      ],
+      "editorialGroup": "소매와 시설 이용"
+    },
+    {
+      "id": "GAP-141",
+      "guide": "food-and-ecology",
+      "sourceTitle": "음료·기호물질9종의 분류·연구·기본 효과 입력 누락",
+      "publicTitle": "음료·기호물질9종의 분류·연구·기본 효과 입력",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "da859b70605a15e47cbdd7509abdd8d047b201ebb90c8aac0be46dbbcbece701",
+        "f0ca61e40bd96d2eb35021b94453f5999ee7568a60fa54a59a063642da38ff0e",
+        "138f433775801021b7bcad7cc4b94027a3d3216b9b4e63d23aba517f2b1fd3e9"
+      ],
+      "publishedClauses": [
+        "각 항목은 '중독기본값/과다복용기본확률/내성증가/시간당금단; 기본기분/작업효과/전투효과; 지속초'로 표기한다. 혈화 촉진제(중독성,각성제):0.14/0.06/0.18/0.03;1/0.16/0.2;150. 몽엽 진통제(중독성,진통·마취):0.08/0.02/0.12/0.02;4/0/-0.03;240. 환각균 증류액(유흥성,증류):0.09/0.04/0.13/0.025;10/-0.12/-0.08;210.",
+        "마나 각성제(중독성,각성제):0.11/0.05/0.16/0.025;2/0/0.08;180. 월화차(비중독성,약초학):0/0.002/0/0;3/0.04/0;180. 밤포도주(유흥성,발효):0.04/0.025/0.08/0.015;7/-0.04/-0.04;240.",
+        "활력 강장제(비중독성,증류):0/0.006/0/0;2/0/0;150. 밤 증류주(유흥성,주류 증류·숙성):0.07/0.045/0.12/0.025;9/-0.08/-0.06;240. 황혼 맥주(유흥성,발효):0.025/0.015/0.05/0.008;5/-0.02/-0.02;180. 중독기본값은 실제1회 중독확률과 같지 않으며 실제 내성·중독식은 공통 물질 규칙을 따른다."
+      ],
+      "editorialGroup": "음료와 기호 물질"
+    },
+    {
+      "id": "GAP-142",
+      "guide": "residents-and-work",
+      "sourceTitle": "물질 내성·중독·과다복용·금단의 실제 처리식 누락",
+      "publicTitle": "물질 내성·중독·과다복용·금단의 실제 처리식",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "b017e2fcb35538711965bdcec1d3b5a12f07a22dc84a0f77b14f608cc58a7d3a",
+        "c06a39121c2eaa090987aa3e1c00387fc7fade376562d4f39c2a4e35253baf50"
+      ],
+      "publishedClauses": [
+        "t=복용 전 내성/100일 때 과다복용확률은 clamp01(기본확률×(1+t))다. 내성은 작성증가량만큼 더해0~100, 중독 누적치는 기본중독값×100×(0.65+t)를 더해0~100으로 제한한다. 기존중독자 또는 누적60이상이면 중독 상태이며 별도로 기본중독값×0.2 확률도 판정한다.",
+        "기분 효과는 기본기분×(1-0.55t)다. 과다복용은 max(4,최대HP×0.12) 피해와 기본기분-12/300초를 적용한다. 중독자는 마지막 복용1게임시간 뒤부터 작성시간당금단을 누적하고 금단20이상에서는 -Lerp(3,14,금단/100)의2초 기분 요인을 갱신한다."
+      ],
+      "editorialGroup": "생존과 회복"
+    },
+    {
+      "id": "GAP-143",
+      "guide": "combat-and-equipment",
+      "sourceTitle": "장비 오버클럭3단계 비용·기간·과부하·고장 누락",
+      "publicTitle": "장비 오버클럭3단계 비용·기간·과부하·고장",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "cb3adcb410fdc40be36d53bf963ddeb7d333ea318a41d85df4cf89b6a7d515b6",
+        "52bb66297678295f5fb46c628716d34f731213adff56b0c1ba8db944a70ffd66"
+      ],
+      "publishedClauses": [
+        "오버클럭1/2/3단계 성능 배율은1.1/1.2/1.35이고 비용은 장비가치×0.15/0.35/0.7을 올림한다. 지속시간180게임초, 시작 과부하는10/25/50이다.",
+        "동작 고장확률은0/3/8%이고 고장 시 과부하+10, 방어구·방패 내구 손상0.08을 적용한다. 이미 활성 중이거나 과부하100이면 다시 활성화할 수 없다."
+      ],
+      "editorialGroup": "장비 개조와 정비"
+    },
+    {
+      "id": "GAP-144",
+      "guide": "combat-and-equipment",
+      "sourceTitle": "정밀 재단조3옵션 요금과 설정 실패 취소·환불 누락",
+      "publicTitle": "정밀 재단조3옵션 요금과 설정 실패 취소·환불",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "a852e1f30791a6c3ad573f8436aeb36444f871d33401d8432dd4747b65bc8a92",
+        "512dd2b305d2da5542ab42d6b8c4f40f0da296f81fe0f01c668a1c1bf7a9fa31"
+      ],
+      "publishedClauses": [
+        "정밀 보정20%·부담 억제30%·외부 기술지원15% 중 선택한 요율을 장비가치에 합산 적용하고 전체 금액을 올림한다.",
+        "주문 생성 후 비용을 지출하며, 지출 실패 시 주문을 취소한다. 비용을 낸 뒤 정밀 옵션 설정에 실패하면 주문 취소와 환불을 요청한다."
+      ],
+      "editorialGroup": "장비 개조와 정비"
+    },
+    {
+      "id": "GAP-145",
+      "guide": "invasions-and-defence",
+      "sourceTitle": "금고각인 쇠뇌대의30골드 발사·예산·고장 전 결제 누락",
+      "publicTitle": "금고각인 쇠뇌대의30골드 발사·예산·고장 전 결제",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "b60e68f1c8380b3dd0483512e69d199be760a329aeb5e3827b973efe004deec1",
+        "eea368a65e3505545f6336f4a5d78d4102c667b2101a1b8e2dd4df898f06c94f"
+      ],
+      "publishedClauses": [
+        "금고각인 쇠뇌대 작성 발사비는30골드, 기본 침공예산300, 최소위협0이다. 자동/보스/위협 정책과 침공 누적예산·보호잔액을 통과해야 발사를 승인한다.",
+        "승인 과정에서 금화를 먼저 차감하고 침공 지출을 기록한 뒤 오버클럭 고장을 판정한다. 따라서 고장으로 효과가0이어도 발사비30은 이미 지불한 상태다."
+      ],
+      "editorialGroup": "방어 시설"
+    },
+    {
+      "id": "GAP-146",
+      "guide": "expeditions",
+      "sourceTitle": "전략 원정 현장자금 선배정·현장 증감 규칙 누락",
+      "publicTitle": "전략 원정 현장자금 선배정·현장 증감 규칙",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "b7525f90cbb13b6ca5ab51a1a1329d19834f3d8586c130886be468a2ebbf9c55",
+        "a65d4ad462093b2c83d3730d7da01cba332a6077b010974cd2589beb192800da"
+      ],
+      "publishedClauses": [
+        "전략 원정에 배정하는 현장자금은 출발 때 중앙잔액에서 먼저 차감한다. 세계지도 원정의 현장 선택 비용은 현장자금에서 내며 부족하면 지출하지 못하고 양수 금화 효과는 현장자금에 더한다.",
+        "구형 원정 선택은 같은 금화 효과에도 중앙잔액을 사용하므로 두 경로의 자금 권위를 구분한다."
+      ],
+      "editorialGroup": "현장 자금"
+    },
+    {
+      "id": "GAP-147",
+      "guide": "guests-services-and-performance",
+      "sourceTitle": "적대 소문 완화와 원정지 정보의 결제 선택지 누락",
+      "publicTitle": "적대 소문 완화와 원정지 정보의 결제 선택지",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "3c08cd98c3727f15139631c5bedf4dcf413d3e716b3cbd6ce59a5d0135c2b436",
+        "da0d4b3344b19b6733b886c9c7c8e4a835a1ec8790eeb4c251986dce14a23e28"
+      ],
+      "publishedClauses": [
+        "소문 완화의 현재 작성 최대 감소량은15이고 명성 비용10·골드 비용200이다. 원정지 정보는 명성10·골드200·정찰60 또는 부적 경로로 해금할 수 있다.",
+        "만료한 거점은 정보 해금에서 다시 거부하며 결제 성공한 경로에서만 정보를 해금한다."
+      ],
+      "editorialGroup": "소매와 시설 이용"
+    },
+    {
+      "id": "GAP-149",
+      "guide": "events-and-choices",
+      "sourceTitle": "사회 사건의 가중 선정과 비영수증 해결기록256상한 누락",
+      "publicTitle": "사회 사건의 가중 선정과 비영수증 해결기록256상한",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "2324bfc4f26b5326829e41498fa861ea9496525297f503cb7135d14b29768e6e",
+        "317300b2a847c37330b2daa5b3d09da59de3c15ce5ced64a8047d35667b47f62"
+      ],
+      "publishedClauses": [
+        "일일 후보 사건과 참가자는 시드·날짜·사건·참가자에 따른 고정 판정값을 관련 가중치로 나눈 순서에서 고른다. 사건은 참가자 중 가장 큰 가중치, 참가자 선정은 해당 참가자 가중치를 사용한다. 여러 관련 가중치는 곱하고0.1~10으로 제한한다.",
+        "해결 기록 중 성공 인생사건의 영수증에 연결되지 않은 일반 발생건은 최근256개를 남긴다. 영수증이 보유한 발생건은 이 삭제 대상에서 제외되므로 전체 기록 수는256을 넘을 수 있다."
+      ],
+      "editorialGroup": "후보 선정과 기록"
+    },
+    {
+      "id": "GAP-150",
+      "guide": "species-culture-and-life",
+      "sourceTitle": "현재 카탈로그 새싹제의 개별 도감·운영 필드 누락",
+      "publicTitle": "현재 카탈로그 새싹제의 개별 도감·운영 필드",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "c281ea09e631d4d4a4be0d55ea63938e03654fc429e70ad7535ed1ca90953214",
+        "c594accb6f4fe4c57efa6d754f5a12c5f0c80fbc3ff3224eba750b8749e75c6d"
+      ],
+      "publishedClauses": [
+        "새싹제는 봄15일, 최소참가자8명, 황혼곡 종자12개를 요구하는 축제다. 행사장 요구는 좌석8·식탁8·서비스 수용1·행사 공간8칸이다.",
+        "결과별 기본 효과은 성공 기분+6/10일·세력호의+3, 부분성공 기분+2/5일·호의0, 실패 기분-3/4일·호의-2다. 실제 개인 기분 효과는 참석비율 보정을 거치므로 기본값을 무조건 모든 주민의 최종값으로 쓰지 않는다."
+      ],
+      "editorialGroup": "축제"
+    },
+    {
+      "id": "GAP-151",
+      "guide": "species-culture-and-life",
+      "sourceTitle": "축제의 실제 진행·물자 선소비·참석 기반 결과 등급 누락",
+      "publicTitle": "축제의 실제 진행·물자 선소비·참석 기반 결과 등급",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "962c6b9e3feb186ac19954c2ba78ef3d3fd8b943e53912eec1e4643b8aeb0840",
+        "9303e93079ef04fd21c0e52f5141931ede4e9e71a52e1ee5b250307ba9d824f2"
+      ],
+      "publishedClauses": [
+        "축제는 공지일부터 개최 마감시각 전까지 예약할 수 있으며, 시작 때 축제에 정해진 요구 물자를 납품 목적지에서 소비 확정한 뒤 진행 상태로 들어간다. 예약했다고 즉시 성공 효과를 받지 않는다.",
+        "계획 참석 시간이 끝난 뒤 유효 참가자가 최소참가자수 이상이면 성공, 최소참가자수의 절반을 올림한 수(최소1명) 이상이면 부분성공, 그 미만이면 실패다. 기분·슬픔전환은 유효 개인의 참석비율 보정을 거쳐 적용한다."
+      ],
+      "editorialGroup": "축제"
+    },
+    {
+      "id": "GAP-152",
+      "guide": "spaces",
+      "sourceTitle": "방 인상·청결의 업무 속도·시간·시설 선호 보정 누락",
+      "publicTitle": "방 인상·청결의 업무 속도·시간·시설 선호 보정",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "b2ef2c247d53d662dbcd37caffb6afe067676750d902d5937a6d9cd6d7baebc3",
+        "2fd13a85ae5e20b7fce7a9a2bcc90baf83c9c451197258c95aa2cf512036e7e7"
+      ],
+      "publishedClauses": [
+        "운영·연구·재고보충·경비·제작은 유효 방 환경점수S=clamp(인상×0.6+청결×0.4,0,100)를 사용한다. 속도는 clamp(0.85+S×0.003,0.85,1.15), 소요시간 배율은 그 역수다. 해당 업무가 아니거나 활성 방 환경이 없으면 시간배율1이다.",
+        "시설 선호점수는 유효 환경에서8+20×S/100, 관측 스냅샷이 없으면8, 비활성 환경의 방필수 시설이면-15다. 완료 경험의 인상·청결 기분 요인은 설정된180초를 사용한다."
+      ],
+      "editorialGroup": "방 환경과 수용"
+    },
+    {
+      "id": "GAP-153",
+      "guide": "spaces",
+      "sourceTitle": "방 역할 거부와 공유 식사·상점 실효정원 누락",
+      "publicTitle": "방 역할 거부와 공유 식사·상점 실효정원",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "16091df704c3ba0c0545e2d0049906ccf5a11bec354793dde7a27b114afc8f59",
+        "1021b44aa8b7047ebbfdb3ce3b0079c777669d3eb704dd13f249adb8526b7cf4"
+      ],
+      "publishedClauses": [
+        "방이 필요한 시설은 방 없음·사용 불가·요구 역할 불일치 때 거부된다. 방이 필요 없거나 방 없음·독립형 방·사용불가 또는 기본정원0인 실효정원 계산은 기본정원을 그대로 반환한다.",
+        "공유방의 식사 시설 정원은 max(기본정원,min(좌석정원,식탁정원)), 구매 시설은 max(기본정원,기본정원+서비스정원)이다. 실제 입장 잔여정원은 실효정원-현재사용자로 계산한다."
+      ],
+      "editorialGroup": "방 환경과 수용"
+    },
+    {
+      "id": "GAP-154",
+      "guide": "spaces",
+      "sourceTitle": "문 권한 우선순위·집단 정책·제한 자물쇠 표시 누락",
+      "publicTitle": "문 권한 우선순위·집단 정책·제한 자물쇠 표시",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "9b675577a7032424249d85822a84d6bf47f3ef83f6de062397dc87ac0892bdd2",
+        "a7b53aca338b044d27fe6bf2fbb91c58b4b2a0f1b31cc2cb6a8bae95c2d8f28f",
+        "f6713f6ffb6632a5108b165902aa6fac4c77603648f837ffbf118dc43c13e858"
+      ],
+      "publishedClauses": [
+        "출입 집단은 소유자·직원·손님·포로·침입자·야생동물·포획야생동물이다. 기본권한에서는 개인차단을 먼저 적용하고 개인허용 또는 허용집단이면 통과한다.",
+        "강제통과/임시권한 예외는 개인차단보다 먼저 적용될 수 있다. 문 정책이 제한 상태이면 문에 자물쇠 표시가 켜지며 정책 변경 때 갱신된다.",
+        "정책은 모두허용·직원전용·손님구역·감방·축사 프리셋을 갖고 문 정책 복사·붙여넣기·같은방 문 적용 기능이 있다."
+      ],
+      "editorialGroup": "출입 권한"
+    },
+    {
+      "id": "GAP-155",
+      "guide": "species-culture-and-life",
+      "sourceTitle": "문화10종 방 선호값과 시설 후보 점수 보정 누락",
+      "publicTitle": "문화10종 방 선호값과 시설 후보 점수 보정",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "1bb3910b72f60137da369f240a65633d3eaf1caabeacfcc79b8be6995d87cb63",
+        "e82373f611ce0b499a54701417da2485cf87eec432efe1b010ac5c893ed03930",
+        "a21bb14070d287c3224d606447072c39afc0d8a5e53bc1218fc49e01bb22e5fd"
+      ],
+      "publishedClauses": [
+        "표 순서는 선호역할;온도°C±허용;최소환기;광량범위;최소청결;공간이다. 밤궁정:휴식·집무;18±7;40;0~30;55;개인. 합류수:휴식·위생;22±5;40;20~70;70;공유. 무기철야:식사·훈련;20±10;40;25~85;30;공유. 포자정원:식사·휴식;20±5;45;5~35;40;공유. 도구씨족:훈련·창고;24±7;50;45~100;40;공유.",
+        "높은둥지:휴식;18±10;70;50~100;35;공유. 핵공명:마나·창고;18±15;50;30~90;60;개인. 재의계약:마나·집무;27±8;35;20~70;40;개인. 무리의화로:식사·휴식;24±8;35;20~80;30;공유. 개척자연맹:식사·휴식;20±10;45;55~100;40;공유.",
+        "시설 후보 문화 보정은 선호역할+0.08·선호시설+0.12이며 유효 방이 없으면-0.08이다. 온도·환기·청결·광량 충족점수 평균E에(E-0.5)×0.16을 더한다. 공유 선호는 면적12이상·빈칸3이상, 개인 선호는 면적8이하·문1개이상일 때+0.05, 미충족-0.05이며 최종 보정은-0.2~0.2다."
+      ],
+      "editorialGroup": "문화와 방 선호"
+    },
+    {
+      "id": "GAP-156",
+      "guide": "spaces",
+      "sourceTitle": "방 소음·개인실 조건과 관찰자별 청결 변화 기분 누락",
+      "publicTitle": "방 소음·개인실 조건과 관찰자별 청결 변화 기분",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "f60cdc7bd01ed5929c8f20b4b8b77fb39f39deb0b30f981b6326ad8c4c69c04e",
+        "cf6de545a2cbc8dc0a59979de20fa0301ec198c7259323aeb784f35f9c39aae7"
+      ],
+      "publishedClauses": [
+        "같은 유효 방에 자신 이외의 생산·제작·훈련·마나 시설이 있으면 소음 조건을, 면적8이하·문1개이상이면 개인실 조건을 만든다. 이 조건을 시설 욕구 회복에 전달한다.",
+        "청결 변화는 주민별로 직전에 관찰한 같은 방 청결값이 있을 때 비교한다. 청소 강박은 악화 사건에 기본기분-4, 청소 개선 사건에+2를1일 적용한다."
+      ],
+      "editorialGroup": "방 환경과 수용"
+    },
+    {
+      "id": "GAP-157",
+      "guide": "species-culture-and-life",
+      "sourceTitle": "얕은잠 특성의 방 소음 조건 수면회복0.8배 누락",
+      "publicTitle": "얕은잠 특성의 방 소음 조건 수면회복0.8배",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "4334ea39c6c1ad9ddf165cd07eedac93804ea54a3f16824ea95fbdc926e4d6cb"
+      ],
+      "publishedClauses": [
+        "얕은잠 특성은 방 소음 조건이 활성일 때 휴식으로 얻는 수면 회복에0.8배를 적용한다. 소음 조건은 같은 방의 다른 생산·제작·훈련·마나 시설에서 생긴다."
+      ],
+      "editorialGroup": "기후와 종족 상태"
+    },
+    {
+      "id": "GAP-158",
+      "guide": "combat-and-equipment",
+      "sourceTitle": "사선 각성의 전투당1회·위급 조건·효과·후유증 누락",
+      "publicTitle": "사선 각성의 전투당1회·위급 조건·효과·후유증",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "5fd2e7e285cce42d06a2e0f2f739803da160046593b5f5d578476307e1f7f83b",
+        "027fc90c1d4e6bc37d17a62d0f70bf6a00adaccdf16d1f14cba1bcd868f50e49"
+      ],
+      "publishedClauses": [
+        "새 전투마다1회, 의식20%이하 또는 체력20%미만에서 사선 각성을 발동할 수 있다. 활성 중 통증·위급체력에 따른 전투 효율 페널티를 억제하고 작성 전투력1.5배·이동1.2배를 적용한다.",
+        "전투 명령 완료 또는 취소로 각성이 끝나면2일간 작업0.5배 후유증이 남는다."
+      ],
+      "editorialGroup": "전투 발동 능력"
+    },
+    {
+      "id": "GAP-159",
+      "guide": "medical-care-and-surgery",
+      "sourceTitle": "기적의 집도의 중대수술12/18/70 판정·후유증 누락",
+      "publicTitle": "기적의 집도의 중대수술12/18/70 판정·후유증",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "36e78f14d4d19a5f5d4160ca32b21729d84e025d786f965e853590cc3bcf363b",
+        "fa8c96a7ee58a05965fac27ca3a9d9a9c30aca35acc05cd0d06407b600b0c1e0"
+      ],
+      "publishedClauses": [
+        "응급 절차이거나 사망확률15%이상 또는 성공확률50%이하이면 중대 수술이다. 해당 집도의는 같은 수술ID에 한 번만 고정 판정하며 기적12%는 정상 수술 효과를 적용하는 성공을 강제하고 합병증18%는 중대실패를 강제한다. 나머지70%는 기존 성공/실패 난수를 따른다.",
+        "이 특성 판정을 수행한 경우1일간 작업0.6배 후유증이 남는다."
+      ],
+      "editorialGroup": "수술 절차와 신체 구조"
+    },
+    {
+      "id": "GAP-160",
+      "guide": "production",
+      "sourceTitle": "황금 수확의24시간 예약·담당자 고정·12/18 위험 판정 누락",
+      "publicTitle": "황금 수확의24시간 예약·담당자 고정·12/18 위험 판정",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "137b4e06e40b21c34a56de58aff60051a222f5de417dd7dcc943b1119d10abce",
+        "68ba38b7ed5e8380de6a4bdfa384daede92ee4a335753aa20dc3f63c5e257121"
+      ],
+      "publishedClauses": [
+        "수확준비 또는 수확중인 밭에 황금 수확 담당자를 지정하면24시간 뒤 같은 담당자만 예약 판정을 진행할 수 있다. 이미 담당자가 지정된 밭에는 다시 예약할 수 없다.",
+        "실행 시드·밭·시도·담당자로 고정되는 판정은 대성공12%·손실18%·일반70%이며 손실은 작성0.5배 결과를 사용한다."
+      ],
+      "editorialGroup": "황금 수확"
+    },
+    {
+      "id": "GAP-161",
+      "guide": "production",
+      "sourceTitle": "한계 돌파의 지정 생산주문·5초 유지 갱신·종료 누락",
+      "publicTitle": "한계 돌파의 지정 생산주문·5초 유지 갱신·종료",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "8c762ca19d2cf3fd482ea2c4f475198dd1716cfc22d55a19062a2575a2675787",
+        "8adeacd414e3e34bd148fb17e234a0ca7fd49c10c1559c5cc9a168e07dd6f2d3"
+      ],
+      "publishedClauses": [
+        "한계 돌파는 지정 생산주문·지정 작업자의 사전조건을 검사하고 실제 작업 시작에 성공한 뒤 활성화한다. 같은 주문의 성공 작업이 이어질 때마다 유지시간을5초로 갱신한다.",
+        "생산 주기를 완료하면 종료하고, 마지막 갱신 뒤5초를 초과해도 만료되어 후유증 상태로 넘어간다."
+      ],
+      "editorialGroup": "작업 실행과 출력"
+    },
+    {
+      "id": "GAP-162",
+      "guide": "combat-and-equipment",
+      "sourceTitle": "마력 과충전의30% 미만 발동·체력/장비 대가·20초 및 후유증 누락",
+      "publicTitle": "마력 과충전의30% 미만 발동·체력/장비 대가·20초 및 후유증",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "e961539f944c9adee2d3783a33b93d3626640804ee5c1c60927be444ab7025ba",
+        "99cc8ee3affef58bebd5017e8560b5312c5b2006f926b041bba4be5154b76291"
+      ],
+      "publishedClauses": [
+        "마나가30%미만이고 과충전 활성 또는 후유증이 남아 있지 않아야 발동한다. 활성시간20초 뒤1일 후유증이 이어진다.",
+        "발동 시 최대체력의15% 피해와 선택 장비 최대내구도의25% 손상 명령을 적용한다."
+      ],
+      "editorialGroup": "전투 발동 능력"
+    },
+    {
+      "id": "GAP-164",
+      "guide": "infrastructure",
+      "sourceTitle": "외부 구역 자동생성 조건·20초 마모·예외 누락",
+      "publicTitle": "외부 구역 자동생성 조건·20초 마모·예외",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "8d526899a7d9b5d0561e05ed07af9d3c1136fe0af1079f8d9f09894dcaf12d8a",
+        "887b6db48a9fd43ff93b1a87dc599608ecabf6d884fa8b9f782f45e874e21b2f"
+      ],
+      "publishedClauses": [
+        "외부 구역이 하나라도 있으면 기본 구역 자동생성을 건너뛰고, 없을 때만 기본 구역을 만든다.",
+        "20초 상태 주기마다 입구와 원정 집결지를 제외한 외부 구역은 경과 주기수당 청결0.7 감소·손상0.08 증가를 적용한다."
+      ],
+      "editorialGroup": "구조와 건설"
+    },
+    {
+      "id": "GAP-165",
+      "guide": "events-and-choices",
+      "sourceTitle": "외부 사건의180초 주기·활성0 조건·환경 확률식 누락",
+      "publicTitle": "외부 사건의180초 주기·활성0 조건·환경 확률식",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "6f9d41adf7874cba985bba2136c5a5c5ca0fd0c937b9eca32b7382b7a3e7a25e",
+        "1ebda209b3659641a865ea77bb4c0f068f77d446d9a7d0677af65a971361f60c"
+      ],
+      "publishedClauses": [
+        "외부 사건은180초 주기에 활성 외부사건이 없을 때 발생을 검사한다. 확률은 clamp(0.18+야간위험×0.004+날씨압력×0.12-clamp(순찰준비도,0,100)×0.0025,0.08,0.72)다.",
+        "발생 판정을 통과하면 사건 간격 조건을 통과한 처리기 후보에서 종류별 가중치로 선택한다."
+      ],
+      "editorialGroup": "사건 효과와 발생"
+    },
+    {
+      "id": "GAP-166",
+      "guide": "residents-and-work",
+      "sourceTitle": "시설 완료 욕구회복의 작성값 우선·식사 별도 처리 누락",
+      "publicTitle": "시설 완료 욕구회복의 작성값 우선·식사 별도 처리",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "b4dd09938cb0cbf20bf4d00626eb509dd4457b63c2136463f746d460fbb236bc",
+        "fec70b76e6d1b52728486a952657ec6e926280fc888c372338fb194f88691829"
+      ],
+      "publishedClauses": [
+        "물리 식사 소비를 처리하는 이용은 음식 효과 경로를 사용하고 일반 시설 작성 회복을 별도로 중첩하지 않는다. 그 외 이용의 작성 욕구회복이 하나라도 있으면 작성값을 적용하고 역할별 기본 회복을 더하지 않는다.",
+        "작성 회복이 없으면 역할별 기본 회복을 사용한다. 예를 들어 휴식은 수면35·기분12, 훈련은 재미15·기분5이며 작성 회복이 있으면 이 값을 추가하지 않는다."
+      ],
+      "editorialGroup": "생존과 회복"
+    },
+    {
+      "id": "GAP-167",
+      "guide": "residents-and-work",
+      "sourceTitle": "훈련시설4종의 일반경험치24·전투숙련0.50·기분 누락",
+      "publicTitle": "훈련시설4종의 일반경험치24·전투숙련0.50·기분",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "a98fc999de8cda1e7399db68f72166d56d9fc58e691bb1f8d75595abe5b3a24c",
+        "ae0d24728de39061b154839336bfd9d2dab06b2f7e346726aaa84146d3686799"
+      ],
+      "publishedClauses": [
+        "훈련허수아비·사격과녁·중량훈련석·대련매트는 정상 이용 완료에 일반경험치24를 지급한다. 기본기분은 각각+4/+3/+5/+4, 지속180초다.",
+        "별도 전투훈련 경로는 시설 주숙련이 근접전투 또는 원거리전투일 때 해당 숙련 경험치0.50을 훈련으로 지급한다. 사격과녁은 원거리, 나머지3시설은 근접이다. 일반경험치24와 이 숙련값은 서로 다른 보상이다."
+      ],
+      "editorialGroup": "성장과 훈련"
+    },
+    {
+      "id": "GAP-168",
+      "guide": "expeditions",
+      "sourceTitle": "목욕통·침대3종의 기본 회복 입력과 일반 이용 적용 누락",
+      "publicTitle": "목욕통·침대3종의 기본 회복 입력과 일반 이용 적용",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "aab65821dccfbdce12c47eac2f678ec9ffaaebd72c02475d6722e69bbe27908e",
+        "ee272fe3e3b6397e5e531a54fdd1a34b9c67bbf84538cc9aee7af1146d80e744"
+      ],
+      "publishedClauses": [
+        "체력회복 기본입력(최대체력비율)/부상감소/스트레스감소는 목욕통0.08/0.12/26, 간이침대0.12/0.03/12, 정식침대0.22/0.08/22, 이층침대0.18/0.05/18이다.",
+        "정상 시설 이용 완료의 회복은 원정 귀환자에게만 제한되지 않는다. 체력회복은 추가 상처회복 성능 배율을 거치며 사망자는 회복하지 않으므로 표의 비율이 최종 회복량을 보장하지 않는다."
+      ],
+      "editorialGroup": "회복과 정보"
+    },
+    {
+      "id": "GAP-169",
+      "guide": "invasions-and-defence",
+      "sourceTitle": "경계 신호 나팔의 최대내구120 누락",
+      "publicTitle": "경계 신호 나팔의 최대내구120",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "5c3de61253ceace612ce90987c4d22599d2e55d109c454730e4306574632db90"
+      ],
+      "publishedClauses": [
+        "새 경계 신호 나팔의 최대내구도는120이다. 기존 내구 컴포넌트가 없는 새 실물은 현재 내구도도120으로 생성한다."
+      ],
+      "editorialGroup": "경보"
+    },
+    {
+      "id": "GAP-170",
+      "guide": "combat-and-equipment",
+      "sourceTitle": "장비 정비의 방어구·방패 대상과35→90% 정책·작업량 누락",
+      "publicTitle": "장비 정비의 방어구·방패 대상과35→90% 정책·작업량",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "9680c1f0a4627acd8763f7d72397b13b1c61ee48785991e13bfcc42ffb12a86f",
+        "f3c5183cb72869a802fa56634235ae8c005a8073abe366477f1173e5007c0766"
+      ],
+      "publishedClauses": [
+        "정비 주문은 방어구와 방패를 대상으로 하며 다른 장비종류는 거부한다. 표준 정책은 내구35% 기준으로 수리해90% 목표를 사용한다. 수리 작업량은12+28×손실내구비율WU다.",
+        "침공 중 탈착이 허용되지 않으면 전투 종료 대기로 두고, 그렇지 않으면 물리 운반을 준비한다."
+      ],
+      "editorialGroup": "장비 개조와 정비"
+    },
+    {
+      "id": "GAP-171",
+      "guide": "species-culture-and-life",
+      "sourceTitle": "골렘의 충전 문턱·마나 소비·작업량과 저충전 효과 누락",
+      "publicTitle": "골렘의 충전 문턱·마나 소비·작업량과 저충전 효과",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "561e8f3b75d610b5ad13eb077d7c63213816f00b67b423d362fe87f114d663db",
+        "9dcac570a898094dcfc0fdf29f2e4f71e5bfc514cbd75f089a44d6417730603c",
+        "f4845aada59b6c69e22fe3f3ed95699c40d8829f558c1aac04f82b6507c4a5a3"
+      ],
+      "publishedClauses": [
+        "골렘은 충전량35이하에서 새 충전을 시작할 수 있다. 마력 저장조 충전은 마나 결정1개와100WU가 필요하며 완료하면 충전량을50만큼 회복하되 최대100을 넘지 않는다. 이미 진행 중인 충전은35문턱 때문에 중단되지 않는다.",
+        "충전 완료 시 예약한 마나 결정을 소비한다. 소비가 실패하면 완료 직전 작업 진척을 보존한다.",
+        "충전량은 초당0.035×종족 방전 배율만큼 감소한다.25미만이면 저충전 기분-10을5초간 갱신하고,0이면 초당 최대체력의0.25%에 해당하는 비살상 피해가 적용된다(각 갱신의 최소 피해0.1)."
+      ],
+      "editorialGroup": "기후와 종족 상태"
+    },
+    {
+      "id": "GAP-172",
+      "guide": "guests-services-and-performance",
+      "sourceTitle": "서비스 운영 모드별 지원시설 효과와 새 세션 적용 경계 누락",
+      "publicTitle": "서비스 운영 모드별 지원시설 효과와 새 세션 적용 경계",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "cf1753e436920706112d023ca2d3d838a0fc1ba9d87ce7e32b73b0f84a2d5d23",
+        "d37e740a50bcab08218d97541ddb9e1a1bd82d7f40cdc945c0279aff27ea0108"
+      ],
+      "publishedClauses": [
+        "직접 운영(Direct)은 허브의 기본 정원·요금·만족도와 기본 작업속도를 사용한다. 그 밖의 운영 모드에서는 연결 지원시설의 정원·수입·만족도 보정을 더하고 작업속도 배율을 곱한다. 최종 정원은 최소1명이다.",
+        "모드를 바꿔도 이미 시작한 서비스 계약은 바뀌지 않으며 새 손님 세션부터 바뀐 모드가 적용된다."
+      ],
+      "editorialGroup": "서비스 선택과 지원"
+    },
+    {
+      "id": "GAP-173",
+      "guide": "guests-services-and-performance",
+      "sourceTitle": "서비스 지원시설의 같은 방·호환 허브 연결 우선순위 누락",
+      "publicTitle": "서비스 지원시설의 같은 방·호환 허브 연결 우선순위",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "3c4c9266a12429604f7f4e8138b6a8013f7f9139520ea1b9c3750cf5e037cbfc"
+      ],
+      "publishedClauses": [
+        "서비스 지원시설은 같은 구역 격자와 같은 방 안의 호환되는 허브에만 연결된다. 후보가 여러 개면 가로·세로 이동거리 합이 가장 짧은 허브를 선택하고, 거리가 같으면 고정된 내부 식별 순서로 하나를 선택한다."
+      ],
+      "editorialGroup": "서비스 선택과 지원"
+    },
+    {
+      "id": "GAP-174",
+      "guide": "residents-and-work",
+      "sourceTitle": "시설별 실물 급유·잔여 공급시간 규칙 누락",
+      "publicTitle": "시설별 실물 급유·잔여 공급시간 규칙",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "6524b69004e243f305ef43cf107b984d5a0c594eedbfd1fe9cf46aef0cec7700",
+        "27634a372dcc041ea1f110f6c0a3bbcb563652406398d947dd69a1c9921fffcd"
+      ],
+      "publishedClauses": [
+        "급유할 때는 해당 시설에 정해진 연료를 정해진 수량만큼(최소1개) 시설의 납품 지점에서 소비한다. 실제 소비가 확인되면 그 시설에 정해진 연료 지속시간을 부여한다.",
+        "이미 연료가 공급 중인 시설은 급유를 요청해도 연료를 추가 소비하지 않는다."
+      ],
+      "editorialGroup": "환경과 시설 상태"
+    },
+    {
+      "id": "GAP-175",
+      "guide": "production",
+      "sourceTitle": "화덕·가마솥과 벽돌 오븐의 대체 연료·주기 내 선택 고정 누락",
+      "publicTitle": "화덕·가마솥과 벽돌 오븐의 대체 연료·주기 내 선택 고정",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "11e818ccaa470442dec5de85d29343f2f36df86c6089c89210053d1dd45cd0fe",
+        "db907d7e4d99c891ee46ba7cea9fcd8f08538fe0e6af02b5d1830bf16d48daa3",
+        "00a9145af2996b716d0b2322dda844c57e67b7708b1b04d86f119cf33fe128e9"
+      ],
+      "publishedClauses": [
+        "화덕·가마솥과 벽돌 오븐은 원목,저급연료,석탄,숯,사일리지,양초를 연료로 사용할 수 있다. 연료값은 각각10,6,20,24,4,2이며 최소 연료값2가 필요하다. 흑색화약은 사용할 수 없다. 실제 사용하는 지원시설마다 생산 주기당 연료1개를 소비한다.",
+        "새 연료는 가용 재고가 있는 후보를 우선하여 고른다. 그 다음 위에 나열한 연료 우선순위,가격÷연료값,가장 오래된 재고,아이템 식별 순서로 결정한다.",
+        "선택한 연료가 허용 대상인 동안은 현재 주기 중 품절되어도 다른 연료로 자동 전환하지 않는다. 선택은 저장되지만 정상 완료나 실패 배치 종료 때 초기화되어 다음 주기에 다시 선택할 수 있다."
+      ],
+      "editorialGroup": "연료"
+    },
+    {
+      "id": "GAP-176",
+      "guide": "food-and-ecology",
+      "sourceTitle": "식재료 선반·저장함의 보존식 전환과 조리 산출량 누락",
+      "publicTitle": "식재료 선반·저장함의 보존식 전환과 조리 산출량",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "d2a24f2f99773a8553de4fad7a39f56f9effeb16832bb330bf8777dd74585350",
+        "f2cea7ba62beb1f0741f4094a8fa8267dd767e1092ba6fc6d6232b7922adc1d1"
+      ],
+      "publishedClauses": [
+        "조리시설의 같은 방 운영부품에 보존 능력이 있으면 조리 결과가 일반 식사에서 보존식으로 바뀐다. 보존 부품이 여럿이면 운영부품 목록에서 첫 번째 보존 능력을 사용한다.",
+        "식재료 선반의 보존식 산출량은 조리 완료당1개,식재료 저장함은2개다."
+      ],
+      "editorialGroup": "보관과 조리"
+    },
+    {
+      "id": "GAP-177",
+      "guide": "medical-care-and-surgery",
+      "sourceTitle": "재활 보조대·룬 봉합기의 수술 역할과 개별 보정 누락",
+      "publicTitle": "재활 보조대·룬 봉합기의 수술 역할과 개별 보정",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "a630010682095025ffcc81d130b529113afe1d847ce6253611623a887a5750bb",
+        "208c01b70f514b6b11d90b649f26f53b6c3358a825e236c52d93dac4b6fcd5c3"
+      ],
+      "publishedClauses": [
+        "재활 보조대는 재활 수술의 주시설이며 시설 작업속도 배율은1.6이다. 룬 봉합기는 같은 방의 지원시설로 재활·룬봉합 기능을 제공하며 속도1.35배,무균도+0.12,기본 시설 성공보정+0.08을 제공한다.",
+        "주시설과 지원시설의 속도는 곱하고 무균도·기본 성공보정은 더한다. 합산 시설속도는0.25~3배,무균도는0~1,기본 성공보정은-0.25~0.35로 제한된다. 이 값은 다른 수술 조건과 함께 적용되므로 최종 성공률 증가량과 같지 않다."
+      ],
+      "editorialGroup": "수술 지원 설비"
+    },
+    {
+      "id": "GAP-178",
+      "guide": "medical-care-and-surgery",
+      "sourceTitle": "해부대의 주시설 기능·무균도·기본 성공보정 누락",
+      "publicTitle": "해부대의 주시설 기능·무균도·기본 성공보정",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "7a86ea39db9e62a47a61e0425dc9ab9473c55a429f9a778f71979a13794b6d79"
+      ],
+      "publishedClauses": [
+        "해부대는 해부 수술의 주시설이다. 시설 작업속도 배율은1,무균도는0.1,기본 시설 성공보정은+0.02다. 무균도는 성공도 계산에 별도로 반영되며,이 수치를 최종 성공률+2%로 단순 환산하지 않는다."
+      ],
+      "editorialGroup": "수술 지원 설비"
+    },
+    {
+      "id": "GAP-179",
+      "guide": "medical-care-and-surgery",
+      "sourceTitle": "마취 장치의 지원 기능·마취도와 성공 계산 기여 누락",
+      "publicTitle": "마취 장치의 지원 기능·마취도와 성공 계산 기여",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "d6b424a0c56ab3df40a19b75956fb931815f7c6c1dddebbd1d8bd9edc566a5c6",
+        "24b1251172fe997411f96c0e1baa36a4ed5a7cda41dd166dc7f308258df0b80b"
+      ],
+      "publishedClauses": [
+        "마취 장치는 마취 지원시설이다. 마취도0.35와 기본 시설 성공보정+0.0105를 제공한다.",
+        "마취가 필수인 수술은 합산 마취도×0.03이 성공도 계산에 추가로 반영된다. 실제 성공률은 다른 조건과 함께 계산되어5~98%로 제한되므로 마취 장치가 무조건 같은 최종 확률 증가를 보장하지 않는다."
+      ],
+      "editorialGroup": "수술 지원 설비"
+    },
+    {
+      "id": "GAP-180",
+      "guide": "medical-care-and-surgery",
+      "sourceTitle": "세정대의 개별 무균·성공 보정과 지원시설별 재료 추가 누락",
+      "publicTitle": "세정대의 개별 무균·성공 보정과 지원시설별 재료 추가",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "15162e3c548e9c51ce060dedfaa08ce6c02e0cfcdeb4b8f47ed08bc022aa0c31",
+        "09fba462421df12ea79a5349d63fa0d33af97c93138874f345d6cc4c8b5cafa5"
+      ],
+      "publishedClauses": [
+        "세정대는 멸균 지원시설이며 무균도+0.3과 기본 시설 성공보정+0.024를 제공한다. 합산 무균도는 성공도 계산에도 별도로×0.08이 반영되므로+0.024를 최종 성공률 변화 전체로 해석하지 않는다.",
+        "수술 주문에 포함되는 세정 지원시설마다 깨끗한 물1개와 소독제1개가 추가로 필요하다."
+      ],
+      "editorialGroup": "수술 지원 설비"
+    },
+    {
+      "id": "GAP-181",
+      "guide": "medical-care-and-surgery",
+      "sourceTitle": "비전 개조대의 추가 마나·수술 보정·변이 부담 하한 누락",
+      "publicTitle": "비전 개조대의 추가 마나·수술 보정·변이 부담 하한",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "a1f8ccbb5e22cb63636bf276f1811b23de2f9e8753b2a279eb52b2e0cd79f30e",
+        "f408f102e92d5b62d21a2462ad3abdb1ad0ea98d1acd8c89b10f5b838e461a08"
+      ],
+      "publishedClauses": [
+        "같은 방의 비전 개조대는 주문 재료에 마나 결정 2개와 수술 성공 보정 +0.12를 추가한다.",
+        "수술 부담 효과에는 같은 방 비전 시설의 변이 하한 중 최댓값을 적용한다. 비전 개조대의 하한은 부담 8이며, 그보다 높은 절차 기본 부담을 낮추지 않는다."
+      ],
+      "editorialGroup": "수술 지원 설비"
+    },
+    {
+      "id": "GAP-182",
+      "guide": "medical-care-and-surgery",
+      "sourceTitle": "장기 보관함의 신선도·보존 용기·가동 조건 누락",
+      "publicTitle": "장기 보관함의 신선도·보존 용기·가동 조건",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "11872d52da93c8c07fb157bd7095b05ea2be8daa47ffb08b0223feb90f14d62f",
+        "8ecd0b23ccaf520fec8b1e1570aa8c1dbf0dcde53d6801718957c4a319fa3841"
+      ],
+      "publishedClauses": [
+        "자연 장기의 초기 신선도는 360 게임초다. 정상 보존 중에는 게임 1초마다 신선도가 2/15초 감소하고, 그 밖에는 게임 1초마다 1초 감소한다.",
+        "손상되지 않은 보관함 버퍼, 안전한 보존 환경, 필요한 연료 잔량을 충족하고 장기별 보존 용기 1개 소비를 완료해야 보존 혜택을 받는다."
+      ],
+      "editorialGroup": "수술 지원 설비"
+    },
+    {
+      "id": "GAP-183",
+      "guide": "medical-care-and-surgery",
+      "sourceTitle": "보철 조립대의 수술 지원과 제작 품질 구별 누락",
+      "publicTitle": "보철 조립대의 수술 지원과 제작 품질 구별",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "a9d1da926bf84d4b234197cf683f002fa662949285231b41ead6b61f468fbeaf",
+        "bad46eeec0a00cf92db7ea4dcf8aac6dafe5e804606d48bd1d2a0ea208d1616f"
+      ],
+      "publishedClauses": [
+        "보철 조립대는 수술 속도 ×1.1과 성공 보정 +0.06을 제공한다.",
+        "이 성공 보정은 수술 성공 계산에 반영된다. 제작 부품은 생산 작업이 확정한 작업자 품질을 받아 생성된다."
+      ],
+      "editorialGroup": "수술 지원 설비"
+    },
+    {
+      "id": "GAP-184",
+      "guide": "medical-care-and-surgery",
+      "sourceTitle": "이식 지원시설의 추가 재료와 수술 보정 누락",
+      "publicTitle": "이식 지원시설의 추가 재료와 수술 보정",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "a11b960cfca8ca19281c7240af53a0ce856992e3c19501184133a916048609c8",
+        "af9eb2031692f676be020331a312a24a5e365462e46948bf53680dd923430c28"
+      ],
+      "publishedClauses": [
+        "이식 자격이 필요한 절차에는 같은 방 지원 시설의 비용을 합산한다. 순환 이식대는 혈액팩 1개, 면역 조절기는 면역억제제 1개, 격리 회복 침상은 추가 재료 0개다.",
+        "순환 이식대·면역 조절기·격리 회복 침상의 성공 보정은 각각 +0.14/+0.08/+0.05, 청정도는 +0.05/+0.05/+0.20이다. 순환 이식대는 속도 ×1.15와 마취 보정 +0.1도 제공한다."
+      ],
+      "editorialGroup": "수술 지원 설비"
+    },
+    {
+      "id": "GAP-185",
+      "guide": "medical-care-and-surgery",
+      "sourceTitle": "수술대별 성공·청정도·속도 보정 누락",
+      "publicTitle": "수술대별 성공·청정도·속도 보정",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "bc30b858186888d6243856d890697954232ac59f11e0bd2a88e6f9293bd28f34",
+        "412d5c0e4b59a320075866e6c79ed4350683b53da75fb9cfdbefc05b7b9780df"
+      ],
+      "publishedClauses": [
+        "응급처치대는 성공 보정 −0.05·속도 ×1.3·청정도 0.12, 외과 수술대는 성공 보정 +0.08·속도 ×1·청정도 0.35다.",
+        "장기 재생 수술실·회춘 수혈실·룬 동면실·전신 재생조·시간 고정실은 각각 성공 보정 +0.12·속도 ×1·청정도 0.45다. 같은 방 지원 시설의 성공 보정·청정도는 더하고 속도 배율은 곱한다."
+      ],
+      "editorialGroup": "수술대와 노화 치료"
+    },
+    {
+      "id": "GAP-186",
+      "guide": "production",
+      "sourceTitle": "일반 생산 능력의 작업 완료 물리 입고·부분 생산 누락",
+      "publicTitle": "일반 생산 능력의 작업 완료 물리 입고·부분 생산",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "2722f6fae2b501b0c82bcc5a707dfcda63c9ae63675abb637c14fa049b3d262d",
+        "4559d6396004547328c80de9464ff826b2eac17263a7a5fd11b9f91e1a8c8be2"
+      ],
+      "publishedClauses": [
+        "일반 생산 능력은 운영·연구 완료 때 설정 수량, 방문자·진화 배율과 생산 보너스로 요청 수량을 계산한다.",
+        "같은 방 창고부터 입고하고 남은 수량은 같은 격자의 다른 창고에 시도한다. 실제 물리 입고 수량만 생산 실적에 기록한다."
+      ],
+      "editorialGroup": "작업 실행과 출력"
+    },
+    {
+      "id": "GAP-187",
+      "guide": "infrastructure",
+      "sourceTitle": "조명의 시설별 전력·연료 가동과 환경 조도 범위 누락",
+      "publicTitle": "조명의 시설별 전력·연료 가동과 환경 조도 범위",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "1be23c4af6405b61769997d7e7d1fd64fac1fe35dd7965d1c8264d00c8e35c8c",
+        "5ad429cebc60f8cea34d141d716a1caffba3243b0f16a5dcb15a46d4130bd996"
+      ],
+      "publishedClauses": [
+        "전력 소비 능력이 있는 조명은 해당 시설의 전력이, 연료 소비 능력이 있는 조명은 해당 시설의 연료가 필요하다. 화면의 발광과 환경 조도에 같은 발광 조건을 사용한다.",
+        "환경 조도는 반경을 올림한 격자 범위에서 세기와 거리를 반영하며, 장벽 칸과 효과 경로가 막힌 칸은 제외한다."
+      ],
+      "editorialGroup": "환경 설비와 휴식"
+    },
+    {
+      "id": "GAP-188",
+      "guide": "infrastructure",
+      "sourceTitle": "외부 휴식처의 자격·기분·원정 스트레스 회복 누락",
+      "publicTitle": "외부 휴식처의 자격·기분·원정 스트레스 회복",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "0fbb2bc96a6c89f738ca1ab1baa3bae4bd015a81fa9c7c746ba110afa81f3de0",
+        "3ef5d9c431e62a2c055df30fbfbd955f56ad24d1f86199b620672ad7bfe1db79"
+      ],
+      "publishedClauses": [
+        "외부 휴식처에서는 기분이 85 미만이거나 원정 스트레스가 0보다 클 때 휴식 후보가 된다.",
+        "기본 1.4초 휴식을 완료하면 기분 +4를 180초 적용하고 원정 스트레스를 8 회복한다."
+      ],
+      "editorialGroup": "환경 설비와 휴식"
+    },
+    {
+      "id": "GAP-189",
+      "guide": "infrastructure",
+      "sourceTitle": "시설 진화 기여와 실제 방 환경 효과 구별 누락",
+      "publicTitle": "시설 진화 기여와 실제 방 환경 효과 구별",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "3118a34efca707091320281e48efc62b87a6aa9cd864bfb2fc34c0347f02918e",
+        "219c972d05108cfbd1fbd0df19a6f1811f52f1f39d6ed223a86a49eef1360ab3"
+      ],
+      "publishedClauses": [
+        "시설의 방 프로필 기여가 꺼져 있어도 시설 역할과 방어 기여는 유지된다.",
+        "방 프로필에 기여하는 시설의 호화·위생 점수는 실제 방 환경값에도 더해진다. 환경 성능 증가는 해당 호화·위생 기여분에 한정된다."
+      ],
+      "editorialGroup": "시설의 방 기여"
+    },
+    {
+      "id": "GAP-190",
+      "guide": "production",
+      "sourceTitle": "대장작업대의 제작 허용 목록·연구·재질 조건 누락",
+      "publicTitle": "대장작업대의 제작 허용 목록·연구·재질 조건",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "831ece6ab448383cdb515fd336526b06975825dcfa82282adc8408b1dca1de8f",
+        "fa9987d14f3911df83561b6556a70b42a1039a61f4a8f6ab77ca0c12974c527c"
+      ],
+      "publishedClauses": [
+        "대장작업대에서는 시설 허용 목록에 있는 장비만 주문할 수 있고, 장비별 필수 연구도 끝내야 한다.",
+        "시설별 허용 재질 정책에 맞는 구체 재료를 선택해야 하며, 허용되지 않은 장비 주문은 거부된다."
+      ],
+      "editorialGroup": "대장 작업대와 작업자"
+    },
+    {
+      "id": "GAP-191",
+      "guide": "factions-contracts-and-prisoners",
+      "sourceTitle": "서커스 관람석의 관객 정원·선발 조건 누락",
+      "publicTitle": "서커스 관람석의 관객 정원·선발 조건",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "da269ce9c2785b7eaee4c9b37a8d949c53def80d774a483df2f3d286c6019a00",
+        "8de090d01798826ecee9652cc43a24c6176946003634601da4a112f41a7851d1"
+      ],
+      "publishedClauses": [
+        "관람석은 시설당 관객 정원2를 제공한다. 같은 방 정원의 합만큼 살아 있는 손님을 방 중심까지 가까운 순서로 선발한다.",
+        "무대가 사용 가능한 정식 방에 있고 유효 관람석과 실제 출입문이 있어야 공연 공간 조건을 충족한다."
+      ],
+      "editorialGroup": "관객과 포로 수용"
+    },
+    {
+      "id": "GAP-192",
+      "guide": "food-and-ecology",
+      "sourceTitle": "야수 우리의 수용 정원·생포 체력·돌봄 보안 규칙 누락",
+      "publicTitle": "야수 우리의 수용 정원·생포 체력·돌봄 보안 규칙",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "858d68487aa804e6121a49992e1fa865e4b17d7181c367dd3f21e4bbbaa127c1",
+        "fff9cca01dc84cfe0b8043345191b5f2343f2a93b0ce730927c13507a57b9187",
+        "b418c3bee06563db4416597d13d38effee99babd49797ac0983658509ac2d6f8"
+      ],
+      "publishedClauses": [
+        "야수 우리 정원은2이며 생포 및 우리에서 태어난 새끼 등록은 정원을 초과할 수 없다. 생포 대상의 현재 체력은 최대치의35% 이하여야 한다.",
+        "야수 우리의 보안값은 55다. 탈출 위험은 길들임 여부, 보안, 굶주림·갈증, 오염, 방과 문 상태를 함께 반영한다. 보안 기여는 (100−보안)에 길든 동물 0.08, 그 밖의 동물 0.35를 곱한다.",
+        "급식·급수 필요값은 각각2이며 돌봄 위치에 있는 동물의 욕구를 보고 물자 소비·배송을 처리한다."
+      ],
+      "editorialGroup": "야생동물과 생태"
+    },
+    {
+      "id": "GAP-193",
+      "guide": "factions-contracts-and-prisoners",
+      "sourceTitle": "감방 구속대의 포로 수용 정원 누락",
+      "publicTitle": "감방 구속대의 포로 수용 정원",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "dbb7eaca82cbbcb41a27b36ce522290b8a5d11c310e822f447f741c4b1ab8a18"
+      ],
+      "publishedClauses": [
+        "감방 구속대의 포로 정원은1명이며 이미 배정된 포로가 정원에 도달하면 새 배정을 거부한다."
+      ],
+      "editorialGroup": "관객과 포로 수용"
+    },
+    {
+      "id": "GAP-194",
+      "guide": "guests-services-and-performance",
+      "sourceTitle": "서커스 매표소의 표값 배율·관객당 수익 누락",
+      "publicTitle": "서커스 매표소의 표값 배율·관객당 수익",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "1f5a7c2e9871226ae6b2141d21c150d4584744edd5420cd822a6d2bd93cc7494",
+        "d6f4a36e3c81dd359e6e53225452793e9897c0d5baf7bcadbfb270aab8d427f8"
+      ],
+      "publishedClauses": [
+        "같은 공연 방의 매표소마다 표값 배율1.15를 곱하고 관객당 가산 수익1을 더한다. 전체 표값 배율은1~2.5로 제한된다.",
+        "주문 생성 때 표값은 기본 표값×합성 배율을 반올림한 값(최소1)으로 고정한다. 정산 수익은 관객 수×(고정 표값+관객당 가산 수익)이다."
+      ],
+      "editorialGroup": "서커스 공연"
+    },
+    {
+      "id": "GAP-195",
+      "guide": "guests-services-and-performance",
+      "sourceTitle": "서커스 도박 창구의 수익·만족도 변동 누락",
+      "publicTitle": "서커스 도박 창구의 수익·만족도 변동",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "4f47e57ff7bf619b463d99a91d78473c69ce2db0e8edaa71db38f13b3ddc6635",
+        "a91fefc1d21becca722704fdc096f1793e6298242527d2b1d98ee62f971afb42"
+      ],
+      "publishedClauses": [
+        "같은 공연 방의 도박 창구마다 관객당 가산 수익3과 만족도 변동폭5를 더한다.",
+        "공연 주문에 가산 수익과 변동폭이 고정된다. 정산 시 합성 변동폭의 음수~양수 범위에서 만족도 변화를 뽑아 기본·시설 만족도에 더하고 최종0~100으로 제한한다."
+      ],
+      "editorialGroup": "서커스 공연"
+    },
+    {
+      "id": "GAP-196",
+      "guide": "guests-services-and-performance",
+      "sourceTitle": "서커스 진행자 단상의 만족도·준비 작업량 보정 누락",
+      "publicTitle": "서커스 진행자 단상의 만족도·준비 작업량 보정",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "c91f0e2893f022f4ddfb0cfb3be49d348c5b536a94c6815ce4da431ef4a02aee",
+        "4e3b3e0ae2af076d98769d02ace2315abf01bf8a18bfc204982fc4e7488bb743"
+      ],
+      "publishedClauses": [
+        "같은 공연 방의 진행자 단상마다 만족도6을 더하고 준비 작업량에0.9를 곱한다. 시설 만족도 합계는0~35로 제한된다.",
+        "준비 요구량은 max(1, 무대 기본 준비량×합성 배율)로 주문 생성 때 고정한다. 고정 만족도 가산은 정산에 더하고 최종 만족도를 0~100으로 제한한다."
+      ],
+      "editorialGroup": "서커스 공연"
+    },
+    {
+      "id": "GAP-197",
+      "guide": "guests-services-and-performance",
+      "sourceTitle": "공연 위험 장치의 사고 확률·만족도 가산 누락",
+      "publicTitle": "공연 위험 장치의 사고 확률·만족도 가산",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "b6ecb2db81ac781725c13ad5f17abeffd18630a1becca592af3ab12090a806fe",
+        "288578289533cc453218414d95680a29650db6c110796d9110b5fe5e5ca4fd5e"
+      ],
+      "publishedClauses": [
+        "같은 공연 방의 위험 장치마다 사고 확률0.08과 만족도8을 더한다. 시설 사고 가산은0~0.5,만족도 합계는0~35로 제한된다.",
+        "생성한 주문에 보정이 고정되며 공연 시간의25%가 지난 뒤 한 번 사고를 판정한다. 판정 확률은 기본 사고율+시설 가산을0~1로 제한한 값이다."
+      ],
+      "editorialGroup": "서커스 공연"
+    },
+    {
+      "id": "GAP-198",
+      "guide": "guests-services-and-performance",
+      "sourceTitle": "공연 치료 구역의 사고 피해 감소·대상별 반올림 누락",
+      "publicTitle": "공연 치료 구역의 사고 피해 감소·대상별 반올림",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "63d18db0015c846b7a8a028aefa859a03a1560381a77ea183ee3e1e3254ab821",
+        "4a1aa8649e05abc870cb601b39b99f7913f0dc9feb9b7ae81305ca213d6e2007"
+      ],
+      "publishedClauses": [
+        "같은 공연 방의 치료 구역마다 사고 피해에0.65를 곱하고 최종 배율을0.25~1로 제한한다. 배율은 주문 생성 때 고정한다.",
+        "기본 사고 피해8에 치료 구역1개만 적용되면 인물에게5.2 신체 피해가 전달된다. 야생동물은 피해를 정수 올림하므로6이 전달된다."
+      ],
+      "editorialGroup": "서커스 공연"
+    },
+    {
+      "id": "GAP-199",
+      "guide": "guests-services-and-performance",
+      "sourceTitle": "공개 형벌 장치의 잔혹 공연 전용 만족·오염·목격 효과 누락",
+      "publicTitle": "공개 형벌 장치의 잔혹 공연 전용 만족·오염·목격 효과",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "663ae45f79eed33303080652acd90b3e8f7106929323e7d9eedac22fbc5344d7",
+        "30bf4362af19e164762b9eb034518944ab9cba8fdba11b5127cca9724f12a3d7"
+      ],
+      "publishedClauses": [
+        "같은 공연 방의 공개 형벌 장치는 잔혹 공연에서만 만족도 8을 더하고 오염 배율 1.35를 곱하며, 목격자 기분 패널티 기준을 기본 3과 5 중 큰 값으로 올린다. 일반 공연에는 적용하지 않는다.",
+        "주문에 효과가 고정된다. 잔혹 공연 종료 오염 기본3에 합성 오염 배율을 적용하며,목격자의 위험 감수 성향에 따라 패널티 기준을1.25~0.45배 한 뒤 최소1의 기분 감소를360초 부여한다."
+      ],
+      "editorialGroup": "서커스 공연"
+    },
+    {
+      "id": "GAP-200",
+      "guide": "guests-services-and-performance",
+      "sourceTitle": "중앙 무대의 공연자 정원·표값·준비 작업·시간 누락",
+      "publicTitle": "중앙 무대의 공연자 정원·표값·준비 작업·시간",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "d63ae055f875710a8f404fcd163d8ff32d7f71d564f9503a58aefbede699db87",
+        "9992fc6e860f415e4108b8379462c4bb02800a3319bb6c8724b552a934b9cbea"
+      ],
+      "publishedClauses": [
+        "중앙 무대의 포로 공연자 정원은2,기본 표값은12,준비 작업량은16,공연 시간은45초다.",
+        "유효한 무대에서 공연을 생성하며 시설 보정이 반영된 표값·준비 작업량은 최소1,공연 시간은 최소5초로 고정된다. 준비 작업을 누적해 요구량을 채운 뒤 공연한다."
+      ],
+      "editorialGroup": "서커스 공연"
+    },
+    {
+      "id": "GAP-203",
+      "guide": "residents-and-work",
+      "sourceTitle": "위생 시설 청소 완료의 방 구성품 청결 복구 누락",
+      "publicTitle": "위생 시설 청소 완료의 방 구성품 청결 복구",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "05fb10827aa133e24cfc17138b0e5e15511c1ad2b5bae4565938994dcecf683c"
+      ],
+      "publishedClauses": [
+        "변기·화장실 칸막이·세면대·목욕통·수건걸이·청소도구함·바닥 배수구의 청소 완료는 대상 시설과 같은 운영 방 구성품의 청결을 100으로 설정한다."
+      ],
+      "editorialGroup": "환경과 시설 상태"
+    },
+    {
+      "id": "GAP-204",
+      "guide": "food-and-ecology",
+      "sourceTitle": "조리 손질대의 도축 작업·야생 사체 산출 누락",
+      "publicTitle": "조리 손질대의 도축 작업·야생 사체 산출",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "9e5e2b5b69f7d8477ff716049b86886ce18e37884c03bbead4f7fb9726b2344b"
+      ],
+      "publishedClauses": [
+        "조리 손질대의 도축 기본 작업값은1이며,도축 대상 야생 사체를 선택해 종별 도축 산출물로 물리 변환한다."
+      ],
+      "editorialGroup": "보관과 조리"
+    },
+    {
+      "id": "GAP-205",
+      "guide": "food-and-ecology",
+      "sourceTitle": "생산 주문이 없는 조리 시설의 수동 조리와 주문 경계 누락",
+      "publicTitle": "생산 주문이 없는 조리 시설의 수동 조리와 주문 경계",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "72176dd71a7e79dc7ca0567d79a9cb4222f0f02a1936d2605e60913fcf4ad048",
+        "2fd2ea7426673d3940495c15658e5d8a99b33debd0959503c61bd69d67ff74b5",
+        "37ccf4e325dc03464e26dae8918e2962d9866c720637527a982a872dbbe4ce87"
+      ],
+      "publishedClauses": [
+        "간이 화덕과 고기 그릴은 생산 주문 없이 수동 조리하며 식량1과 연료1을 사용해 기본 일반 식사2/3을 만든다. 기본 작업값은1.1/1.3이다.",
+        "생산 주문이 실행되면 그 주문이 완료 효과를 소유한다. 조리 손질대처럼 생산 작업대인 시설에서 주문이 막히거나 없다고 구형 수동 조리로 우회하지 않는다.",
+        "같은 방에 보존 능력이 있으면 수동 조리 산출은 일반 식사 대신 해당 보존 능력의 보존식과 수량을 사용한다."
+      ],
+      "editorialGroup": "보관과 조리"
+    },
+    {
+      "id": "GAP-206",
+      "guide": "combat-and-equipment",
+      "sourceTitle": "엄폐 시설의 차단률·방향·내구도와 파괴 경계 누락",
+      "publicTitle": "엄폐 시설의 차단률·방향·내구도와 파괴 경계",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "7637efebee98a5a5da74292f2568487cddabf816395d39b0c2f327b80a0560a5",
+        "dce928467a6fce121901de71d339b5b6cc659baec9a0df234b3363aa3ef935f6",
+        "d3664c02235ae8feae32f14156f9691d367b27c6cea5057455875dae8e8ce7f1"
+      ],
+      "publishedClauses": [
+        "목재 바리케이드·자루 방책·화살막이의 기본 차단률은 각각 0.35/0.55/0.70, 엄폐 내구도는 60/90/110이다. 차단률은 남은 내구도 비율과 방향 보정의 영향을 받는다.",
+        "들어오는 각도15° 이하/35° 이하/55° 이하의 방향 보정은1/0.75/0.4이며 그 밖은0이다.",
+        "엄폐에 가하는 피해가 남은 내구도 이상이면 즉시 제거를 요청한다. 내구도0 뒤 추가 피격은 필요하지 않다."
+      ],
+      "editorialGroup": "엄폐물"
+    },
+    {
+      "id": "GAP-207",
+      "guide": "invasions-and-defence",
+      "sourceTitle": "방어 시설의 가동 중단·마모·고장 효과 누락",
+      "publicTitle": "방어 시설의 가동 중단·마모·고장 효과",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "0ad74dfc48848f3c6215714e459e95f5075dc4f808b0e32d1a811c2347de635e",
+        "5838a1d79e312fbce842514566b20cfcb672cfd6645af1f175fdf3dea5dfc346"
+      ],
+      "publishedClauses": [
+        "방어 시설은 상태25 미만(위험 운전 강제 예외),필요 전력 부족,재사용 대기,보급·장전 조건을 검사한다.",
+        "발동하면 필요한 보급과 상태를 소모한다. 마모는 고장 위험을 높이며 걸림은 효과0배,오발은0.5배,정상은1배다."
+      ],
+      "editorialGroup": "방어 시설"
+    },
+    {
+      "id": "GAP-208",
+      "guide": "food-and-ecology",
+      "sourceTitle": "급수 시설별 산출량·기본 작업값 누락",
+      "publicTitle": "급수 시설별 산출량·기본 작업값",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "2b7943995702e3caed1fb785882f5efeaeec20a86e61c4539f243664f5a5dfe0",
+        "fde1545ed7a7a8e0aefdff66e0934c35038ccc9a80d444cb8c715f55421ac479"
+      ],
+      "publishedClauses": [
+        "세면대·목욕통·통더미의 급수 산출은 각각 4/6/3개, 기본 작업값은 0.9/1.2/1.1이다.",
+        "완료 시 시설 위치에 물을 생성하며 생성 실패 시 창고 입고를 시도한다."
+      ],
+      "editorialGroup": "물 확보"
+    },
+    {
+      "id": "GAP-209",
+      "guide": "disease-and-public-health",
+      "sourceTitle": "환기 시설의 전역 위생 위험과 방 환기 기여 구별 누락",
+      "publicTitle": "환기 시설의 전역 위생 위험과 방 환기 기여 구별",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "207b3adbdddb557c79c8eb9b05a1fd3ec5bd45043e6df34d92dd4344b0225a02",
+        "3c912714670a318ddfcd36c673659ac3885740664b3a254a3475f77b4da8b175"
+      ],
+      "publishedClauses": [
+        "방 표지판/세면대/목욕통/청소도구함/바닥배수구의 위생·연기 감소값은 각각3·3/10·4/16·6/12·4/18·8이다.",
+        "전역 위생 위험 계산은 위생 감소값만 빼며,방 환기 기여에는 위생 감소값+연기 감소값×0.5를 더한다."
+      ],
+      "editorialGroup": "노출과 증상"
+    },
+    {
+      "id": "GAP-210",
+      "guide": "production",
+      "sourceTitle": "보관 시설의 질량 한도·방 재고 정원 표기 누락",
+      "publicTitle": "보관 시설의 질량 한도·방 재고 정원 표기",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "97a13ecf1db71aae2a54ca1feea10b4ba16e9b3915915f7b7eac75f0fbd4ea3b"
+      ],
+      "publishedClauses": [
+        "보관 시설의 물리 창고는 질량 한도와 허용 재고 분류를 가진다. 방 재고 정원과 물리 창고의 질량 한도는 서로 다른 값이다. 통더미는 방 정원14와 물리 질량 한도12500g을 별도로 가진다."
+      ],
+      "editorialGroup": "재고와 보관"
+    },
+    {
+      "id": "GAP-211",
+      "guide": "production",
+      "sourceTitle": "생산 출력의 바닥 넘침 허용·대기 조건 누락",
+      "publicTitle": "생산 출력의 바닥 넘침 허용·대기 조건",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "2e570f1451b24dfe52357f22346c807b514b5ecb7ddf3b2b49251e2fede37a21",
+        "20602cf5dfa4199aabee31713a791651cd44ff5ca5205e6ed4636151c2fc1ea7"
+      ],
+      "publishedClauses": [
+        "소비 시설·창고로 출력을 보낼 수 없으면 바닥 넘침이 허용된 시설은 지정된 인접 위치로 남은 출력을 보낸다.",
+        "보철 조립대는 바닥 넘침을 허용하지 않으므로 호환 창고도 없으면 출력 불가로 대기한다."
+      ],
+      "editorialGroup": "작업 실행과 출력"
+    },
+    {
+      "id": "GAP-212",
+      "guide": "production",
+      "sourceTitle": "수동 준비 배치의 보조 처리기 연결·동시 점유 누락",
+      "publicTitle": "수동 준비 배치의 보조 처리기 연결·동시 점유",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "1a7dfab0d9cad8ee9d5edc652cd751e4250a47f19ce75ccb3d87e707239d2212",
+        "117caa7877fcee7f7469f371fbc1788e30e6052fb47ad1d52ad0c4d5d5807736"
+      ],
+      "publishedClauses": [
+        "수동 준비가 끝난 배치 생산은 연결된 적격 보조 처리기의 빈 자리를 점유한 뒤 처리 단계로 전환한다.",
+        "이미 처리 중인 다른 주문이 차지한 수가 처리기 정원 이상이면 그 처리기를 사용할 수 없다. 선택된 처리기와 처리 중 필요 자원 조건은 마무리에도 다시 검사한다."
+      ],
+      "editorialGroup": "작업 실행과 출력"
+    },
+    {
+      "id": "GAP-213",
+      "guide": "family-education-and-legacy",
+      "sourceTitle": "장례·공동 추모의 시설·준비 키트·고인 조건 누락",
+      "publicTitle": "장례·공동 추모의 시설·준비 키트·고인 조건",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "971517d01a973c22f343cfe2a5201904c9c1f4edd16b0c20e1eaa338562fa4bc",
+        "b9459d70840702f30aa51efc3059155e00faca3d3476bb559a7ee09681eba992"
+      ],
+      "publishedClauses": [
+        "개별 장례는 추모 시설 자격과 고인의 문화 시설 자격을 함께 갖춘 시설에서 장례 준비 키트1개를 예약하고,해당 장례가 필요한 살아 있는 참가자를 대상으로 한다.",
+        "공동 추모는 서로 다른 고인3명 이상,가장 이른 사망일과 가장 늦은 사망일의 차이가10일 이하,모든 고인의 문화 자격을 만족하는 추모 시설을 요구한다. 준비 키트는 고인 수만큼 필요하다."
+      ],
+      "editorialGroup": "장례"
+    },
+    {
+      "id": "GAP-214",
+      "guide": "research",
+      "sourceTitle": "대형 사업 완료의 생산·실내 재배·계약 보정 누락",
+      "publicTitle": "대형 사업 완료의 생산·실내 재배·계약 보정",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "5125452f696d5da20e616f7a4950ff9eadafa615af087a8b6db7365bdde9b211",
+        "570ceccdeced02dc96933029556d86bf31becb06b91d5626a591a79b94a0ce5c"
+      ],
+      "publishedClauses": [
+        "대형 사업 완료에 따라 채석장 생산량은1.25배,실내 농장 재배 산출은1.2배,연금술·약제·증류 시설 산출은1.15배가 된다.",
+        "지역 교역소 사업이 완료되면 계약 보상에1.25배를 적용한다."
+      ],
+      "editorialGroup": "대형 프로젝트"
+    },
+    {
+      "id": "GAP-215",
+      "guide": "production",
+      "sourceTitle": "폐기물 원산지별 자동 처리·직접 급여 제한 누락",
+      "publicTitle": "폐기물 원산지별 자동 처리·직접 급여 제한",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "b8fcf903576373eaada94a2b876ccd391ee69fbf3bc398bafc5fcc669480d773",
+        "fc5d30d9e1bd6b953be10ca483b911ed1af8bf056325fda97b7419641de714dd"
+      ],
+      "publishedClauses": [
+        "원산지별 처분 정책이 켜져 있고 보관·직접 급여 이외 처분을 선택했을 때만 해당 원산지의 폐기물 자동 처리 주문을 만든다.",
+        "직접 급여는 정책이 켜진 직접 급여 원산지이며 독성 기준 미만·정책의 최대 오염 이하이고,동물 식성과 해당 원산지의 급여 규칙이 있어야 한다."
+      ],
+      "editorialGroup": "생산 도감과 자원 처리"
+    },
+    {
+      "id": "GAP-216",
+      "guide": "research",
+      "sourceTitle": "대협약의 계절말 신호 키트·경비 공격 지원 누락",
+      "publicTitle": "대협약의 계절말 신호 키트·경비 공격 지원",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "d32c570e4521335c8c857499fc1b7ff049e89b3ee9a136b2ab9f696f674cd11b",
+        "1ecc60fbb5e8408b968491ac259b818dedc7a7a432aee5608a9a85c7f9b7a661"
+      ],
+      "publishedClauses": [
+        "대협약 보상을 얻은 뒤 양수 날짜가 계절 길이의 배수인 날에 동맹 신호 지원을 사용할 수 있다.",
+        "가동 중인 보안 시설 중 동맹 신호 자격을 가진 시설의 전용 보급칸에 신호 키트 정확히1개가 준비되면 지원 활성화를 요청한다. 활성화된 당일 경비의 공격력에1.15배를 적용한다."
+      ],
+      "editorialGroup": "대형 프로젝트"
+    },
+    {
+      "id": "GAP-217",
+      "guide": "residents-and-work",
+      "sourceTitle": "시설의 공통 업무 거부·청소 필요·손상 정지 누락",
+      "publicTitle": "시설의 공통 업무 거부·청소 필요·손상 정지",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "cc23ff1197f603f0da688de691e1d8c10c0eb588a0053a92b29162f6df338e83",
+        "fc7ef7eb013c58249d5c1d0bd990281250531f200a38433be699f88f3b916d98"
+      ],
+      "publishedClauses": [
+        "시설이 지원하지 않는 업무는 배정할 수 없으며 청결75 이상이면 청소 업무를 불필요로 거부한다.",
+        "손상 시 정지하도록 정해진 시설이 손상되면 수리를 제외한 업무 배정을 거부한다."
+      ],
+      "editorialGroup": "환경과 시설 상태"
+    },
+    {
+      "id": "GAP-218",
+      "guide": "economy-and-trade",
+      "sourceTitle": "운영일 보고의 시설 유지비·손상 수리 예상비 구별 누락",
+      "publicTitle": "운영일 보고의 시설 유지비·손상 수리 예상비 구별",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "475de6e78a0c98577b6fc6626c543be28fbcb19e05ed94f5c21480a4dbc2397e",
+        "8e56c5cf325999d59940ce7cc008dfb024347a0d1890631c9a98c1ae373673c0"
+      ],
+      "publishedClauses": [
+        "운영일 보고용 시설 집계는 벽·문·이동 시설을 제외한 시설의 유지비를 합산한다.",
+        "손상 시설의 수리 예상비는 별도 항목으로 같은 시설 유지비 값을 합산한다."
+      ],
+      "editorialGroup": "운영비"
+    },
+    {
+      "id": "GAP-219",
+      "guide": "guests-services-and-performance",
+      "sourceTitle": "손님의 시설 선택에 쓰이는 선호 점수 누락",
+      "publicTitle": "손님의 시설 선택에 쓰이는 선호 점수",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "ca7c0b5bde49428dd86334561c1aea71ce254875e03ab7d9f6ad420e40c823cd",
+        "a4cb8954929133df8d9627201ced138dc11fa9ad39a417620aacfa7c6dfd39ba"
+      ],
+      "publishedClauses": [
+        "손님 시설 선택의 선호 점수는 종족 태그 선호·인물 모델 선호·개인 성향 선호의 평균을0~1로 제한한 값이다.",
+        "이 선호 점수는 최종 시설 후보 점수에 가중치0.14로 반영되며 욕구·재고·가격·혼잡 등 다른 요소와 함께 선택에 영향을 준다."
+      ],
+      "editorialGroup": "서비스 선택과 지원"
+    },
+    {
+      "id": "GAP-220",
+      "guide": "spaces",
+      "sourceTitle": "방 온도 지원 점수와 침상 직접 냉기 보호의 구별 누락",
+      "publicTitle": "방 온도 지원 점수와 침상 직접 냉기 보호의 구별",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "36893b10d49ab2a53d3c2e3ae68c90550a80134ea1138ac146140694497b6f5e",
+        "59f5bf2e383cfa1aadf758d94032a5b91fcdbac6c902ceb8ef918ebcbf030658"
+      ],
+      "publishedClauses": [
+        "방 온도 지원 점수는 가동 가능한 구형 온도 능력에서 온도 편차 절댓값+냉기 보호+열 보호를 합산한다. 별도 열 방출 능력이 있는 시설은 이 중복 합산에서 제외한다.",
+        "직접 침상 보호는 휴식 업무로 휴식 역할 시설에 배정되고 냉기 보호가 양수일 때만 적용한다. 쾌적 최저 온도를 보호값만큼, 안전 최저 온도를 그 절반만큼 낮추고 냉기 노출에 0.6배를 적용한다."
+      ],
+      "editorialGroup": "방 환경과 수용"
+    },
+    {
+      "id": "GAP-221",
+      "guide": "combat-and-equipment",
+      "sourceTitle": "원정 전투의 종족·성장 능력 편성 누락",
+      "publicTitle": "원정 전투의 종족·성장 능력 편성",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "4a4f0e9f273c750d3adfd17e6c64b62c90f6430d36129e80c03473177a89cb3f",
+        "b86dba2a8d883add3286f79b3ba112685b35a7a97baa408c83738297bb1870fc"
+      ],
+      "publishedClauses": [
+        "원정 전투 능력 목록은 유효한 종족 능력1개,장착한 성장 액티브 스킬,원정 분야 궁극기를 합친다. 같은 능력 ID는 중복 제거한다.",
+        "종족에 작성된 능력이 우선이고,지원되는 종족 기본 능력을 보충한 뒤 첫 능력1개를 선택한다."
+      ],
+      "editorialGroup": "전투 발동 능력"
+    },
+    {
+      "id": "GAP-222",
+      "guide": "residents-and-work",
+      "sourceTitle": "궁극기의 원정·침입·운영일 발동과 사용 제한 누락",
+      "publicTitle": "궁극기의 원정·침입·운영일 발동과 사용 제한",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "80c9e7a879e410961dd0e0ff2a299d3cbe302850a43562eb8d1b9d9e0d8ea17e",
+        "d952119b8a68b9b2726ab0ad13a32e456661499972b76ac129a0122875492479"
+      ],
+      "publishedClauses": [
+        "원정 궁극기는 같은 전투에서 한 번 사용하며 명령이 수락된 뒤 사용을 기록한다.",
+        "방어 궁극기는 침입마다,운영 궁극기는 운영일마다 살아 있는 인물들을 대상으로 자동 발동을 시도한다. 해당 분야·회차의 미사용 조건을 검사하고 먼저 사용을 기록한 뒤 효과를 적용한다."
+      ],
+      "editorialGroup": "성장과 훈련"
+    },
+    {
+      "id": "GAP-223",
+      "guide": "residents-and-work",
+      "sourceTitle": "성장 스킬의 업무 속도·청소·수리·연구·서비스 보정 누락",
+      "publicTitle": "성장 스킬의 업무 속도·청소·수리·연구·서비스 보정",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "54f9ed041dd8bba233b7bb7fa4eb8e85476f3649d66c6aa93c6ba3682fa39e2e",
+        "0f831bb6f0b4f6b48378bd99393f1bd248ab034c5fd30ed71d3f6b611f43cb94",
+        "f87d1dbfe6ff91ce83d3c7d294fa212defbd36b88239e06c73b833d454d74188"
+      ],
+      "publishedClauses": [
+        "업무 시작 때 시작·완료 발동형의 작업 속도 보너스를 함께 계산해 해당 업무 동안 적용하고 업무 종료 때 해제한다.",
+        "완료 발동형 청소·수리 보너스는 각각 기본1배에 보너스/100을 더해 최대3배로 제한한다. 생산 산출은1~4배,추가 생산 수량은 음수 없이 반올림한 보너스다.",
+        "연구는 진행 시간에 비례한 추가 연구량을 받고 서비스 수익도 해당 성장 스킬 보정을 읽는다. 패시브·고유 스킬은 발동 종류에 맞게 합산하며 사용 기록이 있는 운영 궁극기의 모듈도 합산한다."
+      ],
+      "editorialGroup": "성장과 훈련"
+    },
+    {
+      "id": "GAP-224",
+      "guide": "residents-and-work",
+      "sourceTitle": "주민 성장 스킬의 레벨·서사 후보 조건 누락",
+      "publicTitle": "주민 성장 스킬의 레벨·서사 후보 조건",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "4e5a807b7551b801e0907a43c8b95d254edbea3db76c5092a183b053a1469230",
+        "8a774da586c114800cf30df1d6554426ee4b8a0eca7c32ff6dc7cf2dc832e353"
+      ],
+      "publishedClauses": [
+        "최대 성장 레벨은50이며 액티브 후보는 레벨1·5·30에 열린다. 첫 패시브는 레벨1,궁극기는 최대 레벨에서 비어 있을 때 생성된다.",
+        "두 번째 패시브는 레벨25 이상,패시브 빈 슬롯,의미 있는 서사 기록8개 이상·서사 분야3개 이상을 함께 요구한다."
+      ],
+      "editorialGroup": "성장과 훈련"
+    },
+    {
+      "id": "GAP-225",
+      "guide": "residents-and-work",
+      "sourceTitle": "성장 스킬 후보 수·희귀도·효과 조합 제한 누락",
+      "publicTitle": "성장 스킬 후보 수·희귀도·효과 조합 제한",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "7cf4891b9753520fa253e78f535d2bd5cdf88728f89f3a31ca6d9f171e136e5b",
+        "726412fa0f793e1266e0fcf4110b1f32094d1d8de52df5cfa4eb94165ea33769"
+      ],
+      "publishedClauses": [
+        "액티브는 후보3개,패시브·궁극기는 후보1개를 만든다. 패시브는 해금 레벨25 미만이면 고급,25 이상이면 희귀이며 궁극기는 전설이다.",
+        "효과 조합 예산은 일반/고급/희귀/영웅/전설 순서로3/5/8/12/18이다. 허용된 효과 변형만 예산 안에서 조합하며 액티브 후보 모두가 희귀 미만이면 다음 상위 희귀도 보정이 예약된다."
+      ],
+      "editorialGroup": "성장과 훈련"
+    },
+    {
+      "id": "GAP-226",
+      "guide": "combat-and-equipment",
+      "sourceTitle": "장착 장비 중량의 이동·작업 감속 공식 누락",
+      "publicTitle": "장착 장비 중량의 이동·작업 감속 공식",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "f82c285840d2b5abd0f991a8da0be6fe036a8975b10dfcff3059f8159376e570",
+        "99720e83fab8580f61ef48a8057d67c7b26968edf54dc82cd286fa3edc2063b6"
+      ],
+      "publishedClauses": [
+        "장착 중량이 기능 수용량의50%를 넘으면 이동·작업 배율은 1-0.35×(장착중량/수용량-0.5)로 감소하고0.45~1로 제한된다.",
+        "수용량은 max(8kg,25kg×신체 이동 기능)×운반 수용량 배율이며 최종값은 양수 하한0.0001kg을 갖는다."
+      ],
+      "editorialGroup": "장비 개조와 정비"
+    },
+    {
+      "id": "GAP-227",
+      "guide": "residents-and-work",
+      "sourceTitle": "신체 기능 임계치·병목과 숙련 합성 성능 누락",
+      "publicTitle": "신체 기능 임계치·병목과 숙련 합성 성능",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "7f61c01822a67fa0e028dee4ac20f8fbe204ee99accf1d7415f7b063c392fe54",
+        "67157d663b0234465e92301589631451fc4a7d613618677976e5945d152e8741",
+        "48e673f29e602d558906e891f43851c9325ed04d280caf222239159e1bc09f36"
+      ],
+      "publishedClauses": [
+        "적용 가능한 필수 신체 기능이 요구 임계치에 못 미치면 작업 성능을 사용할 수 없다. 종족·해부상 미적용인 기능은 필수 검사 전에 제외하며 실패는 적용 대상 필수 기능의 부족으로 판정한다.",
+        "기능 가중평균을 병목 기능별0.25+0.75×기능값의 최솟값으로 제한한다. 역방향 채널은1/max(0.05,기능값)을 사용한다.",
+        "최종 성능은 기본값×기능 계수×숙련 계수×효과 계수×맥락 계수다. 따라서 숙련만 높여도 신체 기능 제한을 무시하지 못한다."
+      ],
+      "editorialGroup": "작업 성능과 숙련"
+    },
+    {
+      "id": "GAP-228",
+      "guide": "residents-and-work",
+      "sourceTitle": "업무별 속도·사고 성능 공식과 제작 입력 구별 누락",
+      "publicTitle": "업무별 속도·사고 성능 공식과 제작 입력 구별",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "79c7ef85da475d338cea459bf8ce4e5243e91e4749c1b1b5d7425cef21e95181",
+        "2a687ec6e9aafaf7497347907c3c133c8d50e174d86802f0caf5cbf589639333",
+        "033f6d72c341cfa9d07b7790064d6f1d706ea8a184886504b4117a70fc370137"
+      ],
+      "publishedClauses": [
+        "업무의 속도와 사고 위험은 서로 다른 성능 공식을 선택하며 속도 평가값은 실제 초당 작업량에,위험 평가값은 사고 판정에 사용한다.",
+        "제작 속도의 기능 기여는 정신 유지 20%·시각 식별 20%·정밀 조작 40%·동력 순환 10%·생명 반응 10%다. 정신 유지는 필수, 정밀 조작은 필수·병목이고 두 기능의 필수 임계치는 0.1이다.",
+        "일반 제작은 제작 숙련을 사용한다. 룬 제작에만 제작 80%와 학술 20%를 적용한다."
+      ],
+      "editorialGroup": "작업 성능과 숙련"
+    },
+    {
+      "id": "GAP-229",
+      "guide": "residents-and-work",
+      "sourceTitle": "승인 작업량·피로·시설 손상에 따른 사고와 신체 피해 누락",
+      "publicTitle": "승인 작업량·피로·시설 손상에 따른 사고와 신체 피해",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "db607620d5195376edda489a94556a6a4886a1880367471155b7f159e043b76c",
+        "236695e2ff5148745dbd9836fa23655219007a4defac00f084db9b923627cedc",
+        "51bc4b101ae3debdc2b989d2e49b205e8b02c2e7ddc0c12c0cb7b336cfb6b828"
+      ],
+      "publishedClauses": [
+        "승인 작업량이 양수이면 사고 확률은 1-exp(-0.001×승인 작업량×사고 성능×피로 배율×시설 손상 배율)이다. 같은 작업 행동에서 사고가 난 뒤에는 다시 판정하지 않는다.",
+        "피로 배율은1+수면 회복 목표 대비 부족 비율이고,시설 배율은1+(1-시설 내구도 비율)이다. 해당 상태가 없으면 그 배율은1이다.",
+        "사고가 나면 남아 있고 체력이 양수인 부위 중 하나를 균등 선택해 피해2·추가 출혈0을 적용하고 작업을 중단한다."
+      ],
+      "editorialGroup": "작업 성능과 숙련"
+    },
+    {
+      "id": "GAP-230",
+      "guide": "residents-and-work",
+      "sourceTitle": "숙련 학습의 적성·종족 보정과 자율 업무 선호 누락",
+      "publicTitle": "숙련 학습의 적성·종족 보정과 자율 업무 선호",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "b87f770cf1cb4e0cdc40519ffa48a9db391fa0ce935c18f1cbd06791a599d1ca",
+        "a0b59c17ad490ffffb9289acbeba1bf17bedf6a4eebbc58bb0114bf87ab683f2"
+      ],
+      "publishedClauses": [
+        "주·보조 적성을 작업 비중으로 합친 뒤 0.70+0.006×가중 적성을 계산한다. 획득 경험 배율과 공통 배율(최소0.1)을 곱한 결과를0.70~1.75로 제한한 뒤 종족 강점1.10·약점0.90을 곱한다.",
+        "종족 강점 업무는 자율 후보 점수+10,약점 업무는-10을 받는다."
+      ],
+      "editorialGroup": "성장과 훈련"
+    },
+    {
+      "id": "GAP-231",
+      "guide": "residents-and-work",
+      "sourceTitle": "은퇴 주민의 안전 업무·멘토링 예외·하루4시간 제한 누락",
+      "publicTitle": "은퇴 주민의 안전 업무·멘토링 예외·하루4시간 제한",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "3d7e9e3b2c340c50f8da659c25028d622547d70f6ffdaa22804ea4789f73fe20",
+        "3ac464086566a888ac17430462abd81069e361fa41db65a9d2f11421df7b3bd0"
+      ],
+      "publishedClauses": [
+        "은퇴 주민의 기본 허용 업무는 청소·연구·접객·제작·조리·공연·파종·수확·동물 돌봄9종이며 하루 안전 작업은 게임시간4시간까지다.",
+        "운영 업무라도 해당 멘토 학원에 실제 멘토 또는 학생으로 배정된 은퇴자는 예외로 허용된다."
+      ],
+      "editorialGroup": "인력과 노동"
+    },
+    {
+      "id": "GAP-232",
+      "guide": "residents-and-work",
+      "sourceTitle": "직원 불만 단계·업무 차단·속도·상담 효과 누락",
+      "publicTitle": "직원 불만 단계·업무 차단·속도·상담 효과",
+      "clauseCount": 4,
+      "clauseHashes": [
+        "a6de108ab69a76f3078043614fcc9aed3455440a6095f6f601d468813277f612",
+        "3909436a086180d3db2604555eb154b6bf7ea34872f8c790d2b8f399d239587c",
+        "274e28ebe874b0a00522fd29a2bf9865bccee43bc2185b52eaaa8f11667a4415",
+        "7db14482f2a2f9122841997ca4446e9a8433151654ac5c64f18633c8de3d67d7"
+      ],
+      "publishedClauses": [
+        "기본 규칙은 기분50 이하의 연속 일수를 센다. 기분8 이하가 반란,15 이하 또는 기분25 이하가4일 지속되면 이탈 단계다.",
+        "그보다 심한 단계가 아니면 기분25 이하 또는 낮은 기분3일은 업무 차질,기분35 이하 또는 낮은 기분2일은 효율 저하,기분50 이하는 낮은 만족 단계다.",
+        "낮은 만족/효율 저하/업무 차질의 속도 배율은0.95/0.8/0.6이다. 업무 차질·이탈·반란 단계는 새 업무 시작을 막는다.",
+        "상담 가능한 불만 직원에게 기분+25×협상 배율을240초 적용하고 낮은 기분 연속 일수를0으로 되돌린 뒤 단계를 다시 판정한다."
+      ],
+      "editorialGroup": "인력과 노동"
+    },
+    {
+      "id": "GAP-233",
+      "guide": "production",
+      "sourceTitle": "생산 주문 작업자 정책의 실제 선택과 표시 오류 누락",
+      "publicTitle": "생산 주문 작업자 정책의 실제 선택과 표시 기준",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "9d9867b791f95239101b322f9823f4f88b73bc7df49bb82c128a4c17281cca5b",
+        "72b3ebe452056337433ce0cafc86e6aba2116c3aaf136bffefe4af326b00fd55",
+        "48739bcc28b511c1041b2a440e4574c676557eb472b4b8238b824019f4e1fe6b"
+      ],
+      "publishedClauses": [
+        "생산 주문의 작업자 버튼은 속도 우선→품질 우선→제작 숙련400XP 이상·품질 우선→속도 우선으로 순환한다.",
+        "세 번째 상태의 현재 화면 문구는 '민첩 7+'지만 실제 제한은 제작 숙련400 XP 이상이다.",
+        "공통 작업자 정책은 명시적 제외를 먼저 적용한 뒤 누구나·특정 인물·규칙·특정 인물 또는 규칙을 평가한다."
+      ],
+      "editorialGroup": "대장 작업대와 작업자"
+    },
+    {
+      "id": "GAP-235",
+      "guide": "residents-and-work",
+      "sourceTitle": "우선 작업의 위험 재확인·근무 복귀 효과 누락",
+      "publicTitle": "우선 작업의 위험 재확인·근무 복귀 효과",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "fa443319932a65f3189ce84701bafee13e5e15e22de247ab793fce417a901bab",
+        "0c0c82a30913bbca662ca6c9abeb5e2dd5cbb3c4f565202c3b0acb7346bd4bce"
+      ],
+      "publishedClauses": [
+        "강제 우선 작업에서 환경 위험 경고가 나오면 같은 시설·같은 업무를 다시 명령해야 확인으로 인정한다. 대상 평가 실패 때는 배정하지 않는다.",
+        "수락된 우선 작업은 즉시 근무 상태로 복귀시키고 대상을 배정한 뒤 AI 재계획을 요청한다."
+      ],
+      "editorialGroup": "직접 명령과 재배정"
+    },
+    {
+      "id": "GAP-238",
+      "guide": "residents-and-work",
+      "sourceTitle": "직접 업무 명령의 일시 불가 보존·긴급 근무 복귀 누락",
+      "publicTitle": "직접 업무 명령의 일시 불가 보존·긴급 근무 복귀",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "ae1b444adb73479d55578cee53d32465b2d90a0c27785bd1065ae57d0d357a69",
+        "647733528111e26ca5cb84656c88abafecff6e6501b0f056a6f22e4825b28485"
+      ],
+      "publishedClauses": [
+        "자동 업무 선택은 직접 지정한 목표를 우선 평가하고,재사용 대기·일시 시작 불가·목적지 점유·경로 부재·평가 지연 때 명령을 유지한다.",
+        "비번 중에도 실제로 이용 가능한 긴급 업무의 긴급도60 이상을 찾으면 근무로 복귀한다. 후보 탐색이 아직 지연 중인 상태만으로 긴급 업무를 찾았다고 처리하지 않는다."
+      ],
+      "editorialGroup": "직접 명령과 재배정"
+    },
+    {
+      "id": "GAP-239",
+      "guide": "residents-and-work",
+      "sourceTitle": "시설 작업 발판의 좌우 접근·방문객 출입 구별 누락",
+      "publicTitle": "시설 작업 발판의 좌우 접근·방문객 출입 구별",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "44d90e1d044f7706479961a1f3c5dd181c9aa5508be18c0ea4a1641297b87d9e",
+        "a6cdac4a0b0e98cd6b74536f71320f34230da718947d48989703f671b7077cd8"
+      ],
+      "publishedClauses": [
+        "일반 시설의 작업 발판은 점유칸의 좌우 인접칸에서 찾으며 이동용 시설은 점유칸 자체를 사용할 수 있다.",
+        "작업자는 걷기 가능하고 도달 가능하며 시설 작업 접근이 허용된 발판이 필요하다. 방문객 서비스 출입 허용과는 별도로 작업 접근을 판단한다."
+      ],
+      "editorialGroup": "환경과 시설 상태"
+    },
+    {
+      "id": "GAP-240",
+      "guide": "guests-services-and-performance",
+      "sourceTitle": "손님과 직원의 상점 구매 이용 차이 누락",
+      "publicTitle": "손님과 직원의 상점 구매 이용 차이",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "d0c61ceeb7ccc5d03db03591ad23f8ae49904839248d601b69e2f047774497d2",
+        "580160072608bc6833b42f244793ec98b6ab7807acc28b7c4278c5193dad98cf"
+      ],
+      "publishedClauses": [
+        "손님은 직원으로 취급하지 않는다.",
+        "직원은 구매 역할의 소매 시설을 쇼핑 방문 후보로 선택할 수 없다. 훈련·연구·마나·화장실·위생 시설은 각 이용 조건에 따라 별도로 판정한다."
+      ],
+      "editorialGroup": "소매와 시설 이용"
+    },
+    {
+      "id": "GAP-241",
+      "guide": "residents-and-work",
+      "sourceTitle": "업무 재배정의 단일 작업자 선택과 비강제 중단 보호 누락",
+      "publicTitle": "업무 재배정의 단일 작업자 선택과 비강제 중단 보호",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "08e4bb56dff530f39db728cfe349f4b9b5920f7b32bfe34e19c3b6a7d72938b8",
+        "a3eac3a760a99e16b587b1328953777c32a5c9d64828529bf0d738b3342c534a"
+      ],
+      "publishedClauses": [
+        "단일 작업자 재배정에서는 가능한 후보 중 쉬고 있는 인물을 먼저 고려하고, 같은 상태에서는 업무 적합 점수로 한 명을 선택한다.",
+        "선택한 작업자는 요청 업무를 600초 동안 선호하고 즉시 다시 판단한다. 강제 중단을 허용하지 않은 요청은 이미 행동 중인 작업자를 보호한다."
+      ],
+      "editorialGroup": "직접 명령과 재배정"
+    },
+    {
+      "id": "GAP-243",
+      "guide": "residents-and-work",
+      "sourceTitle": "업무별 주·보조 숙련 선택 규칙 누락",
+      "publicTitle": "업무별 주·보조 숙련 선택 규칙",
+      "clauseCount": 4,
+      "clauseHashes": [
+        "7d563b0e5c6a6154363da00d32ac2910d96c6ac043ae208937a30929ee44d151",
+        "9b5cce5cb778e4107f1159ca09c73a25e3a02e890f0b098e1547464d7a61958d",
+        "20fc8f919f27c59932026c8799d73095d8eaed65ce2e809c02fcf3ca4e10d583",
+        "40460c323f8048a1b7a14d2ec520e9bafc9be3ba4430f754b5fd44915e1d61d0"
+      ],
+      "publishedClauses": [
+        "시설 운영과 건설·수리·배관·해체·대공사는 시설에 작성된 해당 숙련 조합을 우선 사용한다.",
+        "경비는 현재 원거리 무기를 쓰면 원거리 전투 숙련을, 아니면 근접 전투 숙련을 사용한다. 사냥은 식량 생산 80%와 같은 무기 기준 전투 숙련 20%를 사용한다.",
+        "포로 감시는 사교 80%와 근접·원거리 중 현재 경험치가 높은 전투 숙련 20%를 사용하며, 동률이면 근접을 고른다. 룬 제작은 제작 80%와 학술 20%를 사용한다.",
+        "휴식에는 학습 숙련 배율을 적용하지 않는다."
+      ],
+      "editorialGroup": "작업 성능과 숙련"
+    },
+    {
+      "id": "GAP-244",
+      "guide": "residents-and-work",
+      "sourceTitle": "생존·당직·여가 AI 기본 우선 점수 누락",
+      "publicTitle": "생존·당직·여가 AI 기본 우선 점수",
+      "clauseCount": 4,
+      "clauseHashes": [
+        "e7e2431452ce25c17144d529c201e9ee98ba9d37672d6a25b60fbd5cc86d05f5",
+        "0949f32f2aa9098bd50040e9283cd0f5654da6b78ab550551d4f84cb0848d017",
+        "abfc5743b8f98e77898cdfa32e004f34d3821b9c34e22c82dcab9a893e8e6e9c",
+        "fcf70da03abc9d677840403341de2b489988df18ffe8fd4c02e3ebe370b61b24"
+      ],
+      "publishedClauses": [
+        "생존의 가장 강한 필요도 n(0~1)에 대한 기본 점수는 n≤0.05면 0, 0.05<n<0.25면 25n, 0.25≤n<0.65면 35+30n, n≥0.65면 95+5n이다.",
+        "직원이 아니거나 휴무 중이면 당직 기본 점수는 0이다. 근무 중에는 생존 압력이 0.25 이하일 때 82이며, 압력이 1로 커질수록 선형으로 8까지 낮아진다.",
+        "여가 후보는 직원이면 휴무 중이거나 재미 필요도가 양수일 때, 비직원이면 쇼핑 능력이 있을 때 열릴 수 있다. 기본 점수는 70×clamp01(max(재미 필요도, 기분 필요도×0.75, 쇼핑 필요도)×clamp01(1−긴급 생존 필요도×0.85))이다.",
+        "이 수치는 기분과 상황 보정 전 기본 우선 점수다. 실제 행동 선택에서는 다른 후보와 보정을 함께 비교한다."
+      ],
+      "editorialGroup": "행동 우선도"
+    },
+    {
+      "id": "GAP-245",
+      "guide": "residents-and-work",
+      "sourceTitle": "기분에 따른 업무·여가 기본 우선도 보정 누락",
+      "publicTitle": "기분에 따른 업무·여가 기본 우선도 보정",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "8242256c2093cc87250c9aac70f11da74d4e37325c1db73c6c7d010276f98b95",
+        "3f2ca120ddd5337a1ec58ccd54ae420c4e5b81c45c57bc31c3a9588afe941df1",
+        "44b6758c7e0bc8fdf42a83737a3e3b572f027493fad9cef16fc3dfee5cff4c0f"
+      ],
+      "publishedClauses": [
+        "기분 72 이상에서 양수인 기본 우선도는 근무 중 업무에 +2~10, 휴무 중 여가에 +1~6을 기분이 100에 가까워질수록 더한다.",
+        "기분 38 미만이면 기분이 0에 가까워질수록 업무 루틴 점수에 1→0.55배를 적용하고, 여가 점수 하한은 18→44, 대기 점수 하한은 22→52로 올린다.",
+        "같은 저기분 구간에서 개별 업무 후보 점수는1→0.2배로 줄고, 기다리기·둘러보기 후보 점수 하한은0.48→0.9로 높아진다. 최종 실행 행동은 모든 후보 점수를 비교한 뒤 결정한다."
+      ],
+      "editorialGroup": "행동 우선도"
+    },
+    {
+      "id": "GAP-249",
+      "guide": "infrastructure",
+      "sourceTitle": "시설 개체 진화의 동시 주문 배제와 최소 촉매 단계 누락",
+      "publicTitle": "시설 개체 진화의 동시 주문 배제와 최소 촉매 단계",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "c9b118012bf02404b6660201ea885e256230a209bbb244d076f0c0219621c1c8",
+        "ac9602bfd84c08ad738ad0fbd3c7ad3c383f6d1f9a12f26208177d0d43101c19"
+      ],
+      "publishedClauses": [
+        "개조·다시 조정·이전 주문 중 하나가 이미 진행 중인 시설에는 새 개체 진화 주문을 승인할 수 없다.",
+        "후보가 최소 촉매 단계를 요구하면 촉매 정의를 해석할 수 있어야 하고, 선택한 촉매의 진행 단계가 그 최솟값 이상이어야 한다."
+      ],
+      "editorialGroup": "시설 진화"
+    },
+    {
+      "id": "GAP-250",
+      "guide": "food-and-ecology",
+      "sourceTitle": "야생동물의 일일 질병 노출 거리와 시간 누락",
+      "publicTitle": "야생동물의 일일 질병 노출 거리와 시간",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "c6570338b7c9a69edd4fed0218ea1e9858c24499db434284f83f066502c9ac71",
+        "c7e4ea12082893ac030482cbc54f6b0ca2d85b8d472f4344e56c2c8b81ef722d",
+        "586c2417b8d674b8a538fb15e4a59d1f3d31aeff43607083c84c809c62911a37"
+      ],
+      "publishedClauses": [
+        "질병 벡터가 있는 살아 있는 야생동물은 하루 한 번, 자신으로부터 맨해튼 거리 2칸 이내의 살아 있는 캐릭터에 노출을 더한다. 대상은 주민으로만 제한되지 않는다.",
+        "같은 칸이면 질병별 노출 1시간, 거리 1~2칸이면 0.5시간을 환경 계수 1로 더한다.",
+        "질병이 허용한 경로 중 접촉→혈액→공기→비말→환경→음식→물→마나 노출 순서에서 첫 경로 하나를 선택한다. 노출 누적은 즉시 감염 확정을 뜻하지 않는다."
+      ],
+      "editorialGroup": "야생동물과 생태"
+    },
+    {
+      "id": "GAP-251",
+      "guide": "food-and-ecology",
+      "sourceTitle": "포획 동물 급여의 소모량과 오염 사료 결과 누락",
+      "publicTitle": "포획 동물 급여의 소모량과 오염 사료 결과",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "466c242ad956278852e73778875f1ee48bf9542cf08e8154306b2637b10c5d46",
+        "850f6fb1f41dfb946fd0cb97968c0ae893967278ffa3d2ae941a80b483c62a1e"
+      ],
+      "publishedClauses": [
+        "포획 동물에게 먹이를 한 번 급여할 때 실제 먹이 1개를 소비하고, 적용 영양만큼 허기(0~1)를 낮춘다.",
+        "급여의 질병 판정이 발동하면 건강이 1 감소하고 급여 질병 심각도가 25 올라 최대 100이 된다. 건강은 0 아래로 내려가지 않는다."
+      ],
+      "editorialGroup": "야생동물과 생태"
+    },
+    {
+      "id": "GAP-252",
+      "guide": "food-and-ecology",
+      "sourceTitle": "그림자늑대 식량 습격의 표적과 동시 진행 제한 누락",
+      "publicTitle": "그림자늑대 식량 습격의 표적과 동시 진행 제한",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "804063148e24b37dbf07073d0b99c250e8ea7a3f175733a5b2d489912df2cc64",
+        "4eb2f5b8453206c6c6979f9d74f6150da9e60d1e8110a9459216c7b1dea8f5ee",
+        "f778bb85f827447d5334373f6291a34042c3b52eed090c2e194017fb1677b210"
+      ],
+      "publishedClauses": [
+        "그림자늑대 습격은 수량이 남은 바닥 식량 가운데 보관·운반 중인 묶음을 제외하고 외부 진입로에서 도달 가능한 묶음을 표적으로 삼는다.",
+        "표적은 진입로로부터의 맨해튼 거리순으로 우선하며 같은 거리에서는 묶음 식별자 순서가 적용된다. 기존 습격이 아직 종결되지 않았으면 새 식량 습격을 시작하지 않는다.",
+        "표적이 없더라도 출현 가능한 늑대는 노출 식량을 찾는 상태로 시작할 수 있다."
+      ],
+      "editorialGroup": "야생동물과 생태"
+    },
+    {
+      "id": "GAP-253",
+      "guide": "food-and-ecology",
+      "sourceTitle": "생태 압력의 경보·그림자늑대 습격 예약·완화 조건 누락",
+      "publicTitle": "생태 압력의 경보·그림자늑대 습격 예약·완화 조건",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "6753a0f77615b6e5773fe9675ccea7603d1128bc08c6bda518a27d5756d3b3e7",
+        "e2ec14d95defae9b851e70fa385d95ff4779c54920692186d1b878c26406a47f",
+        "a0adbade5f8d5f0eebe0ab7f7b488647bec70e569e57a5752c20888fe5a68fcd"
+      ],
+      "publishedClauses": [
+        "운영일 시작에 한파 여부와 외부 진입로에서 접근 가능한 노출 식량 묶음 수를 생태 압력 계산에 사용한다.",
+        "생태 압력이 60 이상이면 경보를 한 번 내고, 80 이상이며 예정·진행 중인 습격이 없으면 식량 습격을 예약한다. 예약 시간이 끝나면 그림자늑대 2마리의 출현을 시도한다.",
+        "습격이 끝나거나 출현에 실패하면 생태 압력을 max(35, 기존 압력−45)로 바꾸고 경보 상태를 초기화한다. 출현에 실패한 습격은 식량을 소비하지 않는다."
+      ],
+      "editorialGroup": "야생동물과 생태"
+    },
+    {
+      "id": "GAP-254",
+      "guide": "expeditions",
+      "sourceTitle": "길잡이 부적의 원정 정보 해금 소비량 누락",
+      "publicTitle": "길잡이 부적의 원정 정보 해금 소비량",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "013f73237b46ff1403ab1caa5ed7ad081ba88f75db31df7bc2bc4342f76b6148"
+      ],
+      "publishedClauses": [
+        "원정 정보가 아직 해금되지 않은 원정지에서 길잡이 부적을 결제 수단으로 고르면 실제 부적 1개를 소비해 정보를 해금한다. 이미 해금된 정보에는 부적을 다시 소비하지 않는다."
+      ],
+      "editorialGroup": "회복과 정보"
+    },
+    {
+      "id": "GAP-255",
+      "guide": "factions-contracts-and-prisoners",
+      "sourceTitle": "세력 계약 개방 수치와 호의 물자 효율 누락",
+      "publicTitle": "세력 계약 개방 수치와 호의 물자 효율",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "b01d6e20aecc275523865861246bbff78a7aade40ae1ab3751480b9e55c17ad3",
+        "fb9bc73b2ac73be62c7e4c0927c6850ccffbb23c05f7d88b9d1e2eda24a84f8e",
+        "77fc65b4888f0414655ff92d6787c433e94b3baa6ec49b4aa528c2338f971d9b"
+      ],
+      "publishedClauses": [
+        "협상 봉쇄 중에는 계약이 열리지 않는다. 호의/원한 조건은 교역 ≥20/≤70, 영입 ≥35/≤55, 보급 ≥50/≤40, 지원군 ≥70/≤25다. 지원군은 동맹 사업 완료와 의무 증표 보유도 필요하다.",
+        "호의 물자 제안에는 예약되지 않은 실물 가치 50 이상이 필요하다. 기본 호의 증가는 소비 가치÷10의 정수 몫을 1~10으로 제한한 값이다.",
+        "기본 증가량에 0.85의 배신 상처 수 제곱을 곱해 반올림한 뒤 최소 1을 적용한다. 증가 후 호의는 −100~100으로 제한된다."
+      ],
+      "editorialGroup": "공급과 화물"
+    },
+    {
+      "id": "GAP-256",
+      "guide": "factions-contracts-and-prisoners",
+      "sourceTitle": "세력 화물 수량의 반올림 방식과 하역 대기 누락",
+      "publicTitle": "세력 화물 수량의 반올림 방식과 하역 대기",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "22d1e1ae3c04c1f3b03cc91943b7e8f04bafeb6cdae0e6ea777900bc7acab6b0",
+        "270d4fb63959a1303e91de4e1b2acef7efda7f17dc50d536bdbf5947348fe2e9"
+      ],
+      "publishedClauses": [
+        "도착 화물의 품목별 수량은 원래 수량×경로 전력÷100을 가장 가까운 정수로 반올림하며, 정확히 반이면 짝수 쪽을 고른다. 결과는 최소1개다. 예를 들어3개×80%는2개다.",
+        "하역 지점을 확보하지 못하면 준비된 화물은 물리 재고로 인계되지 않고 대기한다."
+      ],
+      "editorialGroup": "공급과 화물"
+    },
+    {
+      "id": "GAP-258",
+      "guide": "factions-contracts-and-prisoners",
+      "sourceTitle": "세력 배신의 관계 손실·협상 봉쇄·배상 및 회복 조건 누락",
+      "publicTitle": "세력 배신의 관계 손실·협상 봉쇄·배상 및 회복 조건",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "3b6a900b7ba3994e49e3bbfb51d268de8cdb907a49fdc323881782605f850253",
+        "1f2887a9dda932bd2d499394c9fad07f8ccc35765ad7bda38fa36cd8b88dca27",
+        "c2388ac5a66e2826970fd7b8a3a3c4cffca37f260f5b70214fc4de74b9f03a2b"
+      ],
+      "publishedClauses": [
+        "배신하면 대상 세력의 신뢰는 −100이 되고 배신 상처가 1 늘며 협상이 10일 동안 봉쇄된다. 다른 세력의 신뢰도 15씩 줄어 최저 −100이 된다.",
+        "관계 원한에는 대상 세력 +35, 다른 세력 +10을 반영한다. 필요한 배상 가치는 실제 약탈 가치의 1.5배를 올림한 값이다.",
+        "신뢰 회복에는 협상 봉쇄 기간 경과, 배상 완료, 회복 사건 완료가 함께 필요하다. 봉쇄 기간만 끝났다고 신뢰가 자동으로 회복되지는 않는다."
+      ],
+      "editorialGroup": "위기와 배신"
+    },
+    {
+      "id": "GAP-259",
+      "guide": "food-and-ecology",
+      "sourceTitle": "자연 수원의 선택 기준·소비·재생 규칙 누락",
+      "publicTitle": "자연 수원의 선택 기준·소비·재생 규칙",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "f4a951fe1c86cf4588d04a8838fe1cd47d69ea2fc283e43f7976500859ebb132",
+        "4540d521316f7303507a0af46ab7e0a54249f0e025be19510070591a195f4a72",
+        "2eff3a3a720ae7aeaf6cb883e3bd076ab8c73b30465348450a6c2532eeb7b2a3"
+      ],
+      "publishedClauses": [
+        "자연 수원 후보는 잔량이 0.05보다 많아야 하며, 오염수를 허용하지 않는 검색에서는 심하게 오염된 수원을 제외한다. 수질을 먼저 비교한 뒤 같은 수질이면 맨해튼 거리가 가까운 수원을 고른다.",
+        "안전한 음수 계획은 이 검색 결과가 깨끗한 물인지와 실제로 접근 가능한지를 추가 확인한다. 가까운 수원이라는 이유만으로 무조건 마시지 않는다.",
+        "물은 남은 양까지만 소비하며 잔량은 음수가 되지 않는다. 재생량은 수원별 초당 재생량×현재 재생 배율×게임 경과 시간이고 최대 저장량을 넘지 않는다."
+      ],
+      "editorialGroup": "물 확보"
+    },
+    {
+      "id": "GAP-260",
+      "guide": "health-and-community",
+      "sourceTitle": "바닥 오물의 누적·청소 작업량·지역 청결 감점 누락",
+      "publicTitle": "바닥 오물의 누적·청소 작업량·지역 청결 감점",
+      "clauseCount": 4,
+      "clauseHashes": [
+        "99984eb1d17cf6bbd0059af7a92d1224b26ed7b5981f757ea507be40972e0985",
+        "3a726aa3db64a5f876eb2717c9256e140e05915a79a15cdd3d69aa9ac7db34d8",
+        "40c44e495e8ccc85169f2bf38e2580294e90edb4845ba38720bf60c154eae469",
+        "c91102c2a0f7aa149ec50f66957bc315dc17ef5ed77c2f5c52fe146e11b37671"
+      ],
+      "publishedClauses": [
+        "같은 칸·오물 종류·벽 얼룩 여부·배출자의 오물은 합쳐진다. 추가량은 최소0.1이며 기존 오물에 합칠 때 양을 최대100으로 제한한다. 새 오물 생성량에는 병합 상한을 적용하지 않는다.",
+        "오물 1을 제거하는 데 청소 작업량 12 WU가 필요하다. 같은 칸에서는 감염 위험이 높은 오물부터, 위험이 같으면 양이 많은 오물부터 청소한다.",
+        "지정된 맨해튼 반경 안의 오물량×(0.5+감염 위험도)를 합산하고 0~100으로 제한한 값을 지역 청결 감점으로 쓴다. 주민은 반경 1의 감점이 15를 넘으면 오염·감염 부담이 누적된다.",
+        "방 환경은 각 칸의 청결 감점을 모아 평균×0.65+최댓값×0.35를 0~70으로 제한한 감점으로 사용한다."
+      ],
+      "editorialGroup": "오물과 청결"
+    },
+    {
+      "id": "GAP-261",
+      "guide": "medical-care-and-surgery",
+      "sourceTitle": "노화 치료 절차별 전용 주시설 조건의 위키 오류",
+      "publicTitle": "노화 치료 절차별 전용 주시설 조건",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "46baa26636be594f1229a4b5cb154574587592b489cc8c011bc037fb96d3a5bf",
+        "76cd3425c1912632520162f760b81358c4de96d1c4b827dd99c52e3cf5ee508b"
+      ],
+      "publishedClauses": [
+        "장기 재생은 장기 재생 수술실, 혈액 회춘은 회춘 수혈실, 룬 동면은 룬 동면실, 전신 재생은 전신 재생조, 시간 고정은 시간 고정실을 주시설로 사용한다.",
+        "같은 노화 치료 자격을 가진 다른 시설로 주시설을 대체할 수 없다. 지정 주시설도 손상되지 않고 사용 가능한 방에 있어야 한다."
+      ],
+      "editorialGroup": "수술대와 노화 치료"
+    },
+    {
+      "id": "GAP-262",
+      "guide": "guests-services-and-performance",
+      "sourceTitle": "단골·영입 기록의 저장 범위 안내 누락",
+      "publicTitle": "단골·영입 기록의 저장 범위 안내",
+      "clauseCount": 1,
+      "clauseHashes": [
+        "cfc9171f98812e563b89b3e32da87889628316ded2eeeb35f1ec03e359a3e255"
+      ],
+      "publishedClauses": [
+        "이민 정책, 손님별 방문 횟수와 평균 만족도, 단골 여부, 영입 후보 여부, 영입 완료 여부와 성공 영입일은 저장 후 복원된다."
+      ],
+      "editorialGroup": "영입과 방문 기록"
+    },
+    {
+      "id": "GAP-264",
+      "guide": "economy-and-trade",
+      "sourceTitle": "시설 절도 확률과 운영 위험 지수의 계산 설명 누락",
+      "publicTitle": "시설 절도 확률과 운영 위험 지수의 계산 설명",
+      "clauseCount": 5,
+      "clauseHashes": [
+        "c5a1bef10e60d6e601acf38511445f6b58e0b1892bd7dced11a517db290c54fe",
+        "4acbd11312c986c7529ddcdae6d846c4b196822eed9a5511905bc366f2df89fb",
+        "69d135dfd5e16258303e60b619c7ff19dee75f7ae9e3b8f3b920b6823d15e09d",
+        "e12c06ee82f50dda7e9ae9921af956fc9db90716729b8a30e1cfcbe000de446a",
+        "5c1789d4feddb3d99cbf9968d7bce39ab6e94abc30878b299f5e9a6ee6d8fc56"
+      ],
+      "publishedClauses": [
+        "시설이 없거나 장바구니 물품 수 또는 재고가 0이면 절도 확률은 0이다. 기본 압력 0.01에 직원 없음 +0.07 또는 직원 있음 -0.03을 더한다.",
+        "낮은 수치의 압력 P(값,편안함,위기)=clamp((편안함-값)/(편안함-위기),0,1)이다. 기분 항은 0.08×P(기분,65,15)이며, 욕구 항 0.05×max(P(허기,45,5),0.6×P(재미,40,0),0.4×P(수면,35,0),0.9×P(배설,55,10),0.55×P(위생,45,5))와 별도로 더한다.",
+        "혼잡 항은 0.04×clamp(clamp(이용자수/수용량,0,1)+무직원 계산대기 시 0.5,0,1)이며 수용량이 0이면 이 항은 0이다.",
+        "장바구니 가치가 양수일 때 가치 항은 0.05×clamp(clamp(가치/500,0,1)+0.5×clamp((물품수-1)/3,0,1),0,1)이다. 손상 시설은 0.05, 재고가 보충 요청 기준 이하이면 0.0125를 추가한다.",
+        "합산 압력에 시설 보정과 0 하한, 손님의 범죄 위험 배율을 적용한 뒤 0~1로 제한한 값이 절도 확률이다. 운영 위험은 물품수 1 기준 절도 확률×10에 무직원 계산대기 시 0.04를 더한 지수로, 실제 사건 확률과 동일하지 않다."
+      ],
+      "editorialGroup": "절도와 운영 위험"
+    },
+    {
+      "id": "GAP-265",
+      "guide": "production",
+      "sourceTitle": "시설·상점·창고 관리 탭의 집계 표시 안내 누락",
+      "publicTitle": "시설·상점·창고 관리 탭의 집계 표시 안내",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "7414068cb81c4a4b22a178c16ce4ad30d6b8a61f33d97b4309ccb3cb23e70830",
+        "9b972d5856e60c2aaa4e6d2c145032d21dbcee39b246085488ed9009d4998ce0"
+      ],
+      "publishedClauses": [
+        "시설 관리 요약은 전체 시설·방문 시설·작업 시설·손상 시설 수를 구분한다. 상점 요약은 상점 수와 재고가 있는 상점·품절 상점을 나눈다.",
+        "창고 탭은 창고 수, 물리 재고 총개수와 카테고리별 개수, 현재 적재 중량과 최대 중량을 kg로 표시한다. 개수와 중량은 서로 다른 합계다."
+      ],
+      "editorialGroup": "재고와 보관"
+    },
+    {
+      "id": "GAP-266",
+      "guide": "infrastructure",
+      "sourceTitle": "건설 메뉴 순서와 시설 구매 가격식 안내 누락",
+      "publicTitle": "건설 메뉴 순서와 시설 구매 가격식 안내",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "0cf828d1d83011b6cdaf172c6f1d59ffdf7efb6d636bb53abe4acbfbc1d7154c",
+        "048cfa2677c53f902eb778f05540ef80299fe3ee985c1dbde2bcacafd369ccfa",
+        "0e67e950ce0e82a24210fe990e8052692b1671b9c7627bba81727a31b96c8c7e"
+      ],
+      "publishedClauses": [
+        "건설 메뉴 분류 순서는 기타→벽/문→상점→특수→이동→생산→제작→자원이며 내벽문은 벽/문에 속한다.",
+        "시설 구매 기본가는 max(25,max(1,별등급)×분류 가중치+희귀도 가산-기본 구매 할인)이다. 가중치는 기타·벽/문·이동 100, 상점 90, 특수 140, 생산 110, 제작 120, 자원 130이다.",
+        "시설 상품은 별 2개 이상이면 희귀 가산80, 그보다 낮으면 일반 가산0이며 기본 구매 할인은20이다. 기본가에 최소0.05인 시설 구매 배율을 곱해 반올림하고 최종가는 최소1이다."
+      ],
+      "editorialGroup": "구조와 건설"
+    },
+    {
+      "id": "GAP-267",
+      "guide": "spaces",
+      "sourceTitle": "건설·철거의 위치·구역·지지 조건 안내 누락",
+      "publicTitle": "건설·철거의 위치·구역·지지 조건 안내",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "ddf3dc392f84b0788d57b4ff8bb56fc73f4c18bb9e1331aa6a6f458127732a7c",
+        "2ac1500dda9f6ad2e7454379971a52548939c81d123b70e52a4080995fe3d74a",
+        "aa11af52c7cf01708cfbfcf5e97e26bc738fd4e1d03a3f7d16a5098d69a4f78e"
+      ],
+      "publishedClauses": [
+        "해금된 건물의 전체 설치 면적이 격자 안에 있고 좌우 끝에서 한 칸 이상 떨어져야 한다. 내벽문은 설치된 내벽 한 칸에만 설치하며, 다른 건물은 해당 설치 층이 비어 있어야 한다.",
+        "던전 내부는 구역상 건설을 허용한다. 외부 문은 통행 가능한 구역에, 통로·설비·컨베이어는 입구·투하 구역·외부 통로에도 설치할 수 있다. 입구에는 문과 구조벽도 구역상 허용되지만 이후의 개별 조건과 공사 안전 검사는 별도다.",
+        "건물 밑면의 각 칸에 지지가 필요하되 격자 최하단 y=0은 아래 지지 검사를 하지 않는다. 철거 후 바로 위 점유물을 받칠 통로·건물이 남지 않으면 철거할 수 없다."
+      ],
+      "editorialGroup": "건설과 계단"
+    },
+    {
+      "id": "GAP-268",
+      "guide": "infrastructure",
+      "sourceTitle": "선택 건물 상세 패널에서 확인할 정보 안내 누락",
+      "publicTitle": "선택 건물 상세 패널에서 확인할 정보 안내",
+      "clauseCount": 4,
+      "clauseHashes": [
+        "504c5403f349fe296ffd87d3da7c1f7e35708580222f8b789ce7386262d54400",
+        "a8784ae436dcb1a0352588a0b80e04fe4e50d7dd985a08477c3fd91715999b1f",
+        "c45a5df95287fe6b7951f624a963cf80837cb6c6103b5b336768f44c166e08f0",
+        "91fbd3bce28a99b868f73e15866ced4eae008363bc777d5dcf72a5216420e29e"
+      ],
+      "publishedClauses": [
+        "일반 건물 상세에서 손상 여부·레벨·위치·분류, 이용자/수용량·방문 예약, 시설 역할·지원 업무·필요 작업자를 확인한다.",
+        "재고 시설은 현재/최대 재고와 보충 필요 여부를, 창고는 현재/최대 kg를 확인한다. 장비 제작 시설은 제작 가능 품목 또는 대기 주문의 남은 작업량과 재료 이동 상태를 확인한다.",
+        "공사 현장에서는 안전 안내, 주문 상태와 완료/필요 작업량·진행률, 전달된 재료와 예약 작업자를 확인한다.",
+        "오물에서는 종류·위치·양, 해당 위치 오염원의 최대 감염 위험과 청결 감점, 청소 작업량·우선 청소 여부를 확인한다."
+      ],
+      "editorialGroup": "구조와 건설"
+    },
+    {
+      "id": "GAP-269",
+      "guide": "spaces",
+      "sourceTitle": "구조벽 공사의 안전 대기와 강제 공사 경고 안내 누락",
+      "publicTitle": "구조벽 공사의 안전 대기와 강제 공사 경고 안내",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "9fedcee8b0cceec9dc6785ffd48132c6bf1fe42ef5219f522101a33a0b41041a",
+        "f60e9016c5ac72fc54a3aca671d216a7118f20b347d1186b58963ece6cb7ef20"
+      ],
+      "publishedClauses": [
+        "문을 제외한 구조벽 공사는 작업자 퇴로, 입구·외부 동선, 먼저 필요한 문, 남은 공사 접근을 차례로 검사하고 안전하지 않으면 해당 사유로 대기한다.",
+        "강제 공사는 불안전 판정을 '강제 공사: 갇힘 가능' 경고로 바꾸어 안전 검사상 진행을 허용한다. 강제 지시에서도 갇힘 가능성은 남는다."
+      ],
+      "editorialGroup": "건설과 계단"
+    },
+    {
+      "id": "GAP-270",
+      "guide": "spaces",
+      "sourceTitle": "계단의 인접 층 연결과 이동 시간 안내 누락",
+      "publicTitle": "계단의 인접 층 연결과 이동 시간 안내",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "f6c9e28b394ab093049716cd002824efc672cb62ac71702a5f9f3c2b20575bcd",
+        "845c10e7f8b1eb9fbc5d6798051ab3f89b5a0723dfa38e0295fd8367f9d1c2a7"
+      ],
+      "publishedClauses": [
+        "계단은 같은 가로 위치의 바로 위·아래 층을 연결한다. 현재 계단 크기는 3×2칸이다.",
+        "층 중앙 접근은 이동 속도0.9배로 진행하고, 이동 중 모습을 숨긴 채2초를 기다린 뒤 반대 층에 배치하며0.06초 후 논리 목적지에 정렬하고 모습을 복원한다. 전체 소요 시간은 접근 시간에2.06초를 더해 결정된다."
+      ],
+      "editorialGroup": "건설과 계단"
+    },
+    {
+      "id": "GAP-271",
+      "guide": "infrastructure",
+      "sourceTitle": "시설 이용·작업·계산 위치의 기본 규칙 안내 누락",
+      "publicTitle": "시설 이용·작업·계산 위치의 기본 규칙 안내",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "d8c105c2048c59c623f28d736f739c1aa12de50e3ec591dc03e6952d66ceabe7",
+        "b8d4dac0d65cb1d7747fa9b9ad355caf06f894129dc9e0761b306a46f4ff2a9b"
+      ],
+      "publishedClauses": [
+        "별도 위치가 지정되지 않은 시설은 이용자가 시설이 놓인 층의 점유 칸 중 출발 가로 위치에 가장 가까운 칸을 사용하고, 찾지 못하면 가로 중앙을 사용한다.",
+        "기본 작업 위치는 같은 층의 왼쪽 끝 점유 칸 중심에서 오른쪽 끝 점유 칸 중심까지 거리의85%, 계산 위치는75% 지점이다. 이 숫자는 위치 비율이며 작업·계산 속도에는 적용하지 않는다. 지정된 위치가 있으면 지정 위치를 우선한다."
+      ],
+      "editorialGroup": "구조와 건설"
+    },
+    {
+      "id": "GAP-272",
+      "guide": "spaces",
+      "sourceTitle": "새 게임의 초기 내부 공간과 입구·투하 구역 안내 누락",
+      "publicTitle": "새 게임의 초기 내부 공간과 입구·투하 구역 안내",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "9868d5996ef3b414c3a6e1885a5810723f876edf372f0af830ffd8d87c3b14a1",
+        "39a737e553ad20686fbf941f0fec64a177b7e315348c4b3dae34cc005c325888"
+      ],
+      "publishedClauses": [
+        "현재 기본 새 게임의 초기 내부 공간은 29열·높이 3칸이며 입구 왼쪽에 폭 3칸의 투하 구역이 있다.",
+        "현재 기본 격자에서 내부 가로 범위는 x=17~45, 입구는 (17,0), 투하 구역은 x=14~16의 지면이다. 내부 밖은 입구와 같은 높이만 외부 통로이고 다른 높이는 차단 외부 구역이다. 입구 칸은 일반 내부 칸과 별도로 취급한다."
+      ],
+      "editorialGroup": "시작 공간과 연못"
+    },
+    {
+      "id": "GAP-273",
+      "guide": "infrastructure",
+      "sourceTitle": "연구에 따른 내부 공간 확장 폭과 방해 조건 안내 누락",
+      "publicTitle": "연구에 따른 내부 공간 확장 폭과 방해 조건 안내",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "434e9c6abe5fa1623a6a40aed363dddff46828307d15f5c230024507d872d829",
+        "98883aeec522de194457b0828be52d20221a3000a2a059f55aa5ae99d937d674",
+        "48bdde441b3d61bc882a5f529cfde8b1c62ad7f54cec7ba48b55bcb00ec1f63d"
+      ],
+      "publishedClauses": [
+        "내부 폭은 시작 29열에서 채석장 연구 완료 시 51열, 석재 가공 연구 완료 시 71열, 심부 채굴 연구 완료 시 87열로 늘어난다. 높이는 3칸이며 기존 입구와 내부 왼쪽 경계는 유지한다.",
+        "새 내부로 바뀔 칸에 방해 점유물이 있으면 확장이 거부된다. 자원 노드와 야생동물 자체는 이 차단 대상에서 제외된다.",
+        "확장 뒤 기존 위치를 사용할 수 없는 야생동물은 유효한 가까운 칸으로 옮기며, 이동 후보가 없으면 확장을 거부한다."
+      ],
+      "editorialGroup": "시설의 방 기여"
+    },
+    {
+      "id": "GAP-274",
+      "guide": "spaces",
+      "sourceTitle": "자연 연못의 생성·수량과 수심별 통행 안내 누락",
+      "publicTitle": "자연 연못의 생성·수량과 수심별 통행 안내",
+      "clauseCount": 3,
+      "clauseHashes": [
+        "cc106a394a29437b46029ca36aa271fa273899d95b23ed0e939a4739ffd90f4f",
+        "f8f7253284e3d9cc1b684b9c1152bfaba2a7ad8a1624fbdcd283d51a90a9d8b7",
+        "671cf175e126346b19be3b9830038d29fee37f55914c57a970d23febb9218c21"
+      ],
+      "publishedClauses": [
+        "수원이 하나도 없고 외부 통로에 야외 지면이 있을 때 기본 자연 연못을 만든다. 가장 긴 연속 지면 구간을 고르고 길이가 같으면 오른쪽 구간을 우선하며, 바깥쪽부터 최대 4칸을 사용한다.",
+        "첫 칸은 깊은 물, 나머지는 얕은 물이다. 깊은 물의 용량은 40·기본 초당 회복량은 0.035, 얕은 물은 18·0.06이며 실제 회복에는 환경 배율이 적용된다. 공간이 짧으면 연못도 4칸보다 작다.",
+        "깊은 물은 통행할 수 없고 얕은 물에서는 지형 이동 속도가 0.65배가 된다."
+      ],
+      "editorialGroup": "시작 공간과 연못"
+    },
+    {
+      "id": "GAP-275",
+      "guide": "guests-services-and-performance",
+      "sourceTitle": "시설 이용 시간과 완료 예상 시간의 차이 안내 누락",
+      "publicTitle": "시설 이용 시간과 완료 예상 시간의 차이 안내",
+      "clauseCount": 2,
+      "clauseHashes": [
+        "ae9c95b9bec534e8e04b20b783cf3875d7361de67c76a48e78fdbf314eba97da",
+        "e2634a5fb1f33110324b626f2700161fbe153a35807c64b3efe1ee9e04a794fc"
+      ],
+      "publishedClauses": [
+        "일반 시설 이용 시간은 서비스 세션에 양수 시간이 있으면 그 시간을, 그렇지 않으면 시설 기본 이용 시간을 사용하고 방문객의 체류 시간 배율을 곱한다. 식사를 실제로 수행하는 경로는 이 대기 시간만으로 식사를 끝내지 않는다.",
+        "시설 선택용 완료 예상 시간은 이동 예상 시간에 앞선 이용자·예약자 수와 수용량으로 계산한 회차 수×예상 서비스 시간을 더한다. 회차는 최소1이며 예상 서비스 시간은 시설 기본값 최소0.1초, 식사일 때 최소4초에 방문객 체류 배율 최소0.1을 곱한다. 이 값은 후보 선택을 위한 예상치로 사용한다."
+      ],
+      "editorialGroup": "서비스 선택과 지원"
+    }
+  ],
+  "documentationActions": [
+    {
+      "id": "GAP-111",
+      "action": "진실 관측소의 공개 설명에서 내부 모듈 타입명·영어 작성 메모를 제거하고 한국어 명칭과 이미 확인된 건설 비용을 유지한다."
+    },
+    {
+      "id": "GAP-163",
+      "action": "외부 자원 도감의 내부 모듈 타입명과 'Generated immutable runtime building archetype authority'라는 작성용 설명을 공개 문장에서 제거한다."
+    }
+  ],
+  "inputGuideHashes": {
+    "wiki/game-versions/0.0.1v/content/guides/combat-and-equipment.md": "954b1bf13ca8fdb2f8a0ae42f5c08bc418dc65b07c5d5b07a59f2944206b7f20",
+    "wiki/game-versions/0.0.1v/content/guides/disease-and-public-health.md": "77adf37f100a815380bacf71563f919e469758953bd43d105c4d5a89e0eaa057",
+    "wiki/game-versions/0.0.1v/content/guides/economy-and-trade.md": "bd1d5cffff6f1ffeabf89770044e19fab817f6c1bbf2c29634f3789bff36c205",
+    "wiki/game-versions/0.0.1v/content/guides/events-and-choices.md": "9c1bd117d828a8f8d39054e4bd05a121495e5b96dd655f5a5df6f80fc8c273f8",
+    "wiki/game-versions/0.0.1v/content/guides/expeditions.md": "4b627d155a72fe9b910e272bf89cda3e32184a6122ef9ab6031ec3c35d8d9f7c",
+    "wiki/game-versions/0.0.1v/content/guides/facility-growth.md": "3d9787bdf1b053b9b55a1029a4890620fc06fb16698d8f33c015af4e405754cb",
+    "wiki/game-versions/0.0.1v/content/guides/factions-contracts-and-prisoners.md": "5e752a90d5471f95ed68e4b1bca0693a388cec680fb001ddef89b0316fa0e745",
+    "wiki/game-versions/0.0.1v/content/guides/family-education-and-legacy.md": "b5255a4d85221ea8262d57665b7ecb1e87663a326bcd51c3abd1a9c5b120ca4f",
+    "wiki/game-versions/0.0.1v/content/guides/food-and-ecology.md": "963bfaef0ff9fd95a076197938a2d21ce2e92e52b43bfaca87659375d5cbc399",
+    "wiki/game-versions/0.0.1v/content/guides/getting-started.md": "754234bb0d6272aa1f3581d8c6dffc1f0067158c70676768376cc82a99c6d042",
+    "wiki/game-versions/0.0.1v/content/guides/guests-services-and-performance.md": "400259e848c83d7d247451e419ef0cd8e28c349569f296705e45c541ecd78560",
+    "wiki/game-versions/0.0.1v/content/guides/health-and-community.md": "1c4e35da7eee47c43ffd49ac036c3283b9cf8197c28a3eebda69047e40f38e37",
+    "wiki/game-versions/0.0.1v/content/guides/infrastructure.md": "eaddf0ecac14b43cd59c3722d3b4598552f73686a06a90fb8c7fa68699afd5e3",
+    "wiki/game-versions/0.0.1v/content/guides/invasions-and-defence.md": "a69bc90d7112c9468418e733fd9679a0e1f425672f1dd61dd93b19d0904b4743",
+    "wiki/game-versions/0.0.1v/content/guides/inventory-and-carrying.md": "8cef7e1f76c53cd8177c77f05c6428bf956ff92b07fe512edadde3e13eb27f7a",
+    "wiki/game-versions/0.0.1v/content/guides/medical-care-and-surgery.md": "7182c897e33adc6d22636fd84b374cf6701fcd1867be93808b234c9e4ec9bec4",
+    "wiki/game-versions/0.0.1v/content/guides/milestones-runs-and-meta.md": "84e74c226b0f3fca1271193bc9af5c49139eb392a7dc0506656decbc4f669369",
+    "wiki/game-versions/0.0.1v/content/guides/production.md": "e98d46e8f15cc85a7b4dfce6bc23ba4b0a3692c907c274e1a2dd17b919351fdf",
+    "wiki/game-versions/0.0.1v/content/guides/production-quality-and-supply.md": "dbbf378081f65cc9f88f2cc7d36a6a6e2606f78c69a6841f2a626b94d61f0ec0",
+    "wiki/game-versions/0.0.1v/content/guides/research.md": "7c47f4267b90024e495e5dd0c3301abf299c51a2da9a7d9ba4bbe12d2c407e09",
+    "wiki/game-versions/0.0.1v/content/guides/residents-and-work.md": "4196a4732343cfd415d6667a52ece6f236c5b7a2375e5c8d0968fc3f31da60e1",
+    "wiki/game-versions/0.0.1v/content/guides/spaces.md": "d692f95e1bee83e7f7ec8921d4d78bcfdf72fa5d29d8ec926611c5155e115d5e",
+    "wiki/game-versions/0.0.1v/content/guides/species-culture-and-life.md": "04212e6c40405eddddace6c8fa5ce69eb8544dd43947edef81b8666c2795f671",
+    "wiki/game-versions/0.0.1v/content/guides/starting-party.md": "8ca7c87cac152226ad7a2aa1970298b6e2afedd65cec3841f8507b40c5a479a4",
+    "wiki/game-versions/0.0.1v/content/guides/weather-seasons-and-environment.md": "308e2453d0d1223f7de748aaa3275469ad95e3456a591df3e89520e7dfe0f6b2"
+  },
+  "outputGuideHashes": {
+    "wiki/game-versions/0.0.1v/content/guides/combat-and-equipment.md": "954b1bf13ca8fdb2f8a0ae42f5c08bc418dc65b07c5d5b07a59f2944206b7f20",
+    "wiki/game-versions/0.0.1v/content/guides/disease-and-public-health.md": "77adf37f100a815380bacf71563f919e469758953bd43d105c4d5a89e0eaa057",
+    "wiki/game-versions/0.0.1v/content/guides/economy-and-trade.md": "bd1d5cffff6f1ffeabf89770044e19fab817f6c1bbf2c29634f3789bff36c205",
+    "wiki/game-versions/0.0.1v/content/guides/events-and-choices.md": "9c1bd117d828a8f8d39054e4bd05a121495e5b96dd655f5a5df6f80fc8c273f8",
+    "wiki/game-versions/0.0.1v/content/guides/expeditions.md": "4b627d155a72fe9b910e272bf89cda3e32184a6122ef9ab6031ec3c35d8d9f7c",
+    "wiki/game-versions/0.0.1v/content/guides/factions-contracts-and-prisoners.md": "5e752a90d5471f95ed68e4b1bca0693a388cec680fb001ddef89b0316fa0e745",
+    "wiki/game-versions/0.0.1v/content/guides/family-education-and-legacy.md": "b5255a4d85221ea8262d57665b7ecb1e87663a326bcd51c3abd1a9c5b120ca4f",
+    "wiki/game-versions/0.0.1v/content/guides/food-and-ecology.md": "963bfaef0ff9fd95a076197938a2d21ce2e92e52b43bfaca87659375d5cbc399",
+    "wiki/game-versions/0.0.1v/content/guides/getting-started.md": "754234bb0d6272aa1f3581d8c6dffc1f0067158c70676768376cc82a99c6d042",
+    "wiki/game-versions/0.0.1v/content/guides/guests-services-and-performance.md": "400259e848c83d7d247451e419ef0cd8e28c349569f296705e45c541ecd78560",
+    "wiki/game-versions/0.0.1v/content/guides/health-and-community.md": "1c4e35da7eee47c43ffd49ac036c3283b9cf8197c28a3eebda69047e40f38e37",
+    "wiki/game-versions/0.0.1v/content/guides/infrastructure.md": "eaddf0ecac14b43cd59c3722d3b4598552f73686a06a90fb8c7fa68699afd5e3",
+    "wiki/game-versions/0.0.1v/content/guides/invasions-and-defence.md": "a69bc90d7112c9468418e733fd9679a0e1f425672f1dd61dd93b19d0904b4743",
+    "wiki/game-versions/0.0.1v/content/guides/medical-care-and-surgery.md": "7182c897e33adc6d22636fd84b374cf6701fcd1867be93808b234c9e4ec9bec4",
+    "wiki/game-versions/0.0.1v/content/guides/production.md": "e98d46e8f15cc85a7b4dfce6bc23ba4b0a3692c907c274e1a2dd17b919351fdf",
+    "wiki/game-versions/0.0.1v/content/guides/research.md": "7c47f4267b90024e495e5dd0c3301abf299c51a2da9a7d9ba4bbe12d2c407e09",
+    "wiki/game-versions/0.0.1v/content/guides/residents-and-work.md": "4196a4732343cfd415d6667a52ece6f236c5b7a2375e5c8d0968fc3f31da60e1",
+    "wiki/game-versions/0.0.1v/content/guides/spaces.md": "d692f95e1bee83e7f7ec8921d4d78bcfdf72fa5d29d8ec926611c5155e115d5e",
+    "wiki/game-versions/0.0.1v/content/guides/species-culture-and-life.md": "04212e6c40405eddddace6c8fa5ce69eb8544dd43947edef81b8666c2795f671",
+    "wiki/game-versions/0.0.1v/content/guides/weather-seasons-and-environment.md": "308e2453d0d1223f7de748aaa3275469ad95e3456a591df3e89520e7dfe0f6b2"
+  },
+  "cleanedRedirectGuideHashes": {
+    "wiki/game-versions/0.0.1v/content/guides/facility-growth.md": "3d9787bdf1b053b9b55a1029a4890620fc06fb16698d8f33c015af4e405754cb",
+    "wiki/game-versions/0.0.1v/content/guides/inventory-and-carrying.md": "8cef7e1f76c53cd8177c77f05c6428bf956ff92b07fe512edadde3e13eb27f7a",
+    "wiki/game-versions/0.0.1v/content/guides/milestones-runs-and-meta.md": "84e74c226b0f3fca1271193bc9af5c49139eb392a7dc0506656decbc4f669369",
+    "wiki/game-versions/0.0.1v/content/guides/production-quality-and-supply.md": "dbbf378081f65cc9f88f2cc7d36a6a6e2606f78c69a6841f2a626b94d61f0ec0",
+    "wiki/game-versions/0.0.1v/content/guides/starting-party.md": "8ca7c87cac152226ad7a2aa1970298b6e2afedd65cec3841f8507b40c5a479a4"
+  },
+  "errors": []
+}

@@ -57,7 +57,9 @@ public static class InGameNarrativeTextCatalogBuilder
             ["record:breeding-ledger"] =
                 "번식 장부에는 부모의 씨족과 신체 특징, 아이의 공식 이름을 따로 기록한 칸이 남아 있다. 후기 장부에서는 앞의 두 칸이 뜯기고 칼리오르의 등기 도장만 찍혀 있다.",
             ["record:career-ledger"] =
-                "경력 장부는 인간식 직책 옆에 씨족 도장, 조상균 기억, 노래 계보를 함께 기록한다. 후기 장부는 인간 기관의 경력만 인정하며 다른 표식을 무효로 처리한다."
+                "경력 장부는 인간식 직책 옆에 씨족 도장, 조상균 기억, 노래 계보를 함께 기록한다. 후기 장부는 인간 기관의 경력만 인정하며 다른 표식을 무효로 처리한다.",
+            ["item:memory-erasure-seal"] =
+                "창고에서 사용해 선택한 후천 특성 하나를 소거하는 인장이다. 선천 특성, 서사 기록과 진행도는 지우지 않는다."
         };
 
     [InitializeOnLoadMethod]

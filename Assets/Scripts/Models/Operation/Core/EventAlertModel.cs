@@ -9,6 +9,20 @@ public interface IEventAlertChoiceActionDispatcher
     bool TryDispatch(string actionId, out DomainFailure failure);
 }
 
+public enum EventAlertChoiceActionDisposition
+{
+    Terminal = 0,
+    AcceptedPending = 1
+}
+
+public interface IEventAlertChoiceActionDispositionDispatcher
+{
+    bool TryDispatch(
+        string actionId,
+        out EventAlertChoiceActionDisposition disposition,
+        out DomainFailure failure);
+}
+
 public sealed class NullEventAlertChoiceActionDispatcher :
     IEventAlertChoiceActionDispatcher
 {
@@ -58,6 +72,8 @@ public class EventAlertRequest
     public string Category { get; }
     public string SourceId { get; }
     public IReadOnlyList<EventAlertChoice> Choices { get; }
+    public bool IsResolved { get; }
+    public string ResultSummary { get; }
 
     public EventAlertRequest(
         string title,
@@ -65,7 +81,9 @@ public class EventAlertRequest
         EventAlertImportance importance,
         string category = "",
         IEnumerable<EventAlertChoice> choices = null,
-        string sourceId = "")
+        string sourceId = "",
+        bool isResolved = false,
+        string resultSummary = "")
     {
         Title = string.IsNullOrWhiteSpace(title) ? "Event" : title;
         Detail = detail ?? string.Empty;
@@ -73,6 +91,18 @@ public class EventAlertRequest
         Category = category ?? string.Empty;
         SourceId = sourceId?.Trim() ?? string.Empty;
         Choices = NormalizeChoices(choices);
+        IsResolved = isResolved;
+        ResultSummary = resultSummary?.Trim() ?? string.Empty;
+        if (IsResolved
+            && (SourceId.Length == 0
+                || ResultSummary.Length == 0
+                || Choices.Count > 0)
+            || !IsResolved && ResultSummary.Length > 0)
+        {
+            throw new ArgumentException(
+                "Resolved event alerts require a source, a result summary, and no actions.",
+                nameof(resultSummary));
+        }
     }
 
     private static IReadOnlyList<EventAlertChoice> NormalizeChoices(IEnumerable<EventAlertChoice> choices)
@@ -90,12 +120,15 @@ public class EventAlertRecord
 {
     public int Id { get; }
     public string Title { get; }
-    public string Detail { get; }
+    public string Detail { get; private set; }
     public EventAlertImportance Importance { get; }
     public string Category { get; }
     public string SourceId { get; }
     public int Count { get; private set; }
-    public IReadOnlyList<EventAlertChoice> Choices { get; }
+    public IReadOnlyList<EventAlertChoice> Choices { get; private set; }
+    public bool IsResolved { get; private set; }
+    public string ResultSummary { get; private set; }
+    public string ChoiceFailureDetail { get; private set; }
 
     public EventAlertRecord(int id, EventAlertRequest request)
     {
@@ -111,6 +144,9 @@ public class EventAlertRecord
         Category = request.Category;
         SourceId = request.SourceId;
         Choices = request.Choices;
+        IsResolved = request.IsResolved;
+        ResultSummary = request.ResultSummary;
+        ChoiceFailureDetail = string.Empty;
         Count = 1;
     }
 
@@ -122,21 +158,86 @@ public class EventAlertRecord
         string category,
         int count,
         IEnumerable<EventAlertChoice> choices = null,
-        string sourceId = "")
+        string sourceId = "",
+        bool isResolved = false,
+        string resultSummary = "",
+        string choiceFailureDetail = "")
         : this(id, new EventAlertRequest(
             title,
             detail,
             importance,
             category,
             choices,
-            sourceId))
+            sourceId,
+            isResolved,
+            resultSummary))
     {
         Count = Math.Max(1, count);
+        if (!string.IsNullOrEmpty(choiceFailureDetail))
+        {
+            ReplaceChoiceFailure(choiceFailureDetail);
+        }
     }
 
     public void Increment()
     {
         Count++;
+    }
+
+    public bool TryRefreshSourceContent(EventAlertRequest request)
+    {
+        if (request == null
+            || string.IsNullOrWhiteSpace(SourceId)
+            || string.IsNullOrWhiteSpace(request.SourceId)
+            || !string.Equals(
+                SourceId,
+                request.SourceId,
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (IsResolved)
+        {
+            return !request.IsResolved
+                || request.Choices.Count == 0
+                    && string.Equals(
+                        ResultSummary,
+                        request.ResultSummary,
+                        StringComparison.Ordinal);
+        }
+
+        Detail = request.Detail;
+        if (request.IsResolved)
+        {
+            IsResolved = true;
+            ResultSummary = request.ResultSummary;
+            Choices = Array.Empty<EventAlertChoice>();
+            ChoiceFailureDetail = string.Empty;
+            return true;
+        }
+        Choices = request.Choices;
+        return true;
+    }
+
+    public void ReplaceChoiceFailure(string localizedFailure)
+    {
+        if (IsResolved
+            || string.IsNullOrWhiteSpace(localizedFailure)
+            || !string.Equals(
+                localizedFailure,
+                localizedFailure.Trim(),
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Only an unresolved event action can retain a canonical failure detail.");
+        }
+        ChoiceFailureDetail = localizedFailure;
+    }
+
+    public void ClearChoiceFailure()
+    {
+        ChoiceFailureDetail = string.Empty;
     }
 
     public EventAlertRecord DeepClone()
@@ -153,7 +254,10 @@ public class EventAlertRecord
                 choice.Description,
                 choice.Callback,
                 choice.ActionId)),
-            SourceId);
+            SourceId,
+            IsResolved,
+            ResultSummary,
+            ChoiceFailureDetail);
     }
 
     public EventAlertRecordSnapshot CreateSnapshot()
@@ -167,7 +271,10 @@ public class EventAlertRecord
             Count,
             Choices,
             false,
-            SourceId);
+            SourceId,
+            IsResolved,
+            ResultSummary,
+            ChoiceFailureDetail);
     }
 
     public string ButtonText => Count > 1 ? $"{Title} x{Count}" : Title;
@@ -185,7 +292,10 @@ public sealed class EventAlertRecordSnapshot
         int count,
         IReadOnlyList<EventAlertChoice> choices,
         bool isDismissed = false,
-        string sourceId = "")
+        string sourceId = "",
+        bool isResolved = false,
+        string resultSummary = "",
+        string choiceFailureDetail = "")
     {
         Id = id;
         Title = title ?? string.Empty;
@@ -196,6 +306,9 @@ public sealed class EventAlertRecordSnapshot
         Count = Math.Max(1, count);
         Choices = EventPayloadSnapshot.Copy(choices);
         IsDismissed = isDismissed;
+        IsResolved = isResolved;
+        ResultSummary = resultSummary?.Trim() ?? string.Empty;
+        ChoiceFailureDetail = choiceFailureDetail?.Trim() ?? string.Empty;
     }
 
     public int Id { get; }
@@ -207,6 +320,9 @@ public sealed class EventAlertRecordSnapshot
     public int Count { get; }
     public IReadOnlyList<EventAlertChoice> Choices { get; }
     public bool IsDismissed { get; }
+    public bool IsResolved { get; }
+    public string ResultSummary { get; }
+    public string ChoiceFailureDetail { get; }
     public string ButtonText => Count > 1 ? $"{Title} x{Count}" : Title;
 }
 

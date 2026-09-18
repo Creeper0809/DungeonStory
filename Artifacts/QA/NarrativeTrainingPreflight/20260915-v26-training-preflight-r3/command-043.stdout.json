@@ -1,0 +1,31 @@
+{
+  "success": true,
+  "command": "job wait",
+  "data": {
+    "jobId": "c6ab52a01bf142c8b4618104c76e4215",
+    "command": "eval",
+    "state": "completed",
+    "cancellationRequested": false,
+    "result": {
+      "output": null,
+      "diagnostics": [],
+      "success": true,
+      "command": "eval",
+      "result": {
+        "passed": true,
+        "owner": "CharacterProgressionDebugScenarios",
+        "method": "VerifyAcquiredTraitExperienceScore"
+      },
+      "executionTimeMs": 39,
+      "message": null,
+      "error": null,
+      "errorDetails": null,
+      "executedAt": "2026-09-15T11:25:15.8722388Z"
+    },
+    "error": null,
+    "errorDetails": null,
+    "progress": null
+  },
+  "errors": [],
+  "warnings": []
+}

@@ -8,6 +8,22 @@ using System.Linq;
 /// </summary>
 public static class GameplayUiPresentationText
 {
+    public static string QualityEstimate(CraftQualityAttemptEstimate estimate)
+    {
+        if (!estimate.IsAvailable) return "품질 추정: " + estimate.Condition;
+        string expectation = estimate.SuccessProbability <= 0d
+            ? "현재 추정 조건에서 도달 불가"
+            : $"첫 성공 기대 {estimate.ExpectedAttempts:0.##}회";
+        string limit = estimate.MaximumAttempts.HasValue
+            ? $"\n설정 한도 {estimate.MaximumAttempts.Value}회 내 1개 이상 성공 {estimate.SuccessWithinLimit:P1}"
+                + $" · 최대 제작 {estimate.MaximumCraftWork:0.##} WU / 재료 {estimate.MaximumGrossMaterial}개"
+            : "\n횟수 무제한 — 횟수 기준 제작 투입 상한 없음";
+        return $"1회 성공 {estimate.SuccessProbability:P1} · {expectation}"
+            + (estimate.NeedsLowProbabilityWarning ? " · 낮은 성공률 주의(기대 20회 초과)" : string.Empty)
+            + limit + "\n제작 투입 기준; 해체·운반 별도, 회수량 미차감"
+            + "\n" + estimate.Condition;
+    }
+
     public static string Quality(CraftsmanshipQualityTier value) => value switch
     {
         CraftsmanshipQualityTier.Awful => "형편없음",

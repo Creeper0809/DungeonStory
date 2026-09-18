@@ -76,6 +76,13 @@ public sealed class DungeonPreparationLifetimeScope : LifetimeScope
         builder.Register<UnityGameContentRootLoader>(Lifetime.Singleton)
             .As<IGameContentRootLoader>();
         builder.RegisterDungeonGameContentCatalog();
+        builder.Register<AuthoredGameplayCatalog>(Lifetime.Singleton)
+            .As<IMetaUpgradeDefinitionCatalog>()
+            .As<ICharacterNeedDefinitionCatalog>();
+        builder.Register<MetaProfileStore>(Lifetime.Singleton)
+            .As<IMetaProfileStore>();
+        builder.Register<ProfileStoreStartingOwnerTraitCountBonusQuery>(Lifetime.Singleton)
+            .As<IStartingOwnerTraitCountBonusQuery>();
         builder.Register<ResourceTmpKoreanFontProvider>(Lifetime.Singleton)
             .As<ITmpKoreanFontProvider>();
         builder.Register<TmpKoreanFontService>(Lifetime.Singleton)

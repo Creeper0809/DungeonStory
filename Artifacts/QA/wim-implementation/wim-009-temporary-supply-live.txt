@@ -1,0 +1,10 @@
+wim047-persistence-isolation=PASS;autosave=True;metaProfile=True;realFiles=4;terminalDisposition=PlayModeDiscard
+origin=41,0
+placedBuildings=38
+[PASS] actual generator, battery-only and combined offers were reduced once to 80%; stored energy, storage capacity and expiry remained intact
+[PASS] actual pump normal/frozen rate ratio=0.755; 0C latch, 1C recovery band, 2C clear, exact whole-save restore, stored-water preservation, UI and expiry passed
+scope=controlled seasonal selection/cell temperature and authored fixture placement; actual main campaign projections, generator+battery allocator, pump production, fluid V7, current whole-save and presenters; no natural event selection, AI response, transfer/processor live throughput, or whole-WIM009 claim
+mode=wim-009-temporary-supply-only
+wim047-real-persistence=PASS;unchanged=4/4
+cleanup=exact-except-meta-elapsed-float-rounding-under-0.00001s
+result=PASS

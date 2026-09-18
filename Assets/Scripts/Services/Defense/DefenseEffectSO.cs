@@ -71,6 +71,12 @@ public sealed class DefenseEffectContext
     {
         Report.AddEffectTag(tag);
     }
+
+    public void RecordEnvironmentalIgnition(float ignitionIntensity)
+    {
+        Report.AddEnvironmentalIgnition(
+            Mathf.Clamp01(ignitionIntensity * EffectMultiplier));
+    }
 }
 
 public abstract class DefenseEffectSO : ScriptableObject

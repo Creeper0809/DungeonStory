@@ -14,6 +14,8 @@ public sealed class DungeonUserSettingsService :
 
     private readonly DungeonUserSettingsRuntimeTargets runtimeTargets;
     private DungeonUserSettingsData current;
+    private bool hasLoadedSettings;
+    private bool hasExplicitChange;
 
     public DungeonUserSettingsService(
         DungeonUserSettingsRuntimeTargets runtimeTargets)
@@ -35,20 +37,33 @@ public sealed class DungeonUserSettingsService :
     public void Start()
     {
         current = Load();
+        hasLoadedSettings = true;
         ApplyCurrent();
     }
 
     public void Dispose()
     {
+        if (!hasLoadedSettings && !hasExplicitChange)
+        {
+            return;
+        }
+
         Save();
     }
 
     public void Update(Action<DungeonUserSettingsData> change)
     {
+        if (!hasLoadedSettings && !hasExplicitChange)
+        {
+            current = Load();
+            hasLoadedSettings = true;
+        }
+
         DungeonUserSettingsData next = Current.Clone();
         change?.Invoke(next);
         next.Normalize();
         current = next;
+        hasExplicitChange = true;
         Changed?.Invoke();
         ApplyCurrent();
         Save();
@@ -57,6 +72,7 @@ public sealed class DungeonUserSettingsService :
     public void ResetDefaults()
     {
         current = new DungeonUserSettingsData();
+        hasExplicitChange = true;
         Changed?.Invoke();
         ApplyCurrent();
         Save();

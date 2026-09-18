@@ -41,7 +41,7 @@ public static class CombatEquipmentEditorTestFactory
             new CombatEquipmentPhysicalStateWriter(
                 itemInstances,
                 itemStackRuntime,
-                outputCapabilities);
+                () => outputCapabilities);
         CombatEquipmentRuntimeStateStore stateStore =
             new CombatEquipmentRuntimeStateStore(
                 new DungeonRuntimeAggregateRootStore());
@@ -52,7 +52,8 @@ public static class CombatEquipmentEditorTestFactory
                 new CombatEquipmentStatProjector(
                     itemInstances,
                     evolutionModules,
-                    moduleCatalog),
+                    moduleCatalog,
+                    new PhysicalItemMassQuery(EditorItemCatalogFactory.Create())),
                 physicalState,
                 loadouts,
                 new EquipmentModuleRuntime(

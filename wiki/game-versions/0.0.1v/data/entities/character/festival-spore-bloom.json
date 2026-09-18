@@ -5,6 +5,15 @@
   "kind": "character",
   "relations": [
     {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-8803",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴 재배 선반",
+      "type": "requires"
+    },
+    {
       "amount": "14",
       "label": "필요 조건",
       "target_kind": "item",

@@ -1,0 +1,68 @@
+WIM042 prepared candidate living information verification
+PASS RUNTIME_READY: scope=True; container=True; panel=True; eventSystem=True
+PASS RUNTIME_DEPENDENCIES: scope=True; preparation=True; panel=True; eventSystem=True; needs=True; profiles=True; random=True; commit=True; life=True; consumables=True; world=True; autosave=True
+PASS OWNER_BUTTON: production owner option is visible
+PASS EVENTSYSTEM_OWNER_TO_PREPARATION: handled=True; preparing=True
+PASS PREPARED_SUMMARY_0_READ: 
+PASS PREPARED_SUMMARY_0_HEALTH: expected=; actual=
+PASS PREPARED_SUMMARY_0_DIET_SLEEP_CLIMATE: diet=Free; sleep=100; sleepRate=1; hasSleep=True
+PASS PREPARED_SUMMARY_1_READ: 
+PASS PREPARED_SUMMARY_1_HEALTH: expected=condition:age-cardiac-degeneration,condition:age-neural-degeneration; actual=condition:age-cardiac-degeneration,condition:age-neural-degeneration
+PASS PREPARED_SUMMARY_1_DIET_SLEEP_CLIMATE: diet=Free; sleep=100; sleepRate=1; hasSleep=True
+PASS PREPARED_SUMMARY_2_READ: 
+PASS PREPARED_SUMMARY_2_HEALTH: expected=; actual=
+PASS PREPARED_SUMMARY_2_DIET_SLEEP_CLIMATE: diet=Free; sleep=100; sleepRate=1; hasSleep=True
+PASS PREPARED_SUMMARY_3_READ: 
+PASS PREPARED_SUMMARY_3_HEALTH: expected=; actual=
+PASS PREPARED_SUMMARY_3_DIET_SLEEP_CLIMATE: diet=Free; sleep=100; sleepRate=1; hasSleep=True
+PASS PREPARED_SUMMARY_4_READ: 
+PASS PREPARED_SUMMARY_4_HEALTH: expected=; actual=
+PASS PREPARED_SUMMARY_4_DIET_SLEEP_CLIMATE: diet=Free; sleep=100; sleepRate=1; hasSleep=True
+PASS PREPARED_SUMMARY_5_READ: 
+PASS PREPARED_SUMMARY_5_HEALTH: expected=; actual=
+PASS PREPARED_SUMMARY_5_DIET_SLEEP_CLIMATE: diet=Free; sleep=100; sleepRate=1; hasSleep=True
+PASS PREPARED_SUMMARY_6_READ: 
+PASS PREPARED_SUMMARY_6_HEALTH: expected=; actual=
+PASS PREPARED_SUMMARY_6_DIET_SLEEP_CLIMATE: diet=Free; sleep=100; sleepRate=1; hasSleep=True
+PASS PREPARED_PARTY_READY: prepared candidates can produce the gameplay snapshot
+PASS RERENDER_DOES_NOT_REROLL: stream=character:start-party-preparation; beforeState=9800679345287969699; afterState=9800679345287969699; beforeDraws=98; afterDraws=98; streamPresentBefore=True; streamPresentAfter=True
+PASS SCROLLABLE_LIVING_CARD_0: content=True; viewport=True; contentHeight=427.4; viewportHeight=354.7
+PASS SCROLLABLE_LIVING_CARD_1: content=True; viewport=True; contentHeight=470.5; viewportHeight=354.7
+PASS SCROLLABLE_LIVING_CARD_2: content=True; viewport=True; contentHeight=427.4; viewportHeight=354.7
+PASS OVERFLOW_CARD: contentHeight=427.4; viewportHeight=354.7
+PASS EVENTSYSTEM_SCROLL_REACHES_FINAL_CLIMATE: before=1; afterDrag=0; reachedBottom=True; gestures=1/1; localTravel=73.617
+PASS SNAPSHOT_HEALTH_AUTHORITY_0: prepared=; snapshot=
+PASS SNAPSHOT_THERMAL_TRAIT_AUTHORITY_0: prepared=105,406; snapshot=105,406
+PASS SNAPSHOT_HEALTH_AUTHORITY_1: prepared=condition:age-cardiac-degeneration,condition:age-neural-degeneration; snapshot=condition:age-cardiac-degeneration,condition:age-neural-degeneration
+PASS SNAPSHOT_THERMAL_TRAIT_AUTHORITY_1: prepared=106,214,220; snapshot=106,214,220
+PASS SNAPSHOT_HEALTH_AUTHORITY_2: prepared=; snapshot=
+PASS SNAPSHOT_THERMAL_TRAIT_AUTHORITY_2: prepared=404,411; snapshot=404,411
+PASS PREPARED_SNAPSHOT_VALID: 준비한 파티 스냅샷이 완성됐습니다.
+PASS SKILL_REROLL_PRESERVES_LIVING_FACTS: 직원 1 스킬 후보를 다시 굴렸습니다.
+PASS FULL_REROLL: 직원 1 전체를 다시 굴렸습니다.
+PASS FULL_REROLL_LIVING_FACTS_READ: 
+PASS FULL_REROLL_LIVING_FACTS_HEALTH: expected=; actual=
+PASS FULL_REROLL_LIVING_FACTS_DIET_SLEEP_CLIMATE: diet=Free; sleep=100; sleepRate=1; hasSleep=True
+PASS RESERVE_SWAP_PRESERVES_LIVING_FACTS: 선발 1번에 Dion을 배치했습니다.
+PASS SNAPSHOT_HEALTH_AUTHORITY_0: prepared=; snapshot=
+PASS SNAPSHOT_THERMAL_TRAIT_AUTHORITY_0: prepared=105,406; snapshot=105,406
+PASS SNAPSHOT_HEALTH_AUTHORITY_3: prepared=; snapshot=
+PASS SNAPSHOT_THERMAL_TRAIT_AUTHORITY_3: prepared=214,217,504; snapshot=214,217,504
+PASS SNAPSHOT_HEALTH_AUTHORITY_2: prepared=; snapshot=
+PASS SNAPSHOT_THERMAL_TRAIT_AUTHORITY_2: prepared=404,411; snapshot=404,411
+PASS COMMIT_EXPECTED_LIVING_0: 
+PASS COMMIT_EXPECTED_LIVING_3: 
+PASS COMMIT_EXPECTED_LIVING_2: 
+PASS PREPARED_START_COMMIT: 준비한 사장과 직원으로 새 런을 시작했습니다.
+PASS LIVE_MEMBER_RESOLUTION_0: expectedId=owner; summary=True; actor=True; life=True
+PASS LIVE_INITIAL_HEALTH_0: expected=; live=
+PASS LIVE_DIET_SLEEP_CLIMATE_0: diet=Free; expectedSleep=100; hasSleep=True; profile=True
+PASS LIVE_MEMBER_RESOLUTION_3: expectedId=character:staff:1:01; summary=True; actor=True; life=True
+PASS LIVE_INITIAL_HEALTH_3: expected=; live=
+PASS LIVE_DIET_SLEEP_CLIMATE_3: diet=Free; expectedSleep=100; hasSleep=True; profile=True
+PASS LIVE_MEMBER_RESOLUTION_2: expectedId=character:staff:1:02; summary=True; actor=True; life=True
+PASS LIVE_INITIAL_HEALTH_2: expected=; live=
+PASS LIVE_DIET_SLEEP_CLIMATE_2: diet=Free; expectedSleep=100; hasSleep=True; profile=True
+PASS COMMIT_CANCELS_PREPARATION: production commit released the temporary preparation state
+PASS SAFE_CLEANUP: no save API was called; fixture autosave was disposed before temporary commit and PlayMode exit discards fixture state.
+RESULT=PASS; failures=0

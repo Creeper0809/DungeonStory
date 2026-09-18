@@ -40,6 +40,13 @@ public sealed class InstanceEvolutionPanelPresentation
 
     public string FormatModulePair(EvolutionNode node)
     {
+        if (node?.formulaVersion > 0)
+        {
+            if (node.presentationState != EquipmentEvolutionPresentationState.Ready
+                || string.IsNullOrWhiteSpace(node.mechanicalDescription))
+                return "표현 대기 중";
+            return node.mechanicalDescription;
+        }
         return $"{FormatModule(node.effectId, true)} / "
             + $"{FormatModule(node.burdenEffectId, false)}";
     }

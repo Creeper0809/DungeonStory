@@ -3,6 +3,66 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
+public enum ExpeditionReturnStage
+{
+    Pending = 1,
+    ToDoor = 2,
+    ToInterior = 3,
+    Arrived = 4,
+    RequiresRescue = 5,
+    Dead = 6
+}
+
+public sealed class ExpeditionReturnProgress
+{
+    public ExpeditionReturnProgress(string characterId, ExpeditionReturnStage stage = ExpeditionReturnStage.Pending)
+    {
+        if (string.IsNullOrWhiteSpace(characterId) || characterId != characterId.Trim()
+            || !Enum.IsDefined(typeof(ExpeditionReturnStage), stage))
+            throw new ArgumentException("Invalid expedition return progress.");
+        CharacterId = characterId; Stage = stage;
+    }
+    public string CharacterId { get; }
+    public ExpeditionReturnStage Stage { get; internal set; }
+    public bool IsTerminal => Stage >= ExpeditionReturnStage.Arrived;
+    public string LastFailure { get; internal set; } = string.Empty;
+    internal bool InFlight { get; set; }
+}
+
+public sealed class OffenseExpeditionEquipmentBaseline
+{
+    public OffenseExpeditionEquipmentBaseline(
+        string instanceId,
+        string definitionId,
+        float durabilityRatio)
+    {
+        InstanceId = instanceId?.Trim() ?? string.Empty;
+        DefinitionId = definitionId?.Trim() ?? string.Empty;
+        DurabilityRatio = Mathf.Clamp01(durabilityRatio);
+    }
+
+    public string InstanceId { get; }
+    public string DefinitionId { get; }
+    public float DurabilityRatio { get; }
+}
+
+public sealed class OffenseExpeditionAmmunitionConsumption
+{
+    public OffenseExpeditionAmmunitionConsumption(
+        string instanceId,
+        string itemId,
+        int quantity)
+    {
+        InstanceId = instanceId?.Trim() ?? string.Empty;
+        ItemId = itemId?.Trim() ?? string.Empty;
+        Quantity = Mathf.Max(0, quantity);
+    }
+
+    public string InstanceId { get; }
+    public string ItemId { get; }
+    public int Quantity { get; }
+}
+
 public sealed class OffenseExpeditionRun
 {
     private readonly List<CharacterActor> members;
@@ -17,6 +77,50 @@ public sealed class OffenseExpeditionRun
     private readonly IReadOnlyDictionary<StockCategory, int> carriedStockView;
     private readonly HashSet<string> recoveredEquipmentInstanceIds =
         new HashSet<string>(StringComparer.Ordinal);
+    private readonly Dictionary<OffenseSupplyType, int> consumedSupplies = new();
+    private readonly List<OffenseExpeditionTreatmentReceipt> treatmentReceipts = new();
+    private readonly List<OffenseExpeditionEquipmentBaseline> equipmentBaselines = new();
+    private readonly List<OffenseExpeditionAmmunitionConsumption>
+        ammunitionConsumptions = new();
+    private readonly List<OffenseExpeditionItemReceipt>
+        returnItemReceipts = new();
+    private readonly List<OffenseExpeditionCurrencyReceipt>
+        returnCurrencyReceipts = new();
+    private readonly List<ExpeditionReturnProgress> returnProgress = new();
+    private IReadOnlyList<ExpeditionReturnProgress> returnProgressView;
+    public IReadOnlyList<ExpeditionReturnProgress> ReturnProgress => returnProgressView ??= returnProgress.AsReadOnly();
+    public bool ReturnPending { get; private set; }
+    public bool ReturnSuccess { get; private set; }
+    public string ReturnMessage { get; private set; } = string.Empty;
+    public bool ReturnFinalized { get; internal set; }
+    public bool ReturnResourcesCommitted { get; private set; }
+    public string ReturnResourceFailure { get; private set; } = string.Empty;
+    internal bool ReturnBarrierInitialized { get; set; }
+    internal bool ReturnFinalizing { get; set; }
+
+    public void BeginPhysicalReturn(bool success, string message)
+    {
+        if (ReturnPending || ReturnFinalized) return;
+        ReturnPending = true;
+        ReturnSuccess = success;
+        ReturnMessage = message ?? string.Empty;
+        foreach (var actor in MemberActors.Concat(ProtectedRescueActors))
+            returnProgress.Add(new ExpeditionReturnProgress(CharacterPersistentIdentity.Require(actor).Value));
+    }
+
+    public void RestorePhysicalReturn(bool pending, bool success, string message,
+        IEnumerable<ExpeditionReturnProgress> progress)
+    {
+        var restored = progress?.ToList() ?? throw new ArgumentNullException(nameof(progress));
+        var expected = MemberActors.Concat(ProtectedRescueActors)
+            .Select(actor => CharacterPersistentIdentity.Require(actor).Value).OrderBy(id => id, StringComparer.Ordinal);
+        if (pending ? !restored.Select(value => value.CharacterId).OrderBy(id => id, StringComparer.Ordinal).SequenceEqual(expected)
+                    : restored.Count != 0 || success || !string.IsNullOrEmpty(message))
+            throw new InvalidOperationException("Invalid expedition return membership/state.");
+        ReturnPending = pending; ReturnSuccess = success; ReturnMessage = message ?? string.Empty;
+        returnProgress.Clear(); returnProgress.AddRange(restored);
+        ReturnBarrierInitialized = false; ReturnFinalized = false; ReturnFinalizing = false;
+    }
 
     public OffenseExpeditionRun(
         string expeditionId,
@@ -111,6 +215,18 @@ public sealed class OffenseExpeditionRun
     public IReadOnlyDictionary<StockCategory, int> CarriedStock => carriedStockView;
     public IReadOnlyCollection<string> RecoveredEquipmentInstanceIds =>
         recoveredEquipmentInstanceIds;
+    public IReadOnlyDictionary<OffenseSupplyType, int> ConsumedSupplies =>
+        consumedSupplies;
+    public IReadOnlyList<OffenseExpeditionTreatmentReceipt> TreatmentReceipts =>
+        treatmentReceipts;
+    public IReadOnlyList<OffenseExpeditionEquipmentBaseline> EquipmentBaselines =>
+        equipmentBaselines;
+    public IReadOnlyList<OffenseExpeditionAmmunitionConsumption>
+        AmmunitionConsumptions => ammunitionConsumptions;
+    public IReadOnlyList<OffenseExpeditionItemReceipt> ReturnItemReceipts =>
+        returnItemReceipts;
+    public IReadOnlyList<OffenseExpeditionCurrencyReceipt>
+        ReturnCurrencyReceipts => returnCurrencyReceipts;
     public bool IsComplete => Phase is OffenseExpeditionPhase.Completed
         or OffenseExpeditionPhase.Retreated
         or OffenseExpeditionPhase.Defeated;
@@ -124,6 +240,428 @@ public sealed class OffenseExpeditionRun
     public OffenseRouteNode CurrentNode => Route.TryGetNode(CurrentNodeId, out OffenseRouteNode node)
         ? node
         : null;
+
+    public bool TryConsumeSupply(OffenseSupplyType type, int amount)
+    {
+        int requested = Mathf.Max(0, amount);
+        if (requested <= 0 || !Supplies.TryConsume(type, requested))
+        {
+            return requested == 0;
+        }
+
+        consumedSupplies[type] = checked(
+            (consumedSupplies.TryGetValue(type, out int current) ? current : 0)
+            + requested);
+        return true;
+    }
+
+    public void RecordHealing(CharacterActor actor, float beforeHealth)
+    {
+        if (actor == null) return;
+        float healed = Mathf.Max(0f, actor.CurrentHealth - beforeHealth);
+        string characterId = actor.Identity?.PersistentId?.Trim() ?? string.Empty;
+        if (healed <= 0f || characterId.Length == 0) return;
+        RecordHealing(characterId, healed);
+    }
+
+    public void RecordHealing(string characterId, float healedAmount)
+    {
+        string normalized = characterId?.Trim() ?? string.Empty;
+        float healed = Mathf.Max(0f, healedAmount);
+        if (normalized.Length == 0 || healed <= 0f) return;
+        treatmentReceipts.Add(new OffenseExpeditionTreatmentReceipt(
+            OffenseExpeditionTreatmentKind.Healing,
+            normalized,
+            string.Empty,
+            healed));
+    }
+
+    public void RecordAmmunitionConsumption(
+        string instanceId,
+        string itemId,
+        int quantity)
+    {
+        string normalizedInstance = instanceId?.Trim() ?? string.Empty;
+        string normalizedItem = itemId?.Trim() ?? string.Empty;
+        int committed = Mathf.Max(0, quantity);
+        if (normalizedInstance.Length == 0
+            || normalizedItem.Length == 0
+            || committed <= 0)
+        {
+            throw new InvalidOperationException(
+                "Committed expedition ammunition requires an instance, item and positive quantity.");
+        }
+
+        OffenseExpeditionAmmunitionConsumption existing =
+            ammunitionConsumptions.FirstOrDefault(value =>
+                string.Equals(value.InstanceId, normalizedInstance,
+                    StringComparison.Ordinal)
+                && string.Equals(value.ItemId, normalizedItem,
+                    StringComparison.Ordinal));
+        if (existing == null)
+        {
+            ammunitionConsumptions.Add(
+                new OffenseExpeditionAmmunitionConsumption(
+                    normalizedInstance,
+                    normalizedItem,
+                    committed));
+            return;
+        }
+
+        int index = ammunitionConsumptions.IndexOf(existing);
+        ammunitionConsumptions[index] =
+            new OffenseExpeditionAmmunitionConsumption(
+                normalizedInstance,
+                normalizedItem,
+                checked(existing.Quantity + committed));
+    }
+
+    public void RecordStabilization(
+        CharacterActor actor,
+        string anatomyNodeId)
+    {
+        string characterId = actor?.Identity?.PersistentId?.Trim() ?? string.Empty;
+        if (characterId.Length == 0 || string.IsNullOrWhiteSpace(anatomyNodeId))
+        {
+            return;
+        }
+
+        treatmentReceipts.Add(new OffenseExpeditionTreatmentReceipt(
+            OffenseExpeditionTreatmentKind.Stabilization,
+            characterId,
+            anatomyNodeId,
+            0f));
+    }
+
+    public void CaptureEquipmentBaseline(ICombatEquipmentRuntime equipment)
+    {
+        if (equipment == null || equipmentBaselines.Count > 0) return;
+        HashSet<string> instanceIds = new(StringComparer.Ordinal);
+        foreach (CharacterActor actor in members.Where(value => value != null))
+        {
+            string characterId = actor.Identity?.PersistentId?.Trim() ?? string.Empty;
+            if (characterId.Length == 0) continue;
+            CharacterCombatLoadoutProfile profile =
+                equipment.GetActiveProfileSnapshot(characterId);
+            if (profile == null) continue;
+            foreach (string id in profile.weaponInstanceIds
+                         ?? new List<string>())
+                if (!string.IsNullOrWhiteSpace(id)) instanceIds.Add(id);
+            foreach (string id in profile.armorInstanceIds
+                         ?? new List<string>())
+                if (!string.IsNullOrWhiteSpace(id)) instanceIds.Add(id);
+            if (!string.IsNullOrWhiteSpace(profile.shieldInstanceId))
+                instanceIds.Add(profile.shieldInstanceId);
+        }
+
+        foreach (string instanceId in instanceIds.OrderBy(
+                     value => value,
+                     StringComparer.Ordinal))
+        {
+            if (!equipment.TryGetInstance(instanceId, out CombatEquipmentInstance instance))
+            {
+                throw new InvalidOperationException(
+                    $"Expedition equipment instance '{instanceId}' is unavailable while capturing its settlement baseline.");
+            }
+            equipmentBaselines.Add(new OffenseExpeditionEquipmentBaseline(
+                instance.instanceId,
+                instance.definitionId,
+                instance.durabilityRatio));
+        }
+    }
+
+    public IReadOnlyList<OffenseExpeditionItemReceipt> FreezeItemReceipts(
+        ICombatEquipmentRuntime equipment,
+        IV27EmbeddedWorkValueProjectionQuery values)
+    {
+        List<OffenseExpeditionItemReceipt> receipts = new();
+        foreach (KeyValuePair<OffenseSupplyType, int> consumed in
+                 consumedSupplies.OrderBy(pair => pair.Key))
+        {
+            string itemId = OffenseSupplyCatalog.GetPhysicalItemId(consumed.Key);
+            receipts.Add(new OffenseExpeditionItemReceipt(
+                OffenseExpeditionItemReceiptKind.SupplyConsumed,
+                itemId,
+                consumed.Value,
+                string.Empty,
+                0f,
+                CreateValuation(values, itemId, consumed.Value)));
+        }
+
+        foreach (OffenseExpeditionAmmunitionConsumption consumed in
+                 ammunitionConsumptions
+                     .OrderBy(value => value.InstanceId, StringComparer.Ordinal)
+                     .ThenBy(value => value.ItemId, StringComparer.Ordinal))
+        {
+            receipts.Add(new OffenseExpeditionItemReceipt(
+                OffenseExpeditionItemReceiptKind.AmmunitionConsumed,
+                consumed.ItemId,
+                consumed.Quantity,
+                consumed.InstanceId,
+                0f,
+                CreateValuation(values, consumed.ItemId, consumed.Quantity)));
+        }
+
+        if (equipment == null && equipmentBaselines.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "Expedition equipment receipts require the combat equipment authority.");
+        }
+        foreach (OffenseExpeditionEquipmentBaseline baseline in
+                 equipmentBaselines.OrderBy(value => value.InstanceId, StringComparer.Ordinal))
+        {
+            CombatEquipmentInstance current = null;
+            if (!equipment.TryGetInstance(baseline.InstanceId, out current))
+            {
+                throw new InvalidOperationException(
+                    $"Expedition equipment instance '{baseline.InstanceId}' is unavailable at settlement.");
+            }
+            if (!equipment.TryGetDefinition(
+                    baseline.DefinitionId,
+                    out CombatEquipmentDefinitionSO definition))
+            {
+                throw new InvalidOperationException(
+                    $"Expedition equipment definition '{baseline.DefinitionId}' is unavailable at settlement.");
+            }
+            string itemId = definition.ItemId;
+            bool lost = current.worldState == CombatEquipmentWorldState.Lost;
+            if (lost)
+            {
+                receipts.Add(new OffenseExpeditionItemReceipt(
+                    OffenseExpeditionItemReceiptKind.EquipmentLost,
+                    itemId,
+                    1,
+                    baseline.InstanceId,
+                    baseline.DurabilityRatio,
+                    CreateValuation(values, itemId, 1)));
+                continue;
+            }
+
+            float wear = Mathf.Max(0f, baseline.DurabilityRatio - current.durabilityRatio);
+            if (wear > 0f)
+            {
+                receipts.Add(new OffenseExpeditionItemReceipt(
+                    OffenseExpeditionItemReceiptKind.EquipmentWorn,
+                    itemId,
+                    1,
+                    baseline.InstanceId,
+                    wear,
+                    CreateValuation(values, itemId, 1)));
+            }
+
+        }
+
+        return receipts;
+    }
+
+    public void RestoreSettlementReceipts(
+        IReadOnlyDictionary<OffenseSupplyType, int> restoredConsumedSupplies,
+        IEnumerable<OffenseExpeditionTreatmentReceipt> restoredTreatments,
+        IEnumerable<OffenseExpeditionEquipmentBaseline> restoredEquipmentBaselines,
+        IEnumerable<OffenseExpeditionAmmunitionConsumption>
+            restoredAmmunitionConsumptions = null)
+    {
+        consumedSupplies.Clear();
+        foreach (KeyValuePair<OffenseSupplyType, int> pair in
+                 restoredConsumedSupplies ?? new Dictionary<OffenseSupplyType, int>())
+            if (pair.Value > 0) consumedSupplies[pair.Key] = pair.Value;
+        treatmentReceipts.Clear();
+        treatmentReceipts.AddRange((restoredTreatments
+            ?? Array.Empty<OffenseExpeditionTreatmentReceipt>())
+            .Where(value => value != null));
+        equipmentBaselines.Clear();
+        equipmentBaselines.AddRange((restoredEquipmentBaselines
+            ?? Array.Empty<OffenseExpeditionEquipmentBaseline>())
+            .Where(value => value != null));
+        ammunitionConsumptions.Clear();
+        ammunitionConsumptions.AddRange((restoredAmmunitionConsumptions
+            ?? Array.Empty<OffenseExpeditionAmmunitionConsumption>())
+            .Where(value => value != null));
+    }
+
+    public void RestoreReturnResourceSettlement(
+        bool committed,
+        string failure,
+        IEnumerable<OffenseExpeditionItemReceipt> restoredItems,
+        IEnumerable<OffenseExpeditionCurrencyReceipt> restoredCurrencies)
+    {
+        returnItemReceipts.Clear();
+        returnCurrencyReceipts.Clear();
+        RecordReturnItemReceipts(restoredItems);
+        RecordReturnCurrencyReceipts(restoredCurrencies);
+        ReturnResourcesCommitted = committed;
+        ReturnResourceFailure = committed
+            ? string.Empty
+            : failure ?? string.Empty;
+    }
+
+    internal void RecordReturnItemReceipts(
+        IEnumerable<OffenseExpeditionItemReceipt> receipts)
+    {
+        foreach (OffenseExpeditionItemReceipt receipt in receipts
+                     ?? Array.Empty<OffenseExpeditionItemReceipt>())
+        {
+            if (receipt == null)
+            {
+                throw new InvalidOperationException(
+                    "A committed expedition return item receipt cannot be null.");
+            }
+            OffenseExpeditionItemReceipt existing = returnItemReceipts
+                .FirstOrDefault(value => ReturnReceiptKey(value)
+                    == ReturnReceiptKey(receipt));
+            if (existing == null)
+            {
+                returnItemReceipts.Add(receipt);
+                continue;
+            }
+            if (!SameReturnReceipt(existing, receipt))
+            {
+                throw new InvalidOperationException(
+                    $"Expedition return receipt '{receipt.kind}/{receipt.itemId}/{receipt.instanceId}' changed after physical commit.");
+            }
+        }
+    }
+
+    internal void RecordReturnCurrencyReceipts(
+        IEnumerable<OffenseExpeditionCurrencyReceipt> receipts)
+    {
+        foreach (OffenseExpeditionCurrencyReceipt receipt in receipts
+                     ?? Array.Empty<OffenseExpeditionCurrencyReceipt>())
+        {
+            if (receipt == null)
+            {
+                throw new InvalidOperationException(
+                    "A committed expedition return currency receipt cannot be null.");
+            }
+            OffenseExpeditionCurrencyReceipt existing = returnCurrencyReceipts
+                .FirstOrDefault(value => string.Equals(
+                    value.operationId,
+                    receipt.operationId,
+                    StringComparison.Ordinal));
+            if (existing == null)
+            {
+                returnCurrencyReceipts.Add(receipt);
+                continue;
+            }
+            if (!string.Equals(
+                    existing.currencyId,
+                    receipt.currencyId,
+                    StringComparison.Ordinal)
+                || existing.amount != receipt.amount)
+            {
+                throw new InvalidOperationException(
+                    $"Expedition currency receipt '{receipt.operationId}' changed after commit.");
+            }
+        }
+    }
+
+    internal bool MarkReturnResourceFailure(string failure)
+    {
+        string next = string.IsNullOrWhiteSpace(failure)
+            ? "expedition-return-resource-commit-failed"
+            : failure.Trim();
+        if (string.Equals(
+                ReturnResourceFailure,
+                next,
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+        ReturnResourceFailure = next;
+        return true;
+    }
+
+    internal void CompleteReturnResources()
+    {
+        ReturnResourcesCommitted = true;
+        ReturnResourceFailure = string.Empty;
+    }
+
+    internal OffenseExpeditionReturnReceipt GetReturnResourceReceipt() =>
+        new OffenseExpeditionReturnReceipt(
+            returnItemReceipts,
+            returnCurrencyReceipts);
+
+    private static (
+        OffenseExpeditionItemReceiptKind kind,
+        string itemId,
+        string instanceId) ReturnReceiptKey(
+        OffenseExpeditionItemReceipt receipt)
+    {
+        string instance = receipt.kind is
+                OffenseExpeditionItemReceiptKind.AmmunitionConsumed
+                or OffenseExpeditionItemReceiptKind.EquipmentWorn
+                or OffenseExpeditionItemReceiptKind.EquipmentLost
+                or OffenseExpeditionItemReceiptKind.EquipmentRecovered
+            ? receipt.instanceId
+            : string.Empty;
+        return (receipt.kind, receipt.itemId, instance);
+    }
+
+    private static bool SameReturnReceipt(
+        OffenseExpeditionItemReceipt left,
+        OffenseExpeditionItemReceipt right)
+    {
+        OffenseItemValuationSnapshot leftValue = left.valuation;
+        OffenseItemValuationSnapshot rightValue = right.valuation;
+        return left.kind == right.kind
+            && string.Equals(left.itemId, right.itemId, StringComparison.Ordinal)
+            && left.quantity == right.quantity
+            && string.Equals(
+                left.instanceId,
+                right.instanceId,
+                StringComparison.Ordinal)
+            && Mathf.Approximately(left.durabilityLoss, right.durabilityLoss)
+            && leftValue != null
+            && rightValue != null
+            && string.Equals(
+                leftValue.itemId,
+                rightValue.itemId,
+                StringComparison.Ordinal)
+            && leftValue.quantity == rightValue.quantity
+            && leftValue.state == rightValue.state
+            && leftValue.acquisitionMilliEwuPerUnit
+                == rightValue.acquisitionMilliEwuPerUnit
+            && leftValue.recoverableMilliEwuPerUnit
+                == rightValue.recoverableMilliEwuPerUnit
+            && string.Equals(
+                leftValue.basisId,
+                rightValue.basisId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                leftValue.selectedSourceId,
+                rightValue.selectedSourceId,
+                StringComparison.Ordinal);
+    }
+
+    public static OffenseItemValuationSnapshot CreateValuation(
+        IV27EmbeddedWorkValueProjectionQuery values,
+        string itemId,
+        int quantity)
+    {
+        if (values == null || !values.AuthorityAvailable)
+        {
+            return new OffenseItemValuationSnapshot(
+                itemId,
+                quantity,
+                OffenseSettlementValuationState.AuthorityUnavailable);
+        }
+        if (!values.TryGet(itemId, out V27EmbeddedWorkValueProjection value))
+        {
+            return new OffenseItemValuationSnapshot(
+                itemId,
+                quantity,
+                OffenseSettlementValuationState.UnvaluedItem);
+        }
+        return new OffenseItemValuationSnapshot(
+            itemId,
+            quantity,
+            OffenseSettlementValuationState.Valued,
+            value.AcquisitionMilliEwu,
+            value.RecoverableMilliEwu,
+            value.BasisId,
+            value.SelectedSourceId);
+    }
 
     public void MergeProtectedRescueMembers(IEnumerable<CharacterActor> rescued)
     {
@@ -154,7 +692,7 @@ public sealed class OffenseExpeditionRun
 
     public bool TryEnterNode(string nodeId, out string message)
     {
-        if (Phase != OffenseExpeditionPhase.ChoosingRoute)
+        if (ReturnPending || Phase != OffenseExpeditionPhase.ChoosingRoute)
         {
             message = "현재는 다음 경로를 선택할 수 없습니다.";
             return false;
@@ -169,7 +707,7 @@ public sealed class OffenseExpeditionRun
         }
 
         CurrentNodeId = node.Id;
-        if (!Supplies.TryConsume(OffenseSupplyType.Rations, 1))
+        if (!TryConsumeSupply(OffenseSupplyType.Rations, 1))
         {
             ApplyStressToSurvivors(6f);
         }
@@ -208,7 +746,7 @@ public sealed class OffenseExpeditionRun
             case OffenseRouteNodeKind.Event:
                 if (useSupply)
                 {
-                    if (!Supplies.TryConsume(OffenseSupplyType.Tools, 1))
+                    if (!TryConsumeSupply(OffenseSupplyType.Tools, 1))
                     {
                         message = "사용할 원정 도구가 없습니다.";
                         return false;
@@ -229,7 +767,7 @@ public sealed class OffenseExpeditionRun
             case OffenseRouteNodeKind.Camp:
                 if (useSupply)
                 {
-                    if (!Supplies.TryConsume(OffenseSupplyType.Rations, 2))
+                    if (!TryConsumeSupply(OffenseSupplyType.Rations, 2))
                     {
                         message = "야영에는 식량 2개가 필요합니다.";
                         return false;
@@ -238,7 +776,9 @@ public sealed class OffenseExpeditionRun
                     usedSupply = true;
                     foreach (OffenseExpeditionMemberState member in memberStates.Where(value => value.IsAlive))
                     {
+                        float beforeHealth = member.Actor.CurrentHealth;
                         member.Actor.Heal(member.Actor.MaxHealth * Preparation.CampHealRatio);
+                        RecordHealing(member.Actor, beforeHealth);
                         member.RecoverStress(Preparation.CampStressRecovery);
                     }
                     resultMessage = "야영을 마치고 체력과 스트레스를 회복했습니다.";
@@ -276,7 +816,7 @@ public sealed class OffenseExpeditionRun
         switch (type)
         {
             case OffenseSupplyType.Rations:
-                if (!Supplies.TryConsume(type, 1))
+                if (!TryConsumeSupply(type, 1))
                 {
                     message = "식량이 없습니다.";
                     return false;
@@ -290,17 +830,19 @@ public sealed class OffenseExpeditionRun
                     message = "치료할 대원을 선택해야 합니다.";
                     return false;
                 }
-                if (!Supplies.TryConsume(type, 1))
+                if (!TryConsumeSupply(type, 1))
                 {
                     message = "치료약이 없습니다.";
                     return false;
                 }
                 CharacterActor actor = memberStates[memberIndex].Actor;
+                float beforeHealth = actor.CurrentHealth;
                 actor.Heal(actor.MaxHealth * Preparation.MedicineHealRatio);
+                RecordHealing(actor, beforeHealth);
                 message = $"{GetMemberName(actor)}을 치료했습니다.";
                 return true;
             case OffenseSupplyType.ManaLantern:
-                if (!Supplies.TryConsume(type, 1))
+                if (!TryConsumeSupply(type, 1))
                 {
                     message = "마력등이 없습니다.";
                     return false;
@@ -461,7 +1003,9 @@ public sealed class OffenseExpeditionRun
             return false;
         }
 
+        float beforeHealth = actor.CurrentHealth;
         actor.Heal(actor.MaxHealth * Mathf.Clamp01(maxHealthRatio));
+        RecordHealing(actor, beforeHealth);
         return true;
     }
 
@@ -558,6 +1102,22 @@ public sealed class OffenseExpeditionRun
         int returning = Mathf.Max(0, FieldFunds);
         FieldFunds = 0;
         return returning;
+    }
+
+    public int PeekReturningFieldFunds() => FieldFundsReturned
+        ? 0
+        : Mathf.Max(0, FieldFunds);
+
+    public void CompleteReturningFieldFunds(int committedAmount)
+    {
+        int expected = PeekReturningFieldFunds();
+        if (committedAmount <= 0 || committedAmount != expected)
+        {
+            throw new InvalidOperationException(
+                "Expedition field-fund return receipt does not match its owned balance.");
+        }
+        FieldFundsReturned = true;
+        FieldFunds = 0;
     }
 
     public void RestoreFieldFunds(int amount, bool returned)

@@ -12,6 +12,8 @@ public static class DungeonFactionWarRegistration
             throw new ArgumentNullException(nameof(builder));
         }
 
+        builder.RegisterExternalFactionGameplayOutcomes();
+
         builder.Register<ResourceDungeonFactionCatalogApplicationAdapter>(Lifetime.Singleton);
         builder.Register<ResourceFactionAllianceBenefitBudgetApplicationAdapter>(
             Lifetime.Singleton);

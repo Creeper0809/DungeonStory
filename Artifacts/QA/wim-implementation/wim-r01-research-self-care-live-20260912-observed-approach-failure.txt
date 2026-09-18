@@ -1,0 +1,28 @@
+controlledPausedRoster=character:staff:1:01@(19, 0)/Active;character:staff:1:02@(20, 0)/Active;owner@(18, 0)/Active
+controlledEnvironment=22C/air100/light100 every5 game seconds through existing field persistence; original restored during cleanup; character exposure/needs simulation remains active
+[PASS] actual preparation estimate=adult1/45WU/day/0.4day; actual enqueue; cap1/17WU unchanged
+observedStage=Initial normal research/cycle witness; startCell=(19, 0); endCell=(3, 0); cellChanges=50; gameSeconds=104.8028; wallSeconds=75.01527
+approachAtFailure=target:@; accessReachable=False; access=(0, 0); accessCost=-1; systemMove=False; systemDestination=; replans=0; pathFailures=0; roster=character:staff:1:01@(3, 0);character:staff:1:02@(20, 0);character:world:1:000001@(14, 0);character:world:1:000002@(31, 1);character:world:1:000003@(23, 2);character:world:1:000004@(29, 2);character:world:1:000005@(24, 2);character:world:1:000006@(28, 2);character:world:1:000007@(22, 1);character:world:1:000008@(31, 1);character:world:1:000009@(24, 2);character:world:1:000010@(21, 1);character:world:1:000011@(27, 1);character:world:1:000012@(24, 2);character:world:1:000013@(21, 1);character:world:1:000014@(29, 1);character:world:1:000015@(25, 2);character:world:1:000016@(23, 2);character:world:1:000017@(30, 1);character:world:1:000018@(25, 2);character:world:1:000019@(23, 2);character:world:1:000020@(31, 2);character:world:1:000021@(26, 2);character:world:1:000022@(25, 1);character:world:1:000023@(31, 1);character:world:1:000024@(26, 2);owner@(18, 0)
+worker=character:staff:1:01; action=Wait (AIWait); research=False; participants=0; progress=0; generic=0/0; thirst=65.00005; cell=(3, 0); gameTime=106.1734; wall=80.77949; cancellation=; preWuExit=None/; brain=행동: 대기 (1.3s)
+단계: 주변 배회 / 다음 행동을 찾으며 움직이는 중
+목표: 없음
+경로: NoDestination / 0칸
+기분: 63
+이유: 정상
+운반 계획: 운반 계획 없음
+적재: 0/28.7kg
+정리 사유: 진행 중
+result=FAIL
+System.InvalidOperationException: Initial normal research/cycle witness timed out: worker=character:staff:1:01; action=Wait (AIWait); research=False; participants=0; progress=0; generic=0/0; thirst=65.00005; cell=(3, 0); gameTime=106.1734; wall=80.75858; cancellation=; preWuExit=None/; brain=행동: 대기 (1.3s)
+단계: 주변 배회 / 다음 행동을 찾으며 움직이는 중
+목표: 없음
+경로: NoDestination / 0칸
+기분: 63
+이유: 정상
+운반 계획: 운반 계획 없음
+적재: 0/28.7kg
+정리 사유: 진행 중
+  at WimR01ResearchSelfCareLiveRunner+<WaitFor>d__30.MoveNext () [0x001ff] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Economy\Editor\WimR01ResearchSelfCareLiveRunner.cs:423 
+  at WimR01ResearchSelfCareLiveRunner+<Observe>d__27.MoveNext () [0x00051] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Economy\Editor\WimR01ResearchSelfCareLiveRunner.cs:75 
+scope=actual owner/party and research UI; single real staff AI, physical drink and resume; safe environmental field, one initial healthy-needs setup, priorities and one routine-thirst perturbation are controlled. Exposure and needs are NOT repeatedly reset. No action-list replacement, forced drink/stop-work/progress, actual lamp/build-power, daily productivity, paired-run timing or collaborative-research claim.
+cleanup=paused disposable Play; operator stops; user persistence disabled before owner selection

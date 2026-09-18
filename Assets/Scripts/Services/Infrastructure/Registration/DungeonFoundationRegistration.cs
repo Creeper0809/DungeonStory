@@ -1,5 +1,7 @@
 using DungeonStory.Foundation;
+using DungeonStory.Narrative.Korean;
 using VContainer;
+using VContainer.Unity;
 
 public static class DungeonFoundationRegistration
 {
@@ -20,6 +22,37 @@ public static class DungeonFoundationRegistration
             .As<IRandomStreamDiagnosticsQuery>();
         builder.Register<GameEventBus>(Lifetime.Singleton)
             .As<IGameEventBus>();
+        builder.Register(
+                _ => new KoreanJosaResolutionCache(
+                    KoreanJosaResolutionCache.DefaultCapacity),
+                Lifetime.Singleton)
+            .AsSelf();
+        builder.Register<KoreanJosaFormatter>(Lifetime.Singleton)
+            .As<IKoreanJosaFormatter>();
+        builder.RegisterInstance(GameplayOutcomeBufferLimits.Default)
+            .AsSelf();
+        builder.Register<GameplayOutcomeRegistry>(Lifetime.Singleton)
+            .As<IGameplayOutcomeRegistry>();
+        builder.Register(
+                resolver => new GameplayOutcomeLedger(
+                    resolver.Resolve<IGameplayOutcomeRegistry>(),
+                    resolver.Resolve<GameplayOutcomeBufferLimits>()),
+                Lifetime.Singleton)
+            .AsSelf()
+            .As<IGameplayOutcomeQuery>()
+            .As<IGameplayOutcomeMemoryCommands>()
+            .As<IGameplayOutcomeConsolidationService>()
+            .As<IGameplayOutcomeDiagnosticsQuery>()
+            .As<IGameplayOutcomePersistence>()
+            .As<IDungeonRestoreTransactionParticipant>();
+        builder.Register<GameplayOutcomeRecorder>(Lifetime.Singleton)
+            .As<IGameplayOutcomeRecorder>();
+        builder.RegisterEntryPoint<GameplayOutcomeConsolidationRuntime>(
+                Lifetime.Singleton)
+            .As<IInitializable>()
+            .As<ITickable>()
+            .As<IGameplayOutcomeConsolidationPumpDiagnostics>();
+        builder.RegisterTradeInventoryGameplayOutcomes();
         builder.Register<BuildingVisitEventPublisher>(Lifetime.Singleton)
             .As<IBuildingVisitEventPort>();
         builder.Register<GuidPersistentIdGenerator>(Lifetime.Singleton)

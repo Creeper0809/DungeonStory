@@ -93,10 +93,10 @@ public sealed class MetaProgressionRuntime : MonoBehaviour,
     public RunResultSnapshot EndRun(string ownerName, string reason, DungeonRunOutcome outcome = DungeonRunOutcome.Defeat)
     {
         if (HasEnded && LatestResult != null) return LatestResult;
-        WritableLifecycle.Ended = true;
         MetaRunEnvironmentSnapshot environment = applicationPort.CaptureRunEnvironment();
         RunResultSnapshot result = runResultBuilder.Build(RunProgress.CreateResultContext(ownerName, reason, environment, outcome));
         result = result.WithLegacyCurrency(MetaProgressionCalculator.CalculateLegacyCurrency(result));
+        WritableLifecycle.Ended = true;
         State.AddCurrency(result.legacyCurrency); State.RecordRunCompleted();
         int slots = MetaProgressionEffects.GetIntegerBonus(State, MetaUpgradeEffectIds.PreservedRecipeSlots);
         State.PreserveRecipes(RunProgress.UnlockedRecipeIds.OrderBy(id => id, StringComparer.Ordinal), slots);

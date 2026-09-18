@@ -51,6 +51,14 @@ MonoBehaviour:
   nestTag: nest:rune-node
   breedingSeason: 3
   migrationPatternId: migration:power-flux
+  migrationProfile:
+    capability: 2
+    detectionRadiusCells: 12
+    signalScore: 0
+    minimumWaterRemainingRatio: 0
+    minimumCarcassQuantity: 0
+    minimumTemperatureC: 0
+    maximumTemperatureC: 0
   diseaseVectorIds:
   - disease:mana-pox
   activeSeasons: 0100000003000000

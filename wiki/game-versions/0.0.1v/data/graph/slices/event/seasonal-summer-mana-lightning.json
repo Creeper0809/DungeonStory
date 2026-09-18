@@ -5,6 +5,18 @@
     "spoiler_tier": "warning",
     "title": "마나 번개"
   },
-  "edges": [],
+  "edges": [
+    {
+      "amount": null,
+      "from": "event/seasonal-summer-mana-lightning",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "resource-mana-crystal",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 결정",
+      "to": "item/resource-mana-crystal",
+      "type": "produces-or-unlocks"
+    }
+  ],
   "schema_version": 1
 }

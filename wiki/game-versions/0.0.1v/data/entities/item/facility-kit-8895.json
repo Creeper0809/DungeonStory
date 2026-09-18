@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "은퇴자 휴게실에서 생산 주문을 처리하는 공정을 맡기 위해 준비한 설치 부품이며, 크릭 제7굴에서도 이 부품의 치수를 알아본다.",
+  "in_game_description": "은퇴자 휴게실에서 생산 주문을 처리하는 공정을 맡기 위해 준비한 설치 부품이다. 크릭 제7굴의 은퇴자 휴게실에서 치수를 통과한 재료에는 도제가 낸 일곱 번째 톱니 자국이 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

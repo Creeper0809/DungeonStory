@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 276e19362948ee846a6d03edcbfcef15, type: 3}
   m_Name: P1_FireVent_2_Burn
   m_EditorClassIdentifier: Assembly-CSharp::DefenseBurnEffectSO
+  environmentalIgnitionIntensity: 0.25
   amount: 2
   duration: 5
   stacks: 1

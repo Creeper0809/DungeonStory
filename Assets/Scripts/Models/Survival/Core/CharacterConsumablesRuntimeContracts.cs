@@ -44,6 +44,9 @@ public readonly struct CharacterConsumablesFailure
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public static class CharacterConsumablesPolicyRules
 {
+    public const CharacterDietPolicyKind DefaultDietPolicy =
+        CharacterDietPolicyKind.Free;
+
     public static SubstancePolicyMode GetDefaultSubstancePolicy(
         SubstanceUseClass useClass) =>
         useClass switch
@@ -275,6 +278,105 @@ public readonly struct CharacterConsumablesStackSnapshot
     public Vector2Int Position { get; }
 
     private static float Clamp01(float value) => Math.Max(0f, Math.Min(1f, value));
+}
+
+public readonly struct CharacterDetoxMedicineDefinitionSnapshot
+{
+    public CharacterDetoxMedicineDefinitionSnapshot(
+        ConsumableItemDefinitionId id,
+        string displayName,
+        float detoxReduction)
+    {
+        if (!id.IsValid)
+            throw new ArgumentException("Detox medicine ID is invalid.", nameof(id));
+        if (float.IsNaN(detoxReduction)
+            || float.IsInfinity(detoxReduction)
+            || detoxReduction <= 0f)
+        {
+            throw new ArgumentOutOfRangeException(nameof(detoxReduction));
+        }
+        Id = id;
+        DisplayName = displayName?.Trim() ?? string.Empty;
+        DetoxReduction = detoxReduction;
+    }
+
+    public ConsumableItemDefinitionId Id { get; }
+    public string DisplayName { get; }
+    public float DetoxReduction { get; }
+}
+
+public static class CharacterToxicityPolicy
+{
+    public const float OverdoseGain = 30f;
+    public const float NaturalRecoveryPerDay = 30f;
+    public const float MaximumToxicity = 100f;
+    public const float MaximumPerformancePenalty = 0.20f;
+
+    public static float Clamp(float value)
+    {
+        if (float.IsNaN(value) || float.IsInfinity(value))
+            throw new ArgumentOutOfRangeException(nameof(value));
+        return Math.Max(0f, Math.Min(MaximumToxicity, value));
+    }
+
+    public static float GetPerformancePenalty(float toxicity) =>
+        MaximumPerformancePenalty * Clamp(toxicity) / MaximumToxicity;
+}
+
+public readonly struct CharacterToxicityStatus
+{
+    public CharacterToxicityStatus(
+        float toxicity,
+        bool treatmentAvailable,
+        bool treatmentPending,
+        string treatmentUnavailableReason)
+    {
+        Toxicity = CharacterToxicityPolicy.Clamp(toxicity);
+        PerformancePenalty =
+            CharacterToxicityPolicy.GetPerformancePenalty(Toxicity);
+        TreatmentAvailable = treatmentAvailable;
+        TreatmentPending = treatmentPending;
+        TreatmentUnavailableReason = treatmentUnavailableReason?.Trim()
+            ?? string.Empty;
+    }
+
+    public float Toxicity { get; }
+    public float PerformancePenalty { get; }
+    public bool TreatmentAvailable { get; }
+    public bool TreatmentPending { get; }
+    public string TreatmentUnavailableReason { get; }
+}
+
+public readonly struct CharacterDetoxTreatmentResult
+{
+    public CharacterDetoxTreatmentResult(
+        bool success,
+        CharacterConsumablesFailureCode failureCode,
+        ConsumableOperationId operationId,
+        ConsumableItemDefinitionId medicineId,
+        ItemStackId sourceStackId,
+        float appliedReduction,
+        float remainingToxicity,
+        string detail)
+    {
+        Success = success;
+        FailureCode = failureCode;
+        OperationId = operationId;
+        MedicineId = medicineId;
+        SourceStackId = sourceStackId;
+        AppliedReduction = appliedReduction;
+        RemainingToxicity = remainingToxicity;
+        Detail = detail?.Trim() ?? string.Empty;
+    }
+
+    public bool Success { get; }
+    public CharacterConsumablesFailureCode FailureCode { get; }
+    public ConsumableOperationId OperationId { get; }
+    public ConsumableItemDefinitionId MedicineId { get; }
+    public ItemStackId SourceStackId { get; }
+    public float AppliedReduction { get; }
+    public float RemainingToxicity { get; }
+    public string Detail { get; }
 }
 
 public readonly struct CharacterConsumablesMealDefinitionSnapshot
@@ -536,6 +638,10 @@ public interface ICharacterConsumablesWorldPort
     void RecoverHunger(CharacterId id, float amount);
     void ApplyMood(CharacterId id, string sourceId, string label, float value, float durationSeconds);
     void ApplyDamage(CharacterId id, float amount, string reason);
+    void ApplyContaminatedMealDamage(
+        CharacterId id,
+        float amount,
+        string reason) => ApplyDamage(id, amount, reason);
     void RecordNeedNarrative(
         CharacterId id,
         string factId,
@@ -575,6 +681,8 @@ public interface ICharacterConsumablesInventoryPort
 {
     IReadOnlyList<CharacterConsumablesStackSnapshot> GetAllStacks();
     IReadOnlyList<CharacterConsumablesSubstanceDefinitionSnapshot> GetSubstances();
+    IReadOnlyList<CharacterDetoxMedicineDefinitionSnapshot> GetDetoxMedicines() =>
+        Array.Empty<CharacterDetoxMedicineDefinitionSnapshot>();
     bool TryGetMeal(
         ConsumableItemDefinitionId id,
         out CharacterConsumablesMealDefinitionSnapshot meal);
@@ -584,6 +692,13 @@ public interface ICharacterConsumablesInventoryPort
     bool TryResolveSubstance(
         ConsumableItemDefinitionId id,
         out CharacterConsumablesSubstanceDefinitionSnapshot substance);
+    bool TryResolveDetoxMedicine(
+        ConsumableItemDefinitionId id,
+        out CharacterDetoxMedicineDefinitionSnapshot medicine)
+    {
+        medicine = default;
+        return false;
+    }
     bool TryConsume(ItemStackId stackId, int quantity);
     bool TryConsumeForCharacter(
         CharacterId characterId,
@@ -686,6 +801,33 @@ public interface ICharacterConsumablesInventoryPort
         string commitId,
         out string failureReason) =>
         TryAcknowledgeSubstanceConsumption(commitId, out failureReason);
+    bool TryCommitDetoxConsumptionPending(
+        ConsumableOperationId operationId,
+        ItemStackId stackId,
+        out CharacterDetoxPhysicalCommitSnapshot commit,
+        out string failureReason)
+    {
+        commit = default;
+        failureReason = "detox-pending-disposition-unavailable";
+        return false;
+    }
+    bool TryGetPendingDetoxConsumption(
+        ConsumableOperationId operationId,
+        out CharacterDetoxPhysicalCommitSnapshot commit)
+    {
+        commit = default;
+        return false;
+    }
+    bool TryAcknowledgeDetoxConsumption(
+        CharacterId characterId,
+        ConsumableItemDefinitionId itemId,
+        int quantity,
+        string commitId,
+        out string failureReason)
+    {
+        failureReason = "detox-pending-disposition-unavailable";
+        return false;
+    }
     void ReleaseMealQuantity(string leaseId)
     {
     }
@@ -761,6 +903,32 @@ public readonly struct CharacterSubstancePhysicalCommitSnapshot
     public long InputMassGrams { get; }
 }
 
+public readonly struct CharacterDetoxPhysicalCommitSnapshot
+{
+    public CharacterDetoxPhysicalCommitSnapshot(
+        string operationId,
+        string reasonCode,
+        string commitId,
+        IReadOnlyList<string> sourceStackIds,
+        int quantity,
+        long inputMassGrams)
+    {
+        OperationId = operationId ?? string.Empty;
+        ReasonCode = reasonCode ?? string.Empty;
+        CommitId = commitId ?? string.Empty;
+        SourceStackIds = sourceStackIds ?? Array.Empty<string>();
+        Quantity = quantity;
+        InputMassGrams = inputMassGrams;
+    }
+
+    public string OperationId { get; }
+    public string ReasonCode { get; }
+    public string CommitId { get; }
+    public IReadOnlyList<string> SourceStackIds { get; }
+    public int Quantity { get; }
+    public long InputMassGrams { get; }
+}
+
 [Serializable]
 public sealed class CharacterMealPlan
 {
@@ -793,6 +961,32 @@ public enum CharacterSubstanceUsePlanPhase
 {
     ItemCommitted = 0,
     EffectsPublished = 1
+}
+
+public enum CharacterDetoxTreatmentPlanPhase
+{
+    ItemCommitted = 0,
+    EffectsPublished = 1,
+    PhysicalAcknowledged = 2
+}
+
+[Serializable]
+public sealed class CharacterDetoxTreatmentPlan
+{
+    public string operationId = string.Empty;
+    public string characterId = string.Empty;
+    public string facilityInstanceId = string.Empty;
+    public string itemDefinitionId = string.Empty;
+    public string sourceStackId = string.Empty;
+    public CharacterDetoxTreatmentPlanPhase phase;
+    public float detoxReduction;
+    public float appliedReduction;
+    public string physicalCommitOperationId = string.Empty;
+    public string physicalCommitReasonCode = string.Empty;
+    public string physicalCommitId = string.Empty;
+    public List<string> physicalCommitSourceStackIds = new();
+    public int physicalCommitQuantity;
+    public long physicalCommitInputMassGrams;
 }
 
 [Serializable]
@@ -886,6 +1080,11 @@ public interface ICharacterConsumablesApplication
     bool TryConsumeMeal(
         ConsumeMealCommand command,
         out CharacterConsumablesMealResult result);
+    bool TryConsumePermittedMeal(
+        ConsumableOperationId operationId,
+        CharacterId characterId,
+        BuildingInstanceId facilityId,
+        out CharacterConsumablesMealResult result);
     bool TryGetMealOperationResult(
         ConsumableOperationId operationId,
         out CharacterConsumablesMealResult result);
@@ -919,5 +1118,28 @@ public interface ICharacterConsumablesApplication
         out CharacterConsumablesUseRequest request);
     float GetWorkSpeedMultiplier(CharacterId characterId);
     float GetCombatMultiplier(CharacterId characterId);
+    CharacterToxicityStatus GetToxicityStatus(CharacterId characterId);
+    bool TryApplyDetoxTreatment(
+        ConsumableOperationId operationId,
+        CharacterId characterId,
+        BuildingInstanceId facilityId,
+        out CharacterDetoxTreatmentResult result);
+    bool TryGetPendingDetoxTreatment(
+        CharacterId characterId,
+        out BuildingInstanceId facilityId,
+        out ConsumableOperationId operationId);
+    bool TryGetPendingDetoxTreatment(
+        CharacterId characterId,
+        out BuildingInstanceId facilityId,
+        out ConsumableOperationId operationId,
+        out ConsumableItemDefinitionId itemId);
+    bool TryGetDetoxTreatmentOwner(
+        ConsumableOperationId operationId,
+        out CharacterId characterId,
+        out BuildingInstanceId facilityId,
+        out bool completed);
+    bool TryAcknowledgeDetoxTreatment(
+        ConsumableOperationId operationId);
+    void ProcessOperatingDay(int day);
     void Tick();
 }

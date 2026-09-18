@@ -1,0 +1,23 @@
+scope=READ_ONLY actual same-world public AbilityWork diagnostics after failed routine-drink resume
+report=wim-r01-research-self-care-live-resume.txt
+reportSha256=CDBAB2DFB4A09AA650E6F6DC9C9AFC832CE339ED3F785EF06524A9616E63DEDE
+notAnAdditionalPlayRun=true
+{
+  "output": null,
+  "diagnostics": [],
+  "success": true,
+  "result": {
+    "IsRoutineNeedInterruptionFinalizing": false,
+    "HasActiveWorkRoutineForDiagnostics": false,
+    "HasRoutineNeedWorkBlockForDiagnostics": false,
+    "HasActiveGenericProgressForDiagnostics": true,
+    "HasPendingResumedGenericProgressForDiagnostics": false,
+    "LastPreWuExitKindForDiagnostics": 0,
+    "LastPreWuExitDetailForDiagnostics": "",
+    "ActiveWorkCancellationCountForDiagnostics": 1,
+    "LastActiveWorkCancellationReasonForDiagnostics": "연구 프로젝트의 동시 연구자 슬롯이 가득 찼습니다.",
+    "rejectedReason": null,
+    "rejectedBreakdown": null,
+    "candidates": []
+  }
+}

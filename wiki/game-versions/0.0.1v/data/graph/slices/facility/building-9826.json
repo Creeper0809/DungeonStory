@@ -8,6 +8,13 @@
   "edges": [
     {
       "amount": null,
+      "from": "character/festival-core-resonance",
+      "label": "필요 조건",
+      "to": "facility/building-9826",
+      "type": "requires"
+    },
+    {
+      "amount": null,
       "from": "research/research-equipment-rune-module-tuning",
       "label": "시설 해금",
       "to": "facility/building-9826",

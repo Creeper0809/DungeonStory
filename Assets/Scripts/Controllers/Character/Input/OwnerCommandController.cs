@@ -8,7 +8,13 @@ using VContainer;
 public interface IPlayerStaffCommandSource
 {
     CharacterActor SelectedActor { get; }
+    IReadOnlyList<CharacterManualSkillCommandState> GetManualSkillCommands(
+        CharacterActor actor);
     bool TrySelectActor(CharacterActor actor, out string message);
+    bool TryIssueManualSkillCommand(
+        CharacterActor actor,
+        string skillId,
+        out string message);
     bool TryIssuePriorityWorkCommand(BuildableObject target, out string message);
     bool TryIssueSuppressCommand(CharacterActor target, out string message);
 }
@@ -17,6 +23,14 @@ public sealed class UnavailablePlayerStaffCommandSource :
     IPlayerStaffCommandSource
 {
     public CharacterActor SelectedActor => null;
+
+    public IReadOnlyList<CharacterManualSkillCommandState> GetManualSkillCommands(
+        CharacterActor actor) => Array.Empty<CharacterManualSkillCommandState>();
+
+    public bool TryIssueManualSkillCommand(
+        CharacterActor actor,
+        string skillId,
+        out string message) => Unavailable(out message);
 
     public bool TrySelectActor(CharacterActor actor, out string message)
     {
@@ -62,6 +76,10 @@ public class OwnerCommandController :
     private ICharacterAiWorldRegistry worldRegistry;
     private IDefenseEngagementRuntime defenseEngagementRuntime;
     private IGameEventBus gameEventBus;
+    private IGameCalendar gameCalendar;
+    private IRoomLayoutCache roomLayoutCache;
+    private CharacterActor pendingManualSkillSource;
+    private string pendingManualSkillId = string.Empty;
     private readonly OwnerCommandSelectionState selection = new();
     private OwnerCommandDragSelector dragSelector;
     private OwnerCommandInfoFeedBridge infoFeedBridge;
@@ -125,6 +143,17 @@ public class OwnerCommandController :
         infoFeedBridge.Enable(isActiveAndEnabled);
     }
 
+    [Inject]
+    public void ConstructManualSkillCommands(
+        IGameCalendar gameCalendar,
+        IRoomLayoutCache roomLayoutCache)
+    {
+        this.gameCalendar = gameCalendar
+            ?? throw new ArgumentNullException(nameof(gameCalendar));
+        this.roomLayoutCache = roomLayoutCache
+            ?? throw new ArgumentNullException(nameof(roomLayoutCache));
+    }
+
     private void Update()
     {
         PruneSelection();
@@ -158,6 +187,20 @@ public class OwnerCommandController :
             camera,
             commandTargetMask,
             out RaycastHit2D hit);
+        if (!string.IsNullOrEmpty(pendingManualSkillId))
+        {
+            CharacterActor targetActor = hasHit
+                ? hit.collider.GetComponentInParent<CharacterActor>()
+                : null;
+            BuildableObject targetFacility = hasHit
+                ? hit.collider.GetComponentInParent<BuildableObject>()
+                : null;
+            TryCompleteManualSkillTargeting(
+                targetActor,
+                targetFacility,
+                out _);
+            return;
+        }
         if (HasCombatStanceSelection)
         {
             TryIssueCombatPointerCommand(camera, hasHit ? hit : default, hasHit);
@@ -698,6 +741,86 @@ public class OwnerCommandController :
         return true;
     }
 
+    public IReadOnlyList<CharacterManualSkillCommandState> GetManualSkillCommands(
+        CharacterActor actor)
+    {
+        return gameCalendar == null
+            ? Array.Empty<CharacterManualSkillCommandState>()
+            : CharacterManualSkillRuntime.GetCommands(
+                actor,
+                gameCalendar.AbsoluteHour);
+    }
+
+    public bool TryIssueManualSkillCommand(
+        CharacterActor actor,
+        string skillId,
+        out string message)
+    {
+        if (!TrySelectActor(actor, out message))
+            return false;
+        if (gameCalendar == null || roomLayoutCache == null)
+        {
+            message = "작업 능력 대상 시스템이 준비되지 않았습니다.";
+            return false;
+        }
+        if (CharacterManualSkillRuntime.RequiresPlayerTarget(actor, skillId))
+        {
+            pendingManualSkillSource = actor;
+            pendingManualSkillId = skillId;
+            message = "능력 대상을 우클릭하세요. 캐릭터 또는 시설을 선택할 수 있습니다.";
+            gameEventBus.ShowNotice(message, NoticeFeedEvent.Grade.NONE);
+            return true;
+        }
+        bool success = CharacterManualSkillRuntime.TryActivate(
+            actor,
+            skillId,
+            null,
+            null,
+            worldRegistry,
+            roomLayoutCache,
+            gameCalendar.AbsoluteHour,
+            out message);
+        gameEventBus.ShowNotice(
+            message,
+            success ? NoticeFeedEvent.Grade.NONE : NoticeFeedEvent.Grade.WARNING);
+        return success;
+    }
+
+    private bool TryCompleteManualSkillTargeting(
+        CharacterActor targetActor,
+        BuildableObject targetFacility,
+        out string message)
+    {
+        CharacterActor source = pendingManualSkillSource;
+        string skillId = pendingManualSkillId;
+        if (source == null || string.IsNullOrEmpty(skillId)
+            || gameCalendar == null || roomLayoutCache == null)
+        {
+            pendingManualSkillSource = null;
+            pendingManualSkillId = string.Empty;
+            message = "대상 지정 중인 능력이 없습니다.";
+            return false;
+        }
+        bool success = CharacterManualSkillRuntime.TryActivate(
+            source,
+            skillId,
+            targetActor,
+            targetFacility,
+            worldRegistry,
+            roomLayoutCache,
+            gameCalendar.AbsoluteHour,
+            out message);
+        if (success)
+        {
+            pendingManualSkillSource = null;
+            pendingManualSkillId = string.Empty;
+        }
+        gameEventBus.ShowNotice(
+            message,
+            success ? NoticeFeedEvent.Grade.NONE : NoticeFeedEvent.Grade.WARNING);
+        return success;
+    }
+
     public bool TryIssueSuppressCommand(CharacterActor target, out string message)
     {
         if (selectedActor == null || (selectedActor.Stats != null && selectedActor.Stats.IsDead))
@@ -782,6 +905,8 @@ public class OwnerCommandController :
         infoFeedBridge?.Disable();
         ClearSelection();
         dragSelector?.Reset();
+        pendingManualSkillSource = null;
+        pendingManualSkillId = string.Empty;
     }
 
     public int SelectActorsInScreenRect(Vector2 start, Vector2 end, bool additive)

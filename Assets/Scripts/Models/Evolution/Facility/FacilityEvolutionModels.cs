@@ -61,6 +61,9 @@ public sealed class FacilityEvolutionState
     public float mastery;
     public UsageLedger usageLedger = new UsageLedger();
     public List<EvolutionNode> evolutionNodes = new List<EvolutionNode>();
+    // Append-only facility-local formula evidence. It preserves the source usage
+    // ledger and records only formula influence consumption.
+    public List<FacilityFormulaEvidenceRecord> formulaEvidence = new();
     public List<FacilityGenerationCandidate> pendingCandidates =
         new List<FacilityGenerationCandidate>();
     public string pendingHistoryHash = string.Empty;
@@ -90,6 +93,10 @@ public sealed class FacilityEvolutionState
                 .Where(node => node != null)
                 .Select(node => node.Clone())
                 .ToList() ?? new List<EvolutionNode>(),
+            formulaEvidence = formulaEvidence?
+                .Where(value => value != null).Select(value => value.Clone())
+                .OrderBy(value => value.evidenceId, StringComparer.Ordinal).ToList()
+                ?? new List<FacilityFormulaEvidenceRecord>(),
             pendingCandidates = pendingCandidates?
                 .Where(candidate => candidate != null)
                 .Select(candidate => candidate.Clone())
@@ -129,6 +136,33 @@ public sealed class FacilityEvolutionState
             .OrderBy(value => value, StringComparer.Ordinal)
             .ToList() ?? new List<string>();
     }
+}
+
+[Serializable]
+public sealed class FacilityFormulaEvidenceRecord
+{
+    public string evidenceId = string.Empty;
+    public string eventGroupKey = string.Empty;
+    public string actionKey = string.Empty;
+    public string relationshipKey = string.Empty;
+    public string domainKey = "facility";
+    public int attainedMilestoneCount;
+    public float importancePoints;
+    public int influenceUseCount;
+    public UsageLedgerEvent originalEvent;
+
+    public FacilityFormulaEvidenceRecord Clone() => new()
+    {
+        evidenceId = evidenceId ?? string.Empty,
+        eventGroupKey = eventGroupKey ?? string.Empty,
+        actionKey = actionKey ?? string.Empty,
+        relationshipKey = relationshipKey ?? string.Empty,
+        domainKey = domainKey ?? string.Empty,
+        attainedMilestoneCount = Mathf.Max(0, attainedMilestoneCount),
+        importancePoints = Mathf.Max(0f, importancePoints),
+        influenceUseCount = Mathf.Max(0, influenceUseCount),
+        originalEvent = originalEvent?.Clone()
+    };
 }
 
 [Serializable]

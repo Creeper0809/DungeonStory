@@ -320,6 +320,7 @@ SPECIAL_ITEM_COPY = {
     "craft:toxic-trap-coating": "함정의 날과 촉에 얇게 발라 상처로 독이 스며들게 하는 도포제다.",
     "item:equipment-module": "무기와 방어구의 기존 결합부에 끼워 성능 조율을 바꾸는 규격화된 개량 부품이다.",
     "item:lineage-seal": "가계와 상속 기록이 어느 계통에서 이어졌는지 확인하도록 문서에 찍는 계보 인장이다.",
+    "item:memory-erasure-seal": "창고에서 사용해 선택한 후천 특성 하나를 소거하는 인장이다. 선천 특성, 서사 기록과 진행도는 지우지 않는다.",
     "material:chain-mesh": "작은 금속 고리를 촘촘히 이어 방어구의 유연한 덮개로 쓰는 사슬 망이다.",
     "material:ember-cotton": "잿불 지대에서 거둔 목화를 실로 짜 내열 작업복과 두꺼운 안감에 쓰는 면직물이다.",
     "material:plate-blank": "두께와 넓이를 맞춰 잘라 갑옷판과 기계 외피로 가공하기 전의 판금 소재다.",
@@ -1449,6 +1450,16 @@ def medical_lore_link(item: ItemRow) -> LoreLink:
     name = item.title
     obj = with_object(name)
     topic = with_topic(name)
+    if stable_id.startswith("surgery:prosthetic:"):
+        frame = stable_choice(stable_id, ("memory", "mnesila", "foundry"))
+        if frame == "memory":
+            sentence = f"제4주조도시의 기억판 안치에서는 {obj} 떼어 내기 전에 이전 사용자의 기억판부터 기록한다. 보철이 바뀌어도 사람의 이력은 남긴다는 뜻이다."
+            return exact_lore_link(item, "practice:golem-memory", "care", sentence)
+        if frame == "mnesila":
+            sentence = f"므네실라의 보철 공방은 {obj} 피부에 닿는 면에 초록 포자점, 기계에 닿는 면에 네모 홈을 남긴다. 수리자는 손끝으로 어느 쪽을 먼저 풀지 안다."
+            return exact_lore_link(item, "place:mnesila", "care", sentence)
+        sentence = f"제4주조도시의 보철 장인은 {obj} 맞추기 전에 관절의 빈 움직임을 금속판에 옮겨 찍는다. 다음 수리 때 같은 몸의 리듬을 되찾기 위해서다."
+        return exact_lore_link(item, "place:fourth-foundry", "care", sentence)
     if any(token in slug for token in ("blood", "fang")):
         sentence = f"하르나크 밤궁정의 {name}에는 동의의 잔에서 떼어 낸 검은 실과 환자의 흰 실이 함께 묶인다."
         return exact_lore_link(item, "practice:vampire-consent", "care", sentence)
@@ -1730,6 +1741,7 @@ def item_lore_link(
             "equipment:slime-warming-pad": ("practice:slime-water", "하르나크의 맑은물 합류 치료사는 보온 점액 패드가 슬라임의 핵 주위 온도와 기억 흐름을 바꾸지 않는지 살핀다."),
             "item:equipment-module": ("place:fourth-foundry", "제4주조도시는 개량 부품을 바꾼 뒤에도 원래 장비의 제작자와 수리 계보를 기억판에 이어 적는다."),
             "item:lineage-seal": ("state:ordena", "오르데나 등기원의 계보 인장은 혈연, 양육과 상속 가운데 법이 인정할 관계를 한 칸으로 고정한다."),
+            "item:memory-erasure-seal": ("practice:golem-memory", "제4주조도시의 기억판 안치 기록에는 망각의 인장을 사용한 주민과 지운 선택을 함께 새겨 둔다."),
             "survival:cooked_meal": ("place:harnak", "하르나크 공동 부엌의 조리 식량은 종족 이름보다 먹을 수 없는 재료와 필요한 배식 시간을 먼저 표시한다."),
             "survival:preserved_food": ("place:harnak", "하르나크의 여섯 도시는 보존 식량의 봉인 색을 맞춰 어느 도시의 창고에서도 유통기한을 알아보게 한다."),
             "survival:raw_food": ("place:harnak", "하르나크 장터는 날 식재료의 종족별 소유 구분을 버리고 조리 가능 시간과 오염 위험에 따라 나눈다."),
@@ -1807,10 +1819,19 @@ def tool_copy(item: ItemRow) -> str:
 def body_part_name(slug: str) -> str:
     mapping = {
         "arm:left": "왼팔", "arm:right": "오른팔", "brain": "뇌", "core": "핵",
+        "balance-tail": "균형 꼬리",
+        "balance-tail/variant/kobold-tail-balance": "코볼트 균형 꼬리",
+        "brain/variant/human-neural-assist": "인간 신경 보조 뇌",
         "eye:left": "왼쪽 눈", "eye:right": "오른쪽 눈", "heart": "심장",
+        "hand:left": "왼손",
+        "heart/variant/orc-combat-heart": "오크 전투 심장",
+        "heat-sac/variant/demon-heat-sac": "데몬 열낭",
+        "hypha-core": "균핵",
         "kidney:left": "왼쪽 신장", "kidney:right": "오른쪽 신장", "leg:left": "왼다리",
+        "leg:left/variant/beastkin-sprint-joint": "수인 질주용 왼다리 관절",
         "leg:right": "오른다리", "liver": "간", "lung:left": "왼쪽 폐",
-        "lung:right": "오른쪽 폐", "pseudopods": "위족", "sensory-gel": "감각 젤", "stomach": "위",
+        "lung:right": "오른쪽 폐", "night-eye:left": "왼쪽 야간안", "pseudopods": "위족",
+        "sensory-gel": "감각 젤", "stomach": "위", "torso": "몸통", "wing:left": "왼날개",
     }
     return mapping[slug]
 

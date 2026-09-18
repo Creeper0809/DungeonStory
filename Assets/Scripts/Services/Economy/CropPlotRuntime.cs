@@ -32,6 +32,10 @@ internal sealed class CropPlotState
     public CropPhysicalCommitSaveData PendingSow = new();
     public string PendingCycleCorrelationId = string.Empty;
     public CropCycleExecutionReceiptSaveData CycleExecutionReceipt = new();
+    public float CurrentWater;
+    public float WaterCapacity = CropWaterRules.WaterCapacity;
+    public int NextWaterRefillOperationSequence;
+    public CropWaterRefillSaveData WaterRefill = new();
     public int NextTreatmentOperationSequence;
     public int PestLureNextAllowedDay;
     public int BotanicalPesticideNextAllowedDay;
@@ -39,6 +43,7 @@ internal sealed class CropPlotState
     public CropTreatmentOrderSaveData Treatment = new();
     public int NextHarvestOperationSequence;
     public CropHarvestOutputSaveData PendingHarvest = new();
+    public CropSeasonalYieldDamageSaveData SeasonalYieldDamage = new();
 }
 
 internal sealed class CropPlotAggregateState
@@ -48,6 +53,8 @@ internal sealed class CropPlotAggregateState
     internal Dictionary<BuildableObject, CropPlotState> StatesByBuilding { get; } =
         new();
     internal List<CropPlotSnapshot> Snapshots { get; } = new();
+    internal HashSet<string> HandledSeasonalStartInstanceIds { get; } =
+        new(StringComparer.Ordinal);
     internal int ObservedBuildingVersion { get; set; } = -1;
     internal float NextMaterialRequestTime { get; set; }
     internal bool SnapshotsDirty { get; set; } = true;
@@ -72,6 +79,7 @@ public sealed class CropPlotWorldDependencies
         ICharacterPerformanceDefinitionMaximumQuery performanceMaximum,
         IGameplayEffectResultBoundsQuery effectBounds,
         IFacilityCapabilityQuery facilities,
+        ICropIrrigationRuntime irrigation,
         IFacilityCandidateCache facilityCandidates,
         IWorkforceReplanService workforce)
     {
@@ -100,6 +108,7 @@ public sealed class CropPlotWorldDependencies
         EffectBounds = effectBounds
             ?? throw new ArgumentNullException(nameof(effectBounds));
         Facilities = facilities ?? throw new ArgumentNullException(nameof(facilities));
+        Irrigation = irrigation ?? throw new ArgumentNullException(nameof(irrigation));
         FacilityCandidates = facilityCandidates
             ?? throw new ArgumentNullException(nameof(facilityCandidates));
         Workforce = workforce ?? throw new ArgumentNullException(nameof(workforce));
@@ -120,6 +129,7 @@ public sealed class CropPlotWorldDependencies
     public ICharacterPerformanceDefinitionMaximumQuery PerformanceMaximum { get; }
     public IGameplayEffectResultBoundsQuery EffectBounds { get; }
     public IFacilityCapabilityQuery Facilities { get; }
+    public ICropIrrigationRuntime Irrigation { get; }
     public IFacilityCandidateCache FacilityCandidates { get; }
     public IWorkforceReplanService Workforce { get; }
 }
@@ -131,8 +141,11 @@ public sealed class CropPlotSimulationDependencies
         ProgressionSceneRuntimeReferences progressionRuntimes,
         IGameSessionStateProvider gameDataProvider,
         ISurvivalEnvironmentQuery environmentQuery,
+        IEnvironmentalFieldQuery environmentalField,
         IGrandProjectBenefitQuery grandProjectBenefits,
         IGameEventBus events,
+        ISeasonalEventQuery seasonalEvents,
+        V20StoryContentCatalog storyCatalog,
         ExtremeTraitRuntime extremeTraits = null,
         IRunSeedProvider runSeedProvider = null,
         CharacterIdentityEventPublisher identityEvents = null,
@@ -145,9 +158,15 @@ public sealed class CropPlotSimulationDependencies
             ?? throw new ArgumentNullException(nameof(gameDataProvider));
         EnvironmentQuery = environmentQuery
             ?? throw new ArgumentNullException(nameof(environmentQuery));
+        EnvironmentalField = environmentalField
+            ?? throw new ArgumentNullException(nameof(environmentalField));
         GrandProjectBenefits = grandProjectBenefits
             ?? throw new ArgumentNullException(nameof(grandProjectBenefits));
         Events = events ?? throw new ArgumentNullException(nameof(events));
+        SeasonalEvents = seasonalEvents
+            ?? throw new ArgumentNullException(nameof(seasonalEvents));
+        StoryCatalog = storyCatalog
+            ?? throw new ArgumentNullException(nameof(storyCatalog));
         ExtremeTraits = extremeTraits;
         RunSeedProvider = runSeedProvider;
         IdentityEvents = identityEvents;
@@ -158,8 +177,11 @@ public sealed class CropPlotSimulationDependencies
     public ProgressionSceneRuntimeReferences ProgressionRuntimes { get; }
     public IGameSessionStateProvider GameDataProvider { get; }
     public ISurvivalEnvironmentQuery EnvironmentQuery { get; }
+    public IEnvironmentalFieldQuery EnvironmentalField { get; }
     public IGrandProjectBenefitQuery GrandProjectBenefits { get; }
     public IGameEventBus Events { get; }
+    public ISeasonalEventQuery SeasonalEvents { get; }
+    public V20StoryContentCatalog StoryCatalog { get; }
     public ExtremeTraitRuntime ExtremeTraits { get; }
     public IRunSeedProvider RunSeedProvider { get; }
     public CharacterIdentityEventPublisher IdentityEvents { get; }
@@ -178,6 +200,8 @@ public sealed class CropPlotRuntime :
     ITickable,
     IDisposable
 {
+    public const string WaterRefillOperationPrefix = "crop-water-refill:";
+
     private const float MaterialRequestInterval = 0.5f;
     public const string HarvestOutputBatchCommitPrefix =
         ProductionDomainOutputPublicationIdentity.BatchCommitPrefix
@@ -203,15 +227,18 @@ public sealed class CropPlotRuntime :
     private readonly ICharacterPerformanceDefinitionMaximumQuery performanceMaximum;
     private readonly IGameplayEffectResultBoundsQuery effectBounds;
     private readonly IFacilityCapabilityQuery facilities;
+    private readonly ICropIrrigationRuntime irrigation;
     private readonly IGameClock gameClock;
     private readonly BlueprintResearchRuntime research;
-    private readonly IGameSessionStateProvider gameDataProvider;
     private readonly ISurvivalEnvironmentQuery environmentQuery;
+    private readonly IEnvironmentalFieldQuery environmentalField;
     private readonly IFacilityCandidateCache facilityCandidates;
     private readonly IWorkforceReplanService workforce;
     private readonly IGrandProjectBenefitQuery grandProjectBenefits;
     private readonly IMilestoneGameplayModifierQuery milestoneModifiers;
     private readonly IGameEventBus events;
+    private readonly ISeasonalEventQuery seasonalEvents;
+    private readonly V20StoryContentCatalog storyCatalog;
     private readonly ExtremeTraitRuntime extremeTraits;
     private readonly IRunSeedProvider runSeedProvider;
     private readonly CharacterIdentityEventPublisher identityEvents;
@@ -219,7 +246,11 @@ public sealed class CropPlotRuntime :
     private readonly ICharacterPerformanceQuery performance;
     private readonly IProductionFacilityMutationEpochQuery facilityMutations;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly IEnvironmentGameplayOutcomeCommitter environmentOutcomes;
     private IDisposable dayEndedSubscription;
+    private IDisposable contentEffectsResolvedSubscription;
+    private int observedEnvironmentalFieldVersion = -1;
+    private int observedIrrigationVersion = -1;
 
     private CropPlotAggregateState aggregateState =>
         aggregateRootStore.GetOrCreate(() => new CropPlotAggregateState());
@@ -383,6 +414,7 @@ public sealed class CropPlotRuntime :
             || state == null
             || state.MaterialsConsumed
             || state.PendingSow.phase != CropPhysicalCommitPhase.None
+            || state.WaterRefill.phase != CropWaterRefillPhase.None
             || state.Phase is CropPlotPhase.Sowing
                 or CropPlotPhase.Growing
                 or CropPlotPhase.ReadyToHarvest
@@ -546,7 +578,8 @@ public sealed class CropPlotRuntime :
         DungeonRuntimeAggregateRootStore aggregateRootStore,
         IProductionFacilityMutationEpochQuery facilityMutations,
         IMilestoneGameplayModifierQuery milestoneModifiers = null,
-        ICharacterPerformanceQuery performance = null)
+        ICharacterPerformanceQuery performance = null,
+        IEnvironmentGameplayOutcomeCommitter environmentOutcomes = null)
     {
         world = world ?? throw new ArgumentNullException(nameof(world));
         simulation = simulation ?? throw new ArgumentNullException(nameof(simulation));
@@ -565,6 +598,7 @@ public sealed class CropPlotRuntime :
         performanceMaximum = world.PerformanceMaximum;
         effectBounds = world.EffectBounds;
         facilities = world.Facilities;
+        irrigation = world.Irrigation;
         facilityCandidates = world.FacilityCandidates;
         workforce = world.Workforce;
         gameClock = simulation.GameClock;
@@ -572,10 +606,12 @@ public sealed class CropPlotRuntime :
             .BlueprintResearch
             ?? throw new InvalidOperationException(
                 $"{nameof(CropPlotRuntime)} requires a loaded {nameof(BlueprintResearchRuntime)}.");
-        gameDataProvider = simulation.GameDataProvider;
         environmentQuery = simulation.EnvironmentQuery;
+        environmentalField = simulation.EnvironmentalField;
         grandProjectBenefits = simulation.GrandProjectBenefits;
         events = simulation.Events;
+        seasonalEvents = simulation.SeasonalEvents;
+        storyCatalog = simulation.StoryCatalog;
         extremeTraits = simulation.ExtremeTraits;
         runSeedProvider = simulation.RunSeedProvider;
         identityEvents = simulation.IdentityEvents;
@@ -588,6 +624,8 @@ public sealed class CropPlotRuntime :
             ?? throw new ArgumentNullException(nameof(facilityMutations));
         this.milestoneModifiers = milestoneModifiers
             ?? NeutralMilestoneGameplayModifierQuery.Instance;
+        this.environmentOutcomes = environmentOutcomes
+            ?? throw new ArgumentNullException(nameof(environmentOutcomes));
     }
 
     public int Version
@@ -600,6 +638,7 @@ public sealed class CropPlotRuntime :
     {
         get
         {
+            SynchronizePlots(force: false);
             RefreshSnapshots();
             return snapshots;
         }
@@ -637,6 +676,9 @@ public sealed class CropPlotRuntime :
     {
         SynchronizePlots(force: true);
         dayEndedSubscription ??= events.Subscribe<OperatingDayEndedEvent>(OnDayEnded);
+        contentEffectsResolvedSubscription ??=
+            events.Subscribe<V20ContentEffectsResolvedEvent>(
+                OnContentEffectsResolved);
     }
 
     public void Tick()
@@ -650,7 +692,9 @@ public sealed class CropPlotRuntime :
         }
 
         List<BuildingInstanceId> destroyed = new();
-        foreach (CropPlotState state in states.Values.ToArray())
+        foreach (CropPlotState state in states.Values
+                     .OrderBy(value => value.PlotId.Value, StringComparer.Ordinal)
+                     .ToArray())
         {
             if (state.Building == null || state.Building.isDestroy)
             {
@@ -668,6 +712,8 @@ public sealed class CropPlotRuntime :
     {
         dayEndedSubscription?.Dispose();
         dayEndedSubscription = null;
+        contentEffectsResolvedSubscription?.Dispose();
+        contentEffectsResolvedSubscription = null;
         if (!inputOwners.TryReconcileLive(
                 Array.Empty<CropPlotInputOwnerDescriptor>(),
                 out string ownerFailure))
@@ -677,6 +723,7 @@ public sealed class CropPlotRuntime :
         states.Clear();
         statesByBuilding.Clear();
         snapshots.Clear();
+        aggregateState.HandledSeasonalStartInstanceIds.Clear();
     }
 
     public bool TrySetCrop(
@@ -695,6 +742,7 @@ public sealed class CropPlotRuntime :
 
         if (state.MaterialsConsumed
             || state.PendingSow.phase != CropPhysicalCommitPhase.None
+            || state.WaterRefill.phase != CropWaterRefillPhase.None
             || state.Treatment.phase != CropTreatmentOrderPhase.None
             || state.CycleExecutionReceipt != null
                 && !state.CycleExecutionReceipt.IsEmpty
@@ -752,9 +800,14 @@ public sealed class CropPlotRuntime :
         state.GrowthHours = 0f;
         state.HarvestWork = 0f;
         state.MaterialsConsumed = false;
+        state.CurrentWater = 0f;
+        state.WaterCapacity = CropWaterRules.WaterCapacity;
+        state.WaterRefill = new CropWaterRefillSaveData();
         ClearFrozenSowInputs(state);
         state.PendingCycleCorrelationId = string.Empty;
         state.CycleExecutionReceipt = new CropCycleExecutionReceiptSaveData();
+        state.SeasonalYieldDamage =
+            new CropSeasonalYieldDamageSaveData();
         state.BlockedReason = string.Empty;
         MarkChanged();
         message = $"{crop.DisplayName} 재배를 지정했습니다.";
@@ -1005,6 +1058,29 @@ public sealed class CropPlotRuntime :
             return true;
         }
 
+        if (workTypeId == BuiltInWorkTypeIds.Treat
+            && state.WaterRefill.phase != CropWaterRefillPhase.None)
+        {
+            bool available = mutable
+                && state.Phase == CropPlotPhase.Growing
+                && state.WaterRefill.phase is
+                    (CropWaterRefillPhase.ReadyForWork
+                    or CropWaterRefillPhase.Working);
+            snapshot = new CropPlotWorkSnapshot(
+                state.PlotId.Value,
+                workTypeId,
+                "경작지 급수",
+                state.WaterRefill.requiredWork,
+                state.WaterRefill.completedWork,
+                available,
+                available
+                    ? string.Empty
+                    : !mutable
+                        ? mutationReason
+                        : ResolveWaterRefillUnavailableReason(state));
+            return true;
+        }
+
         return false;
     }
 
@@ -1111,6 +1187,41 @@ public sealed class CropPlotRuntime :
             return true;
         }
 
+        if (workTypeId == BuiltInWorkTypeIds.Treat
+            && state.Phase == CropPlotPhase.Growing
+            && state.WaterRefill.phase is CropWaterRefillPhase.ReadyForWork
+                or CropWaterRefillPhase.Working)
+        {
+            if (state.WaterRefill.phase == CropWaterRefillPhase.Working
+                && state.WaterRefill.completedWork + 0.001f
+                    >= state.WaterRefill.requiredWork)
+            {
+                bool finalized = TryFinalizeWaterRefill(state);
+                cycleCompleted = finalized;
+                MarkChanged();
+                return finalized;
+            }
+            if (!TryRequireMutable(state.PlotId, out _))
+                return false;
+            state.WaterRefill.phase = CropWaterRefillPhase.Working;
+            state.WaterRefill.completedWork = Mathf.Min(
+                state.WaterRefill.requiredWork,
+                state.WaterRefill.completedWork + amount);
+            if (state.WaterRefill.completedWork + 0.001f
+                >= state.WaterRefill.requiredWork)
+            {
+                state.WaterRefill.completedWork =
+                    state.WaterRefill.requiredWork;
+                bool outcomePublished = TryFinalizeWaterRefill(state);
+                cycleCompleted = outcomePublished;
+                MarkChanged();
+                return outcomePublished;
+            }
+
+            MarkChanged();
+            return true;
+        }
+
         return false;
     }
 
@@ -1189,13 +1300,34 @@ public sealed class CropPlotRuntime :
         float outputMultiplier = indoor
             ? grandProjectBenefits.GetProductionOutputMultiplier("crop-indoor")
             : 1f;
-        int harvestQuantity = CropHarvestOutputRules.ResolveHarvestQuantity(
+        int primaryQuantityBeforeSeasonalLoss =
+            CropHarvestOutputRules.ResolveHarvestQuantity(
             crop.Yield,
             outputMultiplier,
             workerYieldMultiplier,
             extremeYieldMultiplier,
             ecologyPrepared.Result.YieldMultiplier,
             IsOperational(ResearchFacilityCommandKind.SoilDiagnostics));
+        CropSeasonalYieldDamageSaveData seasonalDamage =
+            state.SeasonalYieldDamage
+            ?? throw new InvalidOperationException(
+                "Crop harvest has no seasonal yield-damage owner.");
+        if (!seasonalDamage.IsEmpty)
+            ValidateSeasonalYieldDamage(
+                seasonalDamage,
+                state.CropId,
+                state.CycleExecutionReceipt,
+                aggregateState.HandledSeasonalStartInstanceIds);
+        int seasonalLossPercent = seasonalDamage.IsEmpty
+            ? 0
+            : seasonalDamage.primaryBatchLossPercent;
+        int seasonalLossQuantity =
+            CropHarvestOutputRules.ResolvePrimaryBatchLoss(
+                primaryQuantityBeforeSeasonalLoss,
+                seasonalLossPercent);
+        int harvestQuantity = CropHarvestOutputRules.ApplyPrimaryBatchLoss(
+            primaryQuantityBeforeSeasonalLoss,
+            seasonalLossPercent);
         int seedQuantity = CropHarvestOutputRules.ResolveReturnedSeedQuantity(
             ecologyPrepared.Result.ReturnedSeedCount,
             extremeSeedMultiplier,
@@ -1263,6 +1395,19 @@ public sealed class CropPlotRuntime :
                     performanceMaximum),
             maximumSeedQuantity = CropHarvestOutputMaximumAuthority
                 .ResolveMaximumReturnedSeedQuantity(effectBounds),
+            seasonalDamageSourceEventInstanceId = seasonalDamage.IsEmpty
+                ? string.Empty
+                : seasonalDamage.sourceEventInstanceId,
+            seasonalDamageSourceDefinitionId = seasonalDamage.IsEmpty
+                ? string.Empty
+                : seasonalDamage.sourceDefinitionId,
+            seasonalPrimaryBatchLossPercent = seasonalLossPercent,
+            primaryQuantityBeforeSeasonalLoss = seasonalDamage.IsEmpty
+                ? 0
+                : primaryQuantityBeforeSeasonalLoss,
+            seasonalPrimaryLossQuantity = seasonalDamage.IsEmpty
+                ? 0
+                : seasonalLossQuantity,
             harvestCapability = ProductionOutputCapabilitySaveData.Freeze(
                 harvestCapability),
             seedCapability = ProductionOutputCapabilitySaveData.Freeze(
@@ -1418,14 +1563,101 @@ public sealed class CropPlotRuntime :
                     "Crop harvest Golden Harvest receipt acknowledgement failed.");
             pending.goldenAcknowledged = true;
         }
-        state.CycleExecutionReceipt = CropPlanExecutionReceiptAuthority.Complete(
+        CropCycleExecutionReceiptSaveData terminalReceipt =
+            CropPlanExecutionReceiptAuthority.Complete(
             state.CycleExecutionReceipt,
             pending);
-        ResetForNextCycle(state);
-        state.NextHarvestOperationSequence = checked(
-            state.NextHarvestOperationSequence + 1);
+        CropPlanExecutionReceipt projectedReceipt =
+            CropPlanExecutionReceiptAuthority.ProjectTerminal(
+                terminalReceipt.correlationId,
+                terminalReceipt);
+        string plotDisplayName = state.Building?.BuildingData?.objectName?.Trim()
+            ?? string.Empty;
+        if (plotDisplayName.Length == 0)
+            throw new InvalidOperationException(
+                "Crop terminal outcome requires an immutable plot display snapshot.");
+        string cropDisplayName = crop.DisplayName?.Trim() ?? string.Empty;
+        if (cropDisplayName.Length == 0
+            || string.Equals(
+                cropDisplayName,
+                crop.CropId,
+                StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "Crop terminal outcome requires an authored crop display snapshot.");
+        long cropOutcomeRevision = checked((long)pending.operationSequence + 1L);
+        CropPlanGameplayOutcomeReceipt gameplayReceipt =
+            EnvironmentOutcomeReceiptFactory.CreateCropPlan(
+                projectedReceipt,
+                state.PlotId,
+                plotDisplayName,
+                cropDisplayName,
+                pending.completionAbsoluteDay,
+                cropOutcomeRevision);
+        if (!TryEnsureCropOutcomeAcknowledged(
+                gameplayReceipt,
+                cropOutcomeRevision,
+                out string outcomeFailure))
+        {
+            state.BlockedReason = outcomeFailure;
+            return;
+        }
+        int nextHarvestSequence = checked(state.NextHarvestOperationSequence + 1);
+        if (!TryResetForNextCycle(state, out string resetFailure))
+        {
+            // The ledger result is already canonical and acknowledged.  Keep the
+            // authoritative harvest owner so the idempotent replay can resume
+            // cleanup; never roll the domain back behind a committed outcome.
+            state.BlockedReason = resetFailure;
+            return;
+        }
+        state.CycleExecutionReceipt = terminalReceipt;
+        state.NextHarvestOperationSequence = nextHarvestSequence;
         state.PendingHarvest = new CropHarvestOutputSaveData();
         cycleCompleted = true;
+    }
+
+    private bool TryEnsureCropOutcomeAcknowledged(
+        in CropPlanGameplayOutcomeReceipt receipt,
+        long ownerRevision,
+        out string failureReason)
+    {
+        if (environmentOutcomes.TryPrepare(
+                receipt,
+                out PreparedEnvironmentOutcome prepared,
+                out string prepareFailure))
+        {
+            EnvironmentOutcomeCommitResult committed = environmentOutcomes.Commit(
+                prepared,
+                ownerRevision);
+            if (committed.CanClearOwnerPending)
+            {
+                failureReason = string.Empty;
+                return true;
+            }
+            EnvironmentOutcomeCommitResult reconciled = environmentOutcomes.Reconcile(
+                receipt.Payload.ResultKey);
+            if (reconciled.CanClearOwnerPending)
+            {
+                failureReason = string.Empty;
+                return true;
+            }
+            failureReason = string.IsNullOrWhiteSpace(committed.DetailCode)
+                ? "crop-outcome-awaiting-canonical-acknowledgement"
+                : committed.DetailCode;
+            return false;
+        }
+
+        if (environmentOutcomes.IsCanonicalAcknowledgedReplay(
+                receipt,
+                out string replayFailure))
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+        failureReason = string.IsNullOrWhiteSpace(replayFailure)
+            ? prepareFailure
+            : replayFailure;
+        return false;
     }
 
     private static ProductionDomainOutputPublicationPlan CreateHarvestOutputPlan(
@@ -1481,7 +1713,7 @@ public sealed class CropPlotRuntime :
         CropHarvestOutputSaveData pending)
     {
         CanonicalSemanticDigestBuilder digest = new();
-        digest.Append("crop-harvest-frozen-output@1");
+        digest.Append("crop-harvest-frozen-output@2");
         digest.Append(pending.operationId);
         digest.Append(plotId.Value);
         digest.Append(pending.cropId);
@@ -1492,6 +1724,11 @@ public sealed class CropPlotRuntime :
         digest.Append(pending.goldenOutcomeFingerprint);
         digest.Append(pending.harvestItemId);
         digest.Append(pending.harvestQuantity);
+        digest.Append(pending.seasonalDamageSourceEventInstanceId);
+        digest.Append(pending.seasonalDamageSourceDefinitionId);
+        digest.Append(pending.seasonalPrimaryBatchLossPercent);
+        digest.Append(pending.primaryQuantityBeforeSeasonalLoss);
+        digest.Append(pending.seasonalPrimaryLossQuantity);
         digest.Append(pending.seedItemId);
         digest.Append(pending.seedQuantity);
         digest.Append(SeedLotItemStateCodec.Encode(pending.returnedSeedLot)
@@ -1704,7 +1941,13 @@ public sealed class CropPlotRuntime :
             throw new InvalidOperationException(
                 "Crop-plot input ownership is not capture-safe: "
                 + ownerFailure);
-        DungeonCropPlotSaveData data = new DungeonCropPlotSaveData();
+        DungeonCropPlotSaveData data = new DungeonCropPlotSaveData
+        {
+            handledSeasonalStartInstanceIds = aggregateState
+                .HandledSeasonalStartInstanceIds
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToList()
+        };
         foreach (CropPlotState state in states.Values
                      .OrderBy(entry => entry.PlotId.Value, StringComparer.Ordinal))
         {
@@ -1743,6 +1986,11 @@ public sealed class CropPlotRuntime :
                 pendingCycleCorrelationId =
                     state.PendingCycleCorrelationId,
                 cycleExecutionReceipt = state.CycleExecutionReceipt.DeepClone(),
+                currentWater = state.CurrentWater,
+                waterCapacity = state.WaterCapacity,
+                nextWaterRefillOperationSequence =
+                    state.NextWaterRefillOperationSequence,
+                waterRefill = state.WaterRefill.DeepClone(),
                 nextTreatmentOperationSequence =
                     state.NextTreatmentOperationSequence,
                 pestLureNextAllowedDay = state.PestLureNextAllowedDay,
@@ -1752,7 +2000,8 @@ public sealed class CropPlotRuntime :
                 treatment = state.Treatment.DeepClone(),
                 nextHarvestOperationSequence =
                     state.NextHarvestOperationSequence,
-                pendingHarvest = state.PendingHarvest.DeepClone()
+                pendingHarvest = state.PendingHarvest.DeepClone(),
+                seasonalYieldDamage = state.SeasonalYieldDamage.DeepClone()
             });
         }
 
@@ -1762,7 +2011,7 @@ public sealed class CropPlotRuntime :
     public CropPlotRestoreCandidate BuildRestore(
         DungeonCropPlotSaveData snapshot)
     {
-        RequireSaveRoot(snapshot);
+        HashSet<string> handledSeasonalStarts = RequireSaveRoot(snapshot);
         CropPlotAggregateState restored = new()
         {
             ObservedBuildingVersion = -1,
@@ -1770,13 +2019,19 @@ public sealed class CropPlotRuntime :
             SnapshotsDirty = true,
             Version = aggregateState.Version + 1
         };
+        restored.HandledSeasonalStartInstanceIds.UnionWith(
+            handledSeasonalStarts);
         HashSet<BuildingInstanceId> seen = new();
         HashSet<string> correlations = new(StringComparer.Ordinal);
         foreach (CropPlotSaveData saved in snapshot.plots)
         {
             BuildingInstanceId plotId = RequireRestorePlotId(saved, seen);
             CropDefinitionSO crop = RequireCrop(saved);
-            ValidateRestoreProgress(saved, crop, plotId);
+            ValidateRestoreProgress(
+                saved,
+                crop,
+                plotId,
+                handledSeasonalStarts);
             string correlationId = !string.IsNullOrEmpty(
                     saved.pendingCycleCorrelationId)
                 ? saved.pendingCycleCorrelationId
@@ -1828,6 +2083,11 @@ public sealed class CropPlotRuntime :
                     saved.pendingCycleCorrelationId ?? string.Empty,
                 CycleExecutionReceipt =
                     saved.cycleExecutionReceipt.DeepClone(),
+                CurrentWater = saved.currentWater,
+                WaterCapacity = saved.waterCapacity,
+                NextWaterRefillOperationSequence =
+                    saved.nextWaterRefillOperationSequence,
+                WaterRefill = saved.waterRefill.DeepClone(),
                 NextTreatmentOperationSequence =
                     saved.nextTreatmentOperationSequence,
                 PestLureNextAllowedDay = saved.pestLureNextAllowedDay,
@@ -1841,6 +2101,7 @@ public sealed class CropPlotRuntime :
                         CropHarvestOutputPhase.None
                     ? new CropHarvestOutputSaveData()
                     : saved.pendingHarvest.DeepClone(),
+                SeasonalYieldDamage = saved.seasonalYieldDamage.DeepClone(),
                 BlockedReason = string.Empty
             });
         }
@@ -1866,6 +2127,14 @@ public sealed class CropPlotRuntime :
         {
             FinalizePublishedSow(state);
             if (state.PendingSow.phase != CropPhysicalCommitPhase.None)
+                return;
+        }
+
+        if (state.WaterRefill.phase is CropWaterRefillPhase.InputCommitted
+                or CropWaterRefillPhase.OutcomePublished)
+        {
+            TryFinalizeWaterRefill(state);
+            if (state.WaterRefill.phase != CropWaterRefillPhase.None)
                 return;
         }
 
@@ -1961,12 +2230,87 @@ public sealed class CropPlotRuntime :
 
         if (state.Phase != CropPlotPhase.Growing)
         {
+            TryRetireInactiveWaterRefill(state);
             return;
         }
 
-        float multiplier = ResolveGrowthMultiplier(state, crop, out string blockedReason);
+        float gameHours = gameClock.DeltaTime
+            / GameSimulationTimeRules.SecondsPerGameHour;
+        float hourlyWaterConsumption = CropWaterRules.ResolveHourlyConsumption(
+            crop,
+            state.Ability,
+            environmentQuery.GetEnvironmentSnapshot().Weather);
+        float nextWater = Mathf.Max(
+            0f,
+            state.CurrentWater - hourlyWaterConsumption * gameHours);
+        if (!Mathf.Approximately(nextWater, state.CurrentWater))
+        {
+            state.CurrentWater = nextWater;
+            snapshotsDirty = true;
+        }
+
+        float dailyWaterDemand = CropWaterRules.ResolveDailyDemand(
+            crop,
+            state.Ability);
+        bool needsWater = dailyWaterDemand > 0f
+            && state.CurrentWater + 0.001f < dailyWaterDemand;
+        if (needsWater
+            && state.WaterRefill.phase == CropWaterRefillPhase.None)
+        {
+            CropIrrigationRequest request = new(
+                state.Building,
+                needsWater: true,
+                state.CurrentWater,
+                state.WaterCapacity,
+                hasManualWaterRefillOwner: false);
+            float waterBefore = state.CurrentWater;
+            float capacityBefore = state.WaterCapacity;
+            CropIrrigationSupplyResult supply = !gameClock.IsPaused
+                    && gameClock.DeltaTime > 0f
+                ? irrigation.TrySupply(request)
+                : new CropIrrigationSupplyResult(
+                    irrigation.Assess(request),
+                    succeeded: false,
+                    suppliedWaterUnits: 0f,
+                    consumedQuality: WorldWaterQuality.Clean);
+            if (supply.Succeeded)
+            {
+                if (supply.SuppliedWaterUnits
+                        != CropWaterRules.RefillQuantity
+                    || state.CurrentWater != waterBefore
+                    || state.WaterCapacity != capacityBefore
+                    || state.WaterRefill.phase != CropWaterRefillPhase.None
+                    || waterBefore + supply.SuppliedWaterUnits
+                        > capacityBefore)
+                {
+                    throw new InvalidOperationException(
+                        "Synchronous crop irrigation violated its preflight publication contract.");
+                }
+
+                // Fluid consumption has no callback. Publish the preflighted exact
+                // unit immediately, before any save or other gameplay call can run.
+                state.CurrentWater = waterBefore + supply.SuppliedWaterUnits;
+                MarkChanged();
+            }
+            else if (ShouldBeginManualWaterRefill(
+                         supply.Assessment.Status))
+            {
+                BeginWaterRefill(state);
+            }
+        }
+        TickWaterRefillDelivery(state, requestMaterials);
+
+        float waterGrowthMultiplier = CropWaterRules.ResolveGrowthMultiplier(
+            state.CurrentWater,
+            dailyWaterDemand);
+        float multiplier = ResolveGrowthMultiplier(
+            state,
+            crop,
+            out string blockedReason) * waterGrowthMultiplier;
         if (multiplier <= 0f)
         {
+            if (waterGrowthMultiplier <= 0f)
+                blockedReason = "급수 부족 · 물이 없어 성장이 멈췄습니다.";
             if (!string.Equals(state.BlockedReason, blockedReason, StringComparison.Ordinal))
             {
                 state.BlockedReason = blockedReason;
@@ -1976,8 +2320,6 @@ public sealed class CropPlotRuntime :
         }
 
         state.BlockedReason = string.Empty;
-        float gameHours = gameClock.DeltaTime
-            / GameSimulationTimeRules.SecondsPerGameHour;
         state.GrowthHours = Mathf.Min(
             crop.GrowthHours,
             state.GrowthHours + gameHours * multiplier);
@@ -2223,6 +2565,18 @@ public sealed class CropPlotRuntime :
                     state.PlotId.Value,
                     state.Ability.Indoor,
                     state.PendingSow);
+            int committedWater = (state.PendingSow.inputs
+                    ?? new List<CropPhysicalInputSaveData>())
+                .Where(input => input != null && string.Equals(
+                    input.itemId,
+                    CropCycleInputRequirementAuthority.CleanWaterItemId,
+                    StringComparison.Ordinal))
+                .Sum(input => input.quantity);
+            if (committedWater is < 0 or > (int)CropWaterRules.InitialWaterQuantity)
+                throw new InvalidOperationException(
+                    "Crop sow committed an invalid initial clean-water quantity.");
+            state.CurrentWater = committedWater;
+            state.WaterCapacity = CropWaterRules.WaterCapacity;
         }
         else
         {
@@ -2253,6 +2607,306 @@ public sealed class CropPlotRuntime :
         state.BlockedReason = string.Empty;
         MarkChanged();
     }
+
+    public static string FormatWaterRefillOperationId(
+        BuildingInstanceId plotId,
+        int sequence)
+    {
+        if (!plotId.IsValid || sequence < 0)
+            throw new ArgumentException(
+                "A valid crop plot and non-negative water-refill sequence are required.");
+        return WaterRefillOperationPrefix
+            + plotId.Value + ":"
+            + sequence.ToString(
+                "D6",
+                System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private void BeginWaterRefill(CropPlotState state)
+    {
+        if (state == null
+            || state.WaterRefill.phase != CropWaterRefillPhase.None)
+            return;
+        int sequence = state.NextWaterRefillOperationSequence;
+        string operationId = FormatWaterRefillOperationId(
+            state.PlotId,
+            sequence);
+        string destinationId =
+            CropPlotInputOwnerAuthority.BuildWaterRefillDestinationId(
+                state.PlotId.Value,
+                sequence);
+        float requiredWork = CropWaterRules.RequireRefillWork(state.Building);
+        CropWaterRefillSaveData refill = new()
+        {
+            phase = CropWaterRefillPhase.WaitingForDelivery,
+            operationSequence = sequence,
+            operationId = operationId,
+            reasonCode = "crop-water-refill-input",
+            destinationId = destinationId,
+            itemId = CropCycleInputRequirementAuthority.CleanWaterItemId,
+            quantity = CropWaterRules.RefillQuantity,
+            requiredWork = requiredWork,
+            requestFingerprint = CaptureWaterRefillRequestFingerprint(
+                state.PlotId,
+                sequence,
+                destinationId,
+                requiredWork)
+        };
+        CropPlotInputOwnerDescriptor descriptor =
+            CreateWaterRefillInputOwnerDescriptor(state, refill);
+        if (!inputOwners.TryEnsure(descriptor, out string ownerFailure))
+        {
+            state.BlockedReason =
+                "crop-water-refill-input-owner-unavailable:" + ownerFailure;
+            snapshotsDirty = true;
+            return;
+        }
+        state.WaterRefill = refill;
+        MarkChanged();
+    }
+
+    private void TickWaterRefillDelivery(
+        CropPlotState state,
+        bool requestMaterials)
+    {
+        CropWaterRefillSaveData refill = state?.WaterRefill;
+        if (refill == null
+            || refill.phase is CropWaterRefillPhase.None
+                or CropWaterRefillPhase.InputCommitted
+                or CropWaterRefillPhase.OutcomePublished)
+            return;
+
+        CropPlotInputOwnerDescriptor descriptor =
+            CreateWaterRefillInputOwnerDescriptor(state, refill);
+        if (!inputOwners.TryEnsure(descriptor, out string ownerFailure))
+        {
+            refill.failureReason =
+                "crop-water-refill-input-owner-unavailable:" + ownerFailure;
+            snapshotsDirty = true;
+            return;
+        }
+
+        int delivered = items.CountDelivered(
+            refill.itemId,
+            refill.destinationId);
+        if (delivered >= refill.quantity)
+        {
+            if (refill.phase == CropWaterRefillPhase.WaitingForDelivery)
+            {
+                refill.phase = CropWaterRefillPhase.ReadyForWork;
+                refill.failureReason = string.Empty;
+                MarkChanged();
+            }
+            return;
+        }
+
+        refill.phase = CropWaterRefillPhase.WaitingForDelivery;
+        refill.failureReason = $"급수용 물 운반 대기 {delivered}/{refill.quantity}";
+        snapshotsDirty = true;
+        if (!requestMaterials)
+            return;
+
+        int pending = items.CountPending(refill.itemId, refill.destinationId);
+        int missing = Mathf.Max(0, refill.quantity - pending);
+        if (missing <= 0)
+            return;
+        if (items.RequestDelivery(
+                refill.itemId,
+                missing,
+                state.Building.centerPos,
+                refill.destinationId,
+                out int requested,
+                out string failureReason)
+            && requested > 0)
+        {
+            items.PrioritizeDestination(refill.destinationId);
+            workforce.RequestOneHaulerToReplan(forceInterrupt: false);
+            refill.failureReason = string.Empty;
+            MarkChanged(replan: false);
+            return;
+        }
+        refill.failureReason = string.IsNullOrWhiteSpace(failureReason)
+            ? "사용 가능한 깨끗한 물이 없습니다."
+            : failureReason;
+    }
+
+    private bool TryFinalizeWaterRefill(CropPlotState state)
+    {
+        CropWaterRefillSaveData refill = state?.WaterRefill;
+        if (refill == null || refill.phase == CropWaterRefillPhase.None)
+            return false;
+
+        if (refill.phase == CropWaterRefillPhase.Working)
+        {
+            if (refill.completedWork + 0.001f < refill.requiredWork)
+                return false;
+            if (state.CurrentWater + refill.quantity
+                > state.WaterCapacity + 0.001f)
+            {
+                refill.failureReason = "crop-water-refill-capacity-exceeded";
+                snapshotsDirty = true;
+                return false;
+            }
+            Dictionary<string, int> costs = new(StringComparer.Ordinal)
+            {
+                [refill.itemId] = refill.quantity
+            };
+            if (!items.ConsumeDeliveredToWip(
+                    refill.destinationId,
+                    costs,
+                    refill.operationId,
+                    out ProductionWipInputReceipt receipt,
+                    out string commitFailure))
+            {
+                refill.failureReason = commitFailure;
+                snapshotsDirty = true;
+                return false;
+            }
+            string[] sourceStackIds = (receipt.SourceStackIds
+                    ?? Array.Empty<string>())
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToArray();
+            if (!receipt.IsCommitted
+                || !IsCanonicalToken(receipt.PhysicalRequestFingerprint)
+                || sourceStackIds.Length == 0
+                || sourceStackIds.Any(value => !IsCanonicalToken(value))
+                || sourceStackIds.Distinct(StringComparer.Ordinal).Count()
+                    != sourceStackIds.Length)
+                throw new InvalidOperationException(
+                    "Crop water refill WIP receipt is missing exact physical provenance.");
+            refill.commitId = receipt.CommitId;
+            refill.inputQuantity = receipt.Quantity;
+            refill.inputMassGrams = receipt.InputMassGrams;
+            refill.physicalRequestFingerprint =
+                receipt.PhysicalRequestFingerprint;
+            refill.sourceStackIds = sourceStackIds.ToList();
+            refill.phase = CropWaterRefillPhase.InputCommitted;
+            long expectedMass = items.GetDefinitionQuantityMassGrams(
+                refill.itemId,
+                refill.quantity);
+            if (!receipt.IsCommitted
+                || receipt.Quantity != refill.quantity
+                || receipt.InputMassGrams != expectedMass)
+                throw new InvalidOperationException(
+                    "Crop water refill WIP receipt contradicts its exact physical input.");
+        }
+
+        if (refill.phase == CropWaterRefillPhase.InputCommitted)
+        {
+            if (state.CurrentWater + refill.quantity
+                > state.WaterCapacity + 0.001f)
+            {
+                refill.failureReason = "crop-water-refill-capacity-exceeded";
+                snapshotsDirty = true;
+                return false;
+            }
+            state.CurrentWater = Mathf.Min(
+                state.WaterCapacity,
+                state.CurrentWater + refill.quantity);
+            refill.phase = CropWaterRefillPhase.OutcomePublished;
+            refill.failureReason = string.Empty;
+            MarkChanged();
+        }
+
+        if (refill.phase != CropWaterRefillPhase.OutcomePublished)
+            return false;
+        if (!TryRetireDestination(
+                state,
+                refill.destinationId,
+                CropPlotInputOwnerAuthority.WaterRefillCompletedReleaseReasonCode,
+                out string retireFailure))
+        {
+            refill.failureReason = retireFailure;
+            snapshotsDirty = true;
+            return false;
+        }
+        if (!items.AcknowledgeWipInput(
+                refill.commitId,
+                out string acknowledgeFailure))
+        {
+            refill.failureReason = acknowledgeFailure;
+            snapshotsDirty = true;
+            return false;
+        }
+
+        state.NextWaterRefillOperationSequence = checked(
+            state.NextWaterRefillOperationSequence + 1);
+        state.WaterRefill = new CropWaterRefillSaveData();
+        MarkChanged();
+        return true;
+    }
+
+    private bool TryRetireInactiveWaterRefill(CropPlotState state)
+    {
+        CropWaterRefillSaveData refill = state?.WaterRefill;
+        if (refill == null || refill.phase == CropWaterRefillPhase.None)
+            return true;
+        if (refill.phase is CropWaterRefillPhase.InputCommitted
+                or CropWaterRefillPhase.OutcomePublished)
+            return TryFinalizeWaterRefill(state);
+        if (!TryRetireDestination(
+                state,
+                refill.destinationId,
+                CropPlotInputOwnerAuthority
+                    .WaterRefillNoLongerRequiredReleaseReasonCode,
+                out string retireFailure))
+        {
+            refill.failureReason = retireFailure;
+            snapshotsDirty = true;
+            return false;
+        }
+        state.NextWaterRefillOperationSequence = checked(
+            state.NextWaterRefillOperationSequence + 1);
+        state.WaterRefill = new CropWaterRefillSaveData();
+        MarkChanged();
+        return true;
+    }
+
+    private static string CaptureWaterRefillRequestFingerprint(
+        BuildingInstanceId plotId,
+        int sequence,
+        string destinationId,
+        float requiredWork)
+    {
+        CanonicalSemanticDigestBuilder digest = new();
+        digest.Append("crop-water-refill-request@1");
+        digest.Append(plotId.Value);
+        digest.Append(sequence);
+        digest.Append(FormatWaterRefillOperationId(plotId, sequence));
+        digest.Append(destinationId);
+        digest.Append(CropCycleInputRequirementAuthority.CleanWaterItemId);
+        digest.Append(CropWaterRules.RefillQuantity);
+        digest.AppendFloat(requiredWork);
+        digest.AppendFloat(CropWaterRules.WaterCapacity);
+        return digest.ComputeSha256();
+    }
+
+    private static string ResolveWaterRefillUnavailableReason(
+        CropPlotState state)
+    {
+        CropWaterRefillSaveData refill = state?.WaterRefill;
+        if (refill == null || refill.phase == CropWaterRefillPhase.None)
+            return "예약된 급수 작업이 없습니다.";
+        if (!string.IsNullOrWhiteSpace(refill.failureReason))
+            return refill.failureReason;
+        if (state.Phase != CropPlotPhase.Growing)
+            return "성장이 끝난 경작지는 보충 급수가 필요하지 않습니다.";
+        return refill.phase switch
+        {
+            CropWaterRefillPhase.WaitingForDelivery => "급수용 물 운반 대기",
+            CropWaterRefillPhase.InputCommitted => "물리 물 투입 확정 대기",
+            CropWaterRefillPhase.OutcomePublished => "물 투입 승인 대기",
+            _ => string.Empty
+        };
+    }
+
+    private static bool ShouldBeginManualWaterRefill(
+        CropIrrigationStatus status) =>
+        status is CropIrrigationStatus.NoOperationalIrrigator
+            or CropIrrigationStatus.OutOfRange
+            or CropIrrigationStatus.RouteBlocked
+            or CropIrrigationStatus.NetworkUnavailable
+            or CropIrrigationStatus.WaterUnavailable;
 
     private void TickTreatmentDelivery(
         CropPlotState state,
@@ -2609,6 +3263,11 @@ public sealed class CropPlotRuntime :
                 state,
                 state.Treatment,
                 building.centerPos));
+        if (state.WaterRefill?.phase != CropWaterRefillPhase.None)
+            descriptors.Add(CreateWaterRefillInputOwnerDescriptor(
+                state,
+                state.WaterRefill,
+                building.centerPos));
         return descriptors;
     }
 
@@ -2645,9 +3304,31 @@ public sealed class CropPlotRuntime :
             });
     }
 
+    private static CropPlotInputOwnerDescriptor
+        CreateWaterRefillInputOwnerDescriptor(
+            CropPlotState state,
+            CropWaterRefillSaveData refill,
+            Vector2Int? position = null)
+    {
+        if (state == null || refill == null
+            || refill.phase == CropWaterRefillPhase.None)
+            throw new ArgumentException(
+                "A live crop water-refill input owner is required.");
+        return new CropPlotInputOwnerDescriptor(
+            state.PlotId.Value,
+            position ?? state.Building?.centerPos ?? state.LastKnownPosition,
+            refill.destinationId,
+            refill.operationId,
+            new Dictionary<string, int>(StringComparer.Ordinal)
+            {
+                [refill.itemId] = refill.quantity
+            });
+    }
+
     private static bool RequiresAnyInputAuthority(CropPlotState state) =>
         RequiresSowInputAuthority(state)
-        || state?.Treatment?.phase != CropTreatmentOrderPhase.None;
+        || state?.Treatment?.phase != CropTreatmentOrderPhase.None
+        || state?.WaterRefill?.phase != CropWaterRefillPhase.None;
 
     private static bool RequiresSowInputAuthority(CropPlotState state) =>
         state != null
@@ -2789,30 +3470,50 @@ public sealed class CropPlotRuntime :
         blockedReason = string.Empty;
         CropGenomePhenotype phenotype =
             ecology.GetPhenotype(state.PlotId.Value);
+        EnvironmentalCellSnapshot environmentCell = default;
+        bool hasEnvironmentObservation = environmentalField.IsInitialized
+            && environmentalField.TryGetCell(
+                state.Building.centerPos,
+                out environmentCell);
+        CropGrowthTemperatureEvaluation temperature =
+            CropGrowthCycleAuthority.EvaluateTemperature(
+                crop,
+                phenotype,
+                hasEnvironmentObservation,
+                hasEnvironmentObservation ? environmentCell.TemperatureC : 0f);
+        if (!temperature.AllowsGrowth)
+        {
+            blockedReason = temperature.BlockedReason;
+            return 0f;
+        }
+        CropGrowthLightEvaluation light =
+            CropGrowthCycleAuthority.EvaluateLight(
+                crop,
+                hasEnvironmentObservation,
+                hasEnvironmentObservation ? environmentCell.LightLevel : 0f);
+        if (!light.AllowsGrowth)
+        {
+            blockedReason = light.BlockedReason;
+            return 0f;
+        }
+        float lightMultiplier = light.GrowthMultiplier;
         if (state.Ability.Indoor)
         {
             return CropGrowthCycleAuthority.ResolveIndoorRuntimeMultiplier(
                 state.Ability,
                 IsOperational(ResearchFacilityCommandKind.ClimateControl),
                 IsOperational(ResearchFacilityCommandKind.CropCalendar),
-                phenotype);
+                phenotype) * lightMultiplier;
         }
 
         SurvivalEnvironmentSnapshot environment =
             environmentQuery.GetEnvironmentSnapshot();
-        TimeOfDay? timeOfDay = gameDataProvider.TryGetSessionState(
-                out GameSessionState data)
-            && data?.timeOfDay != null
-                ? data.timeOfDay.Value
-                : null;
         return CropGrowthCycleAuthority.ResolveOutdoorRuntimeMultiplier(
             state.Ability,
-            crop,
             phenotype,
             environment,
-            timeOfDay,
-            IsOperational(ResearchFacilityCommandKind.CropCalendar),
-            out blockedReason);
+            IsOperational(ResearchFacilityCommandKind.CropCalendar))
+            * lightMultiplier;
     }
 
     private void SynchronizePlots(bool force)
@@ -2937,6 +3638,9 @@ public sealed class CropPlotRuntime :
                         "crop-cycle-failed-crop-death");
             }
             state.MaterialsConsumed = false;
+            state.CurrentWater = 0f;
+            state.SeasonalYieldDamage =
+                new CropSeasonalYieldDamageSaveData();
             state.Phase = CropPlotPhase.Blocked;
             state.BlockedReason = "작물이 극한 환경 또는 해충으로 고사했습니다.";
             MarkChanged();
@@ -3021,7 +3725,8 @@ public sealed class CropPlotRuntime :
         return true;
     }
 
-    private static void RequireSaveRoot(DungeonCropPlotSaveData snapshot)
+    private HashSet<string> RequireSaveRoot(
+        DungeonCropPlotSaveData snapshot)
     {
         if (snapshot == null)
         {
@@ -3037,6 +3742,28 @@ public sealed class CropPlotRuntime :
             throw new InvalidOperationException(
                 "Crop-plot payload must contain at most 512 non-null plot records.");
         }
+        if (snapshot.handledSeasonalStartInstanceIds == null
+            || snapshot.handledSeasonalStartInstanceIds.Count > 2048)
+            throw new InvalidOperationException(
+                "Crop-plot handled seasonal starts are missing or exceed 2048 records.");
+        HashSet<string> handled = new(StringComparer.Ordinal);
+        foreach (string instanceId in snapshot.handledSeasonalStartInstanceIds)
+        {
+            if (!TryParseSeasonalEventInstanceId(
+                    instanceId,
+                    out _,
+                    out string definitionId)
+                || !storyCatalog.SeasonalEvents.Any(value => value != null
+                    && value.cropPrimaryBatchLossPercent > 0
+                    && string.Equals(
+                        value.StableId,
+                        definitionId,
+                        StringComparison.Ordinal))
+                || !handled.Add(instanceId))
+                throw new InvalidOperationException(
+                    "Crop-plot handled seasonal start IDs must be canonical and unique.");
+        }
+        return handled;
     }
 
     private static BuildingInstanceId RequireRestorePlotId(
@@ -3083,7 +3810,8 @@ public sealed class CropPlotRuntime :
     private void ValidateRestoreProgress(
         CropPlotSaveData saved,
         CropDefinitionSO crop,
-        BuildingInstanceId plotId)
+        BuildingInstanceId plotId,
+        ISet<string> handledSeasonalStarts)
     {
         if (!Enum.IsDefined(typeof(CropPlotPhase), saved.phase))
         {
@@ -3093,6 +3821,14 @@ public sealed class CropPlotRuntime :
         RequireFiniteRange(saved.sowWork, 0f, crop.SowWork, "sow work");
         RequireFiniteRange(saved.growthHours, 0f, crop.GrowthHours, "growth hours");
         RequireFiniteRange(saved.harvestWork, 0f, crop.HarvestWork, "harvest work");
+        if (!saved.waterCapacity.Equals(CropWaterRules.WaterCapacity))
+            throw new InvalidOperationException(
+                "Crop-plot water capacity contradicts the current authored rule.");
+        RequireFiniteRange(
+            saved.currentWater,
+            0f,
+            saved.waterCapacity,
+            "current water");
         if (saved.goldenHarvestAttemptSequence < 0)
             throw new InvalidOperationException(
                 "Crop-plot golden-harvest attempt sequence cannot be negative.");
@@ -3120,6 +3856,13 @@ public sealed class CropPlotRuntime :
             || saved.treatment == null)
             throw new InvalidOperationException(
                 "Crop-plot treatment owner or cooldown is invalid.");
+        if (saved.nextWaterRefillOperationSequence < 0
+            || saved.waterRefill == null)
+            throw new InvalidOperationException(
+                "Crop-plot water-refill owner or sequence is invalid.");
+        if (saved.seasonalYieldDamage == null)
+            throw new InvalidOperationException(
+                "Crop-plot seasonal yield-damage owner is missing.");
         if (!string.IsNullOrEmpty(saved.goldenHarvestHarvesterId)
             && (!string.Equals(
                     saved.goldenHarvestHarvesterId,
@@ -3144,10 +3887,50 @@ public sealed class CropPlotRuntime :
             throw new InvalidOperationException(
                 $"Crop-plot phase {saved.phase} contradicts materialsConsumed={saved.materialsConsumed}.");
         }
+        if (!saved.materialsConsumed && saved.currentWater != 0f)
+            throw new InvalidOperationException(
+                "An inactive crop cycle retained physical plot water.");
+        if (crop.DailyWater <= 0f
+            && (saved.currentWater != 0f
+                || saved.waterRefill.phase != CropWaterRefillPhase.None))
+            throw new InvalidOperationException(
+                "A zero-demand crop retained water or refill provenance.");
+        if (saved.waterRefill.phase != CropWaterRefillPhase.None
+            && !saved.materialsConsumed)
+            throw new InvalidOperationException(
+                "Crop water-refill provenance requires an active physical cycle.");
 
         ValidatePendingSow(saved, crop);
         ValidateFrozenSowInputs(saved, crop, plotId);
         ValidateCycleExecutionReceipt(saved, crop, plotId);
+        ValidateSeasonalYieldDamage(
+            saved.seasonalYieldDamage,
+            saved.cropId,
+            saved.cycleExecutionReceipt,
+            handledSeasonalStarts);
+        if (!saved.seasonalYieldDamage.IsEmpty)
+        {
+            SeasonalWorldEventDefinitionSO sourceDefinition = storyCatalog
+                .SeasonalEvents.SingleOrDefault(value => value != null
+                    && string.Equals(
+                        value.StableId,
+                        saved.seasonalYieldDamage.sourceDefinitionId,
+                        StringComparison.Ordinal));
+            if (sourceDefinition == null
+                || sourceDefinition.cropPrimaryBatchLossPercent
+                    != saved.seasonalYieldDamage.primaryBatchLossPercent)
+            {
+                throw new InvalidOperationException(
+                    "Crop seasonal yield damage contradicts its authored source declaration.");
+            }
+        }
+        if (!saved.seasonalYieldDamage.IsEmpty
+            && saved.phase is not (CropPlotPhase.Growing
+                or CropPlotPhase.ReadyToHarvest
+                or CropPlotPhase.Harvesting))
+            throw new InvalidOperationException(
+                "Crop seasonal yield damage requires a live post-sow cycle.");
+        ValidatePendingWaterRefill(saved, crop, plotId);
         ValidatePendingTreatment(saved, plotId);
         ValidatePendingHarvest(saved, crop, plotId);
 
@@ -3209,6 +3992,13 @@ public sealed class CropPlotRuntime :
                 && IsSerializedEmptySeedLot(owner.returnedSeedLot)
                 && owner.maximumHarvestQuantity == 0
                 && owner.maximumSeedQuantity == 0
+                && string.IsNullOrEmpty(
+                    owner.seasonalDamageSourceEventInstanceId)
+                && string.IsNullOrEmpty(
+                    owner.seasonalDamageSourceDefinitionId)
+                && owner.seasonalPrimaryBatchLossPercent == 0
+                && owner.primaryQuantityBeforeSeasonalLoss == 0
+                && owner.seasonalPrimaryLossQuantity == 0
                 && owner.harvestCapability is { IsEmpty: true }
                 && owner.seedCapability is { IsEmpty: true }
                 && owner.outputPublication is { IsEmpty: true };
@@ -3216,6 +4006,42 @@ public sealed class CropPlotRuntime :
                 throw new InvalidOperationException(
                     "Empty crop harvest owner contains frozen provenance.");
             return;
+        }
+
+        CropSeasonalYieldDamageSaveData seasonalDamage =
+            saved.seasonalYieldDamage;
+        bool seasonalLossValid;
+        if (seasonalDamage.IsEmpty)
+        {
+            seasonalLossValid = string.IsNullOrEmpty(
+                    owner.seasonalDamageSourceEventInstanceId)
+                && string.IsNullOrEmpty(
+                    owner.seasonalDamageSourceDefinitionId)
+                && owner.seasonalPrimaryBatchLossPercent == 0
+                && owner.primaryQuantityBeforeSeasonalLoss == 0
+                && owner.seasonalPrimaryLossQuantity == 0;
+        }
+        else
+        {
+            seasonalLossValid = string.Equals(
+                    owner.seasonalDamageSourceEventInstanceId,
+                    seasonalDamage.sourceEventInstanceId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    owner.seasonalDamageSourceDefinitionId,
+                    seasonalDamage.sourceDefinitionId,
+                    StringComparison.Ordinal)
+                && owner.seasonalPrimaryBatchLossPercent
+                    == seasonalDamage.primaryBatchLossPercent
+                && owner.primaryQuantityBeforeSeasonalLoss > 0
+                && owner.seasonalPrimaryLossQuantity
+                    == CropHarvestOutputRules.ResolvePrimaryBatchLoss(
+                        owner.primaryQuantityBeforeSeasonalLoss,
+                        owner.seasonalPrimaryBatchLossPercent)
+                && owner.harvestQuantity
+                    == CropHarvestOutputRules.ApplyPrimaryBatchLoss(
+                        owner.primaryQuantityBeforeSeasonalLoss,
+                        owner.seasonalPrimaryBatchLossPercent);
         }
 
         if (!Enum.IsDefined(typeof(CropHarvestOutputPhase), owner.phase)
@@ -3253,6 +4079,7 @@ public sealed class CropPlotRuntime :
                     .ResolveMaximumReturnedSeedQuantity(effectBounds)
             || owner.harvestQuantity > owner.maximumHarvestQuantity
             || owner.seedQuantity > owner.maximumSeedQuantity
+            || !seasonalLossValid
             || owner.ecologyAcknowledged && !owner.ecologyCommitted
             || owner.goldenCommitted && !owner.goldenPrepared
             || owner.goldenAcknowledged && !owner.goldenCommitted
@@ -3511,6 +4338,84 @@ public sealed class CropPlotRuntime :
         !string.IsNullOrWhiteSpace(value)
         && string.Equals(value, value.Trim(), StringComparison.Ordinal);
 
+    private static void ValidateSeasonalYieldDamage(
+        CropSeasonalYieldDamageSaveData damage,
+        string cropId,
+        CropCycleExecutionReceiptSaveData cycleReceipt,
+        ISet<string> handledSeasonalStarts)
+    {
+        if (damage == null)
+            throw new InvalidOperationException(
+                "Crop seasonal yield-damage provenance is missing.");
+        if (damage.IsEmpty)
+            return;
+        bool parsedSource = TryParseSeasonalEventInstanceId(
+            damage.sourceEventInstanceId,
+            out int parsedDay,
+            out string parsedDefinitionId);
+        if (!parsedSource
+            || !IsCanonicalToken(damage.sourceDefinitionId)
+            || damage.sourceStartedAbsoluteDay < 1
+            || parsedDay != damage.sourceStartedAbsoluteDay
+            || !string.Equals(
+                parsedDefinitionId,
+                damage.sourceDefinitionId,
+                StringComparison.Ordinal)
+            || !IsCanonicalToken(damage.cropId)
+            || !string.Equals(damage.cropId, cropId, StringComparison.Ordinal)
+            || damage.sowOperationSequence < 0
+            || damage.primaryBatchLossPercent is < 1
+                or > CropHarvestOutputRules
+                    .MaximumSeasonalPrimaryBatchLossPercent
+            || cycleReceipt == null
+            || cycleReceipt.IsEmpty
+            || cycleReceipt.status != CropCycleExecutionReceiptStatus.Active
+            || cycleReceipt.sowOperationSequence != damage.sowOperationSequence
+            || !string.Equals(
+                cycleReceipt.cropId,
+                damage.cropId,
+                StringComparison.Ordinal)
+            || handledSeasonalStarts == null
+            || !handledSeasonalStarts.Contains(damage.sourceEventInstanceId))
+        {
+            throw new InvalidOperationException(
+                "Crop seasonal yield-damage provenance contradicts its live cycle or handled start.");
+        }
+    }
+
+    private static bool TryParseSeasonalEventInstanceId(
+        string value,
+        out int startedAbsoluteDay,
+        out string definitionId)
+    {
+        startedAbsoluteDay = 0;
+        definitionId = string.Empty;
+        if (!IsCanonicalToken(value)
+            || !value.StartsWith("event:", StringComparison.Ordinal))
+            return false;
+        int dayEnd = value.IndexOf(':', "event:".Length);
+        int rollStart = value.LastIndexOf(':');
+        if (dayEnd <= "event:".Length
+            || rollStart <= dayEnd + 1
+            || rollStart + 9 != value.Length
+            || !int.TryParse(
+                value.Substring("event:".Length, dayEnd - "event:".Length),
+                System.Globalization.NumberStyles.None,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out startedAbsoluteDay)
+            || startedAbsoluteDay < 1)
+        {
+            return false;
+        }
+        definitionId = value.Substring(
+            dayEnd + 1,
+            rollStart - dayEnd - 1);
+        string roll = value.Substring(rollStart + 1);
+        return IsCanonicalToken(definitionId)
+            && roll.All(character => character is >= '0' and <= '9'
+                or >= 'A' and <= 'F');
+    }
+
     private static bool IsFinitePositive(float value) =>
         !float.IsNaN(value) && !float.IsInfinity(value) && value > 0f;
 
@@ -3530,6 +4435,265 @@ public sealed class CropPlotRuntime :
         && saved.componentCodecVersion == expected.ComponentCodecVersion
         && string.Equals(saved.fingerprint, expected.Fingerprint,
             StringComparison.Ordinal);
+
+    private void ValidatePendingWaterRefill(
+        CropPlotSaveData saved,
+        CropDefinitionSO crop,
+        BuildingInstanceId plotId)
+    {
+        CropWaterRefillSaveData owner = saved.waterRefill;
+        if (owner.phase == CropWaterRefillPhase.None)
+        {
+            bool empty = owner.operationSequence == 0
+                && string.IsNullOrEmpty(owner.operationId)
+                && string.IsNullOrEmpty(owner.reasonCode)
+                && string.IsNullOrEmpty(owner.destinationId)
+                && string.IsNullOrEmpty(owner.itemId)
+                && owner.quantity == 0
+                && owner.requiredWork == 0f
+                && owner.completedWork == 0f
+                && string.IsNullOrEmpty(owner.commitId)
+                && owner.inputQuantity == 0
+                && owner.inputMassGrams == 0L
+                && string.IsNullOrEmpty(owner.requestFingerprint)
+                && string.IsNullOrEmpty(owner.physicalRequestFingerprint)
+                && (owner.sourceStackIds?.Count ?? 0) == 0
+                && string.IsNullOrEmpty(owner.failureReason);
+            if (!empty)
+                throw new InvalidOperationException(
+                    "Empty crop water-refill owner contains provenance.");
+            return;
+        }
+
+        if (!Enum.IsDefined(typeof(CropWaterRefillPhase), owner.phase)
+            || crop.DailyWater <= 0f
+            || owner.operationSequence
+                != saved.nextWaterRefillOperationSequence
+            || !string.Equals(
+                owner.operationId,
+                FormatWaterRefillOperationId(
+                    plotId,
+                    owner.operationSequence),
+                StringComparison.Ordinal)
+            || !string.Equals(
+                owner.destinationId,
+                CropPlotInputOwnerAuthority.BuildWaterRefillDestinationId(
+                    plotId.Value,
+                    owner.operationSequence),
+                StringComparison.Ordinal)
+            || !string.Equals(
+                owner.reasonCode,
+                "crop-water-refill-input",
+                StringComparison.Ordinal)
+            || !string.Equals(
+                owner.itemId,
+                CropCycleInputRequirementAuthority.CleanWaterItemId,
+                StringComparison.Ordinal)
+            || owner.quantity != CropWaterRules.RefillQuantity
+            || !float.IsFinite(owner.requiredWork)
+            || owner.requiredWork < 0.1f
+            || !float.IsFinite(owner.completedWork)
+            || owner.completedWork < 0f
+            || owner.completedWork > owner.requiredWork
+            || !string.Equals(
+                owner.requestFingerprint,
+                CaptureWaterRefillRequestFingerprint(
+                    plotId,
+                    owner.operationSequence,
+                    owner.destinationId,
+                    owner.requiredWork),
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Crop water-refill intent contradicts plot identity or current policy.");
+        }
+
+        bool committed = owner.phase is CropWaterRefillPhase.InputCommitted
+            or CropWaterRefillPhase.OutcomePublished;
+        long expectedMass = items.GetDefinitionQuantityMassGrams(
+            owner.itemId,
+            owner.quantity);
+        bool receiptExact = !string.IsNullOrWhiteSpace(owner.commitId)
+            && string.Equals(
+                owner.commitId,
+                owner.commitId.Trim(),
+                StringComparison.Ordinal)
+            && owner.inputQuantity == owner.quantity
+            && owner.inputMassGrams == expectedMass
+            && IsCanonicalToken(owner.physicalRequestFingerprint)
+            && owner.sourceStackIds != null
+            && owner.sourceStackIds.Count > 0
+            && owner.sourceStackIds.All(IsCanonicalToken)
+            && owner.sourceStackIds.Distinct(StringComparer.Ordinal).Count()
+                == owner.sourceStackIds.Count
+            && owner.sourceStackIds.SequenceEqual(
+                owner.sourceStackIds.OrderBy(
+                    value => value,
+                    StringComparer.Ordinal),
+                StringComparer.Ordinal);
+        bool receiptEmpty = string.IsNullOrEmpty(owner.commitId)
+            && owner.inputQuantity == 0
+            && owner.inputMassGrams == 0L
+            && string.IsNullOrEmpty(owner.physicalRequestFingerprint)
+            && (owner.sourceStackIds?.Count ?? 0) == 0;
+        if (committed != receiptExact
+            || !committed && !receiptEmpty
+            || committed
+                && owner.completedWork + 0.001f < owner.requiredWork
+            || owner.phase == CropWaterRefillPhase.InputCommitted
+                && saved.currentWater + owner.quantity
+                    > saved.waterCapacity + 0.001f
+            || owner.phase == CropWaterRefillPhase.OutcomePublished
+                && saved.currentWater + 0.001f < owner.quantity
+            || owner.phase == CropWaterRefillPhase.WaitingForDelivery
+                && owner.completedWork != 0f)
+        {
+            throw new InvalidOperationException(
+                "Crop water-refill WIP receipt contradicts its phase.");
+        }
+    }
+
+    private void OnContentEffectsResolved(V20ContentEffectsResolvedEvent resolved)
+    {
+        if (!resolved.PhysicalEffectsApplied
+            || !string.Equals(
+                resolved.ResolutionId,
+                "started",
+                StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        SeasonalWorldEventDefinitionSO definition = storyCatalog.SeasonalEvents
+            .SingleOrDefault(value => value != null && string.Equals(
+                value.StableId,
+                resolved.DefinitionId,
+                StringComparison.Ordinal));
+        // The shared resolved-effects event also carries society starts. Crop
+        // authority consumes only declarations owned by seasonal definitions.
+        if (definition == null)
+            return;
+        int lossPercent = definition.cropPrimaryBatchLossPercent;
+        if (lossPercent == 0)
+            return;
+        if (lossPercent is < 0
+            or > CropHarvestOutputRules.MaximumSeasonalPrimaryBatchLossPercent)
+        {
+            throw new InvalidOperationException(
+                "A committed seasonal crop-loss declaration is outside the approved range: "
+                + definition.StableId);
+        }
+
+        V20ActiveEventSaveData[] activeMatches = seasonalEvents
+            .ActiveSeasonalEvents
+            .Where(value => value != null
+                && !value.resolved
+                && string.Equals(
+                    value.definitionId,
+                    definition.StableId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        if (activeMatches.Length != 1)
+            throw new InvalidOperationException(
+                "A committed seasonal crop-loss start requires one current active occurrence: "
+                + definition.StableId);
+        V20ActiveEventSaveData occurrence = activeMatches[0];
+        if (!TryParseSeasonalEventInstanceId(
+                occurrence.instanceId,
+                out int parsedStartedDay,
+                out string parsedDefinitionId)
+            || parsedStartedDay != occurrence.startedAbsoluteDay
+            || !string.Equals(
+                parsedDefinitionId,
+                occurrence.definitionId,
+                StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "A committed seasonal crop-loss occurrence has invalid provenance.");
+        if (aggregateState.HandledSeasonalStartInstanceIds.Contains(
+                occurrence.instanceId))
+        {
+            return;
+        }
+
+        List<CropPlotState> affected = new();
+        foreach (CropPlotState state in states.Values
+                     .OrderBy(value => value.PlotId.Value, StringComparer.Ordinal))
+        {
+            if (state?.Building == null
+                || state.Building.isDestroy
+                || state.Phase is not (CropPlotPhase.Growing
+                    or CropPlotPhase.ReadyToHarvest
+                    or CropPlotPhase.Harvesting))
+            {
+                continue;
+            }
+            if (state.PendingHarvest == null)
+                throw new InvalidOperationException(
+                    "A seasonal crop-loss target has no harvest output owner.");
+            if (state.PendingHarvest.phase != CropHarvestOutputPhase.None)
+                continue;
+            if (!catalog.TryGetCrop(state.CropId, out CropDefinitionSO crop))
+                throw new InvalidOperationException(
+                    "A seasonal crop-loss target references unknown crop content: "
+                    + state.CropId);
+            RequireCompletedSowCycle(state, crop);
+            CropSeasonalYieldDamageSaveData existing =
+                state.SeasonalYieldDamage
+                ?? throw new InvalidOperationException(
+                    "A seasonal crop-loss target has no yield-damage owner.");
+            if (!existing.IsEmpty)
+            {
+                ValidateSeasonalYieldDamage(
+                    existing,
+                    state.CropId,
+                    state.CycleExecutionReceipt,
+                    aggregateState.HandledSeasonalStartInstanceIds);
+                continue;
+            }
+            affected.Add(state);
+        }
+
+        foreach (CropPlotState state in affected)
+        {
+            state.SeasonalYieldDamage = new CropSeasonalYieldDamageSaveData
+            {
+                sourceEventInstanceId = occurrence.instanceId,
+                sourceDefinitionId = definition.StableId,
+                sourceStartedAbsoluteDay = occurrence.startedAbsoluteDay,
+                cropId = state.CropId,
+                sowOperationSequence =
+                    state.CycleExecutionReceipt.sowOperationSequence,
+                primaryBatchLossPercent = lossPercent
+            };
+        }
+        aggregateState.HandledSeasonalStartInstanceIds.Add(
+            occurrence.instanceId);
+        MarkChanged(replan: false);
+    }
+
+    private static void RequireCompletedSowCycle(
+        CropPlotState state,
+        CropDefinitionSO crop)
+    {
+        CropCycleExecutionReceiptSaveData receipt = state?.CycleExecutionReceipt;
+        if (state == null
+            || crop == null
+            || !state.MaterialsConsumed
+            || state.SowWork + 0.001f < crop.SowWork
+            || receipt == null
+            || receipt.IsEmpty
+            || receipt.status != CropCycleExecutionReceiptStatus.Active
+            || !string.Equals(
+                receipt.plotId,
+                state.PlotId.Value,
+                StringComparison.Ordinal)
+            || !string.Equals(receipt.cropId, state.CropId, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Seasonal crop damage requires a live cycle with completed sow authority.");
+        }
+        CropPlanExecutionReceiptAuthority.Validate(receipt, requireCompleted: false);
+    }
 
     private void ValidatePendingTreatment(
         CropPlotSaveData saved,
@@ -3918,24 +5082,52 @@ public sealed class CropPlotRuntime :
         }
     }
 
-    private void ResetForNextCycle(CropPlotState state)
+    private bool TryResetForNextCycle(
+        CropPlotState state,
+        out string failureReason)
     {
-        if (!TryRetireDestination(
-                state,
-                state.MaterialDestinationId,
-                CropPlotInputOwnerAuthority.SowCompletedReleaseReasonCode,
-                out string retireFailure))
-            throw new InvalidOperationException(
-                "Crop-plot next-cycle input retirement failed: "
-                + retireFailure);
+        try
+        {
+            if (!TryRetireInactiveWaterRefill(state))
+            {
+                failureReason =
+                    "crop-next-cycle-water-refill-retirement-failed:"
+                    + (state.WaterRefill?.failureReason ?? "unknown");
+                return false;
+            }
+            if (!TryRetireDestination(
+                    state,
+                    state.MaterialDestinationId,
+                    CropPlotInputOwnerAuthority.SowCompletedReleaseReasonCode,
+                    out string retireFailure))
+            {
+                failureReason =
+                    "crop-next-cycle-input-retirement-failed:"
+                    + retireFailure;
+                return false;
+            }
+        }
+        catch (Exception error)
+        {
+            failureReason =
+                "crop-next-cycle-cleanup-deferred:"
+                + error.GetType().Name;
+            return false;
+        }
         state.Phase = CropPlotPhase.Empty;
         state.SowWork = 0f;
         state.GrowthHours = 0f;
         state.HarvestWork = 0f;
         state.MaterialsConsumed = false;
+        state.CurrentWater = 0f;
+        state.WaterCapacity = CropWaterRules.WaterCapacity;
         ClearFrozenSowInputs(state);
         state.BlockedReason = string.Empty;
         state.GoldenHarvestHarvesterId = string.Empty;
+        state.SeasonalYieldDamage =
+            new CropSeasonalYieldDamageSaveData();
+        failureReason = string.Empty;
+        return true;
     }
 
     private bool TryFinalizeDestroyedPlot(CropPlotState state)
@@ -3954,6 +5146,9 @@ public sealed class CropPlotRuntime :
             snapshotsDirty = true;
             return false;
         }
+
+        if (!TryRetireInactiveWaterRefill(state))
+            return false;
 
         if (state.Treatment.phase == CropTreatmentOrderPhase.OutcomePublished)
         {
@@ -4061,7 +5256,8 @@ public sealed class CropPlotRuntime :
         }
 
         return state.PendingSow.phase == CropPhysicalCommitPhase.None
-            && state.Treatment.phase == CropTreatmentOrderPhase.None;
+            && state.Treatment.phase == CropTreatmentOrderPhase.None
+            && state.WaterRefill.phase == CropWaterRefillPhase.None;
     }
 
     private void RemoveFinalizedDestroyedPlot(BuildingInstanceId plotId)
@@ -4087,6 +5283,17 @@ public sealed class CropPlotRuntime :
             throw new InvalidOperationException(
                 "Crop-plot destroyed treatment owner retirement failed: "
                 + treatmentRetireFailure);
+        string waterDestination = state.WaterRefill?.destinationId
+            ?? string.Empty;
+        if (waterDestination.Length > 0
+            && !TryRetireDestination(
+                state,
+                waterDestination,
+                CropPlotInputOwnerAuthority.PlotLostReleaseReasonCode,
+                out string waterRetireFailure))
+            throw new InvalidOperationException(
+                "Crop-plot destroyed water-refill owner retirement failed: "
+                + waterRetireFailure);
         ecology.AbandonPlot(plotId.Value);
         if (completionDeliveries != null
             && !completionDeliveries.RetireProducerStream(
@@ -4126,7 +5333,11 @@ public sealed class CropPlotRuntime :
 
     private void RefreshSnapshots()
     {
-        if (!snapshotsDirty)
+        int environmentalFieldVersion = environmentalField.Version;
+        int irrigationVersion = irrigation.Version;
+        if (!snapshotsDirty
+            && observedEnvironmentalFieldVersion == environmentalFieldVersion
+            && observedIrrigationVersion == irrigationVersion)
         {
             return;
         }
@@ -4135,6 +5346,19 @@ public sealed class CropPlotRuntime :
         foreach (CropPlotState state in states.Values
                      .OrderBy(entry => entry.PlotId.Value, StringComparer.Ordinal))
         {
+            // A destroyed facility can retain its crop state until terminal
+            // physical owners finish releasing their claims and inputs. That
+            // detached state is lifecycle-only and must not be projected.
+            if (state.Building == null || state.Building.IsBuildingDestroyed)
+            {
+                continue;
+            }
+            if (state.Ability == null)
+            {
+                throw new InvalidOperationException(
+                    "A live crop plot has no authored crop-plot ability: "
+                    + state.PlotId.Value);
+            }
             if (!catalog.TryGetCrop(state.CropId, out CropDefinitionSO crop))
             {
                 continue;
@@ -4149,10 +5373,74 @@ public sealed class CropPlotRuntime :
                     itemId,
                     state.MaterialDestinationId),
                 StringComparer.Ordinal);
+            CropCycleWaterSupplyStatus waterSupplyStatus =
+                ResolveCycleWaterSupplyStatus(
+                    state,
+                    crop,
+                    required,
+                    out int cycleWaterQuantity);
+            float dailyWaterDemand = CropWaterRules.ResolveDailyDemand(
+                crop,
+                state.Ability);
+            CropWaterRefillSaveData waterRefill = state.WaterRefill
+                ?? new CropWaterRefillSaveData();
+            int waterRefillDelivered = waterRefill.phase
+                    == CropWaterRefillPhase.None
+                ? 0
+                : items.CountDelivered(
+                    waterRefill.itemId,
+                    waterRefill.destinationId);
             CropEcologyPlotSaveData ecologyPlot = ecology.Plots.FirstOrDefault(value =>
                 string.Equals(value.plotId, state.PlotId.Value, StringComparison.Ordinal));
             CropTreatmentOrderSaveData treatment = state.Treatment
                 ?? new CropTreatmentOrderSaveData();
+            EnvironmentalCellSnapshot environmentCell = default;
+            bool hasEnvironmentObservation = state.Building != null
+                && environmentalField.IsInitialized
+                && environmentalField.TryGetCell(
+                    state.Building.centerPos,
+                    out environmentCell);
+            bool requiresEcologyPhenotype = state.Phase is
+                CropPlotPhase.Sowing
+                or CropPlotPhase.Growing
+                or CropPlotPhase.ReadyToHarvest
+                or CropPlotPhase.Harvesting;
+            if (ecologyPlot == null && requiresEcologyPhenotype)
+                throw new InvalidOperationException(
+                    $"Crop plot '{state.PlotId.Value}' in phase {state.Phase} "
+                    + "requires an owned ecology phenotype.");
+            CropGenomePhenotype temperaturePhenotype = ecologyPlot != null
+                ? ecology.GetPhenotype(state.PlotId.Value)
+                : new CropGenomePhenotype(
+                    coldToleranceDegrees: 0f,
+                    heatToleranceDegrees: 0f,
+                    growthMultiplier: 1f,
+                    yieldMultiplier: 1f,
+                    diseaseRiskMultiplier: 1f,
+                    seedYieldBonus: 0);
+            CropGrowthTemperatureEvaluation temperatureEvaluation =
+                CropGrowthCycleAuthority.EvaluateTemperature(
+                    crop,
+                    temperaturePhenotype,
+                    hasEnvironmentObservation,
+                    hasEnvironmentObservation
+                        ? environmentCell.TemperatureC
+                        : 0f);
+            CropGrowthLightEvaluation lightEvaluation =
+                CropGrowthCycleAuthority.EvaluateLight(
+                    crop,
+                    hasEnvironmentObservation,
+                    hasEnvironmentObservation
+                        ? environmentCell.LightLevel
+                        : 0f);
+            CropIrrigationAssessment irrigationAssessment = irrigation.Assess(
+                new CropIrrigationRequest(
+                    state.Building,
+                    dailyWaterDemand > 0f
+                        && state.CurrentWater + 0.001f < dailyWaterDemand,
+                    state.CurrentWater,
+                    state.WaterCapacity,
+                    waterRefill.phase != CropWaterRefillPhase.None));
             int treatmentDelivered = treatment.phase
                     == CropTreatmentOrderPhase.None
                 ? 0
@@ -4188,9 +5476,57 @@ public sealed class CropPlotRuntime :
                 MaterialDestinationId = state.MaterialDestinationId,
                 RequiredMaterials = required,
                 DeliveredMaterials = delivered,
+                CycleWaterSupplyStatus = waterSupplyStatus,
+                CycleWaterQuantity = cycleWaterQuantity,
+                WaterStatus = ResolveWaterStatus(
+                    state,
+                    dailyWaterDemand),
+                CurrentWater = state.CurrentWater,
+                WaterCapacity = state.WaterCapacity,
+                WaterDemandPerDay = dailyWaterDemand,
+                WaterGrowthMultiplier = CropWaterRules.ResolveGrowthMultiplier(
+                    state.CurrentWater,
+                    dailyWaterDemand),
+                TemperatureStatus = temperatureEvaluation.Status,
+                CurrentTemperatureC =
+                    temperatureEvaluation.ObservedTemperatureC,
+                MinimumTemperatureC =
+                    temperatureEvaluation.MinimumTemperatureC,
+                MaximumTemperatureC =
+                    temperatureEvaluation.MaximumTemperatureC,
+                LightStatus = lightEvaluation.Status,
+                CurrentLight = lightEvaluation.ObservedLight,
+                LightStopThreshold = lightEvaluation.StopLight,
+                LightSufficientThreshold = lightEvaluation.SufficientLight,
+                LightGrowthMultiplier = lightEvaluation.GrowthMultiplier,
+                WaterRefillPhase = waterRefill.phase,
+                WaterRefillDestinationId = waterRefill.destinationId,
+                WaterRefillDeliveredQuantity = waterRefillDelivered,
+                WaterRefillRequiredWork = waterRefill.requiredWork,
+                WaterRefillCompletedWork = waterRefill.completedWork,
+                WaterRefillFailureReason = waterRefill.failureReason,
+                IrrigationStatus = irrigationAssessment.Status,
+                IrrigationFacilityId = irrigationAssessment.IrrigatorId.Value,
+                IrrigationReason = irrigationAssessment.Reason,
                 BlockedReason = state.BlockedReason,
                 GoldenHarvestHarvesterId = state.GoldenHarvestHarvesterId,
                 GoldenHarvestAttemptSequence = state.GoldenHarvestAttemptSequence,
+                HasSeasonalPrimaryYieldDamage =
+                    state.SeasonalYieldDamage is { IsEmpty: false },
+                SeasonalDamageSourceEventInstanceId =
+                    state.SeasonalYieldDamage?.sourceEventInstanceId
+                    ?? string.Empty,
+                SeasonalPrimaryBatchLossPercent =
+                    state.SeasonalYieldDamage?.primaryBatchLossPercent ?? 0,
+                FrozenPrimaryQuantityBeforeSeasonalLoss =
+                    state.PendingHarvest?.primaryQuantityBeforeSeasonalLoss ?? 0,
+                FrozenPrimarySeasonalLossQuantity =
+                    state.PendingHarvest?.seasonalPrimaryLossQuantity ?? 0,
+                FrozenPrimaryQuantityAfterSeasonalLoss =
+                    state.PendingHarvest is
+                        { seasonalPrimaryBatchLossPercent: > 0 }
+                        ? state.PendingHarvest.harvestQuantity
+                        : 0,
                 TreatmentScheduled = treatment.phase
                     != CropTreatmentOrderPhase.None,
                 TreatmentPhase = treatment.phase,
@@ -4214,7 +5550,76 @@ public sealed class CropPlotRuntime :
             });
         }
 
+        observedEnvironmentalFieldVersion = environmentalFieldVersion;
+        observedIrrigationVersion = irrigationVersion;
         snapshotsDirty = false;
+    }
+
+    private static CropCycleWaterSupplyStatus ResolveCycleWaterSupplyStatus(
+        CropPlotState state,
+        CropDefinitionSO crop,
+        IReadOnlyDictionary<string, int> currentRequirements,
+        out int cycleWaterQuantity)
+    {
+        cycleWaterQuantity = 0;
+        if (currentRequirements != null
+            && currentRequirements.TryGetValue(
+                CropCycleInputRequirementAuthority.CleanWaterItemId,
+                out int requiredWater))
+        {
+            cycleWaterQuantity = requiredWater;
+            return CropCycleWaterSupplyStatus.AwaitingCycleSupply;
+        }
+
+        CropCycleExecutionReceiptSaveData receipt = state?.CycleExecutionReceipt;
+        if (state?.MaterialsConsumed == true
+            && receipt != null
+            && receipt.status == CropCycleExecutionReceiptStatus.Active)
+        {
+            cycleWaterQuantity = (receipt.inputs
+                    ?? new List<CropPhysicalInputSaveData>())
+                .Where(input => input != null && string.Equals(
+                    input.itemId,
+                    CropCycleInputRequirementAuthority.CleanWaterItemId,
+                    StringComparison.Ordinal))
+                .Sum(input => input.quantity);
+            if (cycleWaterQuantity > 0)
+                return CropCycleWaterSupplyStatus.SuppliedForCurrentCycle;
+            if (crop.DailyWater > 0f)
+                throw new InvalidOperationException(
+                    "Active crop cycle is missing its committed clean-water input.");
+            return CropCycleWaterSupplyStatus.NotRequired;
+        }
+
+        return crop.DailyWater <= 0f
+            ? CropCycleWaterSupplyStatus.NotRequired
+            : CropCycleWaterSupplyStatus.None;
+    }
+
+    private static CropPlotWaterStatus ResolveWaterStatus(
+        CropPlotState state,
+        float dailyWaterDemand)
+    {
+        if (dailyWaterDemand <= 0f)
+            return CropPlotWaterStatus.NotRequired;
+        CropWaterRefillPhase phase = state?.WaterRefill?.phase
+            ?? CropWaterRefillPhase.None;
+        return phase switch
+        {
+            CropWaterRefillPhase.WaitingForDelivery =>
+                CropPlotWaterStatus.WaitingForDelivery,
+            CropWaterRefillPhase.ReadyForWork => CropPlotWaterStatus.ReadyForWork,
+            CropWaterRefillPhase.Working => CropPlotWaterStatus.Working,
+            CropWaterRefillPhase.InputCommitted =>
+                CropPlotWaterStatus.InputCommitted,
+            CropWaterRefillPhase.OutcomePublished =>
+                CropPlotWaterStatus.OutcomePublished,
+            _ => state.CurrentWater <= 0f
+                ? CropPlotWaterStatus.Empty
+                : state.CurrentWater + 0.001f < dailyWaterDemand
+                    ? CropPlotWaterStatus.Low
+                    : CropPlotWaterStatus.Sufficient
+        };
     }
 
     private bool HasDelivered(

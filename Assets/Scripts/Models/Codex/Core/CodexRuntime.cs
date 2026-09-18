@@ -76,6 +76,32 @@ public sealed class CodexRuntime : MonoBehaviour
         return state.GetSnapshots(category);
     }
 
+    public bool HasInformation(
+        CodexEntryCategory category,
+        string entryId,
+        string informationText)
+    {
+        return state.HasInfo(category, entryId, informationText);
+    }
+
+    public bool RecordInformation(
+        CodexEntryCategory category,
+        string entryId,
+        string fallbackTitle,
+        string informationText,
+        CodexInfoSource source)
+    {
+        CodexEntrySnapshot existing = state.GetSnapshot(category, entryId);
+        bool added = state.AddInfo(
+            category,
+            entryId,
+            existing?.title ?? fallbackTitle,
+            informationText,
+            source);
+        PublishUpdated(category, entryId);
+        return added;
+    }
+
     public bool HasMemoryResidueClueAvailable
     {
         get

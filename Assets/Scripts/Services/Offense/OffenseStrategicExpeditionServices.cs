@@ -26,6 +26,7 @@ public interface IOffenseStrategicTargetService
         out OffenseTargetDefinition target,
         out OffenseHexCoord destination,
         out string strandedExpeditionId);
+    bool TryCommitLaunch(string siteId);
     bool TryPrepareTravel(
         OffenseExpeditionRun expedition,
         OffenseHexCoord destination,
@@ -61,7 +62,8 @@ public interface IOffenseStrategicTravelEventHandler
         OffenseTravelStepResult step);
     void HandleDecisionRequired(
         IOffenseStrategicExpeditionHost host,
-        string expeditionId);
+        string expeditionId,
+        string completedSegmentWeatherFrontId);
     void HandleSiteReached(
         IOffenseStrategicExpeditionHost host,
         string expeditionId,
@@ -75,18 +77,22 @@ public sealed class OffenseStrategicTargetService :
     private readonly IOffenseTravelRuntime travel;
     private readonly IOffenseContentCatalog content;
     private readonly IOffenseFieldMedicalRuntime fieldMedical;
+    private readonly IGameCalendar calendar;
 
     public OffenseStrategicTargetService(
         IOffenseWorldSimulation world,
         IOffenseTravelRuntime travel,
         IOffenseContentCatalog content,
-        IOffenseFieldMedicalRuntime fieldMedical)
+        IOffenseFieldMedicalRuntime fieldMedical,
+        IGameCalendar calendar)
     {
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.travel = travel ?? throw new ArgumentNullException(nameof(travel));
         this.content = content ?? throw new ArgumentNullException(nameof(content));
         this.fieldMedical = fieldMedical
             ?? throw new ArgumentNullException(nameof(fieldMedical));
+        this.calendar = calendar
+            ?? throw new ArgumentNullException(nameof(calendar));
     }
 
     public bool TryCreateTarget(
@@ -104,9 +110,41 @@ public sealed class OffenseStrategicTargetService :
         if (world.TryGetSite(siteId, out OffenseWorldSiteStateData site)
             && site != null
             && site.IsActive
-            && site.state != OffenseWorldSiteState.Hidden)
+            && site.state != OffenseWorldSiteState.Hidden
+            && (site.seasonalOffer?.IsConfigured != true
+                || site.state == OffenseWorldSiteState.Revealed))
         {
             destination = site.Coord;
+            OffenseSeasonalExpeditionOfferData seasonal = site.seasonalOffer;
+            if (seasonal?.IsConfigured == true)
+            {
+                target = new OffenseTargetDefinition
+                {
+                    id = site.siteId,
+                    title = site.displayName,
+                    description = seasonal.description,
+                    kind = OffenseTargetKind.SpecialEvent,
+                    regionId = site.regionId,
+                    regionDisplayName = site.regionId,
+                    factionId = site.factionId,
+                    campaignOrder = seasonal.campaignOrder,
+                    distance = world.GetMinimumStepDistance(
+                        world.DungeonCoord,
+                        site.Coord),
+                    danger = seasonal.recommendedDanger,
+                    durationSeconds = seasonal.durationSeconds,
+                    requiredMembers = seasonal.requiredMembers,
+                    requiredPower = seasonal.recommendedPower,
+                    seasonalOccurrenceInstanceId =
+                        seasonal.occurrenceInstanceId,
+                    authoredEncounterId = seasonal.authoredEncounterId,
+                    encounterPreviewText = seasonal.encounterPreviewText,
+                    encounterRewardPreviewText =
+                        seasonal.encounterRewardPreviewText,
+                    rewards = CreateSeasonalRewards(seasonal)
+                };
+                return true;
+            }
             target = new OffenseTargetDefinition
             {
                 id = site.siteId,
@@ -171,6 +209,29 @@ public sealed class OffenseStrategicTargetService :
 
         return false;
     }
+
+    public bool TryCommitLaunch(string siteId)
+    {
+        if (!world.TryGetSite(siteId, out OffenseWorldSiteStateData site)
+            || site?.seasonalOffer?.IsConfigured != true)
+        {
+            return true;
+        }
+        if (!SeasonalLaunchIsCurrent(site, calendar.Day))
+        {
+            return false;
+        }
+        return world.TryEngageSite(siteId);
+    }
+
+    internal static bool SeasonalLaunchIsCurrent(
+        OffenseWorldSiteStateData site,
+        int currentAbsoluteDay) =>
+        site?.state == OffenseWorldSiteState.Revealed
+        && site.seasonalOffer?.IsConfigured == true
+        && currentAbsoluteDay >= 1
+        && currentAbsoluteDay
+            <= site.seasonalOffer.offerDeadlineAbsoluteDay;
 
     public bool TryCreateRescueTarget(
         string targetId,
@@ -336,6 +397,19 @@ public sealed class OffenseStrategicTargetService :
             .Where(preview => preview != null && preview.IsConfigured)
             .ToArray() ?? Array.Empty<OffenseRewardPreview>();
     }
+
+    private static OffenseRewardPreview[] CreateSeasonalRewards(
+        OffenseSeasonalExpeditionOfferData offer)
+    {
+        return (offer?.physicalRewards
+                ?? new List<OffenseSeasonalPhysicalRewardData>())
+            .Where(value => value != null)
+            .Select(value => new OffenseRewardPreview(
+                value.displayLabel,
+                value.exactQuantity,
+                new OffensePhysicalItemRewardSpec(value.itemId)))
+            .ToArray();
+    }
 }
 
 public sealed class OffenseStrategicBattleLauncher :
@@ -458,7 +532,8 @@ public sealed class OffenseStrategicTravelEventHandler :
 
     public void HandleDecisionRequired(
         IOffenseStrategicExpeditionHost host,
-        string expeditionId)
+        string expeditionId,
+        string completedSegmentWeatherFrontId)
     {
         OffenseExpeditionRun expedition = host.FindActiveExpedition(expeditionId);
         if (expedition == null || !expedition.UsesWorldTravel)
@@ -485,6 +560,13 @@ public sealed class OffenseStrategicTravelEventHandler :
                     stage = expedition.WorldObjectiveCompleted
                         ? OffenseDecisionStage.Return
                         : OffenseDecisionStage.Travel,
+                    tags = string.IsNullOrWhiteSpace(
+                            completedSegmentWeatherFrontId)
+                        ? new HashSet<string>(StringComparer.Ordinal)
+                        : new HashSet<string>(StringComparer.Ordinal)
+                        {
+                            completedSegmentWeatherFrontId
+                        },
                     protectedMovement = safety.IsProtected,
                     forceNonCombat = returnSafety.MustUseNonCombatCard(expeditionId),
                     canGenerateForcedCombat = returnSafety.CanGenerateForcedCombat(

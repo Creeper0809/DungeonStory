@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "300"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "손상되거나 잃은 코볼트 균형 꼬리의 기능을 대신하도록 신체에 연결하는 보철 부품이다. 제4주조도시의 보철 장인은 코볼트 평형 꼬리 보강기를 맞추기 전에 관절의 빈 움직임을 금속판에 옮겨 찍는다. 다음 수리 때 같은 몸의 리듬을 되찾기 위해서다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "surgery-prosthetic-balance-tail-variant-kobold-tail-balance",
+  "spoiler_tier": "none",
+  "summary": "코볼트 꼬리 슬롯의 회피 균형을 보조하는 정밀 보철.",
+  "title": "코볼트 평형 꼬리 보강기"
+}

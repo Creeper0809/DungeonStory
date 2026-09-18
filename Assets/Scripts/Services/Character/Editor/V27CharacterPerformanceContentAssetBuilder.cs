@@ -193,6 +193,7 @@ public static class V27CharacterPerformanceContentAssetBuilder
             "Myconid" => CapacityRow(105, 95, 80, 105, 110, 110, 120, 110, 80, 110, 110, 90, 100, 115),
             "Harpy" => CapacityRow(95, 125, 110, 115, 115, 90, 85, 95, 80, 110, 125, 105, 90, 90),
             "Golem" => CapacityRow(90, 100, 85, 105, 115, 90, 110, 100, 125, 105, 110, 80, 110, 115),
+            "Human" => CapacityRow(100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100),
             _ => null
         };
         return values != null;

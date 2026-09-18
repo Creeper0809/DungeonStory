@@ -20,6 +20,6 @@
   "schema_version": 1,
   "slug": "seasonal-autumn-early-frost",
   "spoiler_tier": "warning",
-  "summary": "서리가 수확 직전 작물과 야외 원정 보급을 동시에 위협한다.",
+  "summary": "기존 한파 전선이 이어지는 동안 실제 농지 온도가 작물의 품종 적용 적정 범위보다 낮으면 성장만 멈춘다. 난방으로 적정 온도를 유지한 농지는 영향받지 않는다.",
   "title": "이른 서리"
 }

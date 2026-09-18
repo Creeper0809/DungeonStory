@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "command": "command recompile_status",
+  "data": {
+    "command": "recompile_status",
+    "parameters": {},
+    "result": "{\"status\":\"completed\",\"failed\":false,\"errors\":[]}",
+    "target": {
+      "host": "127.0.0.1",
+      "port": 7800,
+      "projectPath": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory"
+    },
+    "success": true
+  },
+  "errors": [],
+  "warnings": []
+}

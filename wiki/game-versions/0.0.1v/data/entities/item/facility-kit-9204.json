@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "던전의 주권과 영토를 지키는 성채를 세울 때 쓰는 핵심 설치 부품이며, 하르나크에서도 같은 규격으로 조립한다.",
+  "in_game_description": "던전의 주권과 영토를 지키는 성채를 세울 때 쓰는 핵심 설치 부품이다. 하르나크 주민은 주권 성채의 성벽마다 어느 도시가 맡아 지키고 고칠지를 새긴다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

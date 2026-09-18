@@ -60,6 +60,8 @@ MonoBehaviour:
     - rid: 1004
     - rid: 1005
     - rid: 1006
+    - rid: 1007
+    - rid: 1008
     - rid: 7737212042857939531
   width: 1
   height: 1
@@ -131,6 +133,20 @@ MonoBehaviour:
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
+    - rid: 1007
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 2
+        maxThroughput: 1
+        normallyOpen: 1
+    - rid: 1008
+      type: {class: BuildingCropIrrigationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingCropIrrigationAbility
+        rangeManhattan: 4
+        waterPerRefill: 1
+        minimumRefillIntervalSeconds: 1
     - rid: 7737212042857939531
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:

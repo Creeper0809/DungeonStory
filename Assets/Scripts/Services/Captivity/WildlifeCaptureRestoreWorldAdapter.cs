@@ -12,6 +12,7 @@ internal sealed class WildlifeCaptureRestoreWorldAdapter :
     private readonly IWildlifeSpeciesCatalogProvider speciesCatalog;
     private readonly Grid grid;
     private readonly IReadOnlyDictionary<string, CharacterActor> characters;
+    private readonly IReadOnlyList<WildlifeActor> wildlife;
 
     internal WildlifeCaptureRestoreWorldAdapter(
         ICharacterAiWorldRegistry world,
@@ -32,6 +33,7 @@ internal sealed class WildlifeCaptureRestoreWorldAdapter :
         }
 
         gridProvider.TryGetGrid(out grid);
+        wildlife = world.Wildlife;
         characters = world.Characters
             .Where(actor => CharacterPersistentIdentity.TryGet(actor, out _))
             .GroupBy(
@@ -49,7 +51,7 @@ internal sealed class WildlifeCaptureRestoreWorldAdapter :
         string wildlifeId,
         string speciesId)
     {
-        WildlifeActor actor = world.Wildlife.FirstOrDefault(candidate =>
+        WildlifeActor actor = wildlife.FirstOrDefault(candidate =>
             candidate != null
             && string.Equals(
                 candidate.WildlifeId,
@@ -65,6 +67,28 @@ internal sealed class WildlifeCaptureRestoreWorldAdapter :
 
     public bool HasSpecies(string speciesId) =>
         speciesCatalog.TryGetSpecies(speciesId, out _);
+
+    public bool SpeciesSupportsRole(
+        string speciesId,
+        CapturedWildlifeRoleId roleId) =>
+        speciesCatalog.TryGetSpecies(
+            speciesId,
+            out WildlifeSpeciesDefinition species)
+        && (roleId.Equals(CapturedWildlifeRoleIds.Companion)
+                && species.CompanionRoleProfile != null
+            || roleId.Equals(CapturedWildlifeRoleIds.Haul)
+                && species.HaulRoleProfile != null);
+
+    public bool IsEligibleCompanionOwner(string ownerCharacterId) =>
+        characters.TryGetValue(
+            ownerCharacterId ?? string.Empty,
+            out CharacterActor owner)
+        && owner != null
+        && !owner.IsDead
+        && owner.characterType == CharacterType.NPC
+        && (owner.CurrentLifecycleState is CharacterLifecycleState.Active
+            or CharacterLifecycleState.Downed)
+        && CharacterWorkRoleUtility.TryGetWork(owner, out _);
 
     public bool HasItem(string itemId) =>
         contentCatalog.TryGetItem(itemId, out _);

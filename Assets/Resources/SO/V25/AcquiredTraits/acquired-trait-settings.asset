@@ -1,0 +1,1372 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 788246dbd7b24f9399203d2fa923ceae, type: 3}
+  m_Name: acquired-trait-settings
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterAcquiredTraitSettingsSO
+  settingsId: character:acquired-trait-settings
+  maximumActiveTraits: 3
+  manifestationGates:
+  - meaningfulRecordMilestone: 3
+    rarity: 0
+    budget: 4
+  - meaningfulRecordMilestone: 8
+    rarity: 1
+    budget: 6
+  - meaningfulRecordMilestone: 20
+    rarity: 2
+    budget: 8
+  formulaPolicy:
+    formulaVersion: 3
+    baseBudget: 4
+    powerScale: 4
+    softCapK: 8
+    minimumImportance: 0
+    maximumImportance: 4
+    milestoneWeights:
+    - 1
+    - 1.5
+    - 2
+    - 3
+    - 5
+    drawbackCredit:
+      playerChoiceMaximumBudgetFraction: 0.35
+      automaticMaximumBudgetFraction: 0.35
+      absoluteMaximumCredit: 3
+      requireNegativeEvidenceForAutomatic: 1
+    triggerFrequencyUnits: 1
+    guaranteedProc: 1
+    targetCount: 1
+    catalogSha256: f093866c04e235c82bade623d92def6277e3202c1df934f4d9a3366c7327eec6
+  drawbackCapabilities:
+  - drawbackId: acquired-trait:drawback:battle-shock
+    displayName: "\uC804\uD22C \uD6C4\uC720\uC99D"
+    description: "\uACA9\uC804\uC758 \uAE30\uC5B5\uC774 \uB0A8\uC544 \uD3C9\uC0C1\uC2DC
+      \uC804\uD22C\uB825\uC774 \uD754\uB4E4\uB9BD\uB2C8\uB2E4."
+    domainAffinities: 0500000009000000
+    conflictGroups:
+    - drawback:combat
+    maximumCredit: 2
+    effects:
+    - bindingId: acquired-trait:drawback:battle-shock:effect:0
+      definition: {fileID: 11400000, guid: 137c7667173fc054eb6777aec0aa16f2, type: 2}
+      value: 0.96
+      condition: {fileID: 0}
+    capabilityId: acquired-trait:drawback:battle-shock:severity
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 0
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Combat
+      - Injury
+      conflictGroups:
+      - drawback:combat
+      forbiddenSynergies: []
+      formatterId: acquired-trait:drawback:battle-shock:severity
+      applicatorId: acquired-trait:drawback:battle-shock:severity
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 10000
+        maximumUnits: 13000
+        quantumUnits: 1000
+        decimalPlaces: 4
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: acquired-trait:drawback:cold-sensitive
+    displayName: "\uCD94\uC704 \uBBFC\uAC10"
+    description: "\uD639\uD55C\uC744 \uACAC\uB518 \uD6C4\uC720\uC99D\uC73C\uB85C
+      \uCD94\uC704\uC758 \uC601\uD5A5\uC744 \uB354 \uD06C\uAC8C \uBC1B\uC2B5\uB2C8\uB2E4."
+    domainAffinities: 050000000600000008000000
+    conflictGroups:
+    - drawback:temperature
+    maximumCredit: 2
+    effects:
+    - bindingId: acquired-trait:drawback:cold-sensitive:effect:0
+      definition: {fileID: 11400000, guid: 426f03603ba79a7459d9214b87e09318, type: 2}
+      value: 1.08
+      condition: {fileID: 0}
+    capabilityId: acquired-trait:drawback:cold-sensitive:severity
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 0
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Expedition
+      - Injury
+      - Survival
+      conflictGroups:
+      - drawback:temperature
+      forbiddenSynergies: []
+      formatterId: acquired-trait:drawback:cold-sensitive:severity
+      applicatorId: acquired-trait:drawback:cold-sensitive:severity
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 10000
+        maximumUnits: 13000
+        quantumUnits: 1000
+        decimalPlaces: 4
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: acquired-trait:drawback:daylight-fatigue
+    displayName: "\uB0AE\uC758 \uD53C\uB85C"
+    description: "\uBC24\uC5D0 \uC775\uC219\uD574\uC9C4 \uBAB8 \uB54C\uBB38\uC5D0
+      \uB0AE \uC791\uC5C5 \uC18D\uB3C4\uAC00 \uB290\uB824\uC9D1\uB2C8\uB2E4."
+    domainAffinities: 0000000006000000
+    conflictGroups:
+    - drawback:work-cycle
+    maximumCredit: 2
+    effects:
+    - bindingId: acquired-trait:drawback:daylight-fatigue:effect:0
+      definition: {fileID: 11400000, guid: c82e7a8d248986f4b8776ccbc743d601, type: 2}
+      value: 0.98
+      condition: {fileID: 11400000, guid: 13f507b576f7b954fad1350ef67d8168, type: 2}
+    capabilityId: acquired-trait:drawback:daylight-fatigue:severity
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 0
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Survival
+      - Work
+      conflictGroups:
+      - drawback:work-cycle
+      forbiddenSynergies: []
+      formatterId: acquired-trait:drawback:daylight-fatigue:severity
+      applicatorId: acquired-trait:drawback:daylight-fatigue:severity
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 10000
+        maximumUnits: 13000
+        quantumUnits: 1000
+        decimalPlaces: 4
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: acquired-trait:drawback:frailty
+    displayName: "\uB0A8\uC740 \uC1E0\uC57D"
+    description: "\uCE58\uBA85\uC801\uC778 \uC704\uAE30\uB97C \uB118\uAE34 \uB4A4
+      \uCD5C\uB300 \uCCB4\uB825\uC774 \uC904\uC5B4\uB4ED\uB2C8\uB2E4."
+    domainAffinities: 050000000600000009000000
+    conflictGroups:
+    - drawback:vitality
+    maximumCredit: 2
+    effects:
+    - bindingId: acquired-trait:drawback:frailty:effect:0
+      definition: {fileID: 11400000, guid: 6e2fa925a6b24a64a9e07484034c2301, type: 2}
+      value: 0.96
+      condition: {fileID: 0}
+    capabilityId: acquired-trait:drawback:frailty:severity
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 0
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Combat
+      - Injury
+      - Survival
+      conflictGroups:
+      - drawback:vitality
+      forbiddenSynergies: []
+      formatterId: acquired-trait:drawback:frailty:severity
+      applicatorId: acquired-trait:drawback:frailty:severity
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 10000
+        maximumUnits: 13000
+        quantumUnits: 1000
+        decimalPlaces: 4
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: acquired-trait:drawback:heat-sensitive
+    displayName: "\uB354\uC704 \uBBFC\uAC10"
+    description: "\uACE0\uC5F4 \uD658\uACBD\uC744 \uACAC\uB518 \uD6C4\uC720\uC99D\uC73C\uB85C
+      \uB354\uC704\uC758 \uC601\uD5A5\uC744 \uB354 \uD06C\uAC8C \uBC1B\uC2B5\uB2C8\uB2E4."
+    domainAffinities: 050000000600000008000000
+    conflictGroups:
+    - drawback:temperature
+    maximumCredit: 2
+    effects:
+    - bindingId: acquired-trait:drawback:heat-sensitive:effect:0
+      definition: {fileID: 11400000, guid: e2cec60c35a7dd848919d427b9d0a433, type: 2}
+      value: 1.08
+      condition: {fileID: 0}
+    capabilityId: acquired-trait:drawback:heat-sensitive:severity
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 0
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Expedition
+      - Injury
+      - Survival
+      conflictGroups:
+      - drawback:temperature
+      forbiddenSynergies: []
+      formatterId: acquired-trait:drawback:heat-sensitive:severity
+      applicatorId: acquired-trait:drawback:heat-sensitive:severity
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 10000
+        maximumUnits: 13000
+        quantumUnits: 1000
+        decimalPlaces: 4
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: acquired-trait:drawback:heavy-step
+    displayName: "\uBB34\uAC70\uC6B4 \uAC78\uC74C"
+    description: "\uBD80\uC0C1\uACFC \uBB34\uB9AC\uD55C \uC774\uB3D9\uC758 \uD754\uC801
+      \uB54C\uBB38\uC5D0 \uC774\uB3D9 \uC18D\uB3C4\uAC00 \uB290\uB824\uC9D1\uB2C8\uB2E4."
+    domainAffinities: 050000000600000008000000
+    conflictGroups:
+    - drawback:mobility
+    maximumCredit: 2
+    effects:
+    - bindingId: acquired-trait:drawback:heavy-step:effect:0
+      definition: {fileID: 11400000, guid: 5efe462ac434ee74498e829584182490, type: 2}
+      value: 0.96
+      condition: {fileID: 0}
+    capabilityId: acquired-trait:drawback:heavy-step:severity
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 0
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Expedition
+      - Injury
+      - Survival
+      conflictGroups:
+      - drawback:mobility
+      forbiddenSynergies: []
+      formatterId: acquired-trait:drawback:heavy-step:severity
+      applicatorId: acquired-trait:drawback:heavy-step:severity
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 10000
+        maximumUnits: 13000
+        quantumUnits: 1000
+        decimalPlaces: 4
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: acquired-trait:drawback:lingering-dread
+    displayName: "\uB0A8\uC740 \uBD88\uC548"
+    description: "\uC704\uD5D8\uD55C \uAE30\uC5B5\uC774 \uAC00\uB77C\uC549\uC9C0
+      \uC54A\uC544 \uBD80\uC815\uC801\uC778 \uAE30\uBD84\uC774 \uC624\uB798\uAC11\uB2C8\uB2E4."
+    domainAffinities: 030000000500000009000000
+    conflictGroups:
+    - drawback:mood
+    maximumCredit: 2
+    effects:
+    - bindingId: acquired-trait:drawback:lingering-dread:effect:0
+      definition: {fileID: 11400000, guid: a7ef984985d95a54899b99eaae3746c5, type: 2}
+      value: 1.08
+      condition: {fileID: 0}
+    capabilityId: acquired-trait:drawback:lingering-dread:severity
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 0
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Combat
+      - Injury
+      - Mood
+      conflictGroups:
+      - drawback:mood
+      forbiddenSynergies: []
+      formatterId: acquired-trait:drawback:lingering-dread:severity
+      applicatorId: acquired-trait:drawback:lingering-dread:severity
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 10000
+        maximumUnits: 13000
+        quantumUnits: 1000
+        decimalPlaces: 4
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: acquired-trait:drawback:overstrain
+    displayName: "\uBB34\uB9AC\uD55C \uBC84\uB987"
+    description: "\uC704\uAE30\uB97C \uD798\uC73C\uB85C \uB118\uAE30\uB294 \uBC84\uB987
+      \uB54C\uBB38\uC5D0 \uC704\uD5D8 \uC791\uC5C5 \uC0AC\uACE0\uC728\uC774 \uB192\uC544\uC9D1\uB2C8\uB2E4."
+    domainAffinities: 0000000006000000
+    conflictGroups:
+    - drawback:risk
+    maximumCredit: 2
+    effects:
+    - bindingId: acquired-trait:drawback:overstrain:effect:0
+      definition: {fileID: 11400000, guid: ab46736f68b07c442bc3c27bbc87e7cc, type: 2}
+      value: 1.06
+      condition: {fileID: 11400000, guid: 662653dcbfd1f3141874e01a19bd7b66, type: 2}
+    capabilityId: acquired-trait:drawback:overstrain:severity
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 0
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Survival
+      - Work
+      conflictGroups:
+      - drawback:risk
+      forbiddenSynergies: []
+      formatterId: acquired-trait:drawback:overstrain:severity
+      applicatorId: acquired-trait:drawback:overstrain:severity
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 10000
+        maximumUnits: 13000
+        quantumUnits: 1000
+        decimalPlaces: 4
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: acquired-trait:drawback:rough-craft
+    displayName: "\uAC70\uCE5C \uC190\uB05D"
+    description: "\uC11C\uB450\uB974\uB294 \uC81C\uC791 \uC2B5\uAD00 \uB54C\uBB38\uC5D0
+      \uC81C\uC791 \uD488\uC9C8 \uC810\uC218\uAC00 \uB0AE\uC544\uC9D1\uB2C8\uB2E4."
+    domainAffinities: 0000000001000000
+    conflictGroups:
+    - drawback:craft
+    maximumCredit: 2
+    effects:
+    - bindingId: acquired-trait:drawback:rough-craft:effect:0
+      definition: {fileID: 11400000, guid: 8c26059caa737df4cb1c0d3159b1d8ec, type: 2}
+      value: -2
+      condition: {fileID: 0}
+    capabilityId: acquired-trait:drawback:rough-craft:severity
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 0
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - FacilityUse
+      - Work
+      conflictGroups:
+      - drawback:craft
+      forbiddenSynergies: []
+      formatterId: acquired-trait:drawback:rough-craft:severity
+      applicatorId: acquired-trait:drawback:rough-craft:severity
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 10000
+        maximumUnits: 13000
+        quantumUnits: 1000
+        decimalPlaces: 4
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: acquired-trait:drawback:sickly
+    displayName: "\uC57D\uD574\uC9C4 \uC800\uD56D"
+    description: "\uC9C8\uBCD1\uC744 \uAC70\uB4ED \uC553\uC740 \uB4A4 \uC9C8\uBCD1
+      \uC800\uD56D\uC774 \uB0AE\uC544\uC9D1\uB2C8\uB2E4."
+    domainAffinities: 020000000500000006000000
+    conflictGroups:
+    - drawback:disease
+    maximumCredit: 2
+    effects:
+    - bindingId: acquired-trait:drawback:sickly:effect:0
+      definition: {fileID: 11400000, guid: d37f0659bb8467047a5cb4b1e1e071d8, type: 2}
+      value: 0.94
+      condition: {fileID: 0}
+    capabilityId: acquired-trait:drawback:sickly:severity
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 0
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Injury
+      - Need
+      - Survival
+      conflictGroups:
+      - drawback:disease
+      forbiddenSynergies: []
+      formatterId: acquired-trait:drawback:sickly:severity
+      applicatorId: acquired-trait:drawback:sickly:severity
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 10000
+        maximumUnits: 13000
+        quantumUnits: 1000
+        decimalPlaces: 4
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: acquired-trait:drawback:slow-disease-recovery
+    displayName: "\uAE34 \uBCD1\uCE58\uB808"
+    description: "\uC624\uB79C \uBCD1\uCE58\uB808\uC758 \uD754\uC801\uC73C\uB85C
+      \uC9C8\uBCD1 \uD68C\uBCF5 \uC18D\uB3C4\uAC00 \uB290\uB824\uC9D1\uB2C8\uB2E4."
+    domainAffinities: 020000000500000006000000
+    conflictGroups:
+    - drawback:disease
+    maximumCredit: 2
+    effects:
+    - bindingId: acquired-trait:drawback:slow-disease-recovery:effect:0
+      definition: {fileID: 11400000, guid: e1aa1fd23428f2c49827202a2edab2ef, type: 2}
+      value: 0.94
+      condition: {fileID: 0}
+    capabilityId: acquired-trait:drawback:slow-disease-recovery:severity
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 0
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Injury
+      - Need
+      - Survival
+      conflictGroups:
+      - drawback:disease
+      forbiddenSynergies: []
+      formatterId: acquired-trait:drawback:slow-disease-recovery:severity
+      applicatorId: acquired-trait:drawback:slow-disease-recovery:severity
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 10000
+        maximumUnits: 13000
+        quantumUnits: 1000
+        decimalPlaces: 4
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: acquired-trait:drawback:slow-recovery
+    displayName: "\uB354\uB518 \uD68C\uBCF5"
+    description: "\uC0C1\uCC98\uB97C \uC548\uACE0 \uBC84\uD2F4 \uB300\uAC00\uB85C
+      \uD68C\uBCF5 \uC18D\uB3C4\uAC00 \uB290\uB824\uC9D1\uB2C8\uB2E4."
+    domainAffinities: 050000000600000009000000
+    conflictGroups:
+    - drawback:recovery
+    maximumCredit: 2
+    effects:
+    - bindingId: acquired-trait:drawback:slow-recovery:effect:0
+      definition: {fileID: 11400000, guid: 4e1b2145320295b44b5951b7e39bd52f, type: 2}
+      value: 0.94
+      condition: {fileID: 0}
+    capabilityId: acquired-trait:drawback:slow-recovery:severity
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 0
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Combat
+      - Injury
+      - Survival
+      conflictGroups:
+      - drawback:recovery
+      forbiddenSynergies: []
+      formatterId: acquired-trait:drawback:slow-recovery:severity
+      applicatorId: acquired-trait:drawback:slow-recovery:severity
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 10000
+        maximumUnits: 13000
+        quantumUnits: 1000
+        decimalPlaces: 4
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: acquired-trait:drawback:social-withdrawal
+    displayName: "\uAD00\uACC4 \uD68C\uD53C"
+    description: "\uAC08\uB4F1\uC758 \uAE30\uC5B5 \uB54C\uBB38\uC5D0 \uAD00\uACC4\uB97C
+      \uD68C\uBCF5\uD558\uB294 \uC18D\uB3C4\uAC00 \uB290\uB824\uC9D1\uB2C8\uB2E4."
+    domainAffinities: 0300000004000000
+    conflictGroups:
+    - drawback:social
+    maximumCredit: 2
+    effects:
+    - bindingId: acquired-trait:drawback:social-withdrawal:effect:0
+      definition: {fileID: 11400000, guid: 32f31fef8eb6d494ca08d45179a5d427, type: 2}
+      value: 0.94
+      condition: {fileID: 0}
+    capabilityId: acquired-trait:drawback:social-withdrawal:severity
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 0
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Mood
+      - Relationship
+      conflictGroups:
+      - drawback:social
+      forbiddenSynergies: []
+      formatterId: acquired-trait:drawback:social-withdrawal:severity
+      applicatorId: acquired-trait:drawback:social-withdrawal:severity
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 10000
+        maximumUnits: 13000
+        quantumUnits: 1000
+        decimalPlaces: 4
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: acquired-trait:drawback:stunted-learning
+    displayName: "\uAD73\uC5B4\uC9C4 \uC2B5\uAD00"
+    description: "\uC775\uC219\uD55C \uBC29\uC2DD\uB9CC \uB418\uD480\uC774\uD574
+      \uC791\uC5C5 \uACBD\uD5D8\uC744 \uC5BB\uB294 \uC18D\uB3C4\uAC00 \uB290\uB824\uC9D1\uB2C8\uB2E4."
+    domainAffinities: 0000000001000000
+    conflictGroups:
+    - drawback:learning
+    maximumCredit: 2
+    effects:
+    - bindingId: acquired-trait:drawback:stunted-learning:effect:0
+      definition: {fileID: 11400000, guid: 7b6cd223d9a9eda43964e6cfee0c6b8e, type: 2}
+      value: 0.94
+      condition: {fileID: 0}
+    capabilityId: acquired-trait:drawback:stunted-learning:severity
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 0
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - FacilityUse
+      - Work
+      conflictGroups:
+      - drawback:learning
+      forbiddenSynergies: []
+      formatterId: acquired-trait:drawback:stunted-learning:severity
+      applicatorId: acquired-trait:drawback:stunted-learning:severity
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 10000
+        maximumUnits: 13000
+        quantumUnits: 1000
+        decimalPlaces: 4
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: acquired-trait:drawback:tunnel-vision
+    displayName: "\uD3B8\uD611\uD55C \uBAB0\uC785"
+    description: "\uD55C \uBC29\uC2DD\uC5D0 \uB9E4\uB2EC\uB9AC\uB294 \uC2B5\uAD00
+      \uB54C\uBB38\uC5D0 \uC5F0\uAD6C \uC18D\uB3C4\uAC00 \uB290\uB824\uC9D1\uB2C8\uB2E4."
+    domainAffinities: 0000000001000000
+    conflictGroups:
+    - drawback:research
+    maximumCredit: 2
+    effects:
+    - bindingId: acquired-trait:drawback:tunnel-vision:effect:0
+      definition: {fileID: 11400000, guid: 3790d32843ae6be41bcfbace26296424, type: 2}
+      value: 0.96
+      condition: {fileID: 0}
+    capabilityId: acquired-trait:drawback:tunnel-vision:severity
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 0
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - FacilityUse
+      - Work
+      conflictGroups:
+      - drawback:research
+      forbiddenSynergies: []
+      formatterId: acquired-trait:drawback:tunnel-vision:severity
+      applicatorId: acquired-trait:drawback:tunnel-vision:severity
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 10000
+        maximumUnits: 13000
+        quantumUnits: 1000
+        decimalPlaces: 4
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: acquired-trait:drawback:unsafe-appetite
+    displayName: "\uBD88\uC548\uD55C \uC2DD\uC131"
+    description: "\uACB0\uD54D \uB4A4 \uC74C\uC2DD\uC744 \uAC00\uB9AC\uC9C0 \uC54A\uB294
+      \uBC84\uB987\uC73C\uB85C \uC2DD\uC911\uB3C5 \uD655\uB960\uC774 \uB192\uC544\uC9D1\uB2C8\uB2E4."
+    domainAffinities: 0200000006000000
+    conflictGroups:
+    - drawback:food-safety
+    maximumCredit: 2
+    effects:
+    - bindingId: acquired-trait:drawback:unsafe-appetite:effect:0
+      definition: {fileID: 11400000, guid: ffdcdf8e15e0089408a2b667a5ba6a76, type: 2}
+      value: 1.08
+      condition: {fileID: 0}
+    capabilityId: acquired-trait:drawback:unsafe-appetite:severity
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 0
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Need
+      - Survival
+      conflictGroups:
+      - drawback:food-safety
+      forbiddenSynergies: []
+      formatterId: acquired-trait:drawback:unsafe-appetite:severity
+      applicatorId: acquired-trait:drawback:unsafe-appetite:severity
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 10000
+        maximumUnits: 13000
+        quantumUnits: 1000
+        decimalPlaces: 4
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: acquired-trait:drawback:voracious
+    displayName: "\uCEE4\uC9C4 \uC18C\uBAA8"
+    description: "\uACB0\uD54D\uC744 \uBC84\uD2F4 \uB4A4 \uD3C9\uC18C \uC18C\uBE44\uB7C9\uC774
+      \uB298\uC5B4\uB0A9\uB2C8\uB2E4."
+    domainAffinities: 0200000006000000
+    conflictGroups:
+    - drawback:consumption
+    maximumCredit: 2
+    effects:
+    - bindingId: acquired-trait:drawback:voracious:effect:0
+      definition: {fileID: 11400000, guid: 4c10a3b16899e31478c3820a16829879, type: 2}
+      value: 1.06
+      condition: {fileID: 0}
+    capabilityId: acquired-trait:drawback:voracious:severity
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 0
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Need
+      - Survival
+      conflictGroups:
+      - drawback:consumption
+      forbiddenSynergies: []
+      formatterId: acquired-trait:drawback:voracious:severity
+      applicatorId: acquired-trait:drawback:voracious:severity
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 10000
+        maximumUnits: 13000
+        quantumUnits: 1000
+        decimalPlaces: 4
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: acquired-trait:drawback:wasteful-salvage
+    displayName: "\uC131\uAE34 \uD574\uCCB4"
+    description: "\uAE09\uD558\uAC8C \uD68C\uC218\uD558\uB294 \uBC84\uB987 \uB54C\uBB38\uC5D0
+      \uD574\uCCB4 \uC218\uC728\uC774 \uB0AE\uC544\uC9D1\uB2C8\uB2E4."
+    domainAffinities: 0000000008000000
+    conflictGroups:
+    - drawback:salvage
+    maximumCredit: 2
+    effects:
+    - bindingId: acquired-trait:drawback:wasteful-salvage:effect:0
+      definition: {fileID: 11400000, guid: d12b9b7b836e4b74ba36c9f9731971ea, type: 2}
+      value: 0.94
+      condition: {fileID: 0}
+    capabilityId: acquired-trait:drawback:wasteful-salvage:severity
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 0
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Expedition
+      - Work
+      conflictGroups:
+      - drawback:salvage
+      forbiddenSynergies: []
+      formatterId: acquired-trait:drawback:wasteful-salvage:severity
+      applicatorId: acquired-trait:drawback:wasteful-salvage:severity
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 10000
+        maximumUnits: 13000
+        quantumUnits: 1000
+        decimalPlaces: 4
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: acquired-trait:drawback:weak-haul
+    displayName: "\uC904\uC5B4\uB4E0 \uC6B4\uBC18\uB825"
+    description: "\uBC18\uBCF5\uB41C \uACFC\uB85C \uB54C\uBB38\uC5D0 \uD55C \uBC88\uC5D0
+      \uC62E\uAE30\uB294 \uC591\uC774 \uC904\uC5B4\uB4ED\uB2C8\uB2E4."
+    domainAffinities: 0000000005000000
+    conflictGroups:
+    - drawback:haul
+    maximumCredit: 2
+    effects:
+    - bindingId: acquired-trait:drawback:weak-haul:effect:0
+      definition: {fileID: 11400000, guid: 751701faebc52fe48b9475917d457fc6, type: 2}
+      value: 0.94
+      condition: {fileID: 0}
+    capabilityId: acquired-trait:drawback:weak-haul:severity
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 0
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Injury
+      - Work
+      conflictGroups:
+      - drawback:haul
+      forbiddenSynergies: []
+      formatterId: acquired-trait:drawback:weak-haul:severity
+      applicatorId: acquired-trait:drawback:weak-haul:severity
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 10000
+        maximumUnits: 13000
+        quantumUnits: 1000
+        decimalPlaces: 4
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: acquired-trait:drawback:weak-immunity-gain
+    displayName: "\uB354\uB518 \uBA74\uC5ED"
+    description: "\uAC10\uC5FC\uC5D0\uC11C \uD68C\uBCF5\uD574\uB3C4 \uBA74\uC5ED\uC744
+      \uC5BB\uB294 \uC18D\uB3C4\uAC00 \uB290\uB9BD\uB2C8\uB2E4."
+    domainAffinities: 020000000500000006000000
+    conflictGroups:
+    - drawback:immunity
+    maximumCredit: 2
+    effects:
+    - bindingId: acquired-trait:drawback:weak-immunity-gain:effect:0
+      definition: {fileID: 11400000, guid: 1287b4c4540f6a74ba020616984e1b91, type: 2}
+      value: 0.94
+      condition: {fileID: 0}
+    capabilityId: acquired-trait:drawback:weak-immunity-gain:severity
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 0
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Injury
+      - Need
+      - Survival
+      conflictGroups:
+      - drawback:immunity
+      forbiddenSynergies: []
+      formatterId: acquired-trait:drawback:weak-immunity-gain:severity
+      applicatorId: acquired-trait:drawback:weak-immunity-gain:severity
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 10000
+        maximumUnits: 13000
+        quantumUnits: 1000
+        decimalPlaces: 4
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: acquired-trait:drawback:weak-immunity-retention
+    displayName: "\uC605\uC740 \uBA74\uC5ED"
+    description: "\uC5BB\uC740 \uBA74\uC5ED\uC774 \uC624\uB798 \uC720\uC9C0\uB418\uC9C0
+      \uC54A\uC2B5\uB2C8\uB2E4."
+    domainAffinities: 020000000500000006000000
+    conflictGroups:
+    - drawback:immunity
+    maximumCredit: 2
+    effects:
+    - bindingId: acquired-trait:drawback:weak-immunity-retention:effect:0
+      definition: {fileID: 11400000, guid: 41dc7eaa6f18ee544929c46b62e8ad0c, type: 2}
+      value: 0.94
+      condition: {fileID: 0}
+    capabilityId: acquired-trait:drawback:weak-immunity-retention:severity
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 0
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Injury
+      - Need
+      - Survival
+      conflictGroups:
+      - drawback:immunity
+      forbiddenSynergies: []
+      formatterId: acquired-trait:drawback:weak-immunity-retention:severity
+      applicatorId: acquired-trait:drawback:weak-immunity-retention:severity
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 10000
+        maximumUnits: 13000
+        quantumUnits: 1000
+        decimalPlaces: 4
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: acquired-trait:drawback:work-fatigue
+    displayName: "\uC27D\uAC8C \uC313\uC774\uB294 \uD53C\uB85C"
+    description: "\uBB34\uB9AC\uD55C \uC791\uC5C5\uC758 \uD6C4\uC720\uC99D\uC73C\uB85C
+      \uD53C\uB85C\uAC00 \uB354 \uBE68\uB9AC \uC313\uC785\uB2C8\uB2E4."
+    domainAffinities: 000000000500000006000000
+    conflictGroups:
+    - drawback:fatigue
+    maximumCredit: 2
+    effects:
+    - bindingId: acquired-trait:drawback:work-fatigue:effect:0
+      definition: {fileID: 11400000, guid: 0efffa6163b1c1d4ab0721b231ffa8ad, type: 2}
+      value: 1.08
+      condition: {fileID: 0}
+    capabilityId: acquired-trait:drawback:work-fatigue:severity
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 0
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Injury
+      - Survival
+      - Work
+      conflictGroups:
+      - drawback:fatigue
+      forbiddenSynergies: []
+      formatterId: acquired-trait:drawback:work-fatigue:severity
+      applicatorId: acquired-trait:drawback:work-fatigue:severity
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 10000
+        maximumUnits: 13000
+        quantumUnits: 1000
+        decimalPlaces: 4
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: acquired-trait:drawback:worn-reflex
+    displayName: "\uBB34\uB38C\uC9C4 \uBC18\uC0AC"
+    description: "\uAC70\uB4ED \uACF5\uACA9\uC744 \uBC1B\uC544 \uD68C\uD53C \uD655\uB960\uC774
+      \uB0AE\uC544\uC9D1\uB2C8\uB2E4."
+    domainAffinities: 050000000700000009000000
+    conflictGroups:
+    - drawback:evasion
+    maximumCredit: 2
+    effects:
+    - bindingId: acquired-trait:drawback:worn-reflex:effect:0
+      definition: {fileID: 11400000, guid: fb93b8072ad1340499a5bac22450b4dc, type: 2}
+      value: -0.02
+      condition: {fileID: 0}
+    capabilityId: acquired-trait:drawback:worn-reflex:severity
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 0
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Combat
+      - Injury
+      - Invasion
+      conflictGroups:
+      - drawback:evasion
+      forbiddenSynergies: []
+      formatterId: acquired-trait:drawback:worn-reflex:severity
+      applicatorId: acquired-trait:drawback:worn-reflex:severity
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 10000
+        maximumUnits: 13000
+        quantumUnits: 1000
+        decimalPlaces: 4
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1

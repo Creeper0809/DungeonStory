@@ -1,0 +1,9 @@
+prepared=authored pen building:1a1965bf125c4aee9bad599964e260f4; pet=wild:9; penCell=(18, 1); hp=10; actual owner alternatives=3; hunger=0.2387451; thirst=0.2259266
+PASS ownerUI=character:staff:1:01
+PASS autonomousFollow (18, 1) -> (22, 1); owner=(24, 1)
+PASS nonlethalPhysicalDamage=10->9; captured/owner preserved through ticks
+PASS actualCareReturn=(22, 1)->(18, 1); owner=(23, 1); thirst=0.4684615; owner/custody retained; no remote need recovery
+pet=wild:9; petCell=(18, 1); petHP=9; hunger=0.2743529; thirst=0.4684615; intent=동행 이동 · 돌봄 복귀; owner=character:staff:1:01; ownerCell=(23, 1); gameTime=11.10506
+result=PASS
+scope=controlled authored pen/domestic birth, one public nonlethal damage and one thirst perturbation; actual player movement, autonomous follow and care return. No remote feed/need reset, synthetic combat result or whole restore rerun. Not animal haul, encounter balance or six-adult certification.
+cleanup=paused disposable main Play, operator stops; disk persistence disabled before owner UI; original environment restored

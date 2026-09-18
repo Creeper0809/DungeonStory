@@ -120,6 +120,9 @@ public sealed class ResourceEconomyContentCatalog : IResourceEconomyContentCatal
             feature.moodEffect,
             feature.workSpeedEffect,
             feature.combatEffect,
+            feature.fatigueAccumulationReduction,
+            feature.researchSpeedEffect,
+            feature.suppressesPerceivedPain,
             feature.durationSeconds,
             item.RequiredResearchId);
     }

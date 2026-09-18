@@ -27,6 +27,7 @@ MonoBehaviour:
   targetNodeId: 
   requiredResearchId: research:medical:blood-rejuvenation
   requiredFacilityTags: 8192
+  primaryFacilityDefinitionId: 8869
   requiredWork: 72
   difficultyPenalty: 0.16
   baseInfectionRisk: 0.02

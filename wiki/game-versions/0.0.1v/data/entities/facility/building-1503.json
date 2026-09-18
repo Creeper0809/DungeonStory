@@ -16,6 +16,6 @@
   "schema_version": 1,
   "slug": "building-1503",
   "spoiler_tier": "none",
-  "summary": "시설 동작은 BuildingAirDuctAbility, BuildingEconomyAbility, BuildingEvolutionAbility, BuildingFacilityPartAbility, BuildingWorkAmountAbility 모듈로 구성된다. 건설에는 작업량 353, 재료 목재×3, 철괴×3, 기계 부품×3이 필요하다.",
+  "summary": "시설 동작은 BuildingAirDuctAbility, BuildingEconomyAbility, BuildingEvolutionAbility, BuildingFacilityPartAbility, BuildingWorkAmountAbility 모듈로 구성된다. 건설에는 작업량 494 WU, 재료 목재×3, 철괴×3, 기계 부품×3이 필요하다.",
   "title": "환기덕트"
 }

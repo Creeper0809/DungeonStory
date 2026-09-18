@@ -12,10 +12,13 @@ public static class InvasionSaveValidation
     public const int MaximumOperations = 256;
     public const int MaximumKnownRisks = 512;
     public const int MaximumExpectedPathCells = 4096;
+    public const int MaximumResidentEvacuees = 2048;
+    public const int MaximumResidentEvacuationRoomSpans = 4096;
 
     private const string CustomPolicyPrefix = DefenseResponsePolicyIds.CustomPrefix;
     private const string EngagementPrefix = "defense-engagement:";
     private const string OperationPrefix = "human-operation:";
+    private const int EndlessCombatAxisProtocolValue = 5;
 
     private static readonly IReadOnlyDictionary<string, DefenseResponsePolicyKind>
         BuiltInPolicyKinds =
@@ -73,19 +76,26 @@ public static class InvasionSaveValidation
             return;
         }
 
-        ValidateThreat(payload.threat, report);
+        ValidateThreat(
+            payload.threat,
+            payload.activeIntruders,
+            report);
         HashSet<string> intruderIds = ValidateIntruders(
             payload.activeIntruders,
             patterns,
             report);
         ValidatePolicies(payload.responsePolicies, report);
         ValidateEngagements(payload.engagements, intruderIds, report);
-        ValidateOwnerEvacuation(payload.ownerEvacuation, report);
+        ValidateOwnerEvacuation(
+            payload.ownerEvacuation,
+            payload.activeIntruders.Count > 0,
+            report);
         ValidateCampaign(payload.campaign, report);
     }
 
     private static void ValidateThreat(
         DungeonInvasionThreatSaveData threat,
+        IReadOnlyList<DungeonInvasionIntruderSaveData> activeIntruders,
         DungeonGameRestoreReport report)
     {
         if (!IsFiniteNonNegative(threat.currentThreat)
@@ -107,6 +117,45 @@ public static class InvasionSaveValidation
         {
             report.AddError(
                 "Invasion threat cannot be pending after its candidate was raised.");
+        }
+
+        string candidateOwner =
+            threat.endlessCrisisCandidateEffectOwnerId ?? string.Empty;
+        string responseOwner =
+            threat.endlessCrisisDirectResponseOwnerId ?? string.Empty;
+        string responseRuntimeId =
+            threat.endlessCrisisDirectResponseRuntimeId ?? string.Empty;
+        bool hasCandidateOwner = candidateOwner.Length > 0;
+        bool hasResponseOwner = responseOwner.Length > 0;
+        if (hasCandidateOwner
+            && (!IsEndlessCombatEffectOwner(candidateOwner)
+                || hasResponseOwner
+                || !threat.candidateRaisedThisCycle
+                || responseRuntimeId.Length > 0))
+        {
+            report.AddError(
+                "Invasion threat contains a malformed endless-crisis candidate owner.");
+        }
+        if (hasResponseOwner
+            && (!responseOwner.EndsWith(":invasion", StringComparison.Ordinal)
+                || !IsEndlessCombatEffectOwner(responseOwner.Substring(
+                    0,
+                    responseOwner.Length - ":invasion".Length))
+                || hasCandidateOwner
+                || !IsCanonicalId(responseRuntimeId)
+                || activeIntruders.Count(value => value != null
+                    && string.Equals(
+                        value.runtimeId,
+                        responseRuntimeId,
+                        StringComparison.Ordinal)) != 1))
+        {
+            report.AddError(
+                "Invasion threat contains a malformed endless-crisis direct-response owner.");
+        }
+        if (!hasResponseOwner && responseRuntimeId.Length > 0)
+        {
+            report.AddError(
+                "Invasion threat contains a detached endless-crisis response runtime id.");
         }
     }
 
@@ -522,6 +571,7 @@ public static class InvasionSaveValidation
 
     private static void ValidateOwnerEvacuation(
         OwnerEvacuationSaveSnapshot evacuation,
+        bool hasActiveIntruders,
         DungeonGameRestoreReport report)
     {
         if (evacuation.statusText == null
@@ -529,6 +579,142 @@ public static class InvasionSaveValidation
         {
             report.AddError("Owner evacuation snapshot has invalid status text.");
         }
+
+        ValidateResidentEvacuation(evacuation, hasActiveIntruders, report);
+    }
+
+    private static void ValidateResidentEvacuation(
+        OwnerEvacuationSaveSnapshot evacuation,
+        bool hasActiveIntruders,
+        DungeonGameRestoreReport report)
+    {
+        ResidentEvacuationZoneSaveData zone = evacuation.residentZone;
+        if (zone == null || evacuation.residentParticipants == null)
+        {
+            report.AddError("Resident evacuation snapshot is missing required state.");
+            return;
+        }
+        if (!Enum.IsDefined(typeof(ResidentEvacuationZoneStatus), zone.status))
+        {
+            report.AddError("Resident evacuation zone has an invalid status.");
+            return;
+        }
+        if (zone.cellSpans == null
+            || zone.cellSpans.Count > MaximumResidentEvacuationRoomSpans
+            || evacuation.residentParticipants.Count > MaximumResidentEvacuees)
+        {
+            report.AddError("Resident evacuation snapshot exceeds its collection limits.");
+            return;
+        }
+
+        bool hasZone = zone.status != ResidentEvacuationZoneStatus.None;
+        if (hasZone != (zone.cellSpans.Count > 0)
+            || zone.status != ResidentEvacuationZoneStatus.Active
+                && evacuation.residentParticipants.Count > 0)
+        {
+            report.AddError("Resident evacuation zone and participant state are inconsistent.");
+        }
+        if (!hasActiveIntruders && evacuation.residentParticipants.Count > 0)
+        {
+            report.AddError(
+                "Resident evacuation participants require an active invasion.");
+        }
+        if (!hasZone && (zone.anchorX != 0 || zone.anchorY != 0))
+        {
+            report.AddError(
+                "An empty resident evacuation zone cannot retain an anchor.");
+        }
+
+        bool anchorIncluded = false;
+        int previousY = int.MinValue;
+        int previousEndX = int.MinValue;
+        foreach (ResidentEvacuationRoomCellSpanSaveData span in zone.cellSpans)
+        {
+            if (span == null || span.length <= 0)
+            {
+                report.AddError("Resident evacuation zone contains an invalid cell span.");
+                continue;
+            }
+
+            long endExclusive = (long)span.startX + span.length;
+            if (endExclusive > int.MaxValue + 1L
+                || span.y < previousY
+                || span.y == previousY
+                    && (long)span.startX <= (long)previousEndX + 1L)
+            {
+                report.AddError("Resident evacuation zone spans are not canonical and disjoint.");
+            }
+            previousY = span.y;
+            previousEndX = (int)(endExclusive - 1L);
+            anchorIncluded |= zone.anchorY == span.y
+                && zone.anchorX >= span.startX
+                && (long)zone.anchorX < endExclusive;
+        }
+        if (hasZone && !anchorIncluded)
+        {
+            report.AddError("Resident evacuation zone anchor is outside its canonical cells.");
+        }
+
+        HashSet<string> characterIds = new HashSet<string>(StringComparer.Ordinal);
+        HashSet<(int x, int y)> targetCells = new HashSet<(int x, int y)>();
+        foreach (ResidentEvacuationParticipantSaveData participant in
+                 evacuation.residentParticipants)
+        {
+            string characterId = participant?.characterId ?? string.Empty;
+            if (participant == null
+                || !IsCanonicalId(characterId)
+                || !characterIds.Add(characterId)
+                || !Enum.IsDefined(
+                    typeof(ResidentEvacuationParticipantStatus),
+                    participant.status))
+            {
+                report.AddError(
+                    $"Resident evacuation contains invalid participant '{characterId}'.");
+                continue;
+            }
+
+            bool hasTarget = participant.status is
+                ResidentEvacuationParticipantStatus.PendingRoute
+                or ResidentEvacuationParticipantStatus.Moving
+                or ResidentEvacuationParticipantStatus.Holding
+                or ResidentEvacuationParticipantStatus.PreemptedEmergency;
+            if (hasTarget
+                && (!Contains(zone.cellSpans, participant.targetX, participant.targetY)
+                    || !targetCells.Add((participant.targetX, participant.targetY))))
+            {
+                report.AddError(
+                    $"Resident evacuation participant '{characterId}' has an invalid or duplicate target.");
+            }
+            else if (!hasTarget
+                && (participant.targetX != 0 || participant.targetY != 0))
+            {
+                report.AddError(
+                    $"Resident evacuation participant '{characterId}' has a target without a routable status.");
+            }
+        }
+    }
+
+    private static bool Contains(
+        IReadOnlyList<ResidentEvacuationRoomCellSpanSaveData> spans,
+        int x,
+        int y)
+    {
+        if (spans == null)
+        {
+            return false;
+        }
+        for (int index = 0; index < spans.Count; index++)
+        {
+            ResidentEvacuationRoomCellSpanSaveData span = spans[index];
+            if (span != null
+                && span.y == y
+                && x >= span.startX
+                && (long)x < (long)span.startX + span.length)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void ValidateCampaign(
@@ -640,6 +826,25 @@ public static class InvasionSaveValidation
             && id.StartsWith(prefix, StringComparison.Ordinal)
             && int.TryParse(id.Substring(prefix.Length), out sequence)
             && sequence > 0;
+    }
+
+    private static bool IsEndlessCombatEffectOwner(string value)
+    {
+        if (!IsCanonicalId(value))
+        {
+            return false;
+        }
+
+        string[] segments = value.Split(':');
+        return segments.Length == 5
+            && string.Equals(segments[0], "endless-crisis", StringComparison.Ordinal)
+            && int.TryParse(segments[1], out int cycle)
+            && cycle > 0
+            && int.TryParse(segments[2], out int startedAbsoluteDay)
+            && startedAbsoluteDay > 0
+            && string.Equals(segments[3], "axis", StringComparison.Ordinal)
+            && int.TryParse(segments[4], out int axis)
+            && axis == EndlessCombatAxisProtocolValue;
     }
 
     private static bool IsCanonicalId(string value)

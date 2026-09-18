@@ -103,6 +103,9 @@ namespace DungeonStory.Infrastructure
         public string sourceId = string.Empty;
         public int count = 1;
         public bool dismissed;
+        public bool resolved;
+        public string resultSummary = string.Empty;
+        public string choiceFailureDetail = string.Empty;
         public List<DungeonEventAlertChoiceSaveData> choices = new();
     }
 
@@ -176,9 +179,29 @@ namespace DungeonStory.Operation
 
                 if (record.detail == null
                     || record.category == null
-                    || record.sourceId == null)
+                    || record.sourceId == null
+                    || record.resultSummary == null
+                    || record.choiceFailureDetail == null)
                 {
                     errors.Add($"Event-alert record {record.id} has null text fields.");
+                }
+
+                if (record.resolved
+                        && (string.IsNullOrWhiteSpace(record.sourceId)
+                            || string.IsNullOrWhiteSpace(record.resultSummary)
+                            || (record.choices?.Count ?? 0) > 0
+                            || !string.IsNullOrEmpty(
+                                record.choiceFailureDetail))
+                    || !record.resolved
+                        && !string.IsNullOrEmpty(record.resultSummary)
+                    || !string.IsNullOrEmpty(record.choiceFailureDetail)
+                        && !string.Equals(
+                            record.choiceFailureDetail,
+                            record.choiceFailureDetail.Trim(),
+                            StringComparison.Ordinal))
+                {
+                    errors.Add(
+                        $"Event-alert record {record.id} has an invalid result or choice failure.");
                 }
 
                 ValidateChoices(record, errors);

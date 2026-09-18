@@ -1,0 +1,5 @@
+result=PASS
+PASS nine real Hallway occupants: eight remaining event cells after explicit origin exclusion; no blanket articulation exclusion
+PASS body exclusion, one retained access for multi-access operation, sole-access protection
+PASS door/stair/landing/origin protection, claimed-cell subtraction, grid query purity
+scope=production cell selector over real Grid occupancy and controlled horizontal room/parts; no natural festival attendance, main venue eligibility or six-adult claim

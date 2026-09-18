@@ -1,0 +1,7 @@
+WIM030 crystal-beetle carapace: PASS
+catalog=resource:crystal-beetle-carapace; mass=1000g; displayPrice=5; consumer=none (decorative output)
+butcher=wild:carcass:crystal_beetle 4000g -> 1 carapace 1000g + wildlife-carcass-butcher-loss 3000g
+rejection=source preserved; retry=single committed output; repeated consumption=blocked; save=current physical-item round trip
+publisher-readonly-inspection=matches current authoring; secondPublish=NOT_RUN (use the dedicated no-op operator entry)
+publisher-target-paths=Assets/Resources/SO/Economy/Items/resource_crystal_beetle_carapace.asset | Assets/Resources/SO/V20/Ecology/Wildlife/wildlife_crystal_beetle.asset | Assets/Resources/SO/Content/ItemDefinitionCatalog.asset
+scope=isolated physical-item runtime fixture; not natural wildlife AI or whole-world-save proof; D03 workSeconds=1 is not asserted as 1 WU

@@ -37,7 +37,7 @@ public static class FacilityDebugScenarios
     {
         List<string> errors = new List<string>();
 
-        RunScenario("P1 시설 에셋 수", VerifyP1AssetCounts, errors);
+        RunScenario("활성 시설 에셋 집합", VerifyFacilityAssetSet, errors);
         RunScenario("방문 후보 판정", VerifyVisitability, errors);
         RunScenario("작업 후보 판정", VerifyWorkability, errors);
         RunScenario("재고/파손 제외", VerifyUnavailableFacilitiesAreExcluded, errors);
@@ -77,34 +77,38 @@ public static class FacilityDebugScenarios
         errors.Add(name);
     }
 
-    private static bool VerifyP1AssetCounts()
+    private static bool VerifyFacilityAssetSet()
     {
-        List<BuildingSO> buildings = AssetDatabase.FindAssets("t:BuildingSO", new[] { "Assets/Resources/SO/Building/P1" })
+        List<BuildingSO> buildings = AssetDatabase.FindAssets(
+                "t:BuildingSO",
+                new[] { "Assets/Resources/SO/Building" })
             .Select(AssetDatabase.GUIDToAssetPath)
             .Select(AssetDatabase.LoadAssetAtPath<BuildingSO>)
             .Where((building) => building != null)
             .ToList();
-        int baseManagementBuildingCount = buildings
-            .Count((building) => building != null
-                && building.id < 30
-                && (building.Defense == null || !building.Defense.IsDefenseFacility));
-        int synthesisManagementBuildingCount = buildings
-            .Count((building) => building != null
-                && building.id >= 50
-                && building.id < 60
-                && (building.Defense == null || !building.Defense.IsDefenseFacility));
-        string[] stocks = AssetDatabase.FindAssets("t:StockInfo", new[] { "Assets/Resources/SO/Stock/P1" });
-        return baseManagementBuildingCount == 9
-            && synthesisManagementBuildingCount == 4
-            && stocks.Length >= 8;
+        BuildingSO[] activeRepresentatives =
+        {
+            AssetDatabase.LoadAssetAtPath<BuildingSO>(
+                "Assets/Resources/SO/Building/Modular/S01_판매카운터.asset"),
+            AssetDatabase.LoadAssetAtPath<BuildingSO>(
+                "Assets/Resources/SO/Building/Modular/Q01_연구책상.asset"),
+            AssetDatabase.LoadAssetAtPath<BuildingSO>(
+                "Assets/Resources/SO/Building/Modular/L01_대형보관선반.asset")
+        };
+        string[] stocks = AssetDatabase.FindAssets(
+            "t:StockInfo",
+            new[] { "Assets/Resources/SO/Stock/Modular" });
+        return buildings.All(building => !building.IsDeprecatedCompatibilityAsset)
+            && activeRepresentatives.All(building => building != null)
+            && stocks.Length >= 1;
     }
 
     private static bool VerifyVisitability()
     {
         using FacilityScenarioWorld world = new FacilityScenarioWorld();
-        BuildableObject lowFood = world.Place("P1_LowFoodShop", new Vector2Int(1, 0));
-        BuildableObject restRoom = world.Place("P1_RestRoom", new Vector2Int(5, 0));
-        BuildableObject warehouse = world.Place("P1_Warehouse", new Vector2Int(9, 0));
+        BuildableObject lowFood = world.Place("S01_판매카운터", new Vector2Int(1, 0));
+        BuildableObject restRoom = world.Place("R01_간이침대", new Vector2Int(5, 0));
+        BuildableObject warehouse = world.Place("L01_대형보관선반", new Vector2Int(9, 0));
 
         List<BuildableObject> visitable = world.Grid.SearchPath(Vector2Int.zero).GetAllVisitableBuilding();
         return visitable.Contains(lowFood)
@@ -115,9 +119,9 @@ public static class FacilityDebugScenarios
     private static bool VerifyWorkability()
     {
         using FacilityScenarioWorld world = new FacilityScenarioWorld();
-        BuildableObject shop = world.Place("P1_LowFoodShop", new Vector2Int(1, 0));
-        BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(5, 0));
-        BuildableObject warehouse = world.Place("P1_Warehouse", new Vector2Int(9, 0));
+        BuildableObject shop = world.Place("S01_판매카운터", new Vector2Int(1, 0));
+        BuildableObject lab = world.Place("Q01_연구책상", new Vector2Int(5, 0));
+        BuildableObject warehouse = world.Place("L01_대형보관선반", new Vector2Int(9, 0));
 
         return shop is IWorkableFacility shopWork
             && lab is IWorkableFacility labWork
@@ -130,8 +134,8 @@ public static class FacilityDebugScenarios
     private static bool VerifyUnavailableFacilitiesAreExcluded()
     {
         using FacilityScenarioWorld world = new FacilityScenarioWorld();
-        BuildableObject shop = world.Place("P1_LowFoodShop", new Vector2Int(1, 0));
-        BuildableObject restRoom = world.Place("P1_RestRoom", new Vector2Int(5, 0));
+        BuildableObject shop = world.Place("S01_판매카운터", new Vector2Int(1, 0));
+        BuildableObject restRoom = world.Place("R01_간이침대", new Vector2Int(5, 0));
 
         ClearShopStock(shop);
         restRoom.SetDamaged(true);
@@ -162,7 +166,7 @@ public static class FacilityDebugScenarios
     private static bool VerifyWarehouseInventory()
     {
         using FacilityScenarioWorld world = new FacilityScenarioWorld();
-        BuildableObject warehouseBuilding = world.Place("P1_Warehouse", new Vector2Int(5, 0));
+        BuildableObject warehouseBuilding = world.Place("L01_대형보관선반", new Vector2Int(5, 0));
 
         if (warehouseBuilding is not IWarehouseFacility warehouse
             || !warehouse.HasWarehouseInventory
@@ -183,8 +187,8 @@ public static class FacilityDebugScenarios
     private static bool VerifyShopRestockRequestDoesNotMutateStock()
     {
         using FacilityScenarioWorld world = new FacilityScenarioWorld();
-        BuildableObject shopBuilding = world.Place("P1_LowFoodShop", new Vector2Int(1, 0));
-        BuildableObject warehouseBuilding = world.Place("P1_Warehouse", new Vector2Int(7, 0));
+        BuildableObject shopBuilding = world.Place("S01_판매카운터", new Vector2Int(1, 0));
+        BuildableObject warehouseBuilding = world.Place("L01_대형보관선반", new Vector2Int(7, 0));
         Shop shop = shopBuilding as Shop;
         IWarehouseFacility warehouse = warehouseBuilding as IWarehouseFacility;
         ClearShopStock(shopBuilding);
@@ -260,7 +264,7 @@ public static class FacilityDebugScenarios
     private static bool VerifyDeliveryRequiresPhysicalRuntime()
     {
         using FacilityScenarioWorld world = new FacilityScenarioWorld();
-        BuildableObject warehouseBuilding = world.Place("P1_Warehouse", new Vector2Int(5, 0));
+        BuildableObject warehouseBuilding = world.Place("L01_대형보관선반", new Vector2Int(5, 0));
         IWarehouseFacility warehouse = warehouseBuilding as IWarehouseFacility;
         GameSessionState gameData = CreateGameData(500);
         warehouse.Inventory.ConsumePhysicalStockForTest(StockCategory.Food, 10);
@@ -293,7 +297,7 @@ public static class FacilityDebugScenarios
     private static bool VerifyPurchaseDeliveryFailureConditions()
     {
         using FacilityScenarioWorld world = new FacilityScenarioWorld();
-        BuildableObject warehouseBuilding = world.Place("P1_Warehouse", new Vector2Int(5, 0));
+        BuildableObject warehouseBuilding = world.Place("L01_대형보관선반", new Vector2Int(5, 0));
         IWarehouseFacility warehouse = warehouseBuilding as IWarehouseFacility;
         GameSessionState poorData = CreateGameData(1);
         GameSessionState richData = CreateGameData(500);
@@ -357,7 +361,7 @@ public static class FacilityDebugScenarios
     private static bool VerifyDefenseRewardRequiresPhysicalRuntime()
     {
         using FacilityScenarioWorld world = new FacilityScenarioWorld();
-        BuildableObject warehouseBuilding = world.Place("P1_Warehouse", new Vector2Int(5, 0));
+        BuildableObject warehouseBuilding = world.Place("L01_대형보관선반", new Vector2Int(5, 0));
         IWarehouseFacility warehouse = warehouseBuilding as IWarehouseFacility;
         warehouse.Inventory.ConsumePhysicalStockForTest(StockCategory.Weapon, 5);
 
@@ -381,7 +385,7 @@ public static class FacilityDebugScenarios
     private static bool VerifyInternalProductionRequiresPhysicalRuntime()
     {
         using FacilityScenarioWorld world = new FacilityScenarioWorld();
-        BuildableObject warehouseBuilding = world.Place("P1_Warehouse", new Vector2Int(5, 0));
+        BuildableObject warehouseBuilding = world.Place("L01_대형보관선반", new Vector2Int(5, 0));
         IWarehouseFacility warehouse = warehouseBuilding as IWarehouseFacility;
         warehouse.Inventory.ConsumePhysicalStockForTest(StockCategory.Mana, 4);
 
@@ -439,7 +443,7 @@ public static class FacilityDebugScenarios
         public BuildableObject Place(string assetName, Vector2Int position)
         {
             BuildingSO buildingData = AssetDatabase.LoadAssetAtPath<BuildingSO>(
-                $"Assets/Resources/SO/Building/P1/{assetName}.asset");
+                $"Assets/Resources/SO/Building/Modular/{assetName}.asset");
             GridBuildingFactory factory = new GridBuildingFactory((building) =>
                 InjectBuildableObject(building));
             BuildableObject building = factory.Create(Grid, buildingData, position);

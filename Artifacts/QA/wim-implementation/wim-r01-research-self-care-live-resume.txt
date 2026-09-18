@@ -1,0 +1,10 @@
+[PASS] actual preparation estimate=adult1/45WU/day/0.4day; actual enqueue; cap1/17WU unchanged
+perturbation=thirst:60; source=(35, 2); progress=6; partialRaw=0.1673581/6; soleContribution=1
+[PASS] routine AI interruption/lease0; drinkGameSeconds=0.07980347; physicalWaterDelta=-1; stableProgress=6; thirstAfter=100
+worker=character:staff:1:01; action=; research=False; participants=0; progress=6; generic=0.1673581/6; thirst=80.00003; cell=(33, 2)
+result=FAIL
+System.InvalidOperationException: Autonomous same-project research resumption timed out: worker=character:staff:1:01; action=; research=False; participants=0; progress=6; generic=0.1673581/6; thirst=80.00003; cell=(33, 2)
+  at WimR01ResearchSelfCareLiveRunner+<WaitFor>d__19.MoveNext () [0x00089] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Economy\Editor\WimR01ResearchSelfCareLiveRunner.cs:221 
+  at WimR01ResearchSelfCareLiveRunner+<Observe>d__17.MoveNext () [0x0004b] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Economy\Editor\WimR01ResearchSelfCareLiveRunner.cs:64 
+scope=actual owner/party and research UI; single real staff AI, physical drink and resume; one initial healthy-needs setup, priorities and one routine-thirst perturbation are controlled. No action-list replacement, forced drink/stop-work/progress, daily productivity, paired-run timing or collaborative-research claim.
+cleanup=paused disposable Play; operator stops; user persistence disabled before owner selection

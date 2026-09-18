@@ -71,6 +71,7 @@ internal sealed class ShopCrimeRuntime
         if (!owner.TryTakeExactRetailLot(
                 stolenStock.id,
                 out RetailStockLotSnapshot stolenLot,
+                out string unitOperationId,
                 out _))
         {
             return false;
@@ -100,7 +101,13 @@ internal sealed class ShopCrimeRuntime
 
         int lossValue = Mathf.Max(0, stolenStock.cost);
         string detail = BuildCrimeDetail(actor, stolenStock, lossValue, chance);
-        owner.PublishShopliftingCrime(actor, detail, lossValue);
+        string commitOperationId = $"shoplifting-commit:{unitOperationId}";
+        owner.PublishShopliftingCrime(
+            actor,
+            detail,
+            lossValue,
+            commitOperationId,
+            stolenLot);
         actor?.RecordActivity(owner, new BuildingActivitySnapshot(
             BuildingActivityKinds.Social,
             BuildingActivityOutcomes.Damaged,

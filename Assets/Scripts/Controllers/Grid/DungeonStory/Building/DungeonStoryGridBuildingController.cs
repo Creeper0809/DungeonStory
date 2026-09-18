@@ -765,39 +765,7 @@ public class DungeonStoryGridBuildingController : MonoBehaviour
             Building = placement.Building
         };
 
-        if (!ModularFacilityInitialPlacementMigrator.TryExpand(
-                relocated,
-                FindBuildingDataById,
-                out IReadOnlyList<InitialBuildInfo> expanded))
-        {
-            yield return relocated;
-            yield break;
-        }
-
-        BuildingSO roomBoundary = FindBuildingDataById(7);
-        if (roomBoundary != null)
-        {
-            int startX = position.x - (placement.Building.width / 2);
-            int endX = startX + Mathf.Max(1, placement.Building.width) - 1;
-            yield return new InitialBuildInfo
-            {
-                Position = new Vector2Int(startX - 1, position.y),
-                Building = roomBoundary
-            };
-            yield return new InitialBuildInfo
-            {
-                Position = new Vector2Int(endX + 1, position.y),
-                Building = roomBoundary
-            };
-        }
-
-        foreach (InitialBuildInfo item in expanded)
-        {
-            if (item != null)
-            {
-                yield return item;
-            }
-        }
+        yield return relocated;
     }
 
     private static bool HasAnyGridOccupants(Grid grid)
@@ -840,16 +808,38 @@ public class DungeonStoryGridBuildingController : MonoBehaviour
     {
         if (grid == null) return 0;
 
-        int count = 0;
+        var occupants = new HashSet<IGridOccupant>(GridOccupantReferenceEqualityComparer.Instance);
+        var cellOccupants = new List<IGridOccupant>();
         foreach (GridCell cell in grid.GetCells())
         {
-            if (cell != null && cell.HasOccupant())
+            if (cell == null)
             {
-                count++;
+                continue;
+            }
+
+            cellOccupants.Clear();
+            cell.FillAllOccupants(cellOccupants);
+            foreach (IGridOccupant occupant in cellOccupants)
+            {
+                if (occupant != null)
+                {
+                    occupants.Add(occupant);
+                }
             }
         }
 
-        return count;
+        return occupants.Count;
+    }
+
+    private sealed class GridOccupantReferenceEqualityComparer : IEqualityComparer<IGridOccupant>
+    {
+        public static readonly GridOccupantReferenceEqualityComparer Instance = new();
+
+        public bool Equals(IGridOccupant left, IGridOccupant right) =>
+            ReferenceEquals(left, right);
+
+        public int GetHashCode(IGridOccupant value) =>
+            value == null ? 0 : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(value);
     }
 
     private void OnGridExpand()

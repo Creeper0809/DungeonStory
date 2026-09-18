@@ -1,7 +1,8 @@
-RESULT=PASS; sourceDigest=e58aafa0c7957f936dcffe836e64c3aa5c9a9d08460b9aa4f6bc3faaa03cf99a; population=6; effectiveMilliWu=270000; recurringMilliWu=85568; recurringSharePermille=317
+RESULT=PASS; sourceDigest=2c817991e2ca8ff193c115224ee92f9b5077e9056014d2be49bbe449ae4fd8dd; population=6; effectiveMilliWu=270000; recurringMilliWu=86618; recurringSharePermille=321
 PASS V27_SIX_ADULT_FOOD_GROSS_125 demand=300000 gross=375000
 PASS V27_SIX_ADULT_FOOD_NET_110 target=330000 grossProduced=420000
+PASS V27_SIX_ADULT_AUTHORED_INPUT grainBatch=6 mealBatch=6 mealWork=28000 cookingWaterPerCycle=3400 cropDailyWater=350 cropSow=3000 cropHarvest=6000 cropYield=6 refillWork=1000
 PASS V27_SIX_ADULT_WATER_GROSS_125 demand=5539 gross=6924 totalWithProduction=14047
-PASS V27_SIX_ADULT_RECURRING_WU_35 crop=18000 cooking=50008 water=17560 total=85568
+PASS V27_SIX_ADULT_RECURRING_WU_35 crop=18000 cooking=50008 waterProduction=17560 manualRefill=1050 total=86618
 PASS V27_SEVEN_DAY_PHYSICAL_RESERVE grain=60 immediateMeals=12 cleanWater=99;requiredStorageMassGrams=77700;maximumRelevantStackMassGrams=30000
 PASS V27_SURVIVAL_NPLUSONE paths=10

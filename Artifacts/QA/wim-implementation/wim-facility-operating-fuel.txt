@@ -1,0 +1,6 @@
+Facility-local operating fuel / actual environmental step
+scope=controlled initial facility state and clock; real field/Light2D/state module
+not-tested=physical delivery/sink ACK, full-world restore, daily event or six-adult balance
+[PASS] local-only light; running180->179->178; calendar/query/pause/disable retain fuel; resume177
+[PASS] exact current module round-trip; negative/version/invalid-mutation rejection unchanged; running exhaustion without refill/replay
+result=PASS

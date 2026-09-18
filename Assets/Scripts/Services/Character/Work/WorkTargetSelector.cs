@@ -121,7 +121,12 @@ public sealed class WorkTargetSelector
         }
 
         bool canStartWork = work.CanStartWorkAction();
-        if (!canStartWork && !HasUrgentAvailableWorkWithLegacyType(searchResult, requestedWorkType))
+        bool urgentScanDeferred = false;
+        if (!canStartWork
+            && !HasUrgentAvailableWorkWithLegacyType(
+                searchResult,
+                requestedWorkType,
+                out urgentScanDeferred))
         {
             work.AssignWork(null, FacilityWorkType.None);
             work.WorkerActor?.AddActivity(CharacterActivityEvent.Create(
@@ -136,6 +141,14 @@ public sealed class WorkTargetSelector
 
         if (!canStartWork)
         {
+            if (urgentScanDeferred)
+            {
+                // A bounded scan has not yet proved that urgent work exists.
+                // Keep the current duty state and let the next AI pass resume it.
+                work.AssignWork(null, FacilityWorkType.None);
+                return false;
+            }
+
             work.SetDutyState(AbilityWork.DutyState.OnDuty);
             work.WorkerActor?.AddActivity(CharacterActivityEvent.Create(
                 CharacterActivityKinds.Duty,
@@ -223,6 +236,18 @@ public sealed class WorkTargetSelector
         GridPathSearchResult searchResult,
         FacilityWorkType requestedWorkType)
     {
+        return HasUrgentAvailableWorkWithLegacyType(
+            searchResult,
+            requestedWorkType,
+            out _);
+    }
+
+    private bool HasUrgentAvailableWorkWithLegacyType(
+        GridPathSearchResult searchResult,
+        FacilityWorkType requestedWorkType,
+        out bool deferred)
+    {
+        deferred = false;
         if (searchResult == null && work.WorkerActor?.Brain != null)
         {
             AdvanceIncrementalCandidateScan(
@@ -230,8 +255,13 @@ public sealed class WorkTargetSelector
                 out _,
                 out WorkTargetCandidate urgentCandidate,
                 out _,
-                out _);
-            return urgentCandidate.IsValid
+                out bool complete);
+            deferred = !complete;
+            // CanStart has no tri-state result. Returning true while deferred
+            // only allows the action evaluator to reach typed destination
+            // resolution; it is not evidence that urgent work was found.
+            return deferred
+                || urgentCandidate.IsValid
                 && urgentCandidate.UrgencyScore >= 60f;
         }
 
@@ -344,6 +374,20 @@ public sealed class WorkTargetSelector
                 LastRejectedCandidate = rejected;
             }
 
+            bool deferProtectedSelection = useCache
+                && !scanComplete
+                && !work.CanStartWorkAction();
+            if (useCache
+                && !scanComplete
+                && (!best.IsValid || deferProtectedSelection))
+            {
+                best = WorkTargetCandidate.Invalid(
+                    null,
+                    "Work candidate scan is waiting for the next bounded work slice.",
+                    AIActionFailureKind.FacilityCandidateDeferred);
+                found = false;
+            }
+
             if (useCache && scanComplete)
             {
                 candidateCache[requestedWorkType] = new CandidateCacheEntry(
@@ -453,9 +497,19 @@ public sealed class WorkTargetSelector
         int workOrderVersion =
             work.WorkOrderRuntime?.WorkOrderCandidateVersion ?? -1;
 
-        if (!incrementalScans.TryGetValue(
-                requestedWorkType,
-                out IncrementalCandidateScan scan)
+        bool hasExistingScan = incrementalScans.TryGetValue(
+            requestedWorkType,
+            out IncrementalCandidateScan scan);
+        bool continueAfterDynamicChange = hasExistingScan
+            && !scan.Complete
+            && scan.CandidateIndexVersion == candidateIndexVersion
+            && scan.DynamicStateVersion != dynamicStateVersion
+            && scan.GridVersion == gridVersion
+            && scan.BuildingVersion == buildingVersion
+            && scan.WorkOrderVersion == workOrderVersion
+            && !facilityCache.HasPendingIndexBuild
+            && source.Count > 0;
+        if (!hasExistingScan
             || scan.CandidateIndexVersion != candidateIndexVersion
             || scan.DynamicStateVersion != dynamicStateVersion
             || scan.GridVersion != gridVersion
@@ -465,6 +519,14 @@ public sealed class WorkTargetSelector
                 && frame - scan.CompletedFrame
                     >= CompletedCandidateRefreshFrames))
         {
+            int startOffset = continueAfterDynamicChange
+                ? (scan.StartOffset + scan.EvaluatedCount) % source.Count
+                : facilityCache.HasPendingIndexBuild
+                    ? 0
+                    : ResolveCandidateStartOffset(
+                        actor,
+                        source,
+                        requestedWorkType);
             scan = new IncrementalCandidateScan
             {
                 Source = source,
@@ -473,9 +535,7 @@ public sealed class WorkTargetSelector
                 GridVersion = gridVersion,
                 BuildingVersion = buildingVersion,
                 WorkOrderVersion = workOrderVersion,
-                StartOffset = facilityCache.HasPendingIndexBuild
-                    ? 0
-                    : ResolveCandidateStartOffset(actor, source.Count)
+                StartOffset = startOffset
             };
             incrementalScans[requestedWorkType] = scan;
         }
@@ -584,6 +644,29 @@ public sealed class WorkTargetSelector
         CharacterId characterId = CharacterPersistentIdentity.Require(actor);
         uint stableId = PersistentEntityId.GetStableHash32(characterId);
         return (int)(stableId % (uint)candidateCount);
+    }
+
+    private int ResolveCandidateStartOffset(
+        CharacterActor actor,
+        IReadOnlyList<BuildableObject> candidates,
+        FacilityWorkType requestedWorkType)
+    {
+        int candidateCount = candidates?.Count ?? 0;
+        if (candidateCount > 0
+            && work.HasEmergencyResponseWorkGateForDiagnostics
+            && FacilityWorkTypeMap.TryGetWorkTypeId(
+                requestedWorkType,
+                out WorkTypeId requestedWorkTypeId)
+            && requestedWorkTypeId
+                == work.EmergencyResponseOnlyWorkTypeForDiagnostics
+            && RuntimeWorkCapabilityUtility.Supports(
+                candidates[0],
+                requestedWorkTypeId))
+        {
+            return 0;
+        }
+
+        return ResolveCandidateStartOffset(actor, candidateCount);
     }
 
     public bool TryGetBestAnyCandidate(

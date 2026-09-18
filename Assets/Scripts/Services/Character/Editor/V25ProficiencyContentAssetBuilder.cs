@@ -444,26 +444,20 @@ public static class V25ProficiencyContentAssetBuilder
 
         ProficiencyWorkProfile profile = id switch
         {
-            "D01_간이화덕" or "D02_고기그릴" or "D12_술음료장"
-                or "HamburgerStore" or "P1_LowFoodShop"
-                or "P1_MeatRestaurant" or "P1_PremiumMeatRestaurant" =>
+            "D01_간이화덕" or "D02_고기그릴" or "D12_술음료장" =>
                 Primary(BuiltInCharacterProficiencyIds.FoodProduction),
-            "D04_배식카운터" or "P1_BattleDining"
-                or "P1_BattlefieldDining" or "P1_NobleDining" =>
+            "D04_배식카운터" =>
                 Weighted(
                     BuiltInCharacterProficiencyIds.FoodProduction,
                     BuiltInCharacterProficiencyIds.Social),
-            "P1_GeneralStore" or "P1_WeaponShop" or "S01_판매카운터"
-                or "WeaponStore" =>
+            "S01_판매카운터" =>
                 Primary(BuiltInCharacterProficiencyIds.Social),
-            "P1_RestRoom" or "RF06_운반_멜빵_걸이"
-                or "RF53_계절_저장_선반" =>
+            "RF06_운반_멜빵_걸이" or "RF53_계절_저장_선반" =>
                 Primary(BuiltInCharacterProficiencyIds.Fieldwork),
-            "P1_TrainingRoom" or "P1_WarBarracks"
-                or "T03_중량훈련석" =>
+            "T03_중량훈련석" =>
                 Primary(BuiltInCharacterProficiencyIds.MeleeCombat),
             "M01_마력수정선반" or "M02_마력저장조"
-                or "M04_의식초점석" or "P1_ManaStorage"
+                or "M04_의식초점석"
                 or "RF05_의식_화로" or "RF33_룬_제어반"
                 or "RF49_계절력_기록대" =>
                 Primary(BuiltInCharacterProficiencyIds.Scholarship),

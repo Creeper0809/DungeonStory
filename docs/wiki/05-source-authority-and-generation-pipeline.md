@@ -129,7 +129,7 @@ qa/excluded-records.json
 
 AI가 위키를 수정할 때 다음 순서를 강제한다.
 
-1. `AGENT.md`와 이 계획의 README를 읽는다.
+1. `AGENTS.md`와 이 계획의 README를 읽는다.
 2. knowledge-base freshness를 검사하고 query로 관련 stable ID·관계를 좁힌다.
 3. 사실 변경이면 원천 권위와 밸런스 절차를 수정한다. 생성 JSON이나 HTML은 직접 고치지 않는다.
 4. 게임 업데이트에 따른 설명 변경이면 새 게임 버전 폴더를 먼저 만든 뒤 그 폴더의 허용된 curated overlay만 고친다. 게임 버전 변화 없는 설명 정정은 같은 게임 버전의 errata 기록과 별도 위키 배포 release ID로 추적한다.

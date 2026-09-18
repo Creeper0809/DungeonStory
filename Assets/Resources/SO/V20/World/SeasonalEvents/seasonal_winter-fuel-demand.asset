@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: DungeonStory.Content::SeasonalWorldEventDefinitionSO
   stableId: seasonal:winter-fuel-demand
   displayName: "\uC5F0\uB8CC \uC7C1\uD0C8"
-  description: "\uC8FC\uBCC0 \uC138\uB825\uC774 \uC5F0\uB8CC \uACC4\uC57D\uC744 \uC694\uAD6C\uD574
-    \uB09C\uBC29\uACFC \uC678\uAD50\uAC00 \uCDA9\uB3CC\uD55C\uB2E4."
+  description: "\uC8FC\uBCC0 \uC138\uB825\uC774 \uB09C\uBC29 \uC5F0\uB8CC \uACC4\uC57D\uC744 \uC81C\uC2DC\uD55C\uB2E4. \uC218\uB77D\uD558\uBA74 \uC0AC\uAC74 \uC885\uB8CC \uC804 \uC22F 8\uAC1C\uB97C \uC2E4\uC81C \uB0A9\uD488\uD574\uC57C \uD55C\uB2E4."
   authoringRevision: 1
   sourceNote: V20 hand-authored seasonal world event manifest.
   season: 3
   minimumDurationDays: 2
   maximumDurationDays: 4
+  worldWaterRegenerationMultiplier: 1
   affectedDomainIds:
   - faction
   - facility
@@ -33,11 +33,7 @@ MonoBehaviour:
     worldMetrics: []
     requiredFlags: []
     excludedFlags: []
-  startEffects:
-  - kind: 11
-    targetId: material:charcoal
-    amount: 8
-    durationDays: 4
+  startEffects: []
   dailyEffects: []
   endEffects:
   - kind: 12

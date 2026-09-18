@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "피부 손상과 방어구 마찰을 줄이는 연고이다. 므네실라의 수액 연고는 마르지 않도록 잎기름으로 표면을 덮고, 바닥의 침전물은 다음 항아리의 농도를 맞추는 데 쓴다.",
+  "in_game_description": "피부 손상과 방어구 마찰을 줄이는 연고이다. 므네실라에서는 수액 연고 찌꺼기까지 버리지 않는다. 물기를 빼면 공동 정원의 다음 흙이 된다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

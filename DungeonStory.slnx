@@ -8,6 +8,7 @@
   <Project Path="DungeonStory.Survival.csproj" />
   <Project Path="DungeonStory.Presentation.csproj" />
   <Project Path="VContainer.csproj" />
+  <Project Path="DungeonStory.Items.csproj" />
   <Project Path="DungeonStory.Buildings.csproj" />
   <Project Path="DungeonStory.Content.csproj" />
   <Project Path="DungeonStory.Evolution.csproj" />
@@ -19,6 +20,7 @@
   <Project Path="DungeonStory.Wildlife.csproj" />
   <Project Path="DamageNumbersPro.csproj" />
   <Project Path="DungeonStory.Meta.csproj" />
+  <Project Path="DungeonStory.Foundation.csproj" />
   <Project Path="DungeonStory.Invasion.csproj" />
   <Project Path="DungeonStory.Work.csproj" />
   <Project Path="DungeonStory.Factions.csproj" />
@@ -27,7 +29,6 @@
   <Project Path="Assembly-CSharp-firstpass.csproj" />
   <Project Path="DungeonStory.Operation.csproj" />
   <Project Path="DungeonStory.Medical.csproj" />
-  <Project Path="DungeonStory.Foundation.csproj" />
   <Project Path="DungeonStory.Rooms.csproj" />
   <Project Path="DungeonStory.Architecture.Tests.csproj" />
   <Project Path="DungeonStory.Characters.csproj" />
@@ -42,7 +43,6 @@
   <Project Path="DungeonStory.Run.csproj" />
   <Project Path="DungeonStory.FacilityEvolution.csproj" />
   <Project Path="DungeonStory.CharacterNeeds.csproj" />
-  <Project Path="DungeonStory.Items.csproj" />
   <Project Path="DungeonStory.Synthesis.csproj" />
   <Project Path="DungeonStory.Recruitment.Editor.csproj" />
   <Project Path="DungeonStory.FacilityShop.Editor.csproj" />

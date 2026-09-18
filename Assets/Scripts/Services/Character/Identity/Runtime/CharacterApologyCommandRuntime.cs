@@ -87,7 +87,8 @@ public sealed class CharacterApologyCommandRuntime : ICharacterApologyCommand
             recipientId,
             "betrayal-or-assault",
             restitutionProvided,
-            calendar.Day));
+            calendar.Day,
+            $"apology-operation:{Guid.NewGuid():N}"));
         return true;
     }
 }

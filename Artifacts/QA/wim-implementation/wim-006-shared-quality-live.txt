@@ -1,0 +1,8 @@
+PASS
+shared-general-recipe=recipe:cold-work-suit
+actual-automatic-mode-command=PASS
+main-EventSystem-quality-button=PASS
+unreachable-start-physical-stock-invariant=PASS
+attainable-target-resumes=PASS
+research-checkpoint=FIXTURE_ONLY
+natural-powered-output=NOT_RUN

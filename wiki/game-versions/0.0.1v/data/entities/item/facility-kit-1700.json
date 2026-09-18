@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "숙박 접수대에서 손님이 짐을 두고 안전하게 쉴 수 있게 꾸린 설치 부품이며, 라카쉬 세갈래길에서도 같은 규격으로 조립한다.",
+  "in_game_description": "숙박 접수대에서 손님이 짐을 두고 안전하게 쉴 수 있게 꾸린 설치 부품이다. 라카쉬 세갈래길의 숙박 접수대 출구에는 물건값보다 다음 안전한 길을 크게 그린 지도가 걸려 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

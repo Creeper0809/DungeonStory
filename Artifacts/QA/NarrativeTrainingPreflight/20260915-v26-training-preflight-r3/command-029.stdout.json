@@ -1,0 +1,31 @@
+{
+  "success": true,
+  "command": "job wait",
+  "data": {
+    "jobId": "c3a2b46624a14811a86c798e90a7510a",
+    "command": "eval",
+    "state": "completed",
+    "cancellationRequested": false,
+    "result": {
+      "output": null,
+      "diagnostics": [],
+      "success": true,
+      "command": "eval",
+      "result": {
+        "passed": true,
+        "owner": "V25NarrativeInferenceDebugScenarios",
+        "method": "VerifyBundledLlamaCppBackendContract"
+      },
+      "executionTimeMs": 41,
+      "message": null,
+      "error": null,
+      "errorDetails": null,
+      "executedAt": "2026-09-15T11:23:58.9597824Z"
+    },
+    "error": null,
+    "errorDetails": null,
+    "progress": null
+  },
+  "errors": [],
+  "warnings": []
+}

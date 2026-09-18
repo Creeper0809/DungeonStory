@@ -188,13 +188,13 @@ public static class ExperiencePacingDebugScenarios
                 failures);
         }
 
-        BuildingSO advanced = AssetDatabase.LoadAssetAtPath<BuildingSO>(
-            "Assets/Resources/SO/Building/P1/P1_ResearchLab.asset");
-        Require(advanced?.GetAbility<BuildingResearchCapacityAbility>()?
+        BuildingSO design = AssetDatabase.LoadAssetAtPath<BuildingSO>(
+            "Assets/Resources/SO/Building/Modular/Q06_설계판.asset");
+        Require(design?.GetAbility<BuildingResearchCapacityAbility>()?
                 .Contributions.Any(contribution =>
-                    contribution.capability == ResearchFacilityCapabilityId.Advanced
+                    contribution.capability == ResearchFacilityCapabilityId.Design
                     && contribution.capacity >= 1) == true,
-            "P1 research lab must provide Advanced capacity",
+            "Q06 design board must provide Design capacity",
             failures);
     }
 

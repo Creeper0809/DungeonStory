@@ -1,0 +1,16 @@
+{
+  "success": true,
+  "command": "job status",
+  "data": {
+    "jobId": "66517b8cbe98405aa535ef189a895a06",
+    "command": "eval",
+    "state": "running",
+    "cancellationRequested": false,
+    "result": null,
+    "error": null,
+    "errorDetails": null,
+    "progress": null
+  },
+  "errors": [],
+  "warnings": []
+}

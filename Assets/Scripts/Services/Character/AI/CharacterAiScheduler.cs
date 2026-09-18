@@ -45,6 +45,9 @@ public sealed class CharacterAiScheduler : MonoBehaviour
     private readonly List<CharacterActor> actors = new List<CharacterActor>();
     private readonly HashSet<CharacterActor> actorSet = new HashSet<CharacterActor>();
     private readonly Dictionary<CharacterActor, float> nextDecisionTime = new Dictionary<CharacterActor, float>();
+    private readonly Dictionary<CharacterActor, CharacterAiRetryKind>
+        scheduledRetryKinds =
+            new Dictionary<CharacterActor, CharacterAiRetryKind>();
     private readonly HashSet<CharacterActor> urgentDecisionRequests =
         new HashSet<CharacterActor>();
     private readonly HashSet<CharacterActor> missingBehaviorTreeLogged = new HashSet<CharacterActor>();
@@ -134,6 +137,7 @@ public sealed class CharacterAiScheduler : MonoBehaviour
     public void ResetDecisionQueueForDiagnostics()
     {
         DecisionSchedule.Clear();
+        scheduledRetryKinds.Clear();
         urgentDecisionRequests.Clear();
         float now = CurrentSchedulingTime;
         for (int index = 0; index < actors.Count; index++)
@@ -204,6 +208,7 @@ public sealed class CharacterAiScheduler : MonoBehaviour
         actors.Clear();
         actorSet.Clear();
         DecisionSchedule.Clear();
+        scheduledRetryKinds.Clear();
         urgentDecisionRequests.Clear();
         missingBehaviorTreeLogged.Clear();
         missingExternalBehaviorLogged.Clear();
@@ -231,6 +236,7 @@ public sealed class CharacterAiScheduler : MonoBehaviour
         }
 
         DecisionSchedule.Clear();
+        scheduledRetryKinds.Clear();
         urgentDecisionRequests.Clear();
         float now = CurrentSchedulingTime;
         foreach (CharacterActor actor in orderedActors)
@@ -377,6 +383,7 @@ public sealed class CharacterAiScheduler : MonoBehaviour
         RegisterInternal(actor);
         urgentDecisionRequests.Add(actor);
         DecisionSchedule.Schedule(actor, CurrentSchedulingTime);
+        scheduledRetryKinds.Remove(actor);
     }
 
     public bool TryConsumePathSearchBudget()
@@ -391,6 +398,15 @@ public sealed class CharacterAiScheduler : MonoBehaviour
 
     public bool ShouldShowCharacterFeedbackFor(CharacterActor actor)
     {
+        IMainCameraProvider cameraProvider = RequireMainCameraProvider();
+        if (!cameraProvider.TryGetCamera(out Camera camera))
+        {
+            // Feedback is optional presentation. During scene teardown the
+            // registered Camera can disappear before the character log's UI
+            // subscriber is disabled, so fail closed without weakening the
+            // required Camera getter used by movement and input authorities.
+            return false;
+        }
         if (!enabled || !limitFeedbackToVisibleCharacters)
         {
             return true;
@@ -398,7 +414,7 @@ public sealed class CharacterAiScheduler : MonoBehaviour
 
         return cadencePolicy.IsHighDetailCharacter(
             actor,
-            RequireMainCameraProvider().Camera,
+            camera,
             BuildCadenceSettings());
     }
 
@@ -496,6 +512,7 @@ public sealed class CharacterAiScheduler : MonoBehaviour
         actors.Clear();
         actorSet.Clear();
         DecisionSchedule.Clear();
+        scheduledRetryKinds.Clear();
         urgentDecisionRequests.Clear();
         missingBehaviorTreeLogged.Clear();
         missingExternalBehaviorLogged.Clear();
@@ -520,6 +537,27 @@ public sealed class CharacterAiScheduler : MonoBehaviour
         }
 
         return Mathf.Max(0f, dueTime - CurrentSchedulingTime);
+    }
+
+    public CharacterAiDecisionScheduleObservation CaptureDecisionSchedule(
+        CharacterActor actor)
+    {
+        if (actor == null
+            || !nextDecisionTime.TryGetValue(actor, out float dueTime))
+        {
+            return CharacterAiDecisionScheduleObservation.Unscheduled;
+        }
+
+        CharacterAiRetryKind retryKind = scheduledRetryKinds.TryGetValue(
+            actor,
+            out CharacterAiRetryKind observedKind)
+                ? observedKind
+                : CharacterAiRetryKind.None;
+        return new CharacterAiDecisionScheduleObservation(
+            isScheduled: true,
+            dueTime: dueTime,
+            observedAt: CurrentSchedulingTime,
+            retryKind: retryKind);
     }
 
     private void ProcessAiBudget(float now)
@@ -663,6 +701,13 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                         break;
                     }
 
+                    CharacterAiRetryKind attemptedRetryKind =
+                        scheduledRetryKinds.TryGetValue(
+                            actor,
+                            out CharacterAiRetryKind scheduledRetryKind)
+                                ? scheduledRetryKind
+                                : CharacterAiRetryKind.None;
+                    scheduledRetryKinds.Remove(actor);
                     urgentDecisionRequests.Remove(actor);
                     bool hasSelectedActionWaitingToStart = HasSelectedActionWaitingToStart(actor);
                     BehaviorTree behaviorTree = actor.BehaviorTree;
@@ -689,6 +734,7 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                             now,
                             decided: false,
                             retryScheduled: false);
+                        scheduledRetryKinds.Remove(actor);
                         continue;
                     }
 
@@ -712,7 +758,10 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                     bool decided;
                     try
                     {
-                        actor.Brain?.NotifyRetryAttempted();
+                        if (attemptedRetryKind != CharacterAiRetryKind.None)
+                        {
+                            actor.Brain?.NotifyRetryAttempted();
+                        }
                         decided = TryRunScheduledDecision(actor);
                     }
                     finally
@@ -747,16 +796,32 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                         ? retryDelay
                         : decided ? GetDecisionInterval(actor) : retryDelay;
                     bool retryScheduled = hasPendingDecisionWork || !decided;
+                    CharacterAiRetryKind retryKind = retryScheduled
+                        ? ResolveRetryKind(brain, decided)
+                        : CharacterAiRetryKind.None;
                     if (retryScheduled)
                     {
-                        brain?.NotifyRetryScheduled(nextDelay);
+                        brain?.NotifyRetryScheduled(nextDelay, retryKind);
                     }
                     brain?.NotifySchedulerDecisionProcessed(
                         scheduled.DueTime,
                         now,
                         decided,
                         retryScheduled);
-                    DecisionSchedule.Schedule(actor, now + nextDelay);
+                    float requestedDueTime = now + nextDelay;
+                    DecisionSchedule.Schedule(actor, requestedDueTime);
+                    bool ownsRequestedSchedule = nextDecisionTime.TryGetValue(
+                            actor,
+                            out float actualDueTime)
+                        && Mathf.Abs(actualDueTime - requestedDueTime) <= 0.0001f;
+                    if (retryScheduled && ownsRequestedSchedule)
+                    {
+                        scheduledRetryKinds[actor] = retryKind;
+                    }
+                    else
+                    {
+                        scheduledRetryKinds.Remove(actor);
+                    }
                     LastProcessedDecisionCount++;
                     cumulativeProcessedDecisionCount++;
                     if (starved)
@@ -875,6 +940,35 @@ public sealed class CharacterAiScheduler : MonoBehaviour
         return characterWorld;
     }
 
+    private static CharacterAiRetryKind ResolveRetryKind(
+        AIBrain brain,
+        bool decided)
+    {
+        if (brain?.IsPathSearchDeferred == true)
+        {
+            return CharacterAiRetryKind.PathSearch;
+        }
+        if (brain?.IsActionScoringPending == true
+            || brain?.IsPreferredActionDeferred == true)
+        {
+            return CharacterAiRetryKind.CandidateEvaluation;
+        }
+
+        CharacterOperationBlockSnapshot block =
+            brain?.CaptureCurrentOperationBlock() ?? default;
+        if (block.HasCurrentBlock
+            && block.RetryKind == CharacterAiRetryKind.ExecutorDeferred)
+        {
+            return CharacterAiRetryKind.ExecutorDeferred;
+        }
+        if (!decided && block.HasCurrentBlock && block.HasKnownExpiry)
+        {
+            return CharacterAiRetryKind.FailureCooldown;
+        }
+
+        return CharacterAiRetryKind.DecisionRetry;
+    }
+
     private void RegisterInternal(CharacterActor actor)
     {
         if (actor == null || !actorSet.Add(actor))
@@ -888,6 +982,7 @@ public sealed class CharacterAiScheduler : MonoBehaviour
             actor.Brain?.ConfigureDeterministicActionScoringForDiagnostics(true);
         }
         actors.Add(actor);
+        scheduledRetryKinds.Remove(actor);
         float now = CurrentSchedulingTime;
         DecisionSchedule.Schedule(
             actor,
@@ -1035,10 +1130,13 @@ public sealed class CharacterAiScheduler : MonoBehaviour
         if (!actorSet.Remove(actor))
         {
             DecisionSchedule.Remove(actor);
+            scheduledRetryKinds.Remove(actor);
             return;
         }
 
         DecisionSchedule.Remove(actor);
+        scheduledRetryKinds.Remove(actor);
+        actor.Brain?.ClearOperationDiagnosticsForLifecycle();
         budgetState.RemoveActor(actor);
         urgentDecisionRequests.Remove(actor);
         int index = actors.IndexOf(actor);
@@ -1058,6 +1156,8 @@ public sealed class CharacterAiScheduler : MonoBehaviour
         CharacterActor actor = actors[index];
         actorSet.Remove(actor);
         DecisionSchedule.Remove(actor);
+        scheduledRetryKinds.Remove(actor);
+        actor?.Brain?.ClearOperationDiagnosticsForLifecycle();
         budgetState.RemoveActor(actor);
         urgentDecisionRequests.Remove(actor);
         actors.RemoveAt(index);

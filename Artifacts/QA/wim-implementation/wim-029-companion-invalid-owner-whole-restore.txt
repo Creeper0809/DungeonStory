@@ -1,0 +1,6 @@
+accepted=False
+errors=Section 'circus' failed preflight: Circus restore candidate is invalid: Captured wildlife 'wild:9' references ineligible companion owner 'character:staff:wim-missing'.
+liveCircusUnchanged=True
+hpUnchanged=True
+cellUnchanged=True
+rolePreserved=True

@@ -21,6 +21,7 @@ MonoBehaviour:
   season: 3
   minimumDurationDays: 1
   maximumDurationDays: 3
+  worldWaterRegenerationMultiplier: 1
   affectedDomainIds:
   - expedition
   - logistics

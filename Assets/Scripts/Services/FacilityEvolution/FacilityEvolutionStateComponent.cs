@@ -49,6 +49,9 @@ public sealed class FacilityEvolutionPendingMaterialCommitSnapshot
     public FacilityEvolutionMaterialCommitPhase phase;
     public string[] resolvedMutationTags = Array.Empty<string>();
     public string resolvedResultPayload;
+    public string evidenceAnchorId = string.Empty;
+    public List<GameplayOutcomeEvidenceBindingSnapshot> evidenceBindings = new();
+    public bool evidenceUseCompleted;
 
     public FacilityEvolutionPendingMaterialCommitSnapshot Clone()
     {
@@ -67,7 +70,14 @@ public sealed class FacilityEvolutionPendingMaterialCommitSnapshot
             historySequence = historySequence,
             phase = phase,
             resolvedMutationTags = (resolvedMutationTags ?? Array.Empty<string>()).ToArray(),
-            resolvedResultPayload = resolvedResultPayload
+            resolvedResultPayload = resolvedResultPayload,
+            evidenceAnchorId = evidenceAnchorId ?? string.Empty,
+            evidenceBindings = (evidenceBindings
+                    ?? new List<GameplayOutcomeEvidenceBindingSnapshot>())
+                .Where(value => value != null)
+                .Select(value => value.Clone())
+                .ToList(),
+            evidenceUseCompleted = evidenceUseCompleted
         };
     }
 
@@ -92,6 +102,33 @@ public sealed class FacilityEvolutionPendingMaterialCommitSnapshot
 }
 
 [Serializable]
+public sealed class FacilityEvolutionFormulaPresentationPendingSnapshot
+{
+    public string recipeId = string.Empty;
+    public string sourceFacilityPersistentId = string.Empty;
+    public string presentationId = string.Empty;
+    public EvolutionNode node = new();
+    public int failureCount;
+    public string lastFailureReason = string.Empty;
+    // Empty until the exact three-key presentation has been accepted for commit.
+    // These values are then copied only into the resolved material snapshot.
+    public string displayName = string.Empty;
+    public string narrativeFlavor = string.Empty;
+
+    public FacilityEvolutionFormulaPresentationPendingSnapshot Clone() => new()
+    {
+        recipeId = recipeId ?? string.Empty,
+        sourceFacilityPersistentId = sourceFacilityPersistentId ?? string.Empty,
+        presentationId = presentationId ?? string.Empty,
+        node = node?.Clone() ?? new EvolutionNode(),
+        failureCount = Mathf.Clamp(failureCount, 0, 5),
+        lastFailureReason = lastFailureReason ?? string.Empty,
+        displayName = displayName ?? string.Empty,
+        narrativeFlavor = narrativeFlavor ?? string.Empty
+    };
+}
+
+[Serializable]
 public sealed class FacilityEvolutionStateSnapshot
 {
     public string baseFacilityId;
@@ -109,6 +146,7 @@ public sealed class FacilityEvolutionStateSnapshot
     public FacilityEvolutionTokenValue[] recordTokens = Array.Empty<FacilityEvolutionTokenValue>();
     public string[] recordRecentEvents = Array.Empty<string>();
     public FacilityEvolutionPendingMaterialCommitSnapshot pendingMaterialCommit;
+    public FacilityEvolutionFormulaPresentationPendingSnapshot pendingFormulaPresentation;
 }
 
 public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModule
@@ -131,9 +169,13 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
         Array.Empty<FacilityEvolutionTokenValue>();
     [SerializeField] private string[] recordRecentEvents = Array.Empty<string>();
     [SerializeField] private FacilityEvolutionPendingMaterialCommitSnapshot pendingMaterialCommit;
+    [SerializeField] private FacilityEvolutionFormulaPresentationPendingSnapshot pendingFormulaPresentation;
 
     public string ModuleId => BuildingStateModuleIds.FacilityEvolution;
-    public int CurrentVersion => 6;
+    // v8 introduced formula-backed facility lineage nodes. v9 adds unresolved
+    // module-selection state. v10 persists exact evidence-use intent across the
+    // material-publication acknowledgement window; v6/v7 remain immutable legacy state.
+    public int CurrentVersion => 10;
 
     public string BaseFacilityId => baseFacilityId;
     public string CurrentFacilityId => currentFacilityId;
@@ -158,6 +200,8 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
         && pendingMaterialCommit.phase != FacilityEvolutionMaterialCommitPhase.None;
     public FacilityEvolutionPendingMaterialCommitSnapshot PendingMaterialCommit =>
         pendingMaterialCommit?.Clone();
+    public FacilityEvolutionFormulaPresentationPendingSnapshot PendingFormulaPresentation =>
+        pendingFormulaPresentation?.Clone();
 
     public FacilityEvolutionStateSnapshot CreateSnapshot()
     {
@@ -186,12 +230,14 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
                 .Select(entry => new FacilityEvolutionTokenValue(entry.Key, entry.Value))
                 .ToArray(),
             recordRecentEvents = record.RecentEvents.ToArray(),
-            pendingMaterialCommit = pendingMaterialCommit?.Clone()
+            pendingMaterialCommit = pendingMaterialCommit?.Clone(),
+            pendingFormulaPresentation = pendingFormulaPresentation?.Clone()
         };
     }
 
     public void ApplySnapshot(FacilityEvolutionStateSnapshot snapshot)
     {
+        NormalizeAndValidatePendingFormulaSnapshot(snapshot);
         FacilityEvolutionPreparedState prepared =
             FacilityEvolutionAggregateAdapter.Prepare(snapshot);
         PublishPrepared(prepared);
@@ -200,6 +246,9 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
     private void PublishPrepared(FacilityEvolutionPreparedState prepared)
     {
         FacilityEvolutionStateSnapshot snapshot = prepared.SerializableSnapshot;
+        // Defensive repeat for the prepared copy. Public restore/apply validates
+        // the raw snapshot first, before any clone can clamp or prune a value.
+        NormalizeAndValidatePendingFormulaSnapshot(snapshot);
 
         baseFacilityId = snapshot.baseFacilityId ?? string.Empty;
         currentFacilityId = snapshot.currentFacilityId ?? string.Empty;
@@ -241,6 +290,172 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
             .TakeLast(12)
             .ToArray();
         pendingMaterialCommit = snapshot.pendingMaterialCommit?.Clone();
+        pendingFormulaPresentation = snapshot.pendingFormulaPresentation?.Clone();
+    }
+
+    private static void NormalizeAndValidatePendingFormulaSnapshot(
+        FacilityEvolutionStateSnapshot snapshot)
+    {
+        if (snapshot == null)
+        {
+            return;
+        }
+
+        // JsonUtility can materialize a null inline reference as an empty
+        // serializable envelope on restore. Normalize only that exact no-data
+        // sentinel; an envelope carrying any field remains invalid below.
+        snapshot.pendingFormulaPresentation =
+            NormalizeStrictEmptyPendingFormulaEnvelope(
+                snapshot.pendingFormulaPresentation);
+        ValidatePendingFormulaSnapshot(snapshot.pendingFormulaPresentation);
+    }
+
+    private static FacilityEvolutionFormulaPresentationPendingSnapshot
+        NormalizeStrictEmptyPendingFormulaEnvelope(
+            FacilityEvolutionFormulaPresentationPendingSnapshot pending)
+    {
+        return IsStrictlyEmptyPendingFormulaEnvelope(pending) ? null : pending;
+    }
+
+    private static bool IsStrictlyEmptyPendingFormulaEnvelope(
+        FacilityEvolutionFormulaPresentationPendingSnapshot pending)
+    {
+        return pending != null
+            && IsEmpty(pending.recipeId)
+            && IsEmpty(pending.sourceFacilityPersistentId)
+            && IsEmpty(pending.presentationId)
+            && pending.failureCount == 0
+            && IsEmpty(pending.lastFailureReason)
+            && IsEmpty(pending.displayName)
+            && IsEmpty(pending.narrativeFlavor)
+            && IsStrictlyEmptyEvolutionNode(pending.node);
+    }
+
+    private static bool IsStrictlyEmptyEvolutionNode(EvolutionNode node)
+    {
+        if (node == null)
+        {
+            return true;
+        }
+
+        return IsEmpty(node.nodeId)
+            && IsEmpty(node.parentNodeId)
+            && IsEmpty(node.effectId)
+            && IsEmpty(node.burdenEffectId)
+            && node.generation == 0
+            && node.active
+            && !node.historical
+            && node.mechanicallyUnlocked
+            && node.narrativeReady
+            && node.uiVisible
+            && node.playerVisible
+            && IsEmpty(node.displayName)
+            && IsEmpty(node.description)
+            && IsEmpty(node.narrativeSchemaId)
+            && node.narrativeSchemaVersion == 0
+            && IsEmpty(node.narrativeSchemaHash)
+            && IsEmpty(node.narrativeCultureStyleId)
+            && IsEmpty(node.narrativeMotifIds)
+            && IsEmpty(node.narrativeCharacterFactIds)
+            && IsEmpty(node.narrativePassVerdict)
+            && node.narrativeRetryCount == 0
+            && !node.narrativeUsedFallback
+            && node.potencyMultiplier == 1f
+            && node.burdenPotencyMultiplier == 0f
+            && IsEmpty(node.evidenceIds)
+            && node.formulaVersion == 0
+            && IsEmpty(node.formulaCatalogSha256)
+            && IsEmpty(node.formulaCapabilities)
+            && node.formulaBudget == 0
+            && node.calculatedCost == 0
+            && node.positiveCost == 0
+            && node.drawbackCredit == 0
+            && IsEmpty(node.drawbackId)
+            && !node.drawbackEvidenceQualified
+            && IsEmpty(node.moduleSelectionId)
+            && IsEmpty(node.moduleSelectionOffers)
+            && IsEmpty(node.mechanicalDescription)
+            && IsEmpty(node.presentationId)
+            && IsEmpty(node.narrativeFlavor)
+            && node.presentationState == EquipmentEvolutionPresentationState.Legacy
+            && node.presentationFailureCount == 0
+            && IsEmpty(node.legalCandidateEffectIds)
+            && node.selectedCandidateIndex == -1
+            && !node.equipmentChoiceAuditRecorded
+            && !node.equipmentChoiceSucceeded
+            && !node.equipmentChoiceFallbackUsed
+            && IsEmpty(node.equipmentChoiceFailureKind)
+            && IsEmpty(node.equipmentChoiceFailureReason)
+            && IsEmpty(node.equipmentChoiceCandidatePacketHash)
+            && node.equipmentChoiceRequestedIndex == -1
+            && node.equipmentChoiceAuditUtcTicks == 0L
+            && IsStrictlyEmptyActivationRule(node.activationRule);
+    }
+
+    private static bool IsStrictlyEmptyActivationRule(
+        EvolutionModuleActivationRule rule)
+    {
+        return rule == null
+            || (rule.kind == EvolutionModuleActivationKind.Always
+                && IsEmpty(rule.requiredRoomTags)
+                && IsEmpty(rule.optionalRoomTags)
+                && IsEmpty(rule.forbiddenRoomTags)
+                && rule.minimumCleanliness == 0f
+                && rule.minimumBeauty == 0f
+                && rule.minimumTemperature == 0f
+                && rule.minimumSpace == 0f);
+    }
+
+    private static bool IsEmpty(string value) => string.IsNullOrEmpty(value);
+
+    private static bool IsEmpty<T>(ICollection<T> values) =>
+        values == null || values.Count == 0;
+
+    private static void ValidatePendingFormulaSnapshot(
+        FacilityEvolutionFormulaPresentationPendingSnapshot pending)
+    {
+        if (pending == null) return;
+        EvolutionNode node = pending.node;
+        if (node == null || string.IsNullOrWhiteSpace(pending.recipeId)
+            || string.IsNullOrWhiteSpace(pending.sourceFacilityPersistentId)
+            || string.IsNullOrWhiteSpace(pending.presentationId)
+            || !string.Equals(pending.presentationId, node.presentationId,
+                StringComparison.Ordinal)
+            || pending.failureCount is < 0 or > 5
+            || node.presentationFailureCount != pending.failureCount)
+            throw new InvalidOperationException(
+                "Facility pending formula snapshot identity is invalid.");
+        if (node.formulaVersion < FacilityFormulaEvolutionAuthority.ModuleSelectionFormulaVersion)
+            return;
+        bool validPhase = pending.failureCount >= 5
+            ? node.presentationState == EquipmentEvolutionPresentationState.AwaitingNarrativeRetry
+            : node.presentationState == EquipmentEvolutionPresentationState.ModuleSelectionPending;
+        EquipmentEvolutionModuleOfferState[] offers = (node.moduleSelectionOffers
+                ?? new List<EquipmentEvolutionModuleOfferState>())
+            .Where(value => value != null).ToArray();
+        if (!validPhase
+            || !string.Equals(node.moduleSelectionId, pending.presentationId,
+                StringComparison.Ordinal)
+            || offers.Length == 0
+            || offers.Any(value => string.IsNullOrWhiteSpace(value.moduleId)
+                || !string.Equals(value.moduleId, value.moduleId.Trim(), StringComparison.Ordinal)
+                || !Enum.IsDefined(typeof(EvolutionModuleOfferPolarity), value.polarity)
+                || string.IsNullOrWhiteSpace(value.semanticDescription)
+                || !string.Equals(value.semanticDescription,
+                    value.semanticDescription.Trim(), StringComparison.Ordinal))
+            || offers.Select(value => value.moduleId)
+                .Distinct(StringComparer.Ordinal).Count() != offers.Length
+            || node.evidenceIds == null || node.evidenceIds.Count == 0
+            || node.evidenceIds.Any(value => string.IsNullOrWhiteSpace(value))
+            || node.evidenceIds.Distinct(StringComparer.Ordinal).Count()
+                != node.evidenceIds.Count
+            || !string.IsNullOrEmpty(node.effectId)
+            || node.formulaCapabilities == null || node.formulaCapabilities.Count != 0
+            || node.calculatedCost != 0 || node.positiveCost != 0
+            || node.drawbackCredit != 0 || !string.IsNullOrEmpty(node.drawbackId)
+            || !string.IsNullOrEmpty(node.mechanicalDescription))
+            throw new InvalidOperationException(
+                "Facility unresolved module-selection snapshot is invalid.");
     }
 
     public FacilityEvolutionRecord GetRecord()
@@ -337,6 +552,7 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
         instanceEvolution.mastery = Mathf.Max(0f, instanceEvolution.mastery);
         instanceEvolution.usageLedger ??= new UsageLedger();
         instanceEvolution.evolutionNodes ??= new List<EvolutionNode>();
+        instanceEvolution.formulaEvidence ??= new List<FacilityFormulaEvidenceRecord>();
         foreach (EvolutionNode node in instanceEvolution.evolutionNodes
                      .Where(node => node != null && !node.historical))
         {
@@ -352,6 +568,89 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
     public void ReplaceInstanceEvolution(FacilityEvolutionState state)
     {
         instanceEvolution = state?.Clone() ?? new FacilityEvolutionState();
+    }
+
+    public void BeginFormulaPresentation(
+        FacilityEvolutionFormulaPresentationPendingSnapshot pending)
+    {
+        if (pending == null || string.IsNullOrWhiteSpace(pending.presentationId)
+            || pending.node == null || pending.node.formulaVersion < 1
+            || pending.failureCount != 0)
+            throw new InvalidOperationException("Facility formula presentation pending state is incomplete.");
+        if (pendingFormulaPresentation != null)
+            throw new InvalidOperationException("Facility already has a pending formula presentation.");
+        if (pending.node.presentationState is not
+            (EquipmentEvolutionPresentationState.PresentationPending
+            or EquipmentEvolutionPresentationState.ModuleSelectionPending))
+            throw new InvalidOperationException(
+                "Facility formula pending state has an invalid workflow phase.");
+        pendingFormulaPresentation = pending.Clone();
+    }
+
+    public bool TryRegisterFormulaPresentationFailure(
+        string presentationId,
+        string reason,
+        out bool awaitingNarrativeRetry)
+    {
+        awaitingNarrativeRetry = false;
+        if (pendingFormulaPresentation == null
+            || !string.Equals(pendingFormulaPresentation.presentationId,
+                presentationId?.Trim(), StringComparison.Ordinal))
+            return false;
+        pendingFormulaPresentation.failureCount = checked(
+            Mathf.Min(5, pendingFormulaPresentation.failureCount + 1));
+        pendingFormulaPresentation.node.presentationFailureCount =
+            pendingFormulaPresentation.failureCount;
+        pendingFormulaPresentation.lastFailureReason = reason?.Trim() ?? string.Empty;
+        awaitingNarrativeRetry = pendingFormulaPresentation.failureCount >= 5;
+        pendingFormulaPresentation.node.presentationState = awaitingNarrativeRetry
+            ? EquipmentEvolutionPresentationState.AwaitingNarrativeRetry
+            : pendingFormulaPresentation.node.formulaVersion
+                >= FacilityFormulaEvolutionAuthority.ModuleSelectionFormulaVersion
+                ? EquipmentEvolutionPresentationState.ModuleSelectionPending
+                : EquipmentEvolutionPresentationState.PresentationPending;
+        return true;
+    }
+
+    public bool TryResumeFormulaPresentation(string presentationId)
+    {
+        if (pendingFormulaPresentation == null
+            || !string.Equals(pendingFormulaPresentation.presentationId,
+                presentationId?.Trim(), StringComparison.Ordinal)
+            || pendingFormulaPresentation.failureCount < 5)
+            return false;
+        pendingFormulaPresentation.failureCount = 0;
+        pendingFormulaPresentation.lastFailureReason = string.Empty;
+        pendingFormulaPresentation.node.presentationFailureCount = 0;
+        pendingFormulaPresentation.node.presentationState =
+            pendingFormulaPresentation.node.formulaVersion
+                >= FacilityFormulaEvolutionAuthority.ModuleSelectionFormulaVersion
+                ? EquipmentEvolutionPresentationState.ModuleSelectionPending
+                : EquipmentEvolutionPresentationState.PresentationPending;
+        return true;
+    }
+
+    public FacilityEvolutionFormulaPresentationPendingSnapshot RequireAndClearFormulaPresentation(
+        string presentationId)
+    {
+        FacilityEvolutionFormulaPresentationPendingSnapshot result = PendingFormulaPresentation;
+        if (result == null || !string.Equals(result.presentationId,
+                presentationId?.Trim(), StringComparison.Ordinal)
+            || result.failureCount >= 5
+            || result.node.presentationState is not
+                (EquipmentEvolutionPresentationState.PresentationPending
+                or EquipmentEvolutionPresentationState.ModuleSelectionPending))
+            throw new InvalidOperationException("Facility formula presentation is not pending.");
+        pendingFormulaPresentation = null;
+        return result;
+    }
+
+    public void RestoreFormulaPresentation(
+        FacilityEvolutionFormulaPresentationPendingSnapshot pending)
+    {
+        if (pending == null || pendingFormulaPresentation != null)
+            throw new InvalidOperationException("Facility formula presentation restore is invalid.");
+        pendingFormulaPresentation = pending.Clone();
     }
 
     public void RecordPendingMaterialCommit(
@@ -423,6 +722,74 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
         pendingMaterialCommit.phase = FacilityEvolutionMaterialCommitPhase.DomainApplied;
     }
 
+    public void RecordPendingEvidenceUseIntent(
+        string anchorId,
+        IReadOnlyList<GameplayOutcomeEvidenceBindingSnapshot> bindings)
+    {
+        if (!HasPendingMaterialCommit
+            || string.IsNullOrWhiteSpace(anchorId)
+            || bindings == null
+            || bindings.Count == 0
+            || bindings.Any(value => value == null))
+        {
+            throw new InvalidOperationException(
+                "Facility pending evidence-use intent is invalid.");
+        }
+        pendingMaterialCommit.evidenceAnchorId = anchorId.Trim();
+        pendingMaterialCommit.evidenceBindings = bindings
+            .Select(value => value.Clone()).ToList();
+        pendingMaterialCommit.evidenceUseCompleted = false;
+        FacilityEvolutionAggregateAdapter.ValidatePendingMaterialCommit(
+            CreateSnapshot());
+    }
+
+    public void CopyPendingEvidenceUseIntent(
+        FacilityEvolutionPendingMaterialCommitSnapshot source)
+    {
+        if (!HasPendingMaterialCommit || source == null)
+            throw new InvalidOperationException(
+                "Facility pending evidence-use source is missing.");
+        pendingMaterialCommit.evidenceAnchorId =
+            source.evidenceAnchorId ?? string.Empty;
+        pendingMaterialCommit.evidenceBindings = (source.evidenceBindings
+                ?? new List<GameplayOutcomeEvidenceBindingSnapshot>())
+            .Where(value => value != null)
+            .Select(value => value.Clone()).ToList();
+        pendingMaterialCommit.evidenceUseCompleted = source.evidenceUseCompleted;
+        FacilityEvolutionAggregateAdapter.ValidatePendingMaterialCommit(
+            CreateSnapshot());
+    }
+
+    public void MarkPendingEvidenceUseCompleted(string expectedAnchorId)
+    {
+        if (!HasPendingMaterialCommit
+            || string.IsNullOrWhiteSpace(pendingMaterialCommit.evidenceAnchorId)
+            || !string.Equals(
+                pendingMaterialCommit.evidenceAnchorId,
+                expectedAnchorId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Facility pending evidence-use identity changed.");
+        }
+        pendingMaterialCommit.evidenceUseCompleted = true;
+    }
+
+    public void MarkPendingEvidenceUseIncomplete(string expectedAnchorId)
+    {
+        if (!HasPendingMaterialCommit
+            || string.IsNullOrWhiteSpace(pendingMaterialCommit.evidenceAnchorId)
+            || !string.Equals(
+                pendingMaterialCommit.evidenceAnchorId,
+                expectedAnchorId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Facility pending evidence-use identity changed.");
+        }
+        pendingMaterialCommit.evidenceUseCompleted = false;
+    }
+
     public void ClearPendingMaterialCommit(string expectedCommitId)
     {
         if (!HasPendingMaterialCommit)
@@ -457,7 +824,7 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
     public bool TryRestoreState(int version, string payload, out string error)
     {
         error = string.Empty;
-        if (version != CurrentVersion)
+        if (version is < 6 or > 9)
         {
             error = $"Unsupported facility evolution state version {version}.";
             return false;
@@ -472,6 +839,21 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
             {
                 error = "Facility evolution state payload was empty.";
                 return false;
+            }
+
+            // Validate the raw deserialized shape before aggregate/domain
+            // preparation clones it: clone normalization would otherwise clamp
+            // malformed scalar values or prune null list entries.
+            NormalizeAndValidatePendingFormulaSnapshot(snapshot);
+
+            if (version is 6 or 7)
+            {
+                // Legacy nodes retain formulaVersion=0 and their historical static
+                // behavior; migration never synthesizes a formula or an effect.
+                snapshot.instanceEvolution ??= new FacilityEvolutionState();
+                snapshot.instanceEvolution.evolutionNodes ??= new List<EvolutionNode>();
+                snapshot.instanceEvolution.narrativeRequests ??=
+                    new List<EvolutionNarrativeRequestSnapshot>();
             }
 
             FacilityEvolutionPreparedState prepared =
@@ -627,7 +1009,8 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
                 ?? Array.Empty<string>()).ToArray(),
             pendingMaterialCommit = includePendingMaterialCommit
                 ? source.pendingMaterialCommit?.Clone()
-                : null
+                : null,
+            pendingFormulaPresentation = source.pendingFormulaPresentation?.Clone()
         };
     }
 

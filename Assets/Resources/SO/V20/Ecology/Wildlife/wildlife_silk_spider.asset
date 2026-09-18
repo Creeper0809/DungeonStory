@@ -43,6 +43,8 @@ MonoBehaviour:
   laysEggs: 0
   bodySize: 1
   manureIntervalDays: 2
+  productComfortMinimumTemperatureC: 5
+  productComfortMaximumTemperatureC: 30
   husbandryProducts:
   - itemId: fiber:cave-silk
     amount: 2
@@ -58,6 +60,14 @@ MonoBehaviour:
   nestTag: nest:silk-web
   breedingSeason: 2
   migrationPatternId: migration:insect-swarm
+  migrationProfile:
+    capability: 1
+    detectionRadiusCells: 12
+    signalScore: 0
+    minimumWaterRemainingRatio: 0
+    minimumCarcassQuantity: 0
+    minimumTemperatureC: 0
+    maximumTemperatureC: 0
   diseaseVectorIds:
   - disease:dream-mold
   activeSeasons: 0000000002000000

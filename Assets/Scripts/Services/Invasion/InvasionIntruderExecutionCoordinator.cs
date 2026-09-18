@@ -80,7 +80,10 @@ internal sealed class InvasionIntruderExecutionCoordinator
         host.GameEventBus.Publish(new InvasionFinalCombatStartedEvent(host.Actor, owner));
         owner.ApplyDamage(host.Settings.finalCombatDamage, "침입자 최종 교전");
         host.Resolved = true;
-        host.GameEventBus.Publish(new InvasionResolvedEvent(!owner.IsDead, owner.IsDead ? 5f : 2f));
+        host.GameEventBus.Publish(new InvasionResolvedEvent(
+            host.RuntimeId,
+            !owner.IsDead,
+            owner.IsDead ? 5f : 2f));
     }
 
     public void ClearBreachState()
@@ -167,12 +170,17 @@ internal sealed class InvasionIntruderExecutionCoordinator
         yield return host.Move.Move2PosBySpeed(entryDoorPosition);
 
         host.Context.TryGetGrid(out Grid grid);
-        if (grid != null && grid.IsValidGridPos(entryGridPosition))
+        if (host.Move.LastGridMoveFailureReason == GridMoveFailureReason.None
+            && grid != null && grid.IsValidGridPos(entryGridPosition))
         {
             yield return host.Move.Move2PosBySpeed(grid.GetWorldPos(entryGridPosition));
-            host.MarkDungeonBreached(grid, entryGridPosition);
+            if (host.Move.LastGridMoveFailureReason == GridMoveFailureReason.None)
+                host.MarkDungeonBreached(grid, host.Actor.GetNowXY());
         }
 
+        if (host.Actor == null || host.Actor.IsDead) { ResolveIntruderDefeated(); yield break; }
+        // A denied threshold is not an interior breach. Existing path/breach
+        // planning below owns how the intruder proceeds from its actual position.
         host.Actor.SetLifecycleState(CharacterLifecycleState.Active);
         yield return RunInside();
     }
@@ -659,7 +667,10 @@ internal sealed class InvasionIntruderExecutionCoordinator
         if (!host.Resolved)
         {
             host.Resolved = true;
-            host.GameEventBus.Publish(new InvasionResolvedEvent(true, 1f));
+            host.GameEventBus.Publish(new InvasionResolvedEvent(
+                host.RuntimeId,
+                true,
+                1f));
         }
 
         host.Finish();
@@ -680,7 +691,10 @@ internal sealed class InvasionIntruderExecutionCoordinator
             "부상당한 침입자가 목표를 포기하고 물러났습니다.",
             EventAlertImportance.Low,
             "침입");
-        host.GameEventBus.Publish(new InvasionResolvedEvent(true, 0.5f));
+        host.GameEventBus.Publish(new InvasionResolvedEvent(
+            host.RuntimeId,
+            true,
+            0.5f));
         host.Finish();
     }
 }

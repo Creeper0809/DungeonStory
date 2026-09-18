@@ -5,6 +5,29 @@
     "spoiler_tier": "warning",
     "title": "심층의 메아리"
   },
-  "edges": [],
+  "edges": [
+    {
+      "amount": null,
+      "from": "event/seasonal-winter-deep-echo",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "record-arcane-index",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 색인철",
+      "to": "item/record-arcane-index",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "event/seasonal-winter-deep-echo",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "resource-mana-crystal",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 결정",
+      "to": "item/resource-mana-crystal",
+      "type": "produces-or-unlocks"
+    }
+  ],
   "schema_version": 1
 }

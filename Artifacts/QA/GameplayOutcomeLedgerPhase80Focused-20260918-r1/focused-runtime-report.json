@@ -1,0 +1,16 @@
+{
+  "schema": "gameplay-outcome-ledger-phase80-focused@1",
+  "status": "FAIL",
+  "unityMcpUsed": false,
+  "dungeonPlayerMcpUsed": false,
+  "steps": [
+    {"name": "ledger-core", "status": "PASS", "durationMs": 755, "detail": ""},
+    {"name": "korean-josa", "status": "PASS", "durationMs": 18, "detail": ""},
+    {"name": "runtime-composition", "status": "FAIL", "durationMs": 10, "detail": "InvalidOperationException: Scenario returned false."},
+    {"name": "trade-inventory-owner", "status": "PASS", "durationMs": 75, "detail": ""},
+    {"name": "facility-evolution-owner", "status": "FAIL", "durationMs": 3314, "detail": "InvalidOperationException: Scenario returned false."},
+    {"name": "character-skill-trait-owner", "status": "FAIL", "durationMs": 1711, "detail": "InvalidOperationException: Scenario returned false."},
+    {"name": "equipment-evolution-owner", "status": "FAIL", "durationMs": 2, "detail": "InvalidOperationException: Facility on ':EquipmentEvolutionOwnerFacilityFixture' requires IBuildingFacilityStateChangePort, but it was not injected. Create the object through the DungeonRuntimeLifetimeScope or inject it explicitly in tests."},
+    {"name": "room-environment-owner", "status": "PASS", "durationMs": 14, "detail": ""}
+  ]
+}

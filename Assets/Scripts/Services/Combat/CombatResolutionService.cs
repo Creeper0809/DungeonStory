@@ -9,7 +9,15 @@ public interface ICombatRandomSource
     float Next01();
 }
 
-public sealed class UnityCombatRandomSource : ICombatRandomSource
+public interface ICombatRandomRollbackSource
+{
+    ulong CaptureState();
+    void RestoreState(ulong state);
+}
+
+public sealed class UnityCombatRandomSource :
+    ICombatRandomSource,
+    ICombatRandomRollbackSource
 {
     private readonly IRandomStream randomStream;
 
@@ -24,6 +32,10 @@ public sealed class UnityCombatRandomSource : ICombatRandomSource
     {
         return randomStream.NextFloat();
     }
+
+    public ulong CaptureState() => randomStream.State;
+
+    public void RestoreState(ulong state) => randomStream.Restore(state);
 }
 
 public interface ICombatResolutionService
@@ -35,7 +47,22 @@ public interface ICombatResolutionService
     float CalculateWeaponSwitchTime(CombatStatSnapshot actor, float weaponWeight);
 }
 
-public sealed class CombatResolutionService : ICombatResolutionService
+public interface ICombatResolutionTransactionService
+{
+    CombatAttackResult ResolveDetached(CombatAttackRequest request);
+    bool TryApplyResolvedResultMutation(
+        CombatAttackRequest request,
+        CombatAttackResult result,
+        out string failureReason);
+    bool TryRollbackResolvedResultMutation(
+        CombatAttackRequest request,
+        out string failureReason);
+    void CompleteResolvedResultMutation(CombatAttackRequest request);
+}
+
+public sealed class CombatResolutionService :
+    ICombatResolutionService,
+    ICombatResolutionTransactionService
 {
     private readonly ICombatRandomSource random;
     private readonly IEquipmentEvolutionRuntime evolution;
@@ -44,8 +71,11 @@ public sealed class CombatResolutionService : ICombatResolutionService
     private readonly IEnvironmentalFieldQuery environmentalField;
     private readonly ICharacterWorldQuery characters;
     private readonly ICharacterEnvironmentExposureCommand environmentExposure;
-    private readonly IGameEventBus gameEventBus;
-    private readonly IGameClock gameClock;
+    private readonly ICombatEquipmentRuntime equipment;
+    private readonly ICharacterEnvironmentPersistence environmentPersistence;
+    private readonly TreasuryEconomyAggregateStateStore treasuryStateStore;
+    private readonly Dictionary<string, PendingDetachedResolution>
+        pendingDetached = new(StringComparer.Ordinal);
 
     public CombatResolutionService(
         ICombatRandomSource random,
@@ -55,8 +85,9 @@ public sealed class CombatResolutionService : ICombatResolutionService
         IEnvironmentalFieldQuery environmentalField,
         ICharacterWorldQuery characters,
         ICharacterEnvironmentExposureCommand environmentExposure,
-        IGameEventBus gameEventBus = null,
-        IGameClock gameClock = null)
+        ICombatEquipmentRuntime equipment = null,
+        ICharacterEnvironmentPersistence environmentPersistence = null,
+        TreasuryEconomyAggregateStateStore treasuryStateStore = null)
     {
         this.random = random ?? throw new ArgumentNullException(nameof(random));
         this.evolution = evolution;
@@ -67,11 +98,339 @@ public sealed class CombatResolutionService : ICombatResolutionService
         this.characters = characters;
         this.environmentExposure = environmentExposure
             ?? throw new ArgumentNullException(nameof(environmentExposure));
-        this.gameEventBus = gameEventBus;
-        this.gameClock = gameClock;
+        this.equipment = equipment;
+        this.environmentPersistence = environmentPersistence
+            ?? environmentExposure as ICharacterEnvironmentPersistence;
+        this.treasuryStateStore = treasuryStateStore;
     }
 
     public CombatAttackResult Resolve(CombatAttackRequest request)
+    {
+        CombatAttackResult result = ResolveCore(request);
+        CommitResolvedResult(request, result);
+        return result;
+    }
+
+    public CombatAttackResult ResolveDetached(CombatAttackRequest request)
+    {
+        string operationId = RequireDetachedOperationId(request);
+        if (random is not ICombatRandomRollbackSource)
+        {
+            throw new InvalidOperationException(
+                "combat-random-rollback-source-missing");
+        }
+        if (equipment == null)
+        {
+            throw new InvalidOperationException(
+                "combat-equipment-rollback-authority-missing");
+        }
+        if (HasActiveWeaponOverclock(request) && treasuryStateStore == null)
+        {
+            throw new InvalidOperationException(
+                "combat-overclock-rollback-authority-missing");
+        }
+        if (pendingDetached.ContainsKey(operationId))
+        {
+            throw new InvalidOperationException(
+                $"Detached combat operation '{operationId}' is already pending.");
+        }
+
+        PendingDetachedResolution pending = CaptureDetachedState(request);
+        try
+        {
+            CombatAttackResult result = ResolveCore(request);
+            pendingDetached.Add(operationId, pending);
+            return result;
+        }
+        catch
+        {
+            RestoreDetachedState(pending, out _);
+            throw;
+        }
+    }
+
+    public bool TryApplyResolvedResultMutation(
+        CombatAttackRequest request,
+        CombatAttackResult result,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        string operationId;
+        try
+        {
+            operationId = RequireDetachedOperationId(request);
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidOperationException)
+        {
+            failureReason = exception.Message;
+            return false;
+        }
+        if (!pendingDetached.TryGetValue(
+                operationId,
+                out PendingDetachedResolution pending))
+        {
+            failureReason = "combat-detached-resolution-missing";
+            return false;
+        }
+
+        try
+        {
+            if (result.SmokeExposure > 0f
+                || result.TargetAirborneExposure > 0f)
+            {
+                if (environmentPersistence == null)
+                {
+                    RestoreDetachedState(pending, out _);
+                    pendingDetached.Remove(operationId);
+                    failureReason =
+                        "combat-environment-rollback-authority-missing";
+                    return false;
+                }
+                pending.EnvironmentBefore = environmentPersistence?.Capture();
+            }
+            CommitResolvedResult(request, result);
+            return true;
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            RestoreDetachedState(pending, out string rollbackFailure);
+            pendingDetached.Remove(operationId);
+            failureReason = "combat-resolution-side-effect-failed:"
+                + exception.GetType().Name;
+            if (!string.IsNullOrWhiteSpace(rollbackFailure))
+                failureReason += ":rollback:" + rollbackFailure;
+            return false;
+        }
+    }
+
+    public bool TryRollbackResolvedResultMutation(
+        CombatAttackRequest request,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        string operationId;
+        try
+        {
+            operationId = RequireDetachedOperationId(request);
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidOperationException)
+        {
+            failureReason = exception.Message;
+            return false;
+        }
+        if (!pendingDetached.TryGetValue(
+                operationId,
+                out PendingDetachedResolution pending))
+        {
+            failureReason = "combat-detached-resolution-missing";
+            return false;
+        }
+
+        bool restored = RestoreDetachedState(pending, out failureReason);
+        pendingDetached.Remove(operationId);
+        return restored;
+    }
+
+    public void CompleteResolvedResultMutation(CombatAttackRequest request)
+    {
+        pendingDetached.Remove(RequireDetachedOperationId(request));
+    }
+
+    private PendingDetachedResolution CaptureDetachedState(
+        CombatAttackRequest request)
+    {
+        PendingDetachedResolution pending = new()
+        {
+            HasRandomState = random is ICombatRandomRollbackSource,
+            RandomState = random is ICombatRandomRollbackSource rollbackRandom
+                ? rollbackRandom.CaptureState()
+                : 0UL,
+            TreasuryBefore = HasActiveWeaponOverclock(request)
+                ? treasuryStateStore?.Current.Copy()
+                : null
+        };
+        if (equipment == null)
+            return pending;
+
+        foreach (string instanceId in EnumerateMechanicalEquipmentIds(request))
+        {
+            if (equipment.TryGetInstance(
+                    instanceId,
+                    out CombatEquipmentInstance instance))
+            {
+                pending.EquipmentBefore[instanceId] = instance;
+            }
+        }
+        return pending;
+    }
+
+    private bool HasActiveWeaponOverclock(CombatAttackRequest request)
+    {
+        string weaponId = request.Weapon?.InstanceId?.Trim() ?? string.Empty;
+        return weaponId.Length > 0
+            && overclock?.States?.Any(state => state != null
+                && state.Active
+                && state.targetKind == OverclockTargetKind.Equipment
+                && string.Equals(
+                    state.targetId,
+                    weaponId,
+                    StringComparison.Ordinal)) == true;
+    }
+
+    private bool RestoreDetachedState(
+        PendingDetachedResolution pending,
+        out string failureReason)
+    {
+        List<string> failures = new();
+        if (pending.EnvironmentBefore != null && environmentPersistence != null)
+        {
+            try
+            {
+                CharacterEnvironmentRestoreCandidate candidate =
+                    environmentPersistence.BuildRestoreCandidate(
+                        pending.EnvironmentBefore);
+                environmentPersistence.PublishRestoreCandidate(candidate);
+            }
+            catch (Exception exception) when (
+                exception is not OutOfMemoryException
+                && exception is not StackOverflowException
+                && exception is not AccessViolationException)
+            {
+                failures.Add("environment:" + exception.GetType().Name);
+            }
+        }
+
+        if (equipment != null)
+        {
+            foreach (KeyValuePair<string, CombatEquipmentInstance> pair in
+                     pending.EquipmentBefore)
+            {
+                RestoreEquipment(pair.Key, pair.Value, failures);
+            }
+        }
+
+        if (pending.TreasuryBefore != null && treasuryStateStore != null)
+        {
+            treasuryStateStore.Replace(pending.TreasuryBefore.Copy());
+        }
+        if (pending.HasRandomState
+            && random is ICombatRandomRollbackSource rollbackRandom)
+        {
+            rollbackRandom.RestoreState(pending.RandomState);
+        }
+
+        failureReason = string.Join("|", failures);
+        return failures.Count == 0;
+    }
+
+    private void RestoreEquipment(
+        string instanceId,
+        CombatEquipmentInstance before,
+        ICollection<string> failures)
+    {
+        if (before == null
+            || !equipment.TryGetInstance(
+                instanceId,
+                out CombatEquipmentInstance current))
+        {
+            failures.Add("equipment-missing:" + instanceId);
+            return;
+        }
+
+        if (current.powerCharge + 0.0001f < before.powerCharge
+            && !equipment.TryRestorePower(
+                instanceId,
+                before.powerCharge - current.powerCharge))
+        {
+            failures.Add("power:" + instanceId);
+        }
+        if (current.durabilityRatio + 0.0001f < before.durabilityRatio
+            && !equipment.TryRestoreDurability(
+                instanceId,
+                before.durabilityRatio))
+        {
+            failures.Add("durability:" + instanceId);
+        }
+
+        LoadedAmmunitionBatch beforeAmmo = before.loadedAmmunition;
+        LoadedAmmunitionBatch currentAmmo = current.loadedAmmunition;
+        int beforeCount = Mathf.Max(0, beforeAmmo?.remaining ?? 0);
+        int currentCount = Mathf.Max(0, currentAmmo?.remaining ?? 0);
+        string beforeAmmoId = beforeAmmo?.ammunitionItemId?.Trim()
+            ?? string.Empty;
+        string currentAmmoId = currentAmmo?.ammunitionItemId?.Trim()
+            ?? string.Empty;
+        if ((beforeCount != currentCount
+             || !string.Equals(
+                 beforeAmmoId,
+                 currentAmmoId,
+                 StringComparison.Ordinal))
+            && (beforeCount <= 0
+                || !equipment.TryLoadExternalAmmunition(
+                    instanceId,
+                    beforeAmmoId,
+                    beforeCount)))
+        {
+            failures.Add("ammunition:" + instanceId);
+        }
+        if (!equipment.TryUpdateEvolutionState(
+                instanceId,
+                before.evolution?.Clone() ?? new EquipmentEvolutionState()))
+        {
+            failures.Add("evolution:" + instanceId);
+        }
+    }
+
+    private static IEnumerable<string> EnumerateMechanicalEquipmentIds(
+        CombatAttackRequest request)
+    {
+        HashSet<string> ids = new(StringComparer.Ordinal);
+        void Add(string value)
+        {
+            string normalized = value?.Trim() ?? string.Empty;
+            if (normalized.Length > 0)
+                ids.Add(normalized);
+        }
+
+        Add(request.Weapon?.InstanceId);
+        Add(request.DefenderShield.InstanceId);
+        foreach (CombatArmorSnapshot armor in request.DefenderArmor
+                     ?? Array.Empty<CombatArmorSnapshot>())
+        {
+            Add(armor.InstanceId);
+        }
+        return ids;
+    }
+
+    private static string RequireDetachedOperationId(
+        CombatAttackRequest request)
+    {
+        string operationId = request.EventId?.Trim() ?? string.Empty;
+        if (!GameplayOutcomeStableIdSyntax.IsValid(operationId))
+        {
+            throw new ArgumentException(
+                "A canonical combat operation ID is required.",
+                nameof(request));
+        }
+        return operationId;
+    }
+
+    private sealed class PendingDetachedResolution
+    {
+        public bool HasRandomState;
+        public ulong RandomState;
+        public TreasuryEconomyAggregateState TreasuryBefore;
+        public DungeonCharacterEnvironmentSaveData EnvironmentBefore;
+        public Dictionary<string, CombatEquipmentInstance> EquipmentBefore { get; }
+            = new(StringComparer.Ordinal);
+    }
+
+    private CombatAttackResult ResolveCore(CombatAttackRequest request)
     {
         CombatWeaponSnapshot weapon = request.Weapon ?? CombatWeaponSnapshot.CreateUnarmed();
         CombatAttackVerb verb = weapon.Verb ?? CombatWeaponSnapshot.CreateUnarmed().Verb;
@@ -310,6 +669,16 @@ public sealed class CombatResolutionService : ICombatResolutionService
                 resolvedWeapon.SmokeExposure,
                 clearSuppression: misfire);
         }
+        return result;
+    }
+
+    [GameplayInternalOnly(
+        "Publishes combat-resolution side effects only after the authoritative attack transaction commits.",
+        "CharacterCombatCommandRuntime")]
+    public void CommitResolvedResult(
+        CombatAttackRequest request,
+        CombatAttackResult result)
+    {
         if (result.SmokeExposure > 0f)
         {
             environmentExposure.AddAirborneExposure(
@@ -322,12 +691,8 @@ public sealed class CombatResolutionService : ICombatResolutionService
                 new CharacterId(request.DefenderId),
                 result.TargetAirborneExposure);
         }
-        PublishFriendlyAssault(request, result);
-
         if (evolution == null)
-        {
-            return result;
-        }
+            return;
 
         string weaponId = request.Weapon?.InstanceId ?? string.Empty;
         if (!string.IsNullOrWhiteSpace(weaponId))
@@ -352,7 +717,14 @@ public sealed class CombatResolutionService : ICombatResolutionService
                 result.Hit && request.Weapon.IsRanged
                     ? HistoricalEvidenceKind.RepeatedLongRangeHit
                     : HistoricalEvidenceKind.None,
-                result.Hit ? "hit" : "miss");
+                result.Hit ? "hit" : "miss",
+                narrativeContext: BuildEquipmentNarrativeContext(
+                    request,
+                    weaponId,
+                    request.Weapon?.DefinitionId ?? string.Empty,
+                    request.AttackerId,
+                    request.DefenderId,
+                    result.Hit ? "공격 적중" : result.FailureReason));
         }
 
         if (result.ShieldBlocked
@@ -368,7 +740,14 @@ public sealed class CombatResolutionService : ICombatResolutionService
                 1,
                 new[] { "shield", "defense" },
                 HistoricalEvidenceKind.ProtectedOwner,
-                "blocked");
+                "blocked",
+                narrativeContext: BuildEquipmentNarrativeContext(
+                    request,
+                    request.DefenderShield.InstanceId,
+                    "방패",
+                    request.DefenderId,
+                    request.AttackerId,
+                    "공격 차단"));
         }
 
         foreach (CombatArmorDurabilityHit hit in result.ArmorDurabilityHits
@@ -383,47 +762,47 @@ public sealed class CombatResolutionService : ICombatResolutionService
                 1,
                 new[] { "armor", "defense" },
                 HistoricalEvidenceKind.ProtectedOwner,
-                "absorbed");
+                "absorbed",
+                narrativeContext: BuildEquipmentNarrativeContext(
+                    request,
+                    hit.InstanceId,
+                    "방어구",
+                    request.DefenderId,
+                    request.AttackerId,
+                    "피해 흡수"));
         }
 
-        return result;
     }
 
-    private void PublishFriendlyAssault(
+    private GameplayNarrativeEventContext BuildEquipmentNarrativeContext(
         CombatAttackRequest request,
-        CombatAttackResult result)
+        string usedObjectId,
+        string usedObjectDisplayName,
+        string actorId,
+        string counterpartyId,
+        string resultDetail)
     {
-        if (gameEventBus == null
-            || !result.Hit
-            || result.AppliedDamage <= 0f)
-            return;
-        CharacterActor attacker = characters?.Characters?.FirstOrDefault(value =>
-            value != null
-            && string.Equals(value.Identity?.PersistentId, request.AttackerId,
-                StringComparison.Ordinal));
-        CharacterActor defender = characters?.Characters?.FirstOrDefault(value =>
-            value != null
-            && string.Equals(value.Identity?.PersistentId, request.DefenderId,
-                StringComparison.Ordinal));
-        if (attacker == null
-            || defender == null
-            || attacker.characterType == CharacterType.Intruder
-            || defender.characterType == CharacterType.Intruder
-            || !CharacterPersistentIdentity.TryGet(attacker, out CharacterId attackerId)
-            || !CharacterPersistentIdentity.TryGet(defender, out CharacterId defenderId))
-            return;
-        int day = gameClock == null
-            ? 0
-            : Mathf.Max(0, Mathf.FloorToInt(
-                gameClock.Time / GameCalendarRules.SecondsPerDay));
-        gameEventBus.Publish(new SocialConflictEvent(
-            attackerId,
-            defenderId,
-            "betrayal-or-assault",
-            Mathf.Clamp(result.AppliedDamage / 10f, 1f, 10f),
-            CharacterCommandOrigin.DirectPlayerOrder,
-            day));
+        CharacterActor actor = FindCharacter(actorId);
+        Vector2Int cell = actor != null ? actor.GetNowXY() : default;
+        return new GameplayNarrativeEventContext
+        {
+            chainId = "combat:" + (actorId?.Trim() ?? string.Empty),
+            locationId = actor != null ? $"cell:{cell.x}:{cell.y}" : string.Empty,
+            locationDisplayName = actor != null ? $"던전 {cell.x},{cell.y} 구역" : "전투 현장",
+            actorId = actorId?.Trim() ?? string.Empty,
+            actorDisplayName = actor != null ? actor.BuildingDisplayName : actorId?.Trim() ?? string.Empty,
+            counterpartyId = counterpartyId?.Trim() ?? string.Empty,
+            counterpartyDisplayName = FindCharacter(counterpartyId)?.BuildingDisplayName
+                ?? counterpartyId?.Trim() ?? string.Empty,
+            usedObjectId = usedObjectId?.Trim() ?? string.Empty,
+            usedObjectDisplayName = usedObjectDisplayName?.Trim() ?? string.Empty,
+            resultDetail = resultDetail?.Trim() ?? string.Empty
+        };
     }
+
+    private CharacterActor FindCharacter(string persistentId) =>
+        characters?.Characters?.FirstOrDefault(candidate => candidate != null
+            && string.Equals(candidate.Identity?.PersistentId, persistentId, StringComparison.Ordinal));
 
     private static CombatAttackResult WithAmmunition(
         CombatAttackResult result,
@@ -773,6 +1152,7 @@ public sealed class CombatResolutionService : ICombatResolutionService
             0.02f
             + request.Defender.Evasion * 0.01f
             + request.Defender.MoveSpeed * 0.003f
+            + request.Defender.EvasionChanceBonus
             - Mathf.Max(0f, verb.tracking)
             - suppressionPenalty,
             0f,

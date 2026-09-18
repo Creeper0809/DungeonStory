@@ -41,7 +41,65 @@ internal static class StartPartyPreparationPresentation
         return builder.ToString().TrimEnd();
     }
 
-    private static string FormatEffectValue(GameplayEffectBinding binding) =>
+    /// <summary>
+    /// Formats the already-prepared candidate facts for presentation.  It does
+    /// not calculate a live body, climate fit, or a new diet policy: those
+    /// become runtime state only after the prepared candidate is committed.
+    /// </summary>
+    public static string BuildCandidateLivingText(StartPartyCandidateLivingSummary summary)
+    {
+        StringBuilder builder = new StringBuilder();
+        builder.AppendLine("초기 건강");
+        if (summary.InitialHealthConditions.Count == 0)
+        {
+            builder.AppendLine("이상 없음");
+        }
+        else
+        {
+            foreach (StartPartyInitialHealthCondition condition in summary.InitialHealthConditions)
+            {
+                builder.AppendLine($"· {condition.DisplayName} ({AgeConditionSeverityLabel(condition.Severity)})");
+            }
+        }
+
+        builder.AppendLine();
+        builder.AppendLine($"식단 정책  {DietPolicyLabel(summary.DietPolicy)}");
+        builder.AppendLine("문화·배경 식단 제한은 게임 시작 뒤 적용됩니다.");
+        builder.AppendLine();
+        builder.AppendLine(
+            $"시작 수면  {summary.InitialSleep:0.#}/100 · 종족 수면 소모 x{summary.SleepRateMultiplier:0.##}");
+        builder.AppendLine();
+        builder.AppendLine("기후 온도 범위");
+        builder.AppendLine($"쾌적  {TemperatureRange(summary.ThermalProfile.ComfortMinimum, summary.ThermalProfile.ComfortMaximum)}");
+        builder.AppendLine($"안전  {TemperatureRange(summary.ThermalProfile.SafeMinimum, summary.ThermalProfile.SafeMaximum)}");
+        builder.Append($"치명  {TemperatureRange(summary.ThermalProfile.LethalMinimum, summary.ThermalProfile.LethalMaximum)}");
+        return builder.ToString();
+    }
+
+    private static string DietPolicyLabel(CharacterDietPolicyKind policy) => policy switch
+    {
+        CharacterDietPolicyKind.Free => "자유",
+        CharacterDietPolicyKind.Vegan => "완전 채식",
+        CharacterDietPolicyKind.Vegetarian => "채식",
+        CharacterDietPolicyKind.CarnivorePreferred => "육식 선호",
+        CharacterDietPolicyKind.StrictTaboo => "금기 엄수",
+        _ => policy.ToString()
+    };
+
+    private static string AgeConditionSeverityLabel(AgeConditionSeverity severity) => severity switch
+    {
+        AgeConditionSeverity.Mild => "경도",
+        AgeConditionSeverity.Moderate => "중등도",
+        AgeConditionSeverity.Severe => "중증",
+        AgeConditionSeverity.Critical => "위중",
+        AgeConditionSeverity.OrganFunctionLoss => "장기 기능 상실",
+        _ => severity.ToString()
+    };
+
+    private static string TemperatureRange(float minimum, float maximum) =>
+        $"{minimum:0.#}~{maximum:0.#}°C";
+
+    internal static string FormatEffectValue(GameplayEffectBinding binding) =>
         binding.definition.Operation switch
         {
             GameplayEffectOperation.Multiply => $"×{binding.value:0.##}",

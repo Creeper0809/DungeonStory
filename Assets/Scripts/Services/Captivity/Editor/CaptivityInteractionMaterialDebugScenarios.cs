@@ -274,6 +274,8 @@ public static class CaptivityInteractionMaterialDebugScenarios
         public string DisplayName => "QA";
         public CaptiveInteractionKind Kind => CaptiveInteractionKind.Persuasion;
         public float RequiredWork => 1f;
+        public CaptivityBodyDamagePolicy BodyDamage =>
+            CaptivityBodyDamagePolicy.None;
         public IReadOnlyDictionary<StockCategory, int> MaterialRequirements =>
             Requirements;
 

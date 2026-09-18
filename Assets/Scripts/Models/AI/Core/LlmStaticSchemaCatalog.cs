@@ -125,23 +125,32 @@ public static class LlmStaticSchemaCatalog
         "\"usedCharacterFactIds\":{\"type\":\"array\",\"minItems\":1,\"items\":{\"type\":\"string\",\"pattern\":\"^F[0-9]{2}$\",\"maxLength\":3},\"maxItems\":4}";
 
     private const string CharacterSkillSchema =
-        "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"candidates\",\"usedMotifIds\",\"usedCharacterFactIds\"],\"properties\":{" +
+        "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"presentationId\",\"displayName\",\"narrativeFlavor\"],\"properties\":{" +
+        "\"presentationId\":{\"type\":\"string\",\"pattern\":\"^presentation:skill:[a-f0-9]{64}$\",\"maxLength\":96}," +
+        "\"displayName\":{\"type\":\"string\",\"pattern\":\"^[^0-9０-９%％]*$\",\"minLength\":1,\"maxLength\":32}," +
+        "\"narrativeFlavor\":{\"type\":\"string\",\"pattern\":\"^[^0-9０-９%％]*$\",\"minLength\":1,\"maxLength\":180}}}";
+
+    private const string CharacterSkillLegacyV2Schema =
+        "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"candidates\"],\"properties\":{" +
         "\"candidates\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":3,\"items\":{\"type\":\"object\",\"additionalProperties\":false," +
-        "\"required\":[\"index\",\"name\",\"description\",\"narrativeReason\",\"trigger\",\"target\",\"ultimateDomain\",\"cooldownTurns\",\"combinationId\"],\"properties\":{" +
-        "\"index\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":2},\"name\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":32}," +
-        "\"description\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":180},\"narrativeReason\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":180}," +
-        "\"trigger\":{\"type\":\"string\"},\"target\":{\"type\":\"string\"},\"ultimateDomain\":{\"type\":\"string\",\"enum\":[\"None\",\"Offense\",\"Defense\",\"Management\"]}," +
-        "\"cooldownTurns\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":999},\"combinationId\":{\"type\":\"string\"}," +
-        "\"modules\":{\"type\":\"array\",\"maxItems\":8,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"pairId\",\"moduleId\",\"variantId\"],\"properties\":{" +
-        "\"pairId\":{\"type\":\"string\"},\"moduleId\":{\"type\":\"string\"},\"variantId\":{\"type\":\"string\"}}}}}}}," + RequiredReferenceProperties + "}}";
+        "\"required\":[\"ruleId\",\"combinationId\",\"displayName\",\"description\",\"narrativeReason\"],\"properties\":{" +
+        "\"ruleId\":{\"type\":\"string\",\"minLength\":1},\"combinationId\":{\"type\":\"string\",\"minLength\":1}," +
+        "\"displayName\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":32}," +
+        "\"description\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":180}," +
+        "\"narrativeReason\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":180}}}}}}";
+
+    private const string ModuleSelectionSchema =
+        "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"selectionId\",\"positiveModuleIds\",\"drawbackModuleIds\",\"evidenceFactIds\",\"displayName\",\"narrativeFlavor\"],\"properties\":{" +
+        "\"selectionId\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":96}," +
+        "\"positiveModuleIds\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":3,\"items\":{\"type\":\"string\",\"minLength\":1}}," +
+        "\"drawbackModuleIds\":{\"type\":\"array\",\"maxItems\":3,\"items\":{\"type\":\"string\",\"minLength\":1}}," +
+        "\"evidenceFactIds\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":128,\"items\":{\"type\":\"string\",\"minLength\":1}}," +
+        "\"displayName\":{\"type\":\"string\",\"pattern\":\"^[^0-9０-９%％]*$\",\"minLength\":1,\"maxLength\":32}," +
+        "\"narrativeFlavor\":{\"type\":\"string\",\"pattern\":\"^[^0-9０-９%％]*$\",\"minLength\":1,\"maxLength\":180}}}";
 
     private const string PersonaSchema =
-        "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"traitName\",\"flavorText\",\"selfCareMultiplier\",\"curiosityMultiplier\",\"shoppingMultiplier\",\"patienceMultiplier\",\"hungerCurveMultiplier\",\"funCurveMultiplier\",\"moodCurveMultiplier\",\"preferredFacilityTags\",\"usedMotifIds\",\"usedCharacterFactIds\"],\"properties\":{" +
-        "\"traitName\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":40},\"flavorText\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":180}," +
-        "\"selfCareMultiplier\":{\"type\":\"number\",\"minimum\":0.25,\"maximum\":2},\"curiosityMultiplier\":{\"type\":\"number\",\"minimum\":0.25,\"maximum\":2}," +
-        "\"shoppingMultiplier\":{\"type\":\"number\",\"minimum\":0.25,\"maximum\":2},\"patienceMultiplier\":{\"type\":\"number\",\"minimum\":0.25,\"maximum\":2}," +
-        "\"hungerCurveMultiplier\":{\"type\":\"number\",\"minimum\":0.25,\"maximum\":2},\"funCurveMultiplier\":{\"type\":\"number\",\"minimum\":0.25,\"maximum\":2}," +
-        "\"moodCurveMultiplier\":{\"type\":\"number\",\"minimum\":0.25,\"maximum\":2},\"preferredFacilityTags\":{\"type\":\"array\",\"maxItems\":12,\"items\":{\"type\":\"string\"}}," + RequiredReferenceProperties + "}}";
+        "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"personaName\",\"flavorText\"],\"properties\":{" +
+        "\"personaName\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":40},\"flavorText\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":180}}}";
 
     private const string MacroGoalSchema =
         "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"macroGoal\",\"reason\",\"targetFacilityId\",\"targetFacilityTag\",\"validSeconds\"],\"properties\":{" +
@@ -162,19 +171,28 @@ public static class LlmStaticSchemaCatalog
         "\"sentiment\":{\"type\":\"number\",\"minimum\":-1,\"maximum\":1},\"summary\":{\"type\":\"string\",\"maxLength\":160},\"spreadChance\":{\"type\":\"number\",\"minimum\":0,\"maximum\":1}," +
         "\"trustImpact\":{\"type\":\"number\",\"minimum\":-1,\"maximum\":1},\"validSeconds\":{\"type\":\"number\",\"minimum\":0,\"maximum\":1800}," + ReferenceProperties + "}}";
 
-    private const string FacilityEvolutionSchema =
-        "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"facilityIdentitySummary\",\"proposalIds\",\"reasons\",\"rejectedHints\",\"rejectedHintText\",\"mutationTagSuggestions\",\"flavorText\",\"confidence\",\"usedMotifIds\",\"usedCharacterFactIds\"],\"properties\":{" +
-        "\"facilityIdentitySummary\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":160},\"proposalIds\":{\"type\":\"array\",\"maxItems\":16,\"items\":{\"type\":\"string\"}}," +
-        "\"reasons\":{\"type\":\"array\",\"maxItems\":16,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"id\",\"reason\"],\"properties\":{\"id\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\",\"maxLength\":220}}}}," +
-        "\"rejectedHints\":{\"type\":\"array\",\"maxItems\":16,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"id\",\"reason\"],\"properties\":{\"id\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\",\"maxLength\":220}}}}," +
-        "\"rejectedHintText\":{\"type\":\"string\",\"maxLength\":220},\"mutationTagSuggestions\":{\"type\":\"array\",\"maxItems\":16,\"items\":{\"type\":\"string\"}}," +
-        "\"flavorText\":{\"type\":\"string\",\"maxLength\":260},\"confidence\":{\"type\":\"number\",\"minimum\":0,\"maximum\":1}," + ReferenceProperties + "}}";
+    private const string FacilityEvolutionLegacyV2Schema =
+        "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"proposalIds\",\"mutationTags\",\"reasons\",\"flavorText\",\"confidence\"],\"properties\":{" +
+        "\"proposalIds\":{\"type\":\"array\",\"maxItems\":16,\"items\":{\"type\":\"string\"}}," +
+        "\"mutationTags\":{\"type\":\"array\",\"maxItems\":16,\"items\":{\"type\":\"string\"}}," +
+        "\"reasons\":{\"type\":\"array\",\"maxItems\":16,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"proposalId\",\"reason\"],\"properties\":{\"proposalId\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\",\"maxLength\":220}}}}," +
+        "\"flavorText\":{\"type\":\"string\",\"maxLength\":260},\"confidence\":{\"type\":\"number\",\"minimum\":0,\"maximum\":1}}}";
 
-    private const string EvolutionHistorySchema =
-        "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"requestKey\",\"targetPersistentId\",\"nodeId\",\"parentNodeId\",\"effectId\",\"effectBudget\",\"evidenceIds\",\"displayName\",\"description\",\"historyReason\",\"usedMotifIds\",\"usedCharacterFactIds\"],\"properties\":{" +
+    private const string EvolutionHistoryLegacyV2Schema =
+        "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"requestKey\",\"targetPersistentId\",\"nodeId\",\"parentNodeId\",\"effectId\",\"effectBudget\",\"evidenceIds\",\"displayName\",\"description\",\"historyReason\"],\"properties\":{" +
         "\"requestKey\":{\"type\":\"string\"},\"targetPersistentId\":{\"type\":\"string\"},\"nodeId\":{\"type\":\"string\"},\"parentNodeId\":{\"type\":\"string\"},\"effectId\":{\"type\":\"string\"}," +
         "\"effectBudget\":{\"type\":\"integer\",\"minimum\":0},\"evidenceIds\":{\"type\":\"array\",\"maxItems\":64,\"items\":{\"type\":\"string\"}}," +
-        "\"displayName\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":32},\"description\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":180},\"historyReason\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":180}," + ReferenceProperties + "}}";
+        "\"displayName\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":32},\"description\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":180},\"historyReason\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":180}}}";
+
+    private const string EquipmentChoiceLegacyV2Schema =
+        "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"selectedIndex\"],\"properties\":{" +
+        "\"selectedIndex\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":2}}}";
+
+    private const string AcquiredTraitLegacyV2Schema =
+        "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"combinationId\",\"displayName\",\"description\",\"narrativeReason\",\"evidenceFactIds\"],\"properties\":{" +
+        "\"combinationId\":{\"type\":\"string\",\"minLength\":1},\"displayName\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":40}," +
+        "\"description\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":180},\"narrativeReason\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":180}," +
+        "\"evidenceFactIds\":{\"type\":\"array\",\"items\":{\"type\":\"string\"},\"maxItems\":64}}}";
 
     private const string CharacterRecordSchema =
         "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"line\",\"usedMotifIds\",\"usedCharacterFactIds\"],\"properties\":{\"line\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":60}," + RequiredReferenceProperties + "}}";
@@ -189,12 +207,22 @@ public static class LlmStaticSchemaCatalog
 
     private static readonly LlmStaticSchemaDefinition[] Definitions =
     {
-        new("CharacterSkill", 1, CharacterSkillSchema, true),
-        new("Persona", 1, PersonaSchema, true),
+        new("CharacterSkill", 3, CharacterSkillSchema, true),
+        new("CharacterSkillModuleSelection", 4, ModuleSelectionSchema, true),
+        new("CharacterSkillLegacyV2", 2, CharacterSkillLegacyV2Schema, true),
+        new("Persona", 2, PersonaSchema, true),
         new("MacroGoal", 1, MacroGoalSchema, false),
         new("MoodImpulse", 1, MoodImpulseSchema, false),
-        new("FacilityEvolution", 1, FacilityEvolutionSchema, true),
-        new("EvolutionHistory", 1, EvolutionHistorySchema, true),
+        new("FacilityEvolution", 3, PresentationSchema("facility"), true),
+        new("FacilityEvolutionModuleSelection", 4, ModuleSelectionSchema, true),
+        new("FacilityEvolutionLegacyV2", 2, FacilityEvolutionLegacyV2Schema, true),
+        new("EquipmentChoiceLegacyV2", 2, EquipmentChoiceLegacyV2Schema, false),
+        new("EquipmentEvolutionModuleSelection", 4, ModuleSelectionSchema, true),
+        new("EvolutionHistory", 3, PresentationSchema("equipment"), true),
+        new("EvolutionHistoryLegacyV2", 2, EvolutionHistoryLegacyV2Schema, true),
+        new("AcquiredTrait", 3, PresentationSchema("trait"), true),
+        new("AcquiredTraitModuleSelection", 4, ModuleSelectionSchema, true),
+        new("AcquiredTraitLegacyV2", 2, AcquiredTraitLegacyV2Schema, true),
         new("SocialRumor", 1, SocialRumorSchema, false),
         new("CharacterRecord", 1, CharacterRecordSchema, true),
         new("MultiPerspective", 1, MultiPerspectiveSchema, true),
@@ -205,6 +233,12 @@ public static class LlmStaticSchemaCatalog
         Definitions.ToDictionary(value => value.ProfileId, StringComparer.Ordinal);
 
     public static IReadOnlyList<LlmStaticSchemaDefinition> All => Definitions;
+
+    private static string PresentationSchema(string domain) =>
+        "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"presentationId\",\"displayName\",\"narrativeFlavor\"],\"properties\":{" +
+        "\"presentationId\":{\"type\":\"string\",\"pattern\":\"^presentation:" + domain + ":[a-f0-9]{64}$\",\"maxLength\":96}," +
+        "\"displayName\":{\"type\":\"string\",\"pattern\":\"^[^0-9０-９%％]*$\",\"minLength\":1,\"maxLength\":40}," +
+        "\"narrativeFlavor\":{\"type\":\"string\",\"pattern\":\"^[^0-9０-９%％]*$\",\"minLength\":1,\"maxLength\":180}}}";
 
     public static LlmStaticSchemaDefinition Require(string profileId)
     {

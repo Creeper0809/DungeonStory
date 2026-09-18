@@ -16,6 +16,6 @@
   "schema_version": 1,
   "slug": "building-4",
   "spoiler_tier": "none",
-  "summary": "시설 동작은 BuildingWorkAmountAbility 모듈로 구성된다. 건설에는 작업량 75, 재료 석재 블록×5이 필요하다.",
+  "summary": "시설 동작은 BuildingWorkAmountAbility 모듈로 구성된다. 건설에는 작업량 75 WU, 재료 석재 블록×5이 필요하다.",
   "title": "계단"
 }

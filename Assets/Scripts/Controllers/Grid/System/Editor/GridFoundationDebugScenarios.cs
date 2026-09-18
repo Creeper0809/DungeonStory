@@ -464,7 +464,7 @@ public static class GridFoundationDebugScenarios
     private static bool VerifyTilelessBuildingDoesNotCreateGeneratedSprite()
     {
         BuildingSO lab = AssetDatabase.LoadAssetAtPath<BuildingSO>(
-            "Assets/Resources/SO/Building/P1/P1_ResearchLab.asset");
+            "Assets/Resources/SO/Building/Modular/Q01_연구책상.asset");
         if (lab == null
             || lab.sprite == null
             || (lab.tiles != null && lab.tiles.Count > 0))
@@ -602,7 +602,7 @@ public static class GridFoundationDebugScenarios
         BuildingSO hallway = AssetDatabase.LoadAssetAtPath<BuildingSO>(
             "Assets/Resources/SO/Building/Hallway.asset");
         BuildingSO restRoom = AssetDatabase.LoadAssetAtPath<BuildingSO>(
-            "Assets/Resources/SO/Building/P1/P1_RestRoom.asset");
+            "Assets/Resources/SO/Building/Modular/R01_간이침대.asset");
         if (hallway == null || restRoom == null)
         {
             return false;
@@ -811,7 +811,7 @@ public static class GridFoundationDebugScenarios
         BuildingSO dungeonDoor = AssetDatabase.LoadAssetAtPath<BuildingSO>(
             "Assets/Resources/SO/Building/Door.asset");
         BuildingSO facility = AssetDatabase.LoadAssetAtPath<BuildingSO>(
-            "Assets/Resources/SO/Building/P1/P1_ResearchLab.asset");
+            "Assets/Resources/SO/Building/Modular/Q01_연구책상.asset");
 
         return hallway != null
             && wall != null

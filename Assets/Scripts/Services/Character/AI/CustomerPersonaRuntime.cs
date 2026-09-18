@@ -38,6 +38,61 @@ public sealed class CustomerPersonaData
     }
 }
 
+public static class CustomerPersonaPromptBuilder
+{
+    public static NarrativePublicContextMaterial BuildPublicMaterial(
+        CharacterActor actor)
+    {
+        return NarrativeRequestContextBuilder.BuildPublicMaterialForActorWithCurrentNeeds(
+            LocalLlmRequestProfiles.Persona.Id,
+            actor,
+            requireCharacterFact: false,
+            requireMotif: false);
+    }
+
+    public static string Build(CharacterActor actor) =>
+        BuildEnvelope(actor, BuildPublicMaterial(actor)).Prompt;
+
+    public static NarrativePublicPromptEnvelope BuildEnvelope(CharacterActor actor) =>
+        BuildEnvelope(actor, BuildPublicMaterial(actor));
+
+    public static NarrativePublicPromptEnvelope BuildEnvelope(
+        CharacterActor actor,
+        NarrativePublicContextMaterial publicMaterial)
+    {
+        if (actor == null) throw new ArgumentNullException(nameof(actor));
+        if (actor.Identity?.Data == null)
+            throw new InvalidOperationException(
+                "Persona prompt requires authoritative character data.");
+        if (publicMaterial == null)
+            throw new ArgumentNullException(nameof(publicMaterial));
+        string subjectId = actor.Identity.PersistentId?.Trim() ?? string.Empty;
+        if (!string.Equals(
+                publicMaterial.ProfileId,
+                LocalLlmRequestProfiles.Persona.Id,
+                StringComparison.Ordinal)
+            || publicMaterial.SubjectKind != NarrativePublicSubjectKind.Character
+            || !string.Equals(publicMaterial.SubjectId, subjectId, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Persona prompt material does not match its target character.");
+        }
+
+        CharacterSO data = actor.Identity.Data;
+        StringBuilder builder = new();
+        builder.AppendLine("Generate a compact customer persona for DungeonStory.");
+        builder.AppendLine("Return exactly one JSON object and no other text.");
+        builder.AppendLine("Use exactly these keys: personaName, flavorText.");
+        builder.AppendLine("Do not output multipliers, numeric mechanics, facility tags, or any extra key. Existing C# authored mechanics remain authoritative.");
+        builder.AppendLine("Required JSON shape:");
+        builder.AppendLine("{\"personaName\":\"string\",\"flavorText\":\"string\"}");
+        builder.AppendLine($"name: {data.characterName}");
+        builder.AppendLine($"species: {data.SpeciesTag}");
+        builder.AppendLine($"role: {actor.Role}");
+        return NarrativePublicPromptEnvelope.Create(builder.ToString(), publicMaterial);
+    }
+}
+
 [DisallowMultipleComponent]
 [DrawWithUnity]
 public sealed class CustomerPersonaRuntime : SerializedMonoBehaviour
@@ -52,12 +107,15 @@ public sealed class CustomerPersonaRuntime : SerializedMonoBehaviour
     [SerializeField, ReadOnly] private string lastPrompt;
     [SerializeField, ReadOnly] private string lastError;
     private ILocalLlmRuntimeProvider llmRuntimeProvider;
+    private string activeRequestKey = string.Empty;
+    private string activeCandidatePacketHash = string.Empty;
 
     public CustomerPersonaData Persona => persona ??= new CustomerPersonaData();
     public bool HasGeneratedPersona => hasGeneratedPersona;
     public bool PersonaRequestInProgress => personaRequestInProgress;
     public string LastPrompt => lastPrompt;
     public string LastError => lastError;
+    public NarrativeInferenceAuditRecord? LastInferenceAudit { get; private set; }
 
     [Inject]
     public void ConstructCustomerPersonaRuntime(ILocalLlmRuntimeProvider llmRuntimeProvider)
@@ -100,18 +158,28 @@ public sealed class CustomerPersonaRuntime : SerializedMonoBehaviour
             return false;
         }
 
+        NarrativePublicContextMaterial publicMaterial =
+            CustomerPersonaPromptBuilder.BuildPublicMaterial(actor);
+        NarrativePublicPromptEnvelope promptEnvelope =
+            CustomerPersonaPromptBuilder.BuildEnvelope(actor, publicMaterial);
+        lastPrompt = promptEnvelope.Prompt;
+        activeRequestKey = NarrativePublicContextIdentity.Bind(
+            "persona:" + actor.Identity.PersistentId,
+            publicMaterial.SemanticHash);
+        activeCandidatePacketHash = NarrativeInferenceHash.ComputeSha256Utf8(lastPrompt);
         if (!TryGetLlmRuntime(logIfMissingQueue, out ILocalLlmRuntime queue))
         {
+            RecordAudit(false, lastError, string.Empty);
             return false;
         }
 
-        lastPrompt = BuildPersonaPrompt(actor);
         personaRequestInProgress = true;
         bool accepted = queue.GeneratePersonaAsync(lastPrompt, OnPersonaResult);
         if (!accepted)
         {
             personaRequestInProgress = false;
             lastError = "Persona request was not accepted by LocalLlmRequestQueue.";
+            RecordAudit(false, lastError, string.Empty);
             Debug.Log($"{name}: {lastError}", this);
         }
 
@@ -280,12 +348,14 @@ public sealed class CustomerPersonaRuntime : SerializedMonoBehaviour
         if (result.IsCancelled)
         {
             lastError = string.Empty;
+            RecordAudit(false, "Persona request was cancelled.", string.Empty);
             return;
         }
 
         if (!result.IsSuccess)
         {
             lastError = $"{result.Status}: {result.Error}";
+            RecordAudit(false, lastError, string.Empty);
             Debug.Log($"{name}: Persona request failed: {lastError}", this);
             return;
         }
@@ -293,6 +363,7 @@ public sealed class CustomerPersonaRuntime : SerializedMonoBehaviour
         if (!LlmJsonResponseParser.TryParse(result.Content, out CustomerPersonaJsonDto dto, out string parseError))
         {
             lastError = parseError;
+            RecordAudit(false, parseError, string.Empty);
             Debug.Log($"{name}: Persona JSON rejected: {parseError}", this);
             return;
         }
@@ -310,43 +381,28 @@ public sealed class CustomerPersonaRuntime : SerializedMonoBehaviour
             ?? Array.Empty<string>();
         generated.narrativeTrace = result.NarrativeTrace;
         ApplyGeneratedPersona(generated);
+        RecordAudit(hasGeneratedPersona, lastError, hasGeneratedPersona ? dto.personaName : string.Empty);
     }
 
-    private static string BuildPersonaPrompt(CharacterActor actor)
+    private void RecordAudit(bool succeeded, string validationError, string selectedId)
     {
-        CharacterSO data = actor.Identity.Data;
-        StringBuilder builder = new StringBuilder();
-        builder.AppendLine("Generate a compact customer persona for DungeonStory.");
-        builder.AppendLine("Return exactly one JSON object and no other text.");
-        builder.AppendLine("Use exactly these keys: traitName, flavorText, selfCareMultiplier, curiosityMultiplier, shoppingMultiplier, patienceMultiplier, hungerCurveMultiplier, funCurveMultiplier, moodCurveMultiplier, preferredFacilityTags.");
-        builder.AppendLine("All multipliers must be numbers between 0.25 and 2.0. preferredFacilityTags must be an array of short facility tags.");
-        builder.AppendLine("Required JSON shape:");
-        builder.AppendLine("{\"traitName\":\"string\",\"flavorText\":\"string\",\"selfCareMultiplier\":1.0,\"curiosityMultiplier\":1.0,\"shoppingMultiplier\":1.0,\"patienceMultiplier\":1.0,\"hungerCurveMultiplier\":1.0,\"funCurveMultiplier\":1.0,\"moodCurveMultiplier\":1.0,\"preferredFacilityTags\":[\"Meal\",\"Rest\"]}");
-        builder.AppendLine($"name: {data.characterName}");
-        builder.AppendLine($"species: {data.SpeciesTag}");
-        builder.AppendLine($"role: {actor.Role}");
-        builder.AppendLine($"currentHunger: {GetCondition(actor, CharacterCondition.HUNGER):0.0}");
-        builder.AppendLine($"currentSleep: {GetCondition(actor, CharacterCondition.SLEEP):0.0}");
-        builder.AppendLine($"currentFun: {GetCondition(actor, CharacterCondition.FUN):0.0}");
-        builder.AppendLine($"currentMood: {GetCondition(actor, CharacterCondition.MOOD):0.0}");
-        builder.AppendLine($"currentExcretion: {GetCondition(actor, CharacterCondition.EXCRETION):0.0}");
-        builder.AppendLine($"currentHygiene: {GetCondition(actor, CharacterCondition.HYGIENE):0.0}");
-        return NarrativeRequestContextBuilder.ForActor(
-                LocalLlmRequestProfiles.Persona.Id,
-                actor,
-                requireCharacterFact: true,
-                requireMotif: true)
-            .AppendToPrompt(builder.ToString());
-    }
-
-    private static float GetCondition(CharacterActor actor, CharacterCondition condition)
-    {
-        return actor != null
-            && actor.Stats != null
-            && actor.Stats.Stats != null
-            && actor.Stats.Stats.TryGetValue(condition, out float value)
-                ? value
-                : 0f;
+        if (string.IsNullOrWhiteSpace(activeRequestKey)
+            || string.IsNullOrWhiteSpace(activeCandidatePacketHash))
+        {
+            return;
+        }
+        LastInferenceAudit = new NarrativeInferenceAuditRecord(
+            LocalLlmRequestProfiles.Persona.Id,
+            activeRequestKey,
+            activeCandidatePacketHash,
+            succeeded,
+            validationError,
+            false,
+            string.Empty,
+            selectedId,
+            -1,
+            actor?.Identity?.PersistentId ?? string.Empty,
+            NarrativeInferenceTimestamp.FromUtc(DateTime.UtcNow));
     }
 
     private sealed class CustomerPersonaMissingLlmRuntimeProvider : ILocalLlmRuntimeProvider

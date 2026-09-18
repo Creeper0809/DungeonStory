@@ -49,7 +49,7 @@ public sealed class CharacterSpawnRequest
         PhenotypeSpeciesId = phenotypeSpeciesId;
         VisualVariantId = visualVariantId?.Trim() ?? string.Empty;
         ReproductiveRole = reproductiveRole;
-        ExpressedTraitIds = NormalizeTraits(expressedTraitIds, 4, nameof(expressedTraitIds));
+        ExpressedTraitIds = NormalizeTraits(expressedTraitIds, 5, nameof(expressedTraitIds));
         LatentTraitIds = NormalizeTraits(latentTraitIds, 2, nameof(latentTraitIds));
         if (ExpressedTraitIds.Intersect(LatentTraitIds).Any())
         {
@@ -180,6 +180,14 @@ public sealed class CharacterRuntimeProfileFactory : ICharacterRuntimeProfileFac
         {
             throw new KeyNotFoundException(
                 $"Unknown character archetype '{request.CharacterArchetypeId.Value}'.");
+        }
+
+        int maximumExpressedTraits = archetype.IsOwnerCandidate ? 5 : 4;
+        if (request.ExpressedTraitIds.Count > maximumExpressedTraits)
+        {
+            throw new InvalidOperationException(
+                $"Character archetype '{archetype.DefinitionId.Value}' is limited to "
+                + $"{maximumExpressedTraits} expressed traits.");
         }
 
         if (!species.TryGetValue(request.PhenotypeSpeciesId, out CharacterSpeciesSO phenotype))

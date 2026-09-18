@@ -57,6 +57,32 @@ public sealed class DefenseEngagement
         actor != null ? actor.BuildingCharacterId : default;
 }
 
+public readonly struct ResidentEvacuationParticipantView
+{
+    public ResidentEvacuationParticipantView(
+        string characterId,
+        string displayName,
+        ResidentEvacuationParticipantStatus status,
+        bool hasTarget,
+        Vector2Int target,
+        string reason)
+    {
+        CharacterId = characterId ?? string.Empty;
+        DisplayName = displayName ?? string.Empty;
+        Status = status;
+        HasTarget = hasTarget;
+        Target = target;
+        Reason = reason ?? string.Empty;
+    }
+
+    public string CharacterId { get; }
+    public string DisplayName { get; }
+    public ResidentEvacuationParticipantStatus Status { get; }
+    public bool HasTarget { get; }
+    public Vector2Int Target { get; }
+    public string Reason { get; }
+}
+
 internal static class DefenseRangedSupportAccess
 {
     public static CharacterActor GetRangedGuard(
@@ -229,6 +255,17 @@ public interface IInvasionOwnerEvacuationService
     CharacterActor Owner { get; }
     Vector2Int TargetCell { get; }
     string StatusText { get; }
+    ResidentEvacuationZoneStatus ResidentZoneStatus { get; }
+    string ResidentEvacuationStatusText { get; }
+    IReadOnlyList<ResidentEvacuationParticipantView>
+        ResidentEvacuationParticipants { get; }
+    bool IsResidentEvacuationRoom(Grid grid, RoomInstance room);
+    bool TryDesignateResidentEvacuationRoom(
+        Grid grid,
+        RoomInstance room,
+        out string failureReason);
+    bool ClearResidentEvacuationRoom(out string failureReason);
+    bool TryRequestResidentEvacuation(out string failureReason);
     OwnerEvacuationSaveSnapshot Capture();
     void PrepareRestoreCandidate(
         OwnerEvacuationSaveSnapshot snapshot,

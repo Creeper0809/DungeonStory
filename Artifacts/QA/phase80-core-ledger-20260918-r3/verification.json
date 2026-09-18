@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "phase80-core-ledger-20260918-r3",
+  "generatedLocalDate": "2026-09-18",
+  "unityExecuted": false,
+  "mcpExecuted": false,
+  "result": "PASS",
+  "compiledSourceManifestSha256": "ed030c415373bbbc615f7d1eb28e7b9ec33c695775953cd6b2347faf952d52ca",
+  "artifacts": {
+    "gameplayOutcomeCoreDllSha256": "52d03a6dfa64bacc81070117b0429bbffd1f790c400f5a2ca6c7d73b726baa2f",
+    "scenarioRunnerSha256": "e19fa75e05d085e4f32f39abe80c1a06f98bfc96a9e83d2f9af9f84312bb0c99",
+    "productionDllSha256": "b2b0517550b2ca2b87a49632d1946b874e4d0211aa35fde01ba8e8b716ea2de3"
+  },
+  "commands": [
+    {
+      "kind": "roslyn",
+      "responseFile": "Library/ProductionCutCompile/GameplayOutcomeCore.rsp",
+      "exitCode": 0,
+      "stdout": ""
+    },
+    {
+      "kind": "mono-pure-scenario",
+      "entryPoint": "GameplayOutcomeLedgerDebugScenarios.RunAll + KoreanJosaFormatterDebugScenarios.RunAll",
+      "exitCode": 0,
+      "stdout": "PASS GameplayOutcomeLedgerDebugScenarios\nPASS KoreanJosaFormatterDebugScenarios"
+    },
+    {
+      "kind": "roslyn",
+      "responseFile": "Library/ProductionCutCompile/DungeonStory.Production.rsp",
+      "exitCode": 0,
+      "stdout": ""
+    }
+  ],
+  "regressions": {
+    "knownResultCapacityBackpressure": true,
+    "retentionPromotionFailureExplicitNonSuccess": true,
+    "transactionalInfluenceUse": true,
+    "koreanDigitsZeroThroughNine": true,
+    "quotedDisplayAndPronunciationHint": true
+  },
+  "humanApprovalClaimed": false
+}

@@ -1,0 +1,8 @@
+prepared=authored pen building:899dc4d8bb9548de943738026c5c5e42; pet=wild:9; penCell=(18, 1); hp=10; actual owner alternatives=3; hunger=0.2387451; thirst=0.2259266
+pet=wild:9; petCell=(18, 1); petHP=10; hunger=0.2387451; thirst=0.2259266; intent=우리 안에서 대기; owner=character:staff:1:01; ownerCell=(19, 0); gameTime=0.7054991
+result=FAIL
+System.InvalidOperationException: Actual compatible warehouses need one 18kg trip and 36kg combined spare capacity.
+  at Wim029CompanionLiveRunner+<ObserveHaul>d__34.MoveNext () [0x0171c] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Captivity\Editor\Wim029CompanionLiveRunner.cs:640 
+  at Wim029CompanionLiveRunner+<Observe>d__30.MoveNext () [0x00051] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Captivity\Editor\Wim029CompanionLiveRunner.cs:79 
+scope=authored pen/domestic goat and physical ore are controlled preparation; other stock forbidden and human AI paused. Actual role UI, autonomous exact-lot pickup/movement/delivery, carried current save and public lethal interruption. Not natural birth/capture, facility-output hauling, forced drop-failure recovery, hauling throughput balance or six-adult certification.
+cleanup=paused disposable main Play, operator stops; disk persistence disabled before owner UI; original environment restored

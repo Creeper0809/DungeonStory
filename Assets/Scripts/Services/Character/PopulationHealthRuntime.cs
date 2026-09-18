@@ -42,17 +42,21 @@ public sealed class CharacterPopulationDiseaseModifierQuery :
     private readonly ICharacterWorldQuery world;
     private readonly IHeritableTraitEffectQuery heritableTraits;
     private readonly ICharacterPerformanceQuery performance;
+    private readonly IEndlessCrisisQuery endlessCrisis;
 
     public CharacterPopulationDiseaseModifierQuery(
         ICharacterWorldQuery world,
         IHeritableTraitEffectQuery heritableTraits,
-        ICharacterPerformanceQuery performance)
+        ICharacterPerformanceQuery performance,
+        IEndlessCrisisQuery endlessCrisis)
     {
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.heritableTraits = heritableTraits
             ?? throw new ArgumentNullException(nameof(heritableTraits));
         this.performance = performance
             ?? throw new ArgumentNullException(nameof(performance));
+        this.endlessCrisis = endlessCrisis
+            ?? throw new ArgumentNullException(nameof(endlessCrisis));
     }
 
     public PopulationDiseaseStatModifiers Resolve(
@@ -93,8 +97,10 @@ public sealed class CharacterPopulationDiseaseModifierQuery :
             HeritableTraitConsequenceKind.DiseaseResistance,
             "memory");
         float susceptibility = route / Mathf.Max(
-            0.1f,
-            broad * toxin * sharedResistance);
+                0.1f,
+                broad * toxin * sharedResistance)
+            * endlessCrisis.GetEndlessCrisisMultiplier(
+                EndlessCrisisAxis.Disease);
 
         return new PopulationDiseaseStatModifiers(
             susceptibility,
@@ -111,11 +117,32 @@ public sealed class CharacterPopulationDiseaseModifierQuery :
     }
 }
 
+public readonly struct PopulationHealthMutationSnapshot
+{
+    internal PopulationHealthMutationSnapshot(
+        PopulationHealthAggregateState state,
+        int version)
+    {
+        State = state;
+        Version = version;
+    }
+    internal PopulationHealthAggregateState State { get; }
+    internal int Version { get; }
+    public bool IsValid => State != null && Version > 0;
+}
+
+public interface IPopulationHealthMutationTransaction
+{
+    PopulationHealthMutationSnapshot CaptureMutation();
+    void RestoreMutation(in PopulationHealthMutationSnapshot snapshot);
+}
+
 public sealed class PopulationHealthRuntime :
     IPopulationHealthService,
     IPopulationHealthQuery,
     IDiseaseSymptomEffectQuery,
-    IPopulationHealthPersistence
+    IPopulationHealthPersistence,
+    IPopulationHealthMutationTransaction
 {
     private const string InfectionRandomStreamId = "population:infection";
     private readonly DungeonRuntimeAggregateRootStore rootStore;
@@ -248,6 +275,16 @@ public sealed class PopulationHealthRuntime :
             1f,
             (current, value) => Math.Max(0.2f, current * value.MoveSpeedMultiplier));
     public PopulationHealthWorldSaveData Capture() => Current.Capture();
+    public PopulationHealthMutationSnapshot CaptureMutation() => new(
+        PopulationHealthAggregateState.Restore(Current.Capture(), definitions),
+        version);
+    public void RestoreMutation(in PopulationHealthMutationSnapshot snapshot)
+    {
+        if (!snapshot.IsValid)
+            throw new ArgumentException("A valid population-health mutation snapshot is required.", nameof(snapshot));
+        rootStore.Replace(snapshot.State);
+        version = snapshot.Version;
+    }
     public PopulationHealthAggregateState PrepareRestore(PopulationHealthWorldSaveData data) =>
         PopulationHealthAggregateState.Restore(data, definitions);
     public void PublishRestore(PopulationHealthAggregateState candidate)
@@ -308,6 +345,9 @@ public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
     private readonly IAnatomyHealthRuntime anatomyHealth;
     private readonly IGameEventBus events;
     private readonly IDiseaseSymptomEffectQuery symptoms;
+    private readonly IPopulationHealthMutationTransaction healthTransaction;
+    private readonly IEnvironmentGameplayOutcomeCommitter outcomeCommitter;
+    private readonly IGameCalendar calendar;
     private IDisposable dayEndedSubscription;
     private IDisposable mealConsumedSubscription;
     private IDisposable waterConsumedSubscription;
@@ -325,7 +365,10 @@ public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
         IAnatomyProfileCatalog anatomyProfiles,
         IAnatomyHealthRuntime anatomyHealth,
         IGameEventBus events,
-        IDiseaseSymptomEffectQuery symptoms)
+        IDiseaseSymptomEffectQuery symptoms,
+        IPopulationHealthMutationTransaction healthTransaction,
+        IEnvironmentGameplayOutcomeCommitter outcomeCommitter,
+        IGameCalendar calendar)
     {
         this.health = health ?? throw new ArgumentNullException(nameof(health));
         this.definitions = definitions ?? throw new ArgumentNullException(nameof(definitions));
@@ -337,6 +380,11 @@ public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
         this.anatomyHealth = anatomyHealth ?? throw new ArgumentNullException(nameof(anatomyHealth));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
         this.symptoms = symptoms ?? throw new ArgumentNullException(nameof(symptoms));
+        this.healthTransaction = healthTransaction
+            ?? throw new ArgumentNullException(nameof(healthTransaction));
+        this.outcomeCommitter = outcomeCommitter
+            ?? throw new ArgumentNullException(nameof(outcomeCommitter));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
     }
 
     public void Start()
@@ -429,7 +477,9 @@ public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
             exposure.DiseaseId,
             exposure.Route,
             exposure.ExposureHours,
-            exposure.EnvironmentCoefficient);
+            exposure.EnvironmentCoefficient,
+            exposure.SourceKind,
+            exposure.SourceId);
     }
 
     private void OnMedicalBloodContact(CharacterMedicalBloodContactEvent contact)
@@ -469,7 +519,9 @@ public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
         string diseaseId,
         DiseaseTransmissionRoute route,
         float exposureHours,
-        float environmentCoefficient)
+        float environmentCoefficient,
+        string sourceKind = "population-physical-exposure",
+        string sourceId = "direct-contact")
     {
         if (!characterId.IsValid || exposureHours <= 0f || environmentCoefficient <= 0f)
             return;
@@ -490,11 +542,63 @@ public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
             && candidateId.Equals(characterId));
         if (actor == null)
             return;
-        health.RecordExposure(
-            disease.Id,
-            new[] { new PopulationExposureTarget(characterId, 1f) },
-            exposureHours,
-            environmentCoefficient);
+        string displayName = actor.Identity?.DisplayName?.Trim() ?? string.Empty;
+        if (displayName.Length == 0)
+            throw new InvalidOperationException(
+                "Population exposure requires an immutable character display snapshot.");
+
+        long ownerRevision = checked((long)health.Version + 1L);
+        PopulationDiseaseExposureOutcomeReceipt receipt =
+            EnvironmentOutcomeReceiptFactory.CreateDiseaseExposure(
+                characterId,
+                displayName,
+                disease,
+                route,
+                exposureHours,
+                environmentCoefficient,
+                calendar.Day,
+                ownerRevision,
+                sourceKind,
+                sourceId);
+        if (!outcomeCommitter.TryPrepare(
+                receipt,
+                out PreparedEnvironmentOutcome prepared,
+                out string prepareFailure))
+        {
+            throw new InvalidOperationException(
+                "Population exposure narrative prepare failed: " + prepareFailure);
+        }
+
+        PopulationHealthMutationSnapshot before = healthTransaction.CaptureMutation();
+        try
+        {
+            health.RecordExposure(
+                disease.Id,
+                new[] { new PopulationExposureTarget(characterId, 1f) },
+                exposureHours,
+                environmentCoefficient);
+            EnvironmentOutcomeCommitResult committed = outcomeCommitter.Commit(
+                prepared,
+                health.Version);
+            if (!committed.DurablyCommitted)
+            {
+                healthTransaction.RestoreMutation(before);
+                throw new InvalidOperationException(
+                    "Population exposure narrative commit failed: " + committed.DetailCode);
+            }
+        }
+        catch
+        {
+            EnvironmentOutcomeCommitResult reconciled = outcomeCommitter.Reconcile(
+                receipt.Payload.ResultKey);
+            if (!reconciled.DurablyCommitted)
+            {
+                if (health.Version != before.Version)
+                    healthTransaction.RestoreMutation(before);
+                outcomeCommitter.Cancel(prepared);
+                throw;
+            }
+        }
     }
 
     private void OnDayEnded(OperatingDayEndedEvent ended)

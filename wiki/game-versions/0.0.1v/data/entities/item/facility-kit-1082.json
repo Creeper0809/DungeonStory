@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "비전 단조대에서 생산 주문을 처리하는 공정을 맡기 위해 준비한 설치 부품이며, 베르사디온에서도 이 부품의 치수를 알아본다.",
+  "in_game_description": "비전 단조대에서 생산 주문을 처리하는 공정을 맡기 위해 준비한 설치 부품이다. 베르사디온산 비전 단조대의 쌍인장은 마나를 댄 사람과 쓰는 사람의 손 모양이다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

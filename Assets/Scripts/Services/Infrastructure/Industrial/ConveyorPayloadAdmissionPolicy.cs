@@ -5,6 +5,28 @@ using UnityEngine;
 
 internal sealed class ConveyorPayloadAdmissionPolicy
 {
+    internal static bool IsValidCriteria(ConveyorFilterCriteria criteria,
+        IDungeonItemCatalogProvider itemCatalog, IResourceEconomyContentCatalog materialCatalog)
+    {
+        if (criteria == null || criteria.itemIds == null || criteria.materialIds == null
+            || criteria.stockCategories == null
+            || !Enum.IsDefined(typeof(CombatEquipmentQuality), criteria.minimumQuality)
+            || !Enum.IsDefined(typeof(CombatEquipmentQuality), criteria.maximumQuality)
+            || criteria.minimumQuality > criteria.maximumQuality
+            || !IsUnitInterval(criteria.minimumFreshness01) || !IsUnitInterval(criteria.maximumFreshness01)
+            || criteria.minimumFreshness01 > criteria.maximumFreshness01)
+            return false;
+        return criteria.itemIds.All(id => IsCanonicalId(id) && itemCatalog.TryGetDefinition(id, out _))
+            && criteria.materialIds.All(id => IsCanonicalId(id) && materialCatalog.TryGetMaterial(id, out _))
+            && criteria.stockCategories.All(category => Enum.IsDefined(typeof(StockCategory), category));
+    }
+
+    private static bool IsCanonicalId(string id) => !string.IsNullOrEmpty(id)
+        && string.Equals(id, id.Trim(), StringComparison.Ordinal);
+
+    private static bool IsUnitInterval(float value) => !float.IsNaN(value)
+        && !float.IsInfinity(value) && value >= 0f && value <= 1f;
+
     private readonly IIndustrialInfrastructureTopologyRuntime topologyRuntime;
     private readonly IDungeonItemCatalogProvider catalog;
     private readonly ICombatEquipmentRuntime equipment;

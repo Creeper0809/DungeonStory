@@ -1,0 +1,51 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "characterspecies-11",
+    "spoiler_tier": "none",
+    "title": "인간"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/characterspecies-11",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "funeral-culture-human",
+      "target_spoiler_tier": "none",
+      "target_title": "Funeral_Human",
+      "to": "character/funeral-culture-human",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/characterspecies-11",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "life-history-human",
+      "target_spoiler_tier": "none",
+      "target_title": "Life_Human",
+      "to": "character/life-history-human",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/characterspecies-11",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "reproduction-human",
+      "target_spoiler_tier": "none",
+      "target_title": "Reproduction_Human",
+      "to": "character/reproduction-human",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/character-archetype-9010",
+      "label": "관련",
+      "to": "character/characterspecies-11",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

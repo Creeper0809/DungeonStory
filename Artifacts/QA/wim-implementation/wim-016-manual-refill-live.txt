@@ -1,0 +1,11 @@
+setup=actual owner/party UI; authored P23 factory at (31, 0); no irrigation fixture or extra expansion
+clock=game 0.6666667 / wall 0.120512
+[PASS] actual-clock wet growth/depletion; water=0.9987037; growthHours=0.08888889
+clock=game 0.7290387 / wall 0.272646
+[PASS] actual AI pickup/carry/refill intent/buffer1; source=(27, 0); destination=(31, 0); waterRecovery=0; WU=0; gameSeconds=16.35338; wallSeconds=8.469818
+[PASS] actual partial Treat=0.07332393/1WU; invalid water restore rejected atomically; current whole-world JSON restore preserves work/owner/buffer and zero recovery
+clock=game 0.6070671 / wall 0.2807503
+[PASS] actual remaining Treat completes/ACKs once; water+1, physical-1; terminal full restore exact; actual-clock growth resumes and water depletes
+result=PASS
+scope=actual owner/party UI, registered P23, actual main clock/AI haul/Treat and current-world JSON restore; research/building/sow/healthy staff/typed action preference/environment/dry checkpoint are controlled setup; no natural priority, full crop cycle, committed-ACK fault injection or six-adult balance claim
+cleanup=operator stops disposable Play; no scene or user persistence writes

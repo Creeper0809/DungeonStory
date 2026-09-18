@@ -632,6 +632,7 @@ internal static class ProductionBillStateCodec
             buildingInstanceId = record.buildingInstanceId.Value,
             mode = record.mode,
             remainingCycles = record.remainingCycles,
+            minimumCraftQuality = record.minimumCraftQuality,
             targetStock = record.targetStock,
             minimumReserve = record.minimumReserve,
             suspended = record.suspended,
@@ -757,6 +758,7 @@ internal static class ProductionBillStateCodec
                 typeof(ProductionDistributionMode),
                 saved.distributionMode)
             || saved.remainingCycles < -1
+            || !ProductionQualityTargetRules.IsValidTarget(saved.minimumCraftQuality)
             || saved.cycleSequence < 1
             || saved.targetStock < 0
             || saved.minimumReserve < 0

@@ -20,7 +20,8 @@ public enum ProductionBillStatus
     WaitingForOutputSpace = 10,
     WaitingForStockSensor = 11,
     WaitingForDistributionRoute = 12,
-    WaitingForEligibleWorker = 13
+    WaitingForEligibleWorker = 13,
+    WaitingForQuality = 14
 }
 
 public enum ProductionBatchStage
@@ -119,6 +120,7 @@ public sealed class ProductionBillSaveData
     public string buildingInstanceId = string.Empty;
     public ProductionOrderMode mode;
     public int remainingCycles = 1;
+    public int minimumCraftQuality = -1;
     public int targetStock = 10;
     public int minimumReserve;
     public bool suspended;
@@ -1272,15 +1274,35 @@ public readonly struct ProductionWipInputReceipt
         string commitId,
         int quantity,
         long inputMassGrams)
+        : this(
+            commitId,
+            quantity,
+            inputMassGrams,
+            string.Empty,
+            Array.Empty<string>())
+    {
+    }
+
+    public ProductionWipInputReceipt(
+        string commitId,
+        int quantity,
+        long inputMassGrams,
+        string physicalRequestFingerprint,
+        IReadOnlyList<string> sourceStackIds)
     {
         CommitId = commitId ?? string.Empty;
         Quantity = quantity;
         InputMassGrams = inputMassGrams;
+        PhysicalRequestFingerprint = physicalRequestFingerprint ?? string.Empty;
+        SourceStackIds = Array.AsReadOnly(
+            (sourceStackIds ?? Array.Empty<string>()).ToArray());
     }
 
     public string CommitId { get; }
     public int Quantity { get; }
     public long InputMassGrams { get; }
+    public string PhysicalRequestFingerprint { get; }
+    public IReadOnlyList<string> SourceStackIds { get; }
     public bool IsCommitted => CommitId.Length > 0
         && Quantity > 0
         && InputMassGrams > 0L;
@@ -1484,7 +1506,7 @@ public sealed class ProductionSelectedSupplySaveData
 [Serializable]
 public sealed class DungeonProductionBillSaveData
 {
-    public const int CurrentVersion = 22;
+    public const int CurrentVersion = 23;
 
     public int version = CurrentVersion;
     public int nextBillSequence = 1;
@@ -1509,6 +1531,10 @@ public sealed class ProductionBillSnapshot
     public Vector2Int Position { get; set; }
     public WorkTypeId WorkTypeId { get; set; }
     public ProductionOrderMode Mode { get; set; }
+    public int MinimumCraftQuality { get; set; } = -1;
+    public int CurrentManualCraftQuality { get; set; } = -1;
+    public int CurrentAutomaticCraftQuality { get; set; } = -1;
+    public bool QualityOutcomeFrozen { get; set; }
     public ProductionBillStatus Status { get; set; }
     public int RemainingCycles { get; set; }
     public int TargetStock { get; set; }

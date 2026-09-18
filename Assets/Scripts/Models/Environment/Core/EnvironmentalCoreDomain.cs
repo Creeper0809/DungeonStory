@@ -294,6 +294,39 @@ namespace DungeonStory.Environment
         public ExposureBand PreviousPhysiologicalBand { get; }
     }
 
+    public readonly struct LightAdaptationProjection
+    {
+        public LightAdaptationProjection(
+            bool enabled,
+            float actualLight,
+            float comfortableMinimum,
+            float comfortableMaximum,
+            float sensitivity,
+            float discomfort,
+            float moodContribution,
+            float workSpeedContribution)
+        {
+            Enabled = enabled;
+            ActualLight = actualLight;
+            ComfortableMinimum = comfortableMinimum;
+            ComfortableMaximum = comfortableMaximum;
+            Sensitivity = sensitivity;
+            Discomfort = discomfort;
+            MoodContribution = moodContribution;
+            WorkSpeedContribution = workSpeedContribution;
+        }
+
+        public bool Enabled { get; }
+        public float ActualLight { get; }
+        public float ComfortableMinimum { get; }
+        public float ComfortableMaximum { get; }
+        public float Sensitivity { get; }
+        public float Discomfort { get; }
+        public float MoodContribution { get; }
+        public float WorkSpeedContribution { get; }
+        public float WorkSpeedMultiplier => 1f + WorkSpeedContribution;
+    }
+
     public static class EnvironmentalThresholdRules
     {
         public const float NormalAirQuality = 70f;
@@ -331,6 +364,80 @@ namespace DungeonStory.Environment
     public static class CharacterEnvironmentRules
     {
         public const float ComfortableRecoveryPerSecond = 1.5f;
+
+        public static LightAdaptationProjection ResolveLightAdaptation(
+            bool enabled,
+            float actualLight,
+            float comfortableMinimum,
+            float comfortableMaximum,
+            float sensitivity)
+        {
+            if (!enabled)
+            {
+                return new LightAdaptationProjection(
+                    false,
+                    actualLight,
+                    comfortableMinimum,
+                    comfortableMaximum,
+                    sensitivity,
+                    0f,
+                    0f,
+                    0f);
+            }
+            if (float.IsNaN(actualLight)
+                || float.IsInfinity(actualLight)
+                || float.IsNaN(comfortableMinimum)
+                || float.IsInfinity(comfortableMinimum)
+                || float.IsNaN(comfortableMaximum)
+                || float.IsInfinity(comfortableMaximum)
+                || float.IsNaN(sensitivity)
+                || float.IsInfinity(sensitivity)
+                || actualLight < 0f
+                || actualLight > 100f
+                || comfortableMinimum < 0f
+                || comfortableMaximum > 100f
+                || comfortableMinimum > comfortableMaximum
+                || sensitivity < 0f)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(actualLight),
+                    "Enabled light adaptation requires finite 0..100 light and bounds with non-negative sensitivity.");
+            }
+
+            float distance = actualLight < comfortableMinimum
+                ? comfortableMinimum - actualLight
+                : actualLight > comfortableMaximum
+                    ? actualLight - comfortableMaximum
+                    : 0f;
+            float discomfort = EnvironmentalMath.Clamp(
+                distance * sensitivity / 40f,
+                0f,
+                1f);
+            return new LightAdaptationProjection(
+                true,
+                actualLight,
+                comfortableMinimum,
+                comfortableMaximum,
+                sensitivity,
+                discomfort,
+                -3f * discomfort,
+                -0.05f * discomfort);
+        }
+
+        public static float ResolveLightAdaptedWorkSpeed(
+            float physiologicalMultiplier,
+            float combinedPhysiologicalVisualMultiplier,
+            float lightAdaptationMultiplier,
+            bool precision)
+        {
+            float adaptedPhysiological = physiologicalMultiplier
+                * lightAdaptationMultiplier;
+            return precision
+                ? Math.Min(
+                    combinedPhysiologicalVisualMultiplier,
+                    adaptedPhysiological)
+                : adaptedPhysiological;
+        }
 
         public static ThermalExposureRate CalculateTemperatureRates(
             float temperatureC,

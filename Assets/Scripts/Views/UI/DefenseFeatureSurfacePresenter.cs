@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public sealed class DefenseFeatureSurfaceModel
 {
@@ -103,6 +104,7 @@ public interface IDefenseFeatureCommandService
     DefenseFeatureCommandResult AssignPolicy(int actorRuntimeId, string policyId);
     DefenseFeatureCommandResult CycleFacilityArmingPolicy(int facilityRuntimeId);
     DefenseFeatureCommandResult RequestFacilityService(int facilityRuntimeId);
+    DefenseFeatureCommandResult RequestResidentEvacuation();
 }
 
 
@@ -115,6 +117,7 @@ public sealed class DefenseFeatureSurfacePresenter : IFeatureSurfaceTabPresenter
     private readonly IDefenseFeatureQueryService query;
     private readonly IDefenseFeatureCommandService commands;
     private readonly IDefenseUiTextQuery text;
+    private readonly IInvasionOwnerEvacuationService residentEvacuation;
     private string selectedPolicyId = DefenseResponsePolicyRuntime.StandardPolicyId;
     private string pendingDeletePolicyId = string.Empty;
     private int selectedReportIndex = -1;
@@ -122,11 +125,14 @@ public sealed class DefenseFeatureSurfacePresenter : IFeatureSurfaceTabPresenter
     public DefenseFeatureSurfacePresenter(
         IDefenseFeatureQueryService query,
         IDefenseFeatureCommandService commands,
-        IDefenseUiTextQuery text)
+        IDefenseUiTextQuery text,
+        IInvasionOwnerEvacuationService residentEvacuation)
     {
         this.query = query ?? throw new ArgumentNullException(nameof(query));
         this.commands = commands ?? throw new ArgumentNullException(nameof(commands));
         this.text = text ?? throw new ArgumentNullException(nameof(text));
+        this.residentEvacuation = residentEvacuation
+            ?? throw new ArgumentNullException(nameof(residentEvacuation));
     }
 
     public TabId Id => TabId.Defense;
@@ -170,6 +176,38 @@ public sealed class DefenseFeatureSurfacePresenter : IFeatureSurfaceTabPresenter
         }
 
         view.AddSection(text.Get("Section.OwnerEvacuation"), model.OwnerEvacuationSummary);
+        view.AddSection("주민 대피", residentEvacuation.ResidentEvacuationStatusText);
+        int participantIndex = 0;
+        foreach (ResidentEvacuationParticipantView participant
+                 in residentEvacuation.ResidentEvacuationParticipants
+                     .Where(item => item.Status
+                         != ResidentEvacuationParticipantStatus.Holding))
+        {
+            ResidentEvacuationParticipantView captured = participant;
+            string target = captured.HasTarget
+                ? $" · 목표 {captured.Target}"
+                : string.Empty;
+            view.AddDataCard(
+                $"P1Data_ResidentEvacuationParticipant_{participantIndex++}",
+                captured.DisplayName,
+                captured.Reason + target,
+                "상태",
+                () => view.ShowFeedback(captured.Reason + target),
+                CompactCardHeight);
+        }
+        view.AddDataCard(
+            "P1Action_ResidentEvacuationRequest",
+            "지정 구역 주민 대피",
+            "일반 직원과 비전투 하수인을 지정된 방으로 이동시킵니다. 경비·전투·구조 담당은 제외됩니다.",
+            "대피 명령",
+            () =>
+            {
+                DefenseFeatureCommandResult result =
+                    commands.RequestResidentEvacuation();
+                view.ShowFeedback(result.Message);
+                view.RequestRefresh();
+            },
+            CompactCardHeight);
         AddPolicies(view, model);
         AddFacilities(view, model);
         AddReports(view, model);

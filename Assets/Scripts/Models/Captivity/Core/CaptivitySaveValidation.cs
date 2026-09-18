@@ -182,6 +182,7 @@ public static class CaptivitySaveValidation
             || captive.status == CaptivityStatus.None
             || !IsCanonicalNonEmpty(captive.policyId)
             || !policyIds.Contains(captive.policyId)
+            || captive.interrogationTerminal == null
             || HasNullString(captive))
         {
             report.AddError(
@@ -226,7 +227,6 @@ public static class CaptivitySaveValidation
             || !IsPercentage(captive.corruption)
             || !IsPercentage(captive.compliance)
             || !IsPercentage(captive.escapeRisk)
-            || !IsPercentage(captive.health)
             || !IsPercentage(captive.performerSkill)
             || !IsPercentage(captive.performerFame)
             || !IsPercentage(captive.retaliationPressure)
@@ -256,6 +256,10 @@ public static class CaptivitySaveValidation
             || captive.privilegeTier < 0
             || captive.privilegeTier > 2
             || captive.failedEscapeAttempts < 0
+            || captive.interrogationAttemptSequence < 0
+            || captive.currentInterrogationAttemptId < 0
+            || captive.currentInterrogationAttemptId
+                > captive.interrogationAttemptSequence
             || HasUnknownLaborFlags(captive.laborPermissions)
             || !Enum.IsDefined(
                 typeof(CaptivePerformerMilestoneChoice),
@@ -266,6 +270,10 @@ public static class CaptivitySaveValidation
         }
 
         bool hasInteraction = captive.currentInteractionId.Length > 0;
+        bool hasActiveInterrogation = string.Equals(
+            captive.currentInteractionId,
+            CaptivityInterrogationAttemptIdentity.InteractionId,
+            StringComparison.Ordinal);
         if (hasInteraction !=
                 (captive.status == CaptivityStatus.Interaction)
             || (hasInteraction
@@ -281,6 +289,14 @@ public static class CaptivitySaveValidation
         {
             report.AddError(
                 $"Captive '{captiveId}' has incoherent interaction state.");
+        }
+        if (hasActiveInterrogation
+                != (captive.currentInterrogationAttemptId > 0)
+            || (captive.currentInterrogationAttemptId > 0
+                && !hasInteraction))
+        {
+            report.AddError(
+                $"Captive '{captiveId}' has incoherent interrogation attempt state.");
         }
 
         bool hasRehabilitationFacility =
@@ -375,6 +391,7 @@ public static class CaptivitySaveValidation
             hasAssignedLaborTool,
             laborToolPending,
             report);
+        ValidateInterrogationTerminal(captive, report);
         if (captive.finalContractPending
             && captive.resolvedMilestoneChoice
                 != CaptivePerformerMilestoneChoice.None)
@@ -435,6 +452,122 @@ public static class CaptivitySaveValidation
         {
             report.AddError(
                 $"Captive '{captive.captiveId}' has invalid labor-tool assignment provenance.");
+        }
+    }
+
+    private static void ValidateInterrogationTerminal(
+        CaptiveState captive,
+        DungeonGameRestoreReport report)
+    {
+        CaptivityInterrogationTerminalState terminal =
+            captive.interrogationTerminal;
+        if (terminal.attemptId < 0
+            || terminal.attemptId > captive.interrogationAttemptSequence
+            || terminal.subjectDisplayName == null
+            || terminal.codexEntryId == null
+            || terminal.codexEntryTitle == null
+            || terminal.originEnemyArchetypeId == null
+            || terminal.originFactionId == null
+            || terminal.enemyDisplayName == null
+            || terminal.formationTag == null
+            || terminal.informationText == null)
+        {
+            report.AddError(
+                $"Captive '{captive.captiveId}' has invalid interrogation terminal fields.");
+            return;
+        }
+
+        if (!terminal.HasOutcome)
+        {
+            if (terminal.hasInformation
+                || terminal.subjectDisplayName.Length > 0
+                || terminal.codexEntryId.Length > 0
+                || terminal.codexEntryTitle.Length > 0
+                || terminal.originEnemyArchetypeId.Length > 0
+                || terminal.originFactionId.Length > 0
+                || terminal.enemyDisplayName.Length > 0
+                || terminal.formationTag.Length > 0
+                || terminal.informationText.Length > 0
+                || terminal.highFearCaution
+                || terminal.codexPublicationCompleted
+                || terminal.noticePublicationCompleted
+                || (captive.currentInterrogationAttemptId > 0
+                    && captive.completedInteractionWork + 0.001f
+                        >= captive.requiredInteractionWork))
+            {
+                report.AddError(
+                    $"Captive '{captive.captiveId}' has interrogation result data without an attempt.");
+            }
+            return;
+        }
+
+        bool terminalMatchesActiveAttempt =
+            captive.currentInterrogationAttemptId == terminal.attemptId;
+        bool activeInterrogationWorkCompleted =
+            captive.currentInterrogationAttemptId > 0
+            && captive.completedInteractionWork + 0.001f
+                >= captive.requiredInteractionWork;
+        if (!IsCanonicalNonEmpty(terminal.subjectDisplayName)
+            || (terminal.noticePublicationCompleted
+                && !terminal.codexPublicationCompleted)
+            || (terminalMatchesActiveAttempt
+                && captive.completedInteractionWork + 0.001f
+                    < captive.requiredInteractionWork)
+            || (activeInterrogationWorkCompleted
+                && !terminalMatchesActiveAttempt)
+            || (terminal.HasPendingPublication
+                && captive.status == CaptivityStatus.Interaction
+                && !terminalMatchesActiveAttempt))
+        {
+            report.AddError(
+                $"Captive '{captive.captiveId}' has incoherent interrogation terminal progress.");
+        }
+
+        if (!terminal.hasInformation)
+        {
+            if (!terminal.codexPublicationCompleted
+                || terminal.codexEntryId.Length > 0
+                || terminal.codexEntryTitle.Length > 0
+                || terminal.originEnemyArchetypeId.Length > 0
+                || terminal.originFactionId.Length > 0
+                || terminal.enemyDisplayName.Length > 0
+                || terminal.formationTag.Length > 0
+                || terminal.informationText.Length > 0)
+            {
+                report.AddError(
+                    $"Captive '{captive.captiveId}' has incoherent no-information interrogation state.");
+            }
+            return;
+        }
+
+        string expectedInformation = CaptivityInterrogationAttemptIdentity
+            .FormatInformationText(
+                terminal.originEnemyArchetypeId,
+                terminal.originFactionId,
+                terminal.formationTag);
+        if (!IsCanonicalNonEmpty(terminal.codexEntryId)
+            || !terminal.codexEntryId.StartsWith(
+                "monster:",
+                StringComparison.Ordinal)
+            || !IsCanonicalNonEmpty(terminal.codexEntryTitle)
+            || !string.Equals(
+                terminal.codexEntryId,
+                $"monster:{terminal.codexEntryTitle}",
+                StringComparison.Ordinal)
+            || !IsCanonicalNonEmpty(terminal.originEnemyArchetypeId)
+            || !terminal.originEnemyArchetypeId.StartsWith(
+                "enemy:",
+                StringComparison.Ordinal)
+            || !IsCanonicalNonEmpty(terminal.originFactionId)
+            || !IsCanonicalNonEmpty(terminal.enemyDisplayName)
+            || !IsCanonicalNonEmpty(terminal.formationTag)
+            || !string.Equals(
+                terminal.informationText,
+                expectedInformation,
+                StringComparison.Ordinal))
+        {
+            report.AddError(
+                $"Captive '{captive.captiveId}' has invalid interrogation information provenance.");
         }
     }
 

@@ -20,6 +20,9 @@ public sealed class EquipmentEvolutionRuntime :
     private readonly IEquipmentEvolutionInputOwnerRuntime inputOwners;
     private readonly IFacilityEvolutionStateComponentFactory facilityStates;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly IGameplayOutcomeNarrativeEvidenceQuery outcomeEvidenceQuery;
+    private readonly IGameplayOutcomeEvidenceUseTransaction evidenceUseTransaction;
+    private string lastAttunementNodeGenerationFailureFingerprint = string.Empty;
 
     private EquipmentEvolutionAggregateState CurrentState =>
         aggregateRootStore.GetOrCreate(
@@ -41,7 +44,9 @@ public sealed class EquipmentEvolutionRuntime :
         IPhysicalItemBatchDispositionService batchDispositions,
         IEquipmentEvolutionInputOwnerRuntime inputOwners,
         IFacilityEvolutionStateComponentFactory facilityStates,
-        DungeonRuntimeAggregateRootStore aggregateRootStore)
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IGameplayOutcomeNarrativeEvidenceQuery outcomeEvidenceQuery,
+        IGameplayOutcomeEvidenceUseTransaction evidenceUseTransaction)
     {
         this.equipment = equipment
             ?? throw new ArgumentNullException(nameof(equipment));
@@ -60,12 +65,18 @@ public sealed class EquipmentEvolutionRuntime :
             ?? throw new ArgumentNullException(nameof(facilityStates));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.outcomeEvidenceQuery = outcomeEvidenceQuery
+            ?? throw new ArgumentNullException(nameof(outcomeEvidenceQuery));
+        this.evidenceUseTransaction = evidenceUseTransaction
+            ?? throw new ArgumentNullException(nameof(evidenceUseTransaction));
     }
 
     public IReadOnlyList<EvolutionReforgeOrder> ReforgeOrders =>
         CurrentState.ReforgeOrders.Select(order => order.Clone()).ToArray();
     public IReadOnlyList<EquipmentReattunementOrder> ReattunementOrders =>
         CurrentState.ReattunementOrders.Select(order => order.Clone()).ToArray();
+    public string LastAttunementNodeGenerationFailureForDiagnostics { get; private set; }
+        = string.Empty;
 
     public EquipmentEvolutionState GetState(string equipmentInstanceId)
     {
@@ -83,12 +94,14 @@ public sealed class EquipmentEvolutionRuntime :
         IEnumerable<string> sourceTags = null,
         HistoricalEvidenceKind historicalEvidenceKind = HistoricalEvidenceKind.None,
         string outcomeId = "",
-        int repeatCount = 1)
+        int repeatCount = 1,
+        GameplayNarrativeEventContext narrativeContext = null)
     {
+        LastAttunementNodeGenerationFailureForDiagnostics = string.Empty;
         CombatEquipmentInstance instance = RequireInstance(equipmentInstanceId);
         EquipmentEvolutionState state = instance.evolution?.Clone()
             ?? new EquipmentEvolutionState();
-        ledgerCompactor.Record(
+        UsageLedgerEvent recorded = ledgerCompactor.Record(
             state.usageLedger,
             eventId,
             amount,
@@ -98,16 +111,30 @@ public sealed class EquipmentEvolutionRuntime :
             historicalEvidenceKind: historicalEvidenceKind,
             outcomeId: outcomeId,
             generation: state.generation,
-            repeatCount: repeatCount);
+            repeatCount: repeatCount,
+            narrativeContext: narrativeContext);
+        RecordFormulaEvidence(state, recorded);
         state.mastery = Mathf.Max(0f, state.mastery + Mathf.Max(0f, mastery));
         if (!string.IsNullOrWhiteSpace(ownerPersistentId)
             && attunementPoints > 0)
         {
-            AddAttunement(
+            TryResolveFormulaTargetContext(
+                instance,
+                out EquipmentFormulaTargetContext targetContext,
+                out string targetResolutionFailureReason);
+            EquipmentAttunementAdvanceResult attunementResult = AddAttunement(
                 state,
+                targetContext,
+                targetResolutionFailureReason,
                 instance.instanceId,
                 ownerPersistentId.Trim(),
                 attunementPoints);
+            LastAttunementNodeGenerationFailureForDiagnostics =
+                attunementResult.NodeGenerationFailureReason;
+            ReportBlockedAttunementNodeGeneration(
+                instance,
+                targetContext,
+                attunementResult);
         }
 
         if (!state.reforgeReady && state.mastery + 0.001f >= state.RequiredMastery)
@@ -134,7 +161,8 @@ public sealed class EquipmentEvolutionRuntime :
         IEnumerable<string> sourceTags = null,
         HistoricalEvidenceKind historicalEvidenceKind = HistoricalEvidenceKind.None,
         string outcomeId = "",
-        int repeatCount = 1)
+        int repeatCount = 1,
+        GameplayNarrativeEventContext narrativeContext = null)
     {
         if (!equipment.TryGetInstance(equipmentInstanceId, out _))
         {
@@ -151,8 +179,462 @@ public sealed class EquipmentEvolutionRuntime :
             sourceTags,
             historicalEvidenceKind,
             outcomeId,
-            repeatCount);
+            repeatCount,
+            narrativeContext);
         return true;
+    }
+
+    public bool TryCommitPresentation(
+        string equipmentInstanceId,
+        string presentationId,
+        string displayName,
+        string narrativeFlavor,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (!equipment.TryGetInstance(equipmentInstanceId, out CombatEquipmentInstance instance))
+        {
+            failureReason = "장비 표현 요청의 소유 장비를 찾을 수 없습니다.";
+            return false;
+        }
+        EquipmentEvolutionState previousState = instance.evolution?.Clone()
+            ?? new EquipmentEvolutionState();
+        EquipmentEvolutionState state = instance.evolution?.Clone()
+            ?? new EquipmentEvolutionState();
+        EquipmentEvolutionPresentationRequest request = state.presentationRequests?
+            .SingleOrDefault(value => value != null && string.Equals(
+                value.presentationId, presentationId?.Trim(), StringComparison.Ordinal));
+        EvolutionNode node = request == null ? null : state.evolutionNodes?
+            .SingleOrDefault(value => value != null && string.Equals(
+                value.nodeId, request.nodeId, StringComparison.Ordinal));
+        if (request == null
+            || node == null
+            || request.state != EquipmentEvolutionPresentationState.PresentationPending
+            || node.presentationState != EquipmentEvolutionPresentationState.PresentationPending
+            || !string.Equals(request.targetPersistentId, instance.instanceId, StringComparison.Ordinal)
+            || !string.Equals(request.presentationId, node.presentationId, StringComparison.Ordinal))
+        {
+            failureReason = "장비 표현 요청이 없거나 이미 종료되었습니다.";
+            return false;
+        }
+        string name = displayName?.Trim() ?? string.Empty;
+        string flavor = narrativeFlavor?.Trim() ?? string.Empty;
+        if (name.Length == 0 || name.Length > 32 || flavor.Length == 0 || flavor.Length > 180)
+        {
+            failureReason = "장비 표현 이름 또는 서사 길이가 허용 범위를 벗어났습니다.";
+            return false;
+        }
+        if (ContainsMechanicalNumber(name) || ContainsMechanicalNumber(flavor))
+        {
+            failureReason = "장비 표현 문구에는 숫자 또는 퍼센트 표기를 넣을 수 없습니다.";
+            return false;
+        }
+
+        EquipmentEvolutionFormulaCatalogSO catalog;
+        try
+        {
+            catalog = EquipmentEvolutionFormulaCatalogSO.LoadForPersistedNode(node.formulaVersion);
+            ValidateFormulaNode(node, catalog);
+        }
+        catch (Exception error) when (error is ArgumentException
+            or InvalidOperationException or KeyNotFoundException or OverflowException)
+        {
+            failureReason = error.Message;
+            return false;
+        }
+        string[] evidenceIds = request.evidenceIds?
+            .OrderBy(value => value, StringComparer.Ordinal).ToArray() ?? Array.Empty<string>();
+        GameplayOutcomeEvidenceBindingSnapshot[] exactBindings =
+            (node.gameplayOutcomeEvidence
+                ?? new List<GameplayOutcomeEvidenceBindingSnapshot>())
+            .Where(value => value != null).Select(value => value.Clone()).ToArray();
+        HashSet<string> exactIds = exactBindings.Select(value => value.publicFactId)
+            .ToHashSet(StringComparer.Ordinal);
+        if (!evidenceIds.SequenceEqual(
+                node.evidenceIds.OrderBy(value => value, StringComparer.Ordinal),
+                StringComparer.Ordinal)
+            || !exactIds.OrderBy(value => value, StringComparer.Ordinal).SequenceEqual(
+                (node.gameplayOutcomeEvidence
+                        ?? new List<GameplayOutcomeEvidenceBindingSnapshot>())
+                    .Where(value => value != null).Select(value => value.publicFactId)
+                    .OrderBy(value => value, StringComparer.Ordinal),
+                StringComparer.Ordinal))
+        {
+            failureReason = "장비 표현 요청의 근거가 동결된 공식과 다릅니다.";
+            return false;
+        }
+        List<EquipmentEvolutionFormulaEvidenceRecord> evidence = evidenceIds
+            .Where(id => !exactIds.Contains(id))
+            .Select(id => state.formulaEvidence.SingleOrDefault(value => value != null
+                && string.Equals(value.evidenceId, id, StringComparison.Ordinal)))
+            .ToList();
+        if (evidence.Any(value => value == null))
+        {
+            failureReason = "장비 표현 요청의 원본 근거를 찾을 수 없습니다.";
+            return false;
+        }
+
+        foreach (EquipmentEvolutionFormulaEvidenceRecord item in evidence)
+            item.influenceUseCount = checked(item.influenceUseCount + 1);
+        node.displayName = name;
+        node.narrativeFlavor = flavor;
+        node.description = flavor;
+        node.active = true;
+        node.mechanicallyUnlocked = true;
+        node.narrativeReady = true;
+        node.uiVisible = true;
+        node.playerVisible = true;
+        node.presentationState = EquipmentEvolutionPresentationState.Ready;
+        node.presentationFailureCount = request.failureCount;
+
+        if (node.historical)
+        {
+            AttunementRecord attunement = state.attunements.SingleOrDefault(value => value != null
+                && string.Equals(value.ownerPersistentId,
+                    request.attunementOwnerPersistentId, StringComparison.Ordinal));
+            if (attunement == null)
+            {
+                failureReason = "장비 귀속 기록의 소유자를 찾을 수 없습니다.";
+                return false;
+            }
+            attunement.historyNodeIds ??= new List<string>();
+            if (!attunement.historyNodeIds.Contains(node.nodeId, StringComparer.Ordinal))
+                attunement.historyNodeIds.Add(node.nodeId);
+            if (string.IsNullOrWhiteSpace(attunement.rootNodeId))
+                attunement.rootNodeId = node.nodeId;
+            state.activeHistoricalNodeIds ??= new List<string>();
+            if (state.activeHistoricalNodeIds.Count < state.ResonanceBudget
+                && !state.activeHistoricalNodeIds.Contains(node.nodeId, StringComparer.Ordinal))
+                state.activeHistoricalNodeIds.Add(node.nodeId);
+        }
+        else if (!string.IsNullOrWhiteSpace(request.reforgeOrderId))
+        {
+            if (request.targetGeneration != state.generation + 1
+                || request.masteryCost <= 0f
+                || state.mastery + 0.001f < request.masteryCost)
+            {
+                failureReason = "장비 진화 비용 또는 세대가 동결된 요청과 다릅니다.";
+                return false;
+            }
+            state.generation = request.targetGeneration;
+            state.mastery -= request.masteryCost;
+            state.reforgeReady = false;
+            state.pendingHistoryHash = string.Empty;
+            state.pendingDirection = EquipmentEvolutionDirection.Balanced;
+        }
+        state.presentationRequests.RemoveAll(value => value != null
+            && string.Equals(value.presentationId, request.presentationId, StringComparison.Ordinal));
+        PreparedGameplayOutcomeEvidenceUse prepared = null;
+        if (exactBindings.Length > 0
+            && (!evidenceUseTransaction.TryPrepareBindings(
+                    "equipment-evolution",
+                    request.presentationId,
+                    exactBindings,
+                    out prepared,
+                    out failureReason)
+                || !prepared.TryCommitAnchors(out failureReason)))
+        {
+            prepared?.Cancel();
+            return false;
+        }
+        bool statePublished;
+        try
+        {
+            statePublished = equipment.TryUpdateEvolutionState(instance.instanceId, state);
+        }
+        catch
+        {
+            if (prepared != null)
+                prepared.TryRollbackAnchors(out _);
+            throw;
+        }
+        if (!statePublished)
+        {
+            if (prepared != null && !prepared.TryRollbackAnchors(out string rollbackFailure))
+                Debug.LogError("Equipment evidence rollback failed: " + rollbackFailure);
+            failureReason = "장비 공식 표현 확정 상태를 물리 장비에 게시할 수 없습니다.";
+            return false;
+        }
+        try
+        {
+            prepared?.CompleteOwnerCommit();
+        }
+        catch
+        {
+            if (!equipment.TryUpdateEvolutionState(instance.instanceId, previousState))
+                Debug.LogError("Equipment presentation rollback could not restore owner state.");
+            if (prepared != null)
+                prepared.TryRollbackAnchors(out _);
+            throw;
+        }
+        if (!string.IsNullOrWhiteSpace(request.reforgeOrderId))
+        {
+            EvolutionReforgeOrder order = orders.SingleOrDefault(value => value != null
+                && string.Equals(value.orderId, request.reforgeOrderId, StringComparison.Ordinal));
+            if (order != null)
+            {
+                order.state = EvolutionReforgeOrderState.Completed;
+                order.completedWork = order.requiredWork;
+            }
+        }
+        return true;
+    }
+
+    public bool TryCommitModuleSelection(
+        string equipmentInstanceId,
+        EquipmentEvolutionModuleSelectionResponseDto response,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (response == null || !response.Validate(out failureReason)
+            || !equipment.TryGetInstance(equipmentInstanceId, out CombatEquipmentInstance instance))
+        {
+            if (failureReason.Length == 0)
+                failureReason = "장비 모듈 선택 요청 또는 소유 장비를 찾을 수 없습니다.";
+            return false;
+        }
+        EquipmentEvolutionState previousState = instance.evolution?.Clone()
+            ?? new EquipmentEvolutionState();
+        EquipmentEvolutionState state = instance.evolution?.Clone()
+            ?? new EquipmentEvolutionState();
+        EquipmentEvolutionPresentationRequest request = state.presentationRequests?
+            .SingleOrDefault(value => value != null && string.Equals(
+                value.presentationId, response.selectionId, StringComparison.Ordinal));
+        EvolutionNode pending = request == null ? null : state.evolutionNodes?
+            .SingleOrDefault(value => value != null && string.Equals(
+                value.nodeId, request.nodeId, StringComparison.Ordinal));
+        if (request == null || pending == null
+            || request.state != EquipmentEvolutionPresentationState.ModuleSelectionPending
+            || pending.presentationState != EquipmentEvolutionPresentationState.ModuleSelectionPending
+            || !string.Equals(request.targetPersistentId, instance.instanceId, StringComparison.Ordinal)
+            || !string.Equals(pending.moduleSelectionId, response.selectionId, StringComparison.Ordinal))
+        {
+            failureReason = "장비 모듈 선택 요청이 없거나 이미 종료되었습니다.";
+            return false;
+        }
+        EquipmentEvolutionFormulaCatalogSO catalog;
+        EvolutionNode node;
+        try
+        {
+            catalog = EquipmentEvolutionFormulaCatalogSO.LoadForPersistedNode(pending.formulaVersion);
+            NarrativeFormulaModuleSelectionRequest selectionRequest =
+                EquipmentEvolutionRules.BuildModuleSelectionRequest(pending, catalog);
+            NarrativeFormulaModuleSelectionChoice choice = new(
+                response.selectionId,
+                response.positiveModuleIds,
+                response.drawbackModuleIds,
+                response.evidenceFactIds);
+            if (!NarrativeFormulaModuleSelectionValidator.TryValidate(
+                    selectionRequest, choice, out _, out failureReason))
+                return false;
+            node = EquipmentEvolutionRules.FreezeSelectedModule(
+                pending, state, catalog, instance.instanceId, choice);
+        }
+        catch (Exception error) when (error is ArgumentException
+            or InvalidOperationException or KeyNotFoundException or OverflowException)
+        {
+            failureReason = error.Message;
+            return false;
+        }
+        GameplayOutcomeEvidenceBindingSnapshot[] exactBindings =
+            (node.gameplayOutcomeEvidence
+                ?? new List<GameplayOutcomeEvidenceBindingSnapshot>())
+            .Where(value => value != null).Select(value => value.Clone()).ToArray();
+        HashSet<string> exactIds = exactBindings.Select(value => value.publicFactId)
+            .ToHashSet(StringComparer.Ordinal);
+        List<EquipmentEvolutionFormulaEvidenceRecord> evidence = node.evidenceIds
+            .Where(id => !exactIds.Contains(id))
+            .Select(id => state.formulaEvidence.SingleOrDefault(value => value != null
+                && string.Equals(value.evidenceId, id, StringComparison.Ordinal)))
+            .ToList();
+        if (evidence.Any(value => value == null))
+        {
+            failureReason = "장비 모듈 선택의 원본 근거를 찾을 수 없습니다.";
+            return false;
+        }
+        foreach (EquipmentEvolutionFormulaEvidenceRecord item in evidence)
+            item.influenceUseCount = checked(item.influenceUseCount + 1);
+        node.displayName = response.displayName;
+        node.narrativeFlavor = response.narrativeFlavor;
+        node.description = response.narrativeFlavor;
+        node.active = true;
+        node.mechanicallyUnlocked = true;
+        node.narrativeReady = true;
+        node.uiVisible = true;
+        node.playerVisible = true;
+        node.presentationState = EquipmentEvolutionPresentationState.Ready;
+        node.presentationFailureCount = request.failureCount;
+        int nodeIndex = state.evolutionNodes.FindIndex(value => value != null
+            && string.Equals(value.nodeId, node.nodeId, StringComparison.Ordinal));
+        if (nodeIndex < 0)
+        {
+            failureReason = "장비 모듈 선택 노드를 다시 찾을 수 없습니다.";
+            return false;
+        }
+        state.evolutionNodes[nodeIndex] = node;
+        if (node.historical)
+        {
+            AttunementRecord attunement = state.attunements.SingleOrDefault(value => value != null
+                && string.Equals(value.ownerPersistentId,
+                    request.attunementOwnerPersistentId, StringComparison.Ordinal));
+            if (attunement == null)
+            {
+                failureReason = "장비 귀속 기록의 소유자를 찾을 수 없습니다.";
+                return false;
+            }
+            attunement.historyNodeIds ??= new List<string>();
+            if (!attunement.historyNodeIds.Contains(node.nodeId, StringComparer.Ordinal))
+                attunement.historyNodeIds.Add(node.nodeId);
+            if (string.IsNullOrWhiteSpace(attunement.rootNodeId))
+                attunement.rootNodeId = node.nodeId;
+            state.activeHistoricalNodeIds ??= new List<string>();
+            if (state.activeHistoricalNodeIds.Count < state.ResonanceBudget
+                && !state.activeHistoricalNodeIds.Contains(node.nodeId, StringComparer.Ordinal))
+                state.activeHistoricalNodeIds.Add(node.nodeId);
+        }
+        else if (!string.IsNullOrWhiteSpace(request.reforgeOrderId))
+        {
+            if (request.targetGeneration != state.generation + 1
+                || request.masteryCost <= 0f
+                || state.mastery + 0.001f < request.masteryCost)
+            {
+                failureReason = "장비 진화 비용 또는 세대가 동결된 요청과 다릅니다.";
+                return false;
+            }
+            state.generation = request.targetGeneration;
+            state.mastery -= request.masteryCost;
+            state.reforgeReady = false;
+            state.pendingHistoryHash = string.Empty;
+            state.pendingDirection = EquipmentEvolutionDirection.Balanced;
+        }
+        state.presentationRequests.RemoveAll(value => value != null
+            && string.Equals(value.presentationId, request.presentationId, StringComparison.Ordinal));
+        try
+        {
+            EquipmentEvolutionRules.ValidateFormulaNode(node, catalog);
+        }
+        catch (Exception error) when (error is ArgumentException
+            or InvalidOperationException or KeyNotFoundException or OverflowException)
+        {
+            failureReason = error.Message;
+            return false;
+        }
+        PreparedGameplayOutcomeEvidenceUse prepared = null;
+        if (exactBindings.Length > 0
+            && (!evidenceUseTransaction.TryPrepareBindings(
+                    "equipment-evolution",
+                    request.presentationId,
+                    exactBindings,
+                    out prepared,
+                    out failureReason)
+                || !prepared.TryCommitAnchors(out failureReason)))
+        {
+            prepared?.Cancel();
+            return false;
+        }
+        bool statePublished;
+        try
+        {
+            statePublished = equipment.TryUpdateEvolutionState(instance.instanceId, state);
+        }
+        catch
+        {
+            if (prepared != null)
+                prepared.TryRollbackAnchors(out _);
+            throw;
+        }
+        if (!statePublished)
+        {
+            if (prepared != null && !prepared.TryRollbackAnchors(out string rollbackFailure))
+                Debug.LogError("Equipment evidence rollback failed: " + rollbackFailure);
+            failureReason = "장비 모듈 선택 확정 상태를 물리 장비에 게시할 수 없습니다.";
+            return false;
+        }
+        try
+        {
+            prepared?.CompleteOwnerCommit();
+        }
+        catch
+        {
+            if (!equipment.TryUpdateEvolutionState(instance.instanceId, previousState))
+                Debug.LogError("Equipment module-selection rollback could not restore owner state.");
+            if (prepared != null)
+                prepared.TryRollbackAnchors(out _);
+            throw;
+        }
+        if (!string.IsNullOrWhiteSpace(request.reforgeOrderId))
+        {
+            EvolutionReforgeOrder order = orders.SingleOrDefault(value => value != null
+                && string.Equals(value.orderId, request.reforgeOrderId, StringComparison.Ordinal));
+            if (order != null)
+            {
+                order.state = EvolutionReforgeOrderState.Completed;
+                order.completedWork = order.requiredWork;
+            }
+        }
+        return true;
+    }
+
+    public bool TryRegisterPresentationFailure(
+        string equipmentInstanceId,
+        string presentationId,
+        string reason,
+        out bool awaitingNarrativeRetry)
+    {
+        awaitingNarrativeRetry = false;
+        if (!equipment.TryGetInstance(equipmentInstanceId, out CombatEquipmentInstance instance))
+            return false;
+        EquipmentEvolutionState state = instance.evolution?.Clone()
+            ?? new EquipmentEvolutionState();
+        EquipmentEvolutionPresentationRequest request = state.presentationRequests?
+            .SingleOrDefault(value => value != null && string.Equals(
+                value.presentationId, presentationId?.Trim(), StringComparison.Ordinal));
+        EvolutionNode node = request == null ? null : state.evolutionNodes?
+            .SingleOrDefault(value => value != null && string.Equals(
+                value.nodeId, request.nodeId, StringComparison.Ordinal));
+        if (request == null || node == null
+            || request.state is not EquipmentEvolutionPresentationState.PresentationPending
+                and not EquipmentEvolutionPresentationState.ModuleSelectionPending)
+            return false;
+        request.failureCount = checked(request.failureCount + 1);
+        request.lastFailureReason = reason?.Trim() ?? string.Empty;
+        node.presentationFailureCount = request.failureCount;
+        awaitingNarrativeRetry = request.failureCount >= 5;
+        if (awaitingNarrativeRetry)
+        {
+            request.state = EquipmentEvolutionPresentationState.AwaitingNarrativeRetry;
+            node.presentationState = EquipmentEvolutionPresentationState.AwaitingNarrativeRetry;
+        }
+        return equipment.TryUpdateEvolutionState(instance.instanceId, state);
+    }
+
+    public bool TryResumePresentation(
+        string equipmentInstanceId,
+        string presentationId)
+    {
+        if (!equipment.TryGetInstance(equipmentInstanceId, out CombatEquipmentInstance instance))
+            return false;
+        EquipmentEvolutionState state = instance.evolution?.Clone()
+            ?? new EquipmentEvolutionState();
+        EquipmentEvolutionPresentationRequest request = state.presentationRequests?
+            .SingleOrDefault(value => value != null && string.Equals(
+                value.presentationId, presentationId?.Trim(), StringComparison.Ordinal));
+        EvolutionNode node = request == null ? null : state.evolutionNodes?
+            .SingleOrDefault(value => value != null && string.Equals(
+                value.nodeId, request.nodeId, StringComparison.Ordinal));
+        if (request == null || node == null
+            || request.state != EquipmentEvolutionPresentationState.AwaitingNarrativeRetry
+            || node.presentationState != EquipmentEvolutionPresentationState.AwaitingNarrativeRetry)
+            return false;
+        request.failureCount = 0;
+        request.lastFailureReason = string.Empty;
+        request.state = node.formulaVersion >= EquipmentEvolutionRules.ModuleSelectionFormulaVersion
+            && node.formulaCapabilities.Count == 0
+            ? EquipmentEvolutionPresentationState.ModuleSelectionPending
+            : EquipmentEvolutionPresentationState.PresentationPending;
+        node.presentationFailureCount = 0;
+        node.presentationState = request.state;
+        return equipment.TryUpdateEvolutionState(instance.instanceId, state);
     }
 
     public EquipmentReforgePreview GetPreview(string equipmentInstanceId)
@@ -240,6 +722,14 @@ public sealed class EquipmentEvolutionRuntime :
         {
             failureReason =
                 $"장비 기록이 부족합니다. {state.mastery:0.#}/{state.RequiredMastery:0.#}";
+            return false;
+        }
+
+        if (!TryRequireRuntimeApplicableFormulaTarget(
+                instance,
+                out _,
+                out failureReason))
+        {
             return false;
         }
 
@@ -369,6 +859,21 @@ public sealed class EquipmentEvolutionRuntime :
             return false;
         }
 
+        if (!equipment.TryGetInstance(
+                order.equipmentInstanceId,
+                out CombatEquipmentInstance targetInstance))
+        {
+            failureReason = "재단조 중인 장비가 사라졌습니다.";
+            return false;
+        }
+        if (!TryRequireRuntimeApplicableFormulaTarget(
+                targetInstance,
+                out _,
+                out failureReason))
+        {
+            return false;
+        }
+
         if (!EnsureMaterialsReady(order, out failureReason))
         {
             if (!order.materialsConsumed)
@@ -410,17 +915,27 @@ public sealed class EquipmentEvolutionRuntime :
             return false;
         }
 
+        EquipmentEvolutionPresentationRequest existingRequest =
+            state.presentationRequests?.FirstOrDefault(value => value != null
+                && string.Equals(value.reforgeOrderId, order.orderId, StringComparison.Ordinal));
+        if (existingRequest != null)
+        {
+            completedNode = state.evolutionNodes.FirstOrDefault(value => value != null
+                && string.Equals(value.nodeId, existingRequest.nodeId, StringComparison.Ordinal))?.Clone();
+            return completedNode != null;
+        }
+
         EvolutionNode node = BuildCompletedNode(instance, state, order);
         state.evolutionNodes.Add(node);
-        state.generation = order.targetGeneration;
-        state.mastery = Mathf.Max(
-            0f,
-            state.mastery
-                - EquipmentEvolutionProgression.GetRequiredMastery(
-                    state.generation - 1));
-        state.reforgeReady = false;
-        state.pendingHistoryHash = string.Empty;
-        state.pendingDirection = EquipmentEvolutionDirection.Balanced;
+        state.presentationRequests ??= new List<EquipmentEvolutionPresentationRequest>();
+        state.presentationRequests.Add(BuildPresentationRequest(
+            node,
+            instance.instanceId,
+            order.lockedHistoryHash,
+            string.Empty,
+            order.orderId,
+            order.targetGeneration,
+            EquipmentEvolutionProgression.GetRequiredMastery(state.generation)));
         EquipmentEvolutionState previousState = instance.evolution?.Clone()
             ?? new EquipmentEvolutionState();
         if (!equipment.TryUpdateEvolutionState(instance.instanceId, state))
@@ -443,6 +958,8 @@ public sealed class EquipmentEvolutionRuntime :
             }
             return false;
         }
+        // Work/material custody is complete. The physical equipment now owns the
+        // durable presentation request, while mechanics and mastery stay pending.
         order.state = EvolutionReforgeOrderState.Completed;
         order.completedWork = order.requiredWork;
         completedNode = node.Clone();
@@ -1395,6 +1912,13 @@ public sealed class EquipmentEvolutionRuntime :
     private bool HasActiveEquipmentOrder(string equipmentInstanceId)
     {
         string normalized = equipmentInstanceId?.Trim() ?? string.Empty;
+        if (equipment.TryGetInstance(normalized, out CombatEquipmentInstance instance)
+            && instance.evolution?.presentationRequests?.Any(request => request != null
+                && request.state is EquipmentEvolutionPresentationState.PresentationPending
+                    or EquipmentEvolutionPresentationState.AwaitingNarrativeRetry) == true)
+        {
+            return true;
+        }
         return orders.Any(order => order != null
                 && order.state is not EvolutionReforgeOrderState.Completed
                     and not EvolutionReforgeOrderState.Cancelled
@@ -1508,43 +2032,6 @@ public sealed class EquipmentEvolutionRuntime :
         EquipmentEvolutionState state,
         EvolutionReforgeOrder order)
     {
-        string moduleId = ResolveModuleId(
-            order.lockedDirection,
-            order.catalystFamily);
-        int seed = StableEvolutionHash.ToSeed(
-            instance.instanceId,
-            order.targetGeneration.ToString(),
-            order.lockedHistoryHash,
-            order.catalystFamily,
-            order.catalystPotency.ToString());
-        IRandomStream random = new DeterministicRandomSequence(seed);
-        float potencyScale = 1f
-            + Mathf.Min(0.75f, Mathf.Max(0, order.catalystPotency - 1) * 0.08f);
-        potencyScale *= GetCatalystFamilyPotencyScale(
-            order.catalystFamily);
-        float variance = Mathf.Clamp(order.resultVariance, 0.01f, 0.5f);
-        float rollScale = 1f
-            + Mathf.Lerp(
-                -variance,
-                variance,
-                random.NextFloat());
-        bool stabilized = order.stabilizerAmount > 0;
-        bool risky = !stabilized
-            && (order.catalystFamily.IndexOf(
-                    "offense",
-                    StringComparison.OrdinalIgnoreCase) >= 0
-                || order.catalystFamily.IndexOf(
-                    "arcane",
-                    StringComparison.OrdinalIgnoreCase) >= 0);
-        if (order.burdenSuppression
-            && (string.IsNullOrWhiteSpace(order.suppressedBurdenEffectId)
-                || string.Equals(
-                    order.suppressedBurdenEffectId,
-                    "equipment:risky",
-                    StringComparison.Ordinal)))
-        {
-            risky = false;
-        }
         string parentNodeId = state.evolutionNodes
             .Where(node => node != null && !node.historical)
             .OrderByDescending(node => node.generation)
@@ -1553,33 +2040,27 @@ public sealed class EquipmentEvolutionRuntime :
             .FirstOrDefault() ?? string.Empty;
         string nodeHash = StableEvolutionHash.Compute(
             instance.instanceId + "|" + order.orderId);
-        return new EvolutionNode
-        {
-            nodeId = $"equipment-node:{nodeHash}",
-            parentNodeId = parentNodeId,
-            effectId = moduleId,
-            burdenEffectId = risky ? "equipment:risky" : string.Empty,
-            generation = order.targetGeneration,
-            active = true,
-            historical = false,
-            displayName = modules.TryGet(
-                moduleId,
-                out EvolutionModuleDefinition definition)
-                    ? definition.DisplayName
-                    : moduleId,
-            description = string.Empty,
-            evidenceIds = state.usageLedger.compactedSegments
-                .OrderByDescending(segment => segment.lastGeneration)
-                .SelectMany(segment => segment.keyEvents)
-                .Where(entry => entry != null)
-                .Take(8)
-                .Select(entry => entry.evidenceId)
-                .Where(id => !string.IsNullOrWhiteSpace(id))
-                .Distinct(StringComparer.Ordinal)
-                .ToList(),
-            activationRule = new EvolutionModuleActivationRule(),
-            potencyMultiplier = potencyScale * rollScale
-        };
+        return BuildFormulaNode(
+            state,
+            EquipmentEvolutionFormulaCatalogSO.LoadRequired(),
+            RequireFormulaTargetContext(instance),
+            instance.instanceId,
+            $"equipment-node:{nodeHash}",
+            parentNodeId,
+            order.lockedHistoryHash,
+            order.lockedDirection,
+            order.catalystFamily,
+            order.targetGeneration,
+            historical: false,
+            manifestationPosition: $"reforge:{order.targetGeneration}",
+            outcomeBindings: GameplayOutcomeEvidenceFormulaProjection.CaptureExact(
+                outcomeEvidenceQuery.GetForEntity(
+                    new GameplayEntityId(
+                        new GameplayEntityKindId("item-instance"),
+                        instance.instanceId),
+                    maximumCount: 32,
+                    minimumSalience: 0f,
+                    includeCompacted: false)));
     }
 
     private string ResolvePrimaryMaterialItemId(
@@ -1599,6 +2080,12 @@ public sealed class EquipmentEvolutionRuntime :
     public static float GetCatalystFamilyPotencyScale(string catalystFamily) =>
         EquipmentEvolutionRules.GetCatalystFamilyPotencyScale(catalystFamily);
 
+    private static bool ContainsMechanicalNumber(string value)
+    {
+        return (value ?? string.Empty).Any(character =>
+            char.IsDigit(character) || character is '%' or '％');
+    }
+
     private CombatEquipmentInstance RequireInstance(string instanceId)
     {
         if (!equipment.TryGetInstance(
@@ -1610,6 +2097,106 @@ public sealed class EquipmentEvolutionRuntime :
         }
 
         return instance;
+    }
+
+    private EquipmentFormulaTargetContext RequireFormulaTargetContext(
+        CombatEquipmentInstance instance)
+    {
+        if (instance == null
+            || string.IsNullOrWhiteSpace(instance.definitionId)
+            || !equipment.TryGetDefinition(
+                instance.definitionId,
+                out CombatEquipmentDefinitionSO definition)
+            || definition == null
+            || !string.Equals(
+                definition.EquipmentId,
+                instance.definitionId.Trim(),
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Equipment formula generation requires the instance's canonical catalog definition.");
+        }
+
+        return new EquipmentFormulaTargetContext(definition);
+    }
+
+    private bool TryResolveFormulaTargetContext(
+        CombatEquipmentInstance instance,
+        out EquipmentFormulaTargetContext targetContext,
+        out string failureReason)
+    {
+        targetContext = null;
+        failureReason = string.Empty;
+        try
+        {
+            targetContext = RequireFormulaTargetContext(instance);
+            return true;
+        }
+        catch (Exception error) when (error is ArgumentException
+            or InvalidOperationException or KeyNotFoundException)
+        {
+            failureReason = error.Message;
+            return false;
+        }
+    }
+
+    private void ReportBlockedAttunementNodeGeneration(
+        CombatEquipmentInstance instance,
+        EquipmentFormulaTargetContext targetContext,
+        EquipmentAttunementAdvanceResult result)
+    {
+        if (!result.NodeGenerationBlocked)
+        {
+            lastAttunementNodeGenerationFailureFingerprint = string.Empty;
+            return;
+        }
+
+        string instanceId = instance?.instanceId?.Trim() ?? string.Empty;
+        string definitionId = targetContext?.DefinitionId
+            ?? instance?.definitionId?.Trim()
+            ?? string.Empty;
+        string fingerprint = string.Join("|",
+            instanceId,
+            definitionId,
+            result.BlockedTier,
+            result.NodeGenerationFailureReason);
+        if (string.Equals(
+                lastAttunementNodeGenerationFailureFingerprint,
+                fingerprint,
+                StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        lastAttunementNodeGenerationFailureFingerprint = fingerprint;
+        Debug.LogWarning(
+            "Equipment attunement node generation blocked for instance '"
+            + instanceId + "', definition '" + definitionId + "', tier "
+            + result.BlockedTier + ": " + result.NodeGenerationFailureReason);
+    }
+
+    private bool TryRequireRuntimeApplicableFormulaTarget(
+        CombatEquipmentInstance instance,
+        out EquipmentFormulaTargetContext targetContext,
+        out string failureReason)
+    {
+        if (!TryResolveFormulaTargetContext(
+                instance, out targetContext, out failureReason))
+        {
+            failureReason = "이 장비에는 실제로 적용되는 진화 효과가 없어 새 진화를 만들 수 없습니다. "
+                + failureReason;
+            return false;
+        }
+        if (!TryGetRuntimeApplicablePositiveOfferFailure(
+                EquipmentEvolutionFormulaCatalogSO.LoadRequired(),
+                targetContext,
+                out failureReason))
+        {
+            failureReason = "이 장비에는 실제로 적용되는 진화 효과가 없어 새 진화를 만들 수 없습니다. "
+                + failureReason;
+            return false;
+        }
+        return true;
     }
 
 }

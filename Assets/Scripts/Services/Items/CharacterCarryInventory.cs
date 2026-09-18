@@ -504,10 +504,56 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
         CharacterStats stats = actor?.Stats
             ?? throw new InvalidOperationException(
                 "Carry capacity requires an initialized character runtime.");
-        float performanceFactor = stats.EvaluatePerformance(
-            "performance:survival:haul-capacity").Value;
+        const string performanceId = "performance:survival:haul-capacity";
+        CharacterPerformanceSnapshot performance = stats.EvaluatePerformance(
+                performanceId)
+            ?? throw new InvalidOperationException(
+                "Carry-capacity performance authority returned no snapshot.");
+        if (!string.Equals(
+                performance.FormulaId,
+                performanceId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Carry-capacity performance authority returned the wrong formula. "
+                + $"actual={performance.FormulaId ?? "<missing>"}");
+        }
+        if (!performance.IsApplicable)
+        {
+            CharacterPerformanceFailure failure = performance.Failure;
+            bool requiredCapacityUnavailable = failure != null
+                && performance.Value == 0f
+                && string.Equals(
+                    failure.Code,
+                    "RequiredFunctionalCapacityBelowThreshold",
+                    StringComparison.Ordinal)
+                && !string.IsNullOrWhiteSpace(failure.CapacityId)
+                && !float.IsNaN(failure.CurrentValue)
+                && !float.IsInfinity(failure.CurrentValue)
+                && failure.CurrentValue >= 0f
+                && !float.IsNaN(failure.RequiredValue)
+                && !float.IsInfinity(failure.RequiredValue)
+                && failure.RequiredValue > 0f
+                && failure.CurrentValue < failure.RequiredValue;
+            if (requiredCapacityUnavailable)
+            {
+                return 0f;
+            }
+
+            throw new InvalidOperationException(
+                "Carry-capacity performance is unavailable without a valid "
+                + "required-functional-capacity failure. "
+                + $"code={failure?.Code ?? "<missing>"}");
+        }
+        if (performance.Failure != null)
+        {
+            throw new InvalidOperationException(
+                "Applicable carry-capacity performance cannot contain a failure. "
+                + $"code={performance.Failure.Code}");
+        }
+
         return CharacterCarryTuning.ResolveSoftCapacityKilograms(
-            performanceFactor,
+            performance.Value,
             IsHaulingHarnessEquipped());
     }
 
@@ -522,14 +568,9 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
             return false;
         }
 
-        if (environmentalWorkwear.TryGetEquipped(
-                CharacterId,
-                out EnvironmentalWorkwearSO current))
+        if (TryGetEquippedHaulingHarness(out _))
         {
-            return string.Equals(
-                current.ItemDefinitionId,
-                DurableToolItemRules.HaulingHarness,
-                StringComparison.Ordinal);
+            return true;
         }
 
         bool equipped = environmentalWorkwearCommands.TryEquip(
@@ -551,48 +592,53 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
         }
 
         if (applyWear
-            && environmentalWorkwear.TryGetEquippedItemInstance(
-                CharacterId,
-                out ItemInstanceId itemInstanceId,
-                out EnvironmentalWorkwearSO workwear)
-            && string.Equals(
-                workwear.ItemDefinitionId,
-                DurableToolItemRules.HaulingHarness,
-                StringComparison.Ordinal))
+            && TryGetEquippedHaulingHarness(
+                out WorldItemStackSnapshot stack))
         {
             IWorldItemStackRuntime physicalItems = actor.WorldItemStackRuntime;
-            WorldItemStackSnapshot stack = physicalItems?.GetAllStacks()
-                .FirstOrDefault(candidate => candidate != null
-                    && string.Equals(
-                        candidate.ItemInstanceId,
-                        itemInstanceId.Value,
-                        StringComparison.Ordinal));
-            if (stack != null)
-            {
-                float current = DurableToolItemRules.ReadCurrentDurability(
+            float current = DurableToolItemRules.ReadCurrentDurability(
+                stack.ItemId,
+                stack.Components);
+            physicalItems.TrySetInstanceComponent(
+                stack.StackId,
+                DurableToolItemRules.CreateDurability(
                     stack.ItemId,
-                    stack.Components);
-                physicalItems.TrySetInstanceComponent(
-                    stack.StackId,
-                    DurableToolItemRules.CreateDurability(
-                        stack.ItemId,
-                        current - 1f));
-            }
+                    current - 1f));
         }
 
         environmentalWorkwearCommands.TryUnequip(CharacterId, out _);
     }
 
     private bool IsHaulingHarnessEquipped() =>
-        environmentalWorkwear != null
-        && CharacterId.IsValid
-        && environmentalWorkwear.TryGetEquipped(
-            CharacterId,
-            out EnvironmentalWorkwearSO workwear)
-        && string.Equals(
-            workwear.ItemDefinitionId,
-            DurableToolItemRules.HaulingHarness,
-            StringComparison.Ordinal);
+        TryGetEquippedHaulingHarness(out _);
+
+    private bool TryGetEquippedHaulingHarness(
+        out WorldItemStackSnapshot stack)
+    {
+        stack = null;
+        IWorldItemStackRuntime physicalItems = actor?.WorldItemStackRuntime;
+        if (!CharacterId.IsValid || physicalItems == null)
+        {
+            return false;
+        }
+
+        string destination = CharacterApparelAggregate.EquippedDestinationPrefix
+            + CharacterId.Value;
+        stack = physicalItems.GetAllStacks()
+            .Where(candidate => candidate != null
+                && candidate.Quantity == 1
+                && string.Equals(
+                    candidate.ItemId,
+                    DurableToolItemRules.HaulingHarness,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    candidate.DestinationId,
+                    destination,
+                    StringComparison.Ordinal))
+            .OrderBy(candidate => candidate.ItemInstanceId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        return stack != null;
+    }
 
     public float GetMaxAllowedWeight(IItemHaulingSettingsProvider settingsProvider)
     {
@@ -644,9 +690,17 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
         IDungeonItemCatalogProvider catalogProvider,
         IItemHaulingSettingsProvider settingsProvider)
     {
-        float baseLimit = Mathf.Max(0.01f, GetBaseCarryLimit());
-        float maxAllowed = Mathf.Max(baseLimit, GetMaxAllowedWeight(settingsProvider));
+        float baseLimit = GetBaseCarryLimit();
+        float maxCarryMultiplier = (settingsProvider
+            ?? throw new ArgumentNullException(nameof(settingsProvider)))
+            .MaxCarryMultiplier;
+        float maxAllowed = baseLimit
+            * CharacterCarryTuning.ClampMaxCarryMultiplier(maxCarryMultiplier);
         float current = GetCurrentWeight(catalogProvider);
+        if (baseLimit == 0f)
+        {
+            return current <= 0f ? 1f : 0f;
+        }
         if (current <= baseLimit)
         {
             return 1f;

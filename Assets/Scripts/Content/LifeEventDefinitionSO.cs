@@ -4,16 +4,24 @@ using UnityEngine;
 
 public enum LifeEventCategory { Childhood, Apprenticeship, PartnershipFamily, Career, ElderRetirement, DeathLegacy }
 public enum LifeEventFrequencyRule { Repeatable, OncePerCharacter, OncePerGeneration, OncePerRun }
+public enum LifeEventOccurrencePolicy
+{
+    ExternalObservedOnly = 0,
+    DailyCadence = 1
+}
 
 [CreateAssetMenu(fileName = "LifeEvent", menuName = "DungeonStory/V20/Life Event")]
 public sealed class LifeEventDefinitionSO : V20AuthoredContentSO
 {
     public LifeEventCategory category;
+    public ExperienceEventRiskTier riskTier;
+    [TextArea] public string riskReason = string.Empty;
     public bool automatic;
     public bool emergency;
     [Min(1)] public int responseDeadlineDays = 3;
     [Min(0)] public int cooldownDays = 30;
     public LifeEventFrequencyRule frequencyRule = LifeEventFrequencyRule.Repeatable;
+    public LifeEventOccurrencePolicy occurrencePolicy = LifeEventOccurrencePolicy.ExternalObservedOnly;
     public V20ContentRequirementSet triggerRequirements = new();
     public List<V20ChoiceDefinition> choices = new();
     public List<V20ContentEffect> automaticEffects = new();
@@ -21,6 +29,16 @@ public sealed class LifeEventDefinitionSO : V20AuthoredContentSO
     public override IReadOnlyList<string> ValidateDefinition()
     {
         List<string> errors = base.ValidateDefinition().ToList();
+        errors.AddRange(SocietyEventRiskContract.Validate(
+            StableId,
+            riskTier,
+            riskReason));
+        if (!System.Enum.IsDefined(
+                typeof(LifeEventOccurrencePolicy),
+                occurrencePolicy))
+        {
+            errors.Add($"'{StableId}' has an invalid life-event occurrence policy.");
+        }
         errors.AddRange((triggerRequirements ?? new()).Validate(StableId));
         if (automatic)
         {

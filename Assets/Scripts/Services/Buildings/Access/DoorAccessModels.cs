@@ -274,6 +274,7 @@ public interface IDoorAccessQuery : IGridTraversalAccessQuery
 
 public interface IDoorAccessCommandService
 {
+    bool SetHeldOpen(Door door, bool held);
     bool SetGroupAllowed(Door door, DoorAccessGroup group, bool allowed);
     bool SetIndividualRule(
         Door door,

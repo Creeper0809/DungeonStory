@@ -14,13 +14,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: DungeonStory.Content::SeasonalWorldEventDefinitionSO
   stableId: seasonal:winter-hungry-pack
   displayName: "\uAD76\uC8FC\uB9B0 \uBB34\uB9AC"
-  description: "\uBA39\uC774\uB97C \uC783\uC740 \uC57C\uC0DD \uBB34\uB9AC\uAC00 \uAC00\uCD95\uACFC
-    \uC4F0\uB808\uAE30\uC7A5\uC744 \uC2B5\uACA9\uD55C\uB2E4."
+  description: "\uACA8\uC6B8 \uC678\uACFD \uB465\uC9C0\uC5D0 \uB3D9\uAD74\uC0AC\uB0E5\uAC1C
+    \uC138 \uB9C8\uB9AC\uAC00 \uB3C4\uCC29\uD574 \uC2E4\uC81C \uBA39\uC787\uAC10\uC744
+    \uD0D0\uC0C9\uD55C\uB2E4."
   authoringRevision: 1
   sourceNote: V20 hand-authored seasonal world event manifest.
   season: 3
   minimumDurationDays: 3
   maximumDurationDays: 5
+  worldWaterRegenerationMultiplier: 1
+  wildlifeArrivalProfile:
+    speciesId: cave_hound
+    exactCount: 3
+    requiredHabitatId: lair
+    qualification: 1
   affectedDomainIds:
   - wildlife
   - defense
@@ -33,11 +40,7 @@ MonoBehaviour:
     worldMetrics: []
     requiredFlags: []
     excludedFlags: []
-  startEffects:
-  - kind: 14
-    targetId: hungry-pack
-    amount: 6
-    durationDays: 5
+  startEffects: []
   dailyEffects: []
   endEffects:
   - kind: 12

@@ -241,6 +241,162 @@ CharacterSpeciesSO|characterspecies:10,characterspecies:10,combatAbilities.abili
 CharacterSpeciesSO|characterspecies:10,characterspecies:10,effects,[],,,explicit-serialized
 CharacterSpeciesSO|characterspecies:10,characterspecies:10,references.version,2,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:10,characterspecies:10,references.RefIds,[],,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,m_Name,Species_Human,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,id,11,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,speciesTag,Human,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,displayName,인간,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,ownerSelectionPolicy,0,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,homeFactionId,,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,anatomyProfileId,anatomy:human,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,needs.hungerRateMultiplier,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,needs.thirstRateMultiplier,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,needs.sleepRateMultiplier,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,needs.hygieneRateMultiplier,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,needs.socialNeedMultiplier,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,needs.chargeRateMultiplier,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,needs.integrityWearMultiplier,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,needs.diet,2,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,needs.metabolism,0,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,needs.treatment,0,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,environment.comfortMinimum,15,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,environment.comfortMaximum,27,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,environment.safeMinimum,0,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,environment.safeMaximum,40,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,environment.lethalMinimum,-10,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,environment.lethalMaximum,48,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,environment.comfortableAirMinimum,70,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,environment.lightAdaptationEnabled,0,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,environment.comfortableLightMinimum,40,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,environment.comfortableLightMaximum,100,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,environment.airborneExposureMultiplier,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,environment.visualStrainMultiplier,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,environment.preferredHumidity,0.5,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,environment.drynessSensitivity,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,lifeHistory.fileID,11400000,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,lifeHistory.guid,164883cabd3641b7a6e850b1bad70a7a,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,lifeHistory.type,2,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,reproduction.fileID,11400000,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,reproduction.guid,5595fe0f62004d0f9b4ea7c0a2867231,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,reproduction.type,2,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,funeralCulture.fileID,11400000,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,funeralCulture.guid,87916f6762c74430af4dcf83e02727e5,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,funeralCulture.type,2,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,relationTags.0,인간,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,relationTags.1,외부인,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,defenseAffinityTags.0,균형,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,strongWorkTypeIds,[],,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,weakWorkTypeIds,[],,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,shortDescription,기존 방문객과 모집 경로를 이용하는 범용 종족,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,description,기존 방문객과 모집 경로를 통해 정착할 수 있는 인간이다. 특정 종족 보너스나 전용 세력을 추가하지 않는다.,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,preferredFacilityLabels,[],,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,dislikedEnvironmentLabels,[],,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,stayDurationMultiplier,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,crimeRiskMultiplier,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,incidentType,0,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,incident.incidentId,species-incident:human-adjustment,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,incident.displayName,환경 적응 피로,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,incident.description,낯선 던전 환경에 오래 머물면 적응 피로로 불만이 커질 수 있다.,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,incident.mitigatingRoles,516,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,incident.triggerTags.0,discontent,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,incidentName,환경 적응 피로,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,incidentDescription,낯선 던전 환경에 오래 머물면 적응 피로로 불만이 커질 수 있다.,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,incidentMitigatingRoles,516,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,combatPassive.passiveId,species-passive:human-adaptability,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,combatPassive.displayName,범용 적응,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,combatPassive.description,특정 역할 보너스 없이 일반 환경과 작업에 적응한다.,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,combatPassive.mechanicTags.0,적응,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,combatPassive.mechanicTags.1,균형,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,modifiers.preferredFacilityRoles,0,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,modifiers.dislikedFacilityRoles,0,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,modifiers.preferredWorkTypes,0,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,modifiers.dislikedWorkTypes,0,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,combatAbilities.abilities,[],,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.0.bindingId,species:Human:capacity_mental-maintenance,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.0.definition.fileID,11400000,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.0.definition.guid,e824443ce8b009943965055bb5c84cce,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.0.definition.type,2,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.0.value,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.0.condition.fileID,0,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.1.bindingId,species:Human:capacity_visual-discernment,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.1.definition.fileID,11400000,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.1.definition.guid,7294ccb39b7adea47aadcc65dde9b29e,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.1.definition.type,2,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.1.value,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.1.condition.fileID,0,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.2.bindingId,species:Human:capacity_auditory-sensing,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.2.definition.fileID,11400000,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.2.definition.guid,7aceac644d3d00d4bb23b8b446cd20ec,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.2.definition.type,2,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.2.value,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.2.condition.fileID,0,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.3.bindingId,species:Human:capacity_respiratory-exchange,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.3.definition.fileID,11400000,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.3.definition.guid,bf0c7ee266c94734491fabbefc56f3bd,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.3.definition.type,2,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.3.value,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.3.condition.fileID,0,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.4.bindingId,species:Human:capacity_power-circulation,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.4.definition.fileID,11400000,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.4.definition.guid,c4320a922f47a944bac98c577c493f0b,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.4.definition.type,2,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.4.value,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.4.condition.fileID,0,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.5.bindingId,species:Human:capacity_intake-processing,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.5.definition.fileID,11400000,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.5.definition.guid,798519265bdbcb44e8d7179997823082,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.5.definition.type,2,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.5.value,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.5.condition.fileID,0,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.6.bindingId,species:Human:capacity_purification-processing,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.6.definition.fileID,11400000,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.6.definition.guid,9646fe5d20b2ffb4691924f2c54f043c,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.6.definition.type,2,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.6.value,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.6.condition.fileID,0,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.7.bindingId,species:Human:capacity_vitality-response,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.7.definition.fileID,11400000,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.7.definition.guid,e505e4d6c6b105d41920604fab29dd97,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.7.definition.type,2,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.7.value,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.7.condition.fileID,0,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.8.bindingId,species:Human:capacity_physical-power,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.8.definition.fileID,11400000,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.8.definition.guid,3e6c3de3dbac42342ac392f653a710be,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.8.definition.type,2,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.8.value,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.8.condition.fileID,0,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.9.bindingId,species:Human:capacity_precision-manipulation,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.9.definition.fileID,11400000,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.9.definition.guid,65206679fe515374e90ed42156a79020,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.9.definition.type,2,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.9.value,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.9.condition.fileID,0,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.10.bindingId,species:Human:capacity_physical-mobility,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.10.definition.fileID,11400000,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.10.definition.guid,f663257780e25da4985e8411e2d66bbd,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.10.definition.type,2,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.10.value,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.10.condition.fileID,0,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.11.bindingId,species:Human:capacity_communication,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.11.definition.fileID,11400000,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.11.definition.guid,ad0a376957a1b5b42bfbd2975864c730,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.11.definition.type,2,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.11.value,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.11.condition.fileID,0,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.12.bindingId,species:Human:capacity_arcane-conduction,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.12.definition.fileID,11400000,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.12.definition.guid,650cb7f5e730c0b46bc5dc495f7d1586,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.12.definition.type,2,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.12.value,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.12.condition.fileID,0,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.13.bindingId,species:Human:capacity_immune-defense,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.13.definition.fileID,11400000,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.13.definition.guid,ba0a979776169d34597d6d5c9e4e2d8e,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.13.definition.type,2,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.13.value,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,effects.13.condition.fileID,0,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,references.version,2,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:11,characterspecies:11,references.RefIds,[],,,explicit-serialized
 CharacterSpeciesSO|characterspecies:2,characterspecies:2,m_Name,Species_Orc,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:2,characterspecies:2,id,2,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:2,characterspecies:2,speciesTag,Orc,,,explicit-serialized
@@ -447,8 +603,9 @@ CharacterSpeciesSO|characterspecies:3,characterspecies:3,environment.safeMaximum
 CharacterSpeciesSO|characterspecies:3,characterspecies:3,environment.lethalMinimum,-10,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:3,characterspecies:3,environment.lethalMaximum,42,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:3,characterspecies:3,environment.comfortableAirMinimum,70,,,explicit-serialized
-CharacterSpeciesSO|characterspecies:3,characterspecies:3,environment.comfortableLightMinimum,40,,,explicit-serialized
-CharacterSpeciesSO|characterspecies:3,characterspecies:3,environment.comfortableLightMaximum,100,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:3,characterspecies:3,environment.lightAdaptationEnabled,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:3,characterspecies:3,environment.comfortableLightMinimum,0,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:3,characterspecies:3,environment.comfortableLightMaximum,35,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:3,characterspecies:3,environment.airborneExposureMultiplier,1,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:3,characterspecies:3,environment.visualStrainMultiplier,1,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:3,characterspecies:3,environment.preferredHumidity,0.5,,,explicit-serialized
@@ -473,7 +630,7 @@ CharacterSpeciesSO|characterspecies:3,characterspecies:3,strongWorkTypeIds.1,wor
 CharacterSpeciesSO|characterspecies:3,characterspecies:3,weakWorkTypeIds.0,work:clean,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:3,characterspecies:3,weakWorkTypeIds.1,work:haul,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:3,characterspecies:3,shortDescription,장기 체류/연구/마력/공포 위험,,,explicit-serialized
-CharacterSpeciesSO|characterspecies:3,characterspecies:3,description,"식사 부담은 낮고 연구와 마력 시설을 오래 이용하지만, 불만이 쌓이면 공포 사고를 만든다.",,,explicit-serialized
+CharacterSpeciesSO|characterspecies:3,characterspecies:3,description,"식사 부담은 낮고 연구와 마력 시설을 오래 이용하지만, 강한 조명에서는 밝기 적응으로 기분과 직접 작업 효율이 소폭 낮아지며 적정 밝기에서는 회복된다. 불만이 쌓이면 공포 사고를 만든다.",,,explicit-serialized
 CharacterSpeciesSO|characterspecies:3,characterspecies:3,preferredFacilityLabels.0,연구실,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:3,characterspecies:3,preferredFacilityLabels.1,마력 저장소,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:3,characterspecies:3,preferredFacilityLabels.2,어둠 휴식 환경,,,explicit-serialized
@@ -1048,12 +1205,12 @@ CharacterSpeciesSO|characterspecies:6,characterspecies:6,crimeRiskMultiplier,1.1
 CharacterSpeciesSO|characterspecies:6,characterspecies:6,incidentType,0,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:6,characterspecies:6,incident.incidentId,species-incident:kobold-parts-hoarding,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:6,characterspecies:6,incident.displayName,부품 사재기,,,explicit-serialized
-CharacterSpeciesSO|characterspecies:6,characterspecies:6,incident.description,불만이 커지면 실제 금속 부품과 탄약을 은닉 스택으로 옮긴다.,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:6,characterspecies:6,incident.description,불만이 커지면 부품을 모으려는 성향이 두드러진다.,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:6,characterspecies:6,incident.mitigatingRoles,1088,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:6,characterspecies:6,incident.triggerTags.0,discontent,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:6,characterspecies:6,incident.triggerTags.1,species-specific,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:6,characterspecies:6,incidentName,부품 사재기,,,explicit-serialized
-CharacterSpeciesSO|characterspecies:6,characterspecies:6,incidentDescription,불만이 커지면 실제 금속 부품과 탄약을 은닉 스택으로 옮긴다.,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:6,characterspecies:6,incidentDescription,불만이 커지면 부품을 모으려는 성향이 두드러진다.,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:6,characterspecies:6,incidentMitigatingRoles,1088,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:6,characterspecies:6,combatPassive.passiveId,species-passive:kobold,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:6,characterspecies:6,combatPassive.displayName,톱니 감각,,,explicit-serialized
@@ -1191,8 +1348,9 @@ CharacterSpeciesSO|characterspecies:7,characterspecies:7,environment.safeMaximum
 CharacterSpeciesSO|characterspecies:7,characterspecies:7,environment.lethalMinimum,-8,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:7,characterspecies:7,environment.lethalMaximum,40,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:7,characterspecies:7,environment.comfortableAirMinimum,35,,,explicit-serialized
-CharacterSpeciesSO|characterspecies:7,characterspecies:7,environment.comfortableLightMinimum,40,,,explicit-serialized
-CharacterSpeciesSO|characterspecies:7,characterspecies:7,environment.comfortableLightMaximum,100,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:7,characterspecies:7,environment.lightAdaptationEnabled,1,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:7,characterspecies:7,environment.comfortableLightMinimum,0,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:7,characterspecies:7,environment.comfortableLightMaximum,55,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:7,characterspecies:7,environment.airborneExposureMultiplier,1,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:7,characterspecies:7,environment.visualStrainMultiplier,1,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:7,characterspecies:7,environment.preferredHumidity,0.5,,,explicit-serialized
@@ -1219,7 +1377,7 @@ CharacterSpeciesSO|characterspecies:7,characterspecies:7,strongWorkTypeIds.3,wor
 CharacterSpeciesSO|characterspecies:7,characterspecies:7,weakWorkTypeIds.0,work:guard,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:7,characterspecies:7,weakWorkTypeIds.1,work:perform,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:7,characterspecies:7,shortDescription,균사 심림 출신 · 재배실·퇴비실·약제실 선호,,,explicit-serialized
-CharacterSpeciesSO|characterspecies:7,characterspecies:7,description,균사인은(는) 균사 심림을 대표하는 종족이다. 손님·모집 직원·상인·포로·동맹 지원군으로 등장한다.,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:7,characterspecies:7,description,"균사인은 균사 심림을 대표하는 종족이다. 강한 조명에서는 밝기 적응으로 불편을 겪지만, 습도와 건조 적응은 생태 설정일 뿐 별도 수치 효과가 없다. 손님·모집 직원·상인·포로·동맹 지원군으로 등장한다.",,,explicit-serialized
 CharacterSpeciesSO|characterspecies:7,characterspecies:7,preferredFacilityLabels.0,재배실,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:7,characterspecies:7,preferredFacilityLabels.1,퇴비실,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:7,characterspecies:7,preferredFacilityLabels.2,약제실,,,explicit-serialized
@@ -1231,12 +1389,12 @@ CharacterSpeciesSO|characterspecies:7,characterspecies:7,crimeRiskMultiplier,1,,
 CharacterSpeciesSO|characterspecies:7,characterspecies:7,incidentType,0,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:7,characterspecies:7,incident.incidentId,species-incident:myconid-spore-bloom,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:7,characterspecies:7,incident.displayName,포자 개화,,,explicit-serialized
-CharacterSpeciesSO|characterspecies:7,characterspecies:7,incident.description,건조 노출과 불만이 겹치면 실제 포자 오염을 주변 셀에 생성한다.,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:7,characterspecies:7,incident.description,불만이 커지면 실제 포자 오염을 주변 셀에 생성한다. 습도와 건조 적응은 설정 설명이며 별도 수치 효과가 없다.,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:7,characterspecies:7,incident.mitigatingRoles,4352,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:7,characterspecies:7,incident.triggerTags.0,discontent,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:7,characterspecies:7,incident.triggerTags.1,species-specific,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:7,characterspecies:7,incidentName,포자 개화,,,explicit-serialized
-CharacterSpeciesSO|characterspecies:7,characterspecies:7,incidentDescription,건조 노출과 불만이 겹치면 실제 포자 오염을 주변 셀에 생성한다.,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:7,characterspecies:7,incidentDescription,불만이 커지면 실제 포자 오염을 주변 셀에 생성한다. 습도와 건조 적응은 설정 설명이며 별도 수치 효과가 없다.,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:7,characterspecies:7,incidentMitigatingRoles,4352,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:7,characterspecies:7,combatPassive.passiveId,species-passive:myconid,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:7,characterspecies:7,combatPassive.displayName,균사 순환,,,explicit-serialized

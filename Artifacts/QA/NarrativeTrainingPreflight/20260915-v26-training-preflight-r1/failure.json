@@ -1,0 +1,8 @@
+{
+  "error": "Unity CLI failed; see F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Artifacts\\QA\\NarrativeTrainingPreflight\\20260915-v26-training-preflight-r1\\command-003",
+  "exceptionType": "RuntimeError",
+  "humanApprovalClaimed": false,
+  "retryAutomatically": false,
+  "status": "FAIL",
+  "trainingEligible": false
+}

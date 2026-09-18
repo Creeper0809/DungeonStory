@@ -16,6 +16,28 @@
       "target_title": "숯",
       "to": "item/material-charcoal",
       "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "character/festival-weapon-vigil",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-1055",
+      "target_spoiler_tier": "none",
+      "target_title": "무기로커",
+      "to": "facility/building-1055",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "character/festival-weapon-vigil",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-8830",
+      "target_spoiler_tier": "none",
+      "target_title": "정비 부품함",
+      "to": "facility/building-8830",
+      "type": "requires"
     }
   ],
   "schema_version": 1

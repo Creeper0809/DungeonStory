@@ -1,5 +1,39 @@
 using System;
 
+public enum CharacterAiRetryKind
+{
+    None = 0,
+    CandidateEvaluation,
+    PathSearch,
+    FailureCooldown,
+    DecisionRetry,
+    ExecutorDeferred
+}
+
+public readonly struct CharacterAiDecisionScheduleObservation
+{
+    public CharacterAiDecisionScheduleObservation(
+        bool isScheduled,
+        float dueTime,
+        float observedAt,
+        CharacterAiRetryKind retryKind)
+    {
+        IsScheduled = isScheduled;
+        DueTime = dueTime;
+        RemainingSeconds = isScheduled
+            ? Math.Max(0f, dueTime - observedAt)
+            : 0f;
+        RetryKind = isScheduled ? retryKind : CharacterAiRetryKind.None;
+    }
+
+    public bool IsScheduled { get; }
+    public float DueTime { get; }
+    public float RemainingSeconds { get; }
+    public CharacterAiRetryKind RetryKind { get; }
+    public bool IsRetry => IsScheduled && RetryKind != CharacterAiRetryKind.None;
+    public static CharacterAiDecisionScheduleObservation Unscheduled => default;
+}
+
 public interface ICharacterAiSchedulingService
 {
     bool IsDrivingAi { get; }
@@ -21,6 +55,8 @@ public interface ICharacterAiDiagnosticsQuery
     int LastPathSearchCount { get; }
     int CurrentPathSearchBudget { get; }
     float GetNextDecisionDelay(CharacterActor actor);
+    CharacterAiDecisionScheduleObservation CaptureDecisionSchedule(
+        CharacterActor actor);
 }
 
 public interface ICharacterMoodImpulseQuery
@@ -70,6 +106,7 @@ public sealed class CharacterAiSchedulingService :
 
     public void Unregister(CharacterActor actor)
     {
+        actor?.Brain?.ClearOperationDiagnosticsForLifecycle();
         if (TryResolveScheduler(out CharacterAiScheduler resolvedScheduler))
         {
             resolvedScheduler.UnregisterActor(actor);
@@ -129,6 +166,14 @@ public sealed class CharacterAiSchedulingService :
         return TryResolveScheduler(out CharacterAiScheduler scheduler)
             ? scheduler.GetNextDecisionDelayForDebug(actor)
             : 0f;
+    }
+
+    public CharacterAiDecisionScheduleObservation CaptureDecisionSchedule(
+        CharacterActor actor)
+    {
+        return TryResolveScheduler(out CharacterAiScheduler scheduler)
+            ? scheduler.CaptureDecisionSchedule(actor)
+            : CharacterAiDecisionScheduleObservation.Unscheduled;
     }
 
     private bool TryResolveScheduler(out CharacterAiScheduler resolvedScheduler)

@@ -1,0 +1,10 @@
+prepared=authored pen building:34db85bf3d2a48928a889d473248f647; pet=wild:9; penCell=(18, 1); hp=10; actual owner alternatives=3; hunger=0.2387451; thirst=0.2259266
+PASS ownerUI=character:staff:1:01
+PASS autonomousFollow (18, 1) -> (22, 1); owner=(24, 1)
+pet=wild:9; petCell=(22, 1); petHP=10; hunger=0.2641041; thirst=0.2605069; intent=동행 이동 · 주인 추종; owner=character:staff:1:01; ownerCell=(24, 1); gameTime=7.960474
+result=FAIL
+System.InvalidOperationException: Whole current restore: Failed to stage section 'wildlife.population': Wildlife actor candidate preparation failed: Wildlife 'wild:9' has an invalid or occupied restored position (22, 1).
+  at Wim029CompanionLiveRunner+<Run>d__19.MoveNext () [0x00eed] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Captivity\Editor\Wim029CompanionLiveRunner.cs:232 
+  at Wim029CompanionLiveRunner+<Observe>d__18.MoveNext () [0x00051] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Captivity\Editor\Wim029CompanionLiveRunner.cs:66 
+scope=controlled authored initial pen/domestic birth, healthy staff and safe field; actual EventSystem owner assignment/change/clear, autonomous follow/return, current whole registry restore. Not natural capture/birth/construction, reciprocal combat, animal haul, daily balance or six-adult certification.
+cleanup=paused disposable main Play, operator stops; disk persistence disabled before owner UI; original environment restored

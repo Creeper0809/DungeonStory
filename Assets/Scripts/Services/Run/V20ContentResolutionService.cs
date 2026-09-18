@@ -11,9 +11,17 @@ public enum ContentResolutionRequestKind
     SocietyChoice,
     FactionChapterChoice,
     FactionContractAccept,
+    SeasonalFactionContractAccept,
     FactionContractOutcome,
     CulturalPractice,
-    CulturalPracticeNeglect
+    CulturalPracticeNeglect,
+    GuestRequestDeliveryOutcome
+}
+
+public enum ContentResolutionDisposition
+{
+    Terminal = 0,
+    AcceptedPending = 1
 }
 
 public sealed class ContentResolutionRequest
@@ -38,6 +46,7 @@ public sealed class ContentResolutionResult
     public string ActionId { get; internal set; } = string.Empty;
     public IReadOnlyList<V20ResolvedEventResult> Resolutions { get; internal set; } =
         Array.Empty<V20ResolvedEventResult>();
+    public ContentResolutionDisposition Disposition { get; internal set; }
 }
 
 public enum FacilityCapabilityKind
@@ -55,7 +64,8 @@ public enum FacilityCapabilityKind
     Administration,
     Security,
     Entertainment,
-    Medical
+    Medical,
+    IsolationRecovery
 }
 
 public interface IFacilityCapabilityQuery
@@ -80,7 +90,11 @@ public sealed class FacilityCapabilityQuery : IFacilityCapabilityQuery
         string buildingDefinitionId = "")
     {
         string definitionId = buildingDefinitionId?.Trim() ?? string.Empty;
-        FacilityRole role = ToRole(capability);
+        bool requiresIsolationRecovery = capability
+            == FacilityCapabilityKind.IsolationRecovery;
+        FacilityRole role = requiresIsolationRecovery
+            ? FacilityRole.Medical
+            : ToRole(capability);
         return world.Buildings
             .Where(value => value != null
                 && !value.IsBuildingDestroyed
@@ -91,6 +105,13 @@ public sealed class FacilityCapabilityQuery : IFacilityCapabilityQuery
                         definitionId,
                         StringComparison.Ordinal))
                 && (role == FacilityRole.None || value.SupportsFacilityRole(role))
+                && (!requiresIsolationRecovery
+                    || value.BuildingData.Abilities
+                        .OfType<ISurgicalFacilityAbility>()
+                        .Any(ability =>
+                            (ability.FacilityTags
+                                & SurgeryFacilityTag.IsolationRecovery)
+                            == SurgeryFacilityTag.IsolationRecovery))
                 && IsOperational(value))
             .OrderBy(
                 value => value.PersistentInstanceId.Value,
@@ -169,23 +190,30 @@ public interface IContentRequirementEvaluator
         RunMilestoneEvaluationSnapshot world,
         IReadOnlyList<string> participantCharacterIds,
         out DomainFailure failure);
+
+    bool IsLivingCharacterAtStage(
+        CharacterId characterId,
+        CharacterLifeStage lifeStage);
 }
 
 public sealed class ContentRequirementEvaluator : IContentRequirementEvaluator
 {
     private readonly ICharacterWorldQuery characters;
     private readonly ICharacterLifeQuery life;
+    private readonly IKinshipQuery kinship;
     private readonly ICharacterNarrativeQuery narrative;
     private readonly IFacilityCapabilityQuery facilities;
 
     public ContentRequirementEvaluator(
         ICharacterWorldQuery characters,
         ICharacterLifeQuery life,
+        IKinshipQuery kinship,
         ICharacterNarrativeQuery narrative,
         IFacilityCapabilityQuery facilities)
     {
         this.characters = characters ?? throw new ArgumentNullException(nameof(characters));
         this.life = life ?? throw new ArgumentNullException(nameof(life));
+        this.kinship = kinship ?? throw new ArgumentNullException(nameof(kinship));
         this.narrative = narrative ?? throw new ArgumentNullException(nameof(narrative));
         this.facilities = facilities ?? throw new ArgumentNullException(nameof(facilities));
     }
@@ -271,6 +299,31 @@ public sealed class ContentRequirementEvaluator : IContentRequirementEvaluator
         return true;
     }
 
+    public bool IsLivingCharacterAtStage(
+        CharacterId characterId,
+        CharacterLifeStage lifeStage)
+    {
+        if (!characterId.IsValid
+            || kinship.TryGetTombstone(characterId, out _)
+            || !life.TryGet(characterId, out CharacterLifeRecord record)
+            || record.LifeStage != lifeStage)
+        {
+            return false;
+        }
+
+        CharacterActor present = characters.Characters.FirstOrDefault(actor =>
+            actor?.Identity != null
+            && string.Equals(
+                actor.Identity.PersistentId,
+                characterId.Value,
+                StringComparison.Ordinal));
+        return present == null
+            || (!present.IsDead
+                && present.CurrentHealth > 0f
+                && present.CurrentLifecycleState !=
+                    CharacterLifecycleState.Despawned);
+    }
+
     private CharacterActor[] ResolveParticipants(
         IReadOnlyList<string> participantCharacterIds)
     {
@@ -338,6 +391,11 @@ public interface IContentResolutionService
         out DomainFailure failure);
 }
 
+public interface IRetirementScheduleContentQuery
+{
+    bool CanScheduleRetirement(CharacterId characterId);
+}
+
 public static class V21ContentEffectExecutionRegistry
 {
     private static readonly IReadOnlyDictionary<V20ContentEffectKind, string>
@@ -359,7 +417,9 @@ public static class V21ContentEffectExecutionRegistry
             [V20ContentEffectKind.Threat] = "milestone pressure command / run.milestones",
             [V20ContentEffectKind.DiseaseExposure] = "population-health command / characters.health",
             [V20ContentEffectKind.AmbitionProgress] = "narrative command / characters.narrative",
-            [V20ContentEffectKind.MilestonePressure] = "milestone pressure command / run.milestones"
+            [V20ContentEffectKind.MilestonePressure] = "milestone pressure command / run.milestones",
+            [V20ContentEffectKind.RetirementSchedule] =
+                "career retirement schedule / characters.career"
         };
 
     public static bool HasExecutionOwner(V20ContentEffectKind kind) =>
@@ -445,6 +505,11 @@ public static class V21ContentAlertActionIds
         string contractId) =>
         Join("faction-contract-accept", factionId, contractId);
 
+    public static string SeasonalFactionContractAccept(
+        string occurrenceId,
+        string contractId) =>
+        Join("seasonal-faction-contract-accept", occurrenceId, contractId);
+
     public static string FactionContractOutcome(
         string factionId,
         bool succeeded) =>
@@ -460,6 +525,12 @@ public static class V21ContentAlertActionIds
 
     public static string Festival(string festivalId) =>
         Join("festival", festivalId, "resolve");
+
+    public static string Festival(string festivalId, int occurrenceYear) =>
+        Join("festival", festivalId, $"resolve,{Math.Max(1, occurrenceYear)}");
+
+    public static string FestivalSkip(string festivalId, int occurrenceYear) =>
+        Join("festival", festivalId, $"skip,{Math.Max(1, occurrenceYear)}");
 
     public static string AgeTreatment(
         CharacterId patientId,
@@ -557,7 +628,8 @@ public static class V21ContentAlertActionIds
 }
 
 public sealed class V21ContentAlertChoiceActionDispatcher :
-    IEventAlertChoiceActionDispatcher
+    IEventAlertChoiceActionDispatcher,
+    IEventAlertChoiceActionDispositionDispatcher
 {
     private readonly IContentResolutionService content;
     private readonly IV20MilestoneWorldSnapshotQuery world;
@@ -604,8 +676,15 @@ public sealed class V21ContentAlertChoiceActionDispatcher :
             ?? throw new ArgumentNullException(nameof(traitAnalysis));
     }
 
-    public bool TryDispatch(string actionId, out DomainFailure failure)
+    public bool TryDispatch(string actionId, out DomainFailure failure) =>
+        TryDispatch(actionId, out _, out failure);
+
+    public bool TryDispatch(
+        string actionId,
+        out EventAlertChoiceActionDisposition disposition,
+        out DomainFailure failure)
     {
+        disposition = EventAlertChoiceActionDisposition.Terminal;
         failure = DomainFailure.None;
         if (!V21ContentAlertActionIds.TryParse(
                 actionId,
@@ -635,20 +714,59 @@ public sealed class V21ContentAlertChoiceActionDispatcher :
         }
         if (string.Equals(kind, "festival", StringComparison.Ordinal))
         {
+            string[] details = second.Split(',');
+            string festivalAction = details[0];
+            int occurrenceYear = calendar.Year;
+            bool occurrenceBound = details.Length == 2;
+            if (details.Length == 2
+                && (!int.TryParse(details[1], out occurrenceYear)
+                    || occurrenceYear <= 0))
+            {
+                failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable);
+                return false;
+            }
+            if (details.Length > 2)
+            {
+                failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable);
+                return false;
+            }
+            if (string.Equals(festivalAction, "skip", StringComparison.Ordinal))
+            {
+                return festivals.Schedule(
+                    new FestivalScheduleRequest
+                    {
+                        ActionId = actionId.Trim(),
+                        FestivalId = first,
+                        OccurrenceYear = occurrenceYear,
+                        Decline = true
+                    },
+                    out _,
+                    out failure);
+            }
+            if (!string.Equals(festivalAction, "resolve", StringComparison.Ordinal))
+            {
+                failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable);
+                return false;
+            }
             FestivalScheduleRequest schedule = new()
             {
                 ActionId = actionId.Trim(),
                 FestivalId = first,
+                OccurrenceYear = occurrenceYear,
                 ParticipantIds = world.LivingCharacters
                     .Select(CharacterPersistentIdentity.Require)
                     .OrderBy(value => value.Value, StringComparer.Ordinal)
                     .ToArray()
             };
-            return festivals.Schedule(
+            if (!festivals.Schedule(
                     schedule,
                     out FestivalPreparedOrder order,
-                    out failure)
-                && festivals.Resolve(order, out failure);
+                    out failure))
+                return false;
+            if (!occurrenceBound)
+                return festivals.Resolve(order, out failure);
+            disposition = EventAlertChoiceActionDisposition.AcceptedPending;
+            return true;
         }
         if (string.Equals(kind, "age-treatment", StringComparison.Ordinal))
         {
@@ -746,6 +864,12 @@ public sealed class V21ContentAlertChoiceActionDispatcher :
                 request.FactionId = first;
                 request.ContractId = second;
                 break;
+            case "seasonal-faction-contract-accept":
+                request.Kind =
+                    ContentResolutionRequestKind.SeasonalFactionContractAccept;
+                request.InstanceId = first;
+                request.ContractId = second;
+                break;
             case "faction-contract-outcome":
                 request.Kind = ContentResolutionRequestKind.FactionContractOutcome;
                 request.FactionId = first;
@@ -784,26 +908,41 @@ public sealed class V21ContentAlertChoiceActionDispatcher :
             return false;
         }
 
+        disposition = result.Disposition ==
+                ContentResolutionDisposition.AcceptedPending
+            ? EventAlertChoiceActionDisposition.AcceptedPending
+            : EventAlertChoiceActionDisposition.Terminal;
+
         foreach (V20ResolvedEventResult resolved in result.Resolutions)
         {
-            events.Publish(new V20ContentEffectsResolvedEvent(
-                resolved.DefinitionId,
-                resolved.ResolutionId,
-                resolved.Effects,
-                physicalEffectsApplied: true));
+            V20SocietyEventAlertProjection.PublishResolved(
+                events,
+                resolved,
+                physicalEffectsApplied: true);
         }
         return true;
     }
 }
 
-public sealed class V20ContentResolutionService : IContentResolutionService
+public sealed class V20ContentResolutionService :
+    IContentResolutionService,
+    IObservedCareerLifeEventCommand,
+    IRetirementScheduleContentQuery,
+    IFactionContractDeliveryQuery,
+    IFactionContractDeliveryResolutionCommand,
+    IDungeonSaveCaptureGuard
 {
     private readonly V20CampaignRuntime live;
     private readonly V20StoryContentCatalog catalog;
     private readonly ICharacterNarrativeCatalog narrativeCatalog;
     private readonly IContentRequirementEvaluator requirements;
     private readonly ICharacterWorldQuery characters;
+    private readonly ICareerPersistence careers;
+    private readonly ICareerService careerQuery;
+    private readonly IGameCalendar calendar;
+    private readonly IV20MilestoneWorldSnapshotQuery milestoneWorld;
     private readonly ICharacterNarrativeQuery narrativeQuery;
+    private readonly ICharacterProficiencyQuery proficiencyQuery;
     private readonly ICharacterNarrativeCommand narrative;
     private readonly IGriefTraumaService grief;
     private readonly ICharacterBodyHealthCommand bodyHealth;
@@ -818,6 +957,9 @@ public sealed class V20ContentResolutionService : IContentResolutionService
     private readonly IGameMoneyAccount money;
     private readonly IFacilityCapabilityQuery facilities;
     private readonly IPhysicalItemBatchDispositionService physicalDispositions;
+    private readonly IPhysicalFacilityItemBatchTransferGateway
+        factionContractTransfers;
+    private readonly IEconomyProjectInputOwnerPort factionContractInputOwners;
     private readonly RunAdministrativeSealDurableEquipmentRuntime
         administrativeSealEquipment;
 
@@ -827,7 +969,12 @@ public sealed class V20ContentResolutionService : IContentResolutionService
         ICharacterNarrativeCatalog narrativeCatalog,
         IContentRequirementEvaluator requirements,
         ICharacterWorldQuery characters,
+        ICareerPersistence careers,
+        ICareerService careerQuery,
+        IGameCalendar calendar,
+        IV20MilestoneWorldSnapshotQuery milestoneWorld,
         ICharacterNarrativeQuery narrativeQuery,
+        ICharacterProficiencyQuery proficiencyQuery,
         ICharacterNarrativeCommand narrative,
         IGriefTraumaService grief,
         ICharacterBodyHealthCommand bodyHealth,
@@ -842,35 +989,390 @@ public sealed class V20ContentResolutionService : IContentResolutionService
         IGameMoneyAccount money,
         IFacilityCapabilityQuery facilities,
         IPhysicalItemBatchDispositionService physicalDispositions,
-        RunAdministrativeSealDurableEquipmentRuntime
-            administrativeSealEquipment)
+        IPhysicalFacilityItemBatchTransferGateway factionContractTransfers,
+        IEconomyProjectInputOwnerPort factionContractInputOwners,
+        RunAdministrativeSealDurableEquipmentRuntime administrativeSealEquipment)
     {
         this.live = live ?? throw new ArgumentNullException(nameof(live));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
-        this.physicalDispositions = physicalDispositions ?? throw new ArgumentNullException(nameof(physicalDispositions));
         this.narrativeCatalog = narrativeCatalog
             ?? throw new ArgumentNullException(nameof(narrativeCatalog));
         this.requirements = requirements ?? throw new ArgumentNullException(nameof(requirements));
         this.characters = characters ?? throw new ArgumentNullException(nameof(characters));
+        this.careers = careers ?? throw new ArgumentNullException(nameof(careers));
+        this.careerQuery = careerQuery
+            ?? throw new ArgumentNullException(nameof(careerQuery));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.milestoneWorld = milestoneWorld
+            ?? throw new ArgumentNullException(nameof(milestoneWorld));
         this.narrativeQuery = narrativeQuery
             ?? throw new ArgumentNullException(nameof(narrativeQuery));
+        this.proficiencyQuery = proficiencyQuery
+            ?? throw new ArgumentNullException(nameof(proficiencyQuery));
         this.narrative = narrative ?? throw new ArgumentNullException(nameof(narrative));
         this.grief = grief ?? throw new ArgumentNullException(nameof(grief));
         this.bodyHealth = bodyHealth ?? throw new ArgumentNullException(nameof(bodyHealth));
-        this.populationHealth = populationHealth ?? throw new ArgumentNullException(nameof(populationHealth));
+        this.populationHealth = populationHealth
+            ?? throw new ArgumentNullException(nameof(populationHealth));
         this.diseases = diseases ?? throw new ArgumentNullException(nameof(diseases));
         this.stock = stock ?? throw new ArgumentNullException(nameof(stock));
-        this.reservations = reservations ?? throw new ArgumentNullException(nameof(reservations));
-        this.atomicItems = atomicItems ?? throw new ArgumentNullException(nameof(atomicItems));
+        this.reservations = reservations
+            ?? throw new ArgumentNullException(nameof(reservations));
+        this.atomicItems = atomicItems
+            ?? throw new ArgumentNullException(nameof(atomicItems));
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.exactSources = exactSources
             ?? throw new ArgumentNullException(nameof(exactSources));
         this.dropZones = dropZones ?? throw new ArgumentNullException(nameof(dropZones));
         this.money = money ?? throw new ArgumentNullException(nameof(money));
-        this.facilities = facilities
-            ?? throw new ArgumentNullException(nameof(facilities));
+        this.facilities = facilities ?? throw new ArgumentNullException(nameof(facilities));
+        this.physicalDispositions = physicalDispositions
+            ?? throw new ArgumentNullException(nameof(physicalDispositions));
+        this.factionContractTransfers = factionContractTransfers
+            ?? throw new ArgumentNullException(nameof(factionContractTransfers));
+        this.factionContractInputOwners = factionContractInputOwners
+            ?? throw new ArgumentNullException(nameof(factionContractInputOwners));
         this.administrativeSealEquipment = administrativeSealEquipment
             ?? throw new ArgumentNullException(nameof(administrativeSealEquipment));
+    }
+
+    public bool CanScheduleRetirement(CharacterId characterId)
+    {
+        if (!IsEligibleLivingElder(characterId)) return false;
+        CharacterCareerAggregate candidate = careers.PrepareRestore(
+            careers.Capture());
+        return candidate.CanScheduleRetirement(characterId, out _);
+    }
+
+    internal void RequireCanCommitObservedFuneralLifeEvent(
+        ObservedFuneralLifeEventReceipt receipt)
+    {
+        V20CampaignRuntime candidate = CreateCampaignCandidate();
+        ObservedLifeEventCommitResult observed =
+            candidate.RecordObservedFuneralLifeEvent(receipt);
+        RequireObservedLifeEventEffectsPreflight(
+            receipt.SourceOperationId,
+            receipt.AbsoluteDay,
+            observed.Resolution.HasValue
+                ? new[] { observed.Resolution.Value }
+                : Array.Empty<V20ResolvedEventResult>());
+    }
+
+    internal IReadOnlyList<V20ResolvedEventResult>
+        CommitObservedFuneralLifeEvent(
+            ObservedFuneralLifeEventReceipt receipt) =>
+        CommitObservedLifeEvents(
+            receipt.SourceOperationId,
+            receipt.AbsoluteDay,
+            candidate => new[]
+            {
+                candidate.RecordObservedFuneralLifeEvent(receipt)
+            });
+
+    [GameplayInternalOnly(
+        "Commits the source-owned apprentice-mistake occurrence.",
+        "ProductionRecipeExecutionReceiptAuthority only")]
+    bool IObservedCareerLifeEventCommand.TryCaptureProductionDeclaredLoss(
+        ProductionDeclaredLossCycleReceipt source,
+        out bool stateChanged,
+        out string failureReason)
+    {
+        stateChanged = false;
+        failureReason = string.Empty;
+        try
+        {
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
+            CharacterId studentId = new(source.WorkerPersistentId);
+            if (!studentId.IsValid)
+                throw new ArgumentException(
+                    "Production-loss actor has no valid character identity.");
+            CareerMentorshipSnapshot[] matches = careerQuery.Mentorships
+                .Where(value => value.StudentCharacterId.Equals(studentId))
+                .ToArray();
+            if (matches.Length == 0)
+                return true;
+            if (matches.Length != 1)
+                throw new InvalidOperationException(
+                    $"Production-loss student '{studentId.Value}' has duplicate active mentorships.");
+
+            int absoluteDay = Math.Max(1, calendar.Day);
+            ObservedProductionLossLifeEventReceipt receipt = new(
+                source,
+                matches[0],
+                absoluteDay,
+                ResolveGeneration(absoluteDay));
+            stateChanged = CommitObservedPendingLifeEvent(
+                receipt.SourceOperationId,
+                receipt.AbsoluteDay,
+                candidate => candidate.RecordObservedProductionLossLifeEvent(
+                    receipt));
+            return true;
+        }
+        catch (Exception exception) when (exception is ArgumentException
+            or InvalidOperationException or OverflowException)
+        {
+            failureReason = "observed-production-loss-life-event-failed:"
+                + exception.Message;
+            return false;
+        }
+    }
+
+    [GameplayInternalOnly(
+        "Commits the source-owned last-lesson occurrence.",
+        "CareerApplicationAdapter only")]
+    bool IObservedCareerLifeEventCommand.TryCaptureLastLesson(
+        CareerMentorshipSnapshot mentorship,
+        CharacterCareerSnapshot retirement,
+        CombatEquipmentInstance protectiveEquipment,
+        CareerMentorshipAwardCommitReceipt award,
+        int absoluteDay,
+        out bool stateChanged,
+        out string failureReason)
+    {
+        stateChanged = false;
+        failureReason = string.Empty;
+        try
+        {
+            if (absoluteDay != Math.Max(1, calendar.Day)
+                || !careerQuery.TryGet(
+                    mentorship.MentorCharacterId,
+                    out CharacterCareerSnapshot currentRetirement)
+                || currentRetirement.Retired != retirement.Retired
+                || currentRetirement.RetirementScheduleStatus
+                    != retirement.RetirementScheduleStatus
+                || !string.Equals(
+                    currentRetirement.RetirementEventId,
+                    retirement.RetirementEventId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    currentRetirement.RetirementChoiceId,
+                    retirement.RetirementChoiceId,
+                    StringComparison.Ordinal)
+                || currentRetirement.RetirementDecisionAbsoluteDay
+                    != retirement.RetirementDecisionAbsoluteDay
+                || currentRetirement.RetirementDueAbsoluteDay
+                    != retirement.RetirementDueAbsoluteDay
+                || currentRetirement.RetirementTerminalAbsoluteDay
+                    != retirement.RetirementTerminalAbsoluteDay
+                || !careerQuery.Mentorships.Any(value =>
+                    value.MentorCharacterId.Equals(
+                        mentorship.MentorCharacterId)
+                    && value.StudentCharacterId.Equals(
+                        mentorship.StudentCharacterId)
+                    && value.AcademyBuildingId.Equals(
+                        mentorship.AcademyBuildingId)
+                    && value.ProficiencyId.Equals(mentorship.ProficiencyId)))
+            {
+                throw new InvalidOperationException(
+                    "Last-lesson source no longer matches the active mentorship day.");
+            }
+
+            ObservedLastLessonLifeEventReceipt receipt = new(
+                mentorship,
+                retirement,
+                protectiveEquipment,
+                award,
+                absoluteDay,
+                ResolveGeneration(absoluteDay));
+            stateChanged = CommitObservedPendingLifeEvent(
+                receipt.SourceOperationId,
+                receipt.AbsoluteDay,
+                candidate => candidate.RecordObservedLastLessonLifeEvent(
+                    receipt));
+            return true;
+        }
+        catch (Exception exception) when (exception is ArgumentException
+            or InvalidOperationException or OverflowException)
+        {
+            failureReason = "observed-last-lesson-life-event-failed:"
+                + exception.Message;
+            return false;
+        }
+    }
+
+    [GameplayInternalOnly(
+        "Commits the source-owned quiet-promotion occurrence.",
+        "ObservedProficiencyPromotionApplicationAdapter only")]
+    bool IObservedCareerLifeEventCommand.TryCaptureQuietPromotion(
+        CharacterProficiencyAwardCommitReceipt source,
+        out bool stateChanged,
+        out string failureReason)
+    {
+        stateChanged = false;
+        failureReason = string.Empty;
+        try
+        {
+            ObservedLifeEventReceiptSaveData[] existing = live.CaptureSociety()
+                .successfulLifeEventOperations
+                .Where(value => value != null
+                    && value.sourceKind
+                        == ObservedLifeEventSourceKind.ProficiencyPromotion
+                    && string.Equals(
+                        value.sourceOperationId,
+                        source.SourceOperationId,
+                        StringComparison.Ordinal))
+                .ToArray();
+            if (existing.Length > 1)
+                throw new InvalidOperationException(
+                    $"Quiet-promotion source '{source.SourceOperationId}' has duplicate receipts.");
+            if (existing.Length == 1)
+            {
+                if (!ObservedQuietPromotionLifeEventReceipt.TryParse(
+                        existing[0].canonicalPayload,
+                        out ObservedQuietPromotionLifeEventReceipt committed)
+                    || !string.Equals(
+                        committed.SourceOperationId,
+                        source.SourceOperationId,
+                        StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        $"Quiet-promotion source '{source.SourceOperationId}' conflicts with its committed receipt.");
+                }
+                return true;
+            }
+
+            if (source.AbsoluteHour != Math.Max(0L, calendar.AbsoluteHour)
+                || !proficiencyQuery.TryGetProficiency(
+                    source.CharacterId,
+                    source.ProficiencyId,
+                    source.AbsoluteHour,
+                    out CharacterProficiencySnapshot current)
+                || current.CurrentMilliExperience
+                    != source.AfterCurrentMilliExperience
+                || current.LifetimeMilliExperience
+                    != source.AfterLifetimeMilliExperience)
+            {
+                throw new InvalidOperationException(
+                    "Quiet-promotion source no longer matches the committed proficiency state.");
+            }
+
+            int absoluteDay = Math.Max(1, calendar.Day);
+            ObservedQuietPromotionLifeEventReceipt receipt = new(
+                source,
+                absoluteDay,
+                ResolveGeneration(absoluteDay));
+            stateChanged = CommitObservedPendingLifeEvent(
+                receipt.SourceOperationId,
+                receipt.AbsoluteDay,
+                candidate => candidate.RecordObservedQuietPromotionLifeEvent(
+                    receipt));
+            return true;
+        }
+        catch (Exception exception) when (exception is ArgumentException
+            or InvalidOperationException or OverflowException)
+        {
+            failureReason = "observed-quiet-promotion-life-event-failed:"
+                + exception.Message;
+            return false;
+        }
+    }
+
+    [GameplayInternalOnly(
+        "Publishes one prepared observed life-event candidate.",
+        "IObservedCareerLifeEventCommand implementations only")]
+    private bool CommitObservedPendingLifeEvent(
+        string operationId,
+        int absoluteDay,
+        Func<V20CampaignRuntime, ObservedLifeEventCommitResult> observe)
+    {
+        bool stateChanged = false;
+        CommitObservedLifeEvents(
+            operationId,
+            absoluteDay,
+            candidate =>
+            {
+                ObservedLifeEventCommitResult result = observe(candidate);
+                stateChanged = result.StateChanged;
+                return new[] { result };
+            });
+        return stateChanged;
+    }
+
+    private int ResolveGeneration(int absoluteDay)
+    {
+        RunMilestoneEvaluationSnapshot snapshot = milestoneWorld.Build(
+            absoluteDay);
+        return Mathf.Max(
+            0,
+            Mathf.FloorToInt(snapshot.WorldMetrics.TryGetValue(
+                V20WorldMetricKind.CompletedGenerations,
+                out float generations)
+                    ? generations
+                    : 0f));
+    }
+
+    private IReadOnlyList<V20ResolvedEventResult> CommitObservedLifeEvents(
+        string operationId,
+        int absoluteDay,
+        Func<V20CampaignRuntime, IReadOnlyList<ObservedLifeEventCommitResult>>
+            observe)
+    {
+        V20CampaignRuntime candidate = CreateCampaignCandidate();
+        IReadOnlyList<ObservedLifeEventCommitResult> observed =
+            observe?.Invoke(candidate)
+            ?? throw new ArgumentNullException(nameof(observe));
+        V20ResolvedEventResult[] resolutions = observed
+            .Where(value => value.Resolution.HasValue)
+            .Select(value => value.Resolution.Value)
+            .ToArray();
+        if (!observed.Any(value => value.StateChanged))
+            return resolutions;
+
+        ContentResolutionRequest request = new()
+        {
+            ActionId = operationId,
+            AbsoluteDay = Math.Max(1, absoluteDay)
+        };
+        if (!TryPreflightEffects(
+                request,
+                resolutions,
+                out EffectCommitPlan plan,
+                out DomainFailure preflightFailure))
+            throw new InvalidOperationException(
+                $"Observed life-event effect preflight failed: {preflightFailure.Code}.");
+
+        SeasonalEventAggregateState seasonal =
+            live.PrepareSeasonal(candidate.CaptureSeasonal());
+        SocietyEventAggregateState society =
+            live.PrepareSociety(candidate.CaptureSociety());
+        FactionCampaignAggregateState factions =
+            live.PrepareFactions(candidate.CaptureFactions());
+        RunMilestoneAggregateState milestones =
+            live.PrepareMilestones(candidate.CaptureMilestones());
+        if (!TryCommitEffects(
+                request,
+                resolutions,
+                plan,
+                out DomainFailure effectFailure))
+            throw new InvalidOperationException(
+                $"Observed life-event effect commit failed: {effectFailure.Code}.");
+        live.PublishContentResolution(
+            seasonal,
+            society,
+            factions,
+            milestones);
+        return resolutions;
+    }
+
+    private void RequireObservedLifeEventEffectsPreflight(
+        string operationId,
+        int absoluteDay,
+        IReadOnlyList<V20ResolvedEventResult> resolutions)
+    {
+        ContentResolutionRequest request = new()
+        {
+            ActionId = operationId,
+            AbsoluteDay = Math.Max(1, absoluteDay)
+        };
+        if (!TryPreflightEffects(
+                request,
+                resolutions,
+                out EffectCommitPlan plan,
+                out DomainFailure failure))
+            throw new InvalidOperationException(
+                $"Observed life-event effect preflight failed: {failure.Code}.");
+        plan.Release(reservations);
     }
 
     public bool TryExecute(
@@ -883,6 +1385,14 @@ public sealed class V20ContentResolutionService : IContentResolutionService
         if (request == null || string.IsNullOrWhiteSpace(request.ActionId))
         {
             failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable);
+            return false;
+        }
+        if (request.Kind == ContentResolutionRequestKind.FactionContractOutcome
+            && request.ContractSucceeded
+            && !TryValidateLiveFactionDeliveryReceipt(
+                request.FactionId,
+                out failure))
+        {
             return false;
         }
 
@@ -912,6 +1422,7 @@ public sealed class V20ContentResolutionService : IContentResolutionService
         {
             return false;
         }
+        RecordCommittedChoice(candidate, request, resolved);
         resolved = ExpandAmbitionCompletionRewards(candidate, resolved);
         foreach (V20ResolvedEventResult resolution in resolved)
         {
@@ -933,6 +1444,15 @@ public sealed class V20ContentResolutionService : IContentResolutionService
         {
             return false;
         }
+        if (!TryPrepareRetirementSchedule(
+                request,
+                resolved,
+                out RetirementSchedulePlan retirementPlan,
+                out failure))
+        {
+            plan.Release(reservations);
+            return false;
+        }
 
         BuildableObject administrationOffice = null;
         if (RequiresAdministrativeSeal(request.Kind))
@@ -950,14 +1470,40 @@ public sealed class V20ContentResolutionService : IContentResolutionService
             }
         }
 
-        SeasonalEventAggregateState seasonal = live.PrepareSeasonal(
-            candidate.CaptureSeasonal());
-        SocietyEventAggregateState society = live.PrepareSociety(
-            candidate.CaptureSociety());
-        FactionCampaignAggregateState factions = live.PrepareFactions(
-            candidate.CaptureFactions());
-        RunMilestoneAggregateState milestones = live.PrepareMilestones(
-            candidate.CaptureMilestones());
+        bool acceptedMaterialOwnerEnsured = false;
+        string acceptedMaterialDestinationId = string.Empty;
+        if ((request.Kind is ContentResolutionRequestKind.FactionContractAccept
+                or ContentResolutionRequestKind.SeasonalFactionContractAccept)
+            && !TryEnsureAcceptedMaterialInputOwner(
+                candidate,
+                request.FactionId,
+                out acceptedMaterialOwnerEnsured,
+                out acceptedMaterialDestinationId,
+                out failure))
+        {
+            plan.Release(reservations);
+            return false;
+        }
+
+        SeasonalEventAggregateState seasonal;
+        SocietyEventAggregateState society;
+        FactionCampaignAggregateState factions;
+        RunMilestoneAggregateState milestones;
+        try
+        {
+            seasonal = live.PrepareSeasonal(candidate.CaptureSeasonal());
+            society = live.PrepareSociety(candidate.CaptureSociety());
+            factions = live.PrepareFactions(candidate.CaptureFactions());
+            milestones = live.PrepareMilestones(candidate.CaptureMilestones());
+        }
+        catch
+        {
+            CompensateAcceptedMaterialOwnerOrThrow(
+                acceptedMaterialOwnerEnsured,
+                acceptedMaterialDestinationId,
+                "candidate-prepare-failed");
+            throw;
+        }
 
         DomainFailure effectFailure = DomainFailure.None;
         bool effectsCommitted;
@@ -983,6 +1529,10 @@ public sealed class V20ContentResolutionService : IContentResolutionService
         }
         if (!effectsCommitted)
         {
+            CompensateAcceptedMaterialOwnerOrThrow(
+                acceptedMaterialOwnerEnsured,
+                acceptedMaterialDestinationId,
+                "effect-commit-failed");
             failure = effectFailure.IsFailure
                 ? effectFailure
                 : new DomainFailure(
@@ -992,15 +1542,65 @@ public sealed class V20ContentResolutionService : IContentResolutionService
             return false;
         }
 
-        live.PublishSeasonal(seasonal);
-        live.PublishSociety(society);
-        live.PublishFactions(factions);
-        live.PublishMilestones(milestones);
+        try
+        {
+            if (retirementPlan.IsRequired)
+            {
+                CharacterCareerAggregate latestCareer = careers.PrepareRestore(
+                    careers.Capture());
+                string retirementFailure =
+                    "character is no longer an eligible living elder";
+                if (!IsEligibleLivingElder(retirementPlan.CharacterId)
+                    || !latestCareer.TryScheduleRetirement(
+                        retirementPlan.CharacterId,
+                        retirementPlan.EventId,
+                        retirementPlan.ChoiceId,
+                        retirementPlan.DecisionAbsoluteDay,
+                        retirementPlan.DueAbsoluteDay,
+                        out retirementFailure))
+                {
+                    throw new InvalidOperationException(
+                        "Retirement eligibility changed after external effects; "
+                        + "latest career state was preserved. "
+                        + retirementFailure);
+                }
+                live.PublishContentResolution(
+                    seasonal,
+                    society,
+                    factions,
+                    milestones,
+                    latestCareer);
+            }
+            else
+            {
+                live.PublishContentResolution(
+                    seasonal,
+                    society,
+                    factions,
+                    milestones);
+            }
+        }
+        catch
+        {
+            CompensateAcceptedMaterialOwnerOrThrow(
+                acceptedMaterialOwnerEnsured,
+                acceptedMaterialDestinationId,
+                "candidate-publish-failed");
+            throw;
+        }
         result = new ContentResolutionResult
         {
             ActionId = request.ActionId.Trim(),
-            Resolutions = resolved
+            Resolutions = resolved,
+            Disposition = IsPendingGuestRequestChoice(candidate, request)
+                ? ContentResolutionDisposition.AcceptedPending
+                : ContentResolutionDisposition.Terminal
         };
+        if (request.Kind is ContentResolutionRequestKind.FactionContractAccept
+                or ContentResolutionRequestKind.SeasonalFactionContractAccept)
+            AdvanceFactionContractDeliveries(
+                Math.Max(1, request.AbsoluteDay),
+                request.Requirements);
         return true;
     }
 
@@ -1008,6 +1608,7 @@ public sealed class V20ContentResolutionService : IContentResolutionService
         ContentResolutionRequestKind kind) =>
         kind is ContentResolutionRequestKind.FactionChapterChoice
             or ContentResolutionRequestKind.FactionContractAccept
+            or ContentResolutionRequestKind.SeasonalFactionContractAccept
             or ContentResolutionRequestKind.FactionContractOutcome;
 
     private V20CampaignRuntime CreateCampaignCandidate()
@@ -1015,13 +1616,1112 @@ public sealed class V20ContentResolutionService : IContentResolutionService
         V20CampaignRuntime candidate = new(
             new DungeonRuntimeAggregateRootStore(),
             catalog,
-            physicalDispositions);
+            physicalDispositions,
+            live.SeasonalFeedSelfHeatingTargets);
         candidate.PublishSeasonal(candidate.PrepareSeasonal(live.CaptureSeasonal()));
         candidate.PublishSociety(candidate.PrepareSociety(live.CaptureSociety()));
         candidate.PublishFactions(candidate.PrepareFactions(live.CaptureFactions()));
         candidate.PublishMilestones(candidate.PrepareMilestones(live.CaptureMilestones()));
         return candidate;
     }
+
+    private static void RecordCommittedChoice(
+        V20CampaignRuntime candidate,
+        ContentResolutionRequest request,
+        IReadOnlyList<V20ResolvedEventResult> resolved)
+    {
+        if (request.Kind is not (ContentResolutionRequestKind.SocietyChoice
+            or ContentResolutionRequestKind.GuestRequestDeliveryOutcome
+            or ContentResolutionRequestKind.FactionChapterChoice))
+        {
+            return;
+        }
+
+        if (request.Kind == ContentResolutionRequestKind.GuestRequestDeliveryOutcome
+            && string.Equals(
+                request.ChoiceId,
+                GuestRequestDeliveryOutbox.ExpiredDisposition,
+                StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        if (request.Kind == ContentResolutionRequestKind.SocietyChoice
+            && (resolved?.Count ?? 0) == 0)
+        {
+            return;
+        }
+
+        if (resolved == null || resolved.Count != 1)
+        {
+            throw new InvalidOperationException(
+                "Explicit content choice must resolve exactly one authored decision.");
+        }
+
+        V20ResolvedEventResult decision = resolved[0];
+        bool society = request.Kind is ContentResolutionRequestKind.SocietyChoice
+            or ContentResolutionRequestKind.GuestRequestDeliveryOutcome;
+        candidate.RecordCommittedChoice(
+            society
+                ? CommittedRunChoiceKind.SocietyEventChoice
+                : CommittedRunChoiceKind.FactionChapterChoice,
+            society
+                ? V20CampaignRuntime.SocietyChoiceOwnerId
+                : decision.ContextFactionId,
+            decision.DefinitionId,
+            society ? request.InstanceId : decision.DefinitionId,
+            decision.ResolutionId,
+            request.ActionId);
+    }
+
+    private static bool IsPendingGuestRequestChoice(
+        V20CampaignRuntime candidate,
+        ContentResolutionRequest request) =>
+        request.Kind == ContentResolutionRequestKind.SocietyChoice
+        && candidate.ActiveSocietyEvents.Any(value => value != null
+            && string.Equals(
+                value.instanceId,
+                request.InstanceId?.Trim(),
+                StringComparison.Ordinal)
+            && ((value.guestDelivery?.phase
+                        ?? GuestRequestDeliveryPhase.None)
+                    != GuestRequestDeliveryPhase.None
+                || (value.observedIncidentResponse?.phase
+                        ?? ObservedIncidentResponsePhase.None)
+                    != ObservedIncidentResponsePhase.None));
+
+    private bool TryPrepareRetirementSchedule(
+        ContentResolutionRequest request,
+        IReadOnlyList<V20ResolvedEventResult> resolutions,
+        out RetirementSchedulePlan plan,
+        out DomainFailure failure)
+    {
+        plan = default;
+        failure = DomainFailure.None;
+        V20ResolvedEventResult[] scheduled = resolutions
+            .Where(value => value.Effects.Any(effect => effect != null
+                && effect.kind == V20ContentEffectKind.RetirementSchedule))
+            .ToArray();
+        if (scheduled.Length == 0)
+            return true;
+        if (request.Kind != ContentResolutionRequestKind.SocietyChoice
+            || scheduled.Length != 1)
+        {
+            failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable);
+            return false;
+        }
+
+        V20ResolvedEventResult resolution = scheduled[0];
+        V20ContentEffect[] effects = resolution.Effects
+            .Where(effect => effect != null
+                && effect.kind == V20ContentEffectKind.RetirementSchedule)
+            .ToArray();
+        string[] participants = resolution.ParticipantCharacterIds
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        if (effects.Length != 1 || participants.Length != 1)
+        {
+            failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable);
+            return false;
+        }
+
+        CharacterId characterId = new(participants[0]);
+        V20ContentEffect effect = effects[0];
+        int decisionAbsoluteDay = Math.Max(1, request.AbsoluteDay);
+        int dueAbsoluteDay;
+        try
+        {
+            dueAbsoluteDay = checked(decisionAbsoluteDay + effect.durationDays);
+        }
+        catch (OverflowException)
+        {
+            failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable);
+            return false;
+        }
+        CharacterCareerAggregate candidate = careers.PrepareRestore(
+            careers.Capture());
+        if (effect.durationDays < 0
+            || !IsEligibleLivingElder(characterId)
+            || !candidate.TryScheduleRetirement(
+                characterId,
+                resolution.DefinitionId,
+                resolution.ResolutionId,
+                decisionAbsoluteDay,
+                dueAbsoluteDay,
+                out _))
+        {
+            failure = new DomainFailure(
+                FailureCode.CharacterMedicalPatientUnavailable);
+            return false;
+        }
+        plan = new RetirementSchedulePlan(
+            characterId,
+            resolution.DefinitionId,
+            resolution.ResolutionId,
+            decisionAbsoluteDay,
+            dueAbsoluteDay);
+        return true;
+    }
+
+    private bool IsEligibleLivingElder(CharacterId characterId) =>
+        requirements.IsLivingCharacterAtStage(
+            characterId,
+            CharacterLifeStage.Elder);
+
+    private readonly struct RetirementSchedulePlan
+    {
+        public RetirementSchedulePlan(
+            CharacterId characterId,
+            string eventId,
+            string choiceId,
+            int decisionAbsoluteDay,
+            int dueAbsoluteDay)
+        {
+            CharacterId = characterId;
+            EventId = eventId;
+            ChoiceId = choiceId;
+            DecisionAbsoluteDay = decisionAbsoluteDay;
+            DueAbsoluteDay = dueAbsoluteDay;
+            IsRequired = true;
+        }
+
+        public CharacterId CharacterId { get; }
+        public string EventId { get; }
+        public string ChoiceId { get; }
+        public int DecisionAbsoluteDay { get; }
+        public int DueAbsoluteDay { get; }
+        public bool IsRequired { get; }
+    }
+
+    public bool RequiresAdvance => live.CaptureFactions().factions
+        .Where(value => value != null)
+        .Any(value => FactionContractDeliveryOutbox.HasPending(value)
+            || value.deliveryTerminalCleanupPending
+            || (!string.IsNullOrWhiteSpace(value.activeContractId)
+                && catalog.Contracts.Any(contract =>
+                    contract != null
+                    && string.Equals(
+                        contract.StableId,
+                        value.activeContractId,
+                        StringComparison.Ordinal)
+                    && FactionContractMaterialRules.HasMaterialRequirements(
+                        contract))));
+
+    public void ValidateBeforeCapture()
+    {
+        FactionCampaignStateSaveData[] states = live.CaptureFactions().factions
+            .Where(value => value != null)
+            .ToArray();
+        Dictionary<string, FactionCampaignStateSaveData> campaignPending = states
+            .Where(FactionContractDeliveryOutbox.HasPending)
+            .ToDictionary(
+                value => value.deliveryOperationId,
+                value => value,
+                StringComparer.Ordinal);
+
+        foreach (FactionCampaignStateSaveData state in campaignPending.Values)
+        {
+            if (!FactionContractDeliveryOutbox.HasCanonicalPending(state)
+                || !factionContractTransfers.TryGetPending(
+                    state.deliveryOperationId,
+                    out PhysicalItemBatchDispositionReceipt physical)
+                || !FactionContractDeliveryOutbox.ReceiptMatchesSaved(
+                    state,
+                    physical))
+            {
+                throw new InvalidOperationException(
+                    "Faction-contract save capture crossed a campaign/physical "
+                    + $"receipt transition for '{state.factionId}'.");
+            }
+        }
+
+        foreach (FactionCampaignStateSaveData state in states.Where(value =>
+                     !string.IsNullOrEmpty(value.activeContractOccurrenceId)
+                     && !string.IsNullOrEmpty(value.activeContractId)))
+        {
+            FactionContractDefinitionSO contract = catalog.Contracts
+                .FirstOrDefault(value => value != null
+                    && string.Equals(
+                        value.StableId,
+                        state.activeContractId,
+                        StringComparison.Ordinal)
+                    && !string.IsNullOrEmpty(value.seasonalEventId));
+            if (contract == null
+                || !FactionContractMaterialRules.HasMaterialRequirements(contract))
+                continue;
+            string operationId = FactionContractDeliveryOutbox.FormatOperationId(
+                contract.StableId,
+                state.activeContractOccurrenceId);
+            if (factionContractTransfers.TryGetPending(operationId, out _)
+                && !campaignPending.ContainsKey(operationId))
+            {
+                throw new InvalidOperationException(
+                    "Faction-contract save capture crossed the physical-commit/"
+                    + $"campaign-record transition for seasonal occurrence "
+                    + $"'{state.activeContractOccurrenceId}'.");
+            }
+        }
+
+        foreach (FactionContractDefinitionSO contract in catalog.Contracts
+                     .Where(value => string.IsNullOrEmpty(value.seasonalEventId))
+                     .Where(FactionContractMaterialRules.HasMaterialRequirements))
+        {
+            string operationId = FactionContractDeliveryOutbox.FormatOperationId(
+                contract.StableId);
+            if (factionContractTransfers.TryGetPending(operationId, out _)
+                && !campaignPending.ContainsKey(operationId))
+            {
+                throw new InvalidOperationException(
+                    "Faction-contract save capture crossed the physical-commit/"
+                    + $"campaign-record transition for '{contract.StableId}'.");
+            }
+        }
+
+        SocietyEventWorldSaveData societySnapshot = live.CaptureSociety();
+        _ = live.PrepareSociety(societySnapshot);
+        foreach (V20ActiveEventSaveData active in societySnapshot.activeEvents
+                     .Where(value => value != null
+                         && (value.guestDelivery?.phase
+                                 ?? GuestRequestDeliveryPhase.None)
+                             != GuestRequestDeliveryPhase.None))
+        {
+            GuestRequestDeliverySaveData delivery = active.guestDelivery;
+            GuestRequestDefinitionSO definition = catalog.GuestRequests
+                .Single(value => string.Equals(
+                    value.StableId,
+                    active.definitionId,
+                    StringComparison.Ordinal));
+            if (delivery.inputOwnerActive
+                && !factionContractInputOwners.TryValidate(
+                    EconomyProjectInputOwnerAuthority.GuestRequestDomain,
+                    active.instanceId,
+                    delivery.destinationId,
+                    new Vector2Int(
+                        delivery.destinationX,
+                        delivery.destinationY),
+                    EconomyProjectInputOwnerAnchorKind.LiveFacility,
+                    delivery.venueFacilityInstanceId,
+                    GuestRequestDeliveryMaterialRules
+                        .BuildMaterialRequirements(definition),
+                    delivery.inputCapacityGrams,
+                    delivery.inputMassAuthorityRevision,
+                    delivery.inputCapacityFingerprint,
+                    out string ownerFailure))
+            {
+                throw new InvalidOperationException(
+                    $"Guest-request save capture crossed input owner '{active.instanceId}': "
+                    + ownerFailure);
+            }
+
+            string operationId = GuestRequestDeliveryOutbox.FormatOperationId(
+                active.instanceId);
+            bool hasPhysical = factionContractTransfers.TryGetPending(
+                operationId,
+                out PhysicalItemBatchDispositionReceipt physicalReceipt);
+            bool hasSaved = GuestRequestDeliveryOutbox.IsCanonicalReceipt(
+                delivery);
+            if (hasPhysical != hasSaved
+                || hasSaved && !GuestRequestDeliveryOutbox.MatchesSaved(
+                    delivery,
+                    physicalReceipt))
+            {
+                throw new InvalidOperationException(
+                    $"Guest-request save capture crossed physical receipt '{operationId}' for occurrence '{active.instanceId}'.");
+            }
+        }
+    }
+
+    public IReadOnlyList<FactionContractView> GetContracts(string factionId)
+    {
+        string normalizedFactionId = factionId?.Trim() ?? string.Empty;
+        if (!live.TryGetFaction(
+                normalizedFactionId,
+                out FactionCampaignStateSaveData state))
+            return Array.Empty<FactionContractView>();
+
+        WorldItemStackSnapshot[] physical = items.GetAllStacks()
+            .Where(value => value != null && value.Quantity > 0)
+            .ToArray();
+        bool hasAdministration = facilities
+            .FindOperational(FacilityCapabilityKind.Administration)
+            .Count > 0;
+        bool hasDeliveryDropoff = dropZones.TryGetDeliveryDropoff(out _);
+        return catalog.Contracts
+            .Where(value => string.Equals(
+                value.factionId,
+                normalizedFactionId,
+                StringComparison.Ordinal))
+            .Select(contract => (
+                Contract: contract,
+                Occurrence: FindActiveSeasonalContractOccurrence(
+                    contract,
+                    normalizedFactionId)))
+            .Where(value => string.IsNullOrEmpty(
+                    value.Contract.seasonalEventId)
+                || value.Occurrence != null)
+            .OrderBy(value => value.Contract.kind)
+            .ThenBy(value => value.Contract.StableId, StringComparer.Ordinal)
+            .Select(value => BuildFactionContractView(
+                value.Contract,
+                value.Occurrence,
+                state,
+                physical,
+                hasAdministration,
+                hasDeliveryDropoff))
+            .ToArray();
+    }
+
+    private V20ActiveEventSaveData FindActiveSeasonalContractOccurrence(
+        FactionContractDefinitionSO contract,
+        string factionId)
+    {
+        if (contract == null || string.IsNullOrEmpty(contract.seasonalEventId))
+            return null;
+        return live.ActiveSeasonalEvents.FirstOrDefault(value => value != null
+            && !value.resolved
+            && string.Equals(
+                value.definitionId,
+                contract.seasonalEventId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                value.contextFactionId,
+                factionId,
+                StringComparison.Ordinal));
+    }
+
+    public void AdvanceFactionContractDeliveries(
+        int absoluteDay,
+        RunMilestoneEvaluationSnapshot requirements)
+    {
+        if (requirements == null)
+            return;
+        foreach (FactionCampaignStateSaveData snapshot in
+                 live.CaptureFactions().factions
+                     .Where(value => value != null)
+                     .OrderBy(value => value.factionId, StringComparer.Ordinal))
+        {
+            AdvanceFactionContractDelivery(
+                snapshot.factionId,
+                Math.Max(1, absoluteDay),
+                requirements);
+        }
+    }
+
+    private void AdvanceFactionContractDelivery(
+        string factionId,
+        int absoluteDay,
+        RunMilestoneEvaluationSnapshot requirements)
+    {
+        if (!live.TryGetFaction(
+                factionId,
+                out FactionCampaignStateSaveData state))
+            return;
+
+        if (state.deliveryTerminalCleanupPending)
+        {
+            if (!TryRetireFactionContractInputOwner(
+                    state,
+                    out string retireFailure))
+            {
+                PublishDeliveryFailure(factionId, retireFailure);
+                return;
+            }
+            state = RequireLiveFaction(factionId);
+        }
+
+        if (state.deliveryCommitPhase ==
+            FactionContractDeliveryCommitPhase.RewardPublished)
+        {
+            if (!TryGetMatchingPendingReceipt(
+                    state,
+                    out PhysicalItemBatchDispositionReceipt receipt,
+                    out string receiptFailure))
+            {
+                PublishDeliveryFailure(factionId, receiptFailure);
+                return;
+            }
+            if (!factionContractTransfers.Acknowledge(
+                    receipt.CommitId,
+                    out string acknowledgementFailure))
+            {
+                PublishDeliveryFailure(factionId, acknowledgementFailure);
+                return;
+            }
+            PublishFactionMutation(
+                factionId,
+                (V20CampaignRuntime candidate, out string mutationFailure) =>
+                    ((IFactionCampaignDeliveryCommand)candidate)
+                        .TryClearDeliveryOutbox(
+                            factionId,
+                            out mutationFailure),
+                "faction-contract-outbox-clear");
+            return;
+        }
+
+        if (state.deliveryCommitPhase ==
+            FactionContractDeliveryCommitPhase.PhysicalCommitted)
+        {
+            ContentResolutionRequest outcome = new()
+            {
+                ActionId = V21ContentAlertActionIds.FactionContractOutcome(
+                    factionId,
+                    succeeded: true),
+                Kind = ContentResolutionRequestKind.FactionContractOutcome,
+                FactionId = factionId,
+                ContractSucceeded = true,
+                AbsoluteDay = absoluteDay,
+                Requirements = requirements
+            };
+            if (!TryExecute(outcome, out _, out DomainFailure outcomeFailure))
+                PublishDeliveryFailure(
+                    factionId,
+                    outcomeFailure.Code.ToString());
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(state.activeContractId))
+            return;
+        FactionContractDefinitionSO contract = catalog.Contracts.FirstOrDefault(value =>
+            string.Equals(
+                value.StableId,
+                state.activeContractId,
+                StringComparison.Ordinal));
+        IReadOnlyDictionary<string, int> material =
+            FactionContractMaterialRules.BuildMaterialRequirements(contract);
+        if (material.Count == 0)
+            return;
+        if (!state.activeContractInputOwnerActive
+            || string.IsNullOrWhiteSpace(state.activeContractDestinationId))
+        {
+            PublishDeliveryFailure(
+                factionId,
+                "faction-contract-input-owner-inactive");
+            return;
+        }
+
+        string operationId = FactionContractDeliveryOutbox.FormatOperationId(
+            contract.StableId,
+            state.activeContractOccurrenceId);
+        if (factionContractTransfers.TryGetPending(
+                operationId,
+                out PhysicalItemBatchDispositionReceipt existingReceipt))
+        {
+            PublishFactionMutation(
+                factionId,
+                (V20CampaignRuntime candidate, out string mutationFailure) =>
+                    ((IFactionCampaignDeliveryCommand)candidate)
+                        .TryRecordDeliveryReceipt(
+                            factionId,
+                            FactionContractDeliveryReceipt.FromPhysical(
+                                existingReceipt),
+                            out mutationFailure),
+                "faction-contract-existing-receipt-record");
+            return;
+        }
+
+        Vector2Int destination = new(
+            state.activeContractDestinationX,
+            state.activeContractDestinationY);
+        bool requestFailed = false;
+        string requestFailure = string.Empty;
+        foreach (KeyValuePair<string, int> required in material)
+        {
+            int assigned = CountFactionContractQuantity(
+                state.activeContractDestinationId,
+                required.Key,
+                stack => stack.State is WorldItemStackState.Loose
+                    or WorldItemStackState.Stored
+                    or WorldItemStackState.FacilityOutputBuffer
+                    or WorldItemStackState.Carried
+                    or WorldItemStackState.InTransit
+                    or WorldItemStackState.FacilityBuffer);
+            int missing = Math.Max(0, required.Value - assigned);
+            if (missing <= 0)
+                continue;
+            if (!items.TryRequestItemDelivery(
+                    required.Key,
+                    missing,
+                    destination,
+                    state.activeContractDestinationId,
+                    out int requested,
+                    out requestFailure)
+                || requested != missing)
+            {
+                requestFailed = true;
+                if (string.IsNullOrWhiteSpace(requestFailure))
+                {
+                    requestFailure =
+                        $"faction-contract-delivery-request-partial:"
+                        + $"{required.Key}:{requested}/{missing}";
+                }
+                break;
+            }
+        }
+        if (requestFailed)
+        {
+            PublishDeliveryFailure(factionId, requestFailure);
+            return;
+        }
+
+        bool allArrived = material.All(required =>
+            CountFactionContractQuantity(
+                state.activeContractDestinationId,
+                required.Key,
+                stack => stack.State == WorldItemStackState.FacilityBuffer)
+            >= required.Value);
+        if (!allArrived)
+        {
+            PublishDeliveryFailure(factionId, string.Empty);
+            return;
+        }
+
+        if (absoluteDay > state.activeContractDeadlineAbsoluteDay)
+        {
+            PublishDeliveryFailure(
+                factionId,
+                "faction-contract-deadline-expired-before-transfer");
+            return;
+        }
+        if (!this.requirements.TryEvaluate(
+                FactionContractMaterialRules.BuildNonMaterialRequirements(
+                    contract),
+                requirements,
+                Array.Empty<string>(),
+                out DomainFailure eligibilityFailure))
+        {
+            PublishDeliveryFailure(
+                factionId,
+                "faction-contract-non-material-condition:"
+                + eligibilityFailure.Code);
+            return;
+        }
+
+        if (!factionContractTransfers.TryCommitTransferPending(
+                state.activeContractDestinationId,
+                material,
+                operationId,
+                FactionContractDeliveryOutbox.TransferReason,
+                out PhysicalItemBatchDispositionReceipt transferReceipt,
+                out string transferFailure))
+        {
+            PublishDeliveryFailure(factionId, transferFailure);
+            return;
+        }
+        PublishFactionMutation(
+            factionId,
+            (V20CampaignRuntime candidate, out string mutationFailure) =>
+                ((IFactionCampaignDeliveryCommand)candidate)
+                    .TryRecordDeliveryReceipt(
+                        factionId,
+                        FactionContractDeliveryReceipt.FromPhysical(
+                            transferReceipt),
+                        out mutationFailure),
+            "faction-contract-receipt-record");
+    }
+
+    private bool TryEnsureAcceptedMaterialInputOwner(
+        V20CampaignRuntime candidate,
+        string factionId,
+        out bool ensured,
+        out string destinationId,
+        out DomainFailure failure)
+    {
+        ensured = false;
+        destinationId = string.Empty;
+        failure = DomainFailure.None;
+        if (!candidate.TryGetFaction(
+                factionId,
+                out FactionCampaignStateSaveData state))
+            return true;
+        FactionContractDefinitionSO contract = catalog.Contracts.FirstOrDefault(value =>
+            string.Equals(
+                value.StableId,
+                state.activeContractId,
+                StringComparison.Ordinal));
+        IReadOnlyDictionary<string, int> material =
+            FactionContractMaterialRules.BuildMaterialRequirements(contract);
+        if (material.Count == 0)
+            return true;
+
+        destinationId = state.activeContractDestinationId;
+        if (!factionContractInputOwners.TryEnsure(
+                EconomyProjectInputOwnerAuthority.FactionContractDomain,
+                state.activeContractDestinationOwnerId,
+                destinationId,
+                new Vector2Int(
+                    state.activeContractDestinationX,
+                    state.activeContractDestinationY),
+                EconomyProjectInputOwnerAnchorKind.ReservedTarget,
+                string.Empty,
+                material,
+                0L,
+                0L,
+                string.Empty,
+                out EconomyProjectInputOwnerProjection projection,
+                out string ownerFailure))
+        {
+            failure = new DomainFailure(
+                FailureCode.ProductionOutputUnavailable);
+            return false;
+        }
+        ensured = true;
+        if (!((IFactionCampaignDeliveryCommand)candidate)
+                .TrySetInputOwnerProjection(
+                    factionId,
+                    projection.CapacityGrams,
+                    projection.MassAuthorityRevision,
+                    projection.Fingerprint,
+                    out string projectionFailure))
+        {
+            CompensateAcceptedMaterialOwnerOrThrow(
+                true,
+                destinationId,
+                projectionFailure);
+            ensured = false;
+            failure = new DomainFailure(
+                FailureCode.ProductionOutputUnavailable);
+            return false;
+        }
+        return true;
+    }
+
+    private void CompensateAcceptedMaterialOwnerOrThrow(
+        bool ensured,
+        string destinationId,
+        string reason)
+    {
+        if (!ensured)
+            return;
+        if (!factionContractInputOwners.TryRetireDestination(
+                EconomyProjectInputOwnerAuthority.FactionContractDomain,
+                destinationId,
+                EconomyProjectInputOwnerAuthority.FactionContractTerminalReason,
+                out string failureReason))
+        {
+            throw new InvalidOperationException(
+                $"Faction-contract accept failed ({reason}) and input-owner compensation failed: "
+                + failureReason);
+        }
+    }
+
+    private bool TryValidateLiveFactionDeliveryReceipt(
+        string factionId,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        if (!live.TryGetFaction(
+                factionId,
+                out FactionCampaignStateSaveData state))
+        {
+            failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable);
+            return false;
+        }
+        FactionContractDefinitionSO contract = catalog.Contracts.FirstOrDefault(value =>
+            string.Equals(
+                value.StableId,
+                state.activeContractId,
+                StringComparison.Ordinal));
+        if (!FactionContractMaterialRules.HasMaterialRequirements(contract))
+            return true;
+        if (!TryGetMatchingPendingReceipt(state, out _, out _))
+        {
+            failure = new DomainFailure(FailureCode.ItemTransferStackUnavailable);
+            return false;
+        }
+        return true;
+    }
+
+    private bool TryGetMatchingPendingReceipt(
+        FactionCampaignStateSaveData state,
+        out PhysicalItemBatchDispositionReceipt receipt,
+        out string failureReason)
+    {
+        receipt = default;
+        if (!FactionContractDeliveryOutbox.HasCanonicalPending(state)
+            || !factionContractTransfers.TryGetPending(
+                state.deliveryOperationId,
+                out receipt)
+            || !FactionContractDeliveryOutbox.ReceiptMatchesSaved(
+                state,
+                receipt))
+        {
+            failureReason =
+                "faction-contract-delivery-receipt-missing-or-mismatch";
+            return false;
+        }
+        failureReason = string.Empty;
+        return true;
+    }
+
+    private bool TryRetireFactionContractInputOwner(
+        FactionCampaignStateSaveData state,
+        out string failureReason)
+    {
+        if (state == null || !state.activeContractInputOwnerActive)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+        if (!factionContractInputOwners.TryRetireDestination(
+                EconomyProjectInputOwnerAuthority.FactionContractDomain,
+                state.activeContractDestinationId,
+                EconomyProjectInputOwnerAuthority.FactionContractTerminalReason,
+                out failureReason))
+            return false;
+        PublishFactionMutation(
+            state.factionId,
+            (V20CampaignRuntime candidate, out string mutationFailure) =>
+                ((IFactionCampaignDeliveryCommand)candidate)
+                    .TryMarkInputOwnerRetired(
+                        state.factionId,
+                        out mutationFailure),
+            "faction-contract-input-owner-retire");
+        return true;
+    }
+
+    private delegate bool FactionCandidateMutation(
+        V20CampaignRuntime candidate,
+        out string failure);
+
+    private void PublishFactionMutation(
+        string factionId,
+        FactionCandidateMutation mutation,
+        string operation)
+    {
+        V20CampaignRuntime candidate = CreateCampaignCandidate();
+        if (!mutation(candidate, out string failure))
+            throw new InvalidOperationException(
+                $"{operation} rejected faction '{factionId}': {failure}");
+        live.PublishFactions(live.PrepareFactions(candidate.CaptureFactions()));
+    }
+
+    private void PublishDeliveryFailure(string factionId, string reason)
+    {
+        FactionCampaignStateSaveData state = RequireLiveFaction(factionId);
+        string canonical = reason?.Trim() ?? string.Empty;
+        if (string.Equals(
+                state.deliveryFailureReason,
+                canonical,
+                StringComparison.Ordinal))
+            return;
+        PublishFactionMutation(
+            factionId,
+            (V20CampaignRuntime candidate, out string mutationFailure) =>
+                ((IFactionCampaignDeliveryCommand)candidate)
+                    .TrySetDeliveryFailure(
+                        factionId,
+                        canonical,
+                        out mutationFailure),
+            "faction-contract-delivery-status");
+    }
+
+    private FactionCampaignStateSaveData RequireLiveFaction(string factionId)
+    {
+        if (!live.TryGetFaction(factionId, out FactionCampaignStateSaveData state))
+            throw new InvalidOperationException(
+                $"Unknown faction contract campaign '{factionId}'.");
+        return state;
+    }
+
+    private FactionContractView BuildFactionContractView(
+        FactionContractDefinitionSO contract,
+        V20ActiveEventSaveData occurrence,
+        FactionCampaignStateSaveData state,
+        IReadOnlyList<WorldItemStackSnapshot> physical,
+        bool hasAdministration,
+        bool hasDeliveryDropoff)
+    {
+        bool seasonal = !string.IsNullOrEmpty(contract.seasonalEventId);
+        string occurrenceId = occurrence?.instanceId ?? string.Empty;
+        bool lifecycleOccurrenceMatches = !seasonal
+            || string.Equals(
+                state.activeContractOccurrenceId,
+                occurrenceId,
+                StringComparison.Ordinal);
+        bool active = lifecycleOccurrenceMatches
+            && string.Equals(
+                state.activeContractId,
+                contract.StableId,
+                StringComparison.Ordinal);
+        bool acceptedThisOccurrence = !seasonal
+            || string.Equals(
+                    state.lastSeasonalContractId,
+                    contract.StableId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    state.lastSeasonalOccurrenceId,
+                    occurrenceId,
+                    StringComparison.Ordinal);
+        bool rewardPublished = acceptedThisOccurrence
+            && state.completedContractIds.Contains(
+            contract.StableId,
+            StringComparer.Ordinal);
+        bool deliveryForView = lifecycleOccurrenceMatches
+            && string.Equals(
+                state.deliveryContractId,
+                contract.StableId,
+                StringComparison.Ordinal);
+        bool settlingCompletedDelivery = rewardPublished
+            && deliveryForView
+            && FactionContractDeliveryOutbox.HasPending(state);
+        bool completed = rewardPublished && !settlingCompletedDelivery;
+        bool failed = acceptedThisOccurrence
+            && state.failedContractIds.Contains(
+                contract.StableId,
+                StringComparer.Ordinal);
+        bool terminalBusy = FactionContractDeliveryOutbox.HasPending(state)
+            || state.deliveryTerminalCleanupPending;
+        bool stateAllowsAccept = !active
+            && !rewardPublished
+            && !failed
+            && string.IsNullOrWhiteSpace(state.activeContractId)
+            && !terminalBusy;
+        bool material = FactionContractMaterialRules.HasMaterialRequirements(
+            contract);
+        bool canAccept = stateAllowsAccept
+            && hasAdministration
+            && (!material || hasDeliveryDropoff);
+        string disabledReason = string.Empty;
+        if (!canAccept)
+        {
+            if (!stateAllowsAccept)
+            {
+                disabledReason = active
+                    ? "진행 중"
+                    : settlingCompletedDelivery
+                        ? "보상 반영·인도 확인 중"
+                        : completed
+                            ? "완료됨"
+                            : failed
+                                ? "실패 이력"
+                                : terminalBusy
+                                    ? "이전 인도 정산 중"
+                                    : "다른 계약 진행 중";
+            }
+            else
+            {
+                disabledReason = !hasAdministration
+                    ? "운영 중인 행정 시설이 필요함"
+                    : "유효한 물자 인도 지점이 필요함";
+            }
+        }
+
+        string destinationId = active
+            || deliveryForView
+                ? state.activeContractDestinationId
+                : string.Empty;
+        IReadOnlyList<FactionContractItemProgressView> itemViews =
+            FactionContractMaterialRules.BuildMaterialRequirements(contract)
+                .Select(requirement =>
+                {
+                    int assigned = CountPhysical(
+                        physical,
+                        destinationId,
+                        requirement.Key,
+                        stack => stack.State is WorldItemStackState.Loose
+                            or WorldItemStackState.Stored
+                            or WorldItemStackState.FacilityOutputBuffer);
+                    int hauling = CountPhysical(
+                        physical,
+                        destinationId,
+                        requirement.Key,
+                        stack => stack.State is WorldItemStackState.Carried
+                            or WorldItemStackState.InTransit);
+                    int arrived = CountPhysical(
+                        physical,
+                        destinationId,
+                        requirement.Key,
+                        stack => stack.State ==
+                            WorldItemStackState.FacilityBuffer);
+                    int delivered = deliveryForView
+                        && FactionContractDeliveryOutbox.HasPending(state)
+                            ? requirement.Value
+                            : rewardPublished
+                                ? requirement.Value
+                                : 0;
+                    string displayName = items.CatalogProvider.TryGetDefinition(
+                            requirement.Key,
+                            out DungeonItemDefinition definition)
+                        ? definition.DisplayName
+                        : requirement.Key;
+                    return new FactionContractItemProgressView(
+                        requirement.Key,
+                        displayName,
+                        requirement.Value,
+                        assigned,
+                        hauling,
+                        arrived,
+                        delivered);
+                })
+                .ToArray();
+        return new FactionContractView
+        {
+            ContractId = contract.StableId,
+            OccurrenceId = occurrenceId,
+            AcceptActionId = seasonal
+                ? V21ContentAlertActionIds.SeasonalFactionContractAccept(
+                    occurrenceId,
+                    contract.StableId)
+                : V21ContentAlertActionIds.FactionContractAccept(
+                    contract.factionId,
+                    contract.StableId),
+            DisplayName = contract.DisplayName,
+            Description = contract.Description,
+            Kind = contract.kind,
+            DeadlineDays = contract.deadlineDays,
+            DeadlineAbsoluteDay = active
+                ? state.activeContractDeadlineAbsoluteDay
+                : occurrence?.deadlineAbsoluteDay ?? 0,
+            IsActive = active,
+            IsCompleted = completed,
+            IsFailed = failed,
+            CanAccept = canAccept,
+            DisabledReason = disabledReason,
+            EligibilityReason = canAccept
+                ? "수락 가능 · 행정 시설의 관리 인장 사용 시 확정"
+                : disabledReason,
+            StatusReason = active
+                || deliveryForView
+                    ? state.deliveryFailureReason
+                    : failed
+                        ? "기한 만료 또는 계약 실패"
+                    : string.Empty,
+            CompletionConditions = FormatRequirements(
+                contract.completionRequirements),
+            SuccessEffects = FormatEffects(contract.successEffects),
+            FailureEffects = FormatEffects(contract.failureEffects),
+            Items = itemViews
+        };
+    }
+
+    private IReadOnlyList<string> FormatRequirements(
+        V20ContentRequirementSet source)
+    {
+        source ??= new V20ContentRequirementSet();
+        List<string> lines = new();
+        foreach (V20ItemAmountRequirement value in source.items
+                     ?? new List<V20ItemAmountRequirement>())
+        {
+            if (value == null)
+                continue;
+            string itemName = items.CatalogProvider.TryGetDefinition(
+                    value.itemDefinitionId,
+                    out DungeonItemDefinition definition)
+                ? definition.DisplayName
+                : value.itemDefinitionId;
+            lines.Add($"{itemName} {value.amount}개 · "
+                + (value.consume ? "실물 인도" : "보유"));
+        }
+        foreach (V20FacilityRequirement value in source.facilities
+                     ?? new List<V20FacilityRequirement>())
+        {
+            if (value == null)
+                continue;
+            string facility = !string.IsNullOrWhiteSpace(value.capabilityId)
+                ? value.capabilityId
+                : value.buildingDefinitionId;
+            lines.Add($"시설 {facility} {value.minimumCount}개"
+                + (value.mustBeOperational ? " · 운영 중" : string.Empty));
+        }
+        foreach (V20ResearchRequirement value in source.research
+                     ?? new List<V20ResearchRequirement>())
+        {
+            if (value != null)
+                lines.Add($"연구 #{value.researchNumericId} 완료");
+        }
+        foreach (V20CharacterRequirement value in source.characters
+                     ?? new List<V20CharacterRequirement>())
+        {
+            if (value == null)
+                continue;
+            string traits = string.IsNullOrWhiteSpace(value.requiredTraitId)
+                ? string.Empty
+                : $" · 특성 {value.requiredTraitId}";
+            string excluded = string.IsNullOrWhiteSpace(value.excludedTraitId)
+                ? string.Empty
+                : $" · 제외 특성 {value.excludedTraitId}";
+            lines.Add($"인물 {value.minimumLifeStage}~{value.maximumLifeStage}"
+                + $" · 건강 {value.minimumHealth} 이상{traits}{excluded}");
+        }
+        foreach (V20FactionRequirement value in source.factions
+                     ?? new List<V20FactionRequirement>())
+        {
+            if (value != null)
+            {
+                lines.Add($"세력 {value.factionId} · 관계 {value.minimumRapport} 이상"
+                    + $" · 불만 {value.maximumGrievance} 이하"
+                    + $" · 의무 {value.minimumObligationTokens} 이상");
+            }
+        }
+        foreach (V20WorldMetricRequirement value in source.worldMetrics
+                     ?? new List<V20WorldMetricRequirement>())
+        {
+            if (value != null)
+                lines.Add($"{value.kind} {value.minimumValue:0.##} 이상");
+        }
+        lines.AddRange((source.requiredFlags ?? new List<string>())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => $"상태 {value} 필요"));
+        lines.AddRange((source.excludedFlags ?? new List<string>())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => $"상태 {value} 없어야 함"));
+        return lines.Count > 0
+            ? lines.AsReadOnly()
+            : new[] { "추가 완료 조건 없음" };
+    }
+
+    private static IReadOnlyList<string> FormatEffects(
+        IEnumerable<V20ContentEffect> source)
+    {
+        string[] lines = (source ?? Array.Empty<V20ContentEffect>())
+            .Where(value => value != null && value.IsValid)
+            .Select(value =>
+            {
+                string target = string.IsNullOrWhiteSpace(value.targetId)
+                    ? string.Empty
+                    : $" · 대상 {value.targetId}";
+                string duration = value.durationDays > 0
+                    ? $" · {value.durationDays}일"
+                    : string.Empty;
+                return $"{value.kind} {value.amount:+0.##;-0.##;0}"
+                    + target
+                    + duration;
+            })
+            .ToArray();
+        return lines.Length > 0 ? lines : new[] { "없음" };
+    }
+
+    private int CountFactionContractQuantity(
+        string destinationId,
+        string itemId,
+        Func<WorldItemStackSnapshot, bool> predicate) =>
+        CountPhysical(
+            items.GetAllStacks(),
+            destinationId,
+            itemId,
+            predicate);
+
+    private static int CountPhysical(
+        IEnumerable<WorldItemStackSnapshot> source,
+        string destinationId,
+        string itemId,
+        Func<WorldItemStackSnapshot, bool> predicate) =>
+        string.IsNullOrWhiteSpace(destinationId)
+            ? 0
+            : (source ?? Array.Empty<WorldItemStackSnapshot>())
+                .Where(stack => stack != null
+                    && stack.Quantity > 0
+                    && string.Equals(
+                        stack.DestinationId,
+                        destinationId,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        stack.ItemId,
+                        itemId,
+                        StringComparison.Ordinal)
+                    && (predicate?.Invoke(stack) ?? true))
+                .Sum(stack => stack.Quantity);
 
     private bool TryResolveCandidate(
         V20CampaignRuntime candidate,
@@ -1052,6 +2752,13 @@ public sealed class V20ContentResolutionService : IContentResolutionService
                     out one,
                     out rawFailure);
                 break;
+            case ContentResolutionRequestKind.GuestRequestDeliveryOutcome:
+                succeeded = candidate.TryPublishGuestRequestDeliveryOutcome(
+                    request.InstanceId,
+                    request.ChoiceId,
+                    out one,
+                    out rawFailure);
+                break;
             case ContentResolutionRequestKind.FactionChapterChoice:
                 succeeded = candidate.TryResolveChapter(
                     request.FactionId,
@@ -1061,20 +2768,112 @@ public sealed class V20ContentResolutionService : IContentResolutionService
                     out rawFailure);
                 break;
             case ContentResolutionRequestKind.FactionContractAccept:
-                succeeded = candidate.TryAcceptContract(
-                    request.FactionId,
-                    request.ContractId,
-                    request.AbsoluteDay,
-                    out rawFailure);
+                FactionContractDefinitionSO acceptedContract = catalog.Contracts
+                    .FirstOrDefault(value => string.Equals(
+                        value.StableId,
+                        request.ContractId?.Trim(),
+                        StringComparison.Ordinal)
+                        && string.Equals(
+                            value.factionId,
+                            request.FactionId?.Trim(),
+                            StringComparison.Ordinal));
+                if (FactionContractMaterialRules.HasMaterialRequirements(
+                        acceptedContract))
+                {
+                    if (!dropZones.TryGetDeliveryDropoff(
+                            out Vector2Int contractDropoff))
+                    {
+                        failure = new DomainFailure(
+                            FailureCode.ProductionOutputUnavailable);
+                        return false;
+                    }
+                    FactionContractDeliveryTarget target = new(
+                        EconomyProjectInputOwnerAuthority
+                            .BuildFactionContractDestinationId(
+                                acceptedContract.StableId),
+                        contractDropoff);
+                    succeeded = ((IFactionCampaignDeliveryCommand)candidate)
+                        .TryAcceptContract(
+                            request.FactionId,
+                            request.ContractId,
+                            request.AbsoluteDay,
+                            target,
+                            out rawFailure);
+                }
+                else
+                {
+                    succeeded = candidate.TryAcceptContract(
+                        request.FactionId,
+                        request.ContractId,
+                        request.AbsoluteDay,
+                        out rawFailure);
+                }
+                one = default;
+                break;
+            case ContentResolutionRequestKind.SeasonalFactionContractAccept:
+                V20ActiveEventSaveData seasonalOccurrence = candidate
+                    .ActiveSeasonalEvents.FirstOrDefault(value => value != null
+                        && !value.resolved
+                        && string.Equals(
+                            value.instanceId,
+                            request.InstanceId?.Trim(),
+                            StringComparison.Ordinal));
+                FactionContractDefinitionSO seasonalContract = catalog.Contracts
+                    .FirstOrDefault(value => seasonalOccurrence != null
+                        && string.Equals(
+                            value.StableId,
+                            request.ContractId?.Trim(),
+                            StringComparison.Ordinal)
+                        && string.Equals(
+                            value.factionId,
+                            seasonalOccurrence.contextFactionId,
+                            StringComparison.Ordinal)
+                        && string.Equals(
+                            value.seasonalEventId,
+                            seasonalOccurrence.definitionId,
+                            StringComparison.Ordinal));
+                if (seasonalContract == null
+                    || !FactionContractMaterialRules.HasMaterialRequirements(
+                        seasonalContract)
+                    || !dropZones.TryGetDeliveryDropoff(
+                        out Vector2Int seasonalDropoff))
+                {
+                    failure = new DomainFailure(
+                        FailureCode.ProductionOutputUnavailable);
+                    return false;
+                }
+                request.FactionId = seasonalContract.factionId;
+                succeeded = ((IFactionCampaignDeliveryCommand)candidate)
+                    .TryAcceptSeasonalContract(
+                        seasonalOccurrence.instanceId,
+                        seasonalContract.StableId,
+                        new FactionContractDeliveryTarget(
+                            FactionContractDeliveryOutbox.FormatDestinationId(
+                                seasonalContract.StableId,
+                                seasonalOccurrence.instanceId),
+                            seasonalDropoff),
+                        out rawFailure);
                 one = default;
                 break;
             case ContentResolutionRequestKind.FactionContractOutcome:
-                succeeded = candidate.TryResolveContract(
-                    request.FactionId,
-                    request.ContractSucceeded,
-                    request.Requirements,
-                    out one,
-                    out rawFailure);
+                bool deliveredMaterial = request.ContractSucceeded
+                    && candidate.TryGetFaction(
+                        request.FactionId,
+                        out FactionCampaignStateSaveData deliveryState)
+                    && FactionContractDeliveryOutbox.HasPending(deliveryState);
+                succeeded = deliveredMaterial
+                    ? ((IFactionCampaignDeliveryCommand)candidate)
+                        .TryResolveDeliveredContract(
+                            request.FactionId,
+                            request.Requirements,
+                            out one,
+                            out rawFailure)
+                    : candidate.TryResolveContract(
+                        request.FactionId,
+                        request.ContractSucceeded,
+                        request.Requirements,
+                        out one,
+                        out rawFailure);
                 break;
             case ContentResolutionRequestKind.CulturalPractice:
             case ContentResolutionRequestKind.CulturalPracticeNeglect:
@@ -1115,10 +2914,20 @@ public sealed class V20ContentResolutionService : IContentResolutionService
         }
         if (!succeeded)
         {
-            failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable);
+            failure = rawFailure?.StartsWith(
+                    "BLOCKED_CONTRACT:",
+                    StringComparison.Ordinal) == true
+                ? new DomainFailure(
+                    FailureCode.ServiceProcessContractMissing,
+                    "wim040-incident-response",
+                    rawFailure)
+                : new DomainFailure(FailureCode.ExternalInfluenceUnavailable);
             return false;
         }
-        resolved = request.Kind == ContentResolutionRequestKind.FactionContractAccept
+        resolved = (request.Kind is ContentResolutionRequestKind.FactionContractAccept
+                or ContentResolutionRequestKind.SeasonalFactionContractAccept
+            || request.Kind == ContentResolutionRequestKind.SocietyChoice
+                && string.IsNullOrEmpty(one.DefinitionId))
             ? Array.Empty<V20ResolvedEventResult>()
             : new[] { one };
         return true;
@@ -1193,7 +3002,8 @@ public sealed class V20ContentResolutionService : IContentResolutionService
             return false;
         }
         if (request.Kind == ContentResolutionRequestKind.DailyEvaluation
-            || request.Kind == ContentResolutionRequestKind.FactionContractAccept)
+            || (request.Kind is ContentResolutionRequestKind.FactionContractAccept
+                or ContentResolutionRequestKind.SeasonalFactionContractAccept))
         {
             return true;
         }
@@ -1248,21 +3058,19 @@ public sealed class V20ContentResolutionService : IContentResolutionService
                 .Require(active.definitionId);
             if (definition is GuestRequestDefinitionSO guest)
             {
-                if (string.Equals(
+                resolved = string.Equals(
                         request.ChoiceId,
                         "fulfill",
                         StringComparison.Ordinal)
-                    && guest.kind == GuestRequestKind.Trade
-                    && facilities.FindOperational(
-                        ResearchFacilityCommandKind.SecureTradeVault).Count == 0)
-                {
-                    failure = new DomainFailure(
-                        FailureCode.ServiceFeatureMissing,
-                        "facility:secure-trade-vault");
-                    return false;
-                }
-                resolved = string.Equals(request.ChoiceId, "fulfill", StringComparison.Ordinal)
-                    ? guest.serviceRequirements
+                    && GuestRequestDeliveryMaterialRules.HasPhysicalDelivery(
+                        guest)
+                    ? GuestRequestDeliveryMaterialRules
+                        .BuildNonDeliveryRequirements(guest)
+                    : string.Equals(
+                            request.ChoiceId,
+                            "fulfill",
+                            StringComparison.Ordinal)
+                        ? guest.serviceRequirements
                     : new V20ContentRequirementSet();
                 return true;
             }
@@ -1270,6 +3078,24 @@ public sealed class V20ContentResolutionService : IContentResolutionService
                 string.Equals(value.choiceId, request.ChoiceId?.Trim(), StringComparison.Ordinal));
             if (choice == null) return false;
             resolved = choice.requirements;
+            return true;
+        }
+        if (request.Kind ==
+            ContentResolutionRequestKind.GuestRequestDeliveryOutcome)
+        {
+            V20ActiveEventSaveData active = live.ActiveSocietyEvents
+                .FirstOrDefault(value => value != null && string.Equals(
+                    value.instanceId,
+                    request.InstanceId?.Trim(),
+                    StringComparison.Ordinal));
+            GuestRequestDefinitionSO guest = active == null
+                ? null
+                : ((ISocietyEventCatalog)catalog).Require(active.definitionId)
+                    as GuestRequestDefinitionSO;
+            if (guest == null)
+                return false;
+            participants = active.participantCharacterIds.AsReadOnly();
+            resolved = new V20ContentRequirementSet();
             return true;
         }
         if (!live.TryGetFaction(request.FactionId, out FactionCampaignStateSaveData faction))
@@ -1289,7 +3115,9 @@ public sealed class V20ContentResolutionService : IContentResolutionService
             string.Equals(value.StableId, faction.activeContractId, StringComparison.Ordinal));
         if (contract == null) return false;
         resolved = request.ContractSucceeded
-            ? contract.completionRequirements
+            ? FactionContractMaterialRules.HasMaterialRequirements(contract)
+                ? new V20ContentRequirementSet()
+                : contract.completionRequirements
             : new V20ContentRequirementSet();
         return true;
     }
@@ -1333,8 +3161,8 @@ public sealed class V20ContentResolutionService : IContentResolutionService
         {
             failure = new DomainFailure(
                 FailureCode.InsufficientGold,
-                (-plan.MoneyDelta).ToString(),
-                money.Balance.ToString());
+                money.Balance.ToString(),
+                (-plan.MoneyDelta).ToString());
             return false;
         }
         if (!V21ContentEffectCommitPreflight.TryPlanItemCosts(
@@ -1452,8 +3280,8 @@ public sealed class V20ContentResolutionService : IContentResolutionService
             plan.Release(reservations);
             failure = new DomainFailure(
                 FailureCode.InsufficientGold,
-                (-plan.MoneyDelta).ToString(),
-                money.Balance.ToString());
+                money.Balance.ToString(),
+                (-plan.MoneyDelta).ToString());
             return false;
         }
         if (!atomicItems.TryConsumeReserved(

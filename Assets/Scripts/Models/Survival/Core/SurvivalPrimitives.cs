@@ -36,7 +36,7 @@ public enum MealServingRole
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonSurvivalSaveData
 {
-    public const int CurrentVersion = 6;
+    public const int CurrentVersion = 7;
 
     public int version = CurrentVersion;
     public int lastProcessedDay;
@@ -48,8 +48,6 @@ public sealed class DungeonSurvivalSaveData
     public int lastMissingWater;
     public int consecutiveFoodShortageDays;
     public int consecutiveWaterShortageDays;
-    public int lastConsumedFuel;
-    public int lastMissingFuel;
     public float sanitationRisk;
     public float diseaseRisk;
     public float exteriorNightDanger;
@@ -57,6 +55,91 @@ public sealed class DungeonSurvivalSaveData
         new List<SurvivalHealthSaveData>();
     public List<CharacterMealLedgerSaveData> mealLedger =
         new List<CharacterMealLedgerSaveData>();
+    public List<SurvivalTreatmentPlanSaveData> activeTreatmentPlans =
+        new List<SurvivalTreatmentPlanSaveData>();
+    public List<string> completedTreatmentOperationIds = new List<string>();
+}
+
+public enum SurvivalTreatmentPlanPhase
+{
+    IntentRecorded = 0,
+    ItemCommitted = 1,
+    EffectsPublished = 2,
+    ServiceCompleted = 3
+}
+
+public enum SurvivalTreatmentSupplyState
+{
+    Ready = 0,
+    Requested = 1,
+    InTransit = 2,
+    StockMissing = 3,
+    CapacityUnavailable = 4,
+    NoPath = 5,
+    Processing = 6,
+    AwaitingRequest = 7
+}
+
+public enum SurvivalTreatmentKind
+{
+    Standard = 0,
+    Detox = 1
+}
+
+public readonly struct SurvivalTreatmentSupplySnapshot
+{
+    public SurvivalTreatmentSupplySnapshot(
+        CharacterId patientId,
+        BuildingInstanceId facilityId,
+        ConsumableItemDefinitionId itemId,
+        string destinationId,
+        SurvivalTreatmentKind kind,
+        SurvivalTreatmentSupplyState state)
+    {
+        PatientId = patientId;
+        FacilityId = facilityId;
+        ItemId = itemId;
+        DestinationId = destinationId ?? string.Empty;
+        Kind = kind;
+        State = state;
+    }
+
+    public CharacterId PatientId { get; }
+    public BuildingInstanceId FacilityId { get; }
+    public ConsumableItemDefinitionId ItemId { get; }
+    public string DestinationId { get; }
+    public SurvivalTreatmentKind Kind { get; }
+    public SurvivalTreatmentSupplyState State { get; }
+}
+
+public interface ISurvivalTreatmentSupplyQuery
+{
+    bool TryGetTreatmentSupply(
+        CharacterId patientId,
+        out SurvivalTreatmentSupplySnapshot snapshot);
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class SurvivalTreatmentPlanSaveData
+{
+    public string operationId = string.Empty;
+    public string patientId = string.Empty;
+    public string facilityInstanceId = string.Empty;
+    public string serviceSessionId = string.Empty;
+    public string itemDefinitionId = string.Empty;
+    public string sourceStackId = string.Empty;
+    public string destinationId = string.Empty;
+    public bool usedBloodSubstitute;
+    public SurvivalTreatmentPlanPhase phase;
+    public string physicalCommitOperationId = string.Empty;
+    public string physicalCommitReasonCode = string.Empty;
+    public string physicalCommitId = string.Empty;
+    public List<string> physicalCommitSourceStackIds = new List<string>();
+    public int physicalCommitQuantity;
+    public long physicalCommitInputMassGrams;
+    public int physicalCommitPositionX;
+    public int physicalCommitPositionY;
 }
 
 [Serializable]

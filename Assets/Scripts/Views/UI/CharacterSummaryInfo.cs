@@ -54,6 +54,7 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
     private IDungeonDebugModeService debugMode;
     private IUiClock uiClock;
     private IGameEventBus gameEventBus;
+    private IGameplayOutcomePresentationQuery outcomePresentation;
     private CharacterSummaryViewActions viewActions;
     private IDisposable growthTabRequestedSubscription;
     private IDisposable infoFeedSubscription;
@@ -91,6 +92,14 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
         this.debugMode.StateChanged -= RefreshDebugVisibility;
         this.debugMode.StateChanged += RefreshDebugVisibility;
         SubscribeToScopedEvents();
+    }
+
+    [Inject]
+    public void ConstructGameplayOutcomePresentation(
+        IGameplayOutcomePresentationQuery outcomePresentation)
+    {
+        this.outcomePresentation = outcomePresentation
+            ?? throw new ArgumentNullException(nameof(outcomePresentation));
     }
 
     private void Start()
@@ -275,6 +284,7 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
         Button generatedHealthTabButton,
         Button generatedCaptivityActionButton,
         Button generatedDietPolicyButton,
+        Button generatedMealQualityButton,
         Button generatedSurgeryCommandButton,
         Button generatedAutomaticSurgeryButton,
         Button generatedSubstanceSelectionButton,
@@ -287,6 +297,7 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
             generatedHealthSummaryText,
             generatedCaptivityActionButton,
             generatedDietPolicyButton,
+            generatedMealQualityButton,
             generatedSurgeryCommandButton,
             generatedAutomaticSurgeryButton,
             generatedSubstanceSelectionButton,
@@ -297,6 +308,12 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
     public void CycleDietPolicy()
     {
         healthPresenter.CycleDietPolicy(actor);
+    }
+
+    [GameplayEntryPoint("CharacterSummaryHealthActions; generated MealQuality button; WimMealQualityPlayModeVerifier")]
+    public void CycleMealQualityLimit()
+    {
+        healthPresenter.CycleMealQualityLimit(actor);
     }
 
     public void OpenSurgeryWindow()
@@ -593,7 +610,26 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
             return;
         }
 
-        logText.text = CharacterSummaryTextFormatter.FormatLogText(characterLog, 40);
+        string persistentId = actor?.Identity?.PersistentId?.Trim()
+            ?? string.Empty;
+        string ledgerText = "확정된 서사 원장 기록이 없습니다.";
+        if (outcomePresentation != null
+            && GameplayOutcomeStableIdSyntax.IsValid(persistentId))
+        {
+            GameplayOutcomePresentationPage page = outcomePresentation.GetEntityPage(
+                new GameplayEntityId(new GameplayEntityKindId("character"), persistentId),
+                NarrativePerspectiveKind.Character,
+                OutcomeCursor.FirstPage(40),
+                OutcomeFilter.All);
+            ledgerText = outcomePresentation.FormatPage(page);
+        }
+
+        string legacy = CharacterSummaryTextFormatter.FormatLogText(characterLog, 40);
+        logText.text = string.IsNullOrWhiteSpace(legacy)
+            ? ledgerText
+            : ledgerText
+                + "\n\n이전 기록 (표시 전용 · 기계 판정 및 서사 근거로 사용하지 않음)\n"
+                + legacy;
     }
 
     public void RefreshProgression()
@@ -771,6 +807,7 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
             new CharacterSummaryHealthActions(
                 ExecuteCaptivityAction,
                 CycleDietPolicy,
+                CycleMealQualityLimit,
                 OpenSurgeryWindow,
                 ToggleAutomaticEmergencySurgery,
                 SelectNextSubstance,

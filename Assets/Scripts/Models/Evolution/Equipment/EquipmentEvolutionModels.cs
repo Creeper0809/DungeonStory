@@ -15,6 +15,141 @@ public enum EquipmentEvolutionDirection
     Survival
 }
 
+public enum EquipmentEvolutionPresentationState
+{
+    Legacy = 0,
+    PresentationPending = 1,
+    Ready = 2,
+    AwaitingNarrativeRetry = 3,
+    ModuleSelectionPending = 4
+}
+
+public enum EvolutionModuleOfferPolarity
+{
+    Positive = 0,
+    Drawback = 1
+}
+
+[Serializable]
+public sealed class EquipmentEvolutionModuleOfferState
+{
+    public string moduleId = string.Empty;
+    public EvolutionModuleOfferPolarity polarity = EvolutionModuleOfferPolarity.Positive;
+    public string semanticDescription = string.Empty;
+
+    public EquipmentEvolutionModuleOfferState Clone() => new()
+    {
+        moduleId = moduleId ?? string.Empty,
+        polarity = polarity,
+        semanticDescription = semanticDescription ?? string.Empty
+    };
+}
+
+[Serializable]
+public sealed class EquipmentEvolutionFormulaParameterEnvelope
+{
+    public string parameterId = string.Empty;
+    public long units;
+
+    public EquipmentEvolutionFormulaParameterEnvelope Clone() => new()
+    {
+        parameterId = parameterId ?? string.Empty,
+        units = units
+    };
+}
+
+[Serializable]
+public sealed class EquipmentEvolutionFormulaCapabilityEnvelope
+{
+    public string capabilityId = string.Empty;
+    public string formatterId = string.Empty;
+    public string applicatorId = string.Empty;
+    public List<EquipmentEvolutionFormulaParameterEnvelope> parameters = new();
+
+    public EquipmentEvolutionFormulaCapabilityEnvelope Clone() => new()
+    {
+        capabilityId = capabilityId ?? string.Empty,
+        formatterId = formatterId ?? string.Empty,
+        applicatorId = applicatorId ?? string.Empty,
+        parameters = parameters?
+            .Where(value => value != null)
+            .Select(value => value.Clone())
+            .OrderBy(value => value.parameterId, StringComparer.Ordinal)
+            .ToList() ?? new List<EquipmentEvolutionFormulaParameterEnvelope>()
+    };
+}
+
+[Serializable]
+public sealed class EquipmentEvolutionFormulaEvidenceRecord
+{
+    public string evidenceId = string.Empty;
+    public string eventGroupKey = string.Empty;
+    public string actionKey = string.Empty;
+    public string relationshipKey = string.Empty;
+    public string domainKey = string.Empty;
+    public int attainedMilestoneCount;
+    public double importancePoints;
+    public int influenceUseCount;
+    public UsageLedgerEvent originalEvent = new();
+
+    public EquipmentEvolutionFormulaEvidenceRecord Clone() => new()
+    {
+        evidenceId = evidenceId ?? string.Empty,
+        eventGroupKey = eventGroupKey ?? string.Empty,
+        actionKey = actionKey ?? string.Empty,
+        relationshipKey = relationshipKey ?? string.Empty,
+        domainKey = domainKey ?? string.Empty,
+        attainedMilestoneCount = Mathf.Max(0, attainedMilestoneCount),
+        importancePoints = importancePoints,
+        influenceUseCount = Mathf.Max(0, influenceUseCount),
+        originalEvent = originalEvent?.Clone() ?? new UsageLedgerEvent()
+    };
+}
+
+[Serializable]
+public sealed class EquipmentEvolutionPresentationRequest
+{
+    public string presentationId = string.Empty;
+    public string nodeId = string.Empty;
+    public string targetPersistentId = string.Empty;
+    public string historyHash = string.Empty;
+    public string attunementOwnerPersistentId = string.Empty;
+    public string reforgeOrderId = string.Empty;
+    public int targetGeneration;
+    public float masteryCost;
+    public int failureCount;
+    public string lastFailureReason = string.Empty;
+    public EquipmentEvolutionPresentationState state =
+        EquipmentEvolutionPresentationState.PresentationPending;
+    public List<string> evidenceIds = new();
+    public List<GameplayOutcomeEvidenceBindingSnapshot> gameplayOutcomeEvidence = new();
+
+    public EquipmentEvolutionPresentationRequest Clone() => new()
+    {
+        presentationId = presentationId ?? string.Empty,
+        nodeId = nodeId ?? string.Empty,
+        targetPersistentId = targetPersistentId ?? string.Empty,
+        historyHash = historyHash ?? string.Empty,
+        attunementOwnerPersistentId = attunementOwnerPersistentId ?? string.Empty,
+        reforgeOrderId = reforgeOrderId ?? string.Empty,
+        targetGeneration = Mathf.Max(0, targetGeneration),
+        masteryCost = Mathf.Max(0f, masteryCost),
+        failureCount = Mathf.Max(0, failureCount),
+        lastFailureReason = lastFailureReason ?? string.Empty,
+        state = state,
+        evidenceIds = evidenceIds?
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToList() ?? new List<string>(),
+        gameplayOutcomeEvidence = gameplayOutcomeEvidence?
+            .Where(value => value != null).Select(value => value.Clone())
+            .OrderBy(value => value.publicFactId, StringComparer.Ordinal).ToList()
+            ?? new List<GameplayOutcomeEvidenceBindingSnapshot>()
+    };
+}
+
 public enum EvolutionReforgeOrderState
 {
     WaitingForMaterials,
@@ -81,6 +216,8 @@ public sealed class EquipmentEvolutionState
     public List<string> activeHistoricalNodeIds = new List<string>();
     public List<EvolutionNarrativeRequestSnapshot> narrativeRequests =
         new List<EvolutionNarrativeRequestSnapshot>();
+    public List<EquipmentEvolutionFormulaEvidenceRecord> formulaEvidence = new();
+    public List<EquipmentEvolutionPresentationRequest> presentationRequests = new();
     public EquipmentEvolutionDirection pendingDirection =
         EquipmentEvolutionDirection.Balanced;
     public string pendingHistoryHash = string.Empty;
@@ -115,6 +252,16 @@ public sealed class EquipmentEvolutionState
                 .Where(request => request != null)
                 .Select(request => request.Clone())
                 .ToList() ?? new List<EvolutionNarrativeRequestSnapshot>(),
+            formulaEvidence = formulaEvidence?
+                .Where(record => record != null)
+                .Select(record => record.Clone())
+                .OrderBy(record => record.originalEvent?.sequence ?? 0L)
+                .ThenBy(record => record.evidenceId, StringComparer.Ordinal)
+                .ToList() ?? new List<EquipmentEvolutionFormulaEvidenceRecord>(),
+            presentationRequests = presentationRequests?
+                .Where(request => request != null)
+                .Select(request => request.Clone())
+                .ToList() ?? new List<EquipmentEvolutionPresentationRequest>(),
             pendingDirection = pendingDirection,
             pendingHistoryHash = pendingHistoryHash ?? string.Empty,
             reforgeReady = reforgeReady

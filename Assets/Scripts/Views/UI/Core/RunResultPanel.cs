@@ -9,6 +9,7 @@ using UnityEngine.Scripting.APIUpdating;
 public class RunResultPanel : MonoBehaviour
 {
     private TMP_Text detailText;
+    private ScrollRect detailScroll;
     private Button nextRunButton;
     private IDungeonRunTransitionService transitionService;
     private IGameTimeScaleController timeScaleController;
@@ -51,6 +52,11 @@ public class RunResultPanel : MonoBehaviour
                 ? result.ToDetailText()
                 : textQuery.Get(RunResultTextId.EmptyResult);
             detailText.color = theme.TextPrimary;
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(
+                detailText.rectTransform);
+            if (detailScroll != null)
+                detailScroll.verticalNormalizedPosition = 1f;
         }
 
         if (nextRunButton != null)
@@ -73,7 +79,12 @@ public class RunResultPanel : MonoBehaviour
     {
         if (detailText != null && nextRunButton != null) return;
 
-        detailText = transform.Find("RunResultText")?.GetComponent<TMP_Text>()
+        detailScroll = transform.Find("RunResultScroll")
+            ?.GetComponent<ScrollRect>()
+            ?? GetComponentInChildren<ScrollRect>(true);
+        detailText = transform.Find("RunResultScroll/Viewport/RunResultText")
+            ?.GetComponent<TMP_Text>()
+            ?? transform.Find("RunResultText")?.GetComponent<TMP_Text>()
             ?? GetComponentInChildren<TMP_Text>(true);
         nextRunButton = transform.Find("NextRunButton")?.GetComponent<Button>();
         if (nextRunButton != null)

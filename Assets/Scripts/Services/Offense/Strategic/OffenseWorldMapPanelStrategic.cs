@@ -14,18 +14,22 @@ public partial class OffenseWorldMapPanel
         public StrategicPresentationServices(
             ITmpKoreanFontService font,
             IDomainFailureLocalizer failures,
-            IInGameNarrativeTextQuery narrativeText)
+            IInGameNarrativeTextQuery narrativeText,
+            FactionContractWorldMapServices factionContracts)
         {
             Font = font ?? throw new ArgumentNullException(nameof(font));
             Failures = failures
                 ?? throw new ArgumentNullException(nameof(failures));
             NarrativeText = narrativeText
                 ?? throw new ArgumentNullException(nameof(narrativeText));
+            FactionContracts = factionContracts
+                ?? throw new ArgumentNullException(nameof(factionContracts));
         }
 
         public ITmpKoreanFontService Font { get; }
         public IDomainFailureLocalizer Failures { get; }
         public IInGameNarrativeTextQuery NarrativeText { get; }
+        public FactionContractWorldMapServices FactionContracts { get; }
     }
 
     private enum StrategicSurfaceKind
@@ -64,6 +68,9 @@ public partial class OffenseWorldMapPanel
     private IInGameNarrativeTextQuery strategicNarrativeText;
     private IExternalInfluenceRuntime strategicExternalInfluence;
     private IFactionRuntime strategicFactions;
+    private IFactionContractDeliveryQuery strategicFactionContracts;
+    private DungeonStory.Operation.IEventAlertChoiceActionDispatcher
+        strategicFactionContractActions;
     private IInvasionCampaignRuntime strategicCampaign;
     private RectTransform strategicMapRoot;
     private OffenseWorldMapResponsiveLayout strategicResponsiveLayout;
@@ -82,6 +89,7 @@ public partial class OffenseWorldMapPanel
     private string selectedStrategicFactionId = string.Empty;
     private string selectedStrategicHumanBranchId = string.Empty;
     private string pendingStrategicBetrayalFactionId = string.Empty;
+    private string dismissedStrategicFactionContractId = string.Empty;
     private StrategicSurfaceKind activeStrategicSurface = StrategicSurfaceKind.Map;
 
     [Inject]
@@ -134,6 +142,8 @@ public partial class OffenseWorldMapPanel
         strategicFont = presentation.Font;
         strategicFailureLocalizer = presentation.Failures;
         strategicNarrativeText = presentation.NarrativeText;
+        strategicFactionContracts = presentation.FactionContracts.Contracts;
+        strategicFactionContractActions = presentation.FactionContracts.Actions;
         strategicExternalInfluence = externalInfluence
             ?? throw new ArgumentNullException(nameof(externalInfluence));
         strategicFactions = factions

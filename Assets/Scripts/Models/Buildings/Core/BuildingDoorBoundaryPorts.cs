@@ -16,6 +16,7 @@ public interface IBuildingDoorTraversalSubjectPort
 {
     BuildingDoorTraversalSubjects ResolveTraversalSubjects(Collider2D collision);
     bool IsTraversalSubjectAvailable(object subject);
+    bool IsDoorPassageOccupied(Object door);
     void ChangeTraversalSortingLayer(object subject, string layerName);
 }
 

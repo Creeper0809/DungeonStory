@@ -279,6 +279,7 @@ public sealed class OffenseBattleRuntime :
             combatResolution,
             combatEquipmentRuntime,
             encounter.Rules);
+        Session.BindSettlementOwner(expedition);
         completionRaised = false;
         IsBattleViewVisible = true;
         TriggerBattleStarted(Session);
@@ -368,7 +369,11 @@ public sealed class OffenseBattleRuntime :
             actorId,
             actionType,
             targetId,
-            actionType == OffenseBattleActionType.Ability ? abilityId : string.Empty);
+            actionType is OffenseBattleActionType.Ability
+                or OffenseBattleActionType.SwitchWeapon
+                or OffenseBattleActionType.SetFireMode
+                    ? abilityId
+                    : string.Empty);
         OffenseBattleCombatant actingBefore = Session.FindCombatant(actorId);
         OffenseBattleCombatant targetBefore = Session.FindCombatant(targetId);
         float targetHealthBefore = targetBefore?.CurrentHealth ?? 0f;
@@ -498,6 +503,7 @@ public sealed class OffenseBattleRuntime :
             combatResolution,
             combatEquipmentRuntime,
             encounter.Rules);
+        Session.BindSettlementOwner(expedition);
         activeEncounterId = encounter.Encounter.encounterId;
         activeEnemyIndividuals = encounter.Individuals
             .Select(value => value.Clone())
@@ -586,6 +592,7 @@ public sealed class OffenseBattleRuntime :
             combatResolution,
             combatEquipmentRuntime,
             encounter.Rules);
+        candidateSession.BindSettlementOwner(expedition);
         return new OffenseBattleRestoreCandidate(
             candidateSession,
             candidateActors,
@@ -637,6 +644,41 @@ public sealed class OffenseBattleRuntime :
     public void ClearCompletedBattle()
     {
         if (Session == null || !Session.IsComplete) return;
+        List<string> enemyCharacterIds = new List<string>();
+        foreach (OffenseBattleCombatant combatant in Session.Combatants)
+        {
+            if (combatant == null)
+            {
+                throw new InvalidOperationException(
+                    "A completed offense battle contains a null combatant.");
+            }
+            if (combatant.Team != OffenseBattleTeam.Enemies)
+            {
+                continue;
+            }
+
+            string characterId = combatant.PersistentId?.Trim()
+                ?? string.Empty;
+            if (characterId.Length == 0
+                || !string.Equals(
+                    combatant.PersistentId,
+                    characterId,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Completed offense battle enemy has invalid character ID "
+                    + $"'{combatant.PersistentId ?? string.Empty}'.");
+            }
+            if (!enemyCharacterIds.Contains(characterId))
+            {
+                enemyCharacterIds.Add(characterId);
+            }
+        }
+
+        foreach (string enemyCharacterId in enemyCharacterIds)
+        {
+            combatEquipmentRuntime.HandleCharacterDeath(enemyCharacterId);
+        }
         Session = null;
         actorsById.Clear();
         activeEncounterId = string.Empty;

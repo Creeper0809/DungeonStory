@@ -58,6 +58,30 @@ public sealed class ResourceSurgicalProcedureCatalog : ISurgicalProcedureCatalog
                 errors.Add($"{procedure.ProcedureId}: 수술 효과가 없습니다.");
             }
 
+            try
+            {
+                if (procedure.TryGetInstallationEffect(
+                        out InstallSurgicalPartEffect installation))
+                {
+                    string requiredItemId =
+                        installation.requiredItemDefinitionId?.Trim()
+                        ?? string.Empty;
+                    if (requiredItemId.Length > 0
+                        && !string.Equals(
+                            requiredItemId,
+                            installation.requiredItemDefinitionId,
+                            StringComparison.Ordinal))
+                    {
+                        errors.Add(
+                            $"{procedure.ProcedureId}: 설치 부품 ID가 정규형이 아닙니다.");
+                    }
+                }
+            }
+            catch (InvalidOperationException exception)
+            {
+                errors.Add(exception.Message);
+            }
+
             errors.AddRange(
                 procedure.OperatorRequirement.Validate(procedure.ProcedureId));
 

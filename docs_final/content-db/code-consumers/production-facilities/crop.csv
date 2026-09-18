@@ -1,6 +1,7 @@
 ﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
 CropDefinitionSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/EmptyResourceEconomyContentCatalog.cs
 CropDefinitionSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ResourceEconomyModels.cs
+CropDefinitionSO,content-type,,type-reference; save-restore-reference,models:economy,runtime,structural-type-consumer,Assets/Scripts/Models/Economy/Core/CropPlotModels.cs
 CropDefinitionSO,content-type,,type-reference; save-restore-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/CharacterMedicalSupplyDestinationRuntimeDebugScenarios.cs
 CropDefinitionSO,content-type,,type-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/CharacterMedicalSupplyOutboxDebugScenarios.cs
 CropDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/CertifiedSeedFacilityOutputCapacityContributor.cs

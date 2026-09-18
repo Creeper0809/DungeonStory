@@ -1,0 +1,8 @@
+PASS
+shared-command-and-current-format-restore=PASS
+invalid-target-restore-atomic-rejection=PASS
+automatic-unreachable-before-inputs-and-utilities=PASS
+manual-versus-automatic-current-grade=PASS
+in-progress-target-mutation-rejected=PASS
+frozen-output-regression=PASS
+main-live-ui-automatic-tick=NOT_RUN

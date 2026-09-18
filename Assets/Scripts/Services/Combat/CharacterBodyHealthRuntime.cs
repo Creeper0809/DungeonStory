@@ -11,6 +11,7 @@ public sealed class CharacterBodyHealthRuntime :
     ICharacterCombatSpecialStatusQuery,
     ICharacterManaQuery,
     ICharacterManaCommand,
+    ICharacterBodyHealthMutationTransaction,
     ICharacterBodyHealthPersistence,
     IAnatomyHealthRuntime,
     ITickable
@@ -211,6 +212,7 @@ public sealed class CharacterBodyHealthRuntime :
             }
 
             TickAnatomyComplications(actor, state, delta);
+            RefreshDerivedMaximumHealthForInstalledPart(actor, state);
             state.suppression = Mathf.Max(0f, state.suppression - 5f * delta);
             bool wasDowned = state.downed;
             stateRules.UpdateDowned(state);
@@ -334,6 +336,31 @@ public sealed class CharacterBodyHealthRuntime :
             resetCurrentHealth);
     }
 
+    [GameplayInternalOnly(
+        "CharacterStats projects the current derived maximum after an installed-part state change.",
+        "CharacterStatsVitalsService")]
+    public void RefreshMaximumHealthPreservingCurrent(
+        CharacterActor actor,
+        float maximumHealth)
+    {
+        if (actor == null)
+        {
+            throw new ArgumentNullException(nameof(actor));
+        }
+        if (!float.IsFinite(maximumHealth) || maximumHealth <= 0f)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(maximumHealth),
+                maximumHealth,
+                "Maximum health must be finite and positive.");
+        }
+
+        vitalsAuthority.RefreshMaximumHealthPreservingCurrent(
+            actor,
+            GetOrCreate(actor),
+            maximumHealth);
+    }
+
     public void RestoreLegacyVitalsProjection(
         CharacterActor actor,
         float maximumHealth,
@@ -382,6 +409,63 @@ public sealed class CharacterBodyHealthRuntime :
 
         ApplyAggregateDamage(actor, GetOrCreate(actor), amount,
             deathCause, reasonCode, allowDeath);
+    }
+
+    public void ApplyLocalizedDamage(
+        CharacterActor actor,
+        CombatBodyPart bodyPart,
+        float amount,
+        string reason,
+        bool allowDeath)
+    {
+        if (actor == null || actor.IsDead || amount <= 0f)
+        {
+            return;
+        }
+
+        CharacterBodyHealthState state = GetOrCreate(actor);
+        CharacterBodyPartHealthState part = state.parts.FirstOrDefault(value =>
+            value.bodyPart == bodyPart);
+        if (part == null)
+        {
+            return;
+        }
+
+        float appliedDamage = allowDeath
+            ? amount
+            : Mathf.Min(
+                amount,
+                Mathf.Max(0f, state.currentHealth - 1f),
+                Mathf.Max(0f, part.currentHealth - 1f));
+        if (appliedDamage <= 0f)
+        {
+            return;
+        }
+
+        bool wasDowned = state.downed;
+        part.currentHealth = Mathf.Max(0f, part.currentHealth - appliedDamage);
+        stateRules.ApplyLegacyDamageToAnatomy(
+            state,
+            bodyPart,
+            appliedDamage,
+            bleeding: 0f);
+        state.lastDamageReason = reason ?? string.Empty;
+        ApplyAggregateDamage(
+            actor,
+            state,
+            appliedDamage,
+            CharacterDeathCauseCode.Unknown,
+            reason,
+            allowDeath);
+        if (!actor.IsDead
+            && bodyPart is CombatBodyPart.Head or CombatBodyPart.Torso
+            && part.currentHealth <= 0f)
+        {
+            Kill(actor, CharacterDeathCauseCode.Unknown, reason);
+        }
+
+        stateRules.UpdateDowned(state);
+        SyncLifecycle(actor, state, wasDowned);
     }
 
     public void HealLegacyVitals(CharacterActor actor, float amount)
@@ -442,6 +526,176 @@ public sealed class CharacterBodyHealthRuntime :
             && ReadState.TryGet(id, out CharacterBodyHealthState state)
                 ? stateRules.BuildSnapshot(state)
                 : stateRules.EmptySnapshot();
+    }
+
+    [GameplayInternalOnly(
+        "Captures an exact detached health aggregate image before combat outcome commit.",
+        "CombatCommandResultApplier")]
+    public CharacterBodyHealthMutationSnapshot CaptureCombatMutation(
+        CharacterActor actor)
+    {
+        if (actor == null)
+            throw new ArgumentNullException(nameof(actor));
+        CharacterId characterId = GetId(actor);
+        if (!characterId.IsValid)
+        {
+            throw new InvalidOperationException(
+                "Combat health mutation requires a persistent character ID.");
+        }
+        return new CharacterBodyHealthMutationSnapshot(
+            characterId,
+            stateRules.CloneState(GetOrCreate(actor)));
+    }
+
+    [GameplayInternalOnly(
+        "Rolls back only the immediately preceding uncommitted combat health mutation.",
+        "CombatCommandResultApplier")]
+    public void RestoreCombatMutation(
+        CharacterActor actor,
+        in CharacterBodyHealthMutationSnapshot snapshot,
+        string reason)
+    {
+        if (actor == null)
+            throw new ArgumentNullException(nameof(actor));
+        CharacterId characterId = GetId(actor);
+        if (!snapshot.IsValid || !characterId.Equals(snapshot.CharacterId))
+        {
+            throw new InvalidOperationException(
+                "Combat health rollback snapshot is stale or belongs to another character.");
+        }
+
+        CharacterBodyHealthState restored = stateRules.CloneState(snapshot.State);
+        _ = reason;
+        WriteState.Set(characterId, restored);
+        trackedActors[characterId] = actor;
+        vitalsAuthority.Project(actor, restored);
+    }
+
+    [GameplayInternalOnly(
+        "Stages exact combat health state without publishing irreversible lifecycle side effects before the outcome commit.",
+        "CombatCommandResultApplier")]
+    public void ApplyPreparedCombatMutation(
+        CharacterActor actor,
+        CombatAttackResult result,
+        string reason)
+    {
+        if (actor == null || actor.IsDead || !result.Executed)
+            return;
+
+        CharacterBodyHealthState state = GetOrCreate(actor);
+        state.suppression = Mathf.Clamp(
+            state.suppression + result.Suppression,
+            0f,
+            100f);
+        ApplySpecialStatus(state, result);
+        if (result.Hit && result.AppliedDamage > 0f)
+        {
+            CharacterBodyPartHealthState part = state.parts.First(item =>
+                item.bodyPart == result.BodyPart);
+            float appliedDamage = result.Nonlethal
+                ? Mathf.Min(
+                    result.AppliedDamage,
+                    Mathf.Max(0f, state.currentHealth - 1f),
+                    Mathf.Max(0f, part.currentHealth - 1f))
+                : result.AppliedDamage;
+            part.currentHealth = Mathf.Max(
+                0f,
+                part.currentHealth - appliedDamage);
+            part.bleedingPerSecond += result.Bleeding * 0.01f;
+            stateRules.ApplyLegacyDamageToAnatomy(
+                state,
+                result.BodyPart,
+                appliedDamage,
+                result.Bleeding * 0.01f);
+            state.lastDamageReason = reason ?? string.Empty;
+            bool fatalCorePart = !result.Nonlethal
+                && result.BodyPart is (CombatBodyPart.Head
+                    or CombatBodyPart.Torso)
+                && part.currentHealth <= 0f;
+            state.currentHealth = fatalCorePart
+                ? 0f
+                : Mathf.Max(1f, state.currentHealth - appliedDamage);
+            state.injurySeverity = Mathf.Clamp01(
+                1f - state.currentHealth / Mathf.Max(1f, state.maxHealth));
+        }
+
+        stateRules.UpdateDowned(state);
+        vitalsAuthority.Project(actor, state);
+    }
+
+    [GameplayInternalOnly(
+        "Publishes combat lifecycle side effects only after the matching outcome commit succeeds.",
+        "CombatCommandResultApplier")]
+    public void CompletePreparedCombatMutation(
+        CharacterActor actor,
+        in CharacterBodyHealthMutationSnapshot before,
+        CombatAttackResult result,
+        string reason)
+    {
+        if (actor == null || !before.IsValid || !result.Executed)
+            return;
+        CharacterBodyHealthState state = GetOrCreate(actor);
+        CharacterBodyHealthState previous = before.State;
+        ApplyPanicMoodOnThresholdCrossing(
+            actor,
+            previous.suppression,
+            state.suppression);
+        if (result.Hit && result.AppliedDamage > 0f)
+        {
+            float actualDamage = Mathf.Max(
+                0f,
+                previous.currentHealth - state.currentHealth);
+            if (actualDamage > 0f)
+            {
+                actor.Stats?.NotifyAggregateDamage(
+                    result.AppliedDamage,
+                    reason,
+                    false,
+                    CharacterDeathCauseCode.Combat);
+            }
+            if (previous.currentHealth > 0f && state.currentHealth <= 0f)
+            {
+                actor.Stats?.NotifyAggregateDeath(
+                    CharacterDeathCauseCode.Combat,
+                    result.BodyPart == CombatBodyPart.Head
+                        ? "combat:fatal-head-trauma"
+                        : "combat:fatal-torso-trauma");
+            }
+            PublishHealthTransition(
+                actor,
+                HealthRatio(previous),
+                state.currentHealth <= 0f
+                    ? Mathf.Clamp01(
+                        Mathf.Max(
+                            1f,
+                            previous.currentHealth - result.AppliedDamage)
+                        / Mathf.Max(1f, previous.maxHealth))
+                    : HealthRatio(state),
+                CharacterDeathCauseCode.Combat,
+                reason);
+        }
+        SyncLifecycle(actor, state, previous.downed);
+    }
+
+    public void ApplyPreparedSuppressionReduction(
+        CharacterActor actor,
+        float amount)
+    {
+        if (actor == null || !float.IsFinite(amount) || amount <= 0f)
+            return;
+        CharacterBodyHealthState state = GetOrCreate(actor);
+        state.suppression = Mathf.Max(0f, state.suppression - amount);
+        stateRules.UpdateDowned(state);
+        vitalsAuthority.Project(actor, state);
+    }
+
+    public void CompletePreparedSuppressionReduction(
+        CharacterActor actor,
+        in CharacterBodyHealthMutationSnapshot before)
+    {
+        if (actor == null || !before.IsValid)
+            return;
+        SyncLifecycle(actor, GetOrCreate(actor), before.State.downed);
     }
 
     public void ApplyCombatResult(CharacterActor target, CombatAttackResult result, string reason)
@@ -955,13 +1209,15 @@ public sealed class CharacterBodyHealthRuntime :
         node.currentHealth = Mathf.Max(0f, node.currentHealth - damage);
         node.bleedingPerSecond += Mathf.Max(0f, bleeding);
         state.lastDamageReason = reasonCode ?? string.Empty;
+        // Publish the typed surface change before aggregate-damage side effects
+        // can re-enter anatomy queries through performance evaluation.
+        stateRules.SyncLegacySurfaceNode(state, node.nodeId);
         ApplyAggregateDamage(
             actor,
             state,
             damage,
             reasonCode,
             allowDeath: false);
-        stateRules.SyncLegacySurfaceNode(state, node.nodeId);
         stateRules.KillForDestroyedVitalNode(
             actor,
             state,
@@ -1011,6 +1267,38 @@ public sealed class CharacterBodyHealthRuntime :
         stateRules.UpdateDowned(state);
         SyncLifecycle(actor, state, wasDowned);
         return restored > 0f || node.infection < previousInfection;
+    }
+
+    public bool TryStopBleeding(
+        CharacterActor actor,
+        string nodeId,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        if (actor == null || actor.IsDead)
+        {
+            failure = new DomainFailure(
+                FailureCode.SurgeryLivingSubjectUnavailable,
+                actor?.Identity?.PersistentId ?? string.Empty);
+            return false;
+        }
+
+        CharacterBodyHealthState state = GetOrCreate(actor);
+        AnatomyNodeHealthState node = stateRules.FindAnatomyNode(state, nodeId);
+        if (node == null || node.missing)
+        {
+            failure = new DomainFailure(
+                FailureCode.SurgeryTargetNodeUnavailable,
+                nodeId ?? string.Empty);
+            return false;
+        }
+
+        node.bleedingPerSecond = 0f;
+        stateRules.SyncLegacySurfaceNode(state, node.nodeId);
+        bool wasDowned = state.downed;
+        stateRules.UpdateDowned(state);
+        SyncLifecycle(actor, state, wasDowned);
+        return true;
     }
 
     public PartRecoveryPolicy GetRecoveryPolicy(
@@ -1146,6 +1434,8 @@ public sealed class CharacterBodyHealthRuntime :
         string partInstanceId,
         SurgicalPartKind partKind,
         float efficiency,
+        float restoredCurrentHealth,
+        bool preserveRestoredHealth,
         out DomainFailure failure)
     {
         failure = DomainFailure.None;
@@ -1169,27 +1459,47 @@ public sealed class CharacterBodyHealthRuntime :
             return false;
         }
 
+        if (preserveRestoredHealth
+            && (float.IsNaN(restoredCurrentHealth)
+                || float.IsInfinity(restoredCurrentHealth)
+                || restoredCurrentHealth < 0f))
+        {
+            failure = new DomainFailure(
+                FailureCode.SurgeryPartUnavailable,
+                partInstanceId,
+                "installation-durability-invalid");
+            return false;
+        }
+
         node.missing = false;
         node.installedPartId = partInstanceId.Trim();
         node.installedPartKind = partKind;
         node.installedPartEfficiency = Mathf.Clamp(efficiency, 0.1f, 1.75f);
         node.moduleBonus = 0f;
         node.recoveryPolicy = stateRules.ResolveRecoveryPolicy(partKind);
-        node.currentHealth = Mathf.Max(node.currentHealth, node.maxHealth * 0.35f);
+        node.currentHealth = preserveRestoredHealth
+            ? Mathf.Clamp(restoredCurrentHealth, 0f, node.maxHealth)
+            : Mathf.Max(node.currentHealth, node.maxHealth * 0.35f);
         node.bleedingPerSecond = Mathf.Min(node.bleedingPerSecond, 0.05f);
         stateRules.SyncLegacySurfaceNode(state, node.nodeId);
         bool wasDowned = state.downed;
         stateRules.UpdateDowned(state);
         SyncLifecycle(actor, state, wasDowned);
+        actor.Stats.RefreshDerivedMaximumHealthPreservingCurrent();
         return true;
     }
 
     public bool TryReplaceNodePart(
         CharacterActor actor,
         string nodeId,
+        string expectedPartInstanceId,
+        float expectedCurrentHealth,
+        float expectedMaxHealth,
         string partInstanceId,
         SurgicalPartKind partKind,
         float efficiency,
+        float restoredCurrentHealth,
+        bool preserveRestoredHealth,
         out AnatomyNodeHealthState replacedNode,
         out DomainFailure failure)
     {
@@ -1215,6 +1525,48 @@ public sealed class CharacterBodyHealthRuntime :
             return false;
         }
 
+        string expected = expectedPartInstanceId?.Trim() ?? string.Empty;
+        if (!string.Equals(
+                node.installedPartId,
+                expected,
+                StringComparison.Ordinal))
+        {
+            failure = new DomainFailure(
+                FailureCode.SurgeryPartUnavailable,
+                expected,
+                node.installedPartId ?? string.Empty);
+            return false;
+        }
+
+        if (float.IsNaN(expectedCurrentHealth)
+            || float.IsInfinity(expectedCurrentHealth)
+            || float.IsNaN(expectedMaxHealth)
+            || float.IsInfinity(expectedMaxHealth)
+            || expectedMaxHealth <= 0f
+            || expectedCurrentHealth < 0f
+            || expectedCurrentHealth > expectedMaxHealth
+            || node.currentHealth != expectedCurrentHealth
+            || node.maxHealth != expectedMaxHealth)
+        {
+            failure = new DomainFailure(
+                FailureCode.SurgeryPartUnavailable,
+                expected,
+                "replacement-detached-health-changed");
+            return false;
+        }
+
+        if (preserveRestoredHealth
+            && (float.IsNaN(restoredCurrentHealth)
+                || float.IsInfinity(restoredCurrentHealth)
+                || restoredCurrentHealth < 0f))
+        {
+            failure = new DomainFailure(
+                FailureCode.SurgeryPartUnavailable,
+                partInstanceId,
+                "replacement-durability-invalid");
+            return false;
+        }
+
         replacedNode = stateRules.CloneAnatomyNode(node);
         node.missing = false;
         node.installedPartId = partInstanceId.Trim();
@@ -1222,7 +1574,9 @@ public sealed class CharacterBodyHealthRuntime :
         node.installedPartEfficiency = Mathf.Clamp(efficiency, 0.1f, 1.75f);
         node.moduleBonus = 0f;
         node.recoveryPolicy = stateRules.ResolveRecoveryPolicy(partKind);
-        node.currentHealth = Mathf.Max(node.maxHealth * 0.35f, 1f);
+        node.currentHealth = preserveRestoredHealth
+            ? Mathf.Clamp(restoredCurrentHealth, 0f, node.maxHealth)
+            : Mathf.Max(node.maxHealth * 0.35f, 1f);
         node.bleedingPerSecond = Mathf.Min(node.bleedingPerSecond, 0.05f);
         stateRules.SyncLegacySurfaceNode(state, node.nodeId);
         bool wasDowned = state.downed;
@@ -1420,6 +1774,20 @@ public sealed class CharacterBodyHealthRuntime :
             ? 0f
             : Mathf.Clamp01(
                 state.currentHealth / Mathf.Max(1f, state.maxHealth));
+
+    private static void RefreshDerivedMaximumHealthForInstalledPart(
+        CharacterActor actor,
+        CharacterBodyHealthState state)
+    {
+        if (state?.anatomyNodes == null
+            || !state.anatomyNodes.Any(node => node != null
+                && !string.IsNullOrWhiteSpace(node.installedPartId)))
+        {
+            return;
+        }
+
+        actor.Stats.RefreshDerivedMaximumHealthPreservingCurrent();
+    }
 
     private void PublishHealthTransition(
         CharacterActor actor,

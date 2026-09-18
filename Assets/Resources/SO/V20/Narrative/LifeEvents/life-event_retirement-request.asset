@@ -20,11 +20,15 @@ MonoBehaviour:
   sourceNote: V20 content-density expansion; hand-authored Korean source revision
     1.
   category: 4
+  riskTier: 2
+  riskReason: "\uC791\uC131\uB41C \uC120\uD0DD\uC774 \uC740\uD1F4 \uC77C\uC815\uC744
+    \uC124\uC815\uD574 \uACBD\uB825 \uC885\uB8CC\uB97C \uB9CC\uB4E0\uB2E4."
   automatic: 0
   emergency: 0
   responseDeadlineDays: 3
   cooldownDays: 90
   frequencyRule: 1
+  occurrencePolicy: 1
   triggerRequirements:
     items: []
     facilities: []
@@ -52,6 +56,10 @@ MonoBehaviour:
       targetId: life-event:retirement-request
       amount: 6
       durationDays: 0
+    - kind: 18
+      targetId: life-event:retirement-request
+      amount: 0
+      durationDays: 0
   - choiceId: second
     title: "\uD55C \uACC4\uC808 \uB354 \uD604\uC7A5\uC744 \uBD80\uD0C1\uD55C\uB2E4"
     outcomeText: "\uD55C \uACC4\uC808 \uB354 \uD604\uC7A5\uC744 \uBD80\uD0C1\uD55C\uB2E4"
@@ -65,8 +73,8 @@ MonoBehaviour:
       requiredFlags: []
       excludedFlags: []
     effects:
-    - kind: 13
+    - kind: 18
       targetId: life-event:retirement-request
-      amount: -2
-      durationDays: 0
+      amount: 0
+      durationDays: 30
   automaticEffects: []

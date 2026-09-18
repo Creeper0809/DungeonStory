@@ -1,0 +1,10 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+CharacterAcquiredTraitModuleSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitEffectSource.cs
+CharacterAcquiredTraitModuleSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitInferenceService.cs
+CharacterAcquiredTraitModuleSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitManifestationRuntime.cs
+CharacterAcquiredTraitModuleSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitSpecialReaction.cs
+CharacterAcquiredTraitModuleSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitValidation.cs
+CharacterAcquiredTraitModuleSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/CharacterProgression.cs
+CharacterAcquiredTraitModuleSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/MemoryErasureSealTransactionService.cs
+CharacterAcquiredTraitModuleSO,content-type,,type-reference; save-restore-reference,services:effects,persistence,structural-type-consumer,Assets/Scripts/Services/Effects/Runtime/CharacterDerivedStatsSnapshot.cs
+CharacterAcquiredTraitModuleSO,content-type,,type-reference; save-restore-reference,services:infrastructure,persistence,structural-type-consumer,Assets/Scripts/Services/Infrastructure/CharacterWorldSaveService.cs

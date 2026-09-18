@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "고위험 야생동물에서 얻는 원정 길잡이 촉매이다. 특히 베르사디온산 룬 가루의 봉인에는 마나가 새면 가장 먼저 빛을 잃는 세 번째 매듭이 있다.",
+  "in_game_description": "고위험 야생동물에서 얻는 원정 길잡이 촉매이다. 베르사디온산 룬 가루의 봉인에는 마나가 새면 가장 먼저 빛을 잃는 세 번째 매듭이 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

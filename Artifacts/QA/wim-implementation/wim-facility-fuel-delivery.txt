@@ -1,0 +1,2 @@
+result=PASS
+operating-day-global-debit=0; remote-stock-charge=0; cancel=0; controlled-reserved-pickup/deposit=PASS; input2-consumed1-remaining1; only-A=180s; pending-ack-removal=Deferred/world-preserved; pending-ack+physical/building-current-json+retry=once; natural-haul/full-world-section-restore/6adult=NOT_RUN

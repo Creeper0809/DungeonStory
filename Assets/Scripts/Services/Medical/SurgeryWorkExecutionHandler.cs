@@ -98,6 +98,7 @@ public sealed class SurgeryWorkExecutionHandler :
                 out DomainFailure failure))
         {
             result.CompletedSuccessfully = false;
+            result.Failure = failure;
             context.Actor?.Brain?.SetActionPhase(
                 failure.Code.ToString(),
                 context.Target);
@@ -106,6 +107,7 @@ public sealed class SurgeryWorkExecutionHandler :
 
         bool applied = true;
         bool operationCompleted = false;
+        DomainFailure executionFailure = DomainFailure.None;
         float facilitySpeed = 1f;
         if (procedures.TryGet(
                 order.procedureId,
@@ -113,7 +115,7 @@ public sealed class SurgeryWorkExecutionHandler :
         {
             SurgicalFacilitySnapshot snapshot = facilities.Evaluate(
                 context.Target,
-                procedure.RequiredFacilityTags);
+                procedure);
             facilitySpeed = snapshot.IsAvailable
                 ? snapshot.SpeedMultiplier
                 : 1f;
@@ -135,6 +137,7 @@ public sealed class SurgeryWorkExecutionHandler :
                 operationCompleted |= completed;
                 if (failure.IsFailure)
                 {
+                    executionFailure = failure;
                     context.Actor?.Brain?.SetActionPhase(
                         failure.Code.ToString(),
                         context.Target);
@@ -160,5 +163,6 @@ public sealed class SurgeryWorkExecutionHandler :
 
         result.CompletedSuccessfully = applied && operationCompleted;
         result.CompletionEffectsAlreadyApplied = operationCompleted;
+        result.Failure = executionFailure;
     }
 }

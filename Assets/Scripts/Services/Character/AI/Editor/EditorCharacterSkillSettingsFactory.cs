@@ -9,6 +9,7 @@ public static class EditorCharacterSkillSettingsFactory
             ScriptableObject.CreateInstance<CharacterSkillSystemSettingsSO>();
         settings.hideFlags = HideFlags.HideAndDontSave;
         settings.EnsureDefaults();
+        CharacterSkillFormulaCatalogAssetBuilder.Populate(settings);
         return settings;
     }
 }

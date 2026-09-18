@@ -305,8 +305,34 @@ public interface ICraftQualityResolver
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
-public sealed class DeterministicCraftQualityResolver : ICraftQualityResolver
+public sealed class DeterministicCraftQualityResolver : ICraftQualityResolver, ICraftQualityProbabilityQuery
 {
+    public double EstimateSuccessProbability(CraftsmanshipQualityTier minimumQuality,
+        float weightedSkill, float facilityBonus, float toolBonus, float complexityPenalty)
+    {
+        if (!Enum.IsDefined(typeof(CraftsmanshipQualityTier), minimumQuality)
+            || !Finite(weightedSkill) || !Finite(facilityBonus)
+            || !Finite(toolBonus) || !Finite(complexityPenalty))
+            throw new ArgumentOutOfRangeException(nameof(minimumQuality));
+        // The authored distribution is three uniform integer draws in [-10,10].
+        // Enumerate that distribution through the SAME resolver, never Roll or a stored roll.
+        CraftQualityRollSaveData sample = new();
+        int successes = 0;
+        for (int a = -10; a <= 10; a++)
+        for (int b = -10; b <= 10; b++)
+        for (int c = -10; c <= 10; c++)
+        {
+            sample.randomA = a;
+            sample.randomB = b;
+            sample.randomC = c;
+            if (Resolve(sample, weightedSkill, facilityBonus, toolBonus, complexityPenalty).Tier >= minimumQuality)
+                successes++;
+        }
+        return successes / 9261d;
+    }
+
+    private static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
+
     public CraftQualityRollSaveData Roll(
         ulong runSeed,
         string pipelineId,

@@ -66,6 +66,10 @@ public interface IEnvironmentalWorkwearQuery
         out ItemInstanceId itemInstanceId,
         out EnvironmentalWorkwearSO workwear);
     int GetAvailableStock(string workwearId);
+    bool CanAutoEquipForCold(
+        CharacterActor actor,
+        Vector2Int destination,
+        out DomainFailure failure);
 }
 
 public interface IEnvironmentalWorkwearCommand
@@ -87,6 +91,10 @@ public interface IEnvironmentalWorkwearPersistence
     IReadOnlyDictionary<CharacterId, ItemInstanceId> PrepareRestoreEquipped(
         IReadOnlyList<EnvironmentalWorkwearSaveData> equipped,
         DungeonGameRestoreReport report = null);
+    void ValidatePreparedProjection(
+        IReadOnlyDictionary<CharacterId, ItemInstanceId> prepared,
+        CharacterApparelRestoreCandidate apparel,
+        DungeonGameRestoreReport report);
 }
 
 public sealed class NoEnvironmentalWorkwearCommand :
@@ -142,6 +150,7 @@ public sealed class EnvironmentalWorkwearRuntime :
     private readonly ICharacterApparelQuery apparel;
     private readonly ICharacterApparelCommand apparelCommands;
     private readonly IWorldItemStackRuntime items;
+    private readonly IPhysicalItemRestoreCandidateStackQuery restoreCandidateItems;
     private readonly IStockQuery stock;
 
     public EnvironmentalWorkwearRuntime(
@@ -151,6 +160,7 @@ public sealed class EnvironmentalWorkwearRuntime :
         ICharacterApparelQuery apparel,
         ICharacterApparelCommand apparelCommands,
         IWorldItemStackRuntime items,
+        IPhysicalItemRestoreCandidateStackQuery restoreCandidateItems,
         IStockQuery stock)
     {
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
@@ -163,6 +173,8 @@ public sealed class EnvironmentalWorkwearRuntime :
         this.apparelCommands = apparelCommands
             ?? throw new ArgumentNullException(nameof(apparelCommands));
         this.items = items ?? throw new ArgumentNullException(nameof(items));
+        this.restoreCandidateItems = restoreCandidateItems
+            ?? throw new ArgumentNullException(nameof(restoreCandidateItems));
         this.stock = stock ?? throw new ArgumentNullException(nameof(stock));
     }
 
@@ -180,21 +192,11 @@ public sealed class EnvironmentalWorkwearRuntime :
         out ItemInstanceId itemInstanceId,
         out EnvironmentalWorkwearSO workwear)
     {
-        itemInstanceId = default;
-        workwear = null;
-        foreach (EquippedApparelSnapshot equipped in apparel.GetEquipped(characterId))
-        {
-            if (!TryFindPhysicalItem(equipped.ItemInstanceId, out WorldItemStackSnapshot stack)
-                || !catalog.TryGetByItemDefinitionId(stack.ItemId, out workwear))
-            {
-                continue;
-            }
-
-            itemInstanceId = equipped.ItemInstanceId;
-            return true;
-        }
-
-        return false;
+        return TrySelectCanonicalEquipped(
+            apparel.GetEquipped(characterId),
+            useRestoreCandidate: false,
+            out itemInstanceId,
+            out workwear);
     }
 
     public int GetAvailableStock(string workwearId)
@@ -207,6 +209,56 @@ public sealed class EnvironmentalWorkwearRuntime :
 
         return items.GetAllStacks().Count(stack =>
             IsAvailablePhysicalItem(stack, definition.ItemDefinitionId));
+    }
+
+    public bool CanAutoEquipForCold(
+        CharacterActor actor,
+        Vector2Int destination,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        CharacterId characterId = new(actor?.Identity?.PersistentId);
+        if (actor == null || !characterId.IsValid)
+        {
+            failure = new DomainFailure(
+                FailureCode.EnvironmentWorkwearCharacterMissing);
+            return false;
+        }
+        if (TryGetEquippedItemInstance(
+                characterId,
+                out _,
+                out EnvironmentalWorkwearSO equipped)
+            && ProvidesColdProtection(equipped))
+        {
+            return true;
+        }
+        if (apparel.GetPolicy(characterId).HasTemporaryOverride)
+        {
+            failure = new DomainFailure(
+                FailureCode.ApparelPlanStale,
+                characterId.Value);
+            return false;
+        }
+        if (!HasReachableLocker(actor.GetNowXY(), destination))
+        {
+            failure = new DomainFailure(
+                FailureCode.EnvironmentWorkwearLockerUnreachable,
+                destination.x.ToString(CultureInfo.InvariantCulture),
+                destination.y.ToString(CultureInfo.InvariantCulture));
+            return false;
+        }
+        bool found = catalog.Definitions.Any(candidate => candidate != null
+            && ProvidesColdProtection(candidate)
+            && candidate.AllowsSpecies(actor.SpeciesTag)
+            && IsResearchUnlocked(candidate)
+            && FindAvailablePhysicalItem(candidate.ItemDefinitionId) != null);
+        if (!found)
+        {
+            failure = new DomainFailure(
+                FailureCode.EnvironmentWorkwearStockMissing,
+                actor.SpeciesTag ?? string.Empty);
+        }
+        return found;
     }
 
     public bool TryEquip(
@@ -236,6 +288,14 @@ public sealed class EnvironmentalWorkwearRuntime :
                 definition.RequiredResearchId);
             return false;
         }
+        if (!definition.AllowsSpecies(actor.SpeciesTag))
+        {
+            failure = new DomainFailure(
+                FailureCode.EnvironmentWorkwearSpeciesIncompatible,
+                actor.SpeciesTag ?? string.Empty,
+                definition.WorkwearId);
+            return false;
+        }
 
         CharacterId characterId = new(actor.Identity.PersistentId);
         if (!characterId.IsValid)
@@ -244,14 +304,7 @@ public sealed class EnvironmentalWorkwearRuntime :
                 FailureCode.EnvironmentWorkwearCharacterMissing);
             return false;
         }
-        if (TryGetEquippedItemInstance(
-                characterId,
-                out _,
-                out EnvironmentalWorkwearSO current)
-            && string.Equals(
-                current.WorkwearId,
-                definition.WorkwearId,
-                StringComparison.Ordinal))
+        if (HasEquippedWorkwear(characterId, definition.WorkwearId))
         {
             return true;
         }
@@ -275,12 +328,11 @@ public sealed class EnvironmentalWorkwearRuntime :
             return false;
         }
 
-        return apparelCommands.TryPlanChange(
-                characterId,
-                candidateId,
-                out ApparelChangePlan plan,
-                out failure)
-            && apparelCommands.TryCommitChange(plan, out failure);
+        return apparelCommands.TryBeginTemporaryOverride(
+            characterId,
+            candidateId,
+            "environment:hauling-harness",
+            out failure);
     }
 
     public bool TryAutoEquipForCold(
@@ -295,6 +347,28 @@ public sealed class EnvironmentalWorkwearRuntime :
                 FailureCode.EnvironmentWorkwearCharacterMissing);
             return false;
         }
+        CharacterId characterId = new(actor.Identity?.PersistentId);
+        if (!characterId.IsValid)
+        {
+            failure = new DomainFailure(
+                FailureCode.EnvironmentWorkwearCharacterMissing);
+            return false;
+        }
+        if (TryGetEquippedItemInstance(
+                characterId,
+                out _,
+                out EnvironmentalWorkwearSO equipped)
+            && ProvidesColdProtection(equipped))
+        {
+            return true;
+        }
+        if (apparel.GetPolicy(characterId).HasTemporaryOverride)
+        {
+            failure = new DomainFailure(
+                FailureCode.ApparelPlanStale,
+                characterId.Value);
+            return false;
+        }
         if (!HasReachableLocker(actor.GetNowXY(), destination))
         {
             failure = new DomainFailure(
@@ -306,8 +380,10 @@ public sealed class EnvironmentalWorkwearRuntime :
 
         EnvironmentalWorkwearSO best = catalog.Definitions
             .Where(candidate => candidate != null
+                && ProvidesColdProtection(candidate)
                 && GetAvailableStock(candidate.WorkwearId) > 0
-                && IsResearchUnlocked(candidate))
+                && IsResearchUnlocked(candidate)
+                && candidate.AllowsSpecies(actor.SpeciesTag))
             .OrderBy(candidate => candidate.Protection.comfortMinimumOffset)
             .ThenBy(candidate => candidate.Protection.coldExposureMultiplier)
             .FirstOrDefault();
@@ -319,42 +395,54 @@ public sealed class EnvironmentalWorkwearRuntime :
             return false;
         }
 
-        return TryEquip(actor, best.WorkwearId, out failure);
+        WorldItemStackSnapshot candidate = FindAvailablePhysicalItem(
+            best.ItemDefinitionId);
+        if (candidate == null)
+        {
+            failure = new DomainFailure(
+                FailureCode.EnvironmentWorkwearStockMissing,
+                best.ItemDefinitionId);
+            return false;
+        }
+        ItemInstanceId itemInstanceId = (ItemInstanceId)candidate.ItemInstanceId;
+        return apparelCommands.TryBeginTemporaryOverride(
+            characterId,
+            itemInstanceId,
+            "environment:cold-work",
+            out failure);
     }
 
     public bool TryUnequip(CharacterId characterId, out DomainFailure failure)
     {
         failure = DomainFailure.None;
-        if (!TryGetEquippedItemInstance(
-                characterId,
-                out ItemInstanceId itemInstanceId,
-                out _))
-        {
-            failure = new DomainFailure(
-                FailureCode.EnvironmentWorkwearNotEquipped,
-                characterId.Value);
-            return false;
-        }
-        return apparelCommands.TryUnequip(characterId, itemInstanceId, out failure);
+        return apparelCommands.TryRestoreTemporaryOverride(
+            characterId,
+            out failure);
     }
 
     public IReadOnlyList<EnvironmentalWorkwearSaveData> CaptureEquipped()
     {
-        return apparel.GetAllEquipped()
-            .Where(value => value.ItemInstanceId.IsValid
-                && TryFindPhysicalItem(value.ItemInstanceId, out WorldItemStackSnapshot stack)
-                && catalog.TryGetByItemDefinitionId(stack.ItemId, out _))
-            .GroupBy(value => value.CharacterId)
-            .Select(group => group
-                .OrderBy(value => value.ItemInstanceId.Value, StringComparer.Ordinal)
-                .First())
-            .OrderBy(value => value.CharacterId.Value, StringComparer.Ordinal)
-            .Select(value => new EnvironmentalWorkwearSaveData
+        List<EnvironmentalWorkwearSaveData> result = new();
+        foreach (IGrouping<CharacterId, EquippedApparelSnapshot> group in
+                 apparel.GetAllEquipped()
+                     .Where(value => value.ItemInstanceId.IsValid)
+                     .GroupBy(value => value.CharacterId)
+                     .OrderBy(value => value.Key.Value, StringComparer.Ordinal))
+        {
+            if (TrySelectCanonicalEquipped(
+                    group,
+                    useRestoreCandidate: false,
+                    out ItemInstanceId itemInstanceId,
+                    out _))
             {
-                characterId = value.CharacterId.Value,
-                itemInstanceId = value.ItemInstanceId.Value
-            })
-            .ToArray();
+                result.Add(new EnvironmentalWorkwearSaveData
+                {
+                    characterId = group.Key.Value,
+                    itemInstanceId = itemInstanceId.Value
+                });
+            }
+        }
+        return result;
     }
 
     public IReadOnlyDictionary<CharacterId, ItemInstanceId> PrepareRestoreEquipped(
@@ -371,7 +459,9 @@ public sealed class EnvironmentalWorkwearRuntime :
             if (!characterId.IsValid
                 || !instanceId.IsValid
                 || !restoredInstances.Add(instanceId)
-                || !TryFindPhysicalItem(instanceId, out WorldItemStackSnapshot stack)
+                || !TryFindRestorePhysicalItem(
+                    instanceId,
+                    out PhysicalItemRestoreCandidateStackSnapshot stack)
                 || !catalog.TryGetByItemDefinitionId(stack.ItemId, out _)
                 || !string.Equals(
                     stack.DestinationId,
@@ -391,6 +481,47 @@ public sealed class EnvironmentalWorkwearRuntime :
         }
 
         return prepared;
+    }
+
+    public void ValidatePreparedProjection(
+        IReadOnlyDictionary<CharacterId, ItemInstanceId> prepared,
+        CharacterApparelRestoreCandidate apparelCandidate,
+        DungeonGameRestoreReport report)
+    {
+        Dictionary<CharacterId, ItemInstanceId> derived =
+            (apparelCandidate?.State.Characters
+                ?? new Dictionary<CharacterId, CharacterApparelRecord>())
+                .Select(pair =>
+                {
+                    EquippedApparelSnapshot[] equipped = pair.Value.Equipped
+                        .Select(value => new EquippedApparelSnapshot(
+                            pair.Key,
+                            (ItemInstanceId)value.itemInstanceId,
+                            value.apparelDefinitionId,
+                            value.layer,
+                            (AnatomyAttachmentPoint)value.occupiedPoints))
+                        .ToArray();
+                    return TrySelectCanonicalEquipped(
+                            equipped,
+                            useRestoreCandidate: true,
+                            out ItemInstanceId selected,
+                            out _)
+                        ? (valid: true, characterId: pair.Key, selected)
+                        : (valid: false, characterId: pair.Key, selected: default(ItemInstanceId));
+                })
+                .Where(value => value.valid)
+                .ToDictionary(value => value.characterId, value => value.selected);
+        IReadOnlyDictionary<CharacterId, ItemInstanceId> source = prepared
+            ?? new Dictionary<CharacterId, ItemInstanceId>();
+        if (source.Count != derived.Count
+            || source.Any(pair => !derived.TryGetValue(
+                pair.Key,
+                out ItemInstanceId value)
+                || !value.Equals(pair.Value)))
+        {
+            report?.AddError(
+                "Current equippedWorkwear checksum does not match the apparel physical projection.");
+        }
     }
 
     private bool IsResearchUnlocked(EnvironmentalWorkwearSO definition)
@@ -453,8 +584,94 @@ public sealed class EnvironmentalWorkwearRuntime :
                 or WorldItemStackState.FacilityOutputBuffer
             && !(stack.DestinationId ?? string.Empty).StartsWith(
                 CharacterApparelAggregate.EquippedDestinationPrefix,
-                StringComparison.Ordinal);
+                StringComparison.Ordinal)
+            && ApparelItemStateCodec.TryRead(
+                stack.Components,
+                out ApparelInstanceState state)
+            && CharacterApparelAggregate.IsConditionAvailableForSelection(state);
     }
+
+    private bool TrySelectCanonicalEquipped(
+        IEnumerable<EquippedApparelSnapshot> equipped,
+        bool useRestoreCandidate,
+        out ItemInstanceId itemInstanceId,
+        out EnvironmentalWorkwearSO workwear)
+    {
+        List<(ItemInstanceId itemInstanceId, EnvironmentalWorkwearSO workwear)>
+            candidates = new();
+        foreach (EquippedApparelSnapshot candidate in equipped
+                     ?? Array.Empty<EquippedApparelSnapshot>())
+        {
+            string itemId;
+            if (useRestoreCandidate)
+            {
+                if (!TryFindRestorePhysicalItem(
+                        candidate.ItemInstanceId,
+                        out PhysicalItemRestoreCandidateStackSnapshot stack))
+                {
+                    continue;
+                }
+                itemId = stack.ItemId;
+            }
+            else
+            {
+                if (!TryFindPhysicalItem(
+                        candidate.ItemInstanceId,
+                        out WorldItemStackSnapshot stack))
+                {
+                    continue;
+                }
+                itemId = stack.ItemId;
+            }
+            if (catalog.TryGetByItemDefinitionId(
+                    itemId,
+                    out EnvironmentalWorkwearSO definition))
+            {
+                candidates.Add((candidate.ItemInstanceId, definition));
+            }
+        }
+        (ItemInstanceId itemInstanceId, EnvironmentalWorkwearSO workwear)
+            selected = candidates
+                .OrderBy(value => ProvidesColdProtection(value.workwear) ? 0 : 1)
+                .ThenBy(value => value.workwear.Protection.comfortMinimumOffset)
+                .ThenBy(value => value.workwear.Protection.coldExposureMultiplier)
+                .ThenBy(value => value.itemInstanceId.Value, StringComparer.Ordinal)
+                .FirstOrDefault();
+        itemInstanceId = selected.itemInstanceId;
+        workwear = selected.workwear;
+        return itemInstanceId.IsValid && workwear != null;
+    }
+
+    private bool HasEquippedWorkwear(
+        CharacterId characterId,
+        string workwearId)
+    {
+        foreach (EquippedApparelSnapshot equipped in
+                 apparel.GetEquipped(characterId))
+        {
+            if (TryFindPhysicalItem(
+                    equipped.ItemInstanceId,
+                    out WorldItemStackSnapshot stack)
+                && catalog.TryGetByItemDefinitionId(
+                    stack.ItemId,
+                    out EnvironmentalWorkwearSO definition)
+                && string.Equals(
+                    definition.WorkwearId,
+                    workwearId,
+                    StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static bool ProvidesColdProtection(
+        EnvironmentalWorkwearSO definition) =>
+        definition?.Protection != null
+        && (definition.Protection.comfortMinimumOffset < 0f
+            || definition.Protection.safeMinimumOffset < 0f
+            || definition.Protection.coldExposureMultiplier < 1f);
 
     private bool TryFindPhysicalItem(
         ItemInstanceId itemInstanceId,
@@ -468,18 +685,71 @@ public sealed class EnvironmentalWorkwearRuntime :
         return result != null;
     }
 
+    private bool TryFindRestorePhysicalItem(
+        ItemInstanceId itemInstanceId,
+        out PhysicalItemRestoreCandidateStackSnapshot result)
+    {
+        if (restoreCandidateItems.IsCandidateAvailable)
+        {
+            return restoreCandidateItems.TryGetStack(itemInstanceId, out result);
+        }
+
+        if (!TryFindPhysicalItem(
+                itemInstanceId,
+                out WorldItemStackSnapshot live))
+        {
+            result = null;
+            return false;
+        }
+
+        result = new PhysicalItemRestoreCandidateStackSnapshot(
+            live.StackId,
+            itemInstanceId,
+            live.ItemId,
+            live.Quantity,
+            live.State,
+            live.Position,
+            live.DestinationId,
+            live.Forbidden);
+        return true;
+    }
+
 }
 
 public sealed class CharacterEnvironmentProtectionResolver :
     ICharacterEnvironmentProtectionResolver
 {
     private readonly IEnvironmentalWorkwearQuery workwear;
+    private readonly ICharacterApparelQuery apparel;
+    private readonly IWorldItemStackRuntime items;
+    private readonly IApparelDefinitionCatalog apparelDefinitions;
+    private readonly ITextileMaterialCatalog materials;
+    private readonly IApparelMaterialProjector projector;
+    private readonly IAnatomyAttachmentQuery anatomy;
+    private readonly Dictionary<string, WorldItemStackSnapshot> stackByInstance =
+        new(StringComparer.Ordinal);
+    private int cachedItemStackVersion = int.MinValue;
 
     public CharacterEnvironmentProtectionResolver(
-        IEnvironmentalWorkwearQuery workwear)
+        IEnvironmentalWorkwearQuery workwear,
+        ICharacterApparelQuery apparel,
+        IWorldItemStackRuntime items,
+        IApparelDefinitionCatalog apparelDefinitions,
+        ITextileMaterialCatalog materials,
+        IApparelMaterialProjector projector,
+        IAnatomyAttachmentQuery anatomy)
     {
         this.workwear = workwear
             ?? throw new ArgumentNullException(nameof(workwear));
+        this.apparel = apparel ?? throw new ArgumentNullException(nameof(apparel));
+        this.items = items ?? throw new ArgumentNullException(nameof(items));
+        this.apparelDefinitions = apparelDefinitions
+            ?? throw new ArgumentNullException(nameof(apparelDefinitions));
+        this.materials = materials
+            ?? throw new ArgumentNullException(nameof(materials));
+        this.projector = projector
+            ?? throw new ArgumentNullException(nameof(projector));
+        this.anatomy = anatomy ?? throw new ArgumentNullException(nameof(anatomy));
     }
 
     public ThermalProtectionProfile Resolve(CharacterActor actor)
@@ -494,6 +764,10 @@ public sealed class CharacterEnvironmentProtectionResolver :
         }
 
         CharacterId characterId = new(actor?.Identity?.PersistentId);
+        if (characterId.IsValid)
+        {
+            result.Add(ResolveMaterialProtection(characterId));
+        }
         if (characterId.IsValid
             && workwear.TryGetEquipped(
                 characterId,
@@ -503,5 +777,144 @@ public sealed class CharacterEnvironmentProtectionResolver :
         }
 
         return result;
+    }
+
+    private ThermalProtectionProfile ResolveMaterialProtection(
+        CharacterId characterId)
+    {
+        IReadOnlyList<EquippedApparelSnapshot> equipped =
+            apparel.GetEquipped(characterId);
+        if (equipped.Count == 0)
+        {
+            return ThermalProtectionProfile.None;
+        }
+
+        IReadOnlyDictionary<string, WorldItemStackSnapshot> physicalItems =
+            GetPhysicalItemsByInstance();
+
+        float totalWarmth = 0f;
+        float totalHeatResistance = 0f;
+        HashSet<ItemInstanceId> projectedInstances = new();
+        for (int index = 0; index < equipped.Count; index++)
+        {
+            EquippedApparelSnapshot entry = equipped[index];
+            if (!entry.CharacterId.Equals(characterId)
+                || !entry.ItemInstanceId.IsValid
+                || !projectedInstances.Add(entry.ItemInstanceId)
+                || !physicalItems.TryGetValue(
+                    entry.ItemInstanceId.Value,
+                    out WorldItemStackSnapshot stack)
+                || stack.Quantity != 1
+                || stack.State != WorldItemStackState.Carried
+                || !string.Equals(
+                    stack.DestinationId,
+                    CharacterApparelAggregate.EquippedDestinationPrefix
+                        + characterId.Value,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Equipped apparel '{entry.ItemInstanceId.Value}' has no exact physical ownership.");
+            }
+
+            if (!ApparelItemStateCodec.TryRead(
+                    stack.Components,
+                    out ApparelInstanceState state))
+            {
+                throw new InvalidOperationException(
+                    $"Equipped apparel '{entry.ItemInstanceId.Value}' has no authored apparel component.");
+            }
+            if (!apparelDefinitions.TryGetByItemId(
+                    stack.ItemId,
+                    out ApparelDefinitionSO definition)
+                || !string.Equals(
+                    definition.ApparelId,
+                    entry.ApparelDefinitionId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    definition.ApparelId,
+                    state.apparelDefinitionId,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Equipped apparel '{entry.ItemInstanceId.Value}' has inconsistent definition identity.");
+            }
+            if (!materials.TryGet(
+                    state.primaryMaterialId,
+                    out TextileMaterialDefinitionSO material))
+            {
+                throw new InvalidOperationException(
+                    $"Equipped apparel '{entry.ItemInstanceId.Value}' references missing material '{state.primaryMaterialId}'.");
+            }
+            if (!anatomy.CanEquip(
+                    characterId,
+                    definition,
+                    state,
+                    out ApparelFitAssessment fit,
+                    out _))
+            {
+                continue;
+            }
+
+            int apparelIndex = apparelDefinitions.GetIndex(definition.ApparelId);
+            int materialIndex = materials.GetIndex(material.MaterialId);
+            if (apparelIndex < 0 || materialIndex < 0)
+            {
+                throw new InvalidOperationException(
+                    $"Equipped apparel '{entry.ItemInstanceId.Value}' is absent from its material projection catalog.");
+            }
+            ApparelDerivedStats projected = projector.GetOrCreate(
+                new ApparelProjectionKey(
+                    apparelIndex,
+                    materialIndex,
+                    state.craftsmanshipQuality,
+                    ApparelMaterialProtectionRules.ResolveDurabilityBand(
+                        state.durability),
+                    TextileConditionRules.ResolveCondition(
+                        state.moisture,
+                        state.contamination),
+                    fit.UnusedOpenings,
+                    fit.AdjacentSize));
+            totalWarmth += projected.Warmth;
+            totalHeatResistance += projected.HeatResistance;
+        }
+
+        return ApparelMaterialProtectionRules.CreateThermalProfile(
+            totalWarmth,
+            totalHeatResistance);
+    }
+
+    private IReadOnlyDictionary<string, WorldItemStackSnapshot>
+        GetPhysicalItemsByInstance()
+    {
+        int itemStackVersion = items.ItemStackVersion;
+        if (cachedItemStackVersion == itemStackVersion)
+        {
+            return stackByInstance;
+        }
+
+        IReadOnlyList<WorldItemStackSnapshot> stacks = items.GetAllStacks();
+        Dictionary<string, WorldItemStackSnapshot> rebuilt =
+            new(StringComparer.Ordinal);
+        for (int index = 0; index < stacks.Count; index++)
+        {
+            WorldItemStackSnapshot stack = stacks[index];
+            if (stack == null || string.IsNullOrWhiteSpace(stack.ItemInstanceId))
+            {
+                continue;
+            }
+            if (!rebuilt.TryAdd(stack.ItemInstanceId, stack))
+            {
+                throw new InvalidOperationException(
+                    $"Duplicate physical item instance '{stack.ItemInstanceId}'.");
+            }
+        }
+
+        stackByInstance.Clear();
+        foreach (KeyValuePair<string, WorldItemStackSnapshot> pair in rebuilt)
+        {
+            stackByInstance.Add(pair.Key, pair.Value);
+        }
+        cachedItemStackVersion = itemStackVersion;
+        return stackByInstance;
     }
 }

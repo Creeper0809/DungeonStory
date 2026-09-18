@@ -78,6 +78,8 @@ public static class DungeonFacilityRegistration
             .As<IDungeonRestoreTransactionParticipant>();
         builder.RegisterEntryPoint<FacilityEvolutionPendingMaterialProjection>(
             Lifetime.Singleton);
+        builder.RegisterEntryPoint<FacilityFormulaEvolutionPresentationRuntime>(
+            Lifetime.Singleton);
         builder.RegisterEntryPoint<FacilityEvolutionActivationProjection>(
             Lifetime.Singleton);
         builder.Register<FacilityEvolutionModifierQuery>(Lifetime.Singleton)

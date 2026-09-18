@@ -527,6 +527,18 @@ MonoBehaviour:
     m_Key: EmergencyProcedureContinuing
     m_Metadata:
       m_Items: []
+  - m_Id: 1173704835
+    m_Key: AcuteBleeding
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704836
+    m_Key: AcuteInfection
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704837
+    m_Key: CriticalNonVitalNode
+    m_Metadata:
+      m_Items: []
   - m_Id: 1173704831
     m_Key: ProcedurePaused
     m_Metadata:

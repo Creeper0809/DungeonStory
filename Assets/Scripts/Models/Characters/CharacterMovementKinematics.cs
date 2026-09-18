@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public interface ICharacterMovementKinematicsActor
@@ -12,7 +13,16 @@ public static class CharacterMovementKinematics
         ICharacterMovementKinematicsActor actor,
         float fallback)
     {
-        return Mathf.Max(0.1f, actor != null ? actor.GetMoveSpeed() : fallback);
+        float speed = actor != null ? actor.GetMoveSpeed() : fallback;
+        if (float.IsNaN(speed) || float.IsInfinity(speed) || speed < 0f)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(speed),
+                speed,
+                "Character movement speed must be finite and non-negative.");
+        }
+
+        return speed;
     }
 
     public static void UpdateFacing(

@@ -659,6 +659,22 @@ public class UIBuildingInfo : SerializedMonoBehaviour
                     nameText?.font);
                 qualityButton.name = "BuildingConstructionQualityPipeline";
                 craftActionObjects.Add(qualityButton);
+                if (hasPipeline)
+                {
+                    GameObject estimate = CreateCraftStatus(actionsRoot,
+                        GameplayUiPresentationText.QualityEstimate(
+                            qualityQuery.CaptureQualityEstimate(pipeline.pipelineId)), nameText?.font);
+                    estimate.name = "BuildingConstructionQualityEstimate";
+                    TMP_Text estimateText = estimate.GetComponent<TMP_Text>();
+                    estimateText.enableAutoSizing = false;
+                    estimateText.fontSize = 14f;
+                    LayoutElement estimateLayout = estimate.GetComponent<LayoutElement>();
+                    estimateLayout.preferredHeight = Mathf.Max(90f,
+                        estimateText.GetPreferredValues(estimateText.text,
+                            estimateLayout.preferredWidth, float.PositiveInfinity).y + 12f);
+                    estimateLayout.minHeight = estimateLayout.preferredHeight;
+                    craftActionObjects.Add(estimate);
+                }
             }
         }
 

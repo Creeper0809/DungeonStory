@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "장신구, 독소와 관통 탄두의 재료이다. 베르사디온에서는 주인이 내놓은 송곳니만 밑동에 검은 실을 묶고, 그 실을 동의의 잔 기록과 대조한다.",
+  "in_game_description": "장신구, 독소와 관통 탄두의 재료이다. 베르사디온의 송곳니 병목에는 동의의 잔에서 떼어 낸 검은 실이 감겨 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

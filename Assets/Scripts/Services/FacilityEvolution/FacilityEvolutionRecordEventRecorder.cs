@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using UnityEngine;
 
 public interface IFacilityEvolutionRecordEventRecorder
@@ -110,6 +111,11 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
             1f,
             1f,
             visitor != null ? GetVisitorId(visitor) : string.Empty,
+            visitor != null ? GetVisitorId(visitor) : string.Empty,
+            visitor != null ? GetActorName(visitor) : string.Empty,
+            string.Empty,
+            string.Empty,
+            "시설 이용 완료",
             "service",
             "visit");
         MarkDynamicStateDirty();
@@ -143,6 +149,11 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
             Mathf.Max(1f, eventType.revenue * 0.02f),
             eventType.revenue,
             string.Empty,
+            GetVisitorId(eventType.customerActor),
+            GetActorName(eventType.customerActor),
+            string.Empty,
+            string.Empty,
+            "수익 " + eventType.revenue.ToString(CultureInfo.InvariantCulture),
             "service",
             "revenue");
         MarkDynamicStateDirty();
@@ -174,6 +185,12 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
             Mathf.Max(0.5f, eventType.amount * 0.5f),
             eventType.amount,
             string.Empty,
+            GetVisitorId(eventType.consumerActor),
+            GetActorName(eventType.consumerActor),
+            string.Empty,
+            string.Empty,
+            StockCategoryPersistenceId.ToId(eventType.category) + " 재고 "
+                + eventType.amount.ToString(CultureInfo.InvariantCulture) + "개 소비",
             "production",
             eventType.category.ToString());
         MarkDynamicStateDirty();
@@ -211,6 +228,14 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
             2f,
             1f,
             string.Empty,
+            GetVisitorId(eventType.actor),
+            GetActorName(eventType.actor),
+            string.Empty,
+            string.Empty,
+            string.IsNullOrWhiteSpace(eventType.detail)
+                ? eventType.kind + ", 손실 "
+                    + eventType.lossValue.ToString(CultureInfo.InvariantCulture)
+                : eventType.detail,
             "accident",
             "service");
         MarkDynamicStateDirty();
@@ -238,6 +263,14 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
                 1f,
                 1f,
                 string.Empty,
+                GetFacilityKey(facility).ToString(),
+                GetFacilityName(facility),
+                string.Empty,
+                string.Empty,
+                "재입고 요청 "
+                    + eventType.requestedAmount.ToString(CultureInfo.InvariantCulture)
+                    + ", 반영 "
+                    + eventType.restockedAmount.ToString(CultureInfo.InvariantCulture),
                 "accident",
                 "logistics");
             MarkDynamicStateDirty();
@@ -273,6 +306,11 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
             Mathf.Max(2f, report.TotalDamage * 0.5f),
             Mathf.Max(1f, report.TotalDamage),
             string.Empty,
+            GetFacilityKey(facility).ToString(),
+            GetFacilityName(facility),
+            report.TargetPersistentId,
+            report.TargetName,
+            report.FormatSummary(),
             "defense",
             "combat");
         MarkDynamicStateDirty();
@@ -297,6 +335,11 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
             1f,
             1f,
             string.Empty,
+            GetVisitorId(eventType.intruderActor),
+            GetActorName(eventType.intruderActor),
+            string.Empty,
+            string.Empty,
+            "침공 피해 사건 1건",
             "defense",
             "accident");
         MarkDynamicStateDirty();
@@ -323,6 +366,12 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
                     2f,
                     day.visits,
                     string.Empty,
+                    GetFacilityKey(day.facility).ToString(),
+                    GetFacilityName(day.facility),
+                    string.Empty,
+                    string.Empty,
+                    "방문 " + day.visits.ToString(CultureInfo.InvariantCulture)
+                        + "회, 사고 0건",
                     "service",
                     "clean");
             }
@@ -371,16 +420,44 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
         string eventId,
         float mastery,
         float amount,
-        string actorId,
+        string ledgerActorId,
+        string contextActorId,
+        string actorDisplayName,
+        string counterpartyId,
+        string counterpartyDisplayName,
+        string resultDetail,
         params string[] sourceTags)
     {
+        string facilityId = GetFacilityKey(facility).ToString();
+        string facilityName = GetFacilityName(facility);
+        string resolvedActorId = string.IsNullOrWhiteSpace(contextActorId)
+            ? facilityId
+            : contextActorId.Trim();
+        string resolvedActorName = string.IsNullOrWhiteSpace(actorDisplayName)
+            ? facilityName
+            : actorDisplayName.Trim();
         instanceEvolutionRuntime?.RecordUsage(
             facility,
             eventId,
             mastery,
             amount,
-            actorId,
-            sourceTags);
+            ledgerActorId?.Trim() ?? string.Empty,
+            sourceTags,
+            new GameplayNarrativeEventContext
+            {
+                chainId = facilityId,
+                locationId = facilityId,
+                locationDisplayName = facilityName,
+                actorId = resolvedActorId,
+                actorDisplayName = resolvedActorName,
+                counterpartyId = counterpartyId?.Trim() ?? string.Empty,
+                counterpartyDisplayName = counterpartyDisplayName?.Trim() ?? string.Empty,
+                usedObjectId = facilityId,
+                usedObjectDisplayName = facilityName,
+                resultDetail = string.IsNullOrWhiteSpace(resultDetail)
+                    ? eventId
+                    : resultDetail.Trim()
+            });
     }
 
     private static void IncrementMetric(FacilityEvolutionRecordComponent record, string key, float delta)
@@ -487,7 +564,12 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
 
     private static string GetActorName(CharacterActor actor)
     {
-        return actor != null && actor.Identity != null ? actor.Identity.DisplayName : "Unknown";
+        if (actor == null)
+            return string.Empty;
+        if (actor.Identity != null
+            && !string.IsNullOrWhiteSpace(actor.Identity.DisplayName))
+            return actor.Identity.DisplayName;
+        return actor.name ?? string.Empty;
     }
 
     private static string GetFacilityName(BuildableObject facility)

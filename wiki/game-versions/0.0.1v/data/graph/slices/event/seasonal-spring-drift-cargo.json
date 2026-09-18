@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "seasonal-spring-drift-cargo",
+    "spoiler_tier": "warning",
+    "title": "해빙 표류 화물"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "event/seasonal-spring-drift-cargo",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "material-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "목재",
+      "to": "item/material-lumber",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

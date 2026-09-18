@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "호화식과 발효 음료에 쓰는 농축액이다. 베르사디온의 밤포도 시럽은 피와 비슷한 색 때문에 병마개에 포도잎을 새기고, 동의의 잔에 올리는 혈액과 구분한다.",
+  "in_game_description": "호화식과 발효 음료에 쓰는 농축액이다. 베르사디온의 밤포도 시럽 병목에는 동의의 잔에서 떼어 낸 검은 실이 감겨 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

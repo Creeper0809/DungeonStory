@@ -19,6 +19,26 @@ public interface IWorldItemHaulPlanningService
         CharacterActor actor,
         out WorldItemHaulJob job,
         out string failureReason);
+    bool TryPreviewActiveEmergencySupportPlan(
+        CharacterActor actor,
+        out WorldItemHaulPlan plan,
+        out string failureReason);
+    bool TryReserveActiveEmergencySupportPlan(
+        CharacterActor actor,
+        out WorldItemHaulPlan plan,
+        out string failureReason);
+}
+
+public interface IActiveEmergencySupportHaulPlanRuntime
+{
+    bool TryPreviewActiveEmergencySupportHaulPlan(
+        CharacterActor actor,
+        out WorldItemHaulPlan plan,
+        out string failureReason);
+    bool TryReserveActiveEmergencySupportHaulPlan(
+        CharacterActor actor,
+        out WorldItemHaulPlan plan,
+        out string failureReason);
 }
 
 public enum WorldItemDeliveryReachabilityStatus
@@ -288,7 +308,25 @@ public sealed class WorldItemHaulPlanningService :
         out WorldItemHaulPlan plan,
         out string failureReason)
     {
-        return TryBuildBestPlan(actor, reserve: false, out plan, out failureReason);
+        return TryBuildBestPlan(
+            actor,
+            reserve: false,
+            activeEmergencySupportOnly: false,
+            out plan,
+            out failureReason);
+    }
+
+    public bool TryPreviewActiveEmergencySupportPlan(
+        CharacterActor actor,
+        out WorldItemHaulPlan plan,
+        out string failureReason)
+    {
+        return TryBuildBestPlan(
+            actor,
+            reserve: false,
+            activeEmergencySupportOnly: true,
+            out plan,
+            out failureReason);
     }
 
 #if UNITY_EDITOR
@@ -391,7 +429,25 @@ public sealed class WorldItemHaulPlanningService :
         out WorldItemHaulPlan plan,
         out string failureReason)
     {
-        return TryBuildBestPlan(actor, reserve: true, out plan, out failureReason);
+        return TryBuildBestPlan(
+            actor,
+            reserve: true,
+            activeEmergencySupportOnly: false,
+            out plan,
+            out failureReason);
+    }
+
+    public bool TryReserveActiveEmergencySupportPlan(
+        CharacterActor actor,
+        out WorldItemHaulPlan plan,
+        out string failureReason)
+    {
+        return TryBuildBestPlan(
+            actor,
+            reserve: true,
+            activeEmergencySupportOnly: true,
+            out plan,
+            out failureReason);
     }
 
     public bool TryReserveBestJob(
@@ -403,6 +459,7 @@ public sealed class WorldItemHaulPlanningService :
         if (!TryBuildBestPlan(
                 actor,
                 reserve: true,
+                activeEmergencySupportOnly: false,
                 out WorldItemHaulPlan plan,
                 out failureReason))
         {
@@ -429,6 +486,7 @@ public sealed class WorldItemHaulPlanningService :
     private bool TryBuildBestPlan(
         CharacterActor actor,
         bool reserve,
+        bool activeEmergencySupportOnly,
         out WorldItemHaulPlan plan,
         out string failureReason)
     {
@@ -459,6 +517,7 @@ public sealed class WorldItemHaulPlanningService :
             actor,
             inventory,
             actorId,
+            activeEmergencySupportOnly,
             out string priorityFailureReason);
         if (seed == null)
         {
@@ -975,6 +1034,7 @@ public sealed class WorldItemHaulPlanningService :
         CharacterActor actor,
         CharacterCarryInventory inventory,
         string actorId,
+        bool activeEmergencySupportOnly,
         out string priorityFailureReason)
     {
         priorityFailureReason = string.Empty;
@@ -1013,6 +1073,12 @@ public sealed class WorldItemHaulPlanningService :
                 continue;
             }
 
+            if (activeEmergencySupportOnly
+                && !IsActiveEmergencySupportCandidate(candidate))
+            {
+                continue;
+            }
+
             if (best == null
                 || candidate.PriorityRank > best.PriorityRank
                 || candidate.PriorityRank == best.PriorityRank
@@ -1023,6 +1089,19 @@ public sealed class WorldItemHaulPlanningService :
         }
 
         return best;
+    }
+
+    private bool IsActiveEmergencySupportCandidate(HaulCandidate candidate)
+    {
+        return candidate != null
+            && candidate.DestinationKind
+                == WorldItemHaulDestinationKind.FacilityBuffer
+            && destinationClaims.TryGetClaim(
+                candidate.DestinationId,
+                candidate.DropPosition,
+                out FacilityBufferDestinationClaim claim)
+            && EnvironmentalFireWaterDestinationIdentity
+                .IsExactEmergencySupportClaim(claim);
     }
 
     private List<HaulCandidate> SelectOpportunisticCandidates(

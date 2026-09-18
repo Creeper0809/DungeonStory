@@ -81,6 +81,20 @@ public static class LocalLlmRequestProfiles
         queueFullBehavior: LocalLlmQueueFullBehavior.Fail,
         logFailureWarnings: false,
         maxOutputTokens: 768);
+    public static readonly LocalLlmRequestProfile CharacterSkillModuleSelection = new LocalLlmRequestProfile(
+        "CharacterSkillModuleSelection",
+        40,
+        temperature: 0.35f,
+        queueFullBehavior: LocalLlmQueueFullBehavior.Fail,
+        logFailureWarnings: false,
+        maxOutputTokens: 768);
+    public static readonly LocalLlmRequestProfile CharacterSkillLegacyV2 = new LocalLlmRequestProfile(
+        "CharacterSkillLegacyV2",
+        40,
+        temperature: 0.35f,
+        queueFullBehavior: LocalLlmQueueFullBehavior.Fail,
+        logFailureWarnings: false,
+        maxOutputTokens: 768);
     public static readonly LocalLlmRequestProfile Persona = new LocalLlmRequestProfile("Persona", 30);
     public static readonly LocalLlmRequestProfile MacroGoal = new LocalLlmRequestProfile(
         "MacroGoal",
@@ -95,10 +109,63 @@ public static class LocalLlmRequestProfiles
         16,
         logFailureWarnings: false,
         maxOutputTokens: 768);
+    public static readonly LocalLlmRequestProfile FacilityEvolutionModuleSelection = new LocalLlmRequestProfile(
+        "FacilityEvolutionModuleSelection",
+        16,
+        temperature: 0.35f,
+        logFailureWarnings: false,
+        maxOutputTokens: 768);
+    public static readonly LocalLlmRequestProfile FacilityEvolutionLegacyV2 = new LocalLlmRequestProfile(
+        "FacilityEvolutionLegacyV2",
+        16,
+        logFailureWarnings: false,
+        maxOutputTokens: 768);
     public static readonly LocalLlmRequestProfile EvolutionHistory = new LocalLlmRequestProfile(
         "EvolutionHistory",
         17,
         temperature: 0.65f,
+        queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly,
+        logFailureWarnings: false,
+        maxOutputTokens: 384);
+    public static readonly LocalLlmRequestProfile EvolutionHistoryLegacyV2 = new LocalLlmRequestProfile(
+        "EvolutionHistoryLegacyV2",
+        17,
+        temperature: 0.65f,
+        queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly,
+        logFailureWarnings: false,
+        maxOutputTokens: 384);
+    public static readonly LocalLlmRequestProfile EquipmentChoiceLegacyV2 = new LocalLlmRequestProfile(
+        "EquipmentChoiceLegacyV2",
+        17,
+        temperature: 0f,
+        queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly,
+        logFailureWarnings: false,
+        maxOutputTokens: 32);
+    public static readonly LocalLlmRequestProfile EquipmentEvolutionModuleSelection = new LocalLlmRequestProfile(
+        "EquipmentEvolutionModuleSelection",
+        17,
+        temperature: 0.35f,
+        queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly,
+        logFailureWarnings: false,
+        maxOutputTokens: 512);
+    public static readonly LocalLlmRequestProfile AcquiredTrait = new LocalLlmRequestProfile(
+        "AcquiredTrait",
+        17,
+        temperature: 0.35f,
+        queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly,
+        logFailureWarnings: false,
+        maxOutputTokens: 384);
+    public static readonly LocalLlmRequestProfile AcquiredTraitModuleSelection = new LocalLlmRequestProfile(
+        "AcquiredTraitModuleSelection",
+        17,
+        temperature: 0.35f,
+        queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly,
+        logFailureWarnings: false,
+        maxOutputTokens: 512);
+    public static readonly LocalLlmRequestProfile AcquiredTraitLegacyV2 = new LocalLlmRequestProfile(
+        "AcquiredTraitLegacyV2",
+        17,
+        temperature: 0.35f,
         queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly,
         logFailureWarnings: false,
         maxOutputTokens: 384);
@@ -161,6 +228,14 @@ public interface ICorrelatedCharacterSkillLlmRuntime
     void CancelCharacterSkillRequest(string requestKey);
 }
 
+public interface ICharacterSkillModuleSelectionLlmRuntime
+{
+    bool GenerateCharacterSkillModuleSelectionAsync(
+        string requestKey,
+        string prompt,
+        Action<LocalLlmResult> callback);
+}
+
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public interface ICorrelatedEvolutionHistoryLlmRuntime
 {
@@ -169,7 +244,46 @@ public interface ICorrelatedEvolutionHistoryLlmRuntime
         string prompt,
         Action<LocalLlmResult> callback);
 
+    bool GenerateEvolutionHistoryLegacyV2Async(
+        string requestKey,
+        string prompt,
+        Action<LocalLlmResult> callback);
+
     void CancelEvolutionHistoryRequest(string requestKey);
+}
+
+public interface ICorrelatedEquipmentEvolutionModuleSelectionLlmRuntime
+{
+    bool GenerateEquipmentEvolutionModuleSelectionAsync(
+        string requestKey,
+        string prompt,
+        Action<LocalLlmResult> callback);
+}
+
+public interface ICorrelatedFacilityEvolutionModuleSelectionLlmRuntime
+{
+    bool GenerateFacilityEvolutionModuleSelectionAsync(
+        string requestKey,
+        string prompt,
+        Action<LocalLlmResult> callback);
+}
+
+public interface ICorrelatedAcquiredTraitLlmRuntime
+{
+    bool GenerateAcquiredTraitAsync(
+        string requestKey,
+        string prompt,
+        Action<LocalLlmResult> callback);
+
+    void CancelAcquiredTraitRequest(string requestKey);
+}
+
+public interface ICorrelatedAcquiredTraitModuleSelectionLlmRuntime
+{
+    bool GenerateAcquiredTraitModuleSelectionAsync(
+        string requestKey,
+        string prompt,
+        Action<LocalLlmResult> callback);
 }
 
 public interface IConstrainedEquipmentChoiceLlmRuntime
@@ -313,10 +427,17 @@ public sealed class LocalLlmRequestQueue :
     SerializedMonoBehaviour,
     ILocalLlmRuntime,
     ICorrelatedCharacterSkillLlmRuntime,
+    ICharacterSkillModuleSelectionLlmRuntime,
     ICorrelatedEvolutionHistoryLlmRuntime,
+    ICorrelatedEquipmentEvolutionModuleSelectionLlmRuntime,
+    ICorrelatedFacilityEvolutionModuleSelectionLlmRuntime,
+    ICorrelatedAcquiredTraitLlmRuntime,
+    ICorrelatedAcquiredTraitModuleSelectionLlmRuntime,
     IConstrainedEquipmentChoiceLlmRuntime,
     IMultiPerspectiveNarrativeLlmRuntime
 {
+    private const float AcquiredTraitTimeoutSeconds = 60f;
+
     [SerializeField] private string endpointUrl;
     [SerializeField] private string modelName = "DungeonStory-Qwen3-1.7B-Q4_K_M";
     [SerializeField, Min(1)] private int maxQueueSize = 64;
@@ -677,6 +798,20 @@ public sealed class LocalLlmRequestQueue :
             requestKey);
     }
 
+    public bool GenerateCharacterSkillModuleSelectionAsync(
+        string requestKey,
+        string prompt,
+        Action<LocalLlmResult> callback)
+    {
+        return Enqueue(
+            LocalLlmRequestProfiles.CharacterSkillModuleSelection,
+            prompt,
+            string.Empty,
+            characterSkillTimeoutSeconds,
+            callback,
+            requestKey);
+    }
+
     public void CancelCharacterSkillRequest(string requestKey)
     {
         CancelCorrelatedRequest(
@@ -691,6 +826,20 @@ public sealed class LocalLlmRequestQueue :
     {
         return Enqueue(
             LocalLlmRequestProfiles.EvolutionHistory,
+            prompt,
+            string.Empty,
+            facilityEvolutionTimeoutSeconds,
+            callback,
+            requestKey);
+    }
+
+    public bool GenerateEvolutionHistoryLegacyV2Async(
+        string requestKey,
+        string prompt,
+        Action<LocalLlmResult> callback)
+    {
+        return Enqueue(
+            LocalLlmRequestProfiles.EvolutionHistoryLegacyV2,
             prompt,
             string.Empty,
             facilityEvolutionTimeoutSeconds,
@@ -714,8 +863,8 @@ public sealed class LocalLlmRequestQueue :
         {
             callback?.Invoke(new LocalLlmChoiceResult(false, -1,
                 candidateCount < 2 || candidateCount > 3
-                    ? "Equipment choice requires two or three candidates."
-                    : canonicalError));
+                    ? "EquipmentChoice.CandidateCountInvalid"
+                    : "EquipmentChoice.PromptInvalid: " + canonicalError));
             return false;
         }
 
@@ -724,11 +873,11 @@ public sealed class LocalLlmRequestQueue :
             callback?.Invoke(new LocalLlmChoiceResult(
                 false,
                 -1,
-                "DungeonStory local inference host is unavailable."));
+                "EquipmentChoice.RuntimeUnavailable"));
             return false;
         }
 
-        LocalLlmRequestProfile profile = LocalLlmRequestProfiles.EvolutionHistory;
+        LocalLlmRequestProfile profile = LocalLlmRequestProfiles.EquipmentChoiceLegacyV2;
         float now = Now;
         NarrativeSchedulingMetadata scheduling = NarrativeSchedulingMetadata.CreateDefault(
             profile,
@@ -746,15 +895,21 @@ public sealed class LocalLlmRequestQueue :
             result =>
             {
                 int selected = -1;
+                string parseError = string.Empty;
                 bool valid = result.IsSuccess
                     && EquipmentChoiceResultParser.TryParse(
                         result.Content,
                         candidateCount,
-                        out selected);
+                        out selected,
+                        out parseError);
                 callback?.Invoke(new LocalLlmChoiceResult(
                     valid,
                     valid ? selected : -1,
-                    valid ? string.Empty : result.Error));
+                    valid
+                        ? string.Empty
+                        : !result.IsSuccess
+                            ? result.Error
+                            : parseError));
             },
             isEquipmentChoice: true,
             candidateCount: candidateCount));
@@ -766,6 +921,121 @@ public sealed class LocalLlmRequestQueue :
         CancelCorrelatedRequest(
             requestKey,
             "Evolution history request was cancelled.");
+    }
+
+    public bool GenerateEquipmentEvolutionModuleSelectionAsync(
+        string requestKey,
+        string prompt,
+        Action<LocalLlmResult> callback)
+    {
+        string canonicalKey = requestKey?.Trim() ?? string.Empty;
+        if (canonicalKey.Length == 0
+            || !string.Equals(requestKey, canonicalKey, StringComparison.Ordinal))
+            return false;
+        if (queue.Concat(runningRequests).Any(request => request != null
+                && string.Equals(request.CorrelationId, canonicalKey, StringComparison.Ordinal)))
+            return false;
+        return Enqueue(
+            LocalLlmRequestProfiles.EquipmentEvolutionModuleSelection,
+            prompt,
+            string.Empty,
+            AcquiredTraitTimeoutSeconds,
+            callback,
+            canonicalKey);
+    }
+
+    public bool GenerateFacilityEvolutionModuleSelectionAsync(
+        string requestKey,
+        string prompt,
+        Action<LocalLlmResult> callback)
+    {
+        string canonicalKey = requestKey?.Trim() ?? string.Empty;
+        if (canonicalKey.Length == 0
+            || !string.Equals(requestKey, canonicalKey, StringComparison.Ordinal))
+            return false;
+        if (queue.Concat(runningRequests).Any(request => request != null
+                && string.Equals(request.CorrelationId, canonicalKey, StringComparison.Ordinal)))
+            return false;
+        return Enqueue(
+            LocalLlmRequestProfiles.FacilityEvolutionModuleSelection,
+            prompt,
+            string.Empty,
+            facilityEvolutionTimeoutSeconds,
+            callback,
+            canonicalKey);
+    }
+
+    public bool GenerateAcquiredTraitAsync(
+        string requestKey,
+        string prompt,
+        Action<LocalLlmResult> callback)
+    {
+        string canonicalKey = requestKey?.Trim() ?? string.Empty;
+        if (canonicalKey.Length == 0
+            || !string.Equals(requestKey, canonicalKey, StringComparison.Ordinal))
+        {
+            InvokeCallbackSafely(callback, new LocalLlmResult(
+                LocalLlmRequestStatus.Failed,
+                string.Empty,
+                "AcquiredTrait request key is missing or non-canonical.",
+                string.Empty));
+            return false;
+        }
+        if (queue.Concat(runningRequests).Any(request => request != null
+                && string.Equals(
+                    request.CorrelationId,
+                    canonicalKey,
+                    StringComparison.Ordinal)))
+        {
+            lastError = "AcquiredTrait: Skipped - correlated request is already pending.";
+            return false;
+        }
+
+        return Enqueue(
+            LocalLlmRequestProfiles.AcquiredTrait,
+            prompt,
+            string.Empty,
+            AcquiredTraitTimeoutSeconds,
+            callback,
+            canonicalKey);
+    }
+
+    public void CancelAcquiredTraitRequest(string requestKey)
+    {
+        CancelCorrelatedRequest(
+            requestKey,
+            "Acquired-trait request was cancelled.");
+    }
+
+    public bool GenerateAcquiredTraitModuleSelectionAsync(
+        string requestKey,
+        string prompt,
+        Action<LocalLlmResult> callback)
+    {
+        string canonicalKey = requestKey?.Trim() ?? string.Empty;
+        if (canonicalKey.Length == 0
+            || !string.Equals(requestKey, canonicalKey, StringComparison.Ordinal))
+        {
+            InvokeCallbackSafely(callback, new LocalLlmResult(
+                LocalLlmRequestStatus.Failed,
+                string.Empty,
+                "AcquiredTraitModuleSelection request key is missing or non-canonical.",
+                string.Empty));
+            return false;
+        }
+        if (queue.Concat(runningRequests).Any(request => request != null
+                && string.Equals(request.CorrelationId, canonicalKey, StringComparison.Ordinal)))
+        {
+            lastError = "AcquiredTraitModuleSelection: Skipped - correlated request is already pending.";
+            return false;
+        }
+        return Enqueue(
+            LocalLlmRequestProfiles.AcquiredTraitModuleSelection,
+            prompt,
+            string.Empty,
+            AcquiredTraitTimeoutSeconds,
+            callback,
+            canonicalKey);
     }
 
     public bool GenerateMacroGoalAsync(string prompt, Action<LocalLlmResult> callback)
@@ -1069,6 +1339,32 @@ public sealed class LocalLlmRequestQueue :
                 }
 
                 structuredOutputCapability = StructuredOutputCapability.Supported;
+                if (NarrativeExactKeyContract.IsRegisteredProfile(request.Profile.Id))
+                {
+                    if (!NarrativeExactKeyContract.TryValidateProfileResponse(
+                            request.Profile.Id,
+                            content,
+                            out string exactJson,
+                            out string exactError))
+                    {
+                        if (attempt + 1 < maximumAttempts)
+                        {
+                            activePrompt = request.Prompt
+                                + "\n교정 요청: 이전 응답은 exact-key 계약 위반으로 거부되었다: "
+                                + exactError
+                                + " 스키마에 선언된 키만 가진 단일 JSON 객체로 다시 작성한다.";
+                            continue;
+                        }
+
+                        Complete(request, new LocalLlmResult(
+                            LocalLlmRequestStatus.Failed,
+                            string.Empty,
+                            "Exact-key contract reject: " + exactError,
+                            request.OriginalText));
+                        yield break;
+                    }
+                    content = exactJson;
+                }
                 NarrativeQualityResult quality = narrativeQualityGate.Evaluate(
                     request.Profile,
                     request.Prompt,
@@ -1139,6 +1435,12 @@ public sealed class LocalLlmRequestQueue :
             yield break;
         }
 
+        LlmStaticSchemaDefinition schema = LlmStaticSchemaCatalog.Require(
+            LocalLlmRequestProfiles.EquipmentChoiceLegacyV2.Id);
+        lastSchemaId = schema.ProfileId;
+        lastSchemaVersion = schema.Version;
+        lastSchemaHash = schema.Hash;
+
         using UnityWebRequest webRequest = structuredBackend.BuildChoiceRequest(
             endpointUrl,
             request.CorrelationId,
@@ -1159,7 +1461,7 @@ public sealed class LocalLlmRequestQueue :
             Complete(request, new LocalLlmResult(
                 LocalLlmRequestStatus.TimedOut,
                 string.Empty,
-                "Equipment choice timed out.",
+                "EquipmentChoice.TimedOut",
                 request.OriginalText));
             yield break;
         }
@@ -1183,7 +1485,7 @@ public sealed class LocalLlmRequestQueue :
 
         Complete(request, new LocalLlmResult(
             LocalLlmRequestStatus.Succeeded,
-            selectedIndex.ToString(),
+            "{\"selectedIndex\":" + selectedIndex + "}",
             string.Empty,
             request.OriginalText));
     }

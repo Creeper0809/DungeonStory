@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "샹들리에에서 빛을 내 통로와 작업 공간을 밝히도록 만든 설치 부품이며, 하르나크의 시설과도 체결 규격이 맞는다.",
+  "in_game_description": "샹들리에에서 빛을 내 통로와 작업 공간을 밝히도록 만든 설치 부품이다. 하르나크의 샹들리에는 밤에 일하는 뱀파이어 쪽은 어둡고 균사 주민 쪽은 촉촉하게 맞춰져 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

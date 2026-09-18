@@ -126,6 +126,8 @@ public class BuildableObject : MonoBehaviour,
         Occupancy.ActiveVisitReservationCount;
     public IReadOnlyList<CharacterId> CaptureVisitReservationIdsForDiagnostics() =>
         Occupancy.CaptureVisitReservationIdsForDiagnostics();
+    public bool IsActiveUser(CharacterId characterId) =>
+        Occupancy.IsActiveUser(characterId);
     public IBuildingCharacterPort WorkerReservation =>
         this is IParallelWorkerReservationFacility parallel
             ? parallel.PrimaryWorkerReservation
@@ -840,6 +842,28 @@ public class BuildableObject : MonoBehaviour,
 
     public void SetCleanliness(float value) =>
         StateAndCapabilities.SetCleanliness(FacilityState, value);
+
+    public bool HasFacilityFuelSupply =>
+        FacilityState.remainingFuelGameSeconds > 0f;
+
+    internal void ReplaceFacilityFuelState(
+        float remainingFuelGameSeconds,
+        int nextFuelOperationSequence,
+        FacilityFuelCommitState pendingFuel)
+    {
+        FacilityRuntimeState candidate = StateAndCapabilities.ReplaceFuelState(
+            FacilityState,
+            remainingFuelGameSeconds,
+            nextFuelOperationSequence,
+            pendingFuel);
+        facilityState = candidate;
+        MarkFacilityDynamicStateDirty();
+    }
+
+    internal float ConsumeFacilityFuelGameSeconds(float requestedSeconds) =>
+        StateAndCapabilities.ConsumeFuelGameSeconds(
+            FacilityState,
+            requestedSeconds);
 
     public IReadOnlyList<IBuildingStateModule> GetStateModules() =>
         StateAndCapabilities.GetStateModules();

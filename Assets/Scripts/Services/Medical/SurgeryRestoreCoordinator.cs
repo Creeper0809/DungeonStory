@@ -74,6 +74,7 @@ public sealed class SurgeryRestoreCoordinator :
     {
         SurgeryAggregateState state = PrepareLocalState(saveData);
         ValidatePreservationPhysicalJoin(state, physicalCandidates);
+        ValidateManualDiscardPhysicalJoin(state, physicalCandidates);
         ValidateMaterialTerminalCustodyJoin(
             state,
             materialTerminalCandidates);
@@ -142,6 +143,66 @@ public sealed class SurgeryRestoreCoordinator :
             if (receipt?.OperationId == null || !receipt.OperationId.StartsWith(prefix, StringComparison.Ordinal)) continue;
             if (!owners.ContainsKey(receipt.OperationId))
                 throw new InvalidOperationException($"Incoming organ preservation Sink '{receipt.OperationId}' has no surgical part owner.");
+        }
+    }
+
+    public static void ValidateManualDiscardPhysicalJoin(
+        SurgeryAggregateState state,
+        IPhysicalItemRestoreCandidateQuery query)
+    {
+        if (state == null || query == null || !query.IsCandidateAvailable)
+        {
+            throw new InvalidOperationException(
+                "Surgery restore requires the incoming physical candidate.");
+        }
+        Dictionary<string, SurgicalPartInstance> owners = state.Parts
+            .Where(part => part != null
+                && !string.IsNullOrEmpty(part.discardOperationId))
+            .ToDictionary(
+                part => part.discardOperationId,
+                StringComparer.Ordinal);
+        foreach (KeyValuePair<string, SurgicalPartInstance> pair in owners)
+        {
+            SurgicalPartInstance part = pair.Value;
+            if (!query.TryGetPendingBatchDisposition(
+                    pair.Key,
+                    out PhysicalItemRestoreCandidateDispositionSnapshot receipt)
+                || receipt.Kind != PhysicalItemDispositionKind.Sink
+                || !string.Equals(
+                    receipt.ReasonCode,
+                    SurgicalPartDiscardIdentity.ReasonCode,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    receipt.CommitId,
+                    part.discardCommitId,
+                    StringComparison.Ordinal)
+                || receipt.Quantity != 1
+                || receipt.InputMassGrams != part.discardInputMassGrams
+                || receipt.SourceStackIds.Count != 1
+                || !string.Equals(
+                    receipt.SourceStackIds[0],
+                    part.discardSourceStackId,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Manual surgical-part discard '{pair.Key}' has no exact incoming physical Sink receipt.");
+            }
+        }
+        foreach (PhysicalItemRestoreCandidateDispositionSnapshot receipt in
+                 query.PendingBatchDispositions)
+        {
+            if (receipt?.OperationId == null
+                || !receipt.OperationId.StartsWith(
+                    SurgicalPartDiscardIdentity.OperationPrefix,
+                    StringComparison.Ordinal))
+            {
+                continue;
+            }
+            if (!owners.ContainsKey(receipt.OperationId))
+            {
+                throw new InvalidOperationException(
+                    $"Incoming manual surgical-part discard Sink '{receipt.OperationId}' has no medical owner.");
+            }
         }
     }
 
@@ -216,10 +277,19 @@ public sealed class SurgeryRestoreCoordinator :
     private void ReconcilePartInstallationDispositions(
         SurgeryAggregateState candidate)
     {
+        HashSet<string> replacementIncomingPartIds = candidate.Orders
+            .Where(order => order?.IsActive == true
+                && (order.replacementPhase is
+                    SurgicalPartReplacementPhase.BodyCommitted
+                    or SurgicalPartReplacementPhase.OutputPublished))
+            .Select(order => order.replacementIncomingPartId)
+            .ToHashSet(StringComparer.Ordinal);
         foreach (SurgicalPartInstance part in candidate.Parts
                      .Where(value => value != null
                          && !string.IsNullOrEmpty(
-                             value.installationCommitId)))
+                             value.installationCommitId)
+                         && !replacementIncomingPartIds.Contains(
+                             value.partInstanceId)))
         {
             if (!SurgicalPartInstallationOutbox.TryFinalizePending(
                     part,
@@ -259,7 +329,8 @@ public sealed class SurgeryRestoreCoordinator :
 
         Dictionary<string, Vector2Int> positions = new(StringComparer.Ordinal);
         foreach (SurgeryOrder order in candidate.Orders
-                     .Where(order => order?.IsActive == true))
+                     .Where(order => order?.IsActive == true
+                         && order.OwnsMaterialAuthority))
         {
             Vector2Int position;
             if (order.state == SurgeryOrderState.TerminalDraining)
@@ -389,6 +460,7 @@ public sealed class SurgeryRestoreCoordinator :
         // first boundary where a persisted clinical order can lawfully wake a
         // worker. The transient doctor reservation is cleared at publication;
         // preferredDoctorId remains the authored scheduling hint.
+        projection.ReapplyCurrentPatientHolds();
         if (stateStore.ActiveOrders.Count > 0)
         {
             resources.Workforce.RequestOneWorkerToReplanFor(
@@ -523,7 +595,7 @@ public sealed class SurgeryRestoreCoordinator :
             {
                 SurgicalFacilitySnapshot snapshot = content.Facilities.Evaluate(
                     facility,
-                    procedure.RequiredFacilityTags);
+                    procedure);
                 if (!snapshot.IsAvailable)
                 {
                     report.AddError(
@@ -660,7 +732,8 @@ public sealed class SurgeryRestoreCoordinator :
         {
             if (!string.IsNullOrEmpty(part.worldStackId)
                 && !stacks.ContainsKey(part.worldStackId)
-                && string.IsNullOrEmpty(part.installationCommitId))
+                && string.IsNullOrEmpty(part.installationCommitId)
+                && string.IsNullOrEmpty(part.discardOperationId))
             {
                 report.AddError(
                     $"Surgical part '{part.partInstanceId}' references missing stack '{part.worldStackId}'.");
@@ -758,6 +831,7 @@ internal sealed class SurgeryRestoreProjection
 {
     private readonly ICharacterWorldQuery characters;
     private readonly ISurgicalPatientTransportRuntime patientTransport;
+    private readonly ICharacterBodyHealthQuery bodyHealth;
     private readonly SurgeryAggregateStateStore stateStore;
 
     internal SurgeryRestoreProjection(
@@ -766,7 +840,8 @@ internal sealed class SurgeryRestoreProjection
         : this(
             (world ?? throw new ArgumentNullException(nameof(world))).Characters,
             world.PatientTransport,
-            stateStore)
+            stateStore,
+            world.BodyHealthQuery)
     {
     }
 
@@ -774,11 +849,21 @@ internal sealed class SurgeryRestoreProjection
         ICharacterWorldQuery characters,
         ISurgicalPatientTransportRuntime patientTransport,
         SurgeryAggregateStateStore stateStore)
+        : this(characters, patientTransport, stateStore, bodyHealth: null)
+    {
+    }
+
+    private SurgeryRestoreProjection(
+        ICharacterWorldQuery characters,
+        ISurgicalPatientTransportRuntime patientTransport,
+        SurgeryAggregateStateStore stateStore,
+        ICharacterBodyHealthQuery bodyHealth)
     {
         this.characters = characters
             ?? throw new ArgumentNullException(nameof(characters));
         this.patientTransport = patientTransport
             ?? throw new ArgumentNullException(nameof(patientTransport));
+        this.bodyHealth = bodyHealth;
         this.stateStore = stateStore
             ?? throw new ArgumentNullException(nameof(stateStore));
     }
@@ -850,11 +935,9 @@ internal sealed class SurgeryRestoreProjection
             return;
         }
 
-        HashSet<string> newlyAdmittedCharacters = new(
+        HashSet<string> newlyHeldCharacters = new(
             publication.CandidateOrders
-                .Where(order => order?.IsActive == true
-                    && order.patientAdmitted
-                    && order.subject?.kind == SurgicalSubjectKind.Character)
+                .Where(RequiresCharacterPatientHold)
                 .Select(order => order.subject.subjectId),
             StringComparer.Ordinal);
 
@@ -864,7 +947,7 @@ internal sealed class SurgeryRestoreProjection
             TryCompleteCommand(
                 () => patientTransport.CancelTransport(oldOrder));
             if (oldOrder.subject?.kind != SurgicalSubjectKind.Character
-                || newlyAdmittedCharacters.Contains(oldOrder.subject.subjectId))
+                || newlyHeldCharacters.Contains(oldOrder.subject.subjectId))
             {
                 continue;
             }
@@ -887,16 +970,9 @@ internal sealed class SurgeryRestoreProjection
         foreach (SurgeryOrder order in publication.CandidateOrders.Where(
                      order => order?.IsActive == true))
         {
-            if (order.subject?.kind == SurgicalSubjectKind.Character
-                && order.patientAdmitted)
+            if (RequiresCharacterPatientHold(order))
             {
-                CharacterActor patient = SurgicalSubjectResolver.FindCharacter(
-                    characters,
-                    order.subject.subjectId);
-                patient?.SetAiPaused(true);
-                patient?.Brain?.SetActionPhase(
-                    order.statusData.code.ToString(),
-                    null);
+                ApplyCharacterPatientHold(order);
             }
             else if (order.subject?.kind == SurgicalSubjectKind.Wildlife
                 && order.patientReturnRequested)
@@ -905,6 +981,51 @@ internal sealed class SurgeryRestoreProjection
                     () => patientTransport.RequestWildlifeReturn(order));
             }
         }
+    }
+
+    internal void ReapplyCurrentPatientHolds()
+    {
+        foreach (SurgeryOrder order in stateStore.ActiveOrders.Where(
+                     RequiresCharacterPatientHold))
+        {
+            ApplyCharacterPatientHold(order);
+        }
+    }
+
+    private void ApplyCharacterPatientHold(SurgeryOrder order)
+    {
+        CharacterActor patient = SurgicalSubjectResolver.FindCharacter(
+            characters,
+            order.subject.subjectId);
+        patient?.SetAiPaused(true);
+        patient?.Brain?.SetActionPhase(
+            order.statusData.code.ToString(),
+            null);
+    }
+
+    private bool RequiresCharacterPatientHold(SurgeryOrder order)
+    {
+        if (order?.IsActive != true
+            || order.subject?.kind != SurgicalSubjectKind.Character)
+        {
+            return false;
+        }
+
+        if (order.patientAdmitted)
+        {
+            return true;
+        }
+
+        if (!order.OwnsMaterialAuthority || bodyHealth == null)
+        {
+            return false;
+        }
+
+        CharacterActor patient = SurgicalSubjectResolver.FindCharacter(
+            characters,
+            order.subject.subjectId);
+        return patient != null
+            && !bodyHealth.GetSnapshot(patient).Downed;
     }
 
     private static void TryCompleteCommand(Action command)

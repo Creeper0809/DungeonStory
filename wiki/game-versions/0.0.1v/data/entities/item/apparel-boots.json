@@ -10,12 +10,12 @@
     },
     {
       "label": "기준 가격",
-      "value": "19"
+      "value": "39"
     }
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "진흙과 거친 바닥을 밟을 때 발목까지 감싸는 장화다. 하르나크에서 만든 장화는 발끝과 발목 둘레를 덧대기 쉽도록 여유 천을 남긴다.",
+  "in_game_description": "진흙과 거친 바닥을 밟을 때 발목까지 감싸는 장화다. 하르나크 장터의 중고 장화 안쪽에는 이전 주인의 체형과 다음 수선 자리가 작은 바늘땀으로 남아 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

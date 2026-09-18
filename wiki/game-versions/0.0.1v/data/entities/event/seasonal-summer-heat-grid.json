@@ -20,6 +20,6 @@
   "schema_version": 1,
   "slug": "seasonal-summer-heat-grid",
   "spoiler_tier": "warning",
-  "summary": "냉각과 의료 시설의 동시 가동이 전력망을 압박한다.",
+  "summary": "사건 동안 실제 전력망의 발전원과 축전지 방전 가용 공급량이 20% 줄어든다. 배선 용량과 저장 전력은 손상되지 않는다.",
   "title": "폭염 전력부하"
 }

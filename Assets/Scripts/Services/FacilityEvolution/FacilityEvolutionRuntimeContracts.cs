@@ -10,7 +10,8 @@ public interface IFacilityEvolutionRuntime
         float mastery,
         float amount = 1f,
         string actorId = "",
-        IEnumerable<string> sourceTags = null);
+        IEnumerable<string> sourceTags = null,
+        GameplayNarrativeEventContext narrativeContext = null);
     IReadOnlyList<FacilityGenerationCandidate> GetGenerationCandidates(
         BuildableObject facility);
     bool TryQueueCandidate(
@@ -105,5 +106,4 @@ public static class FacilityEvolutionWorkUtility
         return component != null ? component.InstanceEvolution : null;
     }
 }
-
 

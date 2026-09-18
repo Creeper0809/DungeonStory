@@ -80,7 +80,7 @@ internal sealed class CaptivityStateRuntime
 
         state.status = CaptivityStatus.Dead;
         state.lastResult = "수용 중 사망";
-        interactions.ReleaseMaterials(state);
+        interactions.HandleSubjectDeath(state);
         doorSubjects.SetCaptive(state.captiveId, false);
         escortRestore.RestoreCaptiveParent(state.captiveId);
     }
@@ -105,7 +105,6 @@ internal sealed class CaptivityStateRuntime
             capturePosition = actor.GetNowXY(),
             policyId = defaultPolicy.policyId,
             laborPermissions = defaultPolicy.allowedLabor,
-            health = EstimateHealth(actor),
             capturedAbsoluteDay = CurrentAbsoluteDay,
             lastResult = "포획 가능"
         };
@@ -133,19 +132,6 @@ internal sealed class CaptivityStateRuntime
             && !actor.IsDead
             && actor.characterType == CharacterType.Intruder
             && actor.CurrentLifecycleState == CharacterLifecycleState.Downed;
-    }
-
-    private static float EstimateHealth(CharacterActor actor)
-    {
-        if (actor?.Stats == null)
-        {
-            return 0f;
-        }
-
-        return Mathf.Clamp(
-            actor.Stats.CurrentHealth / Mathf.Max(1f, actor.Stats.MaxHealth) * 100f,
-            0f,
-            100f);
     }
 
     private int CurrentAbsoluteDay => Mathf.Max(

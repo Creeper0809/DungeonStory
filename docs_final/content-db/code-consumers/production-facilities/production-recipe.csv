@@ -2,7 +2,7 @@
 ProductionRecipeSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/EmptyResourceEconomyContentCatalog.cs
 ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionAssemblyBridge.cs
 ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionBillRuntime.cs
-ProductionRecipeSO,content-type,,type-reference,models:economy,persistence,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionBillSnapshotProjector.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,persistence,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionBillSnapshotProjector.cs
 ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,persistence,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionBillStateCodec.cs
 ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionDistributionRuntime.cs
 ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionMassExplanationAuthoring.cs
@@ -10,6 +10,7 @@ ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:e
 ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionOutputExecutionService.cs
 ProductionRecipeSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionOutputPlanningService.cs
 ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionPreparedOutputExecutionPort.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionQualityTargetRules.cs
 ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionRecipeSemanticDigest.cs
 ProductionRecipeSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionRuinedBatchExecutionPort.cs
 ProductionRecipeSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ResourceEconomyModels.cs

@@ -24,6 +24,134 @@ public enum CharacterAiPreferredActionFailureSource
     BehaviorTaskActionEvaluation = 4
 }
 
+public enum CharacterOperationBlockAxis
+{
+    Unknown = 0,
+    Power,
+    Water,
+    Fuel,
+    Cleanliness,
+    Environment,
+    Tool,
+    Access,
+    Identity,
+    Risk,
+    Materials,
+    OutputSpace,
+    Facility
+}
+
+/// <summary>
+/// Read-only projection of an execution result already observed by the action
+/// owner. It is deliberately not a command/check API: UI consumers may render
+/// it without evaluating an action, reserving anything, or requesting a path.
+/// </summary>
+public readonly struct CharacterOperationBlockSnapshot
+{
+    public CharacterOperationBlockSnapshot(
+        string actionStableId,
+        string actionLabel,
+        string targetStableId,
+        string targetLabel,
+        long actionEpoch,
+        AIActionFailure failure,
+        DomainFailure domainFailure,
+        CharacterOperationBlockAxis axis,
+        CharacterAiRetryKind retryKind,
+        bool isCurrent,
+        bool hasKnownExpiry,
+        float expiresAt,
+        float observedAt = 0f,
+        bool isCurrentnessConfirmed = true)
+    {
+        ActionStableId = actionStableId ?? string.Empty;
+        ActionLabel = actionLabel ?? string.Empty;
+        TargetStableId = targetStableId ?? string.Empty;
+        TargetLabel = targetLabel ?? string.Empty;
+        ActionEpoch = actionEpoch;
+        Failure = failure;
+        DomainFailure = domainFailure;
+        Axis = axis;
+        RetryKind = retryKind;
+        IsCurrent = isCurrent;
+        HasKnownExpiry = hasKnownExpiry;
+        ExpiresAt = expiresAt;
+        ObservedAt = observedAt;
+        IsCurrentnessConfirmed = isCurrentnessConfirmed;
+    }
+
+    public string ActionStableId { get; }
+    public string ActionLabel { get; }
+    public string TargetStableId { get; }
+    public string TargetLabel { get; }
+    public long ActionEpoch { get; }
+    public AIActionFailure Failure { get; }
+    public DomainFailure DomainFailure { get; }
+    public CharacterOperationBlockAxis Axis { get; }
+    public CharacterAiRetryKind RetryKind { get; }
+    public bool IsCurrent { get; }
+    public bool HasKnownExpiry { get; }
+    public float ExpiresAt { get; }
+    public float ObservedAt { get; }
+    public bool IsCurrentnessConfirmed { get; }
+    public bool HasTarget => !string.IsNullOrWhiteSpace(TargetStableId);
+    public bool HasObservation =>
+        ActionEpoch > 0L && Failure.HasFailure && HasTarget;
+    public bool HasCurrentBlock =>
+        IsCurrent && IsCurrentnessConfirmed && HasObservation;
+
+    internal CharacterOperationBlockSnapshot WithCooldownExpiry(float expiresAt) =>
+        new CharacterOperationBlockSnapshot(
+            ActionStableId,
+            ActionLabel,
+            TargetStableId,
+            TargetLabel,
+            ActionEpoch,
+            Failure,
+            DomainFailure,
+            Axis,
+            RetryKind,
+            IsCurrent,
+            hasKnownExpiry: true,
+            expiresAt: expiresAt,
+            observedAt: ObservedAt,
+            isCurrentnessConfirmed: IsCurrentnessConfirmed);
+
+    internal CharacterOperationBlockSnapshot WithCurrentnessUnconfirmed() =>
+        new CharacterOperationBlockSnapshot(
+            ActionStableId,
+            ActionLabel,
+            TargetStableId,
+            TargetLabel,
+            ActionEpoch,
+            Failure,
+            DomainFailure,
+            Axis,
+            RetryKind,
+            IsCurrent,
+            HasKnownExpiry,
+            ExpiresAt,
+            ObservedAt,
+            isCurrentnessConfirmed: false);
+
+    internal CharacterOperationBlockSnapshot AsHistory() =>
+        new CharacterOperationBlockSnapshot(
+            ActionStableId,
+            ActionLabel,
+            TargetStableId,
+            TargetLabel,
+            ActionEpoch,
+            Failure,
+            DomainFailure,
+            Axis,
+            RetryKind,
+            isCurrent: false,
+            hasKnownExpiry: false,
+            expiresAt: 0f,
+            observedAt: ObservedAt,
+            isCurrentnessConfirmed: false);
+}
+
 public class AIBrain : CharacterAbility
 {
     private const int RuntimeTraceCapacity = 32;
@@ -110,6 +238,13 @@ public class AIBrain : CharacterAbility
     private AIBrainPathSearchSession pathSearchSession;
     private FacilityScoringContext facilityScoringContext;
     private AIActionFailure lastActionFailure = AIActionFailure.None;
+    private CharacterOperationBlockSnapshot currentOperationBlock;
+    private CharacterOperationBlockSnapshot recentOperationFailure;
+    private AIActionSet currentOperationBlockActionSet;
+    private BuildableObject currentOperationBlockTarget;
+    private bool currentOperationBlockUsesCooldown;
+    private Func<int> currentOperationBlockSourceRevisionReader;
+    private int currentOperationBlockSourceRevision;
     private string lastExecutionFailureDetail = string.Empty;
     private AIActionSet lastFailedActionSet;
     private string currentActionDebugLabel = "\uB300\uAE30";
@@ -505,6 +640,7 @@ public class AIBrain : CharacterAbility
     public override void Initializtion(CharacterSO data)
     {
         base.Initializtion(data);
+        ClearAllOperationDiagnostics();
         if (data != null && data.role == CharacterRole.Owner)
         {
             UseOwnerWorkActions();
@@ -984,6 +1120,7 @@ public class AIBrain : CharacterAbility
                 lastActionFailure = AIActionFailure.None;
                 lastFailedActionSet = null;
                 noActionLogCooldownUntil = 0f;
+                ClearCurrentOperationBlock();
             }
 
             if (protectedRunningActionReplanCount <= 4
@@ -1035,6 +1172,7 @@ public class AIBrain : CharacterAbility
             lastActionFailure = AIActionFailure.None;
             lastFailedActionSet = null;
             noActionLogCooldownUntil = 0f;
+            ClearCurrentOperationBlock();
         }
 
         MarkDebugDirty();
@@ -1312,6 +1450,7 @@ public class AIBrain : CharacterAbility
         AIActionSet actionSet,
         float persistenceSeconds)
     {
+        ClearCurrentOperationBlock();
         ClearPreferredWorkType();
         preferredActionDeferredPending = false;
         lastPreferredActionDeferredFailure = AIActionFailure.None;
@@ -1340,6 +1479,7 @@ public class AIBrain : CharacterAbility
 
     public void BeginManualMoveCommand(Vector2Int destination)
     {
+        ClearCurrentOperationBlock();
         // A direct player order is the top-level command authority.  Retire the
         // currently owned autonomous survival intent before entering manual mode;
         // its coroutine may still unwind, but its lease epoch can no longer mutate
@@ -1384,6 +1524,7 @@ public class AIBrain : CharacterAbility
 
     public void ClearSelectedActionForIdle(string idleLabel)
     {
+        ClearCurrentOperationBlock();
         bestAction?.ReleaseReservation(actor);
         queuedAction?.ReleaseReservation(actor);
         bestAction = null;
@@ -1447,6 +1588,7 @@ public class AIBrain : CharacterAbility
             preempting = true;
         }
 
+        ClearCurrentOperationBlock();
         NotifyActionTerminal(CharacterAiActionTerminalKind.Cancelled);
         bestAction?.actionset?.OnStop(
             actor,
@@ -1608,6 +1750,10 @@ public class AIBrain : CharacterAbility
         CharacterAiActionTerminalKind terminalKind =
             CharacterAiActionTerminalKind.Completed)
     {
+        if (terminalKind != CharacterAiActionTerminalKind.Failed)
+        {
+            ClearCurrentOperationBlock();
+        }
         bool shouldClearFailures =
             clearFailures || externalReplanClearFailures;
         externallyDrivenActionActive = false;
@@ -1749,6 +1895,11 @@ public class AIBrain : CharacterAbility
                 break;
         }
 
+        if (terminalKind != CharacterAiActionTerminalKind.Failed)
+        {
+            ClearCurrentOperationBlock();
+        }
+
         currentRuntimePhase = CharacterAiRuntimePhase.Terminal;
         AdvanceRuntimeProgress();
         RecordRuntimeTrace(
@@ -1784,6 +1935,7 @@ public class AIBrain : CharacterAbility
 
     private void ClearFailureForCompletedAction(AIAction completedAction)
     {
+        ClearCurrentOperationBlockFor(completedAction);
         AIActionSet actionSet = completedAction?.actionset;
         if (actionSet == null)
         {
@@ -1879,6 +2031,7 @@ public class AIBrain : CharacterAbility
 
         expectedAction.ReleaseReservation(actor);
         NotifyActionTerminal(CharacterAiActionTerminalKind.Cancelled);
+        RecordExecutorDeferredObservation(expectedAction, reason);
         actor?.GetAbility<AbilityMove>()?.CancelActiveMovement();
         actor?.Blackboard?.ClearCommitment(
             CharacterAiInterruptReason.ManualReplan,
@@ -1956,6 +2109,7 @@ public class AIBrain : CharacterAbility
 
     public void StopAllAiForLifecycleTransition(string reason)
     {
+        ClearAllOperationDiagnostics();
         if (externallyDrivenActionActive)
         {
             // External actions own a terminal epoch independently from the
@@ -2033,6 +2187,16 @@ public class AIBrain : CharacterAbility
 
     public void SetActionPhase(string phase, BuildableObject destination = null, string detail = null)
     {
+        if (destination != null
+            && destination.PersistentInstanceId.IsValid
+            && currentOperationBlock.HasCurrentBlock
+            && !string.Equals(
+                currentOperationBlock.TargetStableId,
+                destination.PersistentInstanceId.Value,
+                StringComparison.Ordinal))
+        {
+            ClearCurrentOperationBlock();
+        }
         string nextPhase = phase ?? string.Empty;
         string nextDestination = destination != null
             ? AIBrainDebugFormatter.GetDestinationLabel(destination)
@@ -2165,6 +2329,7 @@ public class AIBrain : CharacterAbility
             return false;
         }
 
+        ClearCurrentOperationBlock();
         interruptedReplanCount++;
         lastInterruptedReplanDetail =
             $"caller={caller}; reason={reason ?? string.Empty}; "
@@ -2225,6 +2390,7 @@ public class AIBrain : CharacterAbility
 
         AIAction actionToSuspend = bestAction;
         AIAction queuedActionToClear = queuedAction;
+        ClearCurrentOperationBlock();
         NotifyActionTerminal(CharacterAiActionTerminalKind.Cancelled);
         actionToSuspend.ReleaseReservation(actor);
         queuedActionToClear?.ReleaseReservation(actor);
@@ -2253,6 +2419,7 @@ public class AIBrain : CharacterAbility
 
     private void SetSelectedAction(AIAction action, string phase)
     {
+        ClearCurrentOperationBlock();
         if (actionEpochLive)
         {
             pendingLiveEpochReplacementDetail =
@@ -2410,7 +2577,13 @@ public class AIBrain : CharacterAbility
             GetSelectionScore, out interruptAction, out interruptReason);
     }
 
-    private void RecordActionFailure(AIActionSet actionSet, AIActionFailure failure)
+    private void RecordActionFailure(
+        AIActionSet actionSet,
+        AIActionFailure failure,
+        DomainFailure domainFailure = default,
+        CharacterOperationBlockAxis axis = CharacterOperationBlockAxis.Unknown,
+        Func<int> sourceRevisionReader = null,
+        int sourceRevision = 0)
     {
         if (actionSet == null) return;
 
@@ -2428,6 +2601,23 @@ public class AIBrain : CharacterAbility
         }
         lastFailedActionSet = actionSet;
         lastActionFailure = failure.HasFailure ? failure : AIActionFailure.Create(AIActionFailureKind.Unknown);
+        if (actionEpochLive
+            && bestAction?.actionset == actionSet)
+        {
+            if (RecordCurrentOperationBlock(
+                actionSet,
+                lastActionFailure,
+                domainFailure,
+                axis,
+                CharacterAiRetryKind.FailureCooldown,
+                usesCooldown: true,
+                recordHistory: true))
+            {
+                currentOperationBlockSourceRevisionReader =
+                    sourceRevisionReader;
+                currentOperationBlockSourceRevision = sourceRevision;
+            }
+        }
         TrackExecutionFailure(actionSet, lastActionFailure.Kind, isNoAction: false);
         actor?.AiMemory?.RecordDecision(
             CharacterAiBranch.InterruptCheck,
@@ -2634,10 +2824,46 @@ public class AIBrain : CharacterAbility
         AIActionFailure failure,
         bool requestImmediateReplan)
     {
+        ReportRuntimeActionFailure(
+            failure,
+            DomainFailure.None,
+            CharacterOperationBlockAxis.Unknown,
+            requestImmediateReplan);
+    }
+
+    internal void ReportRuntimeActionFailure(
+        AIActionFailure failure,
+        DomainFailure domainFailure,
+        CharacterOperationBlockAxis axis,
+        bool requestImmediateReplan)
+    {
+        ReportRuntimeActionFailure(
+            failure,
+            domainFailure,
+            axis,
+            sourceRevisionReader: null,
+            sourceRevision: 0,
+            requestImmediateReplan: requestImmediateReplan);
+    }
+
+    internal void ReportRuntimeActionFailure(
+        AIActionFailure failure,
+        DomainFailure domainFailure,
+        CharacterOperationBlockAxis axis,
+        Func<int> sourceRevisionReader,
+        int sourceRevision,
+        bool requestImmediateReplan)
+    {
         AIActionSet actionSet = bestAction?.actionset;
         if (actionSet != null)
         {
-            RecordActionFailure(actionSet, failure);
+            RecordActionFailure(
+                actionSet,
+                failure,
+                domainFailure,
+                axis,
+                sourceRevisionReader,
+                sourceRevision);
         }
         else
         {
@@ -2661,6 +2887,279 @@ public class AIBrain : CharacterAbility
         {
             RequestImmediateReplan(clearFailures: false);
         }
+    }
+
+    public CharacterOperationBlockSnapshot CaptureCurrentOperationBlock()
+    {
+        CharacterOperationBlockSnapshot snapshot = currentOperationBlock;
+        if (!snapshot.HasCurrentBlock
+            || ReferenceEquals(currentOperationBlockTarget, null)
+            || currentOperationBlockTarget == null
+            || currentOperationBlockTarget.isDestroy
+            || !currentOperationBlockTarget.PersistentInstanceId.IsValid
+            || !string.Equals(
+                currentOperationBlockTarget.PersistentInstanceId.Value,
+                snapshot.TargetStableId,
+                StringComparison.Ordinal))
+        {
+            return default;
+        }
+
+        if (currentOperationBlockUsesCooldown)
+        {
+            if (actionEvaluator == null
+                || !actionEvaluator.TryGetCooldownExpiry(
+                    currentOperationBlockActionSet,
+                    currentOperationBlockTarget,
+                    out float expiresAt))
+            {
+                return default;
+            }
+
+            snapshot = snapshot.WithCooldownExpiry(expiresAt);
+        }
+
+        bool sourceCurrent = currentOperationBlockSourceRevisionReader != null
+            ? currentOperationBlockSourceRevisionReader()
+                == currentOperationBlockSourceRevision
+            : actionEpochLive
+                && currentActionEpoch == snapshot.ActionEpoch
+                && bestAction?.actionset == currentOperationBlockActionSet
+                && ReferenceEquals(
+                    bestAction.destination,
+                    currentOperationBlockTarget);
+        return sourceCurrent
+            ? snapshot
+            : snapshot.WithCurrentnessUnconfirmed();
+    }
+
+    public CharacterOperationBlockSnapshot CaptureRecentOperationFailure() =>
+        recentOperationFailure;
+
+    internal void ClearOperationDiagnosticsForLifecycle() =>
+        ClearAllOperationDiagnostics();
+
+    private bool RecordCurrentOperationBlock(
+        AIActionSet actionSet,
+        AIActionFailure failure,
+        DomainFailure domainFailure,
+        CharacterOperationBlockAxis axis,
+        CharacterAiRetryKind retryKind,
+        bool usesCooldown,
+        bool recordHistory)
+    {
+        BuildableObject target = !ReferenceEquals(failure.Target, null)
+            ? failure.Target
+            : bestAction?.destination;
+        if (actionSet == null
+            || !failure.HasFailure
+            || ReferenceEquals(target, null)
+            || target == null
+            || target.isDestroy
+            || !target.PersistentInstanceId.IsValid
+            || currentActionEpoch <= 0L)
+        {
+            return false;
+        }
+
+        WorkTypeId workTypeId = ResolveObservedWorkTypeId(actionSet);
+        CharacterOperationBlockAxis resolvedAxis = axis !=
+            CharacterOperationBlockAxis.Unknown
+                ? axis
+                : ClassifyOperationBlockAxis(
+                    domainFailure,
+                    failure.Kind);
+        float expiresAt = 0f;
+        bool hasKnownExpiry = usesCooldown
+            && actionEvaluator != null
+            && actionEvaluator.TryGetCooldownExpiry(
+                actionSet,
+                target,
+                out expiresAt);
+        currentOperationBlock = new CharacterOperationBlockSnapshot(
+            ResolveActionStableId(actionSet, workTypeId),
+            GetActionLabel(actionSet),
+            target.PersistentInstanceId.Value,
+            AIBrainDebugFormatter.GetDestinationLabel(target),
+            currentActionEpoch,
+            failure,
+            domainFailure,
+            resolvedAxis,
+            retryKind,
+            isCurrent: true,
+            hasKnownExpiry: hasKnownExpiry,
+            expiresAt: hasKnownExpiry ? expiresAt : 0f,
+            observedAt: Now,
+            isCurrentnessConfirmed: true);
+        currentOperationBlockActionSet = actionSet;
+        currentOperationBlockTarget = target;
+        currentOperationBlockUsesCooldown = usesCooldown;
+        currentOperationBlockSourceRevisionReader = null;
+        currentOperationBlockSourceRevision = 0;
+        if (recordHistory)
+        {
+            recentOperationFailure = currentOperationBlock.AsHistory();
+        }
+
+        return true;
+    }
+
+    private void RecordExecutorDeferredObservation(
+        AIAction expectedAction,
+        string reason)
+    {
+        if (expectedAction?.actionset == null)
+        {
+            return;
+        }
+
+        RecordCurrentOperationBlock(
+            expectedAction.actionset,
+            AIActionFailure.Create(
+                AIActionFailureKind.CannotStart,
+                string.IsNullOrWhiteSpace(reason)
+                    ? "executor-deferred"
+                    : reason,
+                expectedAction.destination),
+            DomainFailure.None,
+            CharacterOperationBlockAxis.Unknown,
+            CharacterAiRetryKind.ExecutorDeferred,
+            usesCooldown: false,
+            recordHistory: false);
+    }
+
+    private void ClearCurrentOperationBlock()
+    {
+        currentOperationBlock = default;
+        currentOperationBlockActionSet = null;
+        currentOperationBlockTarget = null;
+        currentOperationBlockUsesCooldown = false;
+        currentOperationBlockSourceRevisionReader = null;
+        currentOperationBlockSourceRevision = 0;
+    }
+
+    private void ClearAllOperationDiagnostics()
+    {
+        ClearCurrentOperationBlock();
+        recentOperationFailure = default;
+    }
+
+    private void ClearCurrentOperationBlockFor(AIAction action)
+    {
+        if (!currentOperationBlock.HasCurrentBlock || action == null)
+        {
+            return;
+        }
+
+        if (currentOperationBlockActionSet == action.actionset)
+        {
+            ClearCurrentOperationBlock();
+        }
+    }
+
+    private WorkTypeId ResolveObservedWorkTypeId(AIActionSet actionSet)
+    {
+        if (actor != null
+            && actor.TryGetAbility(out AbilityWork work)
+            && work.AssignedWorkTypeId.IsValid)
+        {
+            return work.AssignedWorkTypeId;
+        }
+
+        return actionSet is AIWork aiWork && aiWork.WorkTypeId.IsValid
+            ? aiWork.WorkTypeId
+            : default;
+    }
+
+    private static string ResolveActionStableId(
+        AIActionSet actionSet,
+        WorkTypeId workTypeId)
+    {
+        return workTypeId.IsValid
+            ? workTypeId.Value
+            : "ai-action:" + (actionSet?.GetType().FullName ?? "unknown");
+    }
+
+    private static CharacterOperationBlockAxis ClassifyOperationBlockAxis(
+        DomainFailure failure,
+        AIActionFailureKind failureKind)
+    {
+        if (failure.IsFailure)
+        {
+            switch (failure.Code)
+            {
+                case FailureCode.PowerConsumerUnavailable:
+                case FailureCode.PowerBreakerUnavailable:
+                case FailureCode.AutomationUnpowered:
+                case FailureCode.DefensePowerUnavailable:
+                case FailureCode.ServiceSupportUnpowered:
+                case FailureCode.TemporalStasisPowerInsufficient:
+                    return CharacterOperationBlockAxis.Power;
+                case FailureCode.SurvivalWaterSourceUnsupported:
+                case FailureCode.SurvivalWaterFrozen:
+                case FailureCode.FluidNetworkUnavailable:
+                case FailureCode.FluidInsufficientWater:
+                case FailureCode.FluidManualWaterUnavailable:
+                case FailureCode.FluidWastewaterUnavailable:
+                    return CharacterOperationBlockAxis.Water;
+                case FailureCode.SurvivalFuelStockMissing:
+                    return CharacterOperationBlockAxis.Fuel;
+                case FailureCode.EnvironmentWorkTargetUnavailable:
+                case FailureCode.EnvironmentColdWorkCooldownActive:
+                case FailureCode.EnvironmentProtectionInsufficient:
+                case FailureCode.EnvironmentExposureCritical:
+                case FailureCode.SurgeryEnvironmentUnsafe:
+                    return CharacterOperationBlockAxis.Environment;
+                case FailureCode.EquipmentDefinitionMissing:
+                case FailureCode.EquipmentInstanceMissing:
+                case FailureCode.EquipmentModuleMissing:
+                case FailureCode.EquipmentOrModuleMissing:
+                case FailureCode.EnvironmentWorkwearDefinitionMissing:
+                case FailureCode.EnvironmentWorkwearNotEquipped:
+                case FailureCode.EnvironmentWorkwearPhysicalItemMissing:
+                case FailureCode.ChildSafetyProtectiveEquipmentRequired:
+                    return CharacterOperationBlockAxis.Tool;
+                case FailureCode.EnvironmentWorkwearLockerUnreachable:
+                case FailureCode.ProductionDistributionRouteUnavailable:
+                case FailureCode.ConveyorRouteUnavailable:
+                case FailureCode.ConveyorDestinationUnavailable:
+                case FailureCode.CharacterMedicalDestinationUnavailable:
+                    return CharacterOperationBlockAxis.Access;
+                case FailureCode.WorkOrderWorkerIneligible:
+                case FailureCode.ProductionBillReservedByOtherWorker:
+                case FailureCode.ConveyorTransitOwnershipMismatch:
+                case FailureCode.SurgeryPreferredDoctorOnly:
+                case FailureCode.SurgeryReservedDoctorMismatch:
+                case FailureCode.ItemReservationSignatureMismatch:
+                    return CharacterOperationBlockAxis.Identity;
+                case FailureCode.ProductionMaterialsMissing:
+                case FailureCode.SurvivalFoodStockMissing:
+                case FailureCode.SurvivalTreatmentMaterialMissing:
+                case FailureCode.SurgeryMaterialUnavailable:
+                    return CharacterOperationBlockAxis.Materials;
+                case FailureCode.ProductionOutputSpaceUnavailable:
+                case FailureCode.WarehouseMassCapacityUnavailable:
+                    return CharacterOperationBlockAxis.OutputSpace;
+                case FailureCode.ProductionFacilityMissing:
+                case FailureCode.AutomationFacilityUnavailable:
+                case FailureCode.SurgeryFacilityUnavailable:
+                case FailureCode.CharacterMedicalFacilityUnavailable:
+                    return CharacterOperationBlockAxis.Facility;
+            }
+        }
+
+        return failureKind switch
+        {
+            AIActionFailureKind.NoPath or
+                AIActionFailureKind.NoGrid or
+                AIActionFailureKind.DestinationOccupied =>
+                CharacterOperationBlockAxis.Access,
+            AIActionFailureKind.FacilityAdmissionRejected or
+                AIActionFailureKind.FacilityServiceUnavailable or
+                AIActionFailureKind.Destroyed =>
+                CharacterOperationBlockAxis.Facility,
+            _ => CharacterOperationBlockAxis.Unknown
+        };
     }
 
     public CharacterAiRuntimeDiagnosticsSnapshot CaptureRuntimeDiagnostics()
@@ -3024,8 +3523,19 @@ public class AIBrain : CharacterAbility
         return RuntimeHelpers.GetHashCode(action) ^ destinationId;
     }
 
-    public void NotifyRetryScheduled(float delaySeconds)
+    public void NotifyRetryScheduled(float delaySeconds) =>
+        NotifyRetryScheduled(delaySeconds, CharacterAiRetryKind.DecisionRetry);
+
+    public void NotifyRetryScheduled(
+        float delaySeconds,
+        CharacterAiRetryKind retryKind)
     {
+        if (retryKind == CharacterAiRetryKind.None)
+        {
+            throw new ArgumentException(
+                "A retry schedule requires a classified retry kind.",
+                nameof(retryKind));
+        }
         retryScheduleCount++;
         currentRetryAttempt++;
         AdvanceRuntimeProgress();
@@ -3054,7 +3564,7 @@ public class AIBrain : CharacterAbility
         bool retryScheduled)
     {
         schedulerProcessCount = checked(schedulerProcessCount + 1L);
-        if (!retryScheduled && decided)
+        if (!retryScheduled)
         {
             currentRetryAttempt = 0;
         }

@@ -114,14 +114,13 @@ internal sealed class DefenseEngagementCombatRuntime
             return;
         }
 
-        DefenseCombatExecutionResult intruderAttack = combatExecutor.ExecuteMelee(
+        combatExecutor.ExecuteMelee(
             engagement,
             engagement.IntruderActor,
             engagement.LeadGuard,
             engagement.Intruder.MeleeDamageMultiplier,
             attackerIsGuard: false);
-        if (intruderAttack.DefenderDefeated
-            || engagement.LeadGuard == null
+        if (engagement.LeadGuard == null
             || engagement.LeadGuard.IsDead)
         {
             HandleLeadLost(engagement, "Lead guard down", startMovement);

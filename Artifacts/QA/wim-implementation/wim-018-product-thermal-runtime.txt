@@ -1,0 +1,6 @@
+deep_goat=actual-pen/cold/hot/comfort/missing-recovery/season/readonly/restore/ready-invariants:PASS
+frost_ram=actual-pen/cold/hot/comfort/missing-recovery/season/readonly/restore/ready-invariants:PASS
+actual-panel=축산 관리 | 가축 1/8마리 · 합사 위험 0 % | 번식 허용 | 위험 합사 경고 | 최대 - | 최대 + | 암컷 6 | 수컷 2 | 새끼 6 | 임신 보호 | 서리숫양 · 암 · 10.0일 · 번식 중 길들여짐 온도 20°C · 적정 -10–10°C · 산물 속도 50 % · 고온
+scope=real-public-Tick/Capture/BuildRestore/Restore/presenter;controlled-pen/field/clock
+not-covered=natural-capture/AI;whole-world-restore;colony-balance
+result=PASS

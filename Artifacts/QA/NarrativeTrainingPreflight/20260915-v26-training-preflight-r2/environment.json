@@ -1,0 +1,19 @@
+{
+  "captureToolHash": "sha256:fa83d1755dbdac301663cdadf9d4f4d6a19b2b7b567000cc0d1b3626233efdd9",
+  "editor": {
+    "assembly": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Library\\ScriptAssemblies\\Assembly-CSharp-Editor.dll",
+    "assemblyTicks": 639250597657896200,
+    "compiling": false,
+    "failed": false,
+    "latestScript": "Assets/Scripts/Services/Character/AI/NarrativeRequestContext.cs",
+    "latestScriptMtimeNs": 1789462224604857700,
+    "playing": false,
+    "unityVersion": "6000.3.8f1",
+    "updating": false
+  },
+  "executable": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStoryNarrativeAI\\.venv-scenarios\\Scripts\\python.exe",
+  "gameBalanceImpact": "none",
+  "humanApprovalClaimed": false,
+  "python": "3.13.7 (tags/v3.13.7:bcee1c3, Aug 14 2025, 14:15:11) [MSC v.1944 64 bit (AMD64)]",
+  "window": "UNITY_VERIFY"
+}

@@ -56,6 +56,7 @@ internal sealed class WorkOrderConstructionSiteRestoreCandidate
 
 public sealed class WorkOrderRuntime :
     IWorkOrderRuntime,
+    IWorkAccidentOperationIdAuthority,
     IWorkOrderQuery,
     IWorkOrderWorkerPolicyQuery,
     IWorkOrderWorkerPolicyCommand,
@@ -767,6 +768,34 @@ public sealed class WorkOrderRuntime :
         }
         pipeline = found.CloneNormalized();
         return true;
+    }
+
+    public CraftQualityAttemptEstimate CaptureQualityEstimate(string pipelineId)
+    {
+        if (string.IsNullOrEmpty(pipelineId)
+            || !CurrentState.QualityPipelinesById.TryGetValue(pipelineId, out QualityTargetPipelineSaveData pipeline))
+            return CraftQualityAttemptEstimate.Unavailable("품질 반복 주문 없음");
+        WorkOrderRecord order = CurrentState.OrdersById.Values.FirstOrDefault(value =>
+            value.qualityPipelineId == pipelineId && value.workTypeId == BuiltInWorkTypeIds.Construct);
+        if (order == null) return CraftQualityAttemptEstimate.Unavailable("다음 시공 주문 준비 중 — 추정 보류");
+        if (qualityResolver is not ICraftQualityProbabilityQuery probabilityQuery)
+            return CraftQualityAttemptEstimate.Unavailable("현재 품질 계산기가 확률 미리보기를 제공하지 않음");
+        float bestSkill = -1f;
+        foreach (CharacterActor actor in characterWorld?.Characters ?? Array.Empty<CharacterActor>())
+        {
+            if (actor != null && WorkerSelectionPolicyRules.IsEligible(
+                    order.workerPolicy, actor, narrativeQualifications, out _))
+                bestSkill = Mathf.Max(bestSkill, GetConstructionQualitySkill(actor));
+        }
+        if (bestSkill < 0f)
+            return CraftQualityAttemptEstimate.Unavailable("조건에 맞는 작업자 미정 — 확률 산정 보류");
+        double probability = probabilityQuery.EstimateSuccessProbability(pipeline.minimumQuality,
+            bestSkill, 0f, 0f, ResolveConstructionComplexityPenalty(order));
+        return CraftQualityAttemptEstimate.Create(probability,
+            pipeline.limitMode == QualityRepeatLimitMode.SafeLimits ? Mathf.Max(1, pipeline.maximumAttempts) : null,
+            order.requiredWork, string.Empty, order.requiredItemMaterials.Values.Sum(),
+            "현재 적격 작업자 중 최고 품질·단독 새 시공·조건 고정 추정 / 재료는 BOM 개수 합계"
+            + (pipeline.workBudget > 0f ? " / WU 예산으로 조기 종료 가능" : string.Empty));
     }
 
     public bool CreateForWorkOrder(
@@ -1819,6 +1848,32 @@ public sealed class WorkOrderRuntime :
     {
         WorkOrderAggregateState state = WritableState;
         return $"work:{state.NextOrderSequence++:D6}";
+    }
+
+    [GameplayInternalOnly(
+        "Consumes the existing persisted work sequence before one work-accident damage commit.",
+        "WorkTaskExecutor.TryTriggerWorkAccident only")]
+    string IWorkAccidentOperationIdAuthority
+        .AllocateWorkAccidentOperationId(
+            CharacterId workerId,
+            WorkTypeId workTypeId,
+            BuildingInstanceId facilityId)
+    {
+        if (!workerId.IsValid
+            || !workTypeId.IsValid
+            || !facilityId.IsValid)
+        {
+            throw new InvalidOperationException(
+                "Work-accident operation allocation requires exact persistent worker, work-type, and facility identities.");
+        }
+
+        // Work orders and accident operations share the already-persisted
+        // monotonic work sequence. Accident allocations intentionally leave
+        // harmless gaps in visible work-order numbers.
+        WorkOrderAggregateState state = WritableState;
+        int sequence = state.NextOrderSequence;
+        state.NextOrderSequence = checked(sequence + 1);
+        return $"work-accident-operation:{sequence:D8}";
     }
 
     private void BumpWorkOrderCandidates()

@@ -96,6 +96,57 @@ public sealed class ProductionBillRuntime :
 
     public int Version => stateStore.BillVersion;
 
+    [GameplayInternalOnly("Shared production quality command", "ProductionBillSceneFacade")]
+    public ProductionBillCommandResult SetMinimumCraftQuality(ProductionBillId billId, int minimumTier)
+    {
+        ProductionBillRecord record = Find(billId);
+        if (record == null)
+            return ProductionBillCommandResult.Failed(new DomainFailure(FailureCode.ProductionBillMissing, billId.Value));
+        if (TryGetFrozenMutationFailure(record, out var frozen)) return frozen;
+        ProductionRecipeSO recipe = ResolveRecipe(record);
+        if (!ProductionQualityTargetRules.IsValidTarget(minimumTier)
+            || record.materialsConsumed || record.completedWork > 0f || record.outputOutcomeResolved
+            || (minimumTier >= 0 && ProductionQualityTargetRules.CaptureTier(recipe,
+                ResolveFacility(record), items, outputPlanning, 100f) < 0))
+            return ProductionBillCommandResult.Failed(new DomainFailure(FailureCode.ProductionBillUnavailable,
+                "quality-target-invalid-unsupported-or-cycle-in-progress"));
+        record.SetMinimumCraftQuality(minimumTier);
+        record.SetBlockedFailure(DomainFailure.None);
+        Touch(recipe.WorkTypeId, requestWorker: true);
+        return ProductionBillCommandResult.Success(billId);
+    }
+
+    private DomainFailure CheckQualityTarget(ProductionBillRecord record, ProductionRecipeSO recipe,
+        ProductionFacilityHandle facility, bool automatic)
+    {
+        if (record.minimumCraftQuality < 0) return DomainFailure.None;
+        // Processing owns no worker tick; the stage transition validates again before finishing.
+        if (recipe.ProcessKind == ProductionProcessKind.PassiveBatch
+            && record.batchStage == ProductionBatchStage.Processing) return DomainFailure.None;
+        if (record.outputOutcomeResolved)
+        {
+            if (items is not IProductionCraftQualityProjectionBridge quality)
+                return ProductionQualityTargetRules.Check(record.minimumCraftQuality, -1);
+            foreach (var output in record.resolvedOutputs)
+            {
+                var descriptor = items.CaptureOutputCapability(output.outputLineId, output.itemId);
+                if (quality.TryResolveCraftQualityTier(descriptor, output.qualityModifier, 100f, out int tier)
+                    && tier < record.minimumCraftQuality)
+                    return ProductionQualityTargetRules.Check(record.minimumCraftQuality, tier);
+            }
+            return DomainFailure.None; // Frozen output remains authoritative, including a zero-output outcome.
+        }
+        float completed = record.completedWork;
+        if (recipe.ProcessKind == ProductionProcessKind.PassiveBatch
+            && record.batchStage == ProductionBatchStage.Finishing)
+            completed += ResolveCycleRequiredWork(recipe) - ResolveCurrentRequiredWork(record, recipe);
+        float ceiling = automatic ? facility.AutomaticQualityScoreCeiling
+            : ProductionAutomaticQualityRules.ResolveScoreCeiling(facility.AutomaticQualityScoreCeiling,
+                completed, record.workerContributions);
+        return ProductionQualityTargetRules.Check(record.minimumCraftQuality,
+            ProductionQualityTargetRules.CaptureTier(recipe, facility, items, outputPlanning, ceiling));
+    }
+
     public bool TryPrepareCheckpointGarbageCollection(
         IReadOnlyList<ProductionGenericBillTerminalDrainSaveData> producers,
         out IProductionGenericBillWipTerminalCheckpointGcCandidate candidate,
@@ -996,7 +1047,8 @@ public sealed class ProductionBillRuntime :
             facility,
             workTypeId,
             requireDeliveredInputs: true,
-            out DomainFailure failure);
+            out DomainFailure failure,
+            automatic: string.IsNullOrEmpty(worker?.PersistentId));
         if (record == null)
         {
             return new ProductionWorkBeginResult(null, failure);
@@ -1168,6 +1220,13 @@ public sealed class ProductionBillRuntime :
         {
             return FailedExecution(FailureCode.ProductionBillUnavailable);
         }
+        DomainFailure qualityFailure = CheckQualityTarget(record, recipe, facility,
+            string.IsNullOrEmpty(worker?.PersistentId));
+        if (qualityFailure.IsFailure)
+        {
+            record.SetBlockedFailure(qualityFailure);
+            return new ProductionWorkExecutionResult(false, false, ProductionBillOutcomeCode.None, qualityFailure);
+        }
         if (facilityMutationEpoch.IsFrozen(record.buildingInstanceId))
         {
             return FailedExecution(
@@ -1300,6 +1359,9 @@ public sealed class ProductionBillRuntime :
                     record.cycleSequence,
                     record.recipeId,
                     record.buildingInstanceId,
+                    worker?.AuthorityKind == ProductionWorkerAuthorityKind.Actor
+                        ? workerId
+                        : string.Empty,
                     record.wipInputCommitId,
                     record.wipInputQuantity,
                     record.wipInputMassGrams,
@@ -1319,13 +1381,36 @@ public sealed class ProductionBillRuntime :
         }
         else
         {
+            if (!recipeExecutionReceipts.TryEnsureExactCapture(
+                    record.billId,
+                    record.cycleSequence,
+                    record.recipeId,
+                    record.buildingInstanceId,
+                    out string ensureExactFailure))
+            {
+                record.SetReservedWorker(string.Empty);
+                return new ProductionWorkExecutionResult(
+                    false,
+                    false,
+                    ProductionBillOutcomeCode.None,
+                    new DomainFailure(
+                        FailureCode.ProductionOutputUnavailable,
+                        record.billId.Value,
+                        string.IsNullOrEmpty(ensureExactFailure)
+                            ? "recipe-exact-capture-reservation-failed"
+                            : ensureExactFailure));
+            }
             if (!record.outputOutcomeResolved)
             {
                 record.SetResolvedOutputs(outputExecution.ResolveAll(
                     recipe,
                     facility,
                     worker,
-                    record.batchIntegrity));
+                    record.batchIntegrity,
+                    ProductionAutomaticQualityRules.ResolveScoreCeiling(
+                        facility.AutomaticQualityScoreCeiling,
+                        ResolveCycleRequiredWork(recipe),
+                        record.workerContributions)));
             }
             foreach (ProductionResolvedOutputSaveData output in record.resolvedOutputs)
             {
@@ -1452,6 +1537,29 @@ public sealed class ProductionBillRuntime :
                         string.IsNullOrEmpty(exactReceiptFailure)
                             ? "recipe-exact-cycle-receipt-failed"
                             : exactReceiptFailure));
+            }
+            if (!recipeExecutionReceipts.TryCommitExactCompletedOutcome(
+                    record.billId,
+                    record.cycleSequence,
+                    record.recipeId,
+                    record.buildingInstanceId,
+                    worker?.AuthorityKind == ProductionWorkerAuthorityKind.Actor
+                        ? workerId
+                        : string.Empty,
+                    record.resolvedOutputs,
+                    out string gameplayOutcomeFailure))
+            {
+                record.SetReservedWorker(string.Empty);
+                return new ProductionWorkExecutionResult(
+                    false,
+                    false,
+                    ProductionBillOutcomeCode.None,
+                    new DomainFailure(
+                        FailureCode.ProductionOutputUnavailable,
+                        record.billId.Value,
+                        string.IsNullOrEmpty(gameplayOutcomeFailure)
+                            ? "production-gameplay-outcome-commit-failed"
+                            : gameplayOutcomeFailure));
             }
             record.ClearResolvedOutputs();
         }
@@ -2412,8 +2520,7 @@ public sealed class ProductionBillRuntime :
         ProductionBillRecord record,
         ProductionRecipeSO recipe)
     {
-        float balancedWork = balanceWorkCalculator?.CalculateRecipe(recipe)
-            ?? recipe.RequiredWork;
+        float balancedWork = ResolveCycleRequiredWork(recipe);
         if (recipe.ProcessKind != ProductionProcessKind.PassiveBatch)
         {
             return balancedWork;
@@ -2423,6 +2530,9 @@ public sealed class ProductionBillRuntime :
             ? (recipe.FinishingWork > 0f ? balancedWork * 0.20f : 0f)
             : (recipe.FinishingWork > 0f ? balancedWork * 0.80f : balancedWork);
     }
+
+    private float ResolveCycleRequiredWork(ProductionRecipeSO recipe) =>
+        balanceWorkCalculator?.CalculateRecipe(recipe) ?? recipe.RequiredWork;
 
     private static float ApplyOutageDecay(
         float accumulatedHours,
@@ -2711,14 +2821,28 @@ public sealed class ProductionBillRuntime :
         ProductionFacilityHandle facility,
         WorkTypeId workTypeId,
         bool requireDeliveredInputs,
-        out DomainFailure failure)
+        out DomainFailure failure,
+        bool automatic = false)
     {
-        return inputLogistics.FindRunnableBill(
-            bills,
+        DomainFailure qualityFailure = DomainFailure.None;
+        var eligible = bills.Where(record =>
+        {
+            if (!MatchesFacility(record, facility) || record.suspended) return true;
+            var recipe = ResolveRecipe(record);
+            if (recipe == null || recipe.WorkTypeId != workTypeId) return true;
+            DomainFailure candidate = CheckQualityTarget(record, recipe, facility, automatic);
+            if (!candidate.IsFailure) return true;
+            qualityFailure = candidate;
+            return false;
+        }).ToArray();
+        var found = inputLogistics.FindRunnableBill(
+            eligible,
             facility,
             workTypeId,
             requireDeliveredInputs,
             out failure);
+        if (found == null && qualityFailure.IsFailure) failure = qualityFailure;
+        return found;
     }
 
     private void RequestMissingInputs(

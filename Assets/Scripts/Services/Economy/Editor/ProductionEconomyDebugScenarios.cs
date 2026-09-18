@@ -53,6 +53,24 @@ public static class ProductionEconomyDebugScenarios
         Debug.Log("Frozen standard production output contracts passed.");
     }
 
+    public static void RunWim006ProductionQualityFocused()
+    {
+        ValidatePhysicalProductionBill(verifyAutomaticQuality: true);
+        ValidatePassiveBatchProduction();
+        Debug.Log("WIM006 production aggregate automatic/mixed/frozen output and passive batch PASS.");
+    }
+
+    public static void RunWimSharedProductionQualityTargetFocused()
+    {
+        ValidatePhysicalProductionBill(verifyAutomaticQuality: true);
+        Directory.CreateDirectory("Artifacts/QA/wim-implementation");
+        File.WriteAllText("Artifacts/QA/wim-implementation/wim-006-shared-quality-target.txt",
+            "PASS\nshared-command-and-current-format-restore=PASS\ninvalid-target-restore-atomic-rejection=PASS"
+            + "\nautomatic-unreachable-before-inputs-and-utilities=PASS\nmanual-versus-automatic-current-grade=PASS"
+            + "\nin-progress-target-mutation-rejected=PASS\nfrozen-output-regression=PASS"
+            + "\nmain-live-ui-automatic-tick=NOT_RUN\n", new System.Text.UTF8Encoding(false));
+    }
+
     public static void RunPreparedOutputRealAdapterFocused()
     {
         ValidateProcessLossPreparedOutputRealAdapter();
@@ -2687,7 +2705,7 @@ public static class ProductionEconomyDebugScenarios
         }
     }
 
-    private static void ValidatePhysicalProductionBill()
+    private static void ValidatePhysicalProductionBill(bool verifyAutomaticQuality = false)
     {
         ProductionRecipeSO recipe = ScriptableObject.CreateInstance<ProductionRecipeSO>();
         ResourceItemDefinitionSO grain =
@@ -2785,6 +2803,8 @@ public static class ProductionEconomyDebugScenarios
             });
             building.id = 99101;
             building.objectName = "시험 제분소";
+            if (verifyAutomaticQuality)
+                abilities.Add(new BuildingAutomationAbility { automaticQualityCap = 0.75f });
             building.ReplaceAbilities(abilities);
 
             BuildableObject facility =
@@ -2801,6 +2821,7 @@ public static class ProductionEconomyDebugScenarios
             BufferedExactOutputTestHandler testOutputHandler = new(
                 items,
                 "material:test-flour");
+            testOutputHandler.TracksQualityCeiling = verifyAutomaticQuality;
             ProductionRuntimeFixture runtime = CreateRuntime(
                 catalog,
                 items,
@@ -2815,6 +2836,32 @@ public static class ProductionEconomyDebugScenarios
             Require(added.Succeeded, added.Failure.Code.ToString());
             string inputDestination = ProductionBillRuntime.DestinationPrefix
                 + added.BillId.Value;
+            if (verifyAutomaticQuality)
+            {
+                Require(runtime.Core.SetMinimumCraftQuality(added.BillId, 6).Succeeded,
+                    "Shared quality target command rejected a supported grade.");
+                ProductionBillSnapshot preview = runtime.GetBills(facility).Single();
+                Require(preview.MinimumCraftQuality == 6 && preview.CurrentManualCraftQuality == 6
+                    && preview.CurrentAutomaticCraftQuality == 4, "Manual/automatic target preview disagrees with handler.");
+                var savedTarget = runtime.Core.Capture();
+                Require(savedTarget.bills.Single().minimumCraftQuality == 6, "Target missing from save.");
+                runtime.Core.Restore(runtime.Core.BuildRestore(savedTarget));
+                Require(runtime.GetBills(facility).Single().MinimumCraftQuality == 6, "Target lost across restore.");
+                string before = JsonUtility.ToJson(runtime.Core.Capture());
+                ProductionWorkBeginResult unavailable = runtime.Core.BeginWork(null,
+                    runtime.Bridge.CaptureFacility(facility), recipe.WorkTypeId);
+                Require(!unavailable.Succeeded && unavailable.Failure.Code == FailureCode.QualityTargetUnreachable
+                    && JsonUtility.ToJson(runtime.Core.Capture()) == before,
+                    "Unreachable automatic target consumed input/utility or mutated the cycle.");
+                savedTarget.bills[0].minimumCraftQuality = 8;
+                bool rejected = false;
+                try { runtime.Core.BuildRestore(savedTarget); }
+                catch (InvalidOperationException) { rejected = true; }
+                Require(rejected && JsonUtility.ToJson(runtime.Core.Capture()) == before,
+                    "Invalid target restore was accepted or partially published.");
+                Require(runtime.Core.SetMinimumCraftQuality(added.BillId, -1).Succeeded,
+                    "Quality condition could not be disabled before production.");
+            }
             Require(
                 runtime.DestinationClaims.TryGetClaim(
                     inputDestination,
@@ -2884,6 +2931,13 @@ public static class ProductionEconomyDebugScenarios
                 BuiltInWorkTypeIds.Craft);
             Require(begin.Succeeded,
                 $"could not begin production: {begin.Failure.Code}");
+            if (verifyAutomaticQuality)
+            {
+                string before = JsonUtility.ToJson(runtime.Core.Capture());
+                Require(!runtime.Core.SetMinimumCraftQuality(added.BillId, 3).Succeeded
+                    && before == JsonUtility.ToJson(runtime.Core.Capture()),
+                    "Changing target during production mutated WIP or order state.");
+            }
             ProductionBillSnapshot started = begin.Bill;
             Require(items.GetDelivered("resource:test-grain") == 0,
                 "delivered materials were not consumed at work start");
@@ -3145,11 +3199,13 @@ public static class ProductionEconomyDebugScenarios
                 "invalid production WIP receipt was not rejected atomically");
 
             items.FailBufferedOutputAfterSuccesses(1);
-            ProductionWorkExecutionResult blockedOutput = restored.ExecuteWork(
-                worker,
-                facility,
-                restoredBill.BillId,
-                6f);
+            if (verifyAutomaticQuality)
+                Require(restored.Core.SetWorkerPolicy(restoredBill.BillId,
+                    new WorkerSelectionPolicySaveData()).Succeeded, "Could not release worker for mixed contribution test.");
+            ProductionWorkExecutionResult blockedOutput = verifyAutomaticQuality
+                ? restored.Core.ExecuteWork(ProductionWorkerHandle.AutomaticExecutor,
+                    restored.Bridge.CaptureFacility(facility), restoredBill.BillId, 6f)
+                : restored.ExecuteWork(worker, facility, restoredBill.BillId, 6f);
             Require(!blockedOutput.Succeeded && !blockedOutput.CycleCompleted,
                 "blocked production output unexpectedly completed");
             Require(items.GetAvailable("material:test-flour") == 1,
@@ -3158,6 +3214,14 @@ public static class ProductionEconomyDebugScenarios
             DungeonProductionBillSaveData resolvedOutputPayload =
                 JsonUtility.FromJson<DungeonProductionBillSaveData>(
                     resolvedOutputSave);
+            if (verifyAutomaticQuality)
+            {
+                Require(testOutputHandler.QualityCeilingCallCount == 1
+                    && testOutputHandler.LastMaximumScore == 75f
+                    && resolvedOutputPayload.bills[0].resolvedOutputs[0].qualityModifier == 0.75f,
+                    "Mixed work ceiling was not applied exactly once and frozen in the output authority.");
+                building.GetAbility<BuildingAutomationAbility>().automaticQualityCap = 0.50f;
+            }
             Require(resolvedOutputPayload.bills[0].outputOutcomeResolved
                     && resolvedOutputPayload.bills[0].resolvedOutputs.Count == 1
                     && resolvedOutputPayload.bills[0].resolvedOutputs[0].itemId
@@ -3384,6 +3448,9 @@ public static class ProductionEconomyDebugScenarios
                 1f);
             Require(restoredWork.Succeeded && restoredWork.CycleCompleted,
                 "restored resolved production output did not complete");
+            if (verifyAutomaticQuality)
+                Require(testOutputHandler.QualityCeilingCallCount == 1,
+                    "Restored output reran quality resolution after authored cap changed.");
             Require(items.GetAvailable("material:test-flour") == 2,
                 "production output was not spawned as a physical stack");
             ProductionBillSnapshot repeated = outputRestored
@@ -6219,7 +6286,9 @@ public static class ProductionEconomyDebugScenarios
     /// </summary>
     private sealed class BufferedExactOutputTestHandler :
         IProductionOutputHandler,
-        IIdempotentProductionOutputHandler
+        IIdempotentProductionOutputHandler,
+        IProductionCraftQualityCeilingCapability,
+        IProductionDeterministicCraftQualityCapability
     {
         public const string Capability =
             "production-output:qa-buffered-exact";
@@ -6230,6 +6299,20 @@ public static class ProductionEconomyDebugScenarios
 
         private readonly IProductionOutputBufferGateway outputBuffer;
         private readonly HashSet<string> itemIds;
+        public bool TracksQualityCeiling;
+        public int QualityCeilingCallCount;
+        public float LastMaximumScore;
+
+        public int ResolveCraftQualityTier(float qualityModifier, float maximumScore) =>
+            (int)DeterministicCraftQualityResolver.FromScore(TracksQualityCeiling
+                ? Math.Min(95f, maximumScore) : 50f);
+
+        public float ApplyCraftQualityCeiling(float qualityModifier, float maximumScore)
+        {
+            QualityCeilingCallCount++;
+            LastMaximumScore = maximumScore;
+            return TracksQualityCeiling ? Math.Min(0.95f, maximumScore / 100f) : qualityModifier;
+        }
 
         public BufferedExactOutputTestHandler(
             IProductionOutputBufferGateway outputBuffer,

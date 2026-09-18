@@ -1,0 +1,24 @@
+{
+  "captureToolHash": "sha256:451908f10e92944b4f0d804f14bc0168e85e6f427aee2fc08d9001ca1e070c94",
+  "editor": {
+    "assembly": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Library\\ScriptAssemblies\\Assembly-CSharp-Editor.dll",
+    "assemblyTicks": 639250816738248400,
+    "compiling": false,
+    "failed": false,
+    "latestScript": "Assets/Scripts/Services/Character/AI/Editor/CharacterSkillCapabilityDebugScenarios.cs",
+    "latestScriptMtimeNs": 1789484605357690200,
+    "playing": false,
+    "unityVersion": "6000.3.8f1",
+    "updating": false
+  },
+  "executable": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStoryNarrativeAI\\.venv-scenarios\\Scripts\\python.exe",
+  "focusedSourceHashes": {
+    "Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs": "sha256:1b8100595c5c6e7ca1bb8654a0fed6c30456b36b66860de816183732edc75019",
+    "Assets/Scripts/Services/Character/AI/Editor/V25NarrativeInferenceDebugScenarios.cs": "sha256:9ec2c37dc897f56296d51d7b352510b5c0d4af9a7107420351c191eab5c6d557",
+    "Assets/Scripts/Services/FacilityEvolution/Editor/FacilityEvolutionDebugScenarios.cs": "sha256:7b290ba002c867402515347416f1f878ac3b382cd8faecb9ca041da005d42e32"
+  },
+  "gameBalanceImpact": "none",
+  "humanApprovalClaimed": false,
+  "python": "3.13.7 (tags/v3.13.7:bcee1c3, Aug 14 2025, 14:15:11) [MSC v.1944 64 bit (AMD64)]",
+  "window": "UNITY_VERIFY"
+}

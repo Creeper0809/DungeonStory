@@ -133,9 +133,7 @@ public sealed class ExpeditionFeatureQueryService : IExpeditionFeatureQueryServi
                 {
                     Index = index,
                     Title = $"{result.targetTitle} / {(result.success ? "성공" : "실패")}",
-                    Detail = result.rewardSummaries.Count > 0
-                        ? string.Join(", ", result.rewardSummaries)
-                        : "즉시 지급된 보상이 없습니다."
+                    Detail = result.ToDetailText()
                 })
                 .ToArray()
         };
@@ -212,7 +210,7 @@ public sealed class ExpeditionFeatureQueryService : IExpeditionFeatureQueryServi
                 && arrival.stage is not OffenseReturnArrivalStage.Secured
                 and not OffenseReturnArrivalStage.Escaped)
             .Sum(arrival => Mathf.Max(0, arrival.requestedAmount));
-        return $"회수 전리품 추정가 {campaign.RecoveredLootValue}"
+        return $"누적 지급 금화 {campaign.MoneyEarned}"
             + $" / 영입 후보 {recruitCandidates}"
             + $" / 수용 포로 {prisoners}"
             + $" / 귀환 동물 {arrivingAnimals}";

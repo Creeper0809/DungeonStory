@@ -21,6 +21,7 @@ public sealed class OffenseExpeditionBattleCompletionHandler :
     private readonly IOffenseFieldMobilityService fieldMobility;
     private readonly IGameEventBus gameEventBus;
     private readonly ICombatEquipmentRuntime combatEquipment;
+    private readonly IMemoryErasureSealBossAwardService memoryErasureSealAwards;
 
     public OffenseExpeditionBattleCompletionHandler(
         IOffenseBattleRuntime battleRuntime,
@@ -30,7 +31,8 @@ public sealed class OffenseExpeditionBattleCompletionHandler :
         IOffenseReturnSafetyRuntime strategicReturnSafety,
         IOffenseFieldMobilityService fieldMobility,
         IGameEventBus gameEventBus,
-        ICombatEquipmentRuntime combatEquipment)
+        ICombatEquipmentRuntime combatEquipment,
+        IMemoryErasureSealBossAwardService memoryErasureSealAwards = null)
     {
         this.battleRuntime = battleRuntime
             ?? throw new ArgumentNullException(nameof(battleRuntime));
@@ -48,6 +50,7 @@ public sealed class OffenseExpeditionBattleCompletionHandler :
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.combatEquipment = combatEquipment
             ?? throw new ArgumentNullException(nameof(combatEquipment));
+        this.memoryErasureSealAwards = memoryErasureSealAwards;
     }
 
     public void Handle(
@@ -69,6 +72,45 @@ public sealed class OffenseExpeditionBattleCompletionHandler :
         bool victory = session.Outcome == OffenseBattleOutcome.Victory;
         if (victory)
         {
+            bool objectiveBattle = expedition.UsesWorldTravel
+                && expedition.WorldObjectiveBattleActive;
+            bool isRegionBoss = completedNode?.IsBoss == true;
+            if (expedition.UsesWorldTravel
+                && objectiveBattle
+                && strategicWorld.TryGetSite(
+                    expedition.WorldSiteId,
+                    out OffenseWorldSiteStateData site))
+            {
+                isRegionBoss = site?.fixedBoss == true;
+            }
+            if (isRegionBoss && memoryErasureSealAwards == null)
+            {
+                throw new InvalidOperationException(
+                    "A region-boss victory requires the memory-erasure seal award service.");
+            }
+            if (memoryErasureSealAwards != null)
+            {
+                MemoryErasureSealBossAwardResult award =
+                    memoryErasureSealAwards.TryAwardForVictory(
+                        expedition,
+                        completedNode,
+                        objectiveBattle);
+                if (award.Status == MemoryErasureSealBossAwardStatus.Failed)
+                {
+                    throw new InvalidOperationException(
+                        "Memory-erasure seal boss award failed: "
+                        + award.Detail);
+                }
+                if (award.Status == MemoryErasureSealBossAwardStatus.Awarded)
+                {
+                    gameEventBus.RaiseAlert(
+                        "기억 소거 인장 획득",
+                        "이 권역의 첫 보스를 격파해 기억 소거 인장 1개가 전리품 투하 지점에 생성되었습니다.",
+                        EventAlertImportance.High,
+                        "오펜스");
+                }
+            }
+
             foreach (string rewardItemId in session.EncounterRules.RewardItemIds)
             {
                 expedition.AddEncounterReward(rewardItemId);
@@ -78,7 +120,7 @@ public sealed class OffenseExpeditionBattleCompletionHandler :
                              && value.IsDead))
             {
                 foreach (CombatEquipmentInstance recovered in
-                         combatEquipment.ConfiscateAllFromCharacter(
+                         combatEquipment.ConfiscateAllForExpedition(
                              defeated.PersistentId))
                 {
                     expedition.AddRecoveredEquipment(recovered.instanceId);
@@ -132,7 +174,23 @@ public sealed class OffenseExpeditionBattleCompletionHandler :
                     expedition.Target.id,
                     victory ? "won" : "survived",
                     combatant.TotalDamageTaken,
-                    triggerPassives: false);
+                    triggerPassives: false,
+                    eventContext: new GameplayNarrativeEventContext
+                    {
+                        eventInstanceId = $"{session.BattleId}:result:{combatant.PersistentId}",
+                        chainId = expedition.ExpeditionId,
+                        locationId = expedition.Target?.id ?? string.Empty,
+                        locationDisplayName = !string.IsNullOrWhiteSpace(expedition.Target?.regionDisplayName)
+                            ? expedition.Target.regionDisplayName
+                            : expedition.Target?.title ?? string.Empty,
+                        actorId = combatant.PersistentId,
+                        actorDisplayName = actor.BuildingDisplayName,
+                        counterpartyId = expedition.Target?.factionId ?? string.Empty,
+                        counterpartyDisplayName = expedition.Target?.title ?? string.Empty,
+                        usedObjectId = completedNode?.Id ?? string.Empty,
+                        usedObjectDisplayName = completedNode?.Title ?? string.Empty,
+                        resultDetail = victory ? "교전 승리" : "교전 생존"
+                    });
             }
             actor.Stats?.ChangesStat(CharacterCondition.SLEEP, victory ? -8f : -20f);
             actor.Stats?.ApplyMoodFactor(

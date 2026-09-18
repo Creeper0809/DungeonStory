@@ -12,6 +12,356 @@ using EnvironmentalFieldAggregateStateStore =
 
 public static class EnvironmentalFieldDebugScenarios
 {
+    // Root-owned WIM016 witness. Actual field adapter and authored definitions;
+    // clock/power inputs are controlled. This is not a built-farm/AI claim.
+    public static bool RunWim016LightFieldFocused(out string report)
+    {
+        var lines = new List<string> {
+            "WIM016 authored light and actual environment adapter",
+            "scope=controlled calendar/power, authored lamp/crop, real field diffusion",
+            "not-tested=main construction UI, actual power network, crop Tick, irrigation, six-adult balance" };
+        try
+        {
+            var expected = new (string Path, float Stop, float Sufficient)[] {
+                ("crop_cave_mushroom", 0, 0), ("crop_ember_root", 5, 50),
+                ("crop_twilight_grain", 5, 50), ("crop_bloodleaf", 5, 40),
+                ("crop_night_grape", 0, 25), ("crop_moonflower", 0, 25),
+                ("crop_shade_fiber", 0, 25), ("crop_dreamleaf", 0, 25),
+                ("V22Textiles/crop_ember-cotton", 5, 50),
+                ("V22Textiles/crop_frost-flax", 5, 40),
+                ("V22Textiles/crop_mire-reed", 5, 40),
+                ("V22Textiles/crop_spore-hemp", 5, 40) };
+            var crops = Resources.LoadAll<CropDefinitionSO>(CropDefinitionSO.ResourcePath);
+            Require(crops.Length == expected.Length, "Authored crop fixture coverage changed; review explicit table.");
+            foreach (var row in expected)
+            {
+                var crop = Resources.Load<CropDefinitionSO>(CropDefinitionSO.ResourcePath + "/" + row.Path);
+                Require(crop != null, "Missing authored crop: " + row.Path);
+                Require(crop.LightRequirement.StopLight == row.Stop
+                    && crop.LightRequirement.SufficientLight == row.Sufficient,
+                    "Authored light thresholds differ: " + crop.CropId);
+                var low = CropGrowthCycleAuthority.EvaluateLight(crop, true, row.Stop);
+                var mid = CropGrowthCycleAuthority.EvaluateLight(crop, true, (row.Stop + row.Sufficient) / 2);
+                var full = CropGrowthCycleAuthority.EvaluateLight(crop, true, row.Sufficient);
+                var excess = CropGrowthCycleAuthority.EvaluateLight(crop, true, 100);
+                bool independent = row.Sufficient == 0;
+                Require(low.GrowthMultiplier == (independent ? 1f : 0f)
+                    && Mathf.Approximately(mid.GrowthMultiplier, independent ? 1f : .5f)
+                    && full.GrowthMultiplier == 1 && excess.GrowthMultiplier == 1,
+                    "Stop/half/full/capped growth differs: " + crop.CropId);
+            }
+            lines.Add("[PASS] all12 authored profiles; stop/half/full/excess boundaries; explicit fungus independence");
+            var high = Resources.Load<CropDefinitionSO>(CropDefinitionSO.ResourcePath + "/crop_twilight_grain");
+            Require(CropGrowthCycleAuthority.EvaluateLight(high, false, 100).GrowthMultiplier == 0,
+                "Missing field was silently replaced by sufficient light.");
+            Require(Mathf.Approximately(CropGrowthCycleAuthority.EvaluateLight(high, true, 30).GrowthMultiplier, 5f / 9f),
+                "Night30 high-crop profile must produce5/9, not an additional .55 product.");
+
+            using (var world = new TestWorld(5, 3, 20))
+            {
+                // Grid defaults to dungeon interior (constant ambient20).
+                // This witness is explicitly about the exterior day/night input.
+                for (int y = 0; y < 3; y++)
+                    for (int x = 0; x < 5; x++)
+                        world.Grid.SetAreaType(new Vector2Int(x, y), GridCellAreaType.ExteriorPath);
+                world.Advance(1);
+                var cell = new Vector2Int(2, 1);
+                Require(world.Runtime.TryGetCell(cell, out var day), "Day cell unavailable.");
+                world.Calendar.TimeOfDay = TimeOfDay.Night;
+                world.Advance(40);
+                Require(world.Runtime.TryGetCell(cell, out var night) && night.LightLevel < day.LightLevel - 10,
+                    "Calendar night did not reduce actual ambient field.");
+                world.Calendar.TimeOfDay = TimeOfDay.Morning;
+                world.Advance(40);
+                Require(world.Runtime.TryGetCell(cell, out var morning) && morning.LightLevel > night.LightLevel + 10,
+                    "Morning did not restore ambient field.");
+                lines.Add($"[PASS] actual field day={day.LightLevel:R}/night={night.LightLevel:R}/morning={morning.LightLevel:R}");
+            }
+
+            foreach (var entry in new (string Code, string Name, int Radius, int FullDistance, int Width, float Power)[] {
+                ("I19", "태양등", 9, 5, 1, 4), ("I20", "인공태양", 17, 9, 3, 12) })
+            {
+                var definition = AssetDatabase.LoadAssetAtPath<BuildingSO>(
+                    $"Assets/Resources/SO/Building/Industrial/{entry.Code}_{entry.Name}.asset");
+                Require(definition != null, "New lamp not authored: " + entry.Code);
+                var light = definition.GetAbility<BuildingLightingAbility>();
+                Require(light != null && light.intensity == 1 && light.radius == entry.Radius
+                    && definition.width == entry.Width
+                    && definition.GetAbility<BuildingPowerConsumerAbility>()?.demandPerSecond == entry.Power,
+                    "Lamp authored geometry/power differs: " + entry.Code);
+                using (var world = new TestWorld(45, 3, 20))
+                {
+                    world.Calendar.TimeOfDay = TimeOfDay.Night;
+                    var lamp = world.CreateAuthoredBuilding(definition, new Vector2Int(18, 1));
+                    world.Add(lamp);
+                    world.Advance(1);
+                    var target = lamp.centerPos + Vector2Int.right * entry.FullDistance;
+                    Require(world.Runtime.TryGetCell(target, out var lit) && lit.LightLevel >= 49.999f,
+                        "Authored lamp failed direct sufficient-light reach: " + entry.Code);
+                    Require(CropGrowthCycleAuthority.EvaluateLight(high, true, lit.LightLevel).GrowthMultiplier >= .9999f,
+                        "Actual lit field did not meet high crop requirement.");
+                    Require(world.Runtime.TryGetCell(lamp.centerPos, out var peak) && peak.LightLevel <= 100,
+                        "Lamp escaped existing100 field cap.");
+                    world.Power.Powered = false;
+                    world.Advance(40);
+                    Require(world.Runtime.TryGetCell(target, out var dark) && dark.LightLevel < lit.LightLevel - 5,
+                        "Power loss did not remove source from actual field.");
+                    world.Power.Powered = true;
+                    world.Advance(1);
+                    Require(world.Runtime.TryGetCell(target, out var restored) && restored.LightLevel >= 49.999f,
+                        "Power restoration did not recover authored crop coverage.");
+                    string saved = JsonUtility.ToJson(world.Runtime.Capture());
+                    world.Runtime.Restore(world.Runtime.PrepareRestore(JsonUtility.FromJson<DungeonEnvironmentalFieldSaveData>(saved)));
+                    Require(saved == JsonUtility.ToJson(world.Runtime.Capture()), "Existing field restore changed light.");
+                    lines.Add($"[PASS] {entry.Code} distance={entry.FullDistance};lit={lit.LightLevel:R};off={dark.LightLevel:R};restored={restored.LightLevel:R};field-roundtrip exact");
+                }
+            }
+            lines.Add("result=PASS");
+            report = string.Join("\n", lines);
+            return true;
+        }
+        catch (Exception error)
+        {
+            lines.Add("result=FAIL\n" + error);
+            report = string.Join("\n", lines);
+            return false;
+        }
+    }
+
+    public static void RunDoorContracts()
+    {
+        using (var world = new TestWorld(11, 1, 20f))
+        {
+            Door door = world.CreateDoor("door-state", new Vector2Int(5, 0));
+            world.Add(door);
+            world.Advance(1);
+            int structure = world.Grid.StructuralVersion;
+            var baseline = world.Runtime.Capture();
+            baseline.cells.Clear();
+            baseline.cells.Add(new EnvironmentalCellSaveData { x = 4, y = 0, temperatureC = 65, airQuality = 20, lightLevel = 30 });
+            world.Runtime.Restore(world.Runtime.PrepareRestore(baseline));
+            world.Advance(1);
+            Require(world.Runtime.TryGetCell(door.centerPos, out var closed), "Closed cell missing.");
+            string closedState = door.OperationStateModule.CaptureState();
+            Require(!door.OperationStateModule.TryRestoreState(1, "{}", out _)
+                && door.OperationStateModule.CaptureState() == closedState, "Invalid door payload mutated state.");
+            Require(door.OperationStateModule.TryRestoreState(1, "{\"state\":3}", out _), "Held-open restore failed.");
+            string heldState = door.OperationStateModule.CaptureState();
+            Require(door.OperationStateModule.TryRestoreState(1, heldState, out _)
+                && door.OperationStateModule.CaptureState() == heldState && door.IsHeldOpen, "Door state roundtrip changed.");
+            world.Runtime.Restore(world.Runtime.PrepareRestore(baseline));
+            world.Advance(1);
+            Require(world.Runtime.TryGetCell(door.centerPos, out var opened)
+                && opened.TemperatureC > closed.TemperatureC && opened.AirQuality < closed.AirQuality,
+                "Door open state did not change thermal/air exchange.");
+            Require(Math.Abs(opened.LightLevel - closed.LightLevel) < 0.0001f
+                && world.Grid.StructuralVersion == structure, "Door operation changed light or structural boundary.");
+            Require(door.OperationStateModule.TryRestoreState(1, closedState, out _), "Door closing restore failed.");
+            world.Runtime.Restore(world.Runtime.PrepareRestore(baseline));
+            world.Advance(1);
+            Require(world.Runtime.TryGetCell(door.centerPos, out var again)
+                && again.TemperatureC == closed.TemperatureC && again.AirQuality == closed.AirQuality,
+                "Restored closed door retained stale environmental mask.");
+            System.IO.Directory.CreateDirectory("Artifacts/QA/wim-implementation");
+            System.IO.File.WriteAllLines("Artifacts/QA/wim-implementation/wim-045-012-door-contracts.txt", new[]
+            {
+                "state-roundtrip-invalid-payload-atomic=PASS",
+                "actual-environment-adapter-open-close-restored-mask=PASS",
+                "structural-revision-light-invariant=PASS",
+                $"closed-temperature={closed.TemperatureC};open-temperature={opened.TemperatureC}",
+                $"closed-air={closed.AirQuality};open-air={opened.AirQuality}",
+                "scope=explicit-world-and-module-restore-fixture;main-movement-not-covered", "result=PASS"
+            });
+        }
+    }
+
+    public static bool RunFacilityOperatingFuelFocused(out string report)
+    {
+        var lines = new List<string>
+        {
+            "Facility-local operating fuel / actual environmental step",
+            "scope=controlled initial facility state and clock; real field/Light2D/state module",
+            "not-tested=physical delivery/sink ACK, full-world restore, daily event or six-adult balance"
+        };
+        try
+        {
+            using var world = new TestWorld(30, 3, 20f);
+            var first = world.CreateBuilding("fuel-first", new Vector2Int(5, 1),
+                new BuildingLightingAbility { intensity = 1f, radius = 1 },
+                new BuildingFuelConsumerAbility());
+            var second = world.CreateBuilding("fuel-second", new Vector2Int(15, 1),
+                new BuildingLightingAbility { intensity = 1f, radius = 1 },
+                new BuildingFuelConsumerAbility());
+            var intrinsic = world.CreateBuilding("fuel-independent", new Vector2Int(25, 1),
+                new BuildingLightingAbility { intensity = 1f, radius = 1 });
+            world.Add(first); world.Add(second); world.Add(intrinsic);
+            bool Visible(BuildableObject building) => building
+                .GetComponentInChildren<UnityEngine.Rendering.Universal.Light2D>(true).enabled;
+            float Remaining() => first.FacilityState.remainingFuelGameSeconds;
+            void Expect(float expected, string reason) =>
+                Require(Mathf.Abs(Remaining() - expected) < .001f, reason + "; actual=" + Remaining());
+            world.Advance(1);
+            Require(!Visible(first) && !Visible(second) && Visible(intrinsic),
+                "Empty local fuel or independent light was misclassified.");
+            // Initial state is an explicit fixture, not a claimed fuel-delivery result.
+            first.RestoreFacilityState(new FacilityRuntimeState { remainingFuelGameSeconds = 180f });
+            world.Advance(1);
+            Expect(179f, "One real field step must consume one operating second");
+            Require(Visible(first) && !Visible(second) && second.FacilityState.remainingFuelGameSeconds == 0f,
+                "One fixture's charge enabled another fuel consumer.");
+            world.Calendar.Day = 2;
+            world.Advance(1);
+            Expect(178f, "Changing calendar day expired or refilled a facility");
+            for (int query = 0; query < 5; query++)
+            {
+                _ = world.Environment.HasFuelSupply(first);
+                _ = world.Runtime.TryGetCell(first.centerPos, out _);
+                _ = first.FacilityState.Clone();
+            }
+            Expect(178f, "Read-only observation consumed fuel");
+            world.SetPaused(true);
+            world.Advance(3);
+            Expect(178f, "Paused frames consumed fuel");
+            world.SetPaused(false);
+            first.enabled = false;
+            world.Advance(3);
+            Expect(178f, "Disabled facility consumed fuel");
+            Require(!Visible(first), "Disabled fuel light still emits.");
+            first.enabled = true;
+            world.Advance(1);
+            Expect(177f, "Re-enabled facility did not resume its retained fuel");
+            lines.Add("[PASS] local-only light; running180->179->178; calendar/query/pause/disable retain fuel; resume177");
+
+            var module = new FacilityRuntimeStateModule(first);
+            string saved = module.CaptureState();
+            Require(module.TryRestoreState(module.CurrentVersion, saved, out string restoreFailure),
+                "Current facility module failed: " + restoreFailure);
+            Require(module.CaptureState() == saved, "Current module restore replayed a charge.");
+            var invalid = JsonUtility.FromJson<FacilityRuntimeState>(saved);
+            invalid.remainingFuelGameSeconds = -1f;
+            Require(!module.TryRestoreState(module.CurrentVersion, JsonUtility.ToJson(invalid), out _)
+                    && module.CaptureState() == saved,
+                "Negative remaining fuel restored or partially changed the facility.");
+            Require(!module.TryRestoreState(module.CurrentVersion + 1, saved, out _)
+                    && module.CaptureState() == saved,
+                "Unsupported module version changed the facility.");
+            // The mutation is internal to the production assembly; reflection is
+            // confined to this invalid-input boundary test, not gameplay preparation.
+            var replaceFuel = typeof(BuildableObject).GetMethod("ReplaceFacilityFuelState",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Require(replaceFuel != null, "Missing actual facility fuel mutation boundary.");
+            bool mutationRejected = false;
+            try
+            {
+                replaceFuel.Invoke(first, new object[]
+                {
+                    15f, 1, new FacilityFuelCommitState { phase = 999 }
+                });
+            }
+            catch (System.Reflection.TargetInvocationException error)
+            {
+                mutationRejected = error.InnerException is InvalidOperationException;
+            }
+            Require(mutationRejected && module.CaptureState() == saved,
+                "Invalid fuel mutation published partial state before rejection.");
+            world.Advance(177);
+            Expect(0f, "Fuel did not exhaust after the remaining operating time");
+            Require(!first.HasFacilityFuelSupply && !second.HasFacilityFuelSupply,
+                "Exhausted/never-charged facilities still have fuel supply.");
+            world.Advance(1);
+            Require(!Visible(first) && !Visible(second) && Visible(intrinsic),
+                "Exhaustion did not remove only the fuel-bound light.");
+            lines.Add("[PASS] exact current module round-trip; negative/version/invalid-mutation rejection unchanged; running exhaustion without refill/replay");
+            lines.Add("result=PASS");
+        }
+        catch (Exception error) { lines.Add("result=FAIL\n" + error); }
+        report = string.Join("\n", lines);
+        return lines.Last() == "result=PASS";
+    }
+
+    public static void RunLightingOnly()
+    {
+        using (var world = new TestWorld(30, 3, 20f))
+        {
+            var electric = world.CreateBuilding("electric", new Vector2Int(4, 1),
+                new BuildingLightingAbility { intensity = 1, radius = 1 }, new BuildingPowerConsumerAbility());
+            var fuel = world.CreateBuilding("fuel", new Vector2Int(14, 1),
+                new BuildingLightingAbility { intensity = 1, radius = 1 }, new BuildingFuelConsumerAbility());
+            var intrinsic = world.CreateBuilding("intrinsic", new Vector2Int(24, 1),
+                new BuildingLightingAbility { intensity = 1, radius = 1 });
+            world.Add(electric); world.Add(fuel); world.Add(intrinsic);
+            world.Power.Powered = false;
+            world.Advance(2);
+            bool Visible(BuildableObject building) => building.GetComponentInChildren<UnityEngine.Rendering.Universal.Light2D>(true).enabled;
+            float Level(BuildableObject building)
+            {
+                Require(world.Runtime.TryGetCell(building.centerPos, out var cell), "Missing light cell.");
+                return cell.LightLevel;
+            }
+            Require(!Visible(electric) && !Visible(fuel) && Visible(intrinsic), "Source availability did not reach Light2D.");
+            float darkElectric = Level(electric), darkFuel = Level(fuel);
+            Require(Level(intrinsic) > darkElectric, "Intrinsic light was incorrectly power/fuel gated.");
+            world.Power.Powered = true;
+            fuel.RestoreFacilityState(new FacilityRuntimeState { remainingFuelGameSeconds = 180f });
+            world.Advance(2);
+            Require(Visible(electric) && Visible(fuel) && Level(electric) > darkElectric
+                && Level(fuel) > darkFuel, "Restored supply did not increase actual field light and visual.");
+            float litElectric = Level(electric), litFuel = Level(fuel);
+            world.Power.Powered = false;
+            fuel.RestoreFacilityState(new FacilityRuntimeState());
+            world.Advance(4);
+            Require(!Visible(electric) && !Visible(fuel) && Level(electric) < litElectric
+                && Level(fuel) < litFuel && Visible(intrinsic), "Supply loss did not remove emission.");
+            intrinsic.enabled = false;
+            world.Advance(1);
+            Require(!Visible(intrinsic), "Disabled light source still emits.");
+            intrinsic.enabled = true;
+            world.Advance(1);
+            Require(Visible(intrinsic), "Re-enabled intrinsic light did not recover.");
+            string captured = JsonUtility.ToJson(world.Runtime.Capture());
+            world.Runtime.Restore(world.Runtime.PrepareRestore(JsonUtility.FromJson<DungeonEnvironmentalFieldSaveData>(captured)));
+            Require(JsonUtility.ToJson(world.Runtime.Capture()) == captured, "Light field serialized round trip differs.");
+        }
+        using (var world = new TestWorld(12, 3, 20f))
+        {
+            var exhaust = world.CreateBuilding("powered-air", new Vector2Int(5, 1),
+                new BuildingAirExchangeAbility { targetAirQuality = 20f, qualityPerSecond = 20f,
+                    radius = 1, exchangesWithOutside = false, requiresPower = true });
+            world.Add(exhaust);
+            world.Power.Powered = false;
+            world.Advance(2);
+            Require(world.Runtime.TryGetCell(exhaust.centerPos, out var off), "Air cell missing.");
+            world.Power.Powered = true;
+            world.Advance(2);
+            Require(world.Runtime.TryGetCell(exhaust.centerPos, out var on) && on.AirQuality < off.AirQuality,
+                "Existing powered air source no longer follows supply.");
+            world.Power.Powered = false;
+            world.Advance(2);
+            Require(world.Runtime.TryGetCell(exhaust.centerPos, out var recovered) && recovered.AirQuality >= on.AirQuality,
+                "Unpowered air source still contributes.");
+        }
+        Require(VerifyThermalSource() && VerifySaveRoundTrip(), "Existing thermal source/save regression failed.");
+        var authored = new List<string>();
+        foreach (string guid in AssetDatabase.FindAssets("t:BuildingSO", new[] { "Assets/Resources/SO/Building" }))
+        {
+            var definition = AssetDatabase.LoadAssetAtPath<BuildingSO>(AssetDatabase.GUIDToAssetPath(guid));
+            if (definition == null || definition.GetAbility<BuildingLightingAbility>() == null) continue;
+            authored.Add(definition.name + ":power=" + (definition.GetAbility<BuildingPowerConsumerAbility>() != null)
+                + ";fuel=" + (definition.GetAbility<BuildingFuelConsumerAbility>() != null));
+        }
+        authored.Sort(StringComparer.Ordinal);
+        Require(authored.Count > 0, "No authored lighting capabilities found.");
+        System.IO.Directory.CreateDirectory("Artifacts/QA/wim-implementation");
+        System.IO.File.WriteAllLines("Artifacts/QA/wim-implementation/wim-011-light-contracts.txt", new[]
+        {
+            "electric-and-fuel-off-on-field-and-Light2D=PASS",
+            "unpowered-intrinsic-and-disabled-reenabled-source=PASS",
+            "field-serialized-round-trip=PASS", "existing-thermal-air-and-save=PASS",
+            "authored-capability-count=" + authored.Count, string.Join("\n", authored),
+            "scope=real-environment-adapter-with-explicit-test-power-and-fuel-inputs", "result=PASS"
+        });
+    }
+
     [MenuItem("DungeonStory/Debug/Run Environmental Field Scenarios")]
     public static void RunAll()
     {
@@ -312,6 +662,7 @@ public static class EnvironmentalFieldDebugScenarios
             },
             equippedWorkwear = Array.Empty<EnvironmentalWorkwearSaveData>(),
             equippedApparel = Array.Empty<EquippedApparelSaveData>(),
+            apparelPolicies = Array.Empty<CharacterApparelPolicySaveData>(),
             apparelWorkOrders = Array.Empty<ApparelWorkOrderSaveData>(),
             apparelWorkOrderTerminalStates =
                 Array.Empty<ApparelWorkOrderTerminalStateSaveData>()
@@ -340,6 +691,7 @@ public static class EnvironmentalFieldDebugScenarios
             exposures = Array.Empty<CharacterEnvironmentExposure>(),
             equippedWorkwear = Array.Empty<EnvironmentalWorkwearSaveData>(),
             equippedApparel = Array.Empty<EquippedApparelSaveData>(),
+            apparelPolicies = Array.Empty<CharacterApparelPolicySaveData>(),
             apparelWorkOrders = Array.Empty<ApparelWorkOrderSaveData>(),
             apparelWorkOrderTerminalStates =
                 Array.Empty<ApparelWorkOrderTerminalStateSaveData>()
@@ -862,24 +1214,47 @@ public static class EnvironmentalFieldDebugScenarios
         public TestWorld(int width, int height, float outdoorTemperature)
         {
             Grid = new Grid(width, height);
+            Environment = new TestEnvironment(outdoorTemperature);
             Runtime = new EnvironmentalFieldRuntimeApplicationAdapter(
                 new TestGridProvider(Grid),
                 buildings,
-                new TestEnvironment(outdoorTemperature),
-                new AlwaysPoweredRuntime(),
+                Environment,
+                Power,
                 clock,
+                Calendar,
                 new EnvironmentalFieldAggregateStateStore(
                     new DungeonRuntimeAggregateRootStore()),
                 new RestoreWorldCandidateIndex());
         }
 
         public Grid Grid { get; }
+        public TestEnvironment Environment { get; }
+        public ControlledCalendar Calendar { get; } = new ControlledCalendar();
+        public AlwaysPoweredRuntime Power { get; } = new AlwaysPoweredRuntime();
         public EnvironmentalFieldRuntimeApplicationAdapter Runtime { get; }
 
         public BuildableObject CreateBuilding(
             string name,
             Vector2Int position,
-            BuildingAbility ability)
+            params BuildingAbility[] abilities)
+            => CreateBuildingCore(name, position, false, abilities);
+
+        public Door CreateDoor(string name, Vector2Int position)
+            => (Door)CreateBuildingCore(name, position, true, Array.Empty<BuildingAbility>());
+
+        public BuildableObject CreateAuthoredBuilding(BuildingSO definition, Vector2Int position)
+        {
+            var gameObject = new GameObject("Wim016_" + definition.name);
+            objects.Add(gameObject);
+            var building = gameObject.AddComponent<BuildableObject>();
+            building.RestorePersistentIdentity(new BuildingInstanceId("building:test:wim016:" + definition.id));
+            CharacterAiEditorTestDependencies.Inject(building);
+            building.SetGrid(Grid);
+            building.Initialization(definition, position);
+            return building;
+        }
+
+        private BuildableObject CreateBuildingCore(string name, Vector2Int position, bool door, BuildingAbility[] abilities)
         {
             BuildingSO data = ScriptableObject.CreateInstance<BuildingSO>();
             data.name = name;
@@ -890,15 +1265,16 @@ public static class EnvironmentalFieldDebugScenarios
             data.category = BuildingCategory.Shop;
             data.runtimeArchetype = BuildingRuntimeArchetypeKind.Generic;
             data.ReplaceAbilities(new BuildingAbilityCollection());
-            data.AbilityModules.Add(ability);
+            foreach (var ability in abilities) data.AbilityModules.Add(ability);
             GameObject gameObject = new GameObject(name);
             objects.Add(gameObject);
             objects.Add(data);
             BuildableObject building =
-                gameObject.AddComponent<BuildableObject>();
+                door ? gameObject.AddComponent<InteriorDoor>() : gameObject.AddComponent<BuildableObject>();
             building.RestorePersistentIdentity(new BuildingInstanceId(
                 $"building:test:environment:{name}:{position.x}:{position.y}"));
             CharacterAiEditorTestDependencies.Inject(building);
+            building.SetGrid(Grid);
             building.Initialization(data, position);
             return building;
         }
@@ -917,6 +1293,8 @@ public static class EnvironmentalFieldDebugScenarios
                 Runtime.Tick();
             }
         }
+
+        public void SetPaused(bool paused) => clock.IsPaused = paused;
 
         public void Dispose()
         {
@@ -941,6 +1319,7 @@ public static class EnvironmentalFieldDebugScenarios
                 exposures = Array.Empty<CharacterEnvironmentExposure>(),
                 equippedWorkwear = Array.Empty<EnvironmentalWorkwearSaveData>(),
                 equippedApparel = Array.Empty<EquippedApparelSaveData>(),
+                apparelPolicies = Array.Empty<CharacterApparelPolicySaveData>(),
                 apparelWorkOrders = Array.Empty<ApparelWorkOrderSaveData>(),
                 apparelWorkOrderTerminalStates =
                     Array.Empty<ApparelWorkOrderTerminalStateSaveData>()
@@ -1075,6 +1454,10 @@ public static class EnvironmentalFieldDebugScenarios
 
     private sealed class TestEnvironment : ISurvivalEnvironmentQuery
     {
+        public bool HasFuelSupply(BuildableObject building) =>
+            building != null && building.HasFacilityFuelSupply;
+        public float GetRemainingFuelGameSeconds(BuildableObject building) =>
+            building != null ? building.FacilityState.remainingFuelGameSeconds : 0f;
         private readonly float temperature;
 
         public TestEnvironment(float temperature)
@@ -1093,28 +1476,47 @@ public static class EnvironmentalFieldDebugScenarios
         }
     }
 
+    private sealed class ControlledCalendar : IGameCalendar
+    {
+        public int Day { get; set; } = 1;
+        public int Hour => TimeOfDay == global::TimeOfDay.Night ? 22 : 12;
+        public int Year => 1;
+        public int DayOfYear => 1;
+        public Season Season => global::Season.Spring;
+        public int DayOfSeason => 1;
+        public long AbsoluteHour => Hour;
+        public float ElapsedSeconds => Hour * GameCalendarRules.SecondsPerGameHour;
+        public TimeOfDay TimeOfDay { get; set; } = global::TimeOfDay.Noon;
+        public bool IsRunning => true;
+        public CalendarDateTime Current => GameCalendarRules.Project(Day, Hour);
+        public CalendarDateTime GetRegionalTime(int offset) => GameCalendarRules.ProjectRegional(Day, Hour, offset);
+        public void Start() { }
+        public void SetDateTime(int day, int hour) => throw new NotSupportedException("Use the controlled phase input.");
+    }
+
     private sealed class MutableClock : IGameClock
     {
         public float DeltaTime { get; private set; }
         public float Time { get; private set; }
         public int FrameCount { get; private set; }
-        public bool IsPaused => false;
+        public bool IsPaused { get; set; }
 
         public void Advance(float deltaTime)
         {
-            DeltaTime = deltaTime;
-            Time += deltaTime;
+            DeltaTime = IsPaused ? 0f : deltaTime;
+            Time += DeltaTime;
             FrameCount++;
         }
     }
 
     private sealed class AlwaysPoweredRuntime : IPowerInfrastructureQuery
     {
+        public bool Powered { get; set; } = true;
         public int Version => 0;
         public IReadOnlyList<PowerNetworkSnapshot> Networks =>
             Array.Empty<PowerNetworkSnapshot>();
 
-        public bool IsPowered(BuildableObject building) => true;
+        public bool IsPowered(BuildableObject building) => Powered;
 
         public bool TryGetNode(
             BuildableObject building,

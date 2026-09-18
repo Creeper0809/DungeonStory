@@ -318,7 +318,9 @@ public static class OffenseWorldMapDebugScenarios
                 externalInfluence: null,
                 campaign,
                 campaign,
-                catalog ?? OffenseEditorTestDependencies.CreateCampaignCatalog());
+                catalog ?? OffenseEditorTestDependencies.CreateCampaignCatalog(),
+                EditorNoOpOffenseOutcomeCommitter.Instance,
+                EditorFixedGameCalendar.Instance);
             Runtime.StartWorldMap();
         }
 

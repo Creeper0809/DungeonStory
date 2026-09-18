@@ -42,6 +42,14 @@ public sealed class DoorAccessPanelPresenter : IDoorAccessPanelPresenter
         }
 
         AddHeader(parent, "문 사용 권한", font, created);
+        AddHeader(parent, door.IsHeldOpen ? "문 열림 유지" : door.IsOpen ? "문 열림 · 통과 후 닫힘" : "문 닫힘 · 허용된 이동자가 열고 통과", font, created);
+        GameObject operationRow = CreateRow(parent, "DoorOperation", 42f);
+        created.Add(operationRow);
+        AddButton(operationRow.transform, door.IsHeldOpen ? "자동 닫힘" : "열림 유지", font, () =>
+        {
+            commands.SetHeldOpen(door, !door.IsHeldOpen);
+            refresh?.Invoke();
+        });
         AddPresetRow(parent, door, font, refresh, created);
         AddGroupToggles(parent, door, font, refresh, created);
         AddCommandRow(parent, door, font, refresh, created);

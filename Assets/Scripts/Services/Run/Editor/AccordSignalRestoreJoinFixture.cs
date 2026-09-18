@@ -14,7 +14,63 @@ public static class AccordSignalRestoreJoinFixture
         RunMilestonesSaveSection.ValidateAccordSignalPhysicalJoin(owner,new Query(receipt));
         Reject(owner,new Query()); Reject(new RunMilestoneWorldSaveData(),new Query(receipt));
         Reject(owner,new Query(new PhysicalItemRestoreCandidateDispositionSnapshot(PhysicalItemDispositionKind.Sink,op,"alliance-signal-kit-consumed","fixture",new[]{source},1,grams+1,commit)));
+        VerifyCommittedChoicesRawShape();
         VerifyAcknowledgementRecovery();
+    }
+    private static void VerifyCommittedChoicesRawShape()
+    {
+        V20StoryContentCatalog catalog = new(
+            new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+        V20CampaignRuntime runtime = new(
+            new DungeonRuntimeAggregateRootStore(),
+            catalog);
+        RunMilestonesSaveSection section = new(runtime, new Query());
+        string captured = section.Capture();
+        section.ValidatePayload(
+            captured,
+            section.SectionVersion,
+            new DungeonGameRestoreReport());
+
+        string missing = ReplaceRequired(
+            captured,
+            "\"committedChoices\":[],",
+            string.Empty);
+        string explicitNull = ReplaceRequired(
+            captured,
+            "\"committedChoices\":[]",
+            "\"committedChoices\":null");
+        RejectRaw(section, missing);
+        RejectRaw(section, explicitNull);
+    }
+    private static string ReplaceRequired(
+        string source,
+        string oldValue,
+        string newValue)
+    {
+        string replaced = source.Replace(oldValue, newValue);
+        if (string.Equals(source, replaced, StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                $"Expected JSON token '{oldValue}' was not captured.");
+        return replaced;
+    }
+    private static void RejectRaw(
+        RunMilestonesSaveSection section,
+        string payloadJson)
+    {
+        try
+        {
+            section.ValidatePayload(
+                payloadJson,
+                section.SectionVersion,
+                new DungeonGameRestoreReport());
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+
+        throw new InvalidOperationException(
+            "Run milestone raw JSON accepted missing/null committed choices.");
     }
     private static void VerifyAcknowledgementRecovery()
     {

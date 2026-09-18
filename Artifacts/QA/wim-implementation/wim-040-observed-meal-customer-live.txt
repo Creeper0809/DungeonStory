@@ -1,0 +1,15 @@
+PASS actual Customer/physical meal callback; quantityDelta=-1; target=character:world:1:000014; operation=consumable-operation:auto:v1:0000000000000001; instance=event:1:service-incident:forbiddenmeal:2EA95740; observedCause=실제 식사 정책 위반 확인 · 대상 character:world:1:000014 · 식사 food:lavish-meat · 스택 stack:80da81b7ca2247ea83f3b4f626783caa · 장소 야전 식사 (17, 0)
+PASS callback exact replay, mismatched operation and non-Customer probes leave Society/meal/hunger unchanged
+PASS missing incoming visitor rejected atomically; validators=Failed to stage section 'survival.character-consumables': Character consumables restore payload rejected: Character consumables diet policies contain an invalid, unknown, duplicate, or unordered CharacterId. | Character consumables meal-quality policies contain invalid, duplicate, or unordered state. | Character consumables operation ledger contains an invalid, unknown, duplicate, or unordered operation/reference.
+PASS incoming orphan Customer rejected despite live incident ownership; CharacterWorld/Society/items/money unchanged
+PASS current whole JSON restore preserves exact incident-owned Customer/frozen cause/consumed meal
+PASS real compensation dispatcher -60 once; exact visitor ownership released; no physical/financial replay
+PASS controlled public exit handoff retains active contamination Customer at the same cell; not a natural exit-path claim
+PASS actual contaminated physical meal -> Contamination owner/notice; consumed stock remains -1 and current whole restore does not replay it
+PASS Contamination uses its own authored quarantine choice; transfer is not dispatched against the wrong incident kind
+DIAG transfer-start patient lifecycle=Downed;isDead=False;stats=67.25/100;bodyDowned=True;torso=9.25/45;bloodLoss=0;orderState=AwaitingRescue;stabilized=True;carried=False
+PASS started emergency transfer save captured exact Society/medical provenance; foreign parent operation restore rejected atomically
+PASS MedicalCollapse transfer stayed pending; actual staff AIRescue stabilized/carried the exact Downed Customer into frozen M11; medical-order arrival receipt published effects once
+result=PASS
+scope=real Orc Customer spawn/entry, physical emergency field-meal commands, controlled above-threshold torso precondition, actual contaminated-meal body collapse and staff AIRescue transfer to a controlled authored M11 placement. Contaminated stock is a controlled existing physical seed, not a natural spoilage claim. The M11 placement is test preparation, not construction-balance or completed-treatment evidence. Not natural restaurant scheduling, tribal taboo ingredient or other incident causes. Invalid replay bus inputs are controlled negative probes.
+cleanup=paused disposable main Play; operator stops; disk persistence disabled before party selection

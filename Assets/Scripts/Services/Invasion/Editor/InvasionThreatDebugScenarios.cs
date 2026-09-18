@@ -5,7 +5,7 @@ using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
 
-public static class InvasionThreatDebugScenarios
+public static partial class InvasionThreatDebugScenarios
 {
     [MenuItem("DungeonStory/Debug/Invasion/Run P1 Threat Scenarios")]
     public static void RunFromMenu()
@@ -250,8 +250,40 @@ public static class InvasionThreatDebugScenarios
             worldThreatModifiers: null,
             experiencePacing: null,
             aggregateStateStore: new InvasionAggregateStateStore(
-                new DungeonRuntimeAggregateRootStore()));
+                new DungeonRuntimeAggregateRootStore()),
+            endlessCrisis: NeutralEndlessCrisisQuery.Instance,
+            endlessCrisisCommands: NeutralEndlessCrisisQuery.Instance,
+            calendar: new FixedCalendar());
         return runtime;
+    }
+
+    private sealed class FixedCalendar : IGameCalendar
+    {
+        private int day = 1;
+        private int hour;
+
+        public int Day => day;
+        public int Hour => hour;
+        public int Year => Current.Year;
+        public int DayOfYear => Current.DayOfYear;
+        public Season Season => Current.Season;
+        public int DayOfSeason => Current.DayOfSeason;
+        public long AbsoluteHour => Current.AbsoluteHour;
+        public float ElapsedSeconds =>
+            hour / (float)GameCalendarRules.HoursPerDay
+            * GameCalendarRules.SecondsPerDay;
+        public TimeOfDay TimeOfDay => TimeOfDay.Noon;
+        public bool IsRunning { get; private set; }
+        public CalendarDateTime Current =>
+            GameCalendarRules.Project(day, hour);
+        public CalendarDateTime GetRegionalTime(int utcOffsetHours) =>
+            GameCalendarRules.ProjectRegional(day, hour, utcOffsetHours);
+        public void Start() => IsRunning = true;
+        public void SetDateTime(int nextDay, int nextHour)
+        {
+            day = System.Math.Max(1, nextDay);
+            hour = System.Math.Clamp(nextHour, 0, 23);
+        }
     }
 
     private static void ConfigureFastSettings(InvasionThreatRuntime runtime)

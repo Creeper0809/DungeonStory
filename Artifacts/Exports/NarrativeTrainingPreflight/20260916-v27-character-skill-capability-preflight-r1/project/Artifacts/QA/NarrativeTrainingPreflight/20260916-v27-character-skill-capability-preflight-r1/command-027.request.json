@@ -1,0 +1,15 @@
+{
+  "arguments": [
+    "C:\\Users\\vulpo\\AppData\\Local\\Microsoft\\WindowsApps\\unity.EXE",
+    "job",
+    "wait",
+    "74c43c249099422e8fc5d66aa34ae36e",
+    "--timeout",
+    "40",
+    "--project-path",
+    "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory",
+    "--format",
+    "json"
+  ],
+  "cwd": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory"
+}

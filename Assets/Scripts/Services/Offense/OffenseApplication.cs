@@ -52,11 +52,11 @@ public sealed class OffenseApplication : IOffenseQuery, IOffenseApplication
     private readonly IOffensePanelService panelService;
     private readonly OffenseExpeditionRuntime expedition;
     private readonly OffenseRewardRuntime reward;
-    private readonly BlueprintResearchState researchState;
+    private readonly IBlueprintResearchStateService researchStateService;
 
     public OffenseApplication(
         OffenseSceneRuntimeReferences runtimeReferences,
-        ProgressionSceneRuntimeReferences progressionRuntimes,
+        IBlueprintResearchStateService researchStateService,
         IOffenseCampaignQuery campaign,
         IOffenseCampaignCommands campaignCommands,
         IOffensePanelService panelService)
@@ -75,9 +75,8 @@ public sealed class OffenseApplication : IOffenseQuery, IOffenseApplication
         reward = runtimeReferences.Rewards
             ?? throw new InvalidOperationException(
                 $"{nameof(OffenseApplication)} requires a loaded {nameof(OffenseRewardRuntime)}.");
-        researchState = OffenseExpeditionAccessRules.RequireState(
-            progressionRuntimes,
-            nameof(OffenseApplication));
+        this.researchStateService = researchStateService
+            ?? throw new ArgumentNullException(nameof(researchStateService));
     }
 
     public OffenseCampaignSnapshot Capture()
@@ -87,6 +86,9 @@ public sealed class OffenseApplication : IOffenseQuery, IOffenseApplication
             return OffenseCampaignSnapshot.Unavailable;
         }
 
+        BlueprintResearchState researchState = researchStateService.GetState()
+            ?? throw new InvalidOperationException(
+                $"{nameof(OffenseApplication)} requires a current {nameof(BlueprintResearchState)}.");
         bool canLaunchExpedition = OffenseExpeditionAccessRules.IsUnlocked(researchState);
         return new OffenseCampaignSnapshot
         {
@@ -139,6 +141,9 @@ public sealed class OffenseApplication : IOffenseQuery, IOffenseApplication
             return false;
         }
 
+        BlueprintResearchState researchState = researchStateService.GetState()
+            ?? throw new InvalidOperationException(
+                $"{nameof(OffenseApplication)} requires a current {nameof(BlueprintResearchState)}.");
         if (!OffenseExpeditionAccessRules.IsUnlocked(researchState))
         {
             message = OffenseExpeditionAccessRules.BlockerMessage;
@@ -180,6 +185,9 @@ public sealed class OffenseApplication : IOffenseQuery, IOffenseApplication
             return false;
         }
 
+        BlueprintResearchState researchState = researchStateService.GetState()
+            ?? throw new InvalidOperationException(
+                $"{nameof(OffenseApplication)} requires a current {nameof(BlueprintResearchState)}.");
         if (!OffenseExpeditionAccessRules.IsUnlocked(researchState))
         {
             message = OffenseExpeditionAccessRules.BlockerMessage;

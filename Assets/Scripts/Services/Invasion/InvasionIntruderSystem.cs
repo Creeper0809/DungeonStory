@@ -57,6 +57,9 @@ public class InvasionIntruderRuntime :
     private float restoredTrappedSeconds;
     private bool restoredEnragedBreach;
     private EnemyIndividualSaveData enemyIndividual;
+    private string preparedEnemyArchetypeId = string.Empty;
+    private InvasionCommittedWarningProjection committedWarningProjection;
+    private bool hasCommittedWarningProjection;
     private InvasionIntruderExecutionCoordinator executionCoordinator;
     private InvasionIntruderRestoreCoordinator restoreCoordinator;
     private ICharacterPerformanceQuery performance;
@@ -82,6 +85,8 @@ public class InvasionIntruderRuntime :
     public int FacilityDamageCount => facilityDamageCount;
     public string RuntimeId => runtimeId;
     public EnemyIndividualSaveData EnemyIndividual => enemyIndividual?.Clone();
+    public float WarningRallySecondsRemaining =>
+        Mathf.Max(0f, rallyRemainingSeconds);
     public string RaidId => InvasionIntruderCombatRules.ResolveRaidId(settings, runtimeId);
     public InvasionOperationKind OperationKind =>
         settings?.operationKind ?? InvasionOperationKind.FrontalAssault;
@@ -100,6 +105,13 @@ public class InvasionIntruderRuntime :
     public int BreachAttackerCount => currentBreachTarget != null
         ? breachPlanner?.GetReservedAttackerCount(currentBreachTarget) ?? 1
         : 0;
+
+    public bool TryGetCommittedWarningProjection(
+        out InvasionCommittedWarningProjection projection)
+    {
+        projection = committedWarningProjection;
+        return hasCommittedWarningProjection;
+    }
 
     public event Action<InvasionIntruderRuntime> OnFinished;
 
@@ -253,16 +265,21 @@ public class InvasionIntruderRuntime :
     void IInvasionIntruderRestorePort.ClearBreachState() => ClearBreachState();
     void IInvasionIntruderRestorePort.RefreshPathRandomStream() =>
         pathRandomStream = ResolvePathRandomStream();
-    void IInvasionIntruderRestorePort.StartRestoredInside() =>
+    void IInvasionIntruderRestorePort.StartRestoredInside()
+    {
+        CommitWarningProjection();
         routine = StartCoroutine(RunInside());
+    }
     void IInvasionIntruderRestorePort.StartRestoredEntry(
-        Vector3 doorPosition,
-        Vector2Int gridPosition,
-        bool includeRally) =>
+        InvasionIntruderEntry entry,
+        bool includeRally)
+    {
+        CommitWarningProjection(entry);
         routine = StartCoroutine(Run(
-            doorPosition,
-            gridPosition,
+            entry.DoorPosition,
+            entry.GridPosition,
             includeRally));
+    }
 
     public void SetEngagementState(bool engaged, Vector2Int? holdCell = null)
     {
@@ -389,7 +406,8 @@ public class InvasionIntruderRuntime :
         Vector2Int? finalDefenseTarget = null,
         bool isBoss = false,
         EnemyIndividualBlueprint individualBlueprint = null,
-        string preparedRuntimeId = "")
+        string preparedRuntimeId = "",
+        string selectedEnemyArchetypeId = "")
     {
         if (routine != null)
         {
@@ -427,6 +445,10 @@ public class InvasionIntruderRuntime :
         transform.position = outsidePosition;
         intruderActor.SetLifecycleState(CharacterLifecycleState.SpawningOutside);
         enemyIndividual = individualBlueprint?.SaveData.Clone();
+        preparedEnemyArchetypeId = selectedEnemyArchetypeId?.Trim()
+            ?? string.Empty;
+        committedWarningProjection = default;
+        hasCommittedWarningProjection = false;
         if (individualBlueprint != null)
         {
             intruderActor.Initialize(data, individualBlueprint.SpawnRequest);
@@ -446,6 +468,28 @@ public class InvasionIntruderRuntime :
         Vector3 entryDoorPosition,
         Vector2Int entryGridPosition)
     {
+        StartPrepared(
+            entryDoorPosition,
+            entryGridPosition,
+            outsidePosition: default,
+            hasEntryGeometry: false);
+    }
+
+    public void StartPrepared(InvasionIntruderEntry entry)
+    {
+        StartPrepared(
+            entry.DoorPosition,
+            entry.GridPosition,
+            entry.OutsidePosition,
+            hasEntryGeometry: true);
+    }
+
+    private void StartPrepared(
+        Vector3 entryDoorPosition,
+        Vector2Int entryGridPosition,
+        Vector3 outsidePosition,
+        bool hasEntryGeometry)
+    {
         if (!gameObject.activeInHierarchy
             || intruderActor == null
             || intruderActor.Identity?.Data == null)
@@ -454,10 +498,53 @@ public class InvasionIntruderRuntime :
                 "An invasion intruder must be initialized and published before execution starts.");
         }
 
+        CommitWarningProjection(
+            entryDoorPosition,
+            entryGridPosition,
+            outsidePosition,
+            hasEntryGeometry);
         routine = StartCoroutine(Run(entryDoorPosition, entryGridPosition, includeRally: true));
         raidAwareness?.IdentifyOperation(
             InvasionIntruderCombatRules.ResolveRaidId(settings, runtimeId),
             Pattern.preferredFacilityFamilyIds.Count > 0 ? 2 : 1);
+    }
+
+    private void CommitWarningProjection()
+    {
+        CommitWarningProjection(
+            doorPosition: default,
+            entryGridPosition: default,
+            outsidePosition: default,
+            hasEntryGeometry: false);
+    }
+
+    private void CommitWarningProjection(InvasionIntruderEntry entry)
+    {
+        CommitWarningProjection(
+            entry.DoorPosition,
+            entry.GridPosition,
+            entry.OutsidePosition,
+            hasEntryGeometry: true);
+    }
+
+    private void CommitWarningProjection(
+        Vector3 doorPosition,
+        Vector2Int entryGridPosition,
+        Vector3 outsidePosition,
+        bool hasEntryGeometry)
+    {
+        committedWarningProjection = new InvasionCommittedWarningProjection(
+            RaidId,
+            OperationKind,
+            string.IsNullOrWhiteSpace(preparedEnemyArchetypeId)
+                ? enemyIndividual?.enemyArchetypeId?.Trim()
+                : preparedEnemyArchetypeId,
+            Pattern?.title,
+            entryGridPosition,
+            outsidePosition,
+            doorPosition,
+            hasEntryGeometry);
+        hasCommittedWarningProjection = true;
     }
 
     public InvasionIntruderPersistenceState CapturePersistentState(Grid grid)
@@ -510,6 +597,8 @@ public class InvasionIntruderRuntime :
         out string warning)
     {
         enemyIndividual = individualBlueprint?.SaveData.Clone();
+        preparedEnemyArchetypeId = enemyIndividual?.enemyArchetypeId?.Trim()
+            ?? string.Empty;
         return RestoreCoordinator.TryPrepare(
             data,
             source,
@@ -656,7 +745,10 @@ public class InvasionIntruderRuntime :
             targetName: defender != null ? defender.name : string.Empty,
             sentiment: -0.9f,
             bubbleEligible: true));
-        gameEventBus.Publish(new InvasionResolvedEvent(true, 1f));
+        gameEventBus.Publish(new InvasionResolvedEvent(
+            runtimeId,
+            true,
+            1f));
         if (intruderActor != null && !intruderActor.IsDead)
         {
             FinishAsDownedCaptureCandidate();
@@ -684,7 +776,10 @@ public class InvasionIntruderRuntime :
             targetName: owner?.Identity?.DisplayName ?? "사장",
             sentiment: 0.8f,
             bubbleEligible: true));
-        gameEventBus.Publish(new InvasionResolvedEvent(false, 5f));
+        gameEventBus.Publish(new InvasionResolvedEvent(
+            runtimeId,
+            false,
+            5f));
         Finish();
     }
 

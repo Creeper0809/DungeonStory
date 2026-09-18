@@ -392,6 +392,7 @@ public sealed class CharacterRuntimeProfile
             lethalMinimum = required.lethalMinimum,
             lethalMaximum = required.lethalMaximum,
             comfortableAirMinimum = required.comfortableAirMinimum,
+            lightAdaptationEnabled = required.lightAdaptationEnabled,
             comfortableLightMinimum = required.comfortableLightMinimum,
             comfortableLightMaximum = required.comfortableLightMaximum,
             airborneExposureMultiplier = required.airborneExposureMultiplier,

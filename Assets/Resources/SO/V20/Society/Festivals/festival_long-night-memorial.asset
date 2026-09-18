@@ -22,7 +22,22 @@ MonoBehaviour:
   dayOfSeason: 30
   convertsActiveGrief: 1
   cultureId: 
-  requiredBuildingDefinitionId: workstation:v19:memorial-room
+  requiredBuildingDefinitionId: ""
+  venueRequirements:
+    anchor:
+      exactBuildingDefinitionIds:
+      - building:8887
+      facilityRoles: 0
+    requiredRoomFacilityRoles: 0
+    requiredRoomFacilities: []
+    minimumSeats: 0
+    minimumTables: 0
+    minimumServiceCapacity: 0
+    minimumEventCells: 10
+    minimumVacantBeds: 0
+    requireResidentHeadroom: 0
+    requireWetBath: 0
+    requireEmergencySurgeryFacility: 0
   requiredItems:
   - itemDefinitionId: craft:candle
     amount: 12

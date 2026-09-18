@@ -196,15 +196,22 @@ internal sealed class FluidNetworkStateStore
     {
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        _ = Current;
     }
 
-    private FluidNetworkAggregateState State =>
+    private FluidNetworkAggregateState Current =>
+        aggregateRootStore.GetOrCreate(
+            () => new FluidNetworkAggregateState());
+
+    private FluidNetworkAggregateState Writable =>
         aggregateRootStore.GetOrCreateWritable(
             () => new FluidNetworkAggregateState(),
             state => state.DeepClone());
 
-    public Dictionary<string, FluidNodeState> Nodes => State.Nodes;
-    public int Version => State.Version;
+    public Dictionary<string, FluidNodeState> Nodes => Writable.Nodes;
+    public IReadOnlyDictionary<string, FluidNodeState> CurrentNodes =>
+        Current.Nodes;
+    public int Version => Current.Version;
     public int PublishedRestoreRevision =>
         aggregateRootStore.PublishedRestoreRevision;
     public bool IsRestoreStaging => aggregateRootStore.IsRestoreStaging;
@@ -224,7 +231,7 @@ internal sealed class FluidNetworkStateStore
     {
         unchecked
         {
-            State.Version++;
+            Writable.Version++;
         }
     }
 

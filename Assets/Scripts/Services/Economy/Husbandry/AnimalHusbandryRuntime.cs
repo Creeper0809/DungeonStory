@@ -28,6 +28,8 @@ public sealed class AnimalHusbandryRuntime :
     private readonly IWorldItemStackRuntime itemRuntime;
     private readonly IWildlifeCarcassService carcassService;
     private readonly IGameClock clock;
+    private readonly IGameCalendar calendar;
+    private readonly IEnvironmentalFieldQuery environmentalField;
     private readonly IFacilityCapabilityQuery facilities;
     private readonly IBuildingFacilityStateChangePort facilityCandidateCache;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
@@ -65,6 +67,8 @@ public sealed class AnimalHusbandryRuntime :
         IWorldItemStackRuntime itemRuntime,
         IWildlifeCarcassService carcassService,
         IGameClock clock,
+        IGameCalendar calendar,
+        IEnvironmentalFieldQuery environmentalField,
         IFacilityCapabilityQuery facilities,
         IBuildingFacilityStateChangePort facilityCandidateCache,
         DungeonRuntimeAggregateRootStore aggregateRootStore)
@@ -88,6 +92,9 @@ public sealed class AnimalHusbandryRuntime :
         this.carcassService = carcassService
             ?? throw new ArgumentNullException(nameof(carcassService));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.environmentalField = environmentalField
+            ?? throw new ArgumentNullException(nameof(environmentalField));
         this.facilities = facilities
             ?? throw new ArgumentNullException(nameof(facilities));
         this.facilityCandidateCache = facilityCandidateCache
@@ -188,6 +195,43 @@ public sealed class AnimalHusbandryRuntime :
 
         state = null;
         return false;
+    }
+
+    public bool TryGetProductThermalSnapshot(
+        WildlifeInstanceId animalId,
+        out AnimalProductThermalSnapshot snapshot)
+    {
+        if (!animalId.IsValid
+            || !animals.TryGetValue(
+                animalId,
+                out HusbandryAnimalState state))
+        {
+            snapshot = default;
+            return false;
+        }
+        if (!TryGetSpecies(state, out WildlifeSpeciesDefinition species))
+        {
+            throw new InvalidOperationException(
+                $"Husbandry animal '{animalId.Value}' references unknown species "
+                + $"'{state.SpeciesId.Value}'.");
+        }
+        if (!captureRuntime.TryGetCaptured(
+                animalId.Value,
+                out CapturedWildlifeState captured)
+            || captured == null
+            || captured.escaped
+            || captured.transportState != CapturedWildlifeTransportState.Penned)
+        {
+            snapshot = CreateUnavailableProductThermalSnapshot(
+                state,
+                species,
+                default,
+                AnimalProductThermalStatusCode.PenPositionUnavailable);
+            return true;
+        }
+
+        snapshot = CreateProductThermalSnapshot(state, species, captured);
+        return true;
     }
 
     public AnimalPenPolicyData GetPenPolicy(BuildingInstanceId penId)
@@ -354,15 +398,21 @@ public sealed class AnimalHusbandryRuntime :
                     return true;
                 }
 
-                product.ReadyCycles = Mathf.Max(0, product.ReadyCycles - 1);
-                completed = itemRuntime.SpawnItemAt(
+                bool productSpawnAccepted = itemRuntime.SpawnItemAt(
                     new ItemDefinitionId(definition.ItemId).Value,
                     definition.Amount,
                     pen.centerPos,
                     WorldItemStackState.Loose,
                     string.Empty,
-                    out int spawned)
-                    && spawned > 0;
+                    out int spawned);
+                completed = TryCommitReadyCycleAfterSpawn(
+                    state,
+                    product.ReadyCycles,
+                    definition.Amount,
+                    productSpawnAccepted,
+                    spawned,
+                    out int remainingProductCycles);
+                product.ReadyCycles = remainingProductCycles;
                 SetStatus(
                     state,
                     completed
@@ -370,10 +420,6 @@ public sealed class AnimalHusbandryRuntime :
                         : AnimalHusbandryStatusCode.ProductStorageUnavailable,
                     definition.ItemId);
                 facilityCandidateCache.MarkDynamicStateDirty();
-                if (completed)
-                {
-                    ResetPendingWork(state);
-                }
                 return completed;
 
             case AnimalHusbandryWorkKind.CollectManure:
@@ -385,27 +431,27 @@ public sealed class AnimalHusbandryRuntime :
                     return true;
                 }
 
-                state.ReadyManureCycles = Mathf.Max(
-                    0,
-                    state.ReadyManureCycles - 1);
-                completed = itemRuntime.SpawnItemAt(
+                bool manureSpawnAccepted = itemRuntime.SpawnItemAt(
                     ManureItemId.Value,
                     1,
                     pen.centerPos,
                     WorldItemStackState.Loose,
                     string.Empty,
-                    out int manureSpawned)
-                    && manureSpawned > 0;
+                    out int manureSpawned);
+                completed = TryCommitReadyCycleAfterSpawn(
+                    state,
+                    state.ReadyManureCycles,
+                    1,
+                    manureSpawnAccepted,
+                    manureSpawned,
+                    out int remainingManureCycles);
+                state.ReadyManureCycles = remainingManureCycles;
                 SetStatus(
                     state,
                     completed
                         ? AnimalHusbandryStatusCode.ManureCollected
                         : AnimalHusbandryStatusCode.ManureStorageUnavailable);
                 facilityCandidateCache.MarkDynamicStateDirty();
-                if (completed)
-                {
-                    ResetPendingWork(state);
-                }
                 return completed;
 
             case AnimalHusbandryWorkKind.Slaughter:
@@ -819,10 +865,26 @@ public sealed class AnimalHusbandryRuntime :
 
             if (state.Tamed && GetGrowthStage(state, profile) == AnimalGrowthStage.Adult)
             {
-                AdvanceProducts(
-                    state,
-                    profile,
-                    elapsedDays * comfortMultiplier);
+                if (profile.Products.Count > 0
+                    && capturedById.TryGetValue(
+                        state.AnimalId,
+                        out CapturedWildlifeState productCare))
+                {
+                    AnimalProductThermalSnapshot thermal =
+                        CreateProductThermalSnapshot(
+                            state,
+                            species,
+                            productCare);
+                    if (thermal.HasTemperature)
+                    {
+                        AdvanceProducts(
+                            state,
+                            profile,
+                            elapsedDays
+                            * comfortMultiplier
+                            * thermal.ProductProgressMultiplier);
+                    }
+                }
                 state.ManureProgressDays += elapsedDays;
                 while (state.ManureProgressDays >= profile.ManureIntervalDays)
                 {
@@ -845,7 +907,7 @@ public sealed class AnimalHusbandryRuntime :
                 continue;
             }
 
-            TryBeginPregnancy(state, profile, compatibilityRisk);
+            TryBeginPregnancy(state, species, compatibilityRisk);
         }
     }
 
@@ -902,15 +964,103 @@ public sealed class AnimalHusbandryRuntime :
         }
     }
 
+    private AnimalProductThermalSnapshot CreateProductThermalSnapshot(
+        HusbandryAnimalState state,
+        WildlifeSpeciesDefinition species,
+        CapturedWildlifeState captured)
+    {
+        if (captured == null
+            || captured.escaped
+            || captured.transportState != CapturedWildlifeTransportState.Penned)
+        {
+            return CreateUnavailableProductThermalSnapshot(
+                state,
+                species,
+                default,
+                AnimalProductThermalStatusCode.PenPositionUnavailable);
+        }
+        if (!string.Equals(
+                captured.wildlifeId,
+                state.AnimalId.Value,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                captured.speciesId,
+                state.SpeciesId.Value,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                captured.penId,
+                state.PenId.Value,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Husbandry animal '{state.AnimalId.Value}' does not match its "
+                + "captured pen authority.");
+        }
+
+        Vector2Int penPosition = captured.penPosition;
+        if (!environmentalField.IsInitialized
+            || !environmentalField.TryGetCell(
+                penPosition,
+                out EnvironmentalCellSnapshot environment))
+        {
+            return CreateUnavailableProductThermalSnapshot(
+                state,
+                species,
+                penPosition,
+                AnimalProductThermalStatusCode.EnvironmentalFieldUnavailable);
+        }
+
+        float outsideDistance =
+            WildlifeProductThermalRules.CalculateDegreesOutsideComfort(
+                environment.TemperatureC,
+                species.ProductComfortMinimumTemperatureC,
+                species.ProductComfortMaximumTemperatureC);
+        float progressMultiplier =
+            WildlifeProductThermalRules.CalculateProductProgressMultiplier(
+                environment.TemperatureC,
+                species.ProductComfortMinimumTemperatureC,
+                species.ProductComfortMaximumTemperatureC);
+        return new AnimalProductThermalSnapshot(
+            state.AnimalId,
+            penPosition,
+            AnimalProductThermalStatusCode.Available,
+            environment.TemperatureC,
+            species.ProductComfortMinimumTemperatureC,
+            species.ProductComfortMaximumTemperatureC,
+            outsideDistance,
+            progressMultiplier);
+    }
+
+    private static AnimalProductThermalSnapshot
+        CreateUnavailableProductThermalSnapshot(
+            HusbandryAnimalState state,
+            WildlifeSpeciesDefinition species,
+            Vector2Int penPosition,
+            AnimalProductThermalStatusCode statusCode)
+    {
+        return new AnimalProductThermalSnapshot(
+            state.AnimalId,
+            penPosition,
+            statusCode,
+            0f,
+            species.ProductComfortMinimumTemperatureC,
+            species.ProductComfortMaximumTemperatureC,
+            0f,
+            0f);
+    }
+
     private void TryBeginPregnancy(
         HusbandryAnimalState female,
-        WildlifeHusbandryProfile profile,
+        WildlifeSpeciesDefinition species,
         float compatibilityRisk)
     {
+        WildlifeHusbandryProfile profile = species?.Husbandry
+            ?? throw new ArgumentNullException(nameof(species));
         if (!female.Tamed
             || female.Sex != AnimalSex.Female
             || female.BreedingCooldownDays > 0f
             || compatibilityRisk >= 0.8f
+            || !IsBreedingSeason(species, calendar.Season)
             || GetGrowthStage(female, profile) != AnimalGrowthStage.Adult)
         {
             return;
@@ -968,6 +1118,55 @@ public sealed class AnimalHusbandryRuntime :
             profile.LaysEggs
                 ? AnimalHusbandryStatusCode.Brooding
                 : AnimalHusbandryStatusCode.Pregnant);
+    }
+
+    internal static bool IsBreedingSeason(
+        WildlifeSpeciesDefinition species,
+        Season season)
+    {
+        return species != null && species.BreedingSeason == season;
+    }
+
+    internal static bool TryCommitReadyCycleAfterSpawn(
+        HusbandryAnimalState state,
+        int readyCycles,
+        int requestedAmount,
+        bool spawnAccepted,
+        int spawnedAmount,
+        out int remainingReadyCycles)
+    {
+        if (state == null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
+        if (readyCycles <= 0 || requestedAmount <= 0 || spawnedAmount < 0)
+        {
+            throw new InvalidOperationException(
+                "A husbandry collection commit requires positive ready cycles and output amount.");
+        }
+
+        remainingReadyCycles = readyCycles;
+        bool exactOutput = spawnedAmount == requestedAmount;
+        if (spawnAccepted != exactOutput)
+        {
+            throw new InvalidOperationException(
+                $"Husbandry output violated the exact spawn contract: "
+                + $"requested={requestedAmount};spawned={spawnedAmount};accepted={spawnAccepted}.");
+        }
+        if (!exactOutput)
+        {
+            if (spawnedAmount != 0)
+            {
+                throw new InvalidOperationException(
+                    $"Husbandry output partially spawned: "
+                    + $"requested={requestedAmount};spawned={spawnedAmount}.");
+            }
+            return false;
+        }
+
+        remainingReadyCycles = readyCycles - 1;
+        ResetPendingWork(state);
+        return true;
     }
 
     private void TryCompleteBirth(

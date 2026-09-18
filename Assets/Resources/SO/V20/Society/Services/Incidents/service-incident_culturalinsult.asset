@@ -19,6 +19,8 @@ MonoBehaviour:
   authoringRevision: 1
   sourceNote: V20 hand-authored faction/service manifest.
   kind: 3
+  riskTier: 1
+  riskReason: 작성된 대응에 세력 원한 8이 있다.
   triggerRequirements:
     items: []
     facilities: []

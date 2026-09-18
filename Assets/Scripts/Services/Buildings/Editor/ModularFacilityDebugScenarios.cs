@@ -13,7 +13,6 @@ public static class ModularFacilityDebugScenarios
         new EditorWarehouseStockRuntime();
     private const string BuildingFolder = "Assets/Resources/SO/Building/Modular";
     public const string ContractReportPath = "Temp/modular-facility-contract-report.tsv";
-    public const string RecipeReportPath = "Temp/modular-facility-recipe-report.tsv";
     public const string EconomyReportPath = "Temp/modular-facility-economy-report.tsv";
     public const string AiReportPath = "Temp/modular-facility-ai-report.tsv";
     private static readonly IBlueprintResearchWorkService BlueprintResearchWorkService =
@@ -50,9 +49,6 @@ public static class ModularFacilityDebugScenarios
         VerifyIndependentGridSlots();
         VerifyMountedPartsDoNotProvideFloorSupport();
         VerifyExtendedRoomRoles();
-        VerifyLegacyInitialPlacementRecipes();
-        VerifyLegacyInitialRoomBoundariesRespectExterior();
-        VerifyAllLegacyRecipesAsFormalRooms();
         VerifyModularRoomComposition();
         Debug.Log("ModularFacilityDebugScenarios passed: operational contracts, assets, runtime instances, migration, slots, support, and room composition.");
     }
@@ -655,7 +651,8 @@ public static class ModularFacilityDebugScenarios
                     && ModularFacilityRuntimeEffects.ApplyWorkCompleted(
                         null,
                         hearth,
-                        BuiltInWorkTypeIds.Cook) == expectedMeals,
+                        BuiltInWorkTypeIds.Cook,
+                        0f) == expectedMeals,
                 "Meal production did not return the configured output.");
             Require(foodShelf.Inventory.GetStock(StockCategory.Food) == expectedMeals,
                 "Meal production did not enter food storage.");
@@ -663,12 +660,20 @@ public static class ModularFacilityDebugScenarios
                     && !forge.SupportsWork(BuiltInWorkTypeIds.Operate)
                     && forge.BuildingData.GetAbility<BuildingEquipmentCraftingAbility>() != null,
                 "Blacksmith bench must be an equipment crafting work target, not a direct weapon producer.");
-            Require(ModularFacilityRuntimeEffects.ApplyWorkCompleted(null, alchemy, BuiltInWorkTypeIds.Research) == 3,
+            Require(ModularFacilityRuntimeEffects.ApplyWorkCompleted(
+                        null,
+                        alchemy,
+                        BuiltInWorkTypeIds.Research,
+                        0f) == 3,
                 "Alchemy research did not return the configured mana output.");
             Require(reagentShelf.Inventory.GetStock(StockCategory.Mana) == 3,
                 "Alchemy output did not enter mana storage.");
 
-            ModularFacilityRuntimeEffects.ApplyWorkCompleted(null, alarm, BuiltInWorkTypeIds.Repair);
+            ModularFacilityRuntimeEffects.ApplyWorkCompleted(
+                null,
+                alarm,
+                BuiltInWorkTypeIds.Repair,
+                0f);
             BuildingSecurityAbility securityAbility = alarm.BuildingData.GetAbility<BuildingSecurityAbility>();
             BuildingSecurityStateModule securityState = alarm.RequireStateModule<BuildingSecurityStateModule>(
                 BuildingStateModuleIds.ForAbility("security", securityAbility.AbilityId));
@@ -676,7 +681,11 @@ public static class ModularFacilityDebugScenarios
                 "Repairing an alarm must not arm it.");
             for (int i = 0; i < 5; i++)
             {
-                ModularFacilityRuntimeEffects.ApplyWorkCompleted(null, alarm, BuiltInWorkTypeIds.Guard);
+                ModularFacilityRuntimeEffects.ApplyWorkCompleted(
+                    null,
+                    alarm,
+                    BuiltInWorkTypeIds.Guard,
+                    0f);
             }
             Require(securityState.AlarmCharges == 3,
                 "Alarm charges must cap at three guard completions.");
@@ -687,7 +696,11 @@ public static class ModularFacilityDebugScenarios
             {
                 part.SetCleanliness(12f);
             }
-            ModularFacilityRuntimeEffects.ApplyWorkCompleted(null, toilet, BuiltInWorkTypeIds.Clean);
+            ModularFacilityRuntimeEffects.ApplyWorkCompleted(
+                null,
+                toilet,
+                BuiltInWorkTypeIds.Clean,
+                0f);
             Require(hearth.GetRoomOperationalProfile().Parts
                     .OfType<BuildableObject>()
                     .All(part => Mathf.Approximately(
@@ -1470,281 +1483,6 @@ public static class ModularFacilityDebugScenarios
         Require(RoomEnvironmentPresentation.GetRoomName(FacilityRole.Security) == "경비실", "Security room name is not connected.");
     }
 
-    private static void VerifyLegacyInitialPlacementRecipes()
-    {
-        Dictionary<int, BuildingSO> modularById = LoadAll().ToDictionary((asset) => asset.id);
-        BuildingSO[] legacy = AssetDatabase.FindAssets("t:BuildingSO", new[]
-            {
-                "Assets/Resources/SO/Building"
-            })
-            .Select(AssetDatabase.GUIDToAssetPath)
-            .Select(AssetDatabase.LoadAssetAtPath<BuildingSO>)
-            .Where(ModularFacilityInitialPlacementMigrator.IsLegacyMonolith)
-            .Distinct()
-            .ToArray();
-        Require(legacy.Length == 21, $"Expected 21 legacy room recipes, found {legacy.Length}.");
-
-        Vector2Int anchor = new Vector2Int(20, 0);
-        foreach (BuildingSO monolith in legacy)
-        {
-            bool expanded = ModularFacilityInitialPlacementMigrator.TryExpand(
-                new InitialBuildInfo { Position = anchor, Building = monolith },
-                (id) => modularById.TryGetValue(id, out BuildingSO data) ? data : null,
-                out IReadOnlyList<InitialBuildInfo> parts);
-            Require(expanded && parts.Count >= 3, $"{monolith.name} did not expand to a usable modular recipe.");
-            Require(parts.All((part) => part?.Building != null && part.Building.id >= 1000 && part.Building.id <= 1072),
-                $"{monolith.name} recipe contains a non-modular part.");
-
-            HashSet<Vector2Int> originalFootprint = monolith.GetGridPosList(anchor).ToHashSet();
-            Require(parts.SelectMany((part) => part.Building.GetGridPosList(part.Position)).All(originalFootprint.Contains),
-                $"{monolith.name} recipe extends outside its original footprint.");
-
-            HashSet<string> occupiedSlots = new HashSet<string>(StringComparer.Ordinal);
-            foreach (InitialBuildInfo part in parts)
-            {
-                foreach (Vector2Int cell in part.Building.GetGridPosList(part.Position))
-                {
-                    string key = $"{part.Building.layer}:{cell.x}:{cell.y}";
-                    Require(occupiedSlots.Add(key), $"{monolith.name} recipe overlaps {key}.");
-                }
-            }
-        }
-    }
-
-    private static void VerifyLegacyInitialRoomBoundariesRespectExterior()
-    {
-        Dictionary<int, BuildingSO> modularById = LoadAll().ToDictionary((asset) => asset.id);
-        BuildingSO wall = AssetDatabase.LoadAssetAtPath<BuildingSO>(
-            "Assets/Resources/SO/Building/Wall.asset");
-        BuildingSO door = AssetDatabase.LoadAssetAtPath<BuildingSO>(
-            "Assets/Resources/SO/Building/InteriorDoor.asset");
-        BuildingSO stair = AssetDatabase.LoadAssetAtPath<BuildingSO>(
-            "Assets/Resources/SO/Building/Stair.asset");
-        BuildingSO leftRoom = AssetDatabase.LoadAssetAtPath<BuildingSO>(
-            "Assets/Resources/SO/Building/P1/P1_ResearchLab.asset");
-        BuildingSO rightRoom = AssetDatabase.LoadAssetAtPath<BuildingSO>(
-            "Assets/Resources/SO/Building/P1/P1_ManaStorage.asset");
-        Require(wall != null && wall.IsStructuralWall && !wall.IsInteriorDoor,
-            "Initial room wall asset is not available.");
-        Require(door != null && door.IsInteriorDoor, "Initial room door asset is not available.");
-        Require(stair != null && stair.Placement.IsMovement, "Initial movement connector asset is not available.");
-        Require(leftRoom != null, "Legacy research lab asset is not available.");
-        Require(rightRoom != null, "Legacy mana storage asset is not available.");
-
-        Vector2Int leftAnchor = new Vector2Int(20, 0);
-        Vector2Int rightAnchor = new Vector2Int(26, 0);
-        IReadOnlyList<InitialBuildInfo> expanded = ModularFacilityInitialPlacementMigrator.ExpandInitialRooms(
-            new[]
-            {
-                new InitialBuildInfo { Position = leftAnchor, Building = leftRoom },
-                new InitialBuildInfo { Position = rightAnchor, Building = rightRoom }
-            },
-            id => id == wall.id
-                ? wall
-                : id == door.id
-                ? door
-                : modularById.TryGetValue(id, out BuildingSO data)
-                    ? data
-                    : null);
-
-        int leftStartX = leftAnchor.x - (leftRoom.width / 2);
-        int rightStartX = rightAnchor.x - (rightRoom.width / 2);
-        Vector2Int exteriorLeft = new Vector2Int(leftStartX - 1, leftAnchor.y);
-        Vector2Int interiorLeftRoomRight = new Vector2Int(leftStartX + Mathf.Max(1, leftRoom.width), leftAnchor.y);
-        Vector2Int interiorRightRoomLeft = new Vector2Int(rightStartX - 1, rightAnchor.y);
-        Vector2Int exteriorRight = new Vector2Int(rightStartX + Mathf.Max(1, rightRoom.width), rightAnchor.y);
-
-        Require(IsWallAt(expanded, exteriorLeft), "Initial row left exterior boundary must remain a wall.");
-        Require(IsDoorAt(expanded, interiorLeftRoomRight), "Initial left room internal boundary must be a door.");
-        Require(IsDoorAt(expanded, interiorRightRoomLeft), "Initial right room internal boundary must be a door.");
-        Require(IsWallAt(expanded, exteriorRight), "Initial row right exterior boundary must remain a wall.");
-
-        Vector2Int roomAnchor = new Vector2Int(20, 0);
-        Vector2Int stairAnchor = new Vector2Int(25, 0);
-        IReadOnlyList<InitialBuildInfo> expandedWithMovement = ModularFacilityInitialPlacementMigrator.ExpandInitialRooms(
-            new[]
-            {
-                new InitialBuildInfo { Position = roomAnchor, Building = leftRoom },
-                new InitialBuildInfo { Position = stairAnchor, Building = stair }
-            },
-            id => id == wall.id
-                ? wall
-                : id == door.id
-                ? door
-                : modularById.TryGetValue(id, out BuildingSO data)
-                    ? data
-                    : null);
-
-        int roomStartX = roomAnchor.x - (leftRoom.width / 2);
-        Vector2Int roomRightBoundary = new Vector2Int(roomStartX + Mathf.Max(1, leftRoom.width), roomAnchor.y);
-        Require(IsDoorAt(expandedWithMovement, roomRightBoundary),
-            "Initial room boundary facing a stair must be a door.");
-    }
-
-    private static bool IsWallAt(IEnumerable<InitialBuildInfo> placements, Vector2Int position)
-    {
-        BuildingSO building = placements.FirstOrDefault(item => item != null && item.Position == position)?.Building;
-        return building != null && building.IsStructuralWall && !building.IsInteriorDoor;
-    }
-
-    private static bool IsDoorAt(IEnumerable<InitialBuildInfo> placements, Vector2Int position)
-    {
-        BuildingSO building = placements.FirstOrDefault(item => item != null && item.Position == position)?.Building;
-        return building != null && building.IsInteriorDoor;
-    }
-
-    private static void VerifyAllLegacyRecipesAsFormalRooms()
-    {
-        Directory.CreateDirectory("Temp");
-        Dictionary<int, BuildingSO> modularById = LoadAll().ToDictionary(asset => asset.id);
-        BuildingSO[] legacy = AssetDatabase.FindAssets("t:BuildingSO", new[]
-            {
-                "Assets/Resources/SO/Building"
-            })
-            .Select(AssetDatabase.GUIDToAssetPath)
-            .Select(AssetDatabase.LoadAssetAtPath<BuildingSO>)
-            .Where(ModularFacilityInitialPlacementMigrator.IsLegacyMonolith)
-            .Distinct()
-            .OrderBy(asset => asset.name, StringComparer.Ordinal)
-            .ToArray();
-        GameSessionState gameData = CreateGameData();
-        NoopFloatingNumberFeedbackService numberFeedback = new NoopFloatingNumberFeedbackService();
-        NoopWorkforceReplanService workforce = new NoopWorkforceReplanService();
-        List<string> rows = new List<string>
-        {
-            "legacy\tparts\troomName\troles\tusable\thasDoor\treachableParts\tvisitableCores\tmountedParts\tresult"
-        };
-        List<string> failures = new List<string>();
-
-        try
-        {
-            foreach (BuildingSO monolith in legacy)
-            {
-                List<BuildableObject> created = new List<BuildableObject>();
-                List<UnityEngine.Object> cleanup = new List<UnityEngine.Object>();
-                int partCount = 0;
-                int reachableCount = 0;
-                int visitableCount = 0;
-                int mountedCount = 0;
-                string roomName = string.Empty;
-                FacilityRole roles = FacilityRole.None;
-                bool usable = false;
-                bool hasDoor = false;
-                string result = "PASS";
-                try
-                {
-                    int width = Mathf.Max(14, monolith.width + 8);
-                    Grid grid = CreateFormalRoomGrid(width, created, cleanup);
-                    Vector2Int anchor = new Vector2Int(width / 2, 0);
-                    Require(ModularFacilityInitialPlacementMigrator.TryExpand(
-                            new InitialBuildInfo { Position = anchor, Building = monolith },
-                            id => modularById.TryGetValue(id, out BuildingSO data) ? data : null,
-                            out IReadOnlyList<InitialBuildInfo> recipe),
-                        $"{monolith.name} did not expand.");
-                    partCount = recipe.Count;
-
-                    List<BuildableObject> parts = new List<BuildableObject>();
-                    foreach (InitialBuildInfo placement in recipe)
-                    {
-                        BuildableObject part = CreateAndRegister(grid, placement.Building, placement.Position, created);
-                        parts.Add(part);
-                        if (part is Shop shop)
-                        {
-                            shop.ConstructShop(
-                                new EditorGameMoneyAccount(gameData),
-                                ShopStockCatalog,
-                                numberFeedback,
-                                workforce,
-                                FacilityCrimeEditorTestDependencies.Evaluator,
-                                new DungeonStory.Foundation.RandomStreamProvider(211), null, null, null,
-                                CharacterAiEditorTestDependencies.RetailStockPhysical,
-                                CharacterAiEditorTestDependencies.PhysicalStock);
-                        }
-                    }
-
-                    RoomLayout layout = RoomRegistry.EditorCache.GetLayout(grid);
-                    RoomInstance room = layout.Rooms.FirstOrDefault(candidate => candidate != null
-                        && parts.Any(part => part.Facility != null
-                            && part.Facility.roles != FacilityRole.None
-                            && candidate.ContainsPart(part)));
-                    Require(room != null, $"{monolith.name} did not produce a formal room.");
-                    usable = room.IsUsable && !room.IsSelfContained;
-                    hasDoor = room.HasDoor;
-                    roles = room.Roles;
-                    roomName = RoomEnvironmentPresentation.GetRoomName(roles);
-                    FacilityRole facilityRoles = parts.Aggregate(
-                        FacilityRole.None,
-                        (current, part) => current | (part.Facility?.roles ?? FacilityRole.None));
-                    FacilityRole expectedRoles = (facilityRoles);
-                    Require(usable && hasDoor, $"{monolith.name} room is not closed and usable.");
-                    Require(expectedRoles != FacilityRole.None && (roles & expectedRoles) == expectedRoles,
-                        $"{monolith.name} roles {roles} do not contain {expectedRoles}.");
-                    Require(!string.IsNullOrWhiteSpace(roomName), $"{monolith.name} has no room presentation name.");
-
-                    List<IGridOccupant> reachable = grid.GetAllReachableOccupants(new Vector2Int(1, 0));
-                    reachableCount = parts.Count(part => reachable.Contains(part));
-                    Require(reachableCount == parts.Count,
-                        $"{monolith.name} reachable parts {reachableCount}/{parts.Count}.");
-
-                    BuildableObject[] visitorCores = parts
-                        .Where(part => part.Facility != null && part.Facility.IsVisitorFacility)
-                        .ToArray();
-                    foreach (BuildableObject core in visitorCores)
-                    {
-                        Require(core.CanVisit(null, out string reason),
-                            $"{monolith.name}/{core.BuildingData.objectName} is not usable: {reason}");
-                    }
-                    visitableCount = visitorCores.Length;
-
-                    mountedCount = parts.Count(part => part.BuildingData.UsesIndependentRenderer);
-                    foreach (BuildableObject mounted in parts.Where(part => part.BuildingData.UsesIndependentRenderer))
-                    {
-                        SpriteRenderer renderer = mounted.GetComponentInChildren<SpriteRenderer>();
-                        Require(renderer != null && renderer.enabled && renderer.sprite == mounted.BuildingData.sprite,
-                            $"{monolith.name}/{mounted.BuildingData.objectName} mounted renderer is invalid.");
-                        Require(mounted.buildPoses.All(cell => ReferenceEquals(
-                                grid.GetGridCell(cell).GetOccupant(mounted.BuildingData.layer),
-                                mounted)),
-                            $"{monolith.name}/{mounted.BuildingData.objectName} is not in its independent layer.");
-                    }
-                }
-                catch (Exception exception)
-                {
-                    result = exception.Message.Replace('\t', ' ').Replace('\n', ' ');
-                    failures.Add(monolith.name + ": " + result);
-                }
-                finally
-                {
-                    DestroyCreated(created);
-                    foreach (UnityEngine.Object item in cleanup.Where(item => item != null))
-                    {
-                        UnityEngine.Object.DestroyImmediate(item);
-                    }
-                }
-
-                rows.Add(string.Join("\t", new object[]
-                {
-                    monolith.name,
-                    partCount,
-                    roomName,
-                    roles,
-                    usable,
-                    hasDoor,
-                    reachableCount,
-                    visitableCount,
-                    mountedCount,
-                    result
-                }));
-            }
-        }
-        finally
-        {
-        }
-
-        File.WriteAllLines(RecipeReportPath, rows);
-        Require(rows.Count == 22, $"Expected header plus 21 recipe rows, found {rows.Count}.");
-        Require(failures.Count == 0, "Formal recipe failures: " + string.Join(" | ", failures));
-    }
 
     private static void VerifyModularRoomComposition()
     {

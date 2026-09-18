@@ -32,6 +32,17 @@ public class OffenseExpeditionPanel : MonoBehaviour
     private IOffenseCampaignQuery campaign;
     private string statusMessage;
     private IOffensePanelButtonFactory buttonFactory;
+    private IGameplayOutcomePresentationQuery outcomePresentation;
+    private int pendingManualSkillSourceIndex = -1;
+    private string pendingManualSkillId = string.Empty;
+
+    [Inject]
+    public void ConstructGameplayOutcomePresentation(
+        IGameplayOutcomePresentationQuery outcomePresentation)
+    {
+        this.outcomePresentation = outcomePresentation
+            ?? throw new ArgumentNullException(nameof(outcomePresentation));
+    }
 
     public void Bind(
         OffenseExpeditionRuntime source,
@@ -306,9 +317,24 @@ public class OffenseExpeditionPanel : MonoBehaviour
 
     private void RenderJourney(OffenseExpeditionRun expedition)
     {
+        if (expedition.ReturnPending)
+        {
+            headerText.text = expedition.Target.title + " · 던전 귀환 중";
+            detailText.text = string.Join("\n", expedition.ReturnProgress.Select(value =>
+                value.CharacterId + " · " + value.Stage
+                + (string.IsNullOrEmpty(value.LastFailure) ? string.Empty : " · 대기: " + value.LastFailure)))
+                + (string.IsNullOrEmpty(expedition.ReturnResourceFailure)
+                    ? string.Empty
+                    : "\n물자 정산 대기: " + expedition.ReturnResourceFailure)
+                + FormatOutcomeHistory(expedition);
+            return;
+        }
         OffenseRouteNode current = expedition.CurrentNode;
         headerText.text = $"{expedition.Target.title}  ·  {GetPhaseName(expedition.Phase)}";
-        detailText.text = BuildJourneyDetail(expedition, current);
+        detailText.text = BuildJourneyDetail(expedition, current)
+            + FormatOutcomeHistory(expedition);
+
+        AddManualSkillButtons(expedition);
 
         if (expedition.Phase == OffenseExpeditionPhase.ChoosingRoute)
         {
@@ -393,6 +419,177 @@ public class OffenseExpeditionPanel : MonoBehaviour
         }
 
         AddButton("닫기", Hide, JourneyButtonStyle.Close);
+    }
+
+    private void AddManualSkillButtons(OffenseExpeditionRun expedition)
+    {
+        if (expedition == null
+            || expedition.Phase == OffenseExpeditionPhase.InBattle
+            || expedition.ReturnPending)
+            return;
+
+        if (pendingManualSkillSourceIndex >= 0
+            && !string.IsNullOrWhiteSpace(pendingManualSkillId))
+        {
+            IReadOnlyList<CharacterManualSkillCommandState> pendingCommands =
+                runtime.GetManualSkillCommands(
+                    expedition.ExpeditionId,
+                    pendingManualSkillSourceIndex);
+            CharacterManualSkillCommandState pending = pendingCommands
+                .FirstOrDefault(value => string.Equals(
+                    value.SkillId,
+                    pendingManualSkillId,
+                    StringComparison.Ordinal));
+            if (pending != null && pending.IsReady)
+            {
+                for (int index = 0; index < expedition.MemberStates.Count; index++)
+                {
+                    OffenseExpeditionMemberState target = expedition.MemberStates[index];
+                    if (target == null || !target.IsAlive || target.Actor == null)
+                        continue;
+                    if (pending.Target == CharacterSkillTarget.Ally
+                        && index == pendingManualSkillSourceIndex)
+                        continue;
+
+                    int capturedTargetIndex = index;
+                    AddButton(
+                        $"대상 선택 · {OffenseFormationUtility.GetDisplayName(target.Formation)}"
+                        + $" · {GetActorName(target.Actor)}",
+                        () =>
+                        {
+                            runtime.TryActivateManualSkill(
+                                expedition.ExpeditionId,
+                                pendingManualSkillSourceIndex,
+                                pendingManualSkillId,
+                                capturedTargetIndex,
+                                out statusMessage);
+                            ClearPendingManualSkill();
+                            Render();
+                        },
+                        JourneyButtonStyle.Supply);
+                }
+                AddButton("능력 대상 선택 취소", () =>
+                {
+                    ClearPendingManualSkill();
+                    statusMessage = string.Empty;
+                    Render();
+                }, JourneyButtonStyle.Close);
+                return;
+            }
+            ClearPendingManualSkill();
+        }
+
+        for (int sourceIndex = 0;
+             sourceIndex < expedition.MemberStates.Count;
+             sourceIndex++)
+        {
+            OffenseExpeditionMemberState source = expedition.MemberStates[sourceIndex];
+            if (source == null || !source.IsAlive || source.Actor == null)
+                continue;
+
+            foreach (CharacterManualSkillCommandState command in
+                     runtime.GetManualSkillCommands(
+                         expedition.ExpeditionId,
+                         sourceIndex))
+            {
+                int capturedSourceIndex = sourceIndex;
+                CharacterManualSkillCommandState capturedCommand = command;
+                string availability = command.IsReady
+                    ? "사용 가능"
+                    : $"{command.RemainingCooldownHours}시간 남음";
+                AddButton(
+                    $"능력 · {GetActorName(source.Actor)} · {command.DisplayName}"
+                    + $" · {FormatManualTarget(command)}"
+                    + $" · {FormatExpeditionArea(command)}"
+                    + $" · {availability}",
+                    () =>
+                    {
+                        if (!capturedCommand.IsReady)
+                        {
+                            statusMessage =
+                                $"{capturedCommand.DisplayName}: 재사용까지 "
+                                + $"{capturedCommand.RemainingCooldownHours}시간 남음";
+                            Render();
+                            return;
+                        }
+                        if (capturedCommand.TargetingMode
+                            == CharacterSkillTargetingMode.PlayerSelected)
+                        {
+                            pendingManualSkillSourceIndex = capturedSourceIndex;
+                            pendingManualSkillId = capturedCommand.SkillId;
+                            statusMessage = "능력을 적용할 원정대원을 선택하세요.";
+                            Render();
+                            return;
+                        }
+
+                        runtime.TryActivateManualSkill(
+                            expedition.ExpeditionId,
+                            capturedSourceIndex,
+                            capturedCommand.SkillId,
+                            -1,
+                            out statusMessage);
+                        ClearPendingManualSkill();
+                        Render();
+                    },
+                    command.IsReady
+                        ? JourneyButtonStyle.Action
+                        : JourneyButtonStyle.Close);
+            }
+        }
+    }
+
+    private string FormatOutcomeHistory(OffenseExpeditionRun expedition)
+    {
+        if (outcomePresentation == null
+            || expedition == null
+            || !GameplayOutcomeStableIdSyntax.IsValid(expedition.ExpeditionId))
+            return string.Empty;
+        GameplayOutcomePresentationPage page = outcomePresentation.GetOperationPage(
+            new GameplayOperationId(expedition.ExpeditionId),
+            OutcomeCursor.FirstPage(8),
+            OutcomeFilter.All);
+        return "\n\n" + outcomePresentation.FormatPage(page);
+    }
+
+    private void ClearPendingManualSkill()
+    {
+        pendingManualSkillSourceIndex = -1;
+        pendingManualSkillId = string.Empty;
+    }
+
+    private static string FormatManualTarget(
+        CharacterManualSkillCommandState command)
+    {
+        return command.TargetingMode switch
+        {
+            CharacterSkillTargetingMode.Self => "자신",
+            CharacterSkillTargetingMode.PlayerSelected => "직접 선택",
+            CharacterSkillTargetingMode.DeterministicRandom => "무작위",
+            CharacterSkillTargetingMode.AllEligible => "전체",
+            _ => "알 수 없음"
+        };
+    }
+
+    private static string FormatExpeditionArea(
+        CharacterManualSkillCommandState command)
+    {
+        if (command.EffectArea == CharacterSkillEffectArea.Square)
+        {
+            return command.AreaSize switch
+            {
+                3 => "3×3→같은 진형",
+                5 => "5×5→인접 진형",
+                7 => "7×7→원정대 전체",
+                _ => $"{command.AreaSize}×{command.AreaSize}"
+            };
+        }
+        return command.EffectArea switch
+        {
+            CharacterSkillEffectArea.Single => "단일",
+            CharacterSkillEffectArea.Room => "방 전체→같은 진형",
+            CharacterSkillEffectArea.Dungeon => "던전 전체→원정대 전체",
+            _ => "알 수 없음"
+        };
     }
 
     private void AddNodeResolutionButton(
@@ -509,6 +706,32 @@ public class OffenseExpeditionPanel : MonoBehaviour
                 $"{OffenseFormationUtility.GetDisplayName(member.Formation)}  Lv.{member.Actor.Progression?.Level ?? 1}  {GetActorName(member.Actor)}"
                 + $"  체력 {member.Actor.CurrentHealth:0}/{member.Actor.MaxHealth:0}"
                 + $"  스트레스 {member.Stress:0}");
+        }
+
+        List<string> manualSkillLines = new List<string>();
+        for (int index = 0; index < expedition.MemberStates.Count; index++)
+        {
+            OffenseExpeditionMemberState member = expedition.MemberStates[index];
+            if (member == null || !member.IsAlive || member.Actor == null)
+                continue;
+            foreach (CharacterManualSkillCommandState command in
+                     runtime.GetManualSkillCommands(expedition.ExpeditionId, index))
+            {
+                string availability = command.IsReady
+                    ? "사용 가능"
+                    : $"재사용까지 {command.RemainingCooldownHours}시간";
+                manualSkillLines.Add(
+                    $"{GetActorName(member.Actor)} · {command.DisplayName}"
+                    + $" · {FormatManualTarget(command)}"
+                    + $" · {FormatExpeditionArea(command)}"
+                    + $" · {availability}\n  {command.MechanicalDescription}");
+            }
+        }
+        if (manualSkillLines.Count > 0)
+        {
+            lines.Add(string.Empty);
+            lines.Add("원정 사용 능력");
+            lines.AddRange(manualSkillLines);
         }
 
         lines.Add(string.Empty);

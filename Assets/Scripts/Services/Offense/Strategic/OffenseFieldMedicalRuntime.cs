@@ -116,7 +116,7 @@ public sealed class OffenseFieldMedicalRuntime : IOffenseFieldMedicalRuntime
 
         OffenseSupplyType kitType = OffenseSupplyCatalog.GetFieldMedicalKit(
             character.SpeciesTag);
-        if (!expedition.Supplies.TryConsume(kitType, 1))
+        if (expedition.Supplies.Get(kitType) < 1)
         {
             reason = $"{OffenseSupplyCatalog.GetDisplayName(kitType)}이(가) 없습니다.";
             return false;
@@ -136,10 +136,14 @@ public sealed class OffenseFieldMedicalRuntime : IOffenseFieldMedicalRuntime
                 eventSequence,
                 out reason))
         {
+            if (!expedition.TryConsumeSupply(kitType, 1))
+            {
+                throw new InvalidOperationException(
+                    "Packed stabilization committed without its reserved medical kit.");
+            }
+            expedition.RecordStabilization(character, anatomyNodeId);
             return true;
         }
-
-        expedition.Supplies.Add(kitType, 1);
         return false;
     }
 

@@ -51,7 +51,7 @@ public sealed class CustomerCheckoutPatiencePlayModeRunner : MonoBehaviour
             alertListener =
                 new CheckoutAlertListener(CharacterAiEditorTestDependencies.GameEvents);
             Shop shop = world.Place(
-                "P1_GeneralStore",
+                "S01_판매카운터",
                 new Vector2Int(4, 0),
                 requireStaffedService: true) as Shop;
             CharacterActor customer = world.CreateCustomer(

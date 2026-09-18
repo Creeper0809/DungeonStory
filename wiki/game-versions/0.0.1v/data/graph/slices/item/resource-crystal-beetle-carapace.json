@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-crystal-beetle-carapace",
+    "spoiler_tier": "none",
+    "title": "수정딱정벌레 갑각"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "nature/crystal-beetle",
+      "label": "관련",
+      "to": "item/resource-crystal-beetle-carapace",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

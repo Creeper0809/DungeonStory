@@ -160,7 +160,13 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
 
         NormalizeStanding(profile);
         actor.EnsureRuntimeState();
-        actor.Identity?.SetPersistentId(profile.persistentId);
+        if (!string.Equals(
+                actor.Identity?.PersistentId,
+                profile.persistentId,
+                StringComparison.Ordinal))
+        {
+            actor.Identity?.SetPersistentId(profile.persistentId);
+        }
         actors[actor] = profile;
         profile.isVisiting =
             profile.settlementStanding == CharacterSettlementStanding.Visitor;
@@ -172,7 +178,8 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
                 profile.level,
                 profile.currentExperience,
                 profile.growth,
-                profile.narrative));
+                profile.narrative,
+                profile.acquiredTraits));
         }
         else
         {
@@ -490,6 +497,8 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
             growth = growth,
             narrative = snapshot?.NarrativeLedger?.Clone()
                 ?? new CharacterNarrativeLedger(),
+            acquiredTraits = snapshot?.AcquiredTraitState?.Clone()
+                ?? new CharacterAcquiredTraitAggregateState(),
             socialMemory = actor.SocialMemory?.CaptureSnapshot()
                 ?? new CharacterSocialMemorySnapshot()
         };
@@ -703,7 +712,8 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
             Mathf.Max(1, profile.level),
             Mathf.Max(0, profile.currentExperience),
             profile.growth,
-            profile.narrative));
+            profile.narrative,
+            profile.acquiredTraits));
         TryCompletePreparation(profile.persistentId);
     }
 
@@ -744,6 +754,7 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
         pending.profile.currentExperience = snapshot.CurrentExperience;
         pending.profile.growth = snapshot.GrowthState.Clone();
         pending.profile.narrative = snapshot.NarrativeLedger.Clone();
+        pending.profile.acquiredTraits = snapshot.AcquiredTraitState.Clone();
         pending.profile.displayName = pending.profile.growth.displayName;
         pending.profile.origin = pending.profile.growth.origin;
     }
@@ -890,7 +901,8 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
             origin = growth.origin,
             settlementStanding = CharacterSettlementStanding.PreparedCandidate,
             growth = growth,
-            narrative = new CharacterNarrativeLedger()
+            narrative = new CharacterNarrativeLedger(),
+            acquiredTraits = new CharacterAcquiredTraitAggregateState()
         };
     }
 
@@ -941,6 +953,7 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
             profile.currentExperience = snapshot.CurrentExperience;
             profile.growth = snapshot.GrowthState.Clone();
             profile.narrative = snapshot.NarrativeLedger.Clone();
+            profile.acquiredTraits = snapshot.AcquiredTraitState.Clone();
             profile.displayName = profile.growth.displayName;
             profile.origin = profile.growth.origin;
         }

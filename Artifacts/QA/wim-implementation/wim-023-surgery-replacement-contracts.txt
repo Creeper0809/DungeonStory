@@ -1,0 +1,223 @@
+WIM023 Surgery Replacement Contracts - Unity Verification
+timestamp_local=2026-09-08T15:06:35+09:00
+project=F:\01_Programming\01_Project\02_Unity\DungeonStory
+source_bundle_sha256=0f68020e24e18e531c1d09b7e9bbbddbdc8c46048401e914b00b279dd433a5ac
+refresh_count=1
+compile_result=FAIL
+source_freshness=STALE; latest source Assets/Scripts/Services/Medical/Editor/SurgeryDebugScenarios.cs 2026-09-08T14:52:08.6014217+09:00; Assembly-CSharp-Editor.dll 2026-09-08T10:50:50.4636367+09:00
+compile_error=Assets/Scripts/Services/Medical/SurgicalPartRuntime.cs(1972,63): error CS1061: 'FacilityBufferPlannedOutputSlice' does not contain a definition for 'ItemInstanceId' and no accessible extension method 'ItemInstanceId' accepting a first argument of type 'FacilityBufferPlannedOutputSlice' could be found (are you missing a using directive or an assembly reference?)
+console_before=0 Error/Warning entries
+console_after=Unity_ReadConsole returned 0 retained Error/Warning entries; Editor.log recorded the new CS1061 compile failure (Tundra exit code 1)
+scene_before=Assets/Scenes/GameplayScene.unity; loaded=true; dirty=true; rootCount=7
+scene_after=Assets/Scenes/GameplayScene.unity; loaded=true; dirty=true; rootCount=7
+editor_final=playing=false; paused=false; compiling=false; updating=false; PID29100 responding
+fixture_scope=INSPECTED_ONLY; EditorVerificationSceneFixtureScope uses an additive temporary scene and exact active/dirty/topology restoration guard
+test_entry=SurgeryDebugScenarios.RunAll(false)
+test_result=NOT RUN; latest-source compilation failed
+
+case	result	details
+specialized_facilities	NOT RUN	latest-source compilation failed
+procedure_catalog	NOT RUN	latest-source compilation failed
+anatomy_profiles	NOT RUN	latest-source compilation failed
+research_branch	NOT RUN	latest-source compilation failed
+prosthetic_recipes	NOT RUN	latest-source compilation failed
+risk_formula	NOT RUN	latest-source compilation failed
+organ_preservation_restore_join	NOT RUN	latest-source compilation failed
+corpse_extraction_ledger	NOT RUN	latest-source compilation failed
+unique_part_save_data	NOT RUN	latest-source compilation failed
+surgical_part_installation_pending_outbox	NOT RUN	latest-source compilation failed
+surgery_material_sink_join	NOT RUN	latest-source compilation failed
+replacement_physical_save_join	NOT RUN	latest-source compilation failed
+replacement_runtime_transaction	NOT RUN	latest-source compilation failed
+surgery_facility_single_owner_save_join	NOT RUN	latest-source compilation failed
+strict_v6_payload	NOT RUN	latest-source compilation failed
+identifier_sequence_exhaustion	NOT RUN	latest-source compilation failed
+restore_late_participant_rollback	NOT RUN	latest-source compilation failed
+work_and_stat_contract	NOT RUN	latest-source compilation failed
+
+retry_after_source_correction
+timestamp_local=2026-09-08T15:11:31+09:00
+corrected_source=Assets/Scripts/Services/Medical/SurgicalPartRuntime.cs
+corrected_source_sha256=D8BD25F0F1F95A26F93CD3FACD503C22C2844FB8317661CE2265C159FDB399E1
+refresh_count_this_batch=1
+compile_result=FAIL
+source_freshness=RUNTIME_ONLY; Assembly-CSharp.dll updated 2026-09-08T15:11:30+09:00, Assembly-CSharp-Editor.dll did not publish
+compile_error_1=Assets/Scripts/Services/Medical/Editor/SurgeryDebugScenarios.cs(1369,39): error CS0136: A local or parameter named 'reserveFailure' cannot be declared in this scope because that name is used in an enclosing local scope to define a local or parameter
+compile_error_2=Assets/Scripts/Services/Medical/Editor/SurgeryDebugScenarios.cs(2161,13): error CS0246: The type or namespace name 'IGameClock' could not be found (are you missing a using directive or an assembly reference?)
+compile_error_3=Assets/Scripts/Services/Medical/Editor/SurgeryDebugScenarios.cs(2161,55): error CS0246: The type or namespace name 'IGameClock' could not be found (are you missing a using directive or an assembly reference?)
+test_entry=SurgeryDebugScenarios.RunAll(false)
+test_result=NOT RUN; Editor assembly compilation failed
+scene_after=Assets/Scenes/GameplayScene.unity; loaded=true; dirty=true; rootCount=7
+editor_final=playing=false; paused=false; compiling=false; updating=false; PID29100 responding; activeCompileProcesses=0
+
+case	result	details
+specialized_facilities	NOT RUN	Editor assembly compilation failed
+procedure_catalog	NOT RUN	Editor assembly compilation failed
+anatomy_profiles	NOT RUN	Editor assembly compilation failed
+research_branch	NOT RUN	Editor assembly compilation failed
+prosthetic_recipes	NOT RUN	Editor assembly compilation failed
+risk_formula	NOT RUN	Editor assembly compilation failed
+organ_preservation_restore_join	NOT RUN	Editor assembly compilation failed
+corpse_extraction_ledger	NOT RUN	Editor assembly compilation failed
+unique_part_save_data	NOT RUN	Editor assembly compilation failed
+surgical_part_installation_pending_outbox	NOT RUN	Editor assembly compilation failed
+surgery_material_sink_join	NOT RUN	Editor assembly compilation failed
+replacement_physical_save_join	NOT RUN	Editor assembly compilation failed
+replacement_runtime_transaction	NOT RUN	Editor assembly compilation failed
+surgery_facility_single_owner_save_join	NOT RUN	Editor assembly compilation failed
+strict_v6_payload	NOT RUN	Editor assembly compilation failed
+identifier_sequence_exhaustion	NOT RUN	Editor assembly compilation failed
+restore_late_participant_rollback	NOT RUN	Editor assembly compilation failed
+work_and_stat_contract	NOT RUN	Editor assembly compilation failed
+
+public_contract_execution_after_editor_compile
+timestamp_local=2026-09-08T15:16:45+09:00
+source_bundle_sha256=b49380ea9442811e698c5a4585959a69b35eec844c9e8d036689c613a130b88a
+refresh_count_this_batch=1
+compile_result=PASS
+source_freshness=PASS; Assembly-CSharp.dll 2026-09-08T15:11:30+09:00; Assembly-CSharp-Editor.dll 2026-09-08T15:15:26+09:00
+test_entry=EditorVerificationSceneFixtureScope.Run -> SurgeryDebugScenarios.RunAll(false)
+test_result=FAIL; passed=15; failed=3; total=18
+console_before=0 Error/Warning entries
+console_after=3 retained scenario Error entries; RunCommand also reported the aggregate failure marker and thrown return-false exception
+fixture_cleanup=PASS; Assets/__EditorVerificationSceneFixtures absent after execution
+scene_after=Assets/Scenes/GameplayScene.unity; loaded=true; dirty=true; rootCount=7
+editor_final=playing=false; paused=false; compiling=false; updating=false; PID29100 responding; active command absent
+source_tsv=Temp/surgery-system-contracts.tsv
+source_tsv_sha256=A2A0A90EB18A87603E3FFF69E517D4749E180087C26D7B868CF67549F909104B
+
+case	result	details
+specialized_facilities	PASS	13 medical facilities cover every foundational surgery/support tag; M06 owns exact m06/4-cycle production authority; V21 age-treatment facilities are validated separately
+procedure_catalog	PASS	47 procedures require work, facilities, hauled materials, and valid effects
+anatomy_profiles	PASS	12 anatomy assets provide nine independent species profiles plus legacy and wildlife contracts
+research_branch	PASS	the research graph includes the six surgery nodes and prerequisites
+prosthetic_recipes	PASS	three prosthetic recipes use the exact m06 workstation, physical inputs, and cumulative craft work
+risk_formula	PASS	risk uses facility, cleanliness, instability, compatibility, and fixed clamps
+organ_preservation_restore_join	PASS	valid/missing/orphan/mismatch joins and physical freshness boundaries are fail-closed
+corpse_extraction_ledger	PASS	corpse organs are extracted once and capture canonical aggregate state
+unique_part_save_data	PASS	unique donor, graft, freshness, clinical stages, and typed statuses round-trip through V6 section data
+surgical_part_installation_pending_outbox	PASS	physical pending receipt survives the crash boundary, mismatched commit is atomic, restore finalizes and acknowledges exactly once
+surgery_material_sink_join	PASS	V11 persists and rejects tampering of exact material sink operation, commit, grams, and acknowledgement
+replacement_physical_save_join	PASS	replacement receipt joins old physical identity, recovered durability, and incoming body owner
+replacement_runtime_transaction	FAIL	replacement runtime save rejected its current phase: Installed surgical part 'surgical-part:1' has no physical transfer receipt.
+surgery_facility_single_owner_save_join	PASS	one facility keeps one material authority while later surgery remains an empty queued owner
+strict_v6_payload	FAIL	canonical positive surgery IDs were rejected: Unrolled surgery order 'surgery:1' entered a successful terminal state.
+identifier_sequence_exhaustion	FAIL	maximum canonical surgery identities/watermarks were rejected: Unrolled surgery order 'surgery:2147483647' entered a successful terminal state. | Surgical part 'surgical-part:2147483647' lacks canonical physical identity.
+restore_late_participant_rollback	PASS	three late-participant checkpoints preserve transports, orders, patient phase, and deferred wildlife returns until completion
+work_and_stat_contract	PASS	surgery is a registered Priority1 work type and Medical is the twelfth stat
+
+public_contract_execution_after_final_fixture_correction
+timestamp_local=2026-09-08T16:03:25+09:00
+fixture_source=Assets/Scripts/Services/Medical/Editor/SurgeryDebugScenarios.cs
+fixture_source_sha256=F1B0FC95345DF3B8C6FFCC811BC1857D20DC211AFA03FF9E9C14903FC68E2249
+source_bundle_sha256=b49380ea9442811e698c5a4585959a69b35eec844c9e8d036689c613a130b88a
+refresh_count_this_batch=0
+compile_result=PASS
+source_freshness=PASS; fixture source 2026-09-08T15:23:09.6307315+09:00; Assembly-CSharp-Editor.dll 2026-09-08T15:57:22.5712463+09:00
+test_entry=EditorVerificationSceneFixtureScope.Run -> SurgeryDebugScenarios.RunAll(false)
+test_result=FAIL; passed=17; failed=1; total=18
+failure=replacement_runtime_transaction: Sequence contains more than one element
+console_before=0 Error/Warning entries
+console_after=1 retained scenario Error entry; 0 Warning entries; RunCommand reported the aggregate return-false failure
+fixture_cleanup=PASS; Assets/__CodexVerificationFixtures/wim023-surgery-contracts-final absent after execution
+scene_after=Assets/Scenes/GameplayScene.unity; loaded=true; dirty=true; rootCount=7
+editor_final=playing=false; paused=false; compiling=false; updating=false; PID29100 responding; active RunCommand absent
+source_tsv=Temp/surgery-system-contracts.tsv
+source_tsv_sha256=6C1599E7E7E36D276AF36BF1FBB4A464AA4AA4E82A9908144E03D8C6616EF91A
+
+case	result	details
+specialized_facilities	PASS	13 medical facilities cover every foundational surgery/support tag; M06 owns exact m06/4-cycle production authority; V21 age-treatment facilities are validated separately
+procedure_catalog	PASS	47 procedures require work, facilities, hauled materials, and valid effects
+anatomy_profiles	PASS	12 anatomy assets provide nine independent species profiles plus legacy and wildlife contracts
+research_branch	PASS	the research graph includes the six surgery nodes and prerequisites
+prosthetic_recipes	PASS	three prosthetic recipes use the exact m06 workstation, physical inputs, and cumulative craft work
+risk_formula	PASS	risk uses facility, cleanliness, instability, compatibility, and fixed clamps
+organ_preservation_restore_join	PASS	valid/missing/orphan/mismatch joins and physical freshness boundaries are fail-closed
+corpse_extraction_ledger	PASS	corpse organs are extracted once and capture canonical aggregate state
+unique_part_save_data	PASS	unique donor, graft, freshness, clinical stages, and typed statuses round-trip through V6 section data
+surgical_part_installation_pending_outbox	PASS	physical pending receipt survives the crash boundary, mismatched commit is atomic, restore finalizes and acknowledges exactly once
+surgery_material_sink_join	PASS	V11 persists and rejects tampering of exact material sink operation, commit, grams, and acknowledgement
+replacement_physical_save_join	PASS	replacement receipt joins old physical identity, recovered durability, and incoming body owner
+replacement_runtime_transaction	FAIL	Sequence contains more than one element
+surgery_facility_single_owner_save_join	PASS	one facility keeps one material authority while later surgery remains an empty queued owner
+strict_v6_payload	PASS	strict V6 accepts canonical cancellation and rejects legacy, unrolled clinical failure, unknown status, missing, sequence, duplicate, and noncanonical numeric ID corruption
+identifier_sequence_exhaustion	PASS	canonical maximum IDs restore with matching watermarks; next order and part creation fail without mutation
+restore_late_participant_rollback	PASS	three late-participant checkpoints preserve transports, orders, patient phase, and deferred wildlife returns until completion
+work_and_stat_contract	PASS	surgery is a registered Priority1 work type and Medical is the twelfth stat
+
+public_contract_execution_after_exact_order_fixture_correction
+timestamp_local=2026-09-08T16:09:21+09:00
+fixture_source=Assets/Scripts/Services/Medical/Editor/SurgeryDebugScenarios.cs
+fixture_source_sha256=12C025A5BD32398AE17E85E9F7B5724DB7ED72571CD78C074B83CDDB7E743002
+refresh_count_this_batch=1
+compile_result=PASS
+source_freshness=PASS; fixture source 2026-09-08T16:05:40.9973356+09:00; Assembly-CSharp-Editor.dll 2026-09-08T16:08:02.3949518+09:00
+test_entry=EditorVerificationSceneFixtureScope.Run -> SurgeryDebugScenarios.RunAll(false)
+test_result=FAIL; passed=17; failed=1; total=18
+failure=replacement_runtime_transaction: replacement fixture could not create its historical installation receipt: DomainFailure
+failure_assertion=Assets/Scripts/Services/Medical/Editor/SurgeryDebugScenarios.cs:2271; Runtime.TryConsumeForInstallation assertion through line 2286
+console_frame=Assets/Scripts/Services/Medical/Editor/SurgeryDebugScenarios.cs:92; RunAll caught and logged the case failure
+console_before=0 Error/Warning entries after controlled refresh
+console_after=1 retained scenario Error entry; 0 Warning entries
+fixture_cleanup=PASS; Assets/__CodexVerificationFixtures/wim023-surgery-contracts-final absent after execution
+scene_after=Assets/Scenes/GameplayScene.unity; loaded=true; dirty=true; rootCount=7
+editor_final=playing=false; paused=false; compiling=false; updating=false; PID29100 responding; active RunCommand absent
+source_tsv=Temp/surgery-system-contracts.tsv
+source_tsv_sha256=EA9E1631C24AE91D42B500E726C99B7F6D11A087B319A43CA39EE56AD143D3CB
+
+case	result	details
+specialized_facilities	PASS	13 medical facilities cover every foundational surgery/support tag; M06 owns exact m06/4-cycle production authority; V21 age-treatment facilities are validated separately
+procedure_catalog	PASS	47 procedures require work, facilities, hauled materials, and valid effects
+anatomy_profiles	PASS	12 anatomy assets provide nine independent species profiles plus legacy and wildlife contracts
+research_branch	PASS	the research graph includes the six surgery nodes and prerequisites
+prosthetic_recipes	PASS	three prosthetic recipes use the exact m06 workstation, physical inputs, and cumulative craft work
+risk_formula	PASS	risk uses facility, cleanliness, instability, compatibility, and fixed clamps
+organ_preservation_restore_join	PASS	valid/missing/orphan/mismatch joins and physical freshness boundaries are fail-closed
+corpse_extraction_ledger	PASS	corpse organs are extracted once and capture canonical aggregate state
+unique_part_save_data	PASS	unique donor, graft, freshness, clinical stages, and typed statuses round-trip through V6 section data
+surgical_part_installation_pending_outbox	PASS	physical pending receipt survives the crash boundary, mismatched commit is atomic, restore finalizes and acknowledges exactly once
+surgery_material_sink_join	PASS	V11 persists and rejects tampering of exact material sink operation, commit, grams, and acknowledgement
+replacement_physical_save_join	PASS	replacement receipt joins old physical identity, recovered durability, and incoming body owner
+replacement_runtime_transaction	FAIL	replacement fixture could not create its historical installation receipt: DomainFailure
+surgery_facility_single_owner_save_join	PASS	one facility keeps one material authority while later surgery remains an empty queued owner
+strict_v6_payload	PASS	strict V6 accepts canonical cancellation and rejects legacy, unrolled clinical failure, unknown status, missing, sequence, duplicate, and noncanonical numeric ID corruption
+identifier_sequence_exhaustion	PASS	canonical maximum IDs restore with matching watermarks; next order and part creation fail without mutation
+restore_late_participant_rollback	PASS	three late-participant checkpoints preserve transports, orders, patient phase, and deferred wildlife returns until completion
+work_and_stat_contract	PASS	surgery is a registered Priority1 work type and Medical is the twelfth stat
+
+public_contract_execution_after_fault_arm_correction
+timestamp_local=2026-09-08T16:14:37+09:00
+fixture_source=Assets/Scripts/Services/Medical/Editor/SurgeryDebugScenarios.cs
+fixture_source_sha256=1427EBF18DE70693B65EF1D1771614C09A90C99EBBA017CD30CC35A9FCA53A45
+refresh_count_this_batch=1
+compile_result=PASS
+source_freshness=PASS; fixture source 2026-09-08T16:12:38.6065344+09:00; Assembly-CSharp-Editor.dll 2026-09-08T16:13:48.0146747+09:00
+test_entry=EditorVerificationSceneFixtureScope.Run -> SurgeryDebugScenarios.RunAll(false)
+test_result=PASS; passed=18; failed=0; total=18
+console_before=0 Error/Warning entries after controlled refresh
+console_after=0 Error entries; 0 Warning entries
+fixture_cleanup=PASS; Assets/__CodexVerificationFixtures/wim023-surgery-contracts-final absent after execution
+scene_after=Assets/Scenes/GameplayScene.unity; loaded=true; dirty=true; rootCount=7
+editor_final=playing=false; paused=false; compiling=false; updating=false; PID29100 responding; active RunCommand absent
+source_tsv=Temp/surgery-system-contracts.tsv
+source_tsv_sha256=9FD3B61CADD2EDA4CC415096D4860C987E4F06F1935ACE9626BCA7134E9D7698
+
+case	result	details
+specialized_facilities	PASS	13 medical facilities cover every foundational surgery/support tag; M06 owns exact m06/4-cycle production authority; V21 age-treatment facilities are validated separately
+procedure_catalog	PASS	47 procedures require work, facilities, hauled materials, and valid effects
+anatomy_profiles	PASS	12 anatomy assets provide nine independent species profiles plus legacy and wildlife contracts
+research_branch	PASS	the research graph includes the six surgery nodes and prerequisites
+prosthetic_recipes	PASS	three prosthetic recipes use the exact m06 workstation, physical inputs, and cumulative craft work
+risk_formula	PASS	risk uses facility, cleanliness, instability, compatibility, and fixed clamps
+organ_preservation_restore_join	PASS	valid/missing/orphan/mismatch joins and physical freshness boundaries are fail-closed
+corpse_extraction_ledger	PASS	corpse organs are extracted once and capture canonical aggregate state
+unique_part_save_data	PASS	unique donor, graft, freshness, clinical stages, and typed statuses round-trip through V6 section data
+surgical_part_installation_pending_outbox	PASS	physical pending receipt survives the crash boundary, mismatched commit is atomic, restore finalizes and acknowledges exactly once
+surgery_material_sink_join	PASS	V11 persists and rejects tampering of exact material sink operation, commit, grams, and acknowledgement
+replacement_physical_save_join	PASS	replacement receipt joins old physical identity, recovered durability, and incoming body owner
+replacement_runtime_transaction	PASS	real replacement runtime rejects stale CAS input loss, persists pending refreshed output admission, and replays post-CAS publication or natural-organ transfer without rerolling work
+surgery_facility_single_owner_save_join	PASS	one facility keeps one material authority while later surgery remains an empty queued owner
+strict_v6_payload	PASS	strict V6 accepts canonical cancellation and rejects legacy, unrolled clinical failure, unknown status, missing, sequence, duplicate, and noncanonical numeric ID corruption
+identifier_sequence_exhaustion	PASS	canonical maximum IDs restore with matching watermarks; next order and part creation fail without mutation
+restore_late_participant_rollback	PASS	three late-participant checkpoints preserve transports, orders, patient phase, and deferred wildlife returns until completion
+work_and_stat_contract	PASS	surgery is a registered Priority1 work type and Medical is the twelfth stat

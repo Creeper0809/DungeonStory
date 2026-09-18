@@ -499,7 +499,7 @@ public sealed class WorldFilthRuntime :
     {
         foreach (WorldFilthWorkTarget target in workTargets.Values.Where(target => target != null).ToArray())
         {
-            UnityEngine.Object.Destroy(target.gameObject);
+            target.RetireForWorldReplacement();
         }
         workTargets.Clear();
         foreach (Vector2Int position in filth.Where(entry => entry != null && entry.amount > 0f)

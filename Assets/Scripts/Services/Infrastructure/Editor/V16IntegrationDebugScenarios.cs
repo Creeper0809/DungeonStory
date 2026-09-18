@@ -138,10 +138,12 @@ public static class V16IntegrationDebugScenarios
             localTarget,
             1,
             out StrategicPressureAxis axis,
-            out float amount);
+            out float requestedAmount,
+            out float appliedAmount);
         runtime.TryApplyTargetPressure(
             peerTarget,
             1,
+            out _,
             out _,
             out _);
         OffenseRegionState peer = runtime.Regions.First(region =>
@@ -158,11 +160,12 @@ public static class V16IntegrationDebugScenarios
         Check(
             localApplied
             && axis == StrategicPressureAxis.Logistics
-            && Mathf.Approximately(amount, 40f)
+            && Mathf.Approximately(requestedAmount, 40f)
+            && Mathf.Approximately(appliedAmount, 40f)
             && Mathf.Approximately(local.Logistics, 40f)
             && Mathf.Approximately(spillover.Logistics, 10f),
             "regional pressure spillover",
-            $"applied={localApplied}; axis={axis}; amount={amount}; local={local.Logistics}; peer={spillover.Logistics}",
+            $"applied={localApplied}; axis={axis}; requested={requestedAmount}; appliedAmount={appliedAmount}; local={local.Logistics}; peer={spillover.Logistics}",
             failures);
 
         DungeonOffenseRegionSaveData saved = runtime.Capture();
@@ -193,11 +196,14 @@ public static class V16IntegrationDebugScenarios
             truth,
             5,
             out _,
-            out float amount);
+            out float requestedAmount,
+            out float appliedAmount);
         Check(
-            !applied && Mathf.Approximately(amount, 0f),
+            !applied
+            && Mathf.Approximately(requestedAmount, 0f)
+            && Mathf.Approximately(appliedAmount, 0f),
             "truth target pressure exclusion",
-            $"final truth target applied meaningless pressure {amount}",
+            $"final truth target requested={requestedAmount}; applied={appliedAmount}",
             failures);
 
         IReadOnlyList<OffenseTargetDefinition> targets =

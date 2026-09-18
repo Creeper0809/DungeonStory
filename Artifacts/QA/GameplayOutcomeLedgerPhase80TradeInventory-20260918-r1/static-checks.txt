@@ -1,0 +1,39 @@
+Phase80 trade/inventory static verification
+Date: 2026-09-18
+Mode: SOURCE_EDIT; Unity/CLI/MCP/KB rebuild not executed
+
+[PASS] producer-closure.json parses; candidate rows = 39; unique = 39
+[PASS] blocked-seams.json parses; remaining blocked rows = 28; unique = 28
+[PASS] original 22 producer candidates equal the domain_group 5 Receipt/Event input set
+[PASS] provisional r2 authoritative Result/Outcome/Resolution expansion adds all 17 group-5 types without downgrading them by suffix
+[PASS] 8 source-audited NonResult candidates have explicit final-schema categories and producer/consumer proof; final hashes remain pending
+[PASS] declarative TradeInventoryOutcomeDefinitions rows = 22; no result-kind switch/case dispatch in runtime bridge folder
+[PASS] PhysicalItemBatchDispositionReceipt status = implemented_source_awaiting_unity_verification (verified implemented count remains 0)
+[PASS] PhysicalItemDispositionReceipt uses PhysicalItemBatchDispositionReceipt as an exact same-operation substitute; the legacy extension no longer mutates through TryConsumeStackQuantity
+[PASS] PhysicalItemRelocationReceipt prepares before mutation, holds a reversible physical handle until canonical commit, and persists an exact save-backed operation journal
+[PASS] relocation replay compares a lowercase SHA-256 request fingerprint, returns the original receipt without a second mutation, and rejects a different payload
+[PASS] relocation journal retains immutable item display/pronunciation, exact source/destination/quantity/mass, expected result key and canonical attachment through save/restore
+[PASS] relocation acknowledgement accepts PublishedAcknowledged/Compacted/Forgotten only after exact key/outcome/hash reconciliation; journal retention is bounded and fail-closed
+[PASS] IOutcomeAwareReservedPhysicalItemBatchDispositionService reuses the lease+physical rollback boundary with a caller-supplied typed participant
+[PASS] physical pending row stores expected GameplayResultKey, owner revision, exact source facts and optional canonical attachment
+[PASS] source facts retain stack/definition/instance IDs, per-source quantity/mass/location and immutable Korean display/pronunciation snapshot
+[PASS] attachment requires exact ResultKey/OutcomeId and lowercase 64-character SHA-256
+[PASS] accepted attachment lifecycle is Committed..Forgotten; pending retirement requires PublishedAcknowledged..Forgotten proof
+[PASS] post-ledger-commit delivery/ack/identity fault cannot enter domain rollback path
+[PASS] save/restore reconciliation retains exact expected key and rebuilds the attachment from canonical identity
+[PASS] Compacted/Forgotten tombstone reconciliation keeps key/outcome/hash exact
+[PASS] generic facility output seam previews deterministic stack/instance ids, exact quantity/mass/definition refs and immutable Korean display/pronunciation snapshots before mutation
+[PASS] facility output physical publication and mass admission expose reversible handles; the save owner retains expected result key, revision, snapshots and canonical attachment
+[PASS] facility output acknowledgement is gated by exact PublishedAcknowledged..Forgotten canonical identity and survives save/restore/retry
+[PASS] memory signature includes outcome kind, status and full subject kind/value (bounded deterministic hash fallback)
+[PASS] perspective text comes from per-definition role frames; unknown kinds fail closed
+[PASS] KoreanJosaResolutionCache capacity = 4096 by default with deterministic FIFO eviction and Clear
+[PASS] Foundation registrations for Josa cache, IKoreanJosaFormatter and GameplayOutcomeConsolidationRuntime each occur once
+[PASS] new TradeInventory .meta GUIDs are unique within the owned bridge tree
+[PASS] git diff --check returned no whitespace errors for owned source files
+[PASS] brace-count scan returned no mismatch for owned runtime source files
+[BLOCKED] Unity 6000.3.8f1 focused batch compile stopped before scenario execution on pre-existing/out-of-scope Evolution CS0246 errors for GameplayOutcomeEvidenceBindingSnapshot; see physical-relocation-runtime-test.json and unity-focused.log
+[N/A] warm-path allocation measurement requires Unity profiler/runtime execution
+
+Current counts: verified implemented 0; source implemented awaiting Unity verification 3; provisional NonResult source-audited 8; blocked 28; final-frozen NonResult 0; audited candidate types 39.
+Current state: SOURCE_EDIT, not release-ready.

@@ -1,4 +1,4 @@
 RESULT=PASS; checks=2; failures=0
-sourceDigest=323fea0f650bf42549471d687e912ad99ae8ecb4e37848fe74c0a3cb06ee205f
+sourceDigest=cc1691dd85308839f7bb8e6a5d6f1b3add10d8b66d1e4a40d1149cc9247f5b1d
 PASS WORLD_RESOURCE_EXACT_SOURCE_ATOMIC_PUBLICATION exactSource=true;sourceDebitExact=true;frozenOutcome=true;conserved=true
 PASS CROP_OUTPUT_FACILITY_BUFFER_WAIT_RESTORE_RETRY_EXACT_ONCE capacityWait=true;frozenRestore=true;replayDelta=0;executionReceipt=true;physicalBatchJoin=true;terminalRestore=true;ackRetention=true

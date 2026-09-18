@@ -1,0 +1,82 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa10b2a63b654e309daf38d4e7e5ecdc, type: 3}
+  m_Name: acquired-trait_module_social-bridge
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterAcquiredTraitModuleSO
+  moduleId: acquired-trait:module:social-bridge
+  displayName: "\uAD00\uACC4\uC758 \uB2E4\uB9AC"
+  description: "\uAC08\uB4F1\uACFC \uD654\uD574\uB97C \uAC70\uCE5C \uACBD\uD5D8\uC73C\uB85C
+    \uAD00\uACC4 \uD68C\uBCF5\uC774 \uC870\uAE08 \uBE68\uB77C\uC9D1\uB2C8\uB2E4."
+  cost: 2
+  conflictGroups: []
+  domainAffinities: 04000000
+  effects:
+  - bindingId: acquired-trait:module:social-bridge:effect:0
+    definition: {fileID: 11400000, guid: 32f31fef8eb6d494ca08d45179a5d427, type: 2}
+    value: 1.08
+    condition: {fileID: 0}
+  drawbackBindingIds: []
+  specialReactions:
+  - reactionId: acquired-trait:reaction:accepted-restitution
+    trigger: 3
+    ownerRole: 1
+    condition: 4
+    action: 1
+    baseValue: 2
+    durationDays: 2
+    cooldownDays: 2
+    maximumTriggersPerDay: 1
+    maximumLifetimeTriggers: 0
+    displayLabel: "\uC131\uC758 \uC788\uB294 \uD654\uD574"
+  capabilityId: acquired-trait:acquired-trait:module:social-bridge
+  formula:
+    appliedParameterIds:
+    - magnitude
+    baseCost: 2
+    triggerFrequencyCostPerUnit: 1
+    guaranteedProcCost: 1
+    areaCostPerExtraTarget: 1
+    multiEffectCostPerExtraEffect: 1
+    pairSynergyCosts: []
+    narrativeAffinity: 1
+    affinityKeys:
+    - Relationship
+    conflictGroups:
+    - capability:acquired-trait:acquired-trait:module:social-bridge
+    forbiddenSynergies: []
+    formatterId: acquired-trait:acquired-trait:module:social-bridge
+    applicatorId: acquired-trait:acquired-trait:module:social-bridge
+    parameterRanges:
+    - parameterId: magnitude
+      minimumUnits: 10000
+      maximumUnits: 14000
+      quantumUnits: 1000
+      decimalPlaces: 4
+      costPerQuantum: 1
+    - parameterId: duration
+      minimumUnits: 0
+      maximumUnits: 0
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+    - parameterId: count
+      minimumUnits: 1
+      maximumUnits: 1
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+    - parameterId: targetCount
+      minimumUnits: 1
+      maximumUnits: 1
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1

@@ -22,6 +22,7 @@ MonoBehaviour:
   season: 3
   minimumDurationDays: 1
   maximumDurationDays: 2
+  worldWaterRegenerationMultiplier: 1
   affectedDomainIds:
   - faction
   - psychosocial

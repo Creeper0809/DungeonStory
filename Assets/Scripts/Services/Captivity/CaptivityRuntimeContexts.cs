@@ -11,7 +11,8 @@ public sealed class CaptivityCharacterContext
         IWorldItemStackRuntime itemRuntime,
         IPhysicalItemBatchDispositionService batchDispositions,
         ICharacterPopulationService population,
-        ICharacterNarrativeQuery narratives)
+        ICharacterNarrativeQuery narratives,
+        IEnemyArchetypeCatalog enemyArchetypes)
     {
         WorldRegistry = worldRegistry
             ?? throw new ArgumentNullException(nameof(worldRegistry));
@@ -29,6 +30,8 @@ public sealed class CaptivityCharacterContext
             ?? throw new ArgumentNullException(nameof(population));
         Narratives = narratives
             ?? throw new ArgumentNullException(nameof(narratives));
+        EnemyArchetypes = enemyArchetypes
+            ?? throw new ArgumentNullException(nameof(enemyArchetypes));
     }
 
     public ICharacterAiWorldRegistry WorldRegistry { get; }
@@ -39,6 +42,7 @@ public sealed class CaptivityCharacterContext
     public IPhysicalItemBatchDispositionService BatchDispositions { get; }
     public ICharacterPopulationService Population { get; }
     public ICharacterNarrativeQuery Narratives { get; }
+    public IEnemyArchetypeCatalog EnemyArchetypes { get; }
 }
 
 public sealed class CaptivityWorldContext
@@ -85,7 +89,8 @@ public sealed class CaptivitySessionContext
         IEmploymentStandingCommand employmentStanding,
         CharacterMoodPolicyService moodPolicy,
         IFactionCampaignCommand factionCampaign,
-        ISurvivalFoodCommand survivalFood)
+        ISurvivalFoodCommand survivalFood,
+        ICaptivityInterrogationCodexPort interrogationCodex)
     {
         Money = money ?? throw new ArgumentNullException(nameof(money));
         Interactions = interactions
@@ -105,6 +110,8 @@ public sealed class CaptivitySessionContext
             ?? throw new ArgumentNullException(nameof(factionCampaign));
         SurvivalFood = survivalFood
             ?? throw new ArgumentNullException(nameof(survivalFood));
+        InterrogationCodex = interrogationCodex
+            ?? throw new ArgumentNullException(nameof(interrogationCodex));
     }
 
     public IGameMoneyAccount Money { get; }
@@ -117,4 +124,5 @@ public sealed class CaptivitySessionContext
     public CharacterMoodPolicyService MoodPolicy { get; }
     public IFactionCampaignCommand FactionCampaign { get; }
     public ISurvivalFoodCommand SurvivalFood { get; }
+    public ICaptivityInterrogationCodexPort InterrogationCodex { get; }
 }

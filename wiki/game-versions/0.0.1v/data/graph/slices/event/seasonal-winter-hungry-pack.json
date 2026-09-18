@@ -5,6 +5,18 @@
     "spoiler_tier": "warning",
     "title": "굶주린 무리"
   },
-  "edges": [],
+  "edges": [
+    {
+      "amount": null,
+      "from": "event/seasonal-winter-hungry-pack",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-hound",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴사냥개",
+      "to": "nature/cave-hound",
+      "type": "references"
+    }
+  ],
   "schema_version": 1
 }

@@ -1,0 +1,85 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa10b2a63b654e309daf38d4e7e5ecdc, type: 3}
+  m_Name: acquired-trait_module_battle-temper
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterAcquiredTraitModuleSO
+  moduleId: acquired-trait:module:battle-temper
+  displayName: "\uC804\uC7A5\uC758 \uB2F4\uB825"
+  description: "\uC804\uD22C \uACBD\uD5D8\uC744 \uACAC\uB514\uBA70 \uB2E4\uC838\uC9C4
+    \uB2F4\uB825\uC73C\uB85C \uC804\uD22C\uB825\uC774 \uC870\uAE08 \uB192\uC544\uC9D1\uB2C8\uB2E4."
+  cost: 2
+  conflictGroups:
+  - risk-posture
+  domainAffinities: 090000000700000008000000
+  effects:
+  - bindingId: acquired-trait:module:battle-temper:effect:0
+    definition: {fileID: 11400000, guid: 137c7667173fc054eb6777aec0aa16f2, type: 2}
+    value: 1.04
+    condition: {fileID: 0}
+  drawbackBindingIds: []
+  specialReactions:
+  - reactionId: acquired-trait:reaction:expedition-composure
+    trigger: 2
+    ownerRole: 2
+    condition: 3
+    action: 1
+    baseValue: 2
+    durationDays: 2
+    cooldownDays: 2
+    maximumTriggersPerDay: 1
+    maximumLifetimeTriggers: 0
+    displayLabel: "\uC6D0\uC815\uC5D0\uC11C \uC5BB\uC740 \uC790\uC2E0\uAC10"
+  capabilityId: acquired-trait:acquired-trait:module:battle-temper
+  formula:
+    appliedParameterIds:
+    - magnitude
+    baseCost: 2
+    triggerFrequencyCostPerUnit: 1
+    guaranteedProcCost: 1
+    areaCostPerExtraTarget: 1
+    multiEffectCostPerExtraEffect: 1
+    pairSynergyCosts: []
+    narrativeAffinity: 1
+    affinityKeys:
+    - Combat
+    - Expedition
+    - Invasion
+    conflictGroups:
+    - risk-posture
+    forbiddenSynergies: []
+    formatterId: acquired-trait:acquired-trait:module:battle-temper
+    applicatorId: acquired-trait:acquired-trait:module:battle-temper
+    parameterRanges:
+    - parameterId: magnitude
+      minimumUnits: 10000
+      maximumUnits: 14000
+      quantumUnits: 1000
+      decimalPlaces: 4
+      costPerQuantum: 1
+    - parameterId: duration
+      minimumUnits: 0
+      maximumUnits: 0
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+    - parameterId: count
+      minimumUnits: 1
+      maximumUnits: 1
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+    - parameterId: targetCount
+      minimumUnits: 1
+      maximumUnits: 1
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1

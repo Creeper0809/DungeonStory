@@ -85,6 +85,11 @@ public static class V19LifeContentAssetBuilder
             "Adventurer burial", "facility:funeral:adventurer-burial",
             Phase(ReproductionPhaseKind.Pregnancy, 40),
             Phase(ReproductionPhaseKind.Delivery, 1),
+            Phase(ReproductionPhaseKind.Recovery, 20)),
+        New("Human", 3, 13, 18, 55, 87.2f, ReproductionMode.Pregnancy,
+            "인간 매장", "facility:funeral:adventurer-burial",
+            Phase(ReproductionPhaseKind.Pregnancy, 40),
+            Phase(ReproductionPhaseKind.Delivery, 1),
             Phase(ReproductionPhaseKind.Recovery, 20))
     };
 

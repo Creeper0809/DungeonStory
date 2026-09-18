@@ -1,0 +1,27 @@
+{
+  "success": true,
+  "command": "job wait",
+  "data": {
+    "jobId": "7a46e315b83e4b41ab1a244dd04583f6",
+    "command": "eval",
+    "state": "completed",
+    "cancellationRequested": false,
+    "result": {
+      "output": null,
+      "diagnostics": [],
+      "success": true,
+      "command": "eval",
+      "result": "{\"acceptedCount\":40,\"manifestPath\":\"F:/01_Programming/01_Project/02_Unity/DungeonStory/Artifacts/Exports/NarrativeControlledInputs/20260915-v26-incremental-reservoir-r1/manifest.json\",\"outputDirectory\":\"F:/01_Programming/01_Project/02_Unity/DungeonStory/Artifacts/Exports/NarrativeControlledInputs/20260915-v26-incremental-reservoir-r1\",\"rejectedCount\":20,\"schemaVersion\":1}",
+      "executionTimeMs": 846,
+      "message": null,
+      "error": null,
+      "errorDetails": null,
+      "executedAt": "2026-09-15T14:44:42.5328043Z"
+    },
+    "error": null,
+    "errorDetails": null,
+    "progress": null
+  },
+  "errors": [],
+  "warnings": []
+}

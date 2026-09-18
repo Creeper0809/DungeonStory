@@ -37,6 +37,9 @@ public sealed class OffenseReturnArrivalState
     public List<string> escapedIds = new List<string>();
     public List<EnemyIndividualSaveData> prisonerIndividuals = new();
     public string lastStatus = string.Empty;
+    public int settledMaterializedAmount;
+    public int settledSecuredAmount;
+    public int settledEscapedAmount;
 
     public OffenseReturnArrivalState Clone()
     {
@@ -63,7 +66,10 @@ public sealed class OffenseReturnArrivalState
                     ?? new List<EnemyIndividualSaveData>())
                 .Select(value => value?.Clone())
                 .ToList(),
-            lastStatus = lastStatus ?? string.Empty
+            lastStatus = lastStatus ?? string.Empty,
+            settledMaterializedAmount = Mathf.Max(0, settledMaterializedAmount),
+            settledSecuredAmount = Mathf.Max(0, settledSecuredAmount),
+            settledEscapedAmount = Mathf.Max(0, settledEscapedAmount)
         };
     }
 }
@@ -86,7 +92,7 @@ public sealed class OffensePrisonerCandidatePoolState
 [Serializable]
 public sealed class DungeonOffenseReturnArrivalSaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
 
     public int version = CurrentVersion;
     public int nextArrivalSequence = 1;
@@ -97,6 +103,8 @@ public sealed class DungeonOffenseReturnArrivalSaveData
 public interface IOffenseReturnArrivalRuntime
 {
     IReadOnlyList<OffenseReturnArrivalState> Arrivals { get; }
+    IReadOnlyList<OffenseExpeditionArrivalReceipt> GetSettlementReceipts(
+        string expeditionId);
     void BeginExpeditionReturn(string expeditionId);
     void RegisterReturningMember(string expeditionId);
     void CompleteReturningMember(string expeditionId);
@@ -143,6 +151,7 @@ public sealed class OffenseReturnArrivalRuntime :
     private readonly IWildlifeCaptureRuntime wildlifeCapture;
     private readonly IEnemyArchetypeCatalog enemyArchetypes;
     private readonly IEnemyIndividualFactory enemyIndividuals;
+    private readonly ICombatEquipmentRuntime equipment;
     private readonly IBuildingWorldQuery buildingWorld;
     private readonly IGameClock clock;
     private readonly IGameEventBus eventBus;
@@ -196,11 +205,25 @@ public sealed class OffenseReturnArrivalRuntime :
         wildlifeCapture = requiredDomain.WildlifeCapture;
         enemyArchetypes = requiredDomain.EnemyArchetypes;
         enemyIndividuals = requiredDomain.EnemyIndividuals;
+        equipment = requiredDomain.Equipment;
         clock = requiredDomain.Clock;
         eventBus = requiredDomain.EventBus;
     }
 
     public IReadOnlyList<OffenseReturnArrivalState> Arrivals => arrivals;
+    public IReadOnlyList<OffenseExpeditionArrivalReceipt> GetSettlementReceipts(
+        string expeditionId)
+    {
+        string normalized = Normalize(expeditionId);
+        return aggregateState.Arrivals
+            .Where(value => string.Equals(
+                value.expeditionId,
+                normalized,
+                StringComparison.Ordinal))
+            .OrderBy(value => value.arrivalId, StringComparer.Ordinal)
+            .Select(CreateSettlementReceipt)
+            .ToArray();
+    }
 
     public void Tick()
     {
@@ -733,7 +756,9 @@ public sealed class OffenseReturnArrivalRuntime :
         {
             foreach (string id in arrival.materializedIds)
             {
-                if (captivity.IsCaptive(id))
+                if (captivity.TryGetCaptive(id, out CaptiveState captive)
+                    && (HasCompletedPrisonerContainment(captive)
+                        || IsPrisonerCaptureInFlight(captive)))
                 {
                     continue;
                 }
@@ -788,9 +813,7 @@ public sealed class OffenseReturnArrivalRuntime :
             return false;
         }
 
-        int secured = arrival.kind == OffenseReturnArrivalKind.Prisoner
-            ? arrival.materializedIds.Count(captivity.IsCaptive)
-            : arrival.materializedIds.Count(wildlifeCapture.IsCaptured);
+        int secured = CountCurrentlySecuredArrivalSubjects(arrival);
         int escaped = arrival.escapedIds.Count(id =>
             arrival.materializedIds.Contains(id, StringComparer.Ordinal));
         if (secured + escaped < arrival.materializedIds.Count)
@@ -801,11 +824,49 @@ public sealed class OffenseReturnArrivalRuntime :
         arrival.stage = escaped > 0
             ? OffenseReturnArrivalStage.Escaped
             : OffenseReturnArrivalStage.Secured;
+        arrival.settledMaterializedAmount = arrival.materializedIds.Count;
+        arrival.settledSecuredAmount = secured;
+        arrival.settledEscapedAmount = escaped;
         arrival.escapeRisk = 0f;
         arrival.lastStatus = escaped > 0
             ? $"{escaped}개 대상이 수용 전에 달아났습니다."
             : "수용 절차가 완료되었습니다.";
+        eventBus.Publish(new OffenseExpeditionArrivalResolvedEvent(
+            arrival.expeditionId,
+            GetSettlementReceipts(arrival.expeditionId)));
         return true;
+    }
+
+    private OffenseExpeditionArrivalReceipt CreateSettlementReceipt(
+        OffenseReturnArrivalState arrival)
+    {
+        OffenseExpeditionArrivalResolution resolution = arrival.stage switch
+        {
+            OffenseReturnArrivalStage.Secured =>
+                OffenseExpeditionArrivalResolution.Secured,
+            OffenseReturnArrivalStage.Escaped =>
+                OffenseExpeditionArrivalResolution.Escaped,
+            _ => OffenseExpeditionArrivalResolution.Pending
+        };
+        bool terminal = resolution != OffenseExpeditionArrivalResolution.Pending;
+        int materialized = terminal
+            ? arrival.settledMaterializedAmount
+            : arrival.materializedIds.Count;
+        int secured = terminal
+            ? arrival.settledSecuredAmount
+            : CountCurrentlySecuredArrivalSubjects(arrival);
+        int escaped = terminal
+            ? arrival.settledEscapedAmount
+            : arrival.escapedIds.Count(id =>
+                arrival.materializedIds.Contains(id, StringComparer.Ordinal));
+        return new OffenseExpeditionArrivalReceipt(
+            arrival.arrivalId,
+            arrival.kind.ToString(),
+            arrival.requestedAmount,
+            materialized,
+            secured,
+            escaped,
+            resolution);
     }
 
     private void ResolveUncontainedEscapes(OffenseReturnArrivalState arrival)
@@ -819,7 +880,7 @@ public sealed class OffenseReturnArrivalRuntime :
             }
 
             bool secured = arrival.kind == OffenseReturnArrivalKind.Prisoner
-                ? captivity.IsCaptive(id)
+                ? HasCompletedPrisonerContainment(id)
                 : wildlifeCapture.IsCaptured(id);
             if (secured)
             {
@@ -829,9 +890,17 @@ public sealed class OffenseReturnArrivalRuntime :
             if (arrival.kind == OffenseReturnArrivalKind.Prisoner)
             {
                 CharacterActor actor = FindCharacter(id);
+                if (!TryReleasePrisonerCaptureForArrivalEscape(
+                        id,
+                        actor,
+                        out string failureReason))
+                {
+                    arrival.lastStatus = failureReason;
+                    continue;
+                }
+                equipment.HandleCharacterDeath(id);
                 if (actor != null)
                 {
-                    actor.SetLifecycleState(CharacterLifecycleState.Active);
                     worldRegistry.UnregisterCharacter(actor);
                     worldRegistry.UnregisterCharacterLifetime(actor);
                     characterFactory.Destroy(actor.gameObject);
@@ -862,6 +931,125 @@ public sealed class OffenseReturnArrivalRuntime :
             $"수용 준비가 늦어 {subject} {countedSubject} 하차장에서 달아났습니다.",
             EventAlertImportance.High,
             "오펜스");
+    }
+
+    private bool HasCompletedPrisonerContainment(string captiveId)
+    {
+        return captivity.TryGetCaptive(captiveId, out CaptiveState captive)
+            && HasCompletedPrisonerContainment(captive);
+    }
+
+    private int CountCurrentlySecuredArrivalSubjects(
+        OffenseReturnArrivalState arrival)
+    {
+        return arrival.materializedIds.Count(id =>
+            !arrival.escapedIds.Contains(id, StringComparer.Ordinal)
+            && (arrival.kind == OffenseReturnArrivalKind.Prisoner
+                ? HasCompletedPrisonerContainment(id)
+                : wildlifeCapture.IsCaptured(id)));
+    }
+
+    private static bool HasCompletedPrisonerContainment(CaptiveState captive)
+    {
+        return captive != null
+            && captive.status is CaptivityStatus.Confined
+                or CaptivityStatus.Labor
+                or CaptivityStatus.Interaction
+                or CaptivityStatus.Performer
+                or CaptivityStatus.EscapeAttempt;
+    }
+
+    private static bool IsPrisonerCaptureInFlight(CaptiveState captive)
+    {
+        return captive?.status is CaptivityStatus.Stabilizing
+            or CaptivityStatus.AwaitingEscort
+            or CaptivityStatus.Escorting;
+    }
+
+    private bool TryReleasePrisonerCaptureForArrivalEscape(
+        string captiveId,
+        CharacterActor actor,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (!captivity.TryGetCaptive(captiveId, out CaptiveState captive))
+        {
+            return true;
+        }
+
+        if (HasCompletedPrisonerContainment(captive))
+        {
+            failureReason = "이미 수용을 완료한 포로는 귀환 이탈로 처리할 수 없습니다.";
+            return false;
+        }
+        if (actor == null)
+        {
+            failureReason = "귀환 포로의 포획 소유권을 해제할 실제 대상을 찾지 못했습니다.";
+            return false;
+        }
+
+        CharacterActor carrier = FindCharacter(captive.reservedCarrierId);
+        if (captive.IsInCustody
+            && !captivityCommands.CancelCapture(
+                captiveId,
+                "귀환 수용 전 이탈"))
+        {
+            failureReason = "귀환 포로의 진행 중인 포획 소유권을 해제하지 못했습니다.";
+            return false;
+        }
+
+        AbilityCaptiveEscort escort = carrier != null
+            ? carrier.GetComponent<AbilityCaptiveEscort>()
+            : null;
+        if (escort?.IsEscorting == true)
+        {
+            escort.StopEscort("귀환 수용 전 이탈");
+        }
+        if (escort?.IsEscorting == true
+            || !captivity.TryGetCaptive(
+                captiveId,
+                out CaptiveState releasedCapture)
+            || HasPrisonerCaptureOwnership(releasedCapture))
+        {
+            failureReason = "귀환 포로의 운반·구속구 소유권을 완전히 해제하지 못했습니다.";
+            return false;
+        }
+
+        ICaptivityEscapeRuntime escapeRuntime =
+            captivityCommands as ICaptivityEscapeRuntime
+            ?? captivity as ICaptivityEscapeRuntime;
+        if (escapeRuntime == null)
+        {
+            failureReason = "귀환 포로의 이탈 상태를 확정할 포로 명령을 찾지 못했습니다.";
+            return false;
+        }
+
+        escapeRuntime.CompleteEscape(captiveId, actor);
+        if (!captivity.TryGetCaptive(captiveId, out CaptiveState escaped)
+            || escaped.status != CaptivityStatus.Escaped
+            || escaped.IsInCustody
+            || escaped.restrained
+            || HasPrisonerCaptureOwnership(escaped))
+        {
+            failureReason = "귀환 포로의 이탈 상태가 포로 권위에 확정되지 않았습니다.";
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool HasPrisonerCaptureOwnership(CaptiveState captive)
+    {
+        return captive == null
+            || !string.IsNullOrWhiteSpace(captive.reservedCarrierId)
+            || !string.IsNullOrWhiteSpace(captive.housingBuildingId)
+            || !string.IsNullOrWhiteSpace(captive.restraintStackId)
+            || !string.IsNullOrWhiteSpace(captive.restraintItemId)
+            || captive.restraintQuantity > 0
+            || !string.IsNullOrWhiteSpace(captive.assignedRestraintItemId)
+            || !string.IsNullOrWhiteSpace(captive.assignedRestraintInstanceId)
+            || captive.assignedRestraintDurability > 0f
+            || captive.assignedRestraintMaximumDurability > 0f;
     }
 
     private CharacterActor FindCharacter(string id)

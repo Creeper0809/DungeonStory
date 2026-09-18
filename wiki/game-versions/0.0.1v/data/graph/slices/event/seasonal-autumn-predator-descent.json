@@ -5,6 +5,18 @@
     "spoiler_tier": "warning",
     "title": "포식자 하산"
   },
-  "edges": [],
+  "edges": [
+    {
+      "amount": null,
+      "from": "event/seasonal-autumn-predator-descent",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "carrion-drake",
+      "target_spoiler_tier": "none",
+      "target_title": "시체청소 비룡",
+      "to": "nature/carrion-drake",
+      "type": "references"
+    }
+  ],
   "schema_version": 1
 }

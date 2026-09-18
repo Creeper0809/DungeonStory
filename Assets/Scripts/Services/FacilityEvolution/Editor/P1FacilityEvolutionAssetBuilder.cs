@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using UnityEditor;
 using UnityEngine;
 
@@ -15,6 +17,60 @@ public static class P1FacilityEvolutionAssetBuilder
     public static void EnsureP1EvolutionAssetsFromMenu()
     {
         EnsureP1EvolutionAssets();
+    }
+
+    /// <summary>
+    /// Controlled migration entry point. It changes only formulaPolicy and
+    /// formulaCapabilities on the six already-authored P1 recipe assets; it never
+    /// rewrites their recipe, visibility, room, material, or research fields.
+    /// </summary>
+    [MenuItem("DungeonStory/Build/Facility Evolution/Apply P1 Formula Metadata Only")]
+    public static void ApplyP1FormulaMetadataOnlyFromMenu()
+    {
+        FacilityEvolutionRecipeSO[] recipes = AssetDatabase
+            .FindAssets("t:FacilityEvolutionRecipeSO", new[] { RecipeFolder })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .Select(AssetDatabase.LoadAssetAtPath<FacilityEvolutionRecipeSO>)
+            .Where(recipe => recipe != null)
+            .ToArray();
+        string[] expected = CreateRecipeSpecs()
+            .Select(spec => spec.evolutionId)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string[] actual = recipes.Select(recipe => recipe.EffectiveId)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        if (!actual.SequenceEqual(expected, StringComparer.Ordinal))
+            throw new InvalidOperationException(
+                "Formula-only migration requires exactly the six authored P1 recipe IDs; "
+                + "it will not infer metadata for missing, renamed, or extra recipes.");
+
+        foreach (FacilityEvolutionRecipeSO recipe in recipes)
+        {
+            ApplyFormulaAuthoring(recipe, recipe.EffectiveId);
+            EditorUtility.SetDirty(recipe);
+        }
+        AssetDatabase.SaveAssets();
+    }
+
+    /// <summary>
+    /// Applies the Phase77 operational metadata to the exact display lineage
+    /// only. This intentionally does not invoke either broad facility or
+    /// service-room builders, so unrelated authored BuildingSO fields remain
+    /// untouched.
+    /// </summary>
+    [MenuItem("DungeonStory/Build/Facility Evolution/Apply P1 Display Operational Metadata Only")]
+    public static void ApplyP1DisplayOperationalMetadataOnlyFromMenu()
+    {
+        BuildingSO source = LoadRequiredBuilding("S02_잡화진열선반");
+        BuildingSO result = LoadRequiredBuilding("S03_잠금진열장");
+        ApplyPurchaseVisitorFacility(source);
+        ApplyPurchaseVisitorFacility(result);
+        ApplySecureRetailDisplaySupport(result);
+        EditorUtility.SetDirty(source);
+        EditorUtility.SetDirty(result);
+        AssetDatabase.SaveAssets();
     }
 
     public static void EnsureP1EvolutionAssets()
@@ -36,161 +92,6 @@ public static class P1FacilityEvolutionAssetBuilder
         AssetDatabase.Refresh();
     }
 
-    private static void ApplyFacilityContributions()
-    {
-        ApplyContribution(
-            "P1_MeatRestaurant",
-            tags: new[] { FacilityEvolutionTerms.Dining, FacilityEvolutionTerms.Cooking, FacilityEvolutionTerms.Meat },
-            scores: new[]
-            {
-                Value(FacilityEvolutionTerms.Dining, 30f),
-                Value(FacilityEvolutionTerms.Cooking, 24f),
-                Value(FacilityEvolutionTerms.Meat, 24f),
-                Value(FacilityEvolutionTerms.Service, 6f)
-            },
-            metrics: new[]
-            {
-                Value(FacilityEvolutionTerms.SeatCount, 4f),
-                Value(FacilityEvolutionTerms.TableCount, 1f)
-            });
-
-        ApplyContribution(
-            "P1_BattleDining",
-            tags: new[] { FacilityEvolutionTerms.Dining, FacilityEvolutionTerms.Combat, FacilityEvolutionTerms.Meat },
-            scores: new[]
-            {
-                Value(FacilityEvolutionTerms.Dining, 34f),
-                Value(FacilityEvolutionTerms.Cooking, 20f),
-                Value(FacilityEvolutionTerms.Meat, 24f),
-                Value(FacilityEvolutionTerms.Combat, 18f),
-                Value(FacilityEvolutionTerms.Training, 10f)
-            },
-            metrics: new[]
-            {
-                Value(FacilityEvolutionTerms.SeatCount, 4f),
-                Value(FacilityEvolutionTerms.TableCount, 1f),
-                Value(FacilityEvolutionTerms.LargeTableCount, 1f)
-            });
-
-        ApplyContribution(
-            "P1_PremiumMeatRestaurant",
-            tags: new[] { FacilityEvolutionTerms.Dining, FacilityEvolutionTerms.Meat, FacilityEvolutionTerms.Luxury, FacilityEvolutionTerms.Quiet },
-            scores: new[]
-            {
-                Value(FacilityEvolutionTerms.Dining, 32f),
-                Value(FacilityEvolutionTerms.Cooking, 18f),
-                Value(FacilityEvolutionTerms.Meat, 18f),
-                Value(FacilityEvolutionTerms.Luxury, 24f),
-                Value(FacilityEvolutionTerms.Service, 14f),
-                Value(FacilityEvolutionTerms.Rest, 10f)
-            },
-            metrics: new[]
-            {
-                Value(FacilityEvolutionTerms.SeatCount, 3f),
-                Value(FacilityEvolutionTerms.TableCount, 1f),
-                Value(FacilityEvolutionTerms.PrivateSeatCount, 2f)
-            });
-
-        ApplyContribution(
-            "P1_BattlefieldDining",
-            tags: new[] { FacilityEvolutionTerms.Dining, FacilityEvolutionTerms.Combat, FacilityEvolutionTerms.Defense, FacilityEvolutionTerms.Meat },
-            scores: new[]
-            {
-                Value(FacilityEvolutionTerms.Dining, 38f),
-                Value(FacilityEvolutionTerms.Cooking, 22f),
-                Value(FacilityEvolutionTerms.Combat, 32f),
-                Value(FacilityEvolutionTerms.Defense, 18f),
-                Value(FacilityEvolutionTerms.Training, 18f)
-            },
-            metrics: new[]
-            {
-                Value(FacilityEvolutionTerms.SeatCount, 5f),
-                Value(FacilityEvolutionTerms.TableCount, 1f),
-                Value(FacilityEvolutionTerms.LargeTableCount, 1f)
-            });
-
-        ApplyContribution(
-            "P1_NobleDining",
-            tags: new[] { FacilityEvolutionTerms.Dining, FacilityEvolutionTerms.Luxury, FacilityEvolutionTerms.Noble, FacilityEvolutionTerms.Mana },
-            scores: new[]
-            {
-                Value(FacilityEvolutionTerms.Dining, 36f),
-                Value(FacilityEvolutionTerms.Luxury, 38f),
-                Value(FacilityEvolutionTerms.Service, 20f),
-                Value(FacilityEvolutionTerms.Rest, 16f),
-                Value(FacilityEvolutionTerms.Mana, 18f)
-            },
-            metrics: new[]
-            {
-                Value(FacilityEvolutionTerms.SeatCount, 3f),
-                Value(FacilityEvolutionTerms.TableCount, 1f),
-                Value(FacilityEvolutionTerms.PrivateSeatCount, 3f)
-            });
-
-        ApplyContribution(
-            "P1_TrainingRoom",
-            tags: new[] { FacilityEvolutionTerms.Training, FacilityEvolutionTerms.Combat },
-            scores: new[]
-            {
-                Value(FacilityEvolutionTerms.Training, 30f),
-                Value(FacilityEvolutionTerms.Combat, 16f)
-            },
-            metrics: Array.Empty<FacilityEvolutionValue>());
-
-        ApplyContribution(
-            "P1_Barracks",
-            tags: new[] { FacilityEvolutionTerms.Training, FacilityEvolutionTerms.Combat, FacilityEvolutionTerms.Defense, FacilityEvolutionTerms.Security },
-            scores: new[]
-            {
-                Value(FacilityEvolutionTerms.Training, 24f),
-                Value(FacilityEvolutionTerms.Combat, 24f),
-                Value(FacilityEvolutionTerms.Defense, 18f)
-            },
-            metrics: Array.Empty<FacilityEvolutionValue>());
-
-        ApplyContribution(
-            "P1_RestRoom",
-            tags: new[] { FacilityEvolutionTerms.Rest, FacilityEvolutionTerms.Quiet, FacilityEvolutionTerms.Service },
-            scores: new[]
-            {
-                Value(FacilityEvolutionTerms.Rest, 26f),
-                Value(FacilityEvolutionTerms.Service, 10f),
-                Value(FacilityEvolutionTerms.Luxury, 8f)
-            },
-            metrics: Array.Empty<FacilityEvolutionValue>());
-
-        ApplyContribution(
-            "P1_ManaStorage",
-            tags: new[] { FacilityEvolutionTerms.Mana, FacilityEvolutionTerms.Luxury },
-            scores: new[]
-            {
-                Value(FacilityEvolutionTerms.Mana, 24f),
-                Value(FacilityEvolutionTerms.Luxury, 10f)
-            },
-            metrics: Array.Empty<FacilityEvolutionValue>());
-    }
-
-    private static void ApplyContribution(
-        string assetName,
-        string[] tags,
-        FacilityEvolutionValue[] scores,
-        FacilityEvolutionValue[] metrics)
-    {
-        BuildingSO building = LoadBuilding(assetName);
-        if (building == null)
-        {
-            return;
-        }
-
-        building.Evolution = new FacilityEvolutionContributionData
-        {
-            contributesToRoomProfile = true,
-            tags = tags ?? Array.Empty<string>(),
-            scores = scores ?? Array.Empty<FacilityEvolutionValue>(),
-            metrics = metrics ?? Array.Empty<FacilityEvolutionValue>()
-        };
-        EditorUtility.SetDirty(building);
-    }
 
     private static void EnsureRecordTokenDefinitionAssets()
     {
@@ -217,6 +118,73 @@ public static class P1FacilityEvolutionAssetBuilder
             definition.uiHint = spec.uiHint;
             EditorUtility.SetDirty(definition);
         }
+    }
+
+    private static BuildingSO LoadRequiredBuilding(string assetName)
+    {
+        BuildingSO building = AssetDatabase.LoadAssetAtPath<BuildingSO>(
+            $"{BuildingFolder}/{assetName}.asset");
+        if (building == null)
+        {
+            throw new InvalidOperationException(
+                "Phase77 display metadata requires authored building '"
+                + assetName + "'.");
+        }
+
+        return building;
+    }
+
+    private static void ApplyPurchaseVisitorFacility(BuildingSO building)
+    {
+        BuildingFacilityAbility facility = building.GetAbility<BuildingFacilityAbility>();
+        if (facility == null)
+        {
+            facility = new BuildingFacilityAbility();
+            building.AbilityModules.Add(facility);
+        }
+
+        facility.settings ??= new FacilityData();
+        facility.settings.roles = FacilityRole.Purchase;
+        facility.settings.capacity = 1;
+        facility.settings.useDuration = 1.5f;
+        facility.settings.requiredWorkers = 1;
+        facility.settings.disabledWhenDamaged = true;
+        facility.settings.SetSupportedWorkTypeIds(new[]
+        {
+            BuiltInWorkTypeIds.Operate,
+            BuiltInWorkTypeIds.Restock,
+            BuiltInWorkTypeIds.Repair
+        });
+        if (building.GetAbility<BuildingRoomRequirementAbility>() == null)
+        {
+            building.AbilityModules.Add(new BuildingRoomRequirementAbility());
+        }
+    }
+
+    private static void ApplySecureRetailDisplaySupport(BuildingSO building)
+    {
+        BuildingServiceSupportAbility support = building
+            .GetAbility<BuildingServiceSupportAbility>();
+        if (support == null)
+        {
+            support = new BuildingServiceSupportAbility();
+            building.AbilityModules.Add(support);
+        }
+
+        support.supportId = "service-retail-secure-display";
+        support.featureTags = new[] { "service:display" };
+        support.compatibleHubTags = new[] { "service:retail" };
+        support.modifierType = ServiceSupportModifierType.Security;
+        support.capacity = 0;
+        support.requiresPower = false;
+        support.cleanWaterPerUse = 0f;
+        support.wastewaterPerUse = 0f;
+        support.allowsManualWaterFallback = false;
+        support.workSpeedMultiplier = 1f;
+        support.satisfactionModifier = 0f;
+        // Preserve the source display's established retail revenue modifier
+        // when the physical replacement takes over its display role.
+        support.revenueModifier = 2;
     }
 
     private static void EnsureRecipeAsset(EvolutionRecipeSpec spec)
@@ -257,8 +225,209 @@ public static class P1FacilityEvolutionAssetBuilder
         recipe.consumeRecordTokens = spec.consumeRecordTokens;
         recipe.identityPressureWeights = spec.identityPressureWeights ?? Array.Empty<FacilityEvolutionValue>();
         recipe.minimumIdentityScore = spec.minimumIdentityScore;
+        ApplyFormulaAuthoring(recipe, spec.evolutionId);
         EditorUtility.SetDirty(recipe);
     }
+
+    // This migration is deliberately a closed mapping for the six authored P1 recipes.
+    // A later recipe receives no implicit module, policy, or formula fallback.
+    private static void ApplyFormulaAuthoring(
+        FacilityEvolutionRecipeSO recipe,
+        string evolutionId)
+    {
+        string moduleId = evolutionId switch
+        {
+            "evolve_research_desk_to_alchemy_bench"
+                or "evolve_mana_shelf_to_ritual_focus" => "facility:research",
+            "evolve_training_dummy_to_archery_target" =>
+                "facility:training-operations",
+            "evolve_guard_desk_to_tactical_table" =>
+                "facility:security-operations",
+            "evolve_commercial_hearth_to_grill" => "facility:survival",
+            "evolve_shop_display_to_secure_display" =>
+                "facility:service-support",
+            _ => throw new InvalidOperationException(
+                $"Facility recipe '{evolutionId}' requires explicit v1 formula metadata.")
+        };
+        // A recipe enumerates only its explicitly authored capability. The
+        // result-building consumer policy is still rechecked at every fresh
+        // offer/pending resolution; unlisted generic modules cannot leak in
+        // merely because their IDs happen to share the facility namespace.
+        ApplyFormulaAuthoring(recipe, evolutionId, new[] { moduleId });
+    }
+
+    public static void ApplyFormulaAuthoringForEditorTest(
+        FacilityEvolutionRecipeSO recipe,
+        string moduleId)
+    {
+        if (recipe == null) throw new ArgumentNullException(nameof(recipe));
+        if (string.IsNullOrWhiteSpace(moduleId) || moduleId != moduleId.Trim())
+            throw new ArgumentException("A canonical test facility module ID is required.", nameof(moduleId));
+        ApplyFormulaAuthoring(recipe, recipe.EffectiveId, new[] { moduleId });
+    }
+
+    private static void ApplyFormulaAuthoring(
+        FacilityEvolutionRecipeSO recipe,
+        string evolutionId,
+        IEnumerable<string> moduleIds)
+    {
+        string[] modules = (moduleIds ?? Array.Empty<string>())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        if (modules.Length == 0)
+            throw new InvalidOperationException("Facility formula authoring requires modules.");
+        recipe.formulaCapabilities = modules.Select(moduleId =>
+        {
+            string suffix = moduleId.Replace(':', '-');
+            string capabilityId = "facility-evolution:" + evolutionId + ":" + suffix;
+            return new FacilityEvolutionFormulaCapabilityDefinition
+            {
+                capabilityId = capabilityId,
+                evolutionModuleId = moduleId,
+                baseCost = 1,
+                triggerFrequencyCostPerUnit = 0,
+                guaranteedProcCost = 0,
+                areaCostPerExtraTarget = 0,
+                multiEffectCostPerExtraEffect = 0,
+                narrativeAffinity = 1f,
+                affinityKeys = (recipe.allowedMutationTags ?? Array.Empty<string>())
+                    .Where(value => !string.IsNullOrWhiteSpace(value))
+                    .Append(moduleId)
+                    .Distinct(StringComparer.Ordinal)
+                    .OrderBy(value => value, StringComparer.Ordinal).ToList(),
+                conflictGroups = new List<string> { "facility-module" },
+                forbiddenSynergies = new List<string>(),
+                formatterId = capabilityId,
+                applicatorId = capabilityId,
+                parameterRanges = new List<FacilityEvolutionFormulaRangeDefinition>
+                {
+                    Range(NarrativeFormulaParameterIds.Magnitude, 5000, 10000, 1000, 4, 1),
+                    FixedRange(NarrativeFormulaParameterIds.Duration, 0),
+                    FixedRange(NarrativeFormulaParameterIds.Count, 1),
+                    FixedRange(NarrativeFormulaParameterIds.TargetCount, 1)
+                }
+            };
+        }).ToList();
+        FacilityEvolutionFormulaPolicyDefinition policy = new()
+        {
+            formulaVersion = FacilityFormulaEvolutionAuthority.DrawbackModuleSelectionFormulaVersion,
+            baseBudget = 1,
+            powerScale = 4,
+            softCapK = 8f,
+            minimumImportance = 0f,
+            maximumImportance = 4f,
+            milestoneWeights = new List<float> { 1f, 1.5f, 2f, 3f },
+            drawbackCredit = new NarrativeFormulaDrawbackCreditPolicyDefinition
+            {
+                playerChoiceMaximumBudgetFraction = 0.5f,
+                automaticMaximumBudgetFraction = 0.35f,
+                absoluteMaximumCredit = 3,
+                requireNegativeEvidenceForAutomatic = true
+            },
+            triggerFrequencyUnits = 0,
+            guaranteedProc = true,
+            targetCount = 1
+        };
+        policy.catalogSha256 = ComputeFormulaCatalogSha256(
+            recipe, recipe.formulaCapabilities, policy);
+        recipe.formulaPolicy = policy;
+    }
+
+    private static FacilityEvolutionFormulaRangeDefinition Range(
+        string parameterId, long minimum, long maximum, long quantum,
+        int decimals, int cost) => new()
+    {
+        parameterId = parameterId,
+        minimumUnits = minimum,
+        maximumUnits = maximum,
+        quantumUnits = quantum,
+        decimalPlaces = decimals,
+        costPerQuantum = cost
+    };
+
+    private static FacilityEvolutionFormulaRangeDefinition FixedRange(
+        string parameterId, long units) => Range(parameterId, units, units, 1, 0, 1);
+
+    private static string ComputeFormulaCatalogSha256(
+        FacilityEvolutionRecipeSO recipe,
+        IEnumerable<FacilityEvolutionFormulaCapabilityDefinition> capabilities,
+        FacilityEvolutionFormulaPolicyDefinition policy)
+    {
+        StringBuilder material = new();
+        material.Append(recipe.EffectiveId).Append('\n')
+            .Append(policy.formulaVersion).Append(':').Append(policy.baseBudget).Append(':')
+            .Append(policy.powerScale).Append(':')
+            .Append(policy.softCapK.ToString("R", CultureInfo.InvariantCulture)).Append(':')
+            .Append(policy.minimumImportance.ToString("R", CultureInfo.InvariantCulture)).Append(':')
+            .Append(policy.maximumImportance.ToString("R", CultureInfo.InvariantCulture)).Append(':')
+            .Append(policy.triggerFrequencyUnits).Append(':').Append(policy.guaranteedProc).Append(':')
+            .Append(policy.targetCount).Append('\n');
+        foreach (FacilityEvolutionFormulaCapabilityDefinition capability in capabilities
+                     .OrderBy(value => value.evolutionModuleId, StringComparer.Ordinal))
+        {
+            material.Append(capability.capabilityId).Append('\n')
+            .Append(capability.evolutionModuleId).Append('\n')
+            .Append(capability.baseCost).Append(':')
+            .Append(capability.triggerFrequencyCostPerUnit).Append(':')
+            .Append(capability.guaranteedProcCost).Append(':')
+            .Append(capability.areaCostPerExtraTarget).Append(':')
+            .Append(capability.multiEffectCostPerExtraEffect).Append(':')
+            .Append(capability.narrativeAffinity.ToString("R", CultureInfo.InvariantCulture)).Append('\n')
+            .Append(capability.formatterId).Append(':').Append(capability.applicatorId).Append('\n');
+            foreach (string value in (capability.affinityKeys ?? new List<string>())
+                         .OrderBy(value => value, StringComparer.Ordinal))
+                material.Append("affinity:").Append(value).Append('\n');
+            foreach (string value in (capability.conflictGroups ?? new List<string>())
+                         .OrderBy(value => value, StringComparer.Ordinal))
+                material.Append("conflict:").Append(value).Append('\n');
+            foreach (string value in (capability.forbiddenSynergies ?? new List<string>())
+                         .OrderBy(value => value, StringComparer.Ordinal))
+                material.Append("forbid:").Append(value).Append('\n');
+            foreach (FacilityEvolutionFormulaRangeDefinition range in capability.parameterRanges
+                         .OrderBy(value => value.parameterId, StringComparer.Ordinal))
+            {
+                material.Append(range.parameterId).Append(':')
+                    .Append(range.minimumUnits).Append(':').Append(range.maximumUnits).Append(':')
+                    .Append(range.quantumUnits).Append(':').Append(range.decimalPlaces).Append(':')
+                    .Append(range.costPerQuantum).Append('\n');
+            }
+        }
+        NarrativeFormulaDrawbackCreditPolicyDefinition drawback = policy.drawbackCredit
+            ?? throw new InvalidOperationException("Facility drawback-credit policy is missing.");
+        material.Append("drawback:")
+            .Append(drawback.playerChoiceMaximumBudgetFraction.ToString("R", CultureInfo.InvariantCulture)).Append(':')
+            .Append(drawback.automaticMaximumBudgetFraction.ToString("R", CultureInfo.InvariantCulture)).Append(':')
+            .Append(drawback.absoluteMaximumCredit).Append(':')
+            .Append(drawback.requireNegativeEvidenceForAutomatic).Append('\n');
+        foreach (float value in policy.milestoneWeights ?? new List<float>())
+            material.Append("milestone:").Append(value.ToString("R", CultureInfo.InvariantCulture)).Append('\n');
+        foreach (EvolutionModuleDefinition module in new EvolutionModuleRegistry().All
+                     .Where(value => value.ModuleId.StartsWith("facility:", StringComparison.Ordinal))
+                     .OrderBy(value => value.ModuleId, StringComparer.Ordinal))
+        {
+            material.Append("module:").Append(module.ModuleId).Append(':')
+                .Append((int)module.BurdenKind).Append(':')
+                .Append(module.RiskWeight).Append(':')
+                .Append(module.MaximumDrawbackSeverity).Append(':')
+                .Append(FormatModifiers(module.Benefits)).Append(':')
+                .Append(FormatModifiers(module.Burdens)).Append(':')
+                .Append(string.Join(",", module.NegativeEvidenceMarkers)).Append(':')
+                .Append(string.Join(",", module.ForbiddenSynergyModuleIds)).Append('\n');
+        }
+        return NarrativeInferenceHash.ComputeSha256Utf8(material.ToString())
+            .Substring("sha256:".Length);
+    }
+
+    private static string FormatModifiers(
+        IEnumerable<EvolutionEffectModifier> modifiers) => string.Join(",",
+        (modifiers ?? Array.Empty<EvolutionEffectModifier>())
+        .OrderBy(value => value.statId, StringComparer.Ordinal)
+        .Select(value => value.statId + ":"
+            + value.additive.ToString("R", CultureInfo.InvariantCulture) + ":"
+            + value.multiplier.ToString("R", CultureInfo.InvariantCulture)));
 
     private static void PruneStaleRecipeAssets(IEnumerable<EvolutionRecipeSpec> specs)
     {

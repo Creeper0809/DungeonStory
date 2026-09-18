@@ -45,7 +45,8 @@ public enum WorldItemCarryInterruptionKind
 {
     None = 0,
     Downed = 1,
-    Dead = 2
+    Dead = 2,
+    Disabled = 3
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -152,6 +153,7 @@ public sealed class DungeonPhysicalItemSaveData
     public List<UniqueItemInstanceSaveData> uniqueItems = new();
     public List<ItemReservationIntentSaveData> reservationIntents = new();
     public List<PhysicalItemBatchDispositionSaveData> pendingBatchDispositions = new();
+    public List<PhysicalItemRelocationSaveData> physicalItemRelocations = new();
     public List<FacilityOutputExactRouteOutboxSaveData> pendingExactOutputRoutes =
         new();
     public List<ProductionPhysicalCustodyDrainSaveData>
@@ -175,6 +177,87 @@ public sealed class PhysicalItemBatchDispositionSaveData
     public int quantity;
     public long inputMassGrams;
     public string commitId = string.Empty;
+    public long outcomeOwnerRevision;
+    public bool gameplayOutcomeExpected;
+    public string expectedOutcomeProducerId = string.Empty;
+    public string expectedOutcomeOperationId = string.Empty;
+    public long expectedOutcomeCommitRevision;
+    public int expectedOutcomeLocalResultIndex;
+    public List<PhysicalItemDispositionSourceFactSaveData> sourceFacts = new();
+    public PhysicalGameplayOutcomeAttachmentSaveData gameplayOutcome;
+}
+
+public enum PhysicalItemRelocationJournalPhase
+{
+    DomainCommitted = 1,
+    CanonicalOutcomeCommitted = 2,
+    PublishedAcknowledged = 3
+}
+
+[Serializable]
+public sealed class PhysicalItemRelocationSaveData
+{
+    public string operationId = string.Empty;
+    public string reasonCode = string.Empty;
+    public string requestFingerprint = string.Empty;
+    public int phase;
+    public string sourceStackId = string.Empty;
+    public string destinationStackId = string.Empty;
+    public string itemDefinitionId = string.Empty;
+    public string itemInstanceId = string.Empty;
+    public int quantity;
+    public long massGrams;
+    public int sourceX;
+    public int sourceY;
+    public int destinationX;
+    public int destinationY;
+    public int destinationState;
+    public string destinationId = string.Empty;
+    public long outcomeOwnerRevision;
+    public string displayText = string.Empty;
+    public string displaySnapshotRevision = string.Empty;
+    public int pronunciationMode;
+    public string pronunciationValue = string.Empty;
+    public int explicitFinalConsonant;
+    public string pronunciationRevision = string.Empty;
+    public string locale = string.Empty;
+    public string expectedOutcomeProducerId = string.Empty;
+    public string expectedOutcomeOperationId = string.Empty;
+    public long expectedOutcomeCommitRevision;
+    public int expectedOutcomeLocalResultIndex;
+    public PhysicalGameplayOutcomeAttachmentSaveData gameplayOutcome;
+}
+
+[Serializable]
+public sealed class PhysicalItemDispositionSourceFactSaveData
+{
+    public string stackId = string.Empty;
+    public string itemDefinitionId = string.Empty;
+    public string itemInstanceId = string.Empty;
+    public int quantity;
+    public long massGrams;
+    public int sourceX;
+    public int sourceY;
+    public string displayText = string.Empty;
+    public string displaySnapshotRevision = string.Empty;
+    public int pronunciationMode;
+    public string pronunciationValue = string.Empty;
+    public int explicitFinalConsonant;
+    public string pronunciationRevision = string.Empty;
+    public string locale = string.Empty;
+}
+
+[Serializable]
+public sealed class PhysicalGameplayOutcomeAttachmentSaveData
+{
+    public string producerId = string.Empty;
+    public string operationId = string.Empty;
+    public long commitRevision;
+    public int localResultIndex;
+    public string outcomeRunId = string.Empty;
+    public long outcomeSequence;
+    public int replayState;
+    public string canonicalPayloadHash = string.Empty;
 }
 
 [Serializable]
@@ -367,6 +450,8 @@ public static class ItemInstanceComponentIds
     public const string SeedLot = "item-state:seed-lot";
     public const string FiberBatch = "item-state:fiber-batch";
     public const string Apparel = "item-state:apparel";
+    public const string WildlifeHaulCustody =
+        "item-state:wildlife-haul-custody";
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]

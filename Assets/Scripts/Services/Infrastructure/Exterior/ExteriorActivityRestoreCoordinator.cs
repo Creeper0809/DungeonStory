@@ -304,14 +304,21 @@ internal sealed class ExteriorActivityRestoreCoordinator
             }
         }
 
-        HashSet<string> characterIds =
+        IReadOnlyList<CharacterActor> characterCandidates =
             world.RestoreCandidates.TryGetCharacters(
                 out IReadOnlyList<CharacterActor> characters)
                 ? characters
-                    .Where(actor => actor?.Identity != null)
-                    .Select(actor => actor.Identity.PersistentId)
-                    .ToHashSet(StringComparer.Ordinal)
-                : new HashSet<string>(StringComparer.Ordinal);
+                : Array.Empty<CharacterActor>();
+        HashSet<string> characterIds = characterCandidates
+            .Where(actor => actor?.Identity != null)
+            .Select(actor => actor.Identity.PersistentId)
+            .ToHashSet(StringComparer.Ordinal);
+        HashSet<string> restoredCustomerIds = characterCandidates
+            .Where(actor => actor?.Identity != null
+                && !actor.IsOwner
+                && actor.Identity.CharacterType == CharacterType.Customer)
+            .Select(actor => actor.Identity.PersistentId)
+            .ToHashSet(StringComparer.Ordinal);
         HashSet<string> wildlifeIds =
             world.RestoreCandidates.TryGetWildlife(
                 out IReadOnlyList<WildlifeActor> wildlife)
@@ -336,9 +343,11 @@ internal sealed class ExteriorActivityRestoreCoordinator
                 .Select(stack => stack.StackId));
         }
 
+        HashSet<string> activeIncidentActorIds = new(StringComparer.Ordinal);
         foreach (ExteriorIncidentRuntimeState incident in
                  payload.incidentStates.Where(value => !value.IsTerminal))
         {
+            activeIncidentActorIds.UnionWith(incident.actorIds);
             ValidateReferences(
                 incident.actorIds,
                 characterIds,
@@ -357,6 +366,52 @@ internal sealed class ExteriorActivityRestoreCoordinator
                 incident.incidentId,
                 "item stack",
                 report);
+        }
+
+        HashSet<string> societyIncidentActorIds =
+            new(StringComparer.Ordinal);
+        if (!world.SocietyIncidentRestoreOwners.TryGetOwnedCharacterIds(
+                out IReadOnlyCollection<CharacterId> societyIncidentOwners)
+            || societyIncidentOwners == null)
+        {
+            report.AddError(
+                "Exterior activity restore requires the staged Society incident owner candidate.");
+        }
+        else
+        {
+            foreach (CharacterId ownerId in societyIncidentOwners)
+            {
+                if (!ownerId.IsValid
+                    || !societyIncidentActorIds.Add(ownerId.Value))
+                {
+                    report.AddError(
+                        $"Staged Society incident owner '{ownerId.Value ?? string.Empty}' is invalid or multiply owned.");
+                }
+            }
+
+            foreach (string sharedOwnerId in societyIncidentActorIds
+                         .Intersect(
+                             activeIncidentActorIds,
+                             StringComparer.Ordinal)
+                         .OrderBy(value => value, StringComparer.Ordinal))
+            {
+                report.AddError(
+                    $"Restored character '{sharedOwnerId}' is jointly owned by active Exterior and Society incidents.");
+            }
+        }
+
+        HashSet<string> legitimateTransientCustomerOwners =
+            new(activeIncidentActorIds, StringComparer.Ordinal);
+        legitimateTransientCustomerOwners.UnionWith(
+            societyIncidentActorIds);
+        foreach (string customerId in restoredCustomerIds
+                     .Except(
+                         legitimateTransientCustomerOwners,
+                         StringComparer.Ordinal)
+                     .OrderBy(value => value, StringComparer.Ordinal))
+        {
+            report.AddError(
+                $"Restored transient customer '{customerId}' is not owned by an active Exterior or Society incident.");
         }
     }
 

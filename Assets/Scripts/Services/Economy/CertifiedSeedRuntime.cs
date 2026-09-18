@@ -179,6 +179,11 @@ public sealed class CertifiedSeedRuntime :
     private readonly IPhysicalSeedLotGateway seedLots;
     private readonly IProductionOutputCapabilityRegistry outputCapabilities;
     private readonly IProductionDomainOutputPublicationService outputPublication;
+    private readonly IOutcomeAwareProductionDomainOutputPublicationService
+        outcomeAwareOutputPublication;
+    private readonly IEnvironmentGameplayOutcomeCommitter outcomeCommitter;
+    private readonly IGameplayOutcomeDiagnosticsQuery outcomeDiagnostics;
+    private readonly IGameCalendar calendar;
     private readonly IProductionFacilityMutationEpochQuery facilityMutations;
     private readonly ICertifiedSeedInputOwnerRuntime inputOwners;
     private readonly DungeonRuntimeAggregateRootStore rootStore;
@@ -392,6 +397,11 @@ public sealed class CertifiedSeedRuntime :
         IPhysicalSeedLotGateway seedLots,
         IProductionOutputCapabilityRegistry outputCapabilities,
         IProductionDomainOutputPublicationService outputPublication,
+        IOutcomeAwareProductionDomainOutputPublicationService
+            outcomeAwareOutputPublication,
+        IEnvironmentGameplayOutcomeCommitter outcomeCommitter,
+        IGameplayOutcomeDiagnosticsQuery outcomeDiagnostics,
+        IGameCalendar calendar,
         DungeonRuntimeAggregateRootStore rootStore,
         IProductionFacilityMutationEpochQuery facilityMutations,
         ICertifiedSeedInputOwnerRuntime inputOwners)
@@ -411,6 +421,14 @@ public sealed class CertifiedSeedRuntime :
             ?? throw new ArgumentNullException(nameof(outputCapabilities));
         this.outputPublication = outputPublication
             ?? throw new ArgumentNullException(nameof(outputPublication));
+        this.outcomeAwareOutputPublication = outcomeAwareOutputPublication
+            ?? throw new ArgumentNullException(
+                nameof(outcomeAwareOutputPublication));
+        this.outcomeCommitter = outcomeCommitter
+            ?? throw new ArgumentNullException(nameof(outcomeCommitter));
+        this.outcomeDiagnostics = outcomeDiagnostics
+            ?? throw new ArgumentNullException(nameof(outcomeDiagnostics));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         this.rootStore = rootStore
             ?? throw new ArgumentNullException(nameof(rootStore));
         this.facilityMutations = facilityMutations
@@ -650,10 +668,19 @@ public sealed class CertifiedSeedRuntime :
             }
             ProductionDomainOutputPublicationPlan outputPlan =
                 CreateOutputPlan(order, crop.SeedItemId, facility);
+            CertifiedSeedPlanExecutionReceipt sourceReceipt = new(order);
+            var outcomeParticipant = new CertifiedSeedOutputOutcomeParticipant(
+                outcomeCommitter,
+                outcomeDiagnostics,
+                calendar,
+                sourceReceipt,
+                FacilityShopService.GetBuildingName(facility.BuildingData),
+                crop.DisplayName);
             ProductionDomainOutputPublicationResult publicationResult =
-                outputPublication.EnsureCommitted(
+                outcomeAwareOutputPublication.EnsureCommitted(
                     order.outputPublication,
-                    outputPlan);
+                    outputPlan,
+                    outcomeParticipant);
             if (!publicationResult.IsCommitted)
             {
                 return false;

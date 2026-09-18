@@ -14,17 +14,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: DungeonStory.Content::LifeEventDefinitionSO
   stableId: life-event:apprentice-mistake
   displayName: "\uB3C4\uC81C\uC758 \uD070 \uC2E4\uC218"
-  description: "\uB3C4\uC81C\uAC00 \uADC0\uD55C \uC911\uAC04\uC7AC \uD55C \uBB36\uC74C\uC744
-    \uB9DD\uCE58\uACE0 \uBCF4\uACE0\uB97C \uB9DD\uC124\uC778\uB2E4."
+  description: "\uB3C4\uC81C\uAC00 \uC2E4\uC81C \uC81C\uC791\uC5D0\uC11C \uC190\uC2E4\uC744
+    \uB0C8\uB2E4."
   authoringRevision: 1
   sourceNote: V20 content-density expansion; hand-authored Korean source revision
     1.
   category: 1
+  riskTier: 1
+  riskReason: "\uC791\uC131\uB41C \uC120\uD0DD\uC5D0 \uAE30\uBD84 -4\uAC00 \uC788\uB2E4."
   automatic: 0
   emergency: 0
   responseDeadlineDays: 3
   cooldownDays: 90
   frequencyRule: 1
+  occurrencePolicy: 0
   triggerRequirements:
     items: []
     facilities: []

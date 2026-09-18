@@ -1,0 +1,9 @@
+result=FAIL
+System.NullReferenceException: Object reference not set to an instance of an object
+  at Wim039SocietyNoticeLiveRunner+<>c__DisplayClass13_0.<HasVisibleText>b__0 (TMPro.TMP_Text x) [0x00000] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Run\Editor\Wim039SocietyNoticeLiveRunner.cs:312 
+  at System.Linq.Enumerable.Any[TSource] (System.Collections.Generic.IEnumerable`1[T] source, System.Func`2[T,TResult] predicate) [0x0002c] in <6faa6124236442759eb396cfbfdad508>:0 
+  at Wim039SocietyNoticeLiveRunner.HasVisibleText (System.String expected) [0x0000d] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Run\Editor\Wim039SocietyNoticeLiveRunner.cs:311 
+  at Wim039SocietyNoticeLiveRunner+<Run>d__9.MoveNext () [0x004a2] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Run\Editor\Wim039SocietyNoticeLiveRunner.cs:188 
+  at Wim039SocietyNoticeLiveRunner+<Observe>d__8.MoveNext () [0x0004b] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Run\Editor\Wim039SocietyNoticeLiveRunner.cs:111 
+scope=controlled authored occurrence and initial funds; actual main notice pointer input, real dispatcher/content commit and persisted result. Local risk restore separately verified; not natural accident eligibility, every social effect or six-adult balance.
+cleanup=paused disposable main Play; disk saves disabled before owner UI; operator stops without saving scene/profile/settings

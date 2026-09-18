@@ -1629,6 +1629,10 @@ public static class CropPhysicalTransactionFixture
                 Proxy<IPhysicalSeedLotGateway>(),
                 registry,
                 Proxy<IProductionDomainOutputPublicationService>(),
+                Proxy<IOutcomeAwareProductionDomainOutputPublicationService>(),
+                Proxy<IEnvironmentGameplayOutcomeCommitter>(),
+                Proxy<IGameplayOutcomeDiagnosticsQuery>(),
+                Proxy<IGameCalendar>(),
                 new DungeonRuntimeAggregateRootStore(),
                 new ProductionFacilityMutationEpochRuntime(),
                 Proxy<ICertifiedSeedInputOwnerRuntime>());
@@ -1753,6 +1757,10 @@ public static class CropPhysicalTransactionFixture
             gateway,
             registry,
             Proxy<IProductionDomainOutputPublicationService>(),
+            Proxy<IOutcomeAwareProductionDomainOutputPublicationService>(),
+            Proxy<IEnvironmentGameplayOutcomeCommitter>(),
+            Proxy<IGameplayOutcomeDiagnosticsQuery>(),
+            Proxy<IGameCalendar>(),
             new DungeonRuntimeAggregateRootStore(),
             new ProductionFacilityMutationEpochRuntime(),
             Proxy<ICertifiedSeedInputOwnerRuntime>());
@@ -1812,6 +1820,10 @@ public static class CropPhysicalTransactionFixture
             gateway,
             registry,
             Proxy<IProductionDomainOutputPublicationService>(),
+            Proxy<IOutcomeAwareProductionDomainOutputPublicationService>(),
+            Proxy<IEnvironmentGameplayOutcomeCommitter>(),
+            Proxy<IGameplayOutcomeDiagnosticsQuery>(),
+            Proxy<IGameCalendar>(),
             new DungeonRuntimeAggregateRootStore(),
             new ProductionFacilityMutationEpochRuntime(),
             Proxy<ICertifiedSeedInputOwnerRuntime>());
@@ -2256,6 +2268,10 @@ public static class CropPhysicalTransactionFixture
                 seedLots,
                 Proxy<IProductionOutputCapabilityRegistry>(),
                 Proxy<IProductionDomainOutputPublicationService>(),
+                Proxy<IOutcomeAwareProductionDomainOutputPublicationService>(),
+                Proxy<IEnvironmentGameplayOutcomeCommitter>(),
+                Proxy<IGameplayOutcomeDiagnosticsQuery>(),
+                Proxy<IGameCalendar>(),
                 new DungeonRuntimeAggregateRootStore(),
                 new ProductionFacilityMutationEpochRuntime(),
                 CertifiedSeedRecoveryInputOwnerProxy.Create());

@@ -1,0 +1,54 @@
+WIM-014 OWNED EXPIRY / MANUAL DISCARD FOCUSED UNITY VERIFICATION
+Recorded: 2026-09-08T18:27:18+09:00
+Result: PASS
+
+Authorized scope
+- One controlled AssetDatabase.Refresh because the relevant source files were newer than both script assemblies.
+- Exactly one actual invocation of public OrganPreservationRestoreJoinFixture.Run().
+- No Surgery18/Strategic/RunFromMenu/private-reflection test entry was invoked.
+- Play, settings/main-UI preflight, source/asset/KB edits, scene save, and user persistence writes were not performed.
+
+Unity identity and initial state
+- Process: Unity PID 29100, Responding=True, project flag F:\01_Programming\01_Project\02_Unity\DungeonStory.
+- Application.dataPath: F:/01_Programming/01_Project/02_Unity/DungeonStory/Assets.
+- Active scene: Assets/Scenes/GameplayScene.unity, dirty=True, loaded=True, rootCount=7.
+- Roots: __Scene, __Systems, __Runtime, __Debug, OffenseJourney_Appraisal, OffenseJourney_Restoration, OffenseJourney_Fitting.
+- Before refresh: IsPlaying=False, IsPaused=False, IsCompiling=False, IsUpdating=False; Console errors=0.
+
+Frozen source evidence
+- Assets/Scripts/Services/Medical/SurgicalPartRuntime.cs
+  SHA256 0617B8ABFBC7BD31CFAF123CE99254874024958C17EB8638AA977BD8800ADE94
+  LastWriteTimeUtc 2026-09-08T09:06:01.8867228Z
+- Assets/Scripts/Services/Medical/Editor/OrganPreservationRestoreJoinFixture.cs
+  SHA256 2DB827EFB6E3DBDDD7F6E5DAEB38F9940E66982E41B3F8CD67BA236DBB04754F
+  LastWriteTimeUtc 2026-09-08T09:17:21.9118412Z
+- Assets/Scripts/Services/Offense/Strategic/OffenseTravelAndDecisionRuntime.cs
+  SHA256 5351A6ADF6A1108F5F8038625398AA98F785F110BF70A9EFBC22944B2B96BA26
+  LastWriteTimeUtc 2026-09-08T09:12:01.6847817Z
+- Assets/Scripts/Services/Offense/Editor/OffenseStrategicDebugScenarios.cs
+  SHA256 F5E65E2ED9CCAA218160E1E094263369C8CC56E20F1A9754020DF705098A811E
+  LastWriteTimeUtc 2026-09-08T09:12:23.9509931Z
+
+Refresh and compiled assemblies
+- Controlled refresh count: 1; command compilation/execution successful; log WIM014_REFRESH_REQUESTED.
+- Library/ScriptAssemblies/Assembly-CSharp.dll
+  SHA256 A1B1A00DED9C844DC16AC9E935154FA7ADC2523FD0E68EC797A370FFF566C8EE
+  LastWriteTimeUtc 2026-09-08T09:23:28.4127572Z
+- Library/ScriptAssemblies/Assembly-CSharp-Editor.dll
+  SHA256 BC9767E3E28927FF00C74FD8FA0AED414DE5D6620750963B7B81EF0645DB741A
+  LastWriteTimeUtc 2026-09-08T09:23:31.2563467Z
+- Both assemblies are newer than their relevant frozen sources. Post-refresh IsCompiling=False, IsUpdating=False; Console errors=0.
+
+Focused fixture result
+- Protection: created one unsaved empty additive scene, made it active, invoked the public fixture, restored the original active scene in finally, and removed only the temporary scene.
+- A preliminary protection-harness attempt stopped before the fixture call because NewScene had already activated the temporary scene and SetActiveScene returned false; finally cleanup completed. The corrected guard then performed the fixture's sole actual invocation.
+- PASS: valid/missing/orphan/mismatch joins, owned expiry release, and resumable manual discard are fail-closed.
+- Fixture command dynamic compilation successful with empty compilationLogs; execution successful.
+- Main preservation assertion passed: GameplayScene active=True, dirty=True, rootCount=7, exact root-name sequence unchanged.
+- Loaded-scene audit after cleanup: count=1; Assets/Scenes/GameplayScene.unity|loaded=True|roots=7.
+- Final Unity Console error entries: 0.
+
+Final editor state
+- IsPlaying=False, IsPaused=False, IsCompiling=False, IsUpdating=False.
+- No running command handle remains. GameplayScene remains active, dirty=True, rootCount=7.
+- EDIT_READY

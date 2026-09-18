@@ -41,6 +41,13 @@
     },
     {
       "amount": null,
+      "from": "event/seasonal-autumn-migration-window",
+      "label": "관련",
+      "to": "nature/spore-elk",
+      "type": "references"
+    },
+    {
+      "amount": null,
       "from": "nature/mire-leech",
       "label": "관련",
       "to": "nature/spore-elk",

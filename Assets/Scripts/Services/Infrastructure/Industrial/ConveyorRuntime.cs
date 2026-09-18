@@ -21,6 +21,8 @@ internal sealed class ConveyorRuntime :
     private readonly IIndustrialInfrastructureTopologyRuntime topologyRuntime;
     private readonly IPowerInfrastructureQuery power;
     private readonly ConveyorItemGateway items;
+    private readonly IDungeonItemCatalogProvider itemCatalog;
+    private readonly IResourceEconomyContentCatalog materialCatalog;
     private readonly IGameClock clock;
     private readonly ConveyorPayloadAdmissionPolicy admissionPolicy;
     private readonly ConveyorSnapshotProjector snapshotProjector = new();
@@ -73,12 +75,15 @@ internal sealed class ConveyorRuntime :
         IGameClock clock,
         ICombatEquipmentRuntime equipment,
         ISurvivalFoodQuery food,
-        DungeonRuntimeAggregateRootStore aggregateRootStore)
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IResourceEconomyContentCatalog materialCatalog)
     {
         this.topologyRuntime = topologyRuntime
             ?? throw new ArgumentNullException(nameof(topologyRuntime));
         this.power = power ?? throw new ArgumentNullException(nameof(power));
         this.items = items ?? throw new ArgumentNullException(nameof(items));
+        this.itemCatalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+        this.materialCatalog = materialCatalog ?? throw new ArgumentNullException(nameof(materialCatalog));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
@@ -93,6 +98,19 @@ internal sealed class ConveyorRuntime :
     }
 
     public int Version => State.Version;
+
+    public IReadOnlyList<ConveyorFilterChoice> GetItemFilterChoices() => itemCatalog.All
+        .OrderBy(value => value.ItemId, StringComparer.Ordinal)
+        .Select(value => new ConveyorFilterChoice(value.ItemId, value.DisplayName)).ToArray();
+
+    public IReadOnlyList<ConveyorFilterChoice> GetMaterialFilterChoices() => materialCatalog.Materials
+        .OrderBy(value => value.MaterialId, StringComparer.Ordinal)
+        .Select(value => new ConveyorFilterChoice(value.MaterialId, value.DisplayName)).ToArray();
+
+    public IReadOnlyList<StockCategory> GetStockCategoryFilterChoices() => itemCatalog.All
+        .Select(value => value.StockCategory).Distinct().OrderBy(value => (int)value).ToArray();
+
+    public IReadOnlyList<ConveyorWarehouseChoice> GetReserveWarehouseChoices() => items.CaptureReserveWarehouses();
 
     public IReadOnlyList<ConveyorNetworkSnapshot> Networks
     {
@@ -155,6 +173,12 @@ internal sealed class ConveyorRuntime :
     {
         payloadId = string.Empty;
         failure = DomainFailure.None;
+        if (string.IsNullOrEmpty(destinationId)
+            || !string.Equals(destinationId, destinationId.Trim(), StringComparison.Ordinal))
+        {
+            failure = new DomainFailure(FailureCode.ConveyorDestinationUnavailable);
+            return false;
+        }
         EnsureTopology();
         if (!TryResolveNode(
                 inputPort,
@@ -253,10 +277,41 @@ internal sealed class ConveyorRuntime :
         return InfrastructureCommandResult.Success();
     }
 
+    public IReadOnlyList<ConveyorDestinationChoice> GetDestinationChoices(BuildableObject port)
+    {
+        EnsureTopology();
+        if (!TryResolveNode(port, out string start, out var portNode) || portNode.ConveyorPort == null)
+            return Array.Empty<ConveyorDestinationChoice>();
+        var topology = topologyRuntime.Current;
+        var choices = new Dictionary<string, ConveyorDestinationChoice>(StringComparer.Ordinal);
+        var visited = new HashSet<string>(StringComparer.Ordinal) { start };
+        var pending = new Queue<string>();
+        pending.Enqueue(start);
+        while (pending.Count > 0)
+        {
+            string current = pending.Dequeue();
+            var node = topology.Nodes[current];
+            if (node.ConveyorPort != null && node.ConveyorPort.mode != ConveyorPortMode.Input
+                && GetNodeState(node).Enabled)
+                foreach (var choice in items.CaptureDestinationsAt(items.ResolveNodeDropPosition(node)))
+                    if (current == start || string.Equals(ResolvePortDestination(current),
+                            choice.DestinationId, StringComparison.Ordinal))
+                        choices.TryAdd(choice.DestinationId, choice);
+            if (portNode.ConveyorPort.mode == ConveyorPortMode.Output) continue;
+            if (topology.ConveyorOutgoing.TryGetValue(current, out var outgoing))
+                foreach (string next in outgoing.OrderBy(value => value, StringComparer.Ordinal))
+                    if (visited.Add(next) && topology.Nodes.TryGetValue(next, out var nextNode)
+                        && GetNodeState(nextNode).Enabled) pending.Enqueue(next);
+        }
+        return choices.Values.OrderBy(value => value.DestinationId, StringComparer.Ordinal).ToArray();
+    }
+
+    [GameplayEntryPoint("IndustrialFeatureSurfacePresenter.ConveyorDestinationChoice")]
     public InfrastructureCommandResult SetPortDestination(
         BuildableObject port,
         string destinationId)
     {
+        EnsureTopology();
         if (!TryResolveNode(
                 port,
                 out _,
@@ -267,12 +322,16 @@ internal sealed class ConveyorRuntime :
                 FailureCode.ConveyorPortUnavailable);
         }
 
-        GetNodeState(node).DestinationId =
-            destinationId?.Trim() ?? string.Empty;
+        if (destinationId == null || !string.Equals(destinationId, destinationId.Trim(), StringComparison.Ordinal)
+            || (destinationId.Length > 0 && !GetDestinationChoices(port).Any(value =>
+                string.Equals(value.DestinationId, destinationId, StringComparison.Ordinal))))
+            return InfrastructureCommandResult.Failed(FailureCode.ConveyorDestinationUnavailable);
+        GetNodeState(node).DestinationId = destinationId;
         InvalidateRoutes();
         return InfrastructureCommandResult.Success();
     }
 
+    [GameplayEntryPoint("IndustrialFeatureSurfacePresenter conveyor overflow and reserve warehouse controls")]
     public InfrastructureCommandResult SetOverflowPolicy(
         BuildableObject segment,
         ConveyorOverflowPolicy policy,
@@ -289,10 +348,14 @@ internal sealed class ConveyorRuntime :
                 FailureCode.IndustrialCommandInvalid);
         }
 
+        if (reserveWarehouseId == null
+            || !string.Equals(reserveWarehouseId, reserveWarehouseId.Trim(), StringComparison.Ordinal)
+            || (reserveWarehouseId.Length > 0 && !GetReserveWarehouseChoices().Any(choice =>
+                string.Equals(choice.DestinationId, reserveWarehouseId, StringComparison.Ordinal))))
+            return InfrastructureCommandResult.Failed(FailureCode.ConveyorDestinationUnavailable);
         ConveyorNodeRuntimeState state = GetNodeState(node);
         state.OverflowPolicy = policy;
-        state.ReserveWarehouseId = reserveWarehouseId?.Trim()
-            ?? string.Empty;
+        state.ReserveWarehouseId = reserveWarehouseId;
         Touch();
         return InfrastructureCommandResult.Success();
     }
@@ -314,6 +377,7 @@ internal sealed class ConveyorRuntime :
             });
     }
 
+    [GameplayEntryPoint("IndustrialFeatureSurfacePresenter conveyor item/category/material and metadata filters")]
     public InfrastructureCommandResult SetAdvancedFilter(
         BuildableObject segment,
         ConveyorFilterCriteria criteria)
@@ -324,9 +388,10 @@ internal sealed class ConveyorRuntime :
                 FailureCode.IndustrialBuildingUnavailable);
         }
 
+        if (!ConveyorPayloadAdmissionPolicy.IsValidCriteria(criteria, itemCatalog, materialCatalog))
+            return InfrastructureCommandResult.Failed(FailureCode.IndustrialCommandInvalid);
         ConveyorNodeRuntimeState state = GetNodeState(node);
-        ConveyorFilterCriteria source = criteria
-            ?? new ConveyorFilterCriteria();
+        ConveyorFilterCriteria source = criteria;
         state.ItemIds.Clear();
         foreach (string itemId in source.itemIds ?? new List<string>())
         {
@@ -443,7 +508,7 @@ internal sealed class ConveyorRuntime :
             destinationId,
             stack,
             admissionPolicy.CanEnter,
-            ResolvePortDestination,
+            ResolveAvailableOutputDestination,
             out nodeIds,
             out failureReason);
     }
@@ -614,6 +679,11 @@ internal sealed class ConveyorRuntime :
     {
         bool restored;
         Vector2Int position = items.ResolveNodeDropPosition(node);
+        if (!items.IsDestinationAvailable(payload.DestinationId, position))
+        {
+            SetStall(payload, ConveyorStallReason.NoRoute, countTime: true);
+            return false;
+        }
         if (!string.IsNullOrWhiteSpace(payload.DestinationId)
             && node.ConveyorPort != null
             && string.Equals(
@@ -630,12 +700,8 @@ internal sealed class ConveyorRuntime :
         }
         else
         {
-            restored = items.TryCompleteLoose(
-                payload.StackId,
-                payload.PayloadId,
-                position,
-                out _,
-                out _);
+            SetStall(payload, ConveyorStallReason.NoRoute, countTime: true);
+            return false;
         }
 
         if (!restored)
@@ -703,9 +769,15 @@ internal sealed class ConveyorRuntime :
         }
 
         ConveyorNodeRuntimeState state = GetNodeState(node);
-        return !string.IsNullOrWhiteSpace(state.DestinationId)
-            ? state.DestinationId
-            : node.ConveyorPort.destinationId?.Trim() ?? string.Empty;
+        return state.DestinationId;
+    }
+
+    private string ResolveAvailableOutputDestination(string nodeId)
+    {
+        string destination = ResolvePortDestination(nodeId);
+        return topologyRuntime.Current.Nodes.TryGetValue(nodeId, out var node)
+            && items.IsDestinationAvailable(destination, items.ResolveNodeDropPosition(node))
+                ? destination : string.Empty;
     }
 
     private void ResolveOverflow()
@@ -778,6 +850,13 @@ internal sealed class ConveyorRuntime :
             CompleteOverflow(payload);
             return true;
         }
+
+        // Warehouse exhaustion is a visible retained-payload state, not permission
+        // to spill into the world. Only an explicit ground policy/approval permits it.
+        if (state.OverflowPolicy != ConveyorOverflowPolicy.LooseOnly
+            && !(state.OverflowPolicy == ConveyorOverflowPolicy.ManualApproval
+                && approvedOverflowPayloads.Contains(payload.PayloadId)))
+            return false;
 
         Vector2Int dropPosition = items.ResolveNodeDropPosition(gate);
         if (items.TryCompleteLoose(
@@ -1033,6 +1112,7 @@ internal sealed class ConveyorRuntime :
         {
             state = new ConveyorNodeRuntimeState
             {
+                DestinationId = node.ConveyorPort?.destinationId?.Trim() ?? string.Empty,
                 OverflowPolicy = node.Overflow?.defaultPolicy
                     ?? ConveyorOverflowPolicy.ReserveWarehouseThenLoose,
                 AllowForbidden = node.Conveyor?.allowForbidden ?? false,

@@ -1,0 +1,6 @@
+result=PASS
+authored28: dry=.95/duration3-5, other27=1; remote-consumption effects=0
+actual seasonal start/end; actual water Tick: 10->11.9->13.8->15.8
+pause/query unchanged; warmed10000-query allocation=0B
+current seasonal+source JSON restore: no compounded reduction; base/capacity preserved; expiry refund=0
+scope=isolated production campaign/water/real authored catalog, controlled eligibility/grid/game clock; natural main-day dispatcher/6adult NOT_RUN

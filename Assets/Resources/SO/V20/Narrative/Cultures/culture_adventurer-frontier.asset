@@ -19,7 +19,7 @@ MonoBehaviour:
   authoringRevision: 1
   sourceNote: V20 content-density expansion; hand-authored Korean source revision
     1.
-  defaultSpeciesId: Adventurer
+  defaultSpeciesId: Human
   preferredItemIds:
   - food:preserved-ration
   forbiddenItemIds:

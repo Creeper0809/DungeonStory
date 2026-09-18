@@ -925,6 +925,13 @@ public static class V22ApparelContentAssetBuilder
         {
             new(-8f, 20f), new(14f, 42f), new(8f, 34f), new(6f, 30f)
         };
+        CropLightProfile[] lightProfiles =
+        {
+            CropLightProfile.Medium,
+            CropLightProfile.High,
+            CropLightProfile.Medium,
+            CropLightProfile.Medium
+        };
         for (int index = 0; index < slugs.Length; index++)
         {
             string slug = slugs[index];
@@ -982,6 +989,7 @@ public static class V22ApparelContentAssetBuilder
                 6,
                 true,
                 temperatures[index]);
+            crop.ConfigureLightProfile(lightProfiles[index]);
             crop.ConfigureEcology(
                 "seed-lot:" + slug,
                 baseGenome,

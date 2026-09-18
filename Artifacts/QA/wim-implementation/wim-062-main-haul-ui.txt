@@ -1,0 +1,23 @@
+WIM062 main physical delivery / AI / Health UI
+setup=actual StartParty, reachable existing medical facility and stock command; validated current-format patient checkpoint
+intervention=actual grid delivery cell blocked after haul reservation; no injected path result
+not-tested=natural disease generation, whole-world restore, long-run balance; prior core receipt/ACK evidence retained
+facility-definition=R01_간이침대
+facility-center=(19, 2); work-access=(20, 2); carrier=(20, 0); access-reachable=True
+warehouse=building:4291531383834eb4b5131eb1cfeb999b; category=General; medicine=craft:resin-balm
+request-query: found=True; expected-facility=building:0af9e7481bee4ecdb27b4e11ed70e5a6; observed-facility=building:0af9e7481bee4ecdb27b4e11ed70e5a6; item=craft:resin-balm; kind=Standard; state=Requested; destination=facility-input:exact:survival.character-consumables:v1:medical-treatment:building%3A0af9e7481bee4ecdb27b4e11ed70e5a6:craft%3Aresin-balm
+delivery-preflight=Reachable; reason=; source=(16, 0); drop=(19, 2)
+ui=치료 물자 · 일반 치료 · 배송 요청됨
+[PASS] warehouse-only -> actual requested destination=facility-input:exact:survival.character-consumables:v1:medical-treatment:building%3A0af9e7481bee4ecdb27b4e11ed70e5a6:craft%3Aresin-balm; item=craft:resin-balm
+haul-plan=1; legs=facility-input:exact:survival.character-consumables:v1:medical-treatment:building%3A0af9e7481bee4ecdb27b4e11ed70e5a6:craft%3Aresin-balm:(17, 0)->(19, 2)
+actual-haul-start=character:staff:1:02; blocked=(19, 2)
+ui=치료 물자 · 일반 치료 · 최근 배송 경로 없음
+[PASS] real movement failure -> typed NoPath -> player Health UI; quantity preserved
+haul-plan=2; legs=facility-input:exact:survival.character-consumables:v1:medical-treatment:building%3A0af9e7481bee4ecdb27b4e11ed70e5a6:craft%3Aresin-balm:(17, 0)->(19, 2)
+ui=치료 물자 · 일반 치료 · 약품 도착
+[PASS] access restored -> real AI carry/movement/deposit -> Ready Health UI
+PASS
+target-stock=stack:17fc87325d6a4cf98ac048e585945df1; item=craft:resin-balm; qty=1; state=FacilityBuffer; pos=(19, 2); drop=(19, 2); reserved=0
+observed-carry=True; visited-cells=30
+wall-seconds=36.913; game-seconds=31.802
+cleanup=hook/cell restored; time paused; operator MUST Stop disposable protected Play, no scene/save write

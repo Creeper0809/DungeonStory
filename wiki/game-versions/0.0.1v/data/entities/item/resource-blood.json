@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "약품, 촉진제와 의식 재료이다. 베르사디온의 피는 제공자와 용도를 적은 유리병에 따로 담고, 동의의 잔 앞에서 확인한 병에만 검은 봉인을 단다.",
+  "in_game_description": "약품, 촉진제와 의식 재료이다. 베르사디온의 피 병목에는 동의의 잔에서 떼어 낸 검은 실이 감겨 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

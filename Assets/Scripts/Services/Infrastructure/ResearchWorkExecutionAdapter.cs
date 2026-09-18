@@ -126,10 +126,13 @@ public sealed class ResearchWorkExecutionHandler :
             return false;
         }
 
-        bool available = projectWorkforce.CanJoin(
-            projectId,
-            characterId.Value,
-            maximumResearchers);
+        bool available = projectWorkforce.GetContributionMultiplier(
+                projectId,
+                characterId.Value) > 0f
+            || projectWorkforce.CanJoin(
+                projectId,
+                characterId.Value,
+                maximumResearchers);
         reason = available ? string.Empty : "연구 프로젝트의 동시 연구자 슬롯이 가득 찼습니다.";
         return available;
     }
@@ -163,48 +166,51 @@ public sealed class ResearchWorkExecutionHandler :
 
         using (workforceLease)
         {
-        ResearchWorkerHandle worker = runtime.CaptureWorker(context.Actor);
-        ResearchFacilityHandle facility = runtime.CaptureFacility(context.Target);
-        ResearchWorkPlan plan = core.CreatePlan(facility);
-        yield return context.ExecuteWorkAmount(plan.RequiredWork, "연구");
-        if (!context.CanContinue)
-        {
-            result.CompletedSuccessfully = false;
-            yield break;
-        }
+            // Unity may stop the work coroutine before this iterator advances
+            // again, so the executor must also own the joined project slot.
+            context.RegisterCancellationResource(workforceLease);
+            ResearchWorkerHandle worker = runtime.CaptureWorker(context.Actor);
+            ResearchFacilityHandle facility = runtime.CaptureFacility(context.Target);
+            ResearchWorkPlan plan = core.CreatePlan(facility);
+            yield return context.ExecuteWorkAmount(plan.RequiredWork, "연구");
+            if (!context.CanContinue)
+            {
+                result.CompletedSuccessfully = false;
+                yield break;
+            }
 
-        float contribution = projectWorkforce.GetContributionMultiplier(
-            projectId,
-            characterId.Value);
-        ResearchWorkProgressResult work = core.ApplyApprovedWork(
-            worker,
-            facility,
-            plan.RequiredWork * contribution);
-        result.CompletedSuccessfully = work.Succeeded;
-        if (!work.Succeeded)
-        {
+            float contribution = projectWorkforce.GetContributionMultiplier(
+                projectId,
+                characterId.Value);
+            ResearchWorkProgressResult work = core.ApplyApprovedWork(
+                worker,
+                facility,
+                plan.RequiredWork * contribution);
+            result.CompletedSuccessfully = work.Succeeded;
+            if (!work.Succeeded)
+            {
+                context.Actor?.AddActivity(CharacterActivityEvent.Work(
+                    FacilityWorkType.Research,
+                    CharacterActivityOutcomes.Failed,
+                    $"연구 실패: {work.FailureCode}",
+                    context.Target,
+                    reasonCode: work.FailureCode,
+                    bubbleEligible: true));
+                yield return new WaitForSeconds(0.2f);
+                yield break;
+            }
+
             context.Actor?.AddActivity(CharacterActivityEvent.Work(
                 FacilityWorkType.Research,
-                CharacterActivityOutcomes.Failed,
-                $"연구 실패: {work.FailureCode}",
+                work.Completed
+                    ? CharacterActivityOutcomes.Completed
+                    : CharacterActivityOutcomes.Progress,
+                work.Completed
+                    ? $"연구 완료: {work.Label}"
+                    : $"연구 진행: {work.Label}",
                 context.Target,
-                reasonCode: work.FailureCode,
-                bubbleEligible: true));
-            yield return new WaitForSeconds(0.2f);
-            yield break;
-        }
-
-        context.Actor?.AddActivity(CharacterActivityEvent.Work(
-            FacilityWorkType.Research,
-            work.Completed
-                ? CharacterActivityOutcomes.Completed
-                : CharacterActivityOutcomes.Progress,
-            work.Completed
-                ? $"연구 완료: {work.Label}"
-                : $"연구 진행: {work.Label}",
-            context.Target,
-            reasonCode: work.Completed ? "blueprint-completed" : "research-progress",
-            value: work.ProgressRatio));
+                reasonCode: work.Completed ? "blueprint-completed" : "research-progress",
+                value: work.ProgressRatio));
         }
     }
 

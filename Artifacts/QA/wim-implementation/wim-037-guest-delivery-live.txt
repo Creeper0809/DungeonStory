@@ -1,0 +1,18 @@
+baseline rawMoney=5000; rapport=0; stock=2
+PASS actual notice acceptance with no RF25: active pending, physical debit0, reward0, notice retained
+fixture authored RF25 instance=building:887647f99f724d81b5d7478561875c12; anchor=(17, 1)
+fixture authored RF25 instance=building:d0b1e5e8f7d54f8983efb077194e0710; anchor=(28, 1)
+delivery gameSeconds=26.36051; wallSeconds=6.620444; carried=True; arrived=True; destination=facility-input:exact:run.guest-request:event%3A2%3Aguest-request%3Asealed-archive%3Awim037-live
+PASS actual AI pickup/move/arrival and physical commit=physical-batch-disposition:1:guest-request-transfer:event%3A2%3Aguest-request%3Asealed-archive%3Awim037-live:2:1800
+PASS Society candidate rejected: foreign occurrence destination
+PASS Society candidate rejected: committed receipt without active input owner
+invalid whole restore accepted=False; errors=Failed to stage section 'society.events': Incoming guest-request Transfer 'guest-request-transfer:event%3A2%3Aguest-request%3Asealed-archive%3Awim037-live' has no exact society owner.; sameSociety=True; sameFactions=True; samePhysical=True; sameMoney=True; sameLedger=True
+PASS missing incoming Society owner rejected atomically: Failed to stage section 'society.events': Incoming guest-request Transfer 'guest-request-transfer:event%3A2%3Aguest-request%3Asealed-archive%3Awim037-live' has no exact society owner.
+PASS exact whole pending JSON restore with normal completed hooks
+PASS terminal +67 money/+4 rapport, drawing debit2 once, receipt ACK, replayMutation0; replayAccepted=False
+final stock=0; destination=facility-input:exact:run.guest-request:event%3A2%3Aguest-request%3Asealed-archive%3Awim037-live; carried=True; arrived=True
+money raw=5067; requestAdjusted=5067
+observed money transaction={"transactionId":"economy:00000001","kind":14,"sourceId":"content:v21-content|society|event%3A2%3Aguest-request%3Asealed-archive%3Awim037-live|fulfill","targetId":"","description":"GuestRequestDeliveryOutcome","amount":67,"balanceBefore":5000,"balanceAfter":5067,"gameTime":27.594541549682618,"succeeded":true,"failureReason":""}
+result=PASS
+scope=controlled authored occurrence/day2, RF25 buildings and two physical drawings; actual EventSystem notice/accept, autonomous haul, terminal reward and current whole save. Not natural request selection, construction cost, venue9 authoring, onsite work or six-adult balance.
+cleanup=paused disposable main Play; disk persistence disabled before owner UI; operator stops without scene/profile/save writes

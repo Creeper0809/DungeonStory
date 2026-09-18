@@ -162,6 +162,9 @@ public sealed class ProductionItemGateway :
     IProductionOutputBufferGateway,
     IProductionSupplyInventoryGateway
 {
+    public const string WipInputPhysicalReasonCode =
+        "production.inputs-to-wip";
+
     private readonly IStockQuery stock;
     private readonly IItemTransferService transfers;
     private readonly IWorldItemStackRuntime worldItems;
@@ -418,7 +421,7 @@ public sealed class ProductionItemGateway :
                 inputs,
                 PhysicalItemDispositionKind.Transfer,
                 operation,
-                "production.inputs-to-wip",
+                WipInputPhysicalReasonCode,
                 out PhysicalItemBatchDispositionReceipt physicalReceipt,
                 out failureReason))
         {
@@ -428,7 +431,9 @@ public sealed class ProductionItemGateway :
         receipt = new ProductionWipInputReceipt(
             physicalReceipt.CommitId,
             physicalReceipt.Quantity,
-            physicalReceipt.InputMassGrams);
+            physicalReceipt.InputMassGrams,
+            physicalReceipt.RequestFingerprint,
+            physicalReceipt.SourceStackIds);
         return receipt.IsCommitted;
     }
 

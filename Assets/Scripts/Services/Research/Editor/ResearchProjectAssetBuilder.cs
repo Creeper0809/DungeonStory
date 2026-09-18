@@ -153,6 +153,42 @@ public static class ResearchProjectAssetBuilder
         Debug.Log($"Research tree assets rebuilt: {projects.Count} projects.");
     }
 
+    /// <summary>
+    /// Adds only the two approved WIM016 crop-lighting facilities to their
+    /// already-authored research projects.  This is intentionally narrower than
+    /// <see cref="Rebuild"/>, which rewrites the entire research tree.
+    /// </summary>
+    public static void ApplyWim016CropLightingUnlocks()
+    {
+        foreach (KeyValuePair<string, string[]> pair in
+                 IndustrialInfrastructureAssetBuilder
+                     .GetWim016CropLightingResearchUnlockCodes())
+        {
+            string researchId = pair.Key;
+            string path = $"{Root}/{Sanitize(researchId)}.asset";
+            ResearchProjectSO project =
+                AssetDatabase.LoadAssetAtPath<ResearchProjectSO>(path);
+            if (project == null
+                || !string.Equals(
+                    project.ProjectId.Value,
+                    researchId,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"WIM016 crop-lighting research project '{researchId}' is missing at '{path}'.");
+            }
+
+            if (AppendBuildingUnlocks(
+                    researchId,
+                    pair.Value,
+                    project.UnlockCollection))
+            {
+                EditorUtility.SetDirty(project);
+                AssetDatabase.SaveAssetIfDirty(project);
+            }
+        }
+    }
+
     [MenuItem("Tools/DungeonStory/Research/Validate Mining Expansion Gates")]
     public static void EnsureDungeonExpansionProjects()
     {
@@ -614,6 +650,28 @@ public static class ResearchProjectAssetBuilder
             return;
         }
 
+        AppendBuildingUnlocks(researchId, facilityCodes, unlocks);
+    }
+
+    private static bool AppendBuildingUnlocks(
+        string researchId,
+        IEnumerable<string> facilityCodes,
+        BlueprintUnlockCollection unlocks)
+    {
+        if (unlocks == null)
+        {
+            return false;
+        }
+
+        string[] distinctCodes = (facilityCodes ?? Array.Empty<string>())
+            .Where(code => !string.IsNullOrWhiteSpace(code))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        if (distinctCodes.Length == 0)
+        {
+            return false;
+        }
+
         Dictionary<string, BuildingSO> buildingsByCode = AssetDatabase
             .FindAssets(
                 "t:BuildingSO",
@@ -633,7 +691,8 @@ public static class ResearchProjectAssetBuilder
                 group => group.First().Building,
                 StringComparer.Ordinal);
 
-        foreach (string code in facilityCodes)
+        bool changed = false;
+        foreach (string code in distinctCodes)
         {
             if (!buildingsByCode.TryGetValue(code, out BuildingSO building))
             {
@@ -650,8 +709,10 @@ public static class ResearchProjectAssetBuilder
                 {
                     buildingId = building.id
                 });
+                changed = true;
             }
         }
+        return changed;
     }
 
     private static void AppendServiceRoomUnlocks(
@@ -761,11 +822,6 @@ public static class ResearchProjectAssetBuilder
             new ResearchFacilityContribution(ResearchFacilityCapabilityId.Basic, 1),
             new ResearchFacilityContribution(ResearchFacilityCapabilityId.Reagent, 1),
             new ResearchFacilityContribution(ResearchFacilityCapabilityId.Arcane, 1));
-        AttachResearchCapacity(
-            "P1_ResearchLab",
-            new ResearchFacilityContribution(ResearchFacilityCapabilityId.Basic, 2),
-            new ResearchFacilityContribution(ResearchFacilityCapabilityId.Archive, 1),
-            new ResearchFacilityContribution(ResearchFacilityCapabilityId.Advanced, 1));
     }
 
     private static void AttachQ03ArchiveAbilityDefinition()

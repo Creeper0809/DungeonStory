@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "차, 약품과 마나 약물에 쓰는 야광 꽃이다. 므네실라에서는 월화의 빛이 남은 꽃잎만 약재로 말리고, 어두워진 꽃받침은 종자밭의 덮개로 쓴다.",
+  "in_game_description": "차, 약품과 마나 약물에 쓰는 야광 꽃이다. 므네실라에서는 월화 찌꺼기까지 버리지 않는다. 물기를 빼면 공동 정원의 다음 흙이 된다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

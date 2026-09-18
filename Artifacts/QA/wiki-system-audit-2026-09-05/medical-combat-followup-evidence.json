@@ -1,0 +1,182 @@
+{
+  "head": "c03d2e0a1c68067de48840f3851b388483966a6e",
+  "status": "partial static comparison, not Unity execution",
+  "sourceCount": 41,
+  "separateProcedureSourceAndWikiFiles": 94,
+  "procedureHashFailures": [],
+  "procedureRows": 47,
+  "workMismatch": 0,
+  "effectCountMismatch": 0,
+  "materialRows": 12,
+  "materialMismatch": 0,
+  "speciesHealRows": 24,
+  "differenceRows": 25,
+  "uniqueDifferenceRows": 25,
+  "damageExample": 6.227099999999999,
+  "sources": [
+    {
+      "path": "Assets/Resources/SO/Economy/Materials/material_blacksteel.asset",
+      "sha256": "4c81379841f5fd150d5da00700c32f53b3e7008aded431c0b3c7dcc2b59e5349"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Materials/material_bone.asset",
+      "sha256": "3dd2df90bab28e93be9e07d078c5a0b5b9adc08331eba01fb5b26a912c313b86"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Materials/material_cloth.asset",
+      "sha256": "8fb85c7fbcc83d254f8bc82731268134214e8eb4d863728e234cd08d890a43e3"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Materials/material_dreamweave.asset",
+      "sha256": "6aec5e719ccba9b936ad743242b10f1c0719387de6128d321255fed8b55d201a"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Materials/material_gold.asset",
+      "sha256": "458c921cbbf701ecb3f4d0df4af2b8db67d0083d055a9ce608e849b520f84e58"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Materials/material_iron.asset",
+      "sha256": "6872a00af7a2748e7b8552b65c23a8de171ed45189665371611b56c5273d976b"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Materials/material_leather.asset",
+      "sha256": "38a0d4fe8724f9fac02f8fc54dba64c2ff09c3848c9018ae3d6c2a3e4e14f8e3"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Materials/material_rune_leather.asset",
+      "sha256": "5f1bcb99c9572040cfa762a136f94b7876ae81a19a1382372bed45070297af7e"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Materials/material_steel.asset",
+      "sha256": "e8b21191bb7971173e7c1b825e12fd8ae755a372b7f83af3a668fb434c4e1bc9"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Materials/material_stone.asset",
+      "sha256": "23aeb50514f2a94b54ee6030d6bdce4cc93b4ba9618507a3d74e0dc5a4bf5e2c"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Materials/material_wood.asset",
+      "sha256": "f869a2caeab791661dce015139690d96223e66f23e042204997b16afaa737a5d"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Materials/material_wool.asset",
+      "sha256": "6f12b02b8be5cae324b4b4d64e5a13c8ef9b4d897e0144cf74e55c264b3d9ed2"
+    },
+    {
+      "path": "Assets/Scripts/Models/Combat/Core/CombatModels.cs",
+      "sha256": "40a276aac419bcd06e6845c92eb9fe7fe669953283a6191fc12695501dbf0bf2"
+    },
+    {
+      "path": "Assets/Scripts/Models/Economy/Content/CombatEquipmentDefinitions.cs",
+      "sha256": "a79811c9a20dbc2e6327be236400a15356df20925f03802786619a3bee514f29"
+    },
+    {
+      "path": "Assets/Scripts/Models/Economy/Content/CraftMaterialDefinitionSO.cs",
+      "sha256": "10842e48d93364b2480d916f4da936de66980fb6c035df52e9669e308d2f7516"
+    },
+    {
+      "path": "Assets/Scripts/Models/Medical/Core/SurgeryModels.cs",
+      "sha256": "6b0e062c99d3c9ea49b521248d5476ceb59f2091dd5f678f2edcafde78a67ec9"
+    },
+    {
+      "path": "Assets/Scripts/Models/Medical/Core/SurgicalProcedureSO.cs",
+      "sha256": "eba21f1b9807bc13b95fdc9f3acab842628d525091523e4a2c83c7e142fc068d"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Core/CharacterStatsProjectionService.cs",
+      "sha256": "8a804a0fdfbb6f47671ff42e7efa95720ab5846a396e1628720adf40d4d618ec"
+    },
+    {
+      "path": "Assets/Scripts/Services/Combat/CharacterBodyHealthRuntime.cs",
+      "sha256": "5fcc5aead46f66c1e048ea8e16e9091ca8d9d7450976660a85468a624e8ccf83"
+    },
+    {
+      "path": "Assets/Scripts/Services/Combat/CharacterCombatCommandRuntime.cs",
+      "sha256": "acfa500d1e5a73ebbf44798b0caa0d6c1d963587941a5b1694e11fa7e6fad702"
+    },
+    {
+      "path": "Assets/Scripts/Services/Combat/CombatEquipmentLoadoutRuntime.cs",
+      "sha256": "c3fc702f035d36376695c5710fe205f1f24b591ed599982a1d1ab6250f70fd15"
+    },
+    {
+      "path": "Assets/Scripts/Services/Combat/CombatEquipmentRuntime.cs",
+      "sha256": "c5ebac6667f4d3f2615aeaf048d42a4069eb8b2734925397cfedc5a2b7a91606"
+    },
+    {
+      "path": "Assets/Scripts/Services/Combat/CombatEquipmentStatProjector.cs",
+      "sha256": "57ad6d99f34458b8164c709e2643e38cb8fd498dc368ea4f6986ca56c220d17b"
+    },
+    {
+      "path": "Assets/Scripts/Services/Combat/CombatResolutionService.cs",
+      "sha256": "64904edad47f340417309e9d8167f28af0c15659a68d7eaa5d12e44afc0c2733"
+    },
+    {
+      "path": "Assets/Scripts/Services/Items/CharacterCarryInventory.cs",
+      "sha256": "86f7bafb2e38bebec2bca4723240a55ae6fa2449b8c4a5cf0f56226a4863b0ed"
+    },
+    {
+      "path": "Assets/Scripts/Services/Items/CombatEquipmentPhysicalMassProjector.cs",
+      "sha256": "3d65eedd9f2c6c63d8d24d904d3ca12c22d7c53b7f6e31b367db98ef79b7fcc7"
+    },
+    {
+      "path": "Assets/Scripts/Services/Medical/SurgeryEnvironmentRiskEvaluator.cs",
+      "sha256": "8a671e4193fde64bf2230e5b693349ce45e454793c5f3e44f9d56013a45b0295"
+    },
+    {
+      "path": "Assets/Scripts/Services/Medical/SurgeryEnvironmentRuntime.cs",
+      "sha256": "4bede47178dcb2b5c0162a4dc7517d6beee64527513ada38bcee1d6d6a758780"
+    },
+    {
+      "path": "Assets/Scripts/Services/Medical/SurgeryLogisticsRuntime.cs",
+      "sha256": "88c5d8c9dd5ec6805e98601a4d64a91a2271dee6b41256ab4764cabaf2d0ce0c"
+    },
+    {
+      "path": "Assets/Scripts/Services/Medical/SurgeryOrderPlanningService.cs",
+      "sha256": "93a325693241e3924ae7a03de6f85806903debdf45213c78914a1de8dbc2fae1"
+    },
+    {
+      "path": "Assets/Scripts/Services/Medical/SurgeryRiskEvaluator.cs",
+      "sha256": "05a874d5746ddbcfc2d9f6d7bf99b95726a6bef818fe299b721438708f4ac553"
+    },
+    {
+      "path": "Assets/Scripts/Services/Medical/SurgeryRuntime.cs",
+      "sha256": "a66addfe6102a7cea646c2f1ca2a604fb67ef417846251c5f20d1db71ddfbdb5"
+    },
+    {
+      "path": "Assets/Scripts/Services/Medical/SurgicalProcedureCatalog.cs",
+      "sha256": "747953e95f9613bab27d53f9ef11f1d9a6aab31a28eff766bea9f55c6c4345e8"
+    },
+    {
+      "path": "Assets/Scripts/Services/Medical/SurgicalProcedureEffectHandlers.cs",
+      "sha256": "277e509ffa2e3eacdba0866639161eb0f3873b88e09808ff0dddd655568cb403"
+    },
+    {
+      "path": "Assets/Scripts/Services/Offense/OffenseEquipmentPowerRules.cs",
+      "sha256": "6c9216339c5d3a95ae541a970b7c5c7140a44f6b72b296de8a1eb0d17014d950"
+    },
+    {
+      "path": "Assets/Scripts/Views/UI/CharacterSummaryCombatPresenter.cs",
+      "sha256": "28b8464a9e47b0fb2b98671735f5779040608f241e072c74b37368ef1771e956"
+    },
+    {
+      "path": "Assets/Scripts/Views/UI/CharacterSurgeryWindow.cs",
+      "sha256": "747210eb9d1d9082bbb1abea8cbec9ada8542f8561ad3484d6813281e8ca3f9d"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/combat-and-equipment.md",
+      "sha256": "01026c8e0f08add5adba6cb2a47f0e93df0b85b054db8cf0960f96a58051d6f7"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/disease-and-public-health.md",
+      "sha256": "64b40015c43996acd2b62467b100a7efbd2dd7acb53ad6ae27209dd787cf7875"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/inventory-and-carrying.md",
+      "sha256": "fe4ad7008be023310bd05b290605861a8c03fc5b87312f358d63aff7ef607954"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/medical-care-and-surgery.md",
+      "sha256": "897ad8f3608831fd618f233041886c8459d9d40f41a0b98dd544bca849e29d2e"
+    }
+  ]
+}

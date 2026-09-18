@@ -1,0 +1,79 @@
+{
+  "cases": [
+    {
+      "caseId": "skill-riverbank-rope",
+      "events": [
+        {
+          "count": 1,
+          "day": 4,
+          "domain": "Combat",
+          "eventKey": "combat:riverbank-wolf",
+          "outcome": "outcome:completed",
+          "text": "강둑에서 늑대가 달려들자 연호는 옆으로 피한 뒤 짐막대로 한 번 쳐서 물러나게 했다.",
+          "valueDecimal": "1"
+        },
+        {
+          "count": 1,
+          "day": 5,
+          "domain": "Work",
+          "eventKey": "work:wet-rope",
+          "outcome": "outcome:completed",
+          "text": "연호는 비에 젖은 밧줄을 펴서 말리고, 풀어진 끝을 다시 묶었다.",
+          "valueDecimal": "1"
+        }
+      ],
+      "profileId": "CharacterSkill",
+      "scenarioFamilyId": "authored:riverbank-rescue",
+      "state": {
+        "kind": "Active",
+        "pity": false,
+        "potential": "Ordinary",
+        "requestRevision": 0,
+        "unlockLevel": 1
+      },
+      "subject": {
+        "background": "연호는 강가의 짐터에서 밧줄을 손질하며 지낸다. 물가에서는 미끄러운 돌을 밟지 않으려 발밑부터 살핀다.",
+        "displayName": "연호",
+        "persistentId": "character:authored:riverbank-rescue"
+      }
+    },
+    {
+      "caseId": "skill-riverbank-rope",
+      "events": [
+        {
+          "count": 1,
+          "day": 4,
+          "domain": "Combat",
+          "eventKey": "combat:riverbank-wolf",
+          "outcome": "outcome:completed",
+          "text": "강둑에서 늑대가 달려들자 연호는 옆으로 피한 뒤 짐막대로 한 번 쳐서 물러나게 했다.",
+          "valueDecimal": "1"
+        },
+        {
+          "count": 1,
+          "day": 5,
+          "domain": "Work",
+          "eventKey": "work:wet-rope",
+          "outcome": "outcome:completed",
+          "text": "연호는 비에 젖은 밧줄을 펴서 말리고, 풀어진 끝을 다시 묶었다.",
+          "valueDecimal": "1"
+        }
+      ],
+      "profileId": "CharacterSkill",
+      "scenarioFamilyId": "authored:riverbank-rescue",
+      "state": {
+        "kind": "Active",
+        "pity": false,
+        "potential": "Ordinary",
+        "requestRevision": 0,
+        "unlockLevel": 1
+      },
+      "subject": {
+        "background": "연호는 강가의 짐터에서 밧줄을 손질하며 지낸다. 물가에서는 미끄러운 돌을 밟지 않으려 발밑부터 살핀다.",
+        "displayName": "연호",
+        "persistentId": "character:authored:riverbank-rescue"
+      }
+    }
+  ],
+  "schemaVersion": 1
+}

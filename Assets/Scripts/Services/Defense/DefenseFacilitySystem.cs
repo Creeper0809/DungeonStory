@@ -61,7 +61,11 @@ public class DefenseActivationReport
     private readonly List<string> effectTags = new List<string>();
     private readonly IReadOnlyList<string> effectTagsView;
 
-    public DefenseActivationReport(DefenseFacility facility, CharacterActor target, DefenseTriggerTiming timing)
+    public DefenseActivationReport(
+        DefenseFacility facility,
+        CharacterActor target,
+        DefenseTriggerTiming timing,
+        int activationCount = 0)
     {
         effectTagsView = effectTags.AsReadOnly();
         Facility = facility;
@@ -70,14 +74,24 @@ public class DefenseActivationReport
         Concept = facility != null && facility.BuildingData != null
             ? facility.BuildingData.Defense.concept
             : DefenseAttackConcept.None;
+        ActivationCount = Mathf.Max(0, activationCount);
+        TargetPosition = target != null ? target.GetNowXY() : default;
+        TargetPersistentId = target != null
+            && CharacterPersistentIdentity.TryGet(target, out CharacterId targetId)
+                ? targetId.Value
+                : string.Empty;
     }
 
     public DefenseFacility Facility { get; }
     public CharacterActor TargetActor { get; }
     public DefenseTriggerTiming Timing { get; }
     public DefenseAttackConcept Concept { get; }
+    public int ActivationCount { get; }
+    public Vector2Int TargetPosition { get; }
+    public string TargetPersistentId { get; }
     public float TotalDamage { get; private set; }
     public float MovementDelaySeconds { get; private set; }
+    public float EnvironmentalIgnitionIntensity { get; private set; }
     public IReadOnlyList<string> EffectTags => effectTagsView;
     public bool Triggered => Facility != null && TargetActor != null;
 
@@ -97,6 +111,13 @@ public class DefenseActivationReport
         {
             effectTags.Add(tag);
         }
+    }
+
+    public void AddEnvironmentalIgnition(float intensity)
+    {
+        EnvironmentalIgnitionIntensity = Mathf.Max(
+            EnvironmentalIgnitionIntensity,
+            Mathf.Clamp01(intensity));
     }
 
     public string FormatSummary()
@@ -126,10 +147,19 @@ public sealed class DefenseActivationSnapshot
             ? report.Facility.BuildingData.objectName
             : "방어 시설";
         TargetName = report?.TargetActor != null ? report.TargetActor.name : string.Empty;
+        SourceFacilityPersistentId = report?.Facility != null
+                && report.Facility.PersistentInstanceId.IsValid
+            ? report.Facility.PersistentInstanceId.Value
+            : string.Empty;
+        ActivationCount = report?.ActivationCount ?? 0;
+        TargetPosition = report?.TargetPosition ?? default;
+        TargetPersistentId = report?.TargetPersistentId ?? string.Empty;
         Timing = report?.Timing ?? DefenseTriggerTiming.None;
         Concept = report?.Concept ?? DefenseAttackConcept.None;
         TotalDamage = report?.TotalDamage ?? 0f;
         MovementDelaySeconds = report?.MovementDelaySeconds ?? 0f;
+        EnvironmentalIgnitionIntensity =
+            report?.EnvironmentalIgnitionIntensity ?? 0f;
         EffectTags = EventPayloadSnapshot.Copy(report?.EffectTags);
         Summary = report?.FormatSummary() ?? string.Empty;
     }
@@ -137,12 +167,17 @@ public sealed class DefenseActivationSnapshot
     public DefenseFacility SourceFacility { get; }
     public BuildingSO Facility { get; }
     public int FacilityRuntimeId { get; }
+    public string SourceFacilityPersistentId { get; }
+    public int ActivationCount { get; }
     public string FacilityName { get; }
     public string TargetName { get; }
+    public Vector2Int TargetPosition { get; }
+    public string TargetPersistentId { get; }
     public DefenseTriggerTiming Timing { get; }
     public DefenseAttackConcept Concept { get; }
     public float TotalDamage { get; }
     public float MovementDelaySeconds { get; }
+    public float EnvironmentalIgnitionIntensity { get; }
     public IReadOnlyList<string> EffectTags { get; }
     public string Summary { get; }
 
@@ -268,7 +303,12 @@ public class DefenseFacility : Facility
             return null;
         }
 
-        DefenseActivationReport report = new DefenseActivationReport(this, intruder, timing);
+        int activationCount = defenseRuntime?.GetSnapshot(this).ActivationCount ?? 0;
+        DefenseActivationReport report = new DefenseActivationReport(
+            this,
+            intruder,
+            timing,
+            activationCount);
         nextTriggerTime = GameTime + Mathf.Max(0f, Defense.cooldownSeconds);
         DefenseEffectResolver.ApplyEffects(
             this,

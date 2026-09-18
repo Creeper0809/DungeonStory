@@ -781,6 +781,30 @@ public interface IFacilityBufferMassAdmissionService :
     }
 }
 
+public interface IReversibleFacilityBufferPlannedOutputAdmission
+{
+    FacilityBufferPlannedOutputReceipt Receipt { get; }
+    bool TryRollback(
+        out FacilityBufferMassAdmissionFailureCode failureCode,
+        out string failureReason);
+    bool TryAcknowledge(out string failureReason);
+}
+
+/// <summary>
+/// Synchronous rollback seam for a larger output/outcome transaction. The
+/// handle is not save authority and must be acknowledged or rolled back in the
+/// same call that committed it.
+/// </summary>
+public interface IReversibleFacilityBufferPlannedOutputAdmissionService
+{
+    bool TryCommitPlannedOutputReversible(
+        FacilityBufferPlannedOutputToken token,
+        FacilityBufferPlannedOutputPublicationReceipt publication,
+        out IReversibleFacilityBufferPlannedOutputAdmission transaction,
+        out FacilityBufferMassAdmissionFailureCode failureCode,
+        out string failureReason);
+}
+
 /// <summary>
 /// Pure projection boundary used by detached restore validators. It computes
 /// the same exact mass and fingerprint as admission without reserving capacity
@@ -1114,6 +1138,7 @@ public sealed class FacilityBufferPhysicalOccupancyQuery :
 /// </summary>
 public sealed class FacilityBufferMassAdmissionService :
     IFacilityBufferMassAdmissionService,
+    IReversibleFacilityBufferPlannedOutputAdmissionService,
     IFacilityBufferPlannedOutputProjectionQuery,
     IFacilityBufferMassCapacityAuthorityQuery,
     IDungeonPreStageRestoreTransactionParticipant
@@ -2103,6 +2128,74 @@ public sealed class FacilityBufferMassAdmissionService :
         return true;
     }
 
+    public bool TryCommitPlannedOutputReversible(
+        FacilityBufferPlannedOutputToken token,
+        FacilityBufferPlannedOutputPublicationReceipt publication,
+        out IReversibleFacilityBufferPlannedOutputAdmission transaction,
+        out FacilityBufferMassAdmissionFailureCode failureCode,
+        out string failureReason)
+    {
+        transaction = null;
+        if (!TryCommitPlannedOutput(
+                token,
+                publication,
+                out FacilityBufferPlannedOutputReceipt receipt,
+                out failureCode,
+                out failureReason))
+        {
+            return false;
+        }
+        transaction = new ReversiblePlannedOutputAdmission(
+            this,
+            token,
+            publication,
+            receipt);
+        return true;
+    }
+
+    private bool TryRollbackCommittedPlannedOutput(
+        FacilityBufferPlannedOutputToken token,
+        FacilityBufferPlannedOutputPublicationReceipt publication,
+        FacilityBufferPlannedOutputReceipt receipt,
+        out FacilityBufferMassAdmissionFailureCode failureCode,
+        out string failureReason)
+    {
+        failureCode = FacilityBufferMassAdmissionFailureCode.None;
+        failureReason = string.Empty;
+        if (!plannedOutputTokens.TryGetValue(
+                token.TokenId ?? string.Empty,
+                out PlannedOutputTokenState state)
+            || state.Status != FacilityBufferMassAdmissionTokenStatus.Routed
+            || !PlannedOutputTokenMatches(state.Token, token)
+            || !PublicationReceiptsMatch(state.Publication, publication)
+            || state.Receipt.CommittedMassGrams != receipt.CommittedMassGrams
+            || state.Receipt.PublishedQuantity != receipt.PublishedQuantity
+            || !string.Equals(
+                state.Receipt.BatchCommitId,
+                receipt.BatchCommitId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                state.Receipt.PlannedOutputFingerprint,
+                receipt.PlannedOutputFingerprint,
+                StringComparison.Ordinal))
+        {
+            return Fail(
+                FacilityBufferMassAdmissionFailureCode.TokenMismatch,
+                $"Facility-buffer planned-output token '{token.TokenId}' reversible commit changed.",
+                out failureCode,
+                out failureReason);
+        }
+        long current = reservedByDestination.GetValueOrDefault(
+            token.Request.DestinationId,
+            0L);
+        reservedByDestination[token.Request.DestinationId] = checked(
+            current + token.ReservedMassGrams);
+        state.Status = FacilityBufferMassAdmissionTokenStatus.Reserved;
+        state.Publication = default;
+        state.Receipt = default;
+        return true;
+    }
+
     public bool TryReleasePlannedOutput(
         FacilityBufferPlannedOutputToken token,
         FacilityBufferMassAdmissionReleaseReason reason,
@@ -3088,6 +3181,66 @@ public sealed class FacilityBufferMassAdmissionService :
             {
                 plannedOutputTokens.Remove(oldest);
             }
+        }
+    }
+
+    private sealed class ReversiblePlannedOutputAdmission :
+        IReversibleFacilityBufferPlannedOutputAdmission
+    {
+        private readonly FacilityBufferMassAdmissionService owner;
+        private readonly FacilityBufferPlannedOutputToken token;
+        private readonly FacilityBufferPlannedOutputPublicationReceipt
+            publication;
+        private bool terminal;
+
+        internal ReversiblePlannedOutputAdmission(
+            FacilityBufferMassAdmissionService owner,
+            FacilityBufferPlannedOutputToken token,
+            FacilityBufferPlannedOutputPublicationReceipt publication,
+            FacilityBufferPlannedOutputReceipt receipt)
+        {
+            this.owner = owner;
+            this.token = token;
+            this.publication = publication;
+            Receipt = receipt;
+        }
+
+        public FacilityBufferPlannedOutputReceipt Receipt { get; }
+
+        public bool TryRollback(
+            out FacilityBufferMassAdmissionFailureCode failureCode,
+            out string failureReason)
+        {
+            if (terminal)
+            {
+                return Fail(
+                    FacilityBufferMassAdmissionFailureCode.TokenNotReserved,
+                    "Reversible planned-output admission is terminal.",
+                    out failureCode,
+                    out failureReason);
+            }
+            bool rolledBack = owner.TryRollbackCommittedPlannedOutput(
+                token,
+                publication,
+                Receipt,
+                out failureCode,
+                out failureReason);
+            if (rolledBack)
+                terminal = true;
+            return rolledBack;
+        }
+
+        public bool TryAcknowledge(out string failureReason)
+        {
+            if (terminal)
+            {
+                failureReason =
+                    "Reversible planned-output admission is terminal.";
+                return false;
+            }
+            terminal = true;
+            failureReason = string.Empty;
+            return true;
         }
     }
 

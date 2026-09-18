@@ -32,6 +32,7 @@ public static class V22ApparelDebugScenarios
         ValidateAnimalFiberProducts();
         ValidateFiberQualityTradeoff();
         ValidateSaveBoundary();
+        ValidateRestoreCandidateStackJoin();
         Debug.Log(
             "V22 apparel contracts passed: apparel=56, woven=10, crops=4, "
             + "genomes=12, animal-products=3, facilities=14, recipes=89.");
@@ -226,13 +227,103 @@ public static class V22ApparelDebugScenarios
     {
         Require(DungeonGameSaveData.CurrentVersion == 24,
             "The full-world save generation must be V23.");
-        Require(DungeonCharacterEnvironmentSaveData.CurrentVersion >= 8,
-            "The current character environment section must include apparel terminal authority.");
+        Require(DungeonCharacterEnvironmentSaveData.CurrentVersion >= 12,
+            "The current character environment section must include apparel policy authority.");
+        Require(new DungeonCharacterEnvironmentSaveData().apparelPolicies == null,
+            "Missing apparel-policy arrays must remain distinguishable from captured empties.");
         Require(new DungeonCharacterEnvironmentSaveData().apparelWorkOrders == null,
             "Missing apparel work-order arrays must remain distinguishable from captured empties.");
         Require(new DungeonCharacterEnvironmentSaveData()
                 .apparelWorkOrderTerminalStates == null,
             "Missing apparel terminal-state arrays must remain distinguishable from captured empties.");
+    }
+
+    private static void ValidateRestoreCandidateStackJoin()
+    {
+        const string sharedInstanceId =
+            "item-instance:wim-001-apparel-restore-shared";
+        const string liveOnlyInstanceId =
+            "item-instance:wim-001-apparel-restore-live-only";
+        WorldItemStackRuntime live = null;
+        WorldItemStackRuntime incoming = null;
+        IDungeonSaveRestoreStage stage = null;
+        try
+        {
+            live = PhysicalItemDebugScenarios
+                .CreateRuntimeForCrossDomainFixture(
+                    out WorldItemRepository liveRepository,
+                    out _);
+            incoming = PhysicalItemDebugScenarios
+                .CreateRuntimeForCrossDomainFixture(
+                    out WorldItemRepository incomingRepository,
+                    out _);
+            WorldItemRepositoryEditorAccess.AddStack(
+                liveRepository,
+                "apparel:belt",
+                1,
+                WorldItemStackState.Loose,
+                itemInstanceId: sharedInstanceId);
+            WorldItemRepositoryEditorAccess.AddStack(
+                liveRepository,
+                "apparel:belt",
+                1,
+                WorldItemStackState.Loose,
+                itemInstanceId: liveOnlyInstanceId);
+            WorldItemRepositoryEditorAccess.AddStack(
+                incomingRepository,
+                "apparel:apron",
+                1,
+                WorldItemStackState.Loose,
+                itemInstanceId: sharedInstanceId);
+
+            RestoreWorldCandidateIndex worldCandidates = new();
+            worldCandidates.SetFacilityCandidate(
+                new Grid(1, 1),
+                Array.Empty<BuildableObject>());
+            stage = live.StageTransactionalRestore(
+                incoming.Capture(),
+                worldCandidates);
+            IPhysicalItemRestoreCandidateStackQuery candidate = live;
+            Require(candidate.IsCandidateAvailable
+                    && candidate.TryGetStack(
+                        (ItemInstanceId)sharedInstanceId,
+                        out PhysicalItemRestoreCandidateStackSnapshot stagedApparel)
+                    && string.Equals(
+                        stagedApparel.ItemId,
+                        "apparel:apron",
+                        StringComparison.Ordinal),
+                "Apparel restore join did not read the incoming physical candidate.");
+            Require(candidate.TryGetStack(
+                        (ItemInstanceId)sharedInstanceId,
+                        out PhysicalItemRestoreCandidateStackSnapshot reread)
+                    && string.Equals(
+                        reread.ItemId,
+                        "apparel:apron",
+                        StringComparison.Ordinal),
+                "Physical restore candidate returned a mutable shared projection.");
+            Require(!candidate.TryGetStack(
+                    (ItemInstanceId)liveOnlyInstanceId,
+                    out _),
+                "Physical restore candidate fell back to a live-only apparel item.");
+            Require(live.GetAllStacks().Count == 2
+                    && live.GetAllStacks().All(value => string.Equals(
+                        value.ItemId,
+                        "apparel:belt",
+                        StringComparison.Ordinal)),
+                "Detached apparel restore validation changed live physical state.");
+
+            ((IDungeonDiscardableSaveRestoreStage)stage).Discard();
+            stage = null;
+            Require(!candidate.IsCandidateAvailable
+                    && live.GetAllStacks().Count == 2,
+                "Discarding the apparel restore candidate changed live physical state.");
+        }
+        finally
+        {
+            (stage as IDungeonDiscardableSaveRestoreStage)?.Discard();
+            incoming?.Dispose();
+            live?.Dispose();
+        }
     }
 
     private static T[] LoadAll<T>(string root) where T : UnityEngine.Object =>

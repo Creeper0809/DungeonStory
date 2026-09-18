@@ -77,6 +77,8 @@ public sealed class PlumbingWorkExecutionHandler :
             || blockage <= 0.01f && leak <= 0.01f)
         {
             result.CompletedSuccessfully = false;
+            result.FailureAxis = CharacterOperationBlockAxis.Water;
+            result.ObserveFailureSource(() => query.Version);
             yield break;
         }
 
@@ -87,6 +89,8 @@ public sealed class PlumbingWorkExecutionHandler :
         if (!context.CanContinue)
         {
             result.CompletedSuccessfully = false;
+            result.FailureAxis = CharacterOperationBlockAxis.Water;
+            result.ObserveFailureSource(() => query.Version);
             yield break;
         }
 

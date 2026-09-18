@@ -1,0 +1,12 @@
+prepared=authored pen building:2d5c795309e74086bec9bb0420380a1a; pet=wild:9; penCell=(18, 1); hp=10; actual owner alternatives=3; hunger=0.2387451; thirst=0.2259266
+PASS ownerUI=character:staff:1:01
+PASS autonomousFollow (18, 1) -> (22, 1); owner=(24, 1)
+PASS wholeRegistryRestore owner/cooldown/envelope exact
+expectedInvalidOwner=Circus restore candidate is invalid: Circus restore requires the captivity section candidate to be prepared first.
+PASS invalidOwnerDetachedStage liveCircusUnchanged
+PASS ownerChangeUI=character:staff:1:02
+PASS clearUI/actualPenReturn=(18, 1)
+pet=wild:9; petCell=(18, 1); petHP=10; hunger=0.269761; thirst=0.2682208; intent=동행 이동 · 주인 추종; owner=character:staff:1:01; ownerCell=(22, 1); gameTime=9.952582
+result=PASS
+scope=controlled authored initial pen/domestic birth, healthy staff and safe field; actual EventSystem owner assignment/change/clear, autonomous follow/return, current whole registry restore. Not natural capture/birth/construction, reciprocal combat, animal haul, daily balance or six-adult certification.
+cleanup=paused disposable main Play, operator stops; disk persistence disabled before owner UI; original environment restored

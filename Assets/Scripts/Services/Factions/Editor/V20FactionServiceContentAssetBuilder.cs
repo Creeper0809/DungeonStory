@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Buildings;
 using UnityEditor;
 using UnityEngine;
 
@@ -12,6 +13,8 @@ public static class V20FactionServiceContentAssetBuilder
     private const string Root = "Assets/Resources/SO/V20/Factions";
     private const string ServiceRoot = "Assets/Resources/SO/V20/Society/Services";
     private const string RelicRoot = "Assets/Resources/SO/V20/Items/FactionRelics";
+    private const string WinterFuelDemandEventId =
+        "seasonal:winter-fuel-demand";
 
     private sealed class FactionSpec
     {
@@ -21,9 +24,28 @@ public static class V20FactionServiceContentAssetBuilder
 
     private sealed class RequestSpec
     {
-        public string Id, Name, Description, Facility, Item;
+        public string Id, Name, Description, Item;
+        public FacilityVenueRequirements Venue;
         public GuestRequestKind Kind;
         public int Amount, Deadline;
+    }
+
+    private sealed class RiskProfile
+    {
+        public ExperienceEventRiskTier Tier;
+        public string Reason;
+    }
+
+    private sealed class RiskTarget
+    {
+        public RiskTarget(ScriptableObject value,string id,RiskProfile risk)
+        {
+            Value=value; Id=id; Risk=risk;
+        }
+
+        public ScriptableObject Value { get; }
+        public string Id { get; }
+        public RiskProfile Risk { get; }
     }
 
     private static readonly FactionSpec[] Factions =
@@ -62,26 +84,59 @@ public static class V20FactionServiceContentAssetBuilder
 
     private static readonly RequestSpec[] Requests =
     {
-        R("guest-request:coronation-feast","몰락 귀족의 대관 만찬","망명 귀족이 지지자 앞에서 호화 만찬을 열 객실과 음식을 요구한다.",GuestRequestKind.LuxuryMeal,"building:luxury-dining-room","food:lavish-meat",4,5),
-        R("guest-request:allergen-banquet","금기 없는 화합식","서로 음식 금기가 다른 두 사절단이 같은 식탁을 요청한다.",GuestRequestKind.LuxuryMeal,"building:festival-common-hall","food:lavish-vegan",8,4),
-        R("guest-request:emergency-surgery","사절의 응급 수술","중상 사절이 무균 수술실과 고급 약품을 즉시 요구한다.",GuestRequestKind.Medical,"building:surgery-room","medicine:advanced",3,2),
-        R("guest-request:plague-screening","대상단 검역","긴 대상행렬이 입장 전 전원 검사와 격리 공간을 요구한다.",GuestRequestKind.Medical,"building:isolation-ward","medicine:antiseptic",6,3),
-        R("guest-request:precision-barter","정밀 부품 교역회","상인이 정밀 부품과 룬 도체의 현물 교환을 제안한다.",GuestRequestKind.Trade,"building:trade-counter","component:precision-parts",4,7),
-        R("guest-request:winter-fuel-auction","겨울 연료 경매","세 세력이 숯과 석탄을 놓고 공개 경매를 열 장소를 요청한다.",GuestRequestKind.Trade,"building:faction-audience-hall","material:charcoal",12,5),
-        R("guest-request:memorial-performance","전사자 추모 공연","용병단이 사망자 이름을 부르는 공연과 추모 공간을 요청한다.",GuestRequestKind.Spectacle,"workstation:v19:memorial-room","craft:candle",10,5),
-        R("guest-request:monster-circus","비전 생물 시연","학자 손님이 포획 생물의 안전한 공개 시연을 의뢰한다.",GuestRequestKind.Spectacle,"building:circus-arena","tool:reinforced-restraint",4,6),
-        R("guest-request:flood-refuge","범람 피난민","침수된 정착지 주민이 침대·물·보존식을 요청한다.",GuestRequestKind.Refuge,"building:guest-dormitory","food:preserved-ration",20,4),
-        R("guest-request:persecuted-family","추방 가족의 은신","추격받는 혼혈 가족이 격리되지 않은 가족실을 요청한다.",GuestRequestKind.Refuge,"building:family-quarters","resource:clean-water",12,3),
-        R("guest-request:sealed-archive","봉인 기록 판독","기록관이 안전한 연구실과 공학 도면을 대가로 봉인 문서를 맡긴다.",GuestRequestKind.Research,"building:prototype-laboratory","component:engineering-drawing",2,8),
-        R("guest-request:disease-sample","희귀 병원체 공동연구","외부 의사가 무균 시설과 항원 표본을 이용한 공동연구를 청한다.",GuestRequestKind.Research,"building:vaccine-laboratory","sample:antigen:cave-flu",3,6),
-        R("guest-request:militia-arms","민병대 긴급 무장","습격받는 정착지가 방패와 종이 탄약통을 긴급 요청한다.",GuestRequestKind.Armament,"building:armory","ammo:paper-cartridge",30,4),
-        R("guest-request:bodyguard-kit","사절 호위 장비","위험 지역을 지날 사절단이 방폭 외투와 수리 키트를 요구한다.",GuestRequestKind.Armament,"building:smith-workshop","tool:field-repair-kit",6,5)
+        R("guest-request:coronation-feast","몰락 귀족의 대관 만찬","망명 귀족이 지지자 앞에서 호화 만찬을 열 객실과 음식을 요구한다.",GuestRequestKind.LuxuryMeal,MealVenue(4),"food:lavish-meat",4,5),
+        R("guest-request:allergen-banquet","금기 없는 화합식","서로 음식 금기가 다른 두 사절단이 같은 식탁을 요청한다.",GuestRequestKind.LuxuryMeal,MealVenue(8),"food:lavish-vegan",8,4),
+        R("guest-request:emergency-surgery","사절의 응급 수술","중상 사절이 무균 수술실과 고급 약품을 즉시 요구한다.",GuestRequestKind.Medical,Venue(FacilityRole.Medical,FacilityRole.Medical,emergencySurgery:true),"medicine:advanced",3,2),
+        R("guest-request:plague-screening","대상단 검역","긴 대상행렬이 입장 전 전원 검사와 격리 공간을 요구한다.",GuestRequestKind.Medical,ExactVenue("building:8874"),"medicine:antiseptic",6,3),
+        R("guest-request:precision-barter","정밀 부품 교역회","상인이 정밀 부품과 룬 도체의 현물 교환을 제안한다.",GuestRequestKind.Trade,Venue(FacilityRole.Purchase,FacilityRole.Purchase),"component:precision-parts",4,7),
+        R("guest-request:winter-fuel-auction","겨울 연료 경매","세 세력이 숯과 석탄을 놓고 공개 경매를 열 장소를 요청한다.",GuestRequestKind.Trade,Venue(FacilityRole.Entertainment,FacilityRole.Entertainment,eventCells:3),"material:charcoal",12,5),
+        R("guest-request:memorial-performance","전사자 추모 공연","용병단이 사망자 이름을 부르는 공연과 추모 공간을 요청한다.",GuestRequestKind.Spectacle,ExactVenue("building:8887"),"craft:candle",10,5),
+        R("guest-request:flood-refuge","범람 피난민","침수된 정착지 주민이 침대·물·보존식을 요청한다.",GuestRequestKind.Refuge,Venue(FacilityRole.Rest,FacilityRole.Rest,beds:4,residentHeadroom:true),"food:preserved-ration",20,4),
+        R("guest-request:persecuted-family","추방 가족의 은신","추격받는 혼혈 가족이 격리되지 않은 가족실을 요청한다.",GuestRequestKind.Refuge,ExactVenue("building:8883"),"resource:clean-water",12,3),
+        R("guest-request:sealed-archive","봉인 기록 판독","기록관이 안전한 연구실과 공학 도면을 대가로 봉인 문서를 맡긴다.",GuestRequestKind.Research,ExactVenue("building:8825"),"component:engineering-drawing",2,8),
+        R("guest-request:disease-sample","희귀 병원체 공동연구","외부 의사가 무균 시설과 항원 표본을 이용한 공동연구를 청한다.",GuestRequestKind.Research,ExactVenue("building:8876"),"sample:antigen:cave-flu",3,6),
+        R("guest-request:militia-arms","민병대 긴급 무장","습격받는 정착지가 방패와 종이 탄약통을 긴급 요청한다.",GuestRequestKind.Armament,Venue(FacilityRole.Logistics,FacilityRole.Logistics),"ammo:paper-cartridge",30,4),
+        R("guest-request:bodyguard-kit","사절 호위 장비","위험 지역을 지날 사절단이 방폭 외투와 수리 키트를 요구한다.",GuestRequestKind.Armament,Venue(FacilityRole.Logistics,FacilityRole.Logistics),"tool:field-repair-kit",6,5)
     };
 
-    [MenuItem("DungeonStory/V20/Build Faction and Service Content (100)")]
+    private static readonly string[] ServiceIncidentIds =
+    {
+        "service-incident:brawl", "service-incident:theft",
+        "service-incident:contamination", "service-incident:culturalinsult",
+        "service-incident:forbiddenmeal", "service-incident:medicalcollapse",
+        "service-incident:envoyconflict", "service-incident:sabotage"
+    };
+
+    private static readonly IReadOnlyDictionary<string,RiskProfile> ExperienceRisks =
+        new Dictionary<string,RiskProfile>(StringComparer.Ordinal)
+        {
+            ["guest-request:coronation-feast"]=Risk(ExperienceEventRiskTier.Recoverable,"실패 결과가 세력 원한 5를 추가한다."),
+            ["guest-request:allergen-banquet"]=Risk(ExperienceEventRiskTier.Recoverable,"실패 결과가 세력 원한 5를 추가한다."),
+            ["guest-request:emergency-surgery"]=Risk(ExperienceEventRiskTier.Recoverable,"실패 결과가 세력 원한 5를 추가한다."),
+            ["guest-request:plague-screening"]=Risk(ExperienceEventRiskTier.Recoverable,"실패 결과가 세력 원한 5를 추가한다."),
+            ["guest-request:precision-barter"]=Risk(ExperienceEventRiskTier.Recoverable,"실패 결과가 세력 원한 5를 추가한다."),
+            ["guest-request:winter-fuel-auction"]=Risk(ExperienceEventRiskTier.Recoverable,"실패 결과가 세력 원한 5를 추가한다."),
+            ["guest-request:memorial-performance"]=Risk(ExperienceEventRiskTier.Recoverable,"실패 결과가 세력 원한 5를 추가한다."),
+            ["guest-request:flood-refuge"]=Risk(ExperienceEventRiskTier.Recoverable,"실패 결과가 세력 원한 5를 추가한다."),
+            ["guest-request:persecuted-family"]=Risk(ExperienceEventRiskTier.Recoverable,"실패 결과가 세력 원한 5를 추가한다."),
+            ["guest-request:sealed-archive"]=Risk(ExperienceEventRiskTier.Recoverable,"실패 결과가 세력 원한 5를 추가한다."),
+            ["guest-request:disease-sample"]=Risk(ExperienceEventRiskTier.Recoverable,"실패 결과가 세력 원한 5를 추가한다."),
+            ["guest-request:militia-arms"]=Risk(ExperienceEventRiskTier.Recoverable,"실패 결과가 세력 원한 5를 추가한다."),
+            ["guest-request:bodyguard-kit"]=Risk(ExperienceEventRiskTier.Recoverable,"실패 결과가 세력 원한 5를 추가한다."),
+            ["service-incident:brawl"]=Risk(ExperienceEventRiskTier.Serious,"작성된 대응에 비치명 체력 피해 -3이 있다."),
+            ["service-incident:theft"]=Risk(ExperienceEventRiskTier.Recoverable,"작성된 대응에 작업 지연 1일 또는 돈 -100이 있다."),
+            ["service-incident:contamination"]=Risk(ExperienceEventRiskTier.Serious,"작성된 대응에 활성 압력 식별자를 추가하는 Threat 6이 있다."),
+            ["service-incident:culturalinsult"]=Risk(ExperienceEventRiskTier.Recoverable,"작성된 대응에 세력 원한 8이 있다."),
+            ["service-incident:forbiddenmeal"]=Risk(ExperienceEventRiskTier.Recoverable,"작성된 대응에 돈 -60 또는 세력 원한 5가 있다."),
+            ["service-incident:medicalcollapse"]=Risk(ExperienceEventRiskTier.Recoverable,"작성된 대응에 작업 지연 1일 또는 세력 원한 10이 있다."),
+            ["service-incident:envoyconflict"]=Risk(ExperienceEventRiskTier.Recoverable,"작성된 대응에 작업 지연 1일 또는 세력 원한 8이 있다."),
+            ["service-incident:sabotage"]=Risk(ExperienceEventRiskTier.Serious,"작성된 대응에 활성 압력 식별자를 추가하는 Threat 3이 있다.")
+        };
+
+    [MenuItem("DungeonStory/V20/Build Faction and Service Content (106)")]
     public static void Build()
     {
-        if (Factions.Length != 6 || Requests.Length != 14) throw new InvalidOperationException("V20 faction/service manifest header is invalid.");
+        if (Factions.Length != 6 || Requests.Length != 13) throw new InvalidOperationException("V20 faction/service manifest header is invalid.");
         EnsureFolders();
         GameDomainContentCatalogSO domain = AssetDatabase.LoadAssetAtPath<GameDomainContentCatalogSO>(DomainCatalogPath) ?? throw new InvalidOperationException("Domain catalog missing.");
         ItemDefinitionCatalogSO items = AssetDatabase.LoadAssetAtPath<ItemDefinitionCatalogSO>(ItemCatalogPath) ?? throw new InvalidOperationException("Item catalog missing.");
@@ -91,23 +146,113 @@ public static class V20FactionServiceContentAssetBuilder
         {
             List<FactionChapterDefinitionSO> chapters = Enumerable.Range(1,6).Select(number => CreateChapter(faction,number)).ToList();
             List<FactionContractDefinitionSO> contracts = Enumerable.Range(0,3).Select(index => CreateContract(faction,index)).ToList();
+            FactionContractDefinitionSO winterFuelContract =
+                CreateWinterFuelDemandContract(faction);
             List<ItemDefinitionSO> factionRelics = Enumerable.Range(0,3).Select(index => CreateRelic(faction,index)).ToList();
-            authored.AddRange(chapters); authored.AddRange(contracts); authored.Add(CreateArc(faction,chapters,contracts,factionRelics)); relics.AddRange(factionRelics);
+            authored.AddRange(chapters); authored.AddRange(contracts); authored.Add(winterFuelContract); authored.Add(CreateArc(faction,chapters,contracts,factionRelics)); relics.AddRange(factionRelics);
         }
         authored.AddRange(Requests.Select(spec => CreateRequest(spec, items)));
         authored.AddRange(CreateIncidents());
-        if (authored.Count != 82 || relics.Count != 18) throw new InvalidOperationException($"Expected 82 faction/service and 18 relic definitions; found {authored.Count}/{relics.Count}.");
+        if (authored.Count != 87 || relics.Count != 18) throw new InvalidOperationException($"Expected 87 faction/service and 18 relic definitions; found {authored.Count}/{relics.Count}.");
         FactionChapterDefinitionSO[] chapterDefinitions=authored.OfType<FactionChapterDefinitionSO>().ToArray();
         if(chapterDefinitions.Select(V20StoryContentCatalog.FactionChapterMechanicalSignature).Distinct(StringComparer.Ordinal).Count()!=36)
             throw new InvalidOperationException("All 36 faction chapters require distinct mechanical choice signatures.");
         List<string> errors = authored.OfType<V20AuthoredContentSO>().SelectMany(x=>x.ValidateDefinition()).Concat(relics.SelectMany(x=>x.ValidateDefinition())).ToList();
         if(errors.Count>0) throw new InvalidOperationException(string.Join(" | ",errors));
-        Type[] owned={typeof(FactionArcDefinitionSO),typeof(FactionChapterDefinitionSO),typeof(FactionContractDefinitionSO),typeof(GuestRequestDefinitionSO),typeof(ServiceIncidentDefinitionSO)};
-        domain.SetDefinitions(domain.Definitions.Where(x=>x!=null&&!owned.Contains(x.GetType())).Concat(authored));
+        HashSet<string> activeGuestRequestIds = Requests
+            .Select(spec => spec.Id)
+            .ToHashSet(StringComparer.Ordinal);
+        Type[] owned={typeof(FactionArcDefinitionSO),typeof(FactionChapterDefinitionSO),typeof(FactionContractDefinitionSO),typeof(ServiceIncidentDefinitionSO)};
+        domain.SetDefinitions(domain.Definitions.Where(x=>x!=null
+            && !owned.Contains(x.GetType())
+            && (x is not GuestRequestDefinitionSO request
+                || activeGuestRequestIds.Contains(request.StableId))).Concat(authored));
         HashSet<string> relicIds=relics.Select(x=>x.ItemId).ToHashSet(StringComparer.Ordinal);
         items.SetDefinitions(items.Definitions.Where(x=>x!=null&&!relicIds.Contains(x.ItemId)).Concat(relics));
         EditorUtility.SetDirty(domain);EditorUtility.SetDirty(items);AssetDatabase.SaveAssets();AssetDatabase.Refresh();
-        Debug.Log("V20_FACTION_SERVICE_CONTENT=PASS; arcs=6; chapters=36; contracts=18; requests=14; incidents=8; relics=18");
+        Debug.Log("V20_FACTION_SERVICE_CONTENT=PASS; arcs=6; chapters=36; contracts=24; requests=13; incidents=8; relics=18");
+    }
+
+    [MenuItem("DungeonStory/V20/Apply Guest Request Venue Authoring (13)")]
+    public static void ApplyGuestRequestVenueAuthoring()
+    {
+        List<(GuestRequestDefinitionSO Value,RequestSpec Spec)> requests = Requests.Select(spec =>
+        {
+            GuestRequestDefinitionSO value = AssetDatabase.LoadAssetAtPath<GuestRequestDefinitionSO>(
+                $"{ServiceRoot}/GuestRequests/{spec.Id.Replace(':','_')}.asset")
+                ?? throw new InvalidOperationException($"Guest request '{spec.Id}' is missing.");
+            return (value,spec);
+        }).ToList();
+
+        List<(GuestRequestDefinitionSO Value,RequestSpec Spec)> changes = new();
+        List<string> errors = new();
+        foreach ((GuestRequestDefinitionSO value,RequestSpec spec) in requests)
+        {
+            GuestRequestDefinitionSO staged = UnityEngine.Object.Instantiate(value);
+            try
+            {
+                ApplyVenue(staged,spec);
+                errors.AddRange(staged.ValidateDefinition().Select(error => $"{spec.Id}: {error}"));
+                if (VenueAuthoringDiffers(value,staged)) changes.Add((value,spec));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(staged);
+            }
+        }
+        if(errors.Count>0) throw new InvalidOperationException(string.Join(" | ",errors));
+        List<string> dirty = changes.Where(change => EditorUtility.IsDirty(change.Value)).Select(change => change.Spec.Id).ToList();
+        if(dirty.Count>0) throw new InvalidOperationException($"Venue authoring refuses dirty guest request targets: {string.Join(",",dirty)}");
+        foreach ((GuestRequestDefinitionSO value,RequestSpec spec) in changes)
+        {
+            ApplyVenue(value,spec);
+            Dirty(value);
+            AssetDatabase.SaveAssetIfDirty(value);
+        }
+        Debug.Log($"V20_GUEST_REQUEST_VENUES=PASS; requests={requests.Count}; changed={changes.Count}; saved={changes.Count}");
+    }
+
+    [MenuItem("DungeonStory/V20/Apply WIM-039 Service Experience Risks (21)")]
+    public static void ApplyWim039ServiceExperienceRisks()
+    {
+        string[] ids=Requests.Select(spec=>spec.Id).Concat(ServiceIncidentIds).ToArray();
+        if(ids.Length!=21 || ids.Distinct(StringComparer.Ordinal).Count()!=21
+            || ids.Any(id=>!ExperienceRisks.ContainsKey(id))
+            || ExperienceRisks.Keys.Any(id=>!ids.Contains(id,StringComparer.Ordinal)))
+            throw new InvalidOperationException("WIM-039 service risk manifest coverage is invalid.");
+        List<RiskTarget> targets=Requests.Select(spec=>new RiskTarget(
+            AssetDatabase.LoadAssetAtPath<GuestRequestDefinitionSO>($"{ServiceRoot}/GuestRequests/{spec.Id.Replace(':','_')}.asset")
+                ?? throw new InvalidOperationException($"Guest request '{spec.Id}' is missing."),spec.Id,RiskFor(spec.Id)))
+            .Concat(ServiceIncidentIds.Select(id=>new RiskTarget(
+                AssetDatabase.LoadAssetAtPath<ServiceIncidentDefinitionSO>($"{ServiceRoot}/Incidents/{id.Replace(':','_')}.asset")
+                    ?? throw new InvalidOperationException($"Service incident '{id}' is missing."),id,RiskFor(id))))
+            .ToList();
+        List<RiskTarget> changes=new();
+        List<string> errors=new();
+        foreach(RiskTarget target in targets)
+        {
+            ScriptableObject staged=UnityEngine.Object.Instantiate(target.Value);
+            try
+            {
+                ApplyRisk(staged,target.Risk);
+                errors.AddRange(ValidateRiskTarget(staged).Select(error=>$"{target.Id}: {error}"));
+                if(RiskDiffers(target.Value,staged)) changes.Add(target);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(staged);
+            }
+        }
+        if(errors.Count>0) throw new InvalidOperationException(string.Join(" | ",errors));
+        List<string> dirty=changes.Where(target=>EditorUtility.IsDirty(target.Value)).Select(target=>target.Id).ToList();
+        if(dirty.Count>0) throw new InvalidOperationException($"WIM-039 refuses dirty service risk targets: {string.Join(",",dirty)}");
+        foreach(RiskTarget target in changes)
+        {
+            ApplyRisk(target.Value,target.Risk);
+            Dirty(target.Value);
+            AssetDatabase.SaveAssetIfDirty(target.Value);
+        }
+        Debug.Log($"WIM039_SERVICE_EXPERIENCE_RISKS=PASS; targets={targets.Count}; changed={changes.Count}; saved={changes.Count}");
     }
 
     private static FactionArcDefinitionSO CreateArc(FactionSpec spec,IReadOnlyList<FactionChapterDefinitionSO> chapters,IReadOnlyList<FactionContractDefinitionSO> contracts,IReadOnlyList<ItemDefinitionSO> relics)
@@ -197,10 +342,49 @@ public static class V20FactionServiceContentAssetBuilder
     {
         string[] suffix={"supply","crisis","strategic"};string[] names={"정기 물자 계약","위기 대응 계약","장기 전략 계약"};string[] items={spec.SupplyItem,spec.CrisisItem,spec.StrategicItem};
         FactionContractDefinitionSO value=Asset<FactionContractDefinitionSO>($"{Root}/Contracts/contract_{spec.Key}_{suffix[index]}.asset");
-        Meta(value,$"faction-contract:{spec.Key}:{suffix[index]}",$"{spec.Name} {names[index]}",$"{spec.Name}이 실제 물자와 작업 결과를 요구하는 {names[index]}이다.");value.factionId=spec.Id;value.kind=(V20FactionContractKind)index;value.deadlineDays=index==0?20:index==1?7:45;
+        Meta(value,$"faction-contract:{spec.Key}:{suffix[index]}",$"{spec.Name} {names[index]}",$"{spec.Name}이 실제 물자와 작업 결과를 요구하는 {names[index]}이다.");value.factionId=spec.Id;value.seasonalEventId=string.Empty;value.kind=(V20FactionContractKind)index;value.deadlineDays=index==0?20:index==1?7:45;
         value.completionRequirements=new V20ContentRequirementSet{items=new List<V20ItemAmountRequirement>{new(){itemDefinitionId=items[index],amount=ContractAmount(spec.Key,index),consume=true}}};
         value.successEffects=new List<V20ContentEffect>{Effect(V20ContentEffectKind.FactionRapport,spec.Id,index==2?15:8),Effect(V20ContentEffectKind.FactionObligation,spec.Id,1)};
         value.failureEffects=new List<V20ContentEffect>{Effect(V20ContentEffectKind.FactionGrievance,spec.Id,index==1?12:7)};Dirty(value);return value;
+    }
+
+    private static FactionContractDefinitionSO CreateWinterFuelDemandContract(
+        FactionSpec spec)
+    {
+        FactionContractDefinitionSO value = Asset<FactionContractDefinitionSO>(
+            $"{Root}/Contracts/contract_{spec.Key}_winter_fuel_demand.asset");
+        Meta(
+            value,
+            $"faction-contract:{spec.Key}:winter-fuel-demand",
+            $"{spec.Name} 겨울 연료 요청",
+            $"{spec.Name}이 겨울 사건 종료 전 숯 8개의 실제 납품을 요청한다.");
+        value.factionId = spec.Id;
+        value.seasonalEventId = WinterFuelDemandEventId;
+        value.kind = V20FactionContractKind.Supply;
+        value.deadlineDays = 4;
+        value.completionRequirements = new V20ContentRequirementSet
+        {
+            items = new List<V20ItemAmountRequirement>
+            {
+                new()
+                {
+                    itemDefinitionId = "material:charcoal",
+                    amount = 8,
+                    consume = true
+                }
+            }
+        };
+        value.successEffects = new List<V20ContentEffect>
+        {
+            Effect(V20ContentEffectKind.FactionRapport, spec.Id, 8),
+            Effect(V20ContentEffectKind.FactionObligation, spec.Id, 1)
+        };
+        value.failureEffects = new List<V20ContentEffect>
+        {
+            Effect(V20ContentEffectKind.FactionGrievance, spec.Id, 7)
+        };
+        Dirty(value);
+        return value;
     }
 
     private static ItemDefinitionSO CreateRelic(FactionSpec spec,int index)
@@ -222,7 +406,8 @@ public static class V20FactionServiceContentAssetBuilder
         int reward = GoldEconomyBalanceRules.CalculatePremiumServiceReward(
             internalValue);
         GuestRequestDefinitionSO value=Asset<GuestRequestDefinitionSO>($"{ServiceRoot}/GuestRequests/{spec.Id.Replace(':','_')}.asset");Meta(value,spec.Id,spec.Name,spec.Description);value.kind=spec.Kind;value.deadlineDays=spec.Deadline;
-        value.serviceRequirements=new V20ContentRequirementSet{items=new List<V20ItemAmountRequirement>{new(){itemDefinitionId=spec.Item,amount=spec.Amount,consume=true}},facilities=new List<V20FacilityRequirement>{new(){buildingDefinitionId=spec.Facility,minimumCount=1,mustBeOperational=true}}};
+        value.serviceRequirements=new V20ContentRequirementSet{items=new List<V20ItemAmountRequirement>{new(){itemDefinitionId=spec.Item,amount=spec.Amount,consume=true}},facilities=new List<V20FacilityRequirement>()};
+        ApplyVenue(value,spec);ApplyRisk(value,RiskFor(spec.Id));
         value.successEffects=new List<V20ContentEffect>{Effect(V20ContentEffectKind.Money,"guest-service",reward),Effect(V20ContentEffectKind.FactionRapport,"requesting-faction",4)};value.failureEffects=new List<V20ContentEffect>{Effect(V20ContentEffectKind.FactionGrievance,"requesting-faction",5)};Dirty(value);return value;
     }
 
@@ -240,7 +425,7 @@ public static class V20FactionServiceContentAssetBuilder
 
     private static ServiceIncidentDefinitionSO Incident(ServiceIncidentKind kind,string name,string description,params (string id,string title,V20ContentEffectKind kind,float amount)[] responses)
     {
-        string id=$"service-incident:{kind.ToString().ToLowerInvariant()}";ServiceIncidentDefinitionSO value=Asset<ServiceIncidentDefinitionSO>($"{ServiceRoot}/Incidents/{id.Replace(':','_')}.asset");Meta(value,id,name,description);value.kind=kind;value.triggerRequirements=new V20ContentRequirementSet();value.responses=responses.Select(x=>Choice(x.id,x.title,x.kind,IsFactionEffect(x.kind)?"affected-faction":id,x.amount)).ToList();Dirty(value);return value;
+        string id=$"service-incident:{kind.ToString().ToLowerInvariant()}";ServiceIncidentDefinitionSO value=Asset<ServiceIncidentDefinitionSO>($"{ServiceRoot}/Incidents/{id.Replace(':','_')}.asset");Meta(value,id,name,description);value.kind=kind;value.triggerRequirements=new V20ContentRequirementSet();value.responses=responses.Select(x=>Choice(x.id,x.title,x.kind,IsFactionEffect(x.kind)?"affected-faction":id,x.amount)).ToList();ApplyRisk(value,RiskFor(id));Dirty(value);return value;
     }
 
     private static V20ChoiceDefinition Choice(string id,string title,V20ContentEffectKind kind,string target,float amount)=>new(){choiceId=id,title=title,outcomeText=title,requirements=new V20ContentRequirementSet(),effects=new List<V20ContentEffect>{Effect(kind,target,amount)}};
@@ -282,6 +467,48 @@ public static class V20FactionServiceContentAssetBuilder
         };
 
     private static FactionSpec S(string key,string id,string name,string description,string cross,string supply,string crisis,string strategic,string[] chapterNames,string[] chapterDescriptions,string[] relicNames,string[] relicDescriptions)=>new(){Key=key,Id=id,Name=name,Description=description,CrossFaction=cross,SupplyItem=supply,CrisisItem=crisis,StrategicItem=strategic,ChapterNames=chapterNames,ChapterDescriptions=chapterDescriptions,RelicNames=relicNames,RelicDescriptions=relicDescriptions};
-    private static RequestSpec R(string id,string name,string description,GuestRequestKind kind,string facility,string item,int amount,int deadline)=>new(){Id=id,Name=name,Description=description,Kind=kind,Facility=facility,Item=item,Amount=amount,Deadline=deadline};
+    private static RequestSpec R(string id,string name,string description,GuestRequestKind kind,FacilityVenueRequirements venue,string item,int amount,int deadline)=>new(){Id=id,Name=name,Description=description,Kind=kind,Venue=venue,Item=item,Amount=amount,Deadline=deadline};
+    private static void ApplyVenue(GuestRequestDefinitionSO value,RequestSpec spec)
+    {
+        value.serviceRequirements ??= new V20ContentRequirementSet();
+        value.serviceRequirements.facilities ??= new List<V20FacilityRequirement>();
+        value.serviceRequirements.facilities.Clear();
+        value.venueRequirements=spec.Venue;
+    }
+    private static bool VenueAuthoringDiffers(GuestRequestDefinitionSO value,GuestRequestDefinitionSO staged) =>
+        !string.Equals(JsonUtility.ToJson(value.venueRequirements),JsonUtility.ToJson(staged.venueRequirements),StringComparison.Ordinal)
+        || !string.Equals(JsonUtility.ToJson(value.serviceRequirements),JsonUtility.ToJson(staged.serviceRequirements),StringComparison.Ordinal);
+    private static RiskProfile Risk(ExperienceEventRiskTier tier,string reason)=>new(){Tier=tier,Reason=reason};
+    private static RiskProfile RiskFor(string id)=>ExperienceRisks.TryGetValue(id,out RiskProfile risk)
+        ?risk:throw new InvalidOperationException($"WIM-039 risk profile is missing '{id}'.");
+    private static void ApplyRisk(ScriptableObject value,RiskProfile risk)
+    {
+        switch(value)
+        {
+            case GuestRequestDefinitionSO guest: guest.riskTier=risk.Tier;guest.riskReason=risk.Reason;break;
+            case ServiceIncidentDefinitionSO incident: incident.riskTier=risk.Tier;incident.riskReason=risk.Reason;break;
+            default: throw new InvalidOperationException($"Unsupported WIM-039 service risk asset '{value?.GetType().Name}'.");
+        }
+    }
+    private static IReadOnlyList<string> ValidateRiskTarget(ScriptableObject value)=>value switch
+    {
+        GuestRequestDefinitionSO guest=>guest.ValidateDefinition(),
+        ServiceIncidentDefinitionSO incident=>incident.ValidateDefinition(),
+        _=>throw new InvalidOperationException($"Unsupported WIM-039 service validation asset '{value?.GetType().Name}'.")
+    };
+    private static bool RiskDiffers(ScriptableObject value,ScriptableObject staged)
+    {
+        if(value is GuestRequestDefinitionSO guest&&staged is GuestRequestDefinitionSO stagedGuest)
+            return guest.riskTier!=stagedGuest.riskTier||!string.Equals(guest.riskReason,stagedGuest.riskReason,StringComparison.Ordinal);
+        if(value is ServiceIncidentDefinitionSO incident&&staged is ServiceIncidentDefinitionSO stagedIncident)
+            return incident.riskTier!=stagedIncident.riskTier||!string.Equals(incident.riskReason,stagedIncident.riskReason,StringComparison.Ordinal);
+        throw new InvalidOperationException($"Unsupported WIM-039 service comparison asset '{value?.GetType().Name}'.");
+    }
+    private static FacilityVenueRequirements MealVenue(int seats) => Venue(FacilityRole.Meal,FacilityRole.Meal,seats:seats,tables:seats,serviceCapacity:1);
+    private static FacilityVenueRequirements ExactVenue(params string[] ids) => Venue(FacilityRole.None,FacilityRole.None,exactIds:ids);
+    private static FacilityVenueRequirements Venue(FacilityRole anchorRoles,FacilityRole roomRoles,int seats=0,int tables=0,int serviceCapacity=0,int eventCells=1,int beds=0,bool residentHeadroom=false,bool emergencySurgery=false,string[] exactIds=null)
+    {
+        return new FacilityVenueRequirements{anchor=new FacilityVenueAnchorSelector{exactBuildingDefinitionIds=exactIds?.ToList()??new List<string>(),facilityRoles=anchorRoles},requiredRoomFacilityRoles=roomRoles,minimumSeats=seats,minimumTables=tables,minimumServiceCapacity=serviceCapacity,minimumEventCells=eventCells,minimumVacantBeds=beds,requireResidentHeadroom=residentHeadroom,requireEmergencySurgeryFacility=emergencySurgery};
+    }
 }
 #endif

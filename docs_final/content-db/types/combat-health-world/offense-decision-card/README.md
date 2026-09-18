@@ -2,7 +2,7 @@
 
 전투·건강·세계 영역의 작성 콘텐츠 유형이다.
 
-총 49개 항목이며, 비교군은 실제 대체 가능성을 검토하기 위한 후보군이다.
+총 54개 항목이며, 비교군은 실제 대체 가능성을 검토하기 위한 후보군이다.
 
 ## 데이터
 
@@ -58,7 +58,12 @@
 | `travel_abandoned_cart` | 버려진 수레 | 전투·건강·세계 영역의 OffenseDecisionCardSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [06_travel_abandoned_cart.asset](../../../../../Assets/Resources/SO/Offense/Cards/06_travel_abandoned_cart.asset) |
 | `travel_black_rain` | 검은 비 | 전투·건강·세계 영역의 OffenseDecisionCardSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [04_travel_black_rain.asset](../../../../../Assets/Resources/SO/Offense/Cards/04_travel_black_rain.asset) |
 | `travel_broken_bridge` | 끊어진 교량 | 전투·건강·세계 영역의 OffenseDecisionCardSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [01_travel_broken_bridge.asset](../../../../../Assets/Resources/SO/Offense/Cards/01_travel_broken_bridge.asset) |
+| `travel_cold_snap_frost_camp` | 서리 덮인 야영지 | 전투·건강·세계 영역의 OffenseDecisionCardSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [53_travel_cold_snap_frost_camp.asset](../../../../../Assets/Resources/SO/Offense/Cards/53_travel_cold_snap_frost_camp.asset) |
 | `travel_false_milestone` | 뒤집힌 이정표 | 전투·건강·세계 영역의 OffenseDecisionCardSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [05_travel_false_milestone.asset](../../../../../Assets/Resources/SO/Offense/Cards/05_travel_false_milestone.asset) |
+| `travel_fog_guide` | 안개 속 길잡이 | 전투·건강·세계 영역의 OffenseDecisionCardSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [51_travel_fog_guide.asset](../../../../../Assets/Resources/SO/Offense/Cards/51_travel_fog_guide.asset) |
+| `travel_heatwave_shade_shelter` | 그늘의 쉼터 | 전투·건강·세계 영역의 OffenseDecisionCardSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [52_travel_heatwave_shade_shelter.asset](../../../../../Assets/Resources/SO/Offense/Cards/52_travel_heatwave_shade_shelter.asset) |
 | `travel_narrow_pass` | 좁은 고갯길 | 전투·건강·세계 영역의 OffenseDecisionCardSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [07_travel_narrow_pass.asset](../../../../../Assets/Resources/SO/Offense/Cards/07_travel_narrow_pass.asset) |
+| `travel_rain_drift_cargo` | 빗속의 떠내려온 짐 | 전투·건강·세계 영역의 OffenseDecisionCardSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [50_travel_rain_drift_cargo.asset](../../../../../Assets/Resources/SO/Offense/Cards/50_travel_rain_drift_cargo.asset) |
+| `travel_storm_exposed_hideout` | 폭풍에 드러난 은닉처 | 전투·건강·세계 영역의 OffenseDecisionCardSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [54_travel_storm_exposed_hideout.asset](../../../../../Assets/Resources/SO/Offense/Cards/54_travel_storm_exposed_hideout.asset) |
 | `travel_toll_gate` | 임시 통행세 | 전투·건강·세계 영역의 OffenseDecisionCardSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [02_travel_toll_gate.asset](../../../../../Assets/Resources/SO/Offense/Cards/02_travel_toll_gate.asset) |
 | `travel_wounded_scout` | 쓰러진 정찰병 | 전투·건강·세계 영역의 OffenseDecisionCardSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [03_travel_wounded_scout.asset](../../../../../Assets/Resources/SO/Offense/Cards/03_travel_wounded_scout.asset) |

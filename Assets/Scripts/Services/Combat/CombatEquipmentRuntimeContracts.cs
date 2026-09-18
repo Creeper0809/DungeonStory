@@ -43,6 +43,7 @@ public interface ICombatEquipmentRuntime :
     IBuildingEquipmentCraftingRuntimePort,
     ICombatFallbackWeaponRuntimePort
 {
+    CraftQualityAttemptEstimate CaptureCraftQualityEstimate(string orderId);
     IReadOnlyList<CombatEquipmentDefinitionSO> Definitions { get; }
     IReadOnlyCollection<CombatEquipmentInstance> Instances { get; }
     bool TryGetDefinition(string definitionId, out CombatEquipmentDefinitionSO definition);
@@ -265,6 +266,8 @@ public interface ICombatEquipmentRuntime :
         string instanceId,
         out CombatEquipmentInstance detached);
     IReadOnlyList<CombatEquipmentInstance> ConfiscateAllFromCharacter(
+        string characterId);
+    IReadOnlyList<CombatEquipmentInstance> ConfiscateAllForExpedition(
         string characterId);
     bool TryMaterializeRecoveredEquipment(
         string instanceId,

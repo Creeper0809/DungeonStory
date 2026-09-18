@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using DungeonStory.Foundation;
 using VContainer.Unity;
@@ -15,6 +16,8 @@ public sealed class CareerApplicationAdapter :
     private readonly CareerDurableEquipmentAwardRuntime careerEquipment;
     private readonly ICharacterProficiencyQuery proficiencyQuery;
     private readonly ICharacterProficiencyCommand proficiencyCommands;
+    private readonly ICombatEquipmentRuntime combatEquipment;
+    private readonly IObservedCareerLifeEventCommand observedLifeEvents;
     private readonly CharacterMoodPolicyService moods;
     private readonly ICharacterSettlementStandingQuery settlementStandings;
     private readonly Dictionary<CharacterId, float> nextAssignmentAttemptAt = new();
@@ -30,6 +33,8 @@ public sealed class CareerApplicationAdapter :
         IDurableFacilityEquipmentPolicyQuery equipmentPolicies,
         IDurableFacilityEquipmentSlotCommand equipmentSlots,
         IDurableFacilityEquipmentUseCommand equipmentUse,
+        ICombatEquipmentRuntime combatEquipment,
+        IObservedCareerLifeEventCommand observedLifeEvents,
         CharacterMoodPolicyService moods = null,
         ICharacterSettlementStandingQuery settlementStandings = null)
     {
@@ -46,6 +51,10 @@ public sealed class CareerApplicationAdapter :
             equipmentPolicies,
             equipmentSlots,
             equipmentUse);
+        this.combatEquipment = combatEquipment
+            ?? throw new ArgumentNullException(nameof(combatEquipment));
+        this.observedLifeEvents = observedLifeEvents
+            ?? throw new ArgumentNullException(nameof(observedLifeEvents));
         this.moods = moods;
         this.settlementStandings = settlementStandings;
     }
@@ -148,6 +157,10 @@ public sealed class CareerApplicationAdapter :
                 TryScheduleLessonWork(student, academy);
             }
 
+            bool hasLastLessonSource = TryCaptureLastLessonSource(
+                assignment,
+                out CharacterCareerSnapshot retirement,
+                out CombatEquipmentInstance protectiveEquipment);
             if (!progress.HasCompletedPhysicalLesson
                 || progress.LastAwardAbsoluteDay >= lessonDay
                 || !careerEquipment.TryCommitAward(
@@ -155,9 +168,24 @@ public sealed class CareerApplicationAdapter :
                     academy.centerPos,
                     () => careers.TryMarkMentoringAwarded(
                         assignment.StudentCharacterId,
-                        lessonDay)))
+                        lessonDay),
+                    out CareerMentorshipAwardCommitReceipt award))
             {
                 continue;
+            }
+            if (hasLastLessonSource
+                && !observedLifeEvents.TryCaptureLastLesson(
+                    assignment,
+                    retirement,
+                    protectiveEquipment,
+                    award,
+                    lessonDay,
+                    out _,
+                    out string observedFailure))
+            {
+                throw new InvalidOperationException(
+                    "Committed mentorship award could not publish its observed "
+                    + "last-lesson source: " + observedFailure);
             }
 
             float studentBonus = Math.Min(
@@ -258,11 +286,113 @@ public sealed class CareerApplicationAdapter :
         return 1.1f;
     }
 
+    private bool TryCaptureLastLessonSource(
+        CareerMentorshipSnapshot mentorship,
+        out CharacterCareerSnapshot retirement,
+        out CombatEquipmentInstance protectiveEquipment)
+    {
+        protectiveEquipment = null;
+        if (!careers.TryGet(mentorship.MentorCharacterId, out retirement)
+            || retirement.Retired
+            || retirement.RetirementScheduleStatus
+                != RetirementScheduleStatus.Pending)
+        {
+            return false;
+        }
+
+        protectiveEquipment = combatEquipment.Instances
+            .Where(value => value != null
+                && value.worldState == CombatEquipmentWorldState.Equipped
+                && string.Equals(
+                    value.ownerCharacterId,
+                    mentorship.MentorCharacterId.Value,
+                    StringComparison.Ordinal)
+                && (CombatEquipmentRoleRules.For(value.definitionId)
+                    & CombatEquipmentRoleFlags.BlastAndSmokeProtection) != 0)
+            .OrderBy(value => value.instanceId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        return protectiveEquipment != null;
+    }
+
     private CharacterActor FindLivingActor(CharacterId characterId) =>
         world.Characters.FirstOrDefault(actor => actor != null
             && !actor.IsDead
             && CharacterPersistentIdentity.TryGet(actor, out CharacterId id)
             && id.Equals(characterId));
+}
+
+public readonly struct CareerMentorshipAwardCommitReceipt
+{
+    private CareerMentorshipAwardCommitReceipt(
+        BuildingInstanceId academyBuildingId,
+        string ledgerStackId,
+        long beforeContentRevision,
+        long afterContentRevision,
+        string sourceOperationId)
+    {
+        AcademyBuildingId = academyBuildingId;
+        LedgerStackId = ledgerStackId?.Trim() ?? string.Empty;
+        BeforeContentRevision = beforeContentRevision;
+        AfterContentRevision = afterContentRevision;
+        SourceOperationId = sourceOperationId?.Trim() ?? string.Empty;
+        if (!AcademyBuildingId.IsValid
+            || string.IsNullOrWhiteSpace(LedgerStackId)
+            || BeforeContentRevision < 0L
+            || AfterContentRevision <= BeforeContentRevision
+            || !string.Equals(
+                SourceOperationId,
+                FormatOperationId(LedgerStackId, AfterContentRevision),
+                StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "Career mentorship award receipt is invalid.");
+        }
+    }
+
+    internal BuildingInstanceId AcademyBuildingId { get; }
+    internal string LedgerStackId { get; }
+    internal long BeforeContentRevision { get; }
+    internal long AfterContentRevision { get; }
+    internal string SourceOperationId { get; }
+    internal bool IsValid => AcademyBuildingId.IsValid
+        && !string.IsNullOrWhiteSpace(LedgerStackId)
+        && BeforeContentRevision >= 0L
+        && AfterContentRevision > BeforeContentRevision
+        && string.Equals(
+            SourceOperationId,
+            FormatOperationId(LedgerStackId, AfterContentRevision),
+            StringComparison.Ordinal);
+
+    internal static CareerMentorshipAwardCommitReceipt FromCommittedUse(
+        BuildingInstanceId academyBuildingId,
+        DurableFacilityEquipmentUseContext context) => new(
+        academyBuildingId,
+        context?.After?.StackId,
+        context?.Before?.ContentRevision ?? -1L,
+        context?.After?.ContentRevision ?? -1L,
+        context == null
+            ? string.Empty
+            : FormatOperationId(
+                context.After.StackId,
+                context.After.ContentRevision));
+
+    internal static CareerMentorshipAwardCommitReceipt Restore(
+        BuildingInstanceId academyBuildingId,
+        string ledgerStackId,
+        long beforeContentRevision,
+        long afterContentRevision,
+        string sourceOperationId) => new(
+        academyBuildingId,
+        ledgerStackId,
+        beforeContentRevision,
+        afterContentRevision,
+        sourceOperationId);
+
+    private static string FormatOperationId(
+        string ledgerStackId,
+        long afterContentRevision) =>
+        $"career-mentorship-award:{ledgerStackId}:"
+        + afterContentRevision.ToString(CultureInfo.InvariantCulture);
 }
 
 /// <summary>
@@ -297,8 +427,22 @@ public sealed class CareerDurableEquipmentAwardRuntime
     public bool TryCommitAward(
         BuildingInstanceId academyId,
         UnityEngine.Vector2Int academyPosition,
-        Func<bool> commitAward)
+        Func<bool> commitAward) => TryCommitAward(
+        academyId,
+        academyPosition,
+        commitAward,
+        out _);
+
+    [GameplayInternalOnly(
+        "Commits one mentorship award and exposes its exact durable-equipment receipt.",
+        "CareerApplicationAdapter only")]
+    internal bool TryCommitAward(
+        BuildingInstanceId academyId,
+        UnityEngine.Vector2Int academyPosition,
+        Func<bool> commitAward,
+        out CareerMentorshipAwardCommitReceipt receipt)
     {
+        receipt = default;
         if (!academyId.IsValid || commitAward == null)
             throw new ArgumentException("Career equipment award input is invalid.");
         if (!policies.TryGetPolicy(
@@ -333,11 +477,19 @@ public sealed class CareerDurableEquipmentAwardRuntime
                 + supplied.FailureReason);
         }
 
+        CareerMentorshipAwardEffect effect = new(commitAward, academyId);
         DurableFacilityEquipmentUseResult result = use.TryApplyWearAndEffect(
             assignment.Key,
             CareerDurableEquipmentPolicySource.RequirementId,
             LedgerWearPerAward,
-            new CareerMentorshipAwardEffect(commitAward));
+            effect);
+        if (result.Succeeded)
+        {
+            receipt = effect.CommittedReceipt;
+            if (!receipt.IsValid)
+                throw new InvalidOperationException(
+                    "Career mentorship award committed without an exact durable-equipment receipt.");
+        }
         return result.Succeeded;
     }
 
@@ -345,11 +497,18 @@ public sealed class CareerDurableEquipmentAwardRuntime
         IDurableFacilityEquipmentEffectCommit
     {
         private readonly Func<bool> commit;
+        private readonly BuildingInstanceId academyId;
 
-        internal CareerMentorshipAwardEffect(Func<bool> commit)
+        internal CareerMentorshipAwardEffect(
+            Func<bool> commit,
+            BuildingInstanceId academyId)
         {
             this.commit = commit ?? throw new ArgumentNullException(nameof(commit));
+            this.academyId = academyId;
         }
+
+        internal CareerMentorshipAwardCommitReceipt CommittedReceipt
+            { get; private set; }
 
         public string EffectKind => AwardEffectKind;
 
@@ -389,6 +548,8 @@ public sealed class CareerDurableEquipmentAwardRuntime
                 failureReason = "career-mentorship-award-rejected";
                 return false;
             }
+            CommittedReceipt = CareerMentorshipAwardCommitReceipt
+                .FromCommittedUse(academyId, context);
             failureReason = string.Empty;
             return true;
         }

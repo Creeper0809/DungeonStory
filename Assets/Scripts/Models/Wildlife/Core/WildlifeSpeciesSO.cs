@@ -39,6 +39,12 @@ public sealed class WildlifeSpeciesSO : ScriptableObject
     [SerializeField] private bool laysEggs;
     [SerializeField, Min(0.1f)] private float bodySize = 1f;
     [SerializeField, Min(0.25f)] private float manureIntervalDays = 2f;
+    [SerializeField]
+    private float productComfortMinimumTemperatureC =
+        WildlifeProductThermalRules.DefaultComfortMinimumTemperatureC;
+    [SerializeField]
+    private float productComfortMaximumTemperatureC =
+        WildlifeProductThermalRules.DefaultComfortMaximumTemperatureC;
     [SerializeField] private List<WildlifeHusbandryProductDefinition> husbandryProducts =
         new List<WildlifeHusbandryProductDefinition>();
     [Header("V20 Authored Ecology")]
@@ -48,6 +54,11 @@ public sealed class WildlifeSpeciesSO : ScriptableObject
     [SerializeField] private string nestTag = string.Empty;
     [SerializeField] private Season breedingSeason;
     [SerializeField] private string migrationPatternId = string.Empty;
+    [SerializeField] private WildlifeMigrationProfile migrationProfile;
+    [SerializeField] private bool hasCompanionRoleProfile;
+    [SerializeField] private WildlifeCompanionRoleProfile companionRoleProfile;
+    [SerializeField] private bool hasHaulRoleProfile;
+    [SerializeField] private WildlifeHaulRoleProfile haulRoleProfile;
     [SerializeField] private List<string> diseaseVectorIds = new();
     [SerializeField] private List<Season> activeSeasons = new();
 
@@ -82,20 +93,60 @@ public sealed class WildlifeSpeciesSO : ScriptableObject
         laysEggs,
         bodySize,
         manureIntervalDays,
-        husbandryProducts);
+        husbandryProducts,
+        ProductComfortMinimumTemperatureC,
+        ProductComfortMaximumTemperatureC);
+    public float ProductComfortMinimumTemperatureC =>
+        productComfortMinimumTemperatureC;
+    public float ProductComfortMaximumTemperatureC =>
+        productComfortMaximumTemperatureC;
     public IReadOnlyList<string> PreySpeciesIds => preySpeciesIds;
     public IReadOnlyList<string> PredatorSpeciesIds => predatorSpeciesIds;
     public string NestTag => nestTag?.Trim() ?? string.Empty;
     public Season BreedingSeason => breedingSeason;
     public string MigrationPatternId => migrationPatternId?.Trim() ?? string.Empty;
+    public WildlifeMigrationProfile MigrationProfile => migrationProfile;
+    public WildlifeCompanionRoleProfile CompanionRoleProfile =>
+        hasCompanionRoleProfile ? companionRoleProfile : null;
+    public WildlifeHaulRoleProfile HaulRoleProfile =>
+        hasHaulRoleProfile ? haulRoleProfile : null;
     public IReadOnlyList<string> DiseaseVectorIds => diseaseVectorIds;
     public IReadOnlyList<Season> ActiveSeasons => activeSeasons;
 
     public IReadOnlyList<string> ValidateDefinition()
     {
         List<string> errors = new();
-        WildlifeSpeciesDefinition runtime = ToDefinition();
-        if (runtime.PreferredHabitats.Count == 0) errors.Add($"'{SpeciesId}' requires a preferred habitat.");
+        if (PreferredHabitats.Count == 0) errors.Add($"'{SpeciesId}' requires a preferred habitat.");
+        if (migrationProfile == null)
+        {
+            errors.Add($"'{SpeciesId}' requires an authored migration profile.");
+        }
+        else
+        {
+            errors.AddRange(migrationProfile.Validate(SpeciesId));
+        }
+        if (hasCompanionRoleProfile)
+        {
+            if (companionRoleProfile == null)
+            {
+                errors.Add($"'{SpeciesId}' declares a companion role without a profile.");
+            }
+            else
+            {
+                errors.AddRange(companionRoleProfile.Validate(SpeciesId));
+            }
+        }
+        if (hasHaulRoleProfile)
+        {
+            if (haulRoleProfile == null)
+            {
+                errors.Add($"'{SpeciesId}' declares a haul role without a profile.");
+            }
+            else
+            {
+                errors.AddRange(haulRoleProfile.Validate(SpeciesId));
+            }
+        }
         int relationshipGroups = 0;
         if ((preySpeciesIds ?? new()).Count > 0 || (predatorSpeciesIds ?? new()).Count > 0) relationshipGroups++;
         if (!string.IsNullOrWhiteSpace(nestTag)) relationshipGroups++;
@@ -139,10 +190,33 @@ public sealed class WildlifeSpeciesSO : ScriptableObject
             BreedingSeason,
             MigrationPatternId,
             DiseaseVectorIds,
-            ActiveSeasons);
+            ActiveSeasons,
+            migrationProfile,
+            CompanionRoleProfile,
+            HaulRoleProfile);
     }
 
 #if UNITY_EDITOR
+    /// <summary>
+    /// Replaces this species' authored whole-carcass outputs. Runtime butchery
+    /// remains the single generic transform path; this only gives narrow
+    /// content publishers a typed editor boundary instead of serializing the
+    /// private list directly.
+    /// </summary>
+    public void ConfigureButcherYields(IEnumerable<WildlifeButcherYield> yields)
+    {
+        butcherYields = (yields ?? Enumerable.Empty<WildlifeButcherYield>())
+            .Where(value => value != null
+                && value.amount > 0
+                && !string.IsNullOrWhiteSpace(value.itemId))
+            .Select(value => new WildlifeButcherYield
+            {
+                itemId = value.itemId.Trim(),
+                amount = value.amount
+            })
+            .ToList();
+    }
+
     public void ConfigureHusbandryProducts(
         IEnumerable<WildlifeHusbandryProductDefinition> products)
     {
@@ -151,6 +225,56 @@ public sealed class WildlifeSpeciesSO : ScriptableObject
             .Where(value => value != null
                 && !string.IsNullOrWhiteSpace(value.ItemId))
             .ToList();
+    }
+
+    public void ConfigureProductTemperatureComfort(
+        float minimumTemperatureC,
+        float maximumTemperatureC)
+    {
+        WildlifeProductThermalRules.RequireValidComfortRange(
+            minimumTemperatureC,
+            maximumTemperatureC);
+        productComfortMinimumTemperatureC = minimumTemperatureC;
+        productComfortMaximumTemperatureC = maximumTemperatureC;
+    }
+
+    public void ConfigureMigrationProfile(WildlifeMigrationProfile profile)
+    {
+        if (profile == null)
+        {
+            throw new System.ArgumentNullException(nameof(profile));
+        }
+
+        profile.RequireValid(SpeciesId);
+        migrationProfile = profile.Snapshot();
+    }
+
+    public void ConfigureCompanionRoleProfile(
+        WildlifeCompanionRoleProfile profile)
+    {
+        if (profile == null)
+        {
+            hasCompanionRoleProfile = false;
+            return;
+        }
+
+        profile.RequireValid(SpeciesId);
+        hasCompanionRoleProfile = true;
+        companionRoleProfile = profile.Snapshot();
+    }
+
+    public void ConfigureHaulRoleProfile(WildlifeHaulRoleProfile profile)
+    {
+        if (profile == null)
+        {
+            hasHaulRoleProfile = false;
+            haulRoleProfile = null;
+            return;
+        }
+
+        profile.RequireValid(SpeciesId);
+        hasHaulRoleProfile = true;
+        haulRoleProfile = profile.Snapshot();
     }
 
     public void ConfigureV20(

@@ -1,0 +1,2254 @@
+WIM043/046 protected-Play live-path preparation (QA INPUT, 2026-09-09)
+
+CURRENT EXECUTION REVISION (NOT RUN): the code below uses seed5 with a natural Day1 flood and Day2 typed expiry. This supersedes the historical seed13/Day4/Day5 preparation description below, whose actual producer and same-actor0.8 evidence remains in the existing report. Before the public prepared-party apply, require calendar.IsRunning=false, neutral flood authority, and install exactly one observation subscription. The actual production sequence is StartRun(seed) -> OwnerRunManager.SelectOwner -> GameManager.HandleOwnerSelected -> calendar.Start -> Day1 producer. GameCalendarRuntime is ITickable, not IStartable. Never call calendar.Start, reset dates, restart an adapter, synthesize an event or mutate actor needs from QA. Require the actual Day1 started event, physical inputs, normal Sow AI/progress UI and natural Day2 expiry. The old same-actor before/flood ratio is reused, not fabricated as a same-run pre-apply actor observation. Initial survival stock, scope protection, all input quantities and the 20-minute outer bound remain unchanged.
+
+Scope and evidence
+- This external QA input has been corrected; production code/assets are unchanged. Its revised route is NOT RUN. Earlier executed versions and their failures remain in the existing Unity verification report; no current focused PASS is claimed here.
+- Sow fixture correction: the selected worker's non-Sow work is explicitly disabled through existing priority UI even when natural research preparation is skipped. Survival/other actors remain live. Public crop readiness and worker diagnostics are captured even when progress is zero, separating input readiness, work selection and survival interruption. This revision is NOT RUN.
+- Knowledge-base implementation query returned no usable candidate rows in the bounded call; this packet therefore uses current source and the existing plan/report, not generated KB assertions.
+- Direct sources: docs/game-design/wim-implementation-plan.md (WIM043/046), docs/game-design/whole-game-balance-baseline.md (balance:wim:043 and :046), StartPartyPreparationService.cs, PreparedStartPartyGameplayApplier.cs, DungeonSceneNavigation.cs, GameSessionRuntimeServices.cs, WorldDropZoneQuery.cs, WorldItemModels.cs, WorldItemQueryService.cs, CharacterStats.cs, V20CampaignRuntime.cs, V20CampaignApplicationAdapter.cs, CropPlotRuntime.cs, CropCycleInputRequirementAuthority.cs, CropPlotBuildingPanelPresenter.cs, CharacterAiWorkTypeLiveMatrixPlayModeVerifier.cs, ItemTransferService.cs, CharacterStatsProjectionService.cs, WorkExecutionRules.cs, GameplayFlowDiagnostics.cs, CharacterSummaryAiPresenter.cs, OperationsFeatureQueryService.cs, OperationsFeatureSurfacePresenter.cs, GridBuildingRuntime.cs, WorkAmountSystem.cs, WorkTaskExecutor.cs, AbilityMove.cs, AbilityMoveTraversalGuard.cs, AIBrain.cs, DoorAccessPanelPresenter.cs, DoorAccessService.cs, WimDoorConsumerScenario.cs, P23_야외경작지.asset, crop_twilight_grain.asset, agriculture_gathering.asset, agriculture_field.asset, Wall.asset, InteriorDoor.asset, seasonal_spring-seed-exchange.asset, and seasonal_spring-thaw-flood.asset.
+
+WIM043 -- current closure packet (2026-09-09)
+1. Proven: root-reviewed source maps `flood` only through WorkTypeCatalog capabilities `crop:sow`, `crop:harvest`, `item:haul`, and `building:stock`; AnimalCare/Research remain neutral, and current source has compiled. The private `VerifyPersistedWorkDelay` contains the four-positive/two-negative/expiry rule checks but is reachable publicly only through the broad `V20CampaignDebugScenarios.Run()` and has not been executed for this checklist.
+2. Prior actual evidence is separate: crop report SHA256 `2E2BC454E80CBDCFF2B5B100482B4F7EC02F6A9822F08DED119BC9AC1B5EA800` proves temperature, cycle-water no-redebit, receipt/output-capacity and restore. Its focused verifier directly completes research, calls `CropPlotRuntime.ApplyWork`, advances growth through a DTO restore, and destroys detached plot objects; none of those preparation shortcuts is reused or counted as actual AI/seasonal evidence. It does not start `seasonal:spring-thaw-flood`, apply `flood` WorkDelay to an AI task, or render that effect in UI; plan line 725 therefore remains the execution authority.
+3. Authored/producer contract: `seasonal_spring-thaw-flood.asset` has no trigger requirements, event duration 2-3 days, and start effect `WorkDelayDays target=flood amount=1 durationDays=3`. The production mutation is `V20CampaignApplicationAdapter.OnDayStarted -> IContentResolutionService.TryExecute(DailyEvaluation) -> V20CampaignRuntime.EvaluateSeasonal -> ApplyInternalEffects -> ApplyWorkDelayAt`; WorkDelay expiry is the authored `amount` (1 day), not the event/effect display duration.
+4. Seed/current-scope authority: `IStartPartyPreparationService.TryCreatePreparedSnapshot(DungeonDifficulty, DungeonSurvivalPressure, int runSeed, ...)` accepts the seed before a run and creates `owner`, `character:staff:{seed}:01`, and `:02`. For this protected disposable fixture, apply that immutable snapshot exactly once through current-scope `IPreparedStartPartyGameplayApplier.TryApply(snapshot, out message)`, then call the preparation service's public `Cancel`; this is the same gameplay applier used by `PreparedStartPartyCommitService` and it internally owns `RunVariableRuntime.StartRun`, shell, stock, and actor creation. Do not call `IDungeonSceneNavigator.StartPreparedNewGame`, because its production scene-load path deletes run save slots. These types are `Assembly-CSharp`; `DungeonDifficulty/DungeonSurvivalPressure` are `DungeonStory.CoreSession`.
+5. Deterministic disposable preflight: prepare the normal three-member snapshot with seed `13`, then before current-scope apply evaluate days 1-4 on a disposable `V20CampaignRuntime(new DungeonRuntimeAggregateRootStore(), current V20StoryContentCatalog)` using that snapshot's exact participant IDs and Spring contexts. Current FNV-1a selection authority (`SelectDeterministic`/`PersistentEntityId.GetStableHash32`) yields `seasonal:spring-seed-exchange` on day 1 (fixed duration 2, deadline day 3), then `seasonal:spring-thaw-flood` on day 4 after normal completion; require that exact candidate result or abort. `DungeonRuntimeAggregateRootStore`/`PersistentEntityId` are `DungeonStory.Foundation`; `V20CampaignRuntime`, `V20DailyEventContext`, and `V20StoryContentCatalog` are `Assembly-CSharp`. Discard the candidate; it publishes nothing to the live world.
+6. Minimal temporary-world P23 setup: do not replay 425 WU construction. Complete only gathering via the canonical Editor seam, then place authored P23/id1095 while field remains locked. Its default must be `crop:cave-mushroom`, giving a non-empty public plot snapshot. Reuse an existing exact P23 only after matching every footprint occupant and persistent plot ID; otherwise use `CanBuildInArea`/`CanOccupy` for its FloorOverlay in DungeonInterior and public `TryPlaceInitialBuildings(IEnumerable<InitialBuildInfo>,out string)` once. Record exact occupant/plot/position joins immediately. Do not place while all crop research is locked: empty CropId is omitted from both Plots and the panel. Do not initially place after field unlock: grain is then already selected and its UI button is disabled. All setup calls run synchronously at timeScale0, before crop inputs or Sow. The real construction route remains historical, not a prerequisite for this flood test.
+7. Fixture research boundary: validate authored gathering17WU/max1/no prerequisite/None and field28WU/max1/gathering prerequisite/None. Invoke public Editor-only `BlueprintResearchRuntime.TryCompleteProjectImmediatelyForVerification(ResearchProjectId,out string)` exactly once each, in the order gathering completion → mushroom P23 placement/join → field completion. Require prerequisite/completed readback and label these as fixture evidence, not natural research work. The existing real crop-panel grain row must now offer an enabled `선택` button; click it and verify grain plus WaitingForMaterials in phase14. Do not invoke Projects.Complete, ApplyWork, or crop DTO restoration. Historical R01 and E66 research evidence remain separate; no 45WU replay is added.
+8. Crop/input and real producer: select `crop:twilight-grain` through the actual Building panel `CropChoice_crop:twilight-grain` button (`CropPlotBuildingPanelPresenter`), then leave the cycle unfunded until day 4 so Sow cannot finish early. Once ordinary calendar/speed UI produces day 4 and the normal chain reports exact `V20ContentEffectsResolvedEvent(started)`, successful `IV20DailyEvaluationDiagnostic`, and `IContentWorkDelayQuery.GetRemainingDays("flood")==1`, use the existing physical fixture contract to place `seed-lot:twilight-grain x1` with `SeedLotStateCodec.Encode(...)`, `resource:clean-water x1`, and `supply:nitrate-fertilizer x1` at that plot's exact `FacilityBuffer`/`MaterialDestinationId`; then let normal Sow AI run. `SeedLotState/Codec` are `DungeonStory.Economy`, `WorldItemStackState` is `DungeonStory.Items`, and `WorkTypeId/BuiltInWorkTypeIds` are `DungeonStory.Work`; the transfer, plot, actor, UI, event, and delay-query types are `Assembly-CSharp`.
+9. Observation/expiry: correlate the same actor's `AbilityWork` Sow action, same plot `ICropPlotRuntime.Plots/TryGetWork` Sow delta, `CharacterActor.GetWorkContextMultiplier(Sow)`, and public Building-panel `CropProgress`; the UI alone is not flood attribution. Advance only through the ordinary day producer and require day 5 remaining-days `0` plus the same typed multiplier baseline. This is one real Sow target on a real initialized Sow/Harvest-capable plot; it does not claim a completed natural Harvest under flood. No new wrapper, live reseed, direct seasonal-effect call, date write, or save-state crop-phase injection is needed or authorized.
+
+## WIM043 single-run bounded public input (READY, NOT EXECUTED)
+
+Run once from the paused protected preparation Play before a party is committed. This one `CommandScript` disposes the two persistence writers, reconciles TierZero, clicks the real owner option, creates seed 13 through the public prepared-snapshot overload, proves the predicted Day1/Day4 seasonal sequence in a detached aggregate, and applies that exact snapshot once in the current scope through `IPreparedStartPartyGameplayApplier.TryApply`; it never invokes scene navigation. Immediately after that apply it read-only verifies the authored starter `food:preserved-ration x24` and `resource:clean-water x30` as exact loose, unforbidden, unreserved dropoff stacks, plus the existing public available-stock selection for each of the three actors. Actor path reachability is deliberately `NOT_CHECKED`: `AIBrain.GetPathSearch` mutates its cache/deferred state and may return a cold-cache deferral, so it is not used as a diagnostic precondition. This establishes observable initial preparation only: it is not proof of multi-day survival, and `TryFindFieldMeal` is deliberately not required while a non-hungry actor may legitimately return `not-hungry`. Successful apply is followed by the production preparation `Cancel`, while `OwnerRunManager.SelectOwner` drives the existing public owner-selection panel hide boundary. It uses the public initial-building command only after the two canonical Editor fixture completions, then records the P23 command/join before actual crop-panel selection; crop input ownership, Sow and calendar advancement remain live UI/AI/runtime work. The original 20-minute wall bound and Day 5 expiry boundary are unchanged. Every terminal records current hunger/thirst, AI action/phase/failure, work state, and exact food/water stack state so a survival interruption is not collapsed into a research-readiness failure.
+
+```csharp
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+
+internal sealed class CommandScript : IRunCommand
+{
+    const int RunSeed = 5;
+    const int FloodDay = 1;
+    const int ExpiryDay = FloodDay + 1;
+    const int PlotDefinitionId = 1095;
+    const string GatheringId = "research:agriculture:gathering";
+    const string FieldId = "research:agriculture:field";
+    const string CropId = "crop:twilight-grain";
+    const string SeedItemId = "seed-lot:twilight-grain";
+    const string StarterFoodId = "food:preserved-ration";
+    const string StarterWaterId = "resource:clean-water";
+    const int StarterFoodQuantity = 24;
+    const int StarterWaterQuantity = 30;
+    const string FloodEventId = "seasonal:spring-thaw-flood";
+    const double MaximumWallSeconds = 1200d;
+    const float ResearchIndexMaximumGameSeconds = 5f;
+    const double ResearchIndexMaximumWallSeconds = 30d;
+
+    readonly List<Component> actors = new List<Component>();
+    readonly List<object> taskWorkers = new List<object>();
+    readonly List<object> taskWorkTypes = new List<object>();
+    readonly List<string> taskSuffixes = new List<string>();
+    readonly List<string> taskDesired = new List<string>();
+    readonly List<string> researchEvents = new List<string>();
+    readonly List<string> seasonalEvents = new List<string>();
+    readonly Dictionary<string, int> researchEventCounts =
+        new Dictionary<string, int>(StringComparer.Ordinal);
+    readonly Dictionary<string, float> researchEventDeltas =
+        new Dictionary<string, float>(StringComparer.Ordinal);
+
+    object preparedSnapshot;
+    object calendar;
+    object gameClock;
+    object researchRuntime;
+    object projectsState;
+    object gatheringProject;
+    object fieldProject;
+    Component worker;
+    object workerWork;
+    object sowWorkType;
+    object cropRuntime;
+    object plotBuilding;
+    object plotSnapshot;
+    object delayQuery;
+    object seasonalQuery;
+    object dailyDiagnostic;
+    object researchIndexCache;
+    object itemRuntime;
+    object liveGrid;
+    Component originalScope;
+    int originalSceneHandle;
+    IDisposable researchSubscription;
+    IDisposable seasonalSubscription;
+    int phase;
+    int earliestPlayerFrame;
+    int taskIndex;
+    int taskClicks;
+    int floodEventCount;
+    int floodEventDay;
+    bool floodPhysical;
+    bool actualSowObserved;
+    bool sowUiObserved;
+    bool installed;
+    bool callbackFailure;
+    string callbackFailureDetail = string.Empty;
+    string expectedActorId = string.Empty;
+    string plotId = string.Empty;
+    string materialDestinationId = string.Empty;
+    string detachedPrediction = string.Empty;
+    string researchIndexEvidence = string.Empty;
+    string inputEvidence = string.Empty;
+    string sowActionEvidence = string.Empty;
+    string sowReadinessEvidence = string.Empty;
+    float lastSowReadinessGameTime = -1f;
+    string sowUiEvidence = string.Empty;
+    string floodWindowEvidence = string.Empty;
+    string initialSurvivalStockEvidence = string.Empty;
+    string plotPlacementEvidence = string.Empty;
+    string preFloodProjectionEvidence = "NOT_SAMPLED_IN_THIS_RUN;priorSameActorRatioEvidence=6C73ADFC42FEF94F9F086F8E4D7D25A3D49065DF11D9044CDB3BC9EFD1801607";
+    string floodProjectionEvidence = string.Empty;
+    string expiredProjectionEvidence = string.Empty;
+    float floodActorMultiplier;
+    float expiredActorMultiplier;
+    float maximumSowProgress;
+    float indexGameStart;
+    double indexWallStart;
+    double wallStart;
+
+    static Type T(string name, string assemblyName = "Assembly-CSharp")
+    {
+        Type type = Type.GetType(name + ", " + assemblyName);
+        return type ?? throw new InvalidOperationException(
+            "Missing exact public type: " + name + ", " + assemblyName);
+    }
+
+    static object V(object value, string name)
+    {
+        if (value == null)
+            throw new InvalidOperationException("Public member owner is null: " + name);
+        var property = value.GetType().GetProperty(name);
+        if (property != null && property.GetMethod != null
+            && property.GetMethod.IsPublic)
+            return property.GetValue(value);
+        var field = value.GetType().GetField(name);
+        if (field != null && field.IsPublic)
+            return field.GetValue(value);
+        throw new InvalidOperationException(
+            "Missing public property/field: " + value.GetType().FullName + "." + name);
+    }
+
+    static void SetV(object value, string name, object memberValue)
+    {
+        var property = value.GetType().GetProperty(name);
+        if (property != null && property.SetMethod != null
+            && property.SetMethod.IsPublic)
+        {
+            property.SetValue(value, memberValue);
+            return;
+        }
+        var field = value.GetType().GetField(name);
+        if (field != null && field.IsPublic)
+        {
+            field.SetValue(value, memberValue);
+            return;
+        }
+        throw new InvalidOperationException(
+            "Missing public writable member: " + value.GetType().FullName + "." + name);
+    }
+
+    static object PublicStaticField(Type type, string name)
+    {
+        var field = type.GetField(name);
+        if (field == null || !field.IsPublic || !field.IsStatic)
+            throw new InvalidOperationException(
+                "Missing public static field: " + type.FullName + "." + name);
+        return field.GetValue(null);
+    }
+
+    static Component RuntimeScope()
+    {
+        Type scopeType = T("DungeonRuntimeLifetimeScope");
+        Component[] scopes = Resources.FindObjectsOfTypeAll(scopeType)
+            .Cast<UnityEngine.Object>()
+            .OfType<Component>()
+            .Where(value => value.gameObject.scene.isLoaded)
+            .ToArray();
+        if (scopes.Length != 1)
+            throw new InvalidOperationException(
+                "Expected one loaded runtime scope; count=" + scopes.Length);
+        return scopes[0];
+    }
+
+    static object Resolve(string typeName, string assemblyName = "Assembly-CSharp")
+    {
+        object container = V(RuntimeScope(), "Container");
+        var resolve = container.GetType().GetMethod(
+            "Resolve", new[] { typeof(Type), typeof(object) });
+        if (resolve == null || !resolve.IsPublic)
+            throw new InvalidOperationException(
+                "Public Resolve(Type, object) is unavailable.");
+        return resolve.Invoke(container, new object[]
+        {
+            T(typeName, assemblyName), null
+        });
+    }
+
+    static object InvokePublicNoArgs(object value, string methodName)
+    {
+        var method = value.GetType().GetMethod(methodName, Type.EmptyTypes);
+        if (method == null || !method.IsPublic)
+            throw new InvalidOperationException(
+                "Missing public no-argument method: " + methodName);
+        return method.Invoke(value, null);
+    }
+
+    static Button FindActiveButton(string name, bool required = true)
+    {
+        Button[] matches = Resources.FindObjectsOfTypeAll<Button>()
+            .Where(value => value != null
+                && value.gameObject.scene.isLoaded
+                && value.gameObject.activeInHierarchy
+                && string.Equals(value.name, name, StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length == 1)
+            return matches[0];
+        if (!required && matches.Length == 0)
+            return null;
+        throw new InvalidOperationException(
+            "Expected one active Button '" + name + "'; count=" + matches.Length);
+    }
+
+    static Button FindActiveTopTabButton(string tabName)
+    {
+        Type bindingType = T("UITabButtonBinding", "DungeonStory.Presentation");
+        object expected = Enum.Parse(
+            T("TabId", "DungeonStory.Presentation"), tabName, false);
+        Button[] matches = Resources.FindObjectsOfTypeAll(bindingType)
+            .Cast<UnityEngine.Object>()
+            .OfType<Component>()
+            .Where(value => value.gameObject.scene.isLoaded
+                && value.gameObject.activeInHierarchy
+                && Equals(V(value, "Id"), expected))
+            .Select(value => value.GetComponent<Button>())
+            .Where(value => value != null && value.gameObject.activeInHierarchy)
+            .ToArray();
+        if (matches.Length != 1)
+            throw new InvalidOperationException(
+                "Expected one active top tab '" + tabName + "'; count=" + matches.Length);
+        return matches[0];
+    }
+
+    static void Click(Button button)
+    {
+        if (button == null || !button.IsInteractable()
+            || EventSystem.current == null)
+            throw new InvalidOperationException(
+                "Actual UI target is absent, gated, or has no EventSystem.");
+        PointerEventData pointer = new PointerEventData(EventSystem.current);
+        ExecuteEvents.Execute(button.gameObject, pointer,
+            ExecuteEvents.pointerEnterHandler);
+        ExecuteEvents.Execute(button.gameObject, pointer,
+            ExecuteEvents.pointerDownHandler);
+        ExecuteEvents.Execute(button.gameObject, pointer,
+            ExecuteEvents.pointerUpHandler);
+        ExecuteEvents.Execute(button.gameObject, pointer,
+            ExecuteEvents.pointerClickHandler);
+    }
+
+    static string ButtonLabel(Button button)
+    {
+        Type textType = T("TMPro.TMP_Text", "Unity.TextMeshPro");
+        Component text = button.GetComponentsInChildren(textType, true)
+            .Cast<Component>().FirstOrDefault();
+        return text == null ? string.Empty : Convert.ToString(V(text, "text"));
+    }
+
+    static string IdValue(object value)
+    {
+        if (value == null)
+            return string.Empty;
+        var property = value.GetType().GetProperty("Value");
+        return property != null && property.GetMethod != null
+            && property.GetMethod.IsPublic
+            ? Convert.ToString(property.GetValue(value))
+            : Convert.ToString(value);
+    }
+
+    static string ActorId(object actor)
+    {
+        object identity = V(actor, "Identity");
+        return identity == null ? string.Empty
+            : Convert.ToString(V(identity, "PersistentId"));
+    }
+
+    static Component[] ActiveActors()
+    {
+        return Resources.FindObjectsOfTypeAll(T("CharacterActor"))
+            .Cast<UnityEngine.Object>()
+            .OfType<Component>()
+            .Where(value => value.gameObject.scene.isLoaded
+                && value.gameObject.activeInHierarchy)
+            .OrderBy(ActorId, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    static bool TryGetWork(object actor, out object work)
+    {
+        Type workType = T("AbilityWork");
+        var method = T("CharacterWorkRoleUtility").GetMethod(
+            "TryGetWork", new[]
+            {
+                T("CharacterActor"), workType.MakeByRefType()
+            });
+        if (method == null || !method.IsPublic || !method.IsStatic)
+            throw new InvalidOperationException(
+                "Public CharacterWorkRoleUtility.TryGetWork is unavailable.");
+        object[] arguments = { actor, null };
+        bool ok = (bool)method.Invoke(null, arguments);
+        work = arguments[1];
+        return ok && work != null;
+    }
+
+    static object WorkType(string fieldName)
+    {
+        return PublicStaticField(
+            T("BuiltInWorkTypeIds", "DungeonStory.Work"), fieldName);
+    }
+
+    static string WorkPriority(object work, object workType)
+    {
+        object priorities = V(work, "WorkPriorities");
+        var method = priorities.GetType().GetMethod(
+            "GetPriority", new[] { T("WorkTypeId", "DungeonStory.Work") });
+        if (method == null || !method.IsPublic)
+            throw new InvalidOperationException("Public GetPriority is unavailable.");
+        return Convert.ToString(method.Invoke(priorities, new[] { workType }));
+    }
+
+    static string LegacyWorkName(object workType)
+    {
+        var method = T("FacilityWorkTypeMap", "DungeonStory.Work")
+            .GetMethod("GetRequired", new[]
+            {
+                T("WorkTypeId", "DungeonStory.Work")
+            });
+        if (method == null || !method.IsPublic || !method.IsStatic)
+            throw new InvalidOperationException(
+                "Public FacilityWorkTypeMap.GetRequired is unavailable.");
+        return Convert.ToString(method.Invoke(null, new[] { workType }));
+    }
+
+    static object[] WorkDefinitions()
+    {
+        var all = T("WorkTypeCatalog", "DungeonStory.Work").GetProperty("All");
+        if (all == null || all.GetMethod == null || !all.GetMethod.IsPublic
+            || !all.GetMethod.IsStatic)
+            throw new InvalidOperationException("Public WorkTypeCatalog.All is unavailable.");
+        return ((IEnumerable)all.GetValue(null)).Cast<object>().ToArray();
+    }
+
+    static object ProjectsState(object runtime) => V(V(runtime, "State"), "Projects");
+
+    static object FindProject(object runtime, string expectedId)
+    {
+        object[] matches = ((IEnumerable)V(V(runtime, "ProjectCatalog"), "Projects"))
+            .Cast<object>()
+            .Where(value => value != null
+                && string.Equals(IdValue(V(value, "ProjectId")), expectedId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length != 1)
+            throw new InvalidOperationException(
+                "Expected one research project '" + expectedId
+                + "'; count=" + matches.Length);
+        return matches[0];
+    }
+
+    static string ProjectState(object runtime, object project)
+    {
+        var method = runtime.GetType().GetMethod(
+            "GetNodeState", new[]
+            {
+                T("ResearchProjectSO", "DungeonStory.Research"),
+                typeof(string).MakeByRefType()
+            });
+        if (method == null || !method.IsPublic)
+            throw new InvalidOperationException("Public GetNodeState is unavailable.");
+        object[] arguments = { project, null };
+        return Convert.ToString(method.Invoke(runtime, arguments));
+    }
+
+    static bool ProjectBool(object state, string methodName, object projectId)
+    {
+        var method = state.GetType().GetMethod(
+            methodName, new[] { projectId.GetType() });
+        if (method == null || !method.IsPublic)
+            throw new InvalidOperationException(
+                "Missing public project-state method: " + methodName);
+        return (bool)method.Invoke(state, new[] { projectId });
+    }
+
+    static object ProjectProgress(object state, object projectId)
+    {
+        var method = state.GetType().GetMethod(
+            "GetProgress", new[] { projectId.GetType() });
+        if (method == null || !method.IsPublic)
+            throw new InvalidOperationException("Public GetProgress is unavailable.");
+        return method.Invoke(state, new[] { projectId });
+    }
+
+    static string[] QueueIds(object state)
+    {
+        return ((IEnumerable)V(state, "Queue")).Cast<object>()
+            .Select(value => IdValue(V(value, "ProjectId"))).ToArray();
+    }
+
+    static object FindPlotSnapshot(object runtime, string expectedPlotId)
+    {
+        object[] matches = ((IEnumerable)V(runtime, "Plots")).Cast<object>()
+            .Where(value => string.Equals(
+                Convert.ToString(V(value, "PlotId")), expectedPlotId,
+                StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length != 1)
+            throw new InvalidOperationException(
+                "Expected one crop plot snapshot '" + expectedPlotId
+                + "'; count=" + matches.Length);
+        return matches[0];
+    }
+
+    void Advance(int next)
+    {
+        phase = next;
+        earliestPlayerFrame = Time.frameCount + 1;
+    }
+
+    public void Execute(ExecutionResult result)
+    {
+        if (!EditorApplication.isPlaying || !Application.isPlaying
+            || !EditorApplication.isPaused
+            || !Mathf.Approximately(Time.timeScale, 0f))
+            throw new InvalidOperationException(
+                "WIM043 requires paused protected preparation Play before party commit.");
+
+        originalScope = RuntimeScope();
+        originalSceneHandle = originalScope.gameObject.scene.handle;
+        if (ActiveActors().Length != 0)
+            throw new InvalidOperationException(
+                "Protected preparation world already contains an active party.");
+        object ownerProvider = Resolve("IOwnerRunManagerProvider");
+        var tryManager = ownerProvider.GetType().GetMethod(
+            "TryGetManager", new[] { T("OwnerRunManager").MakeByRefType() });
+        object[] managerArguments = { null };
+        if (tryManager == null || !tryManager.IsPublic
+            || !(bool)tryManager.Invoke(ownerProvider, managerArguments)
+            || managerArguments[0] == null
+            || V(managerArguments[0], "CurrentOwnerActor") != null)
+            throw new InvalidOperationException(
+                "Protected preparation world does not have an empty owner authority.");
+
+        object saveCommands = Resolve("IDungeonSaveCommandService");
+        object metaPersistence = Resolve("MetaProfilePersistenceService");
+        if (!(saveCommands is IDisposable saveDisposable)
+            || !(metaPersistence is IDisposable metaDisposable))
+            throw new InvalidOperationException(
+                "Public persistence services are not disposable.");
+        saveDisposable.Dispose();
+        metaDisposable.Dispose();
+
+        object expansion = Resolve("IDungeonSpaceExpansionCommand");
+        var reconcile = expansion.GetType().GetMethod("TryReconcileNewRunTierZero");
+        if (reconcile == null || !reconcile.IsPublic)
+            throw new InvalidOperationException(
+                "Public TryReconcileNewRunTierZero is unavailable.");
+        object[] reconcileArguments = { null, null };
+        if (!(bool)reconcile.Invoke(expansion, reconcileArguments))
+            throw new InvalidOperationException(
+                "TierZero reconciliation failed: "
+                + Convert.ToString(reconcileArguments[1]));
+        object expansionResult = reconcileArguments[0];
+        int before = Convert.ToInt32(V(expansionResult, "PreviousInteriorColumns"));
+        int after = Convert.ToInt32(V(expansionResult, "CurrentInteriorColumns"));
+        if (after != 29 || (before != 27 && before != 29))
+            throw new InvalidOperationException(
+                "Unexpected TierZero authority: " + before + "->" + after);
+
+        Click(FindActiveButton("OwnerOption_1001"));
+        wallStart = EditorApplication.timeSinceStartup;
+        installed = true;
+        EditorApplication.update += OnEditorUpdate;
+        EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        EditorApplication.isPaused = false;
+        phase = 0;
+        earliestPlayerFrame = Time.frameCount + 1;
+        result.Log(
+            "WIM043 INSTALLED autosaveDisposed=true;metaDisposed=true;tierZero={0}->{1};ownerClick=OwnerOption_1001;seed={2};paused={3}",
+            before, after, RunSeed, Mathf.Approximately(Time.timeScale, 0f));
+    }
+
+    void OnEditorUpdate()
+    {
+        if (!installed)
+            return;
+        if (EditorApplication.timeSinceStartup - wallStart >= MaximumWallSeconds)
+        {
+            Finish("INCOMPLETE_WALL_TIMEOUT", false,
+                "Bounded public run did not reach the natural typed-delay expiry.");
+            return;
+        }
+        if (Time.frameCount < earliestPlayerFrame)
+            return;
+        try
+        {
+            if (!EditorApplication.isPlaying || !Application.isPlaying)
+            {
+                Unsubscribe();
+                return;
+            }
+            if (callbackFailure)
+                throw new InvalidOperationException(callbackFailureDetail);
+            Step();
+        }
+        catch (Exception exception)
+        {
+            Finish("FAILED_PHASE_" + phase, true,
+                exception.GetType().Name + ": " + exception.Message);
+        }
+    }
+
+    void Step()
+    {
+        if (phase == 0)
+        {
+            Button confirm = FindActiveButton("StartPartyConfirm", false);
+            if (confirm == null || !confirm.IsInteractable())
+                return;
+            CreatePredictAndApply();
+            Advance(1);
+            return;
+        }
+        if (phase == 1)
+        {
+            Component[] loaded = ActiveActors();
+            if (loaded.Length != 3
+                || FindActiveButton("StartPartyConfirm", false) != null)
+                return;
+            SetupGameplay(loaded);
+            Advance(10);
+            return;
+        }
+        if (phase == 2)
+        {
+            Canvas.ForceUpdateCanvases();
+            Click(FindActiveButton("P1Action_StaffModePriorities"));
+            BuildResearchPriorityTasks();
+            Advance(3);
+            return;
+        }
+        if (phase == 3)
+        {
+            if (!ProcessPriorityTask())
+                return;
+            BeginResearchIndexWarmup();
+            Advance(4);
+            return;
+        }
+        if (phase == 4)
+        {
+            if (!TickResearchIndexWarmup())
+                return;
+            Time.timeScale = 0f;
+            Click(FindActiveButton("TopTabButton_Research_연구"));
+            Advance(5);
+            return;
+        }
+        if (phase == 5)
+        {
+            Canvas.ForceUpdateCanvases();
+            Click(FindActiveButton("Node_" + GatheringId));
+            Advance(6);
+            return;
+        }
+        if (phase == 6)
+        {
+            QueueProjectThroughUi(gatheringProject, GatheringId);
+            Time.timeScale = 1f;
+            Advance(7);
+            return;
+        }
+        if (phase == 7)
+        {
+            if (!WaitForResearch(gatheringProject, GatheringId))
+                return;
+            Time.timeScale = 0f;
+            Click(FindActiveButton("Node_" + FieldId));
+            Advance(8);
+            return;
+        }
+        if (phase == 8)
+        {
+            QueueProjectThroughUi(fieldProject, FieldId);
+            Time.timeScale = 1f;
+            Advance(9);
+            return;
+        }
+        if (phase == 9)
+        {
+            if (!WaitForResearch(fieldProject, FieldId))
+                return;
+            Time.timeScale = 0f;
+            PlaceInitialP23();
+            Click(FindActiveButton("TopTabButton_Research_연구"));
+            Advance(10);
+            return;
+        }
+        if (phase == 10)
+        {
+            Click(FindActiveTopTabButton("Staff"));
+            Advance(11);
+            return;
+        }
+        if (phase == 11)
+        {
+            Canvas.ForceUpdateCanvases();
+            Click(FindActiveButton("P1Action_StaffModePriorities"));
+            BuildSowPriorityTasks();
+            Advance(12);
+            return;
+        }
+        if (phase == 12)
+        {
+            if (!ProcessPriorityTask())
+                return;
+            DisplayPlot();
+            Advance(13);
+            return;
+        }
+        if (phase == 13)
+        {
+            Canvas.ForceUpdateCanvases();
+            Click(FindCropChoiceButton());
+            Advance(14);
+            return;
+        }
+        if (phase == 14)
+        {
+            plotSnapshot = FindPlotSnapshot(cropRuntime, plotId);
+            string crop = Convert.ToString(V(plotSnapshot, "CropId"));
+            string plotPhase = Convert.ToString(V(plotSnapshot, "Phase"));
+            if (!string.Equals(crop, CropId, StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    "Actual Crop UI did not select " + CropId + ": " + crop);
+            if (!string.Equals(plotPhase, "WaitingForMaterials",
+                    StringComparison.Ordinal))
+            {
+                if (Day() >= ExpiryDay)
+                    throw new InvalidOperationException(
+                        "Crop input authority was not ready within the flood window: " + plotPhase);
+                Time.timeScale = 1f;
+                return;
+            }
+            ValidateCropRequirements(plotSnapshot);
+            if (Day() != FloodDay)
+                throw new InvalidOperationException(
+                    "Research/crop preparation missed the Day1 flood window.");
+            Time.timeScale = 1f;
+            Advance(15);
+            return;
+        }
+        if (phase == 15)
+        {
+            int day = Day();
+            Time.timeScale = 0f;
+            if (day != FloodDay)
+                throw new InvalidOperationException(
+                    "Ordinary calendar skipped the required flood observation: " + day);
+            ValidateFloodWindow();
+            SpawnExactCropInputs();
+            CaptureSowReadiness("after-input-spawn-before-tick");
+            Time.timeScale = 1f;
+            Advance(16);
+            return;
+        }
+        if (phase == 16)
+        {
+            if (Day() >= ExpiryDay)
+            {
+                CaptureSowReadiness("expiry-day-terminal");
+                throw new InvalidOperationException(
+                    "Actual Sow did not complete during the Day1 flood window.");
+            }
+            ObserveSow();
+            string current = Convert.ToString(V(plotSnapshot, "Phase"));
+            if (!string.Equals(current, "Growing", StringComparison.Ordinal))
+                return;
+            if (!actualSowObserved || !sowUiObserved
+                || maximumSowProgress <= 0f)
+                throw new InvalidOperationException(
+                    "Growing phase lacked same-actor AI/Sow-progress/UI evidence.");
+            Advance(17);
+            return;
+        }
+        if (phase == 17)
+        {
+            int day = Day();
+            if (day < ExpiryDay)
+                return;
+            Time.timeScale = 0f;
+            if (day != ExpiryDay)
+                throw new InvalidOperationException(
+                    "Ordinary calendar skipped natural Day2 expiry: " + day);
+            if (RemainingFloodDays() != 0
+                || !Mathf.Approximately(DelayMultiplier(), 1f))
+                throw new InvalidOperationException(
+                    "Flood work delay did not expire at Day2.");
+            if (Convert.ToInt32(V(dailyDiagnostic,
+                    "LastDailyEvaluationAbsoluteDay")) != ExpiryDay
+                || !Convert.ToBoolean(V(dailyDiagnostic,
+                    "LastDailyEvaluationSucceeded")))
+                throw new InvalidOperationException(
+                    "Day2 daily evaluation did not complete successfully.");
+            expiredProjectionEvidence = CaptureActorProjection(
+                "day2-expired", out expiredActorMultiplier);
+            if (expiredActorMultiplier <= 0f
+                || float.IsNaN(expiredActorMultiplier)
+                || float.IsInfinity(expiredActorMultiplier))
+                throw new InvalidOperationException(
+                    "Expired same-actor Sow multiplier is not finite positive.");
+            plotSnapshot = FindPlotSnapshot(cropRuntime, plotId);
+            Finish("PASS", false,
+                "Detached prediction, canonical research fixture, actual crop UI selection, normal AI Sow, Day1 flood and Day2 typed expiry all matched.");
+        }
+    }
+
+    void CreatePredictAndApply()
+    {
+        object preparation = Resolve("IStartPartyPreparationService");
+        Type difficultyType = T("DungeonDifficulty", "DungeonStory.CoreSession");
+        Type pressureType = T(
+            "DungeonSurvivalPressure", "DungeonStory.CoreSession");
+        Type snapshotType = T("PreparedStartPartySnapshot");
+        var create = preparation.GetType().GetMethods()
+            .Single(method => method.IsPublic
+                && string.Equals(method.Name, "TryCreatePreparedSnapshot",
+                    StringComparison.Ordinal)
+                && method.GetParameters().Length == 5
+                && method.GetParameters()[0].ParameterType == difficultyType
+                && method.GetParameters()[1].ParameterType == pressureType
+                && method.GetParameters()[2].ParameterType == typeof(int)
+                && method.GetParameters()[3].ParameterType
+                    == snapshotType.MakeByRefType()
+                && method.GetParameters()[4].ParameterType
+                    == typeof(string).MakeByRefType());
+        object[] arguments =
+        {
+            Enum.Parse(difficultyType, "Normal"),
+            Enum.Parse(pressureType, "Standard"),
+            RunSeed, null, null
+        };
+        if (!(bool)create.Invoke(preparation, arguments))
+            throw new InvalidOperationException(
+                "Seed-5 prepared snapshot failed: " + Convert.ToString(arguments[4]));
+        preparedSnapshot = arguments[3];
+        if (preparedSnapshot == null || !Convert.ToBoolean(V(preparedSnapshot, "IsValid")))
+            throw new InvalidOperationException("Prepared seed-5 snapshot is invalid.");
+
+        string[] participantIds = ((IEnumerable)V(
+                preparedSnapshot, "OrderedMembers"))
+            .Cast<object>()
+            .Select(value => Convert.ToString(V(value, "persistentId")))
+            .ToArray();
+        if (participantIds.Length != 3
+            || participantIds.Any(string.IsNullOrWhiteSpace)
+            || participantIds.Distinct(StringComparer.Ordinal).Count() != 3)
+            throw new InvalidOperationException(
+                "Prepared seed-5 snapshot lacks three unique participant IDs.");
+        detachedPrediction = PredictSeasonalSequence(participantIds);
+
+        calendar = Resolve("IGameCalendar", "DungeonStory.CoreSession");
+        gameClock = Resolve(
+            "DungeonStory.Foundation.IGameClock", "DungeonStory.Foundation");
+        seasonalQuery = Resolve("ISeasonalEventQuery");
+        delayQuery = Resolve("IContentWorkDelayQuery");
+        dailyDiagnostic = Resolve("IV20DailyEvaluationDiagnostic");
+        sowWorkType = WorkType("Sow");
+        if (Convert.ToBoolean(V(calendar, "IsRunning")) || Day() != FloodDay
+            || RemainingFloodDays() != 0
+            || !Mathf.Approximately(DelayMultiplier(), 1f)
+            || ActiveSeasonalIds().Length != 0)
+            throw new InvalidOperationException(
+                "WIM043_DAY1_PREAPPLY_NOT_FRESH;refusing calendar reset or event replay.");
+        SubscribeEvents();
+
+        object applier = Resolve("IPreparedStartPartyGameplayApplier");
+        var apply = applier.GetType().GetMethod("TryApply", new[]
+        {
+            snapshotType, typeof(string).MakeByRefType()
+        });
+        object[] applyArguments = { preparedSnapshot, null };
+        if (apply == null || !apply.IsPublic
+            || !(bool)apply.Invoke(applier, applyArguments))
+            throw new InvalidOperationException(
+                "Current-scope prepared gameplay apply failed: "
+                + Convert.ToString(applyArguments[1]));
+        Time.timeScale = 0f;
+        initialSurvivalStockEvidence = ValidateInitialSurvivalStock();
+        InvokePublicNoArgs(preparation, "Cancel");
+        Component currentScope = RuntimeScope();
+        if (!ReferenceEquals(currentScope, originalScope)
+            || currentScope.gameObject.scene.handle != originalSceneHandle)
+            throw new InvalidOperationException(
+                "Prepared gameplay apply replaced the protected scope/scene.");
+        Time.timeScale = 0f;
+    }
+
+    string ValidateInitialSurvivalStock()
+    {
+        itemRuntime = Resolve("IWorldItemStackRuntime");
+        object dropZones = Resolve("IWorldDropZoneQuery");
+        var dropoffMethod = dropZones.GetType().GetMethod(
+            "TryGetDeliveryDropoff", new[]
+            {
+                typeof(Vector2Int).MakeByRefType()
+            });
+        object[] dropoffArguments = { Vector2Int.zero };
+        if (dropoffMethod == null || !dropoffMethod.IsPublic
+            || !(bool)dropoffMethod.Invoke(dropZones, dropoffArguments))
+            throw new InvalidOperationException(
+                "Public starter-supply delivery dropoff is unavailable.");
+        Vector2Int dropoff = (Vector2Int)dropoffArguments[0];
+
+        Component[] party = ActiveActors();
+        if (party.Length != 3)
+            throw new InvalidOperationException(
+                "Starter-supply access requires the exact three-member party; count="
+                + party.Length);
+        object[] all = ((IEnumerable)InvokePublicNoArgs(
+                itemRuntime, "GetAllStacks"))
+            .Cast<object>().Where(value => value != null).ToArray();
+        string[] itemIds = { StarterFoodId, StarterWaterId };
+        int[] quantities = { StarterFoodQuantity, StarterWaterQuantity };
+        List<string> itemRows = new List<string>();
+        List<string> accessRows = new List<string>();
+        for (int itemIndex = 0; itemIndex < itemIds.Length; itemIndex++)
+        {
+            string itemId = itemIds[itemIndex];
+            int expectedQuantity = quantities[itemIndex];
+            object[] stacks = all.Where(value => string.Equals(
+                    Convert.ToString(V(value, "ItemId")), itemId,
+                    StringComparison.Ordinal))
+                .OrderBy(value => Convert.ToString(V(value, "StackId")),
+                    StringComparer.Ordinal)
+                .ToArray();
+            int quantity = stacks.Sum(value => Convert.ToInt32(
+                V(value, "Quantity")));
+            int available = stacks.Sum(value => Convert.ToInt32(
+                V(value, "AvailableQuantity")));
+            bool physicalReady = stacks.Length > 0
+                && quantity == expectedQuantity
+                && available == expectedQuantity
+                && stacks.All(value => string.Equals(
+                    Convert.ToString(V(value, "State")), "Loose",
+                    StringComparison.Ordinal))
+                && stacks.All(value => (Vector2Int)V(value, "Position")
+                    == dropoff)
+                && stacks.All(value => string.IsNullOrWhiteSpace(
+                    Convert.ToString(V(value, "DestinationId"))))
+                && stacks.All(value => !Convert.ToBoolean(
+                    V(value, "Forbidden")));
+            itemRows.Add(itemId + ":expected=" + expectedQuantity
+                + ";quantity=" + quantity + ";available=" + available
+                + ";stacks=" + DescribeStacks(stacks));
+            if (!physicalReady)
+                throw new InvalidOperationException(
+                    "Initial physical survival stock mismatch: "
+                    + itemRows[itemRows.Count - 1] + ";dropoff=" + dropoff);
+
+            foreach (Component actor in party)
+            {
+                object selected = FindPublicAvailableStack(actor, itemId);
+                string selectedId = Convert.ToString(V(selected, "StackId"));
+                Vector2Int selectedPosition =
+                    (Vector2Int)V(selected, "Position");
+                if (!stacks.Any(value => string.Equals(
+                        Convert.ToString(V(value, "StackId")), selectedId,
+                        StringComparison.Ordinal)))
+                    throw new InvalidOperationException(
+                        "Initial public available-stock mismatch: actor="
+                        + ActorId(actor) + ";item=" + itemId
+                        + ";selected=" + selectedId + "@" + selectedPosition);
+                accessRows.Add(ActorId(actor) + ":" + itemId + "="
+                    + selectedId + "@" + selectedPosition
+                    + "/available-query;pathReachability=NOT_CHECKED");
+            }
+        }
+        return "dropoff=" + dropoff + ";items=["
+            + string.Join("|", itemRows) + "];publicAccess=["
+            + string.Join("|", accessRows) + "]";
+    }
+
+    object FindPublicAvailableStack(Component actor, string itemId)
+    {
+        var method = itemRuntime.GetType().GetMethod(
+            "TryFindBestAvailableStack", new[]
+            {
+                typeof(Vector2Int), typeof(Func<string, int>),
+                T("WorldItemStackSnapshot").MakeByRefType()
+            });
+        if (method == null || !method.IsPublic)
+            throw new InvalidOperationException(
+                "Public exact available-stock query is unavailable.");
+        Func<string, int> rank = candidate => string.Equals(
+                candidate, itemId, StringComparison.Ordinal)
+            ? 0 : int.MaxValue;
+        object[] arguments =
+        {
+            (Vector2Int)InvokePublicNoArgs(actor, "GetNowXY"), rank, null
+        };
+        if (!(bool)method.Invoke(itemRuntime, arguments)
+            || arguments[2] == null
+            || !string.Equals(Convert.ToString(V(arguments[2], "ItemId")),
+                itemId, StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "Public available-stock query did not select " + itemId
+                + " for " + ActorId(actor) + ".");
+        return arguments[2];
+    }
+
+    static string DescribeStacks(IEnumerable<object> stacks)
+    {
+        return string.Join(",", stacks.Select(value =>
+            Convert.ToString(V(value, "ItemId")) + "@"
+            + Convert.ToString(V(value, "StackId"))
+            + ":q" + Convert.ToInt32(V(value, "Quantity"))
+            + ":r" + Convert.ToInt32(V(value, "ReservedQuantity"))
+            + ":a" + Convert.ToInt32(V(value, "AvailableQuantity"))
+            + ":state=" + Convert.ToString(V(value, "State"))
+            + ":pos=" + Convert.ToString(V(value, "Position"))
+            + ":dest=" + Convert.ToString(V(value, "DestinationId"))
+            + ":forbidden=" + Convert.ToBoolean(V(value, "Forbidden"))));
+    }
+
+    string PredictSeasonalSequence(string[] participantIds)
+    {
+        object root = Activator.CreateInstance(T(
+            "DungeonRuntimeAggregateRootStore", "DungeonStory.Foundation"));
+        object catalog = Resolve("V20StoryContentCatalog");
+        object candidate = Activator.CreateInstance(
+            T("V20CampaignRuntime"), new[] { root, catalog });
+        Type contextType = T("V20DailyEventContext");
+        Type seasonType = T("Season", "DungeonStory.CoreSession");
+        var evaluate = candidate.GetType().GetMethod(
+            "EvaluateDaily", new[] { contextType });
+        if (evaluate == null || !evaluate.IsPublic)
+            throw new InvalidOperationException(
+                "Detached public EvaluateDaily is unavailable.");
+        List<string> days = new List<string>();
+        for (int day = FloodDay; day <= ExpiryDay; day++)
+        {
+            object context = Activator.CreateInstance(contextType);
+            SetV(context, "AbsoluteDay", day);
+            SetV(context, "RunSeed", RunSeed);
+            SetV(context, "Season", Enum.Parse(seasonType, "Spring"));
+            SetV(context, "Generation", 0);
+            IList ids = (IList)V(context, "ParticipantCharacterIds");
+            foreach (string participantId in participantIds)
+                ids.Add(participantId);
+            object[] results = ((IEnumerable)evaluate.Invoke(
+                    candidate, new[] { context }))
+                .Cast<object>().ToArray();
+            object[] active = ((IEnumerable)V(
+                    candidate, "ActiveSeasonalEvents"))
+                .Cast<object>().ToArray();
+            string activeId = active.Length == 1
+                ? Convert.ToString(V(active[0], "definitionId"))
+                : "<count:" + active.Length + ">";
+            days.Add(day + ":" + activeId + ":" + string.Join(",",
+                results.Select(value => Convert.ToString(V(value, "DefinitionId"))
+                    + "/" + Convert.ToString(V(value, "ResolutionId")))));
+            string expected = FloodEventId;
+            if (active.Length != 1
+                || !string.Equals(activeId, expected, StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    "Detached seed-5 seasonal prediction mismatch at Day "
+                    + day + ": " + string.Join("|", days));
+            if (day == FloodDay && !results.Any(value =>
+                    string.Equals(Convert.ToString(V(value, "DefinitionId")),
+                        FloodEventId, StringComparison.Ordinal)
+                    && string.Equals(Convert.ToString(V(value, "ResolutionId")),
+                        "started", StringComparison.Ordinal)))
+                throw new InvalidOperationException(
+                    "Detached Day1 prediction did not start the flood.");
+        }
+        return string.Join("|", days);
+    }
+
+    void SetupGameplay(Component[] loadedActors)
+    {
+        Time.timeScale = 0f;
+        Component currentScope = RuntimeScope();
+        if (!ReferenceEquals(currentScope, originalScope)
+            || currentScope.gameObject.scene.handle != originalSceneHandle)
+            throw new InvalidOperationException(
+                "Gameplay setup no longer owns the original protected scope/scene.");
+        actors.Clear();
+        actors.AddRange(loadedActors);
+        object runSeed = Resolve("IRunSeedProvider");
+        if (Convert.ToInt32(V(runSeed, "RunSeed")) != RunSeed)
+            throw new InvalidOperationException("Live run seed is not 5.");
+        calendar = Resolve("IGameCalendar", "DungeonStory.CoreSession");
+        gameClock = Resolve(
+            "DungeonStory.Foundation.IGameClock", "DungeonStory.Foundation");
+        if (Day() != FloodDay || !Convert.ToBoolean(V(calendar, "IsRunning"))
+            || !string.Equals(Convert.ToString(V(calendar, "Season")),
+                "Spring", StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "Live calendar did not begin on Spring Day 1.");
+        seasonalQuery = Resolve("ISeasonalEventQuery");
+        delayQuery = Resolve("IContentWorkDelayQuery");
+        dailyDiagnostic = Resolve("IV20DailyEvaluationDiagnostic");
+        if (!ActiveSeasonalIds().SequenceEqual(
+                new[] { FloodEventId }, StringComparer.Ordinal))
+            throw new InvalidOperationException(
+                "Live Day1 seasonal producer did not select the predicted flood: "
+                + string.Join(",", ActiveSeasonalIds()));
+        ResolveLiveGrid();
+        SetupResearchAuthority();
+        CompleteFixtureResearch();
+    }
+
+    void ResolveLiveGrid()
+    {
+        object world = Resolve("ICharacterAiWorldRegistry");
+        Type gridType = T("Grid", "DungeonStory.Grid");
+        var tryGetGrid = world.GetType().GetMethod(
+            "TryGetGrid", new[] { gridType.MakeByRefType() });
+        if (tryGetGrid == null || !tryGetGrid.IsPublic)
+            throw new InvalidOperationException(
+                "Public ICharacterAiWorldRegistry.TryGetGrid is unavailable.");
+        object[] gridArguments = { null };
+        if (!(bool)tryGetGrid.Invoke(world, gridArguments)
+            || gridArguments[0] == null)
+            throw new InvalidOperationException("Live grid is unavailable.");
+        liveGrid = gridArguments[0];
+    }
+
+    void PlaceInitialP23(string expectedCropId = null)
+    {
+        ResolveLiveGrid();
+        object controller = V(
+            Resolve("IDungeonGridBuildingControllerProvider"), "Controller");
+        object archetypes = Resolve("IRuntimeBuildingArchetypeCatalog");
+        var require = archetypes.GetType().GetMethod(
+            "RequireDefinition", new[] { typeof(int) });
+        object definition = require.Invoke(archetypes,
+            new object[] { PlotDefinitionId });
+        var footprintMethod = definition.GetType().GetMethod(
+            "GetGridPosList", new[] { typeof(Vector2Int) });
+        if (footprintMethod == null || !footprintMethod.IsPublic)
+            throw new InvalidOperationException(
+                "Public P23 footprint definition is unavailable.");
+        object placementLayer = V(V(definition, "Placement"), "Layer");
+        Type gridCellType = T("GridCell", "DungeonStory.Grid");
+        var canBuildInArea = gridCellType.GetMethod("CanBuildInArea");
+        var canOccupy = gridCellType.GetMethod(
+            "CanOccupy", new[] { placementLayer.GetType() });
+        var getOccupant = gridCellType.GetMethod(
+            "GetOccupant", new[] { placementLayer.GetType() });
+        if (canBuildInArea == null || !canBuildInArea.IsPublic
+            || canOccupy == null || !canOccupy.IsPublic
+            || getOccupant == null || !getOccupant.IsPublic)
+            throw new InvalidOperationException(
+                "Public P23 initial-placement cell contract is unavailable.");
+        var getCell = liveGrid.GetType().GetMethod(
+            "GetGridCell", new[] { typeof(Vector2Int) });
+        if (getCell == null || !getCell.IsPublic)
+            throw new InvalidOperationException("Public Grid.GetGridCell is unavailable.");
+        cropRuntime = Resolve("ICropPlotRuntime");
+        object[] existingPlots = ((IEnumerable)V(cropRuntime, "Plots"))
+            .Cast<object>()
+            .Where(value => Convert.ToInt32(V(value, "BuildingId"))
+                == PlotDefinitionId)
+            .ToArray();
+        if (existingPlots.Length > 1)
+            throw new InvalidOperationException(
+                "Expected zero or one current P23 plot; count="
+                + existingPlots.Length);
+
+        Vector2Int anchor;
+        string reusedPlotId = string.Empty;
+        if (existingPlots.Length == 1)
+        {
+            plotSnapshot = existingPlots[0];
+            anchor = (Vector2Int)V(plotSnapshot, "Position");
+            reusedPlotId = IdValue(V(plotSnapshot, "PlotId"));
+            if (string.IsNullOrWhiteSpace(reusedPlotId))
+                throw new InvalidOperationException(
+                    "Existing P23 plot has no stable plot ID.");
+            plotPlacementEvidence = "reused;plot=" + reusedPlotId
+                + ";layer=" + placementLayer;
+        }
+        else
+        {
+        object[] cells = ((IEnumerable)InvokePublicNoArgs(liveGrid, "GetCells"))
+            .Cast<object>()
+            .OrderBy(value => ((Vector2Int)V(value, "Position")).y)
+            .ThenBy(value => ((Vector2Int)V(value, "Position")).x)
+            .ToArray();
+        Vector2Int? selectedAnchor = null;
+        int candidatesChecked = 0;
+        int missingCellCandidates = 0;
+        int areaRejectedCandidates = 0;
+        int occupancyRejectedCandidates = 0;
+        foreach (object cell in cells)
+        {
+            candidatesChecked++;
+            Vector2Int candidate = (Vector2Int)V(cell, "Position");
+            Vector2Int[] footprint = ((IEnumerable)footprintMethod.Invoke(
+                    definition, new object[] { candidate }))
+                .Cast<Vector2Int>().ToArray();
+            bool missingCell = false;
+            bool areaRejected = false;
+            bool occupancyRejected = false;
+            foreach (Vector2Int position in footprint)
+            {
+                object targetCell = getCell.Invoke(liveGrid,
+                    new object[] { position });
+                if (targetCell == null)
+                {
+                    missingCell = true;
+                    continue;
+                }
+                if (!(bool)canBuildInArea.Invoke(targetCell,
+                        new[] { definition }))
+                    areaRejected = true;
+                if (!(bool)canOccupy.Invoke(targetCell,
+                        new[] { placementLayer }))
+                    occupancyRejected = true;
+            }
+            if (missingCell)
+                missingCellCandidates++;
+            if (areaRejected)
+                areaRejectedCandidates++;
+            if (occupancyRejected)
+                occupancyRejectedCandidates++;
+            if (!missingCell && !areaRejected && !occupancyRejected)
+            {
+                selectedAnchor = candidate;
+                break;
+            }
+        }
+        if (!selectedAnchor.HasValue)
+            throw new InvalidOperationException(
+                "No public P23 initial-placement anchor; candidatesChecked="
+                + candidatesChecked
+                + ";missingCell=" + missingCellCandidates
+                + ";areaRejected=" + areaRejectedCandidates
+                + ";layer=" + placementLayer
+                + ";occupancyRejected=" + occupancyRejectedCandidates
+                + ";initialCommand=not-run:no-candidate.");
+        anchor = selectedAnchor.Value;
+
+        Type initialType = T("InitialBuildInfo");
+        object initial = Activator.CreateInstance(initialType);
+        SetV(initial, "Position", anchor);
+        SetV(initial, "Building", definition);
+        Array placements = Array.CreateInstance(initialType, 1);
+        placements.SetValue(initial, 0);
+        var place = controller.GetType().GetMethods()
+            .Single(method => method.IsPublic
+                && string.Equals(method.Name, "TryPlaceInitialBuildings",
+                    StringComparison.Ordinal)
+                && method.GetParameters().Length == 2
+                && method.GetParameters()[1].ParameterType
+                    == typeof(string).MakeByRefType());
+        object[] placeArguments = { placements, null };
+        bool placed = (bool)place.Invoke(controller, placeArguments);
+        plotPlacementEvidence = "created;anchor=" + anchor
+            + ";candidatesChecked=" + candidatesChecked
+            + ";missingCell=" + missingCellCandidates
+            + ";areaRejected=" + areaRejectedCandidates
+            + ";layer=" + placementLayer
+            + ";occupancyRejected=" + occupancyRejectedCandidates
+            + ";initialCommand=" + placed
+            + ";message=" + Convert.ToString(placeArguments[1]);
+        Debug.Log("WIM043_P23_INITIAL_COMMAND;" + plotPlacementEvidence);
+        if (!placed)
+            throw new InvalidOperationException(
+                "Public P23 initial placement failed: "
+                + plotPlacementEvidence);
+        }
+
+        Vector2Int[] placedFootprint = ((IEnumerable)footprintMethod.Invoke(
+                definition, new object[] { anchor }))
+            .Cast<Vector2Int>().ToArray();
+        object[] occupants = placedFootprint.Select(position =>
+        {
+            object cell = getCell.Invoke(liveGrid, new object[] { position });
+            return cell == null ? null : getOccupant.Invoke(cell,
+                new[] { placementLayer });
+        }).ToArray();
+        if (occupants.Length == 0 || occupants.Any(value => value == null)
+            || occupants.Any(value => !ReferenceEquals(value, occupants[0])))
+            throw new InvalidOperationException(
+                "P23 footprint did not read back one exact occupant.");
+        plotBuilding = occupants[0];
+        if (Convert.ToInt32(V(plotBuilding, "id")) != PlotDefinitionId
+            || (Vector2Int)V(plotBuilding, "centerPos") != anchor)
+            throw new InvalidOperationException(
+                "P23 occupant ID/anchor readback mismatch.");
+        plotId = IdValue(V(plotBuilding, "PersistentInstanceId"));
+        if (string.IsNullOrWhiteSpace(plotId))
+            throw new InvalidOperationException("P23 has no persistent building ID.");
+        if (!string.IsNullOrWhiteSpace(reusedPlotId)
+            && !string.Equals(plotId, reusedPlotId, StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "Existing P23 plot/occupant stable-ID mismatch: plot="
+                + reusedPlotId + ";occupant=" + plotId);
+        plotSnapshot = FindPlotSnapshot(cropRuntime, plotId);
+        if (Convert.ToInt32(V(plotSnapshot, "BuildingId")) != PlotDefinitionId
+            || (Vector2Int)V(plotSnapshot, "Position") != anchor)
+            throw new InvalidOperationException(
+                "Crop runtime did not join the exact placed P23.");
+        if (!string.Equals(Convert.ToString(V(plotSnapshot, "CropId")),
+                expectedCropId ?? CropId, StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "Canonical fixture P23 default crop mismatch: "
+                + Convert.ToString(V(plotSnapshot, "CropId")));
+        plotPlacementEvidence += ";join=plot=" + plotId
+            + ";building=" + V(plotSnapshot, "BuildingId")
+            + ";position=" + V(plotSnapshot, "Position")
+            + ";crop=" + V(plotSnapshot, "CropId");
+        Debug.Log("WIM043_P23_INITIAL_PLACEMENT_JOIN;" + plotPlacementEvidence);
+    }
+
+    void SetupResearchAuthority()
+    {
+        researchRuntime = Resources.FindObjectsOfTypeAll(T("BlueprintResearchRuntime"))
+            .Cast<UnityEngine.Object>()
+            .OfType<Component>()
+            .Single(value => value.gameObject.scene.isLoaded
+                && value.gameObject.activeInHierarchy);
+        projectsState = ProjectsState(researchRuntime);
+        gatheringProject = FindProject(researchRuntime, GatheringId);
+        fieldProject = FindProject(researchRuntime, FieldId);
+        ValidateProject(gatheringProject, 17f, 1,
+            new string[0], "Available");
+        ValidateProject(fieldProject, 28f, 1,
+            new[] { GatheringId }, "Locked");
+        if (((IEnumerable)V(projectsState, "Queue")).Cast<object>().Any()
+            || !string.IsNullOrWhiteSpace(IdValue(V(
+                projectsState, "ActiveProjectId"))))
+            throw new InvalidOperationException(
+                "Fresh research queue/active authority is not empty.");
+
+        Component[] workers = actors.Where(value =>
+        {
+            object work;
+            return !Convert.ToBoolean(V(value, "IsDead"))
+                && TryGetWork(value, out work);
+        }).ToArray();
+        worker = workers.FirstOrDefault(value =>
+            !Convert.ToBoolean(V(value, "IsOwner")));
+        if (worker == null || !TryGetWork(worker, out workerWork))
+            throw new InvalidOperationException(
+                "No living non-owner work actor is available.");
+        expectedActorId = ActorId(worker);
+        if (string.IsNullOrWhiteSpace(expectedActorId))
+            throw new InvalidOperationException(
+                "Selected research/Sow actor has no persistent ID.");
+        sowWorkType = WorkType("Sow");
+    }
+
+    void CompleteFixtureResearch()
+    {
+        System.Reflection.MethodInfo completion = researchRuntime.GetType().GetMethods().Single(method =>
+            method.IsPublic && !method.IsStatic
+            && string.Equals(method.Name,
+                "TryCompleteProjectImmediatelyForVerification",
+                StringComparison.Ordinal)
+            && method.GetParameters().Length == 2
+            && method.GetParameters()[0].ParameterType
+                == T("ResearchProjectId", "DungeonStory.Research")
+            && method.GetParameters()[1].ParameterType
+                == typeof(string).MakeByRefType());
+        CompleteFixtureProject(completion, gatheringProject, GatheringId);
+        if (!Mathf.Approximately(Time.timeScale, 0f)
+            || ProjectBool(projectsState, "IsCompleted", V(fieldProject, "ProjectId")))
+            throw new InvalidOperationException(
+                "P23 selection fixture requires paused time and field research still locked.");
+        // Materialize a real, non-empty plot before unlocking its preferred grain.
+        // No player frame or input consumption occurs between these public setup calls.
+        PlaceInitialP23("crop:cave-mushroom");
+        CompleteFixtureProject(completion, fieldProject, FieldId);
+        Debug.Log("WIM043_CROP_SELECTION_FIXTURE_READY;initialCrop=crop:cave-mushroom"
+            + ";targetCrop=" + CropId + ";normalResearchEvidence=false");
+    }
+
+    void CompleteFixtureProject(
+        System.Reflection.MethodInfo completion,
+        object project,
+        string expectedId)
+    {
+        object projectId = V(project, "ProjectId");
+        string[] prerequisites = ((IEnumerable)V(project, "Prerequisites"))
+            .Cast<object>()
+            .Select(value => IdValue(V(value, "ProjectId")))
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        if (ProjectBool(projectsState, "IsCompleted", projectId))
+            throw new InvalidOperationException(
+                "Fixture project was already completed: " + expectedId);
+        foreach (string prerequisite in prerequisites)
+        {
+            object prerequisiteProject = FindProject(researchRuntime, prerequisite);
+            if (!ProjectBool(projectsState, "IsCompleted",
+                    V(prerequisiteProject, "ProjectId")))
+                throw new InvalidOperationException(
+                    "Fixture prerequisite is incomplete: project=" + expectedId
+                    + ";prerequisite=" + prerequisite);
+        }
+        object[] arguments = { projectId, string.Empty };
+        bool completed = (bool)completion.Invoke(researchRuntime, arguments);
+        string failure = Convert.ToString(arguments[1]);
+        if (!completed || !string.IsNullOrEmpty(failure)
+            || !ProjectBool(projectsState, "IsCompleted", projectId))
+            throw new InvalidOperationException(
+                "Canonical fixture completion failed: project=" + expectedId
+                + ";reason=" + failure);
+        Debug.Log("WIM043_FIXTURE_CANONICAL_COMPLETION;project=" + expectedId
+            + ";prerequisites=" + string.Join(",", prerequisites)
+            + ";normalResearchEvidence=false");
+    }
+
+    void ValidateProject(
+        object project,
+        float requiredWork,
+        int maximumResearchers,
+        string[] prerequisites,
+        string expectedState)
+    {
+        string[] actualPrerequisites = ((IEnumerable)V(project, "Prerequisites"))
+            .Cast<object>()
+            .Select(value => IdValue(V(value, "ProjectId")))
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string[] expectedPrerequisites = prerequisites
+            .OrderBy(value => value, StringComparer.Ordinal).ToArray();
+        if (!Mathf.Approximately(Convert.ToSingle(V(project, "RequiredWork")),
+                requiredWork)
+            || Convert.ToInt32(V(project, "MaximumResearchers"))
+                != maximumResearchers
+            || !actualPrerequisites.SequenceEqual(
+                expectedPrerequisites, StringComparer.Ordinal)
+            || !string.Equals(Convert.ToString(V(project, "BlueprintRule")),
+                "None", StringComparison.Ordinal)
+            || !string.Equals(ProjectState(researchRuntime, project),
+                expectedState, StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "Research authoring/readiness mismatch for "
+                + IdValue(V(project, "ProjectId")));
+    }
+
+    void BuildResearchPriorityTasks()
+    {
+        ResetPriorityTasks();
+        object research = WorkType("Research");
+        object haul = WorkType("Haul");
+        object restock = WorkType("Restock");
+        foreach (Component actor in actors)
+        {
+            object work;
+            if (!TryGetWork(actor, out work))
+                continue;
+            AddPriorityTask(work, research,
+                ReferenceEquals(actor, worker) ? "Priority1" : "Off");
+            if (!ReferenceEquals(actor, worker))
+            {
+                AddPriorityTask(work, sowWorkType, "Off");
+                AddPriorityTask(work, haul, "Off");
+                AddPriorityTask(work, restock, "Off");
+            }
+        }
+        string researchId = IdValue(research);
+        foreach (object definition in WorkDefinitions())
+        {
+            object workType = V(definition, "WorkTypeId");
+            if (!string.Equals(IdValue(workType), researchId,
+                    StringComparison.Ordinal))
+                AddPriorityTask(workerWork, workType, "Off");
+        }
+    }
+
+    void BuildSowPriorityTasks()
+    {
+        ResetPriorityTasks();
+        object research = WorkType("Research");
+        foreach (Component actor in actors)
+        {
+            object work;
+            if (!TryGetWork(actor, out work))
+                continue;
+            AddPriorityTask(work, research, "Off");
+            AddPriorityTask(work, sowWorkType,
+                ReferenceEquals(actor, worker) ? "Priority1" : "Off");
+        }
+        // The canonical research fixture skips BuildResearchPriorityTasks.
+        // Isolate this worker's production work explicitly through the same UI;
+        // survival needs and the other actors' normal support work remain live.
+        string sowId = IdValue(sowWorkType);
+        foreach (object definition in WorkDefinitions())
+        {
+            object workType = V(definition, "WorkTypeId");
+            if (!string.Equals(IdValue(workType), sowId, StringComparison.Ordinal)
+                && !string.Equals(IdValue(workType), IdValue(research), StringComparison.Ordinal))
+                AddPriorityTask(workerWork, workType, "Off");
+        }
+    }
+
+    void ResetPriorityTasks()
+    {
+        taskWorkers.Clear();
+        taskWorkTypes.Clear();
+        taskSuffixes.Clear();
+        taskDesired.Clear();
+        taskIndex = 0;
+        taskClicks = 0;
+    }
+
+    void AddPriorityTask(object work, object workType, string desired)
+    {
+        string key = ActorId(V(work, "WorkerActor")) + "|" + IdValue(workType);
+        for (int index = 0; index < taskWorkers.Count; index++)
+        {
+            string existing = ActorId(V(taskWorkers[index], "WorkerActor"))
+                + "|" + IdValue(taskWorkTypes[index]);
+            if (string.Equals(existing, key, StringComparison.Ordinal))
+            {
+                taskDesired[index] = desired;
+                return;
+            }
+        }
+        taskWorkers.Add(work);
+        taskWorkTypes.Add(workType);
+        taskSuffixes.Add(LegacyWorkName(workType));
+        taskDesired.Add(desired);
+    }
+
+    bool ProcessPriorityTask()
+    {
+        if (taskIndex >= taskWorkers.Count)
+            return true;
+        object work = taskWorkers[taskIndex];
+        object workType = taskWorkTypes[taskIndex];
+        string current = WorkPriority(work, workType);
+        if (string.Equals(current, taskDesired[taskIndex],
+                StringComparison.Ordinal))
+        {
+            taskIndex++;
+            taskClicks = 0;
+            earliestPlayerFrame = Time.frameCount + 1;
+            return false;
+        }
+        if (taskClicks >= 4)
+            throw new InvalidOperationException(
+                "Priority UI did not reach " + taskDesired[taskIndex]
+                + " for " + IdValue(workType) + ";current=" + current);
+        object actor = V(work, "WorkerActor");
+        string cell = "Cell_"
+            + ((UnityEngine.Object)actor).GetInstanceID()
+            + "_" + taskSuffixes[taskIndex];
+        Click(FindActiveButton(cell));
+        taskClicks++;
+        earliestPlayerFrame = Time.frameCount + 1;
+        return false;
+    }
+
+    void BeginResearchIndexWarmup()
+    {
+        researchIndexCache = Resolve("IFacilityCandidateCache");
+        InvokeResearchCandidateQuery();
+        bool pending = Convert.ToBoolean(V(
+            researchIndexCache, "HasPendingIndexBuild"));
+        indexGameStart = Convert.ToSingle(V(gameClock, "Time"));
+        indexWallStart = EditorApplication.timeSinceStartup;
+        researchIndexEvidence = "pendingBefore=" + pending
+            + ";versionBefore=" + Convert.ToString(V(
+                researchIndexCache, "CandidateIndexVersion"));
+        if (pending)
+            Time.timeScale = 1f;
+    }
+
+    bool TickResearchIndexWarmup()
+    {
+        InvokeResearchCandidateQuery();
+        bool pending = Convert.ToBoolean(V(
+            researchIndexCache, "HasPendingIndexBuild"));
+        if (!pending)
+        {
+            researchIndexEvidence += ";game=" + indexGameStart + "->"
+                + Convert.ToSingle(V(gameClock, "Time"))
+                + ";versionAfter=" + Convert.ToString(V(
+                    researchIndexCache, "CandidateIndexVersion"));
+            return true;
+        }
+        if (Convert.ToSingle(V(gameClock, "Time")) - indexGameStart
+                >= ResearchIndexMaximumGameSeconds
+            || EditorApplication.timeSinceStartup - indexWallStart
+                >= ResearchIndexMaximumWallSeconds)
+            throw new InvalidOperationException(
+                "Research candidate index normal warmup timed out.");
+        return false;
+    }
+
+    void InvokeResearchCandidateQuery()
+    {
+        Type gridType = T("Grid", "DungeonStory.Grid");
+        Type facilityType = T("FacilityWorkType", "DungeonStory.Buildings");
+        var method = researchIndexCache.GetType().GetMethod(
+            "GetWorkCandidates", new[] { gridType, facilityType });
+        if (method == null || !method.IsPublic)
+            throw new InvalidOperationException(
+                "Public GetWorkCandidates is unavailable.");
+        method.Invoke(researchIndexCache, new[]
+        {
+            liveGrid, Enum.Parse(facilityType, "Research")
+        });
+    }
+
+    void QueueProjectThroughUi(object project, string expectedId)
+    {
+        if (!string.Equals(ProjectState(researchRuntime, project),
+                "Available", StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "Project is not Available at UI enqueue: " + expectedId
+                + "/" + ProjectState(researchRuntime, project));
+        Button action = FindActiveButton("ProjectAction");
+        string label = ButtonLabel(action);
+        if (!string.Equals(label, "연구 예약", StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "ProjectAction is not the exact research reservation: " + label);
+        Click(action);
+        object id = V(project, "ProjectId");
+        string[] queue = QueueIds(projectsState);
+        string active = IdValue(V(projectsState, "ActiveProjectId"));
+        if (!queue.Contains(expectedId, StringComparer.Ordinal)
+            || !string.Equals(active, expectedId, StringComparison.Ordinal)
+            || !ProjectBool(projectsState, "ContainsInQueue", id))
+            throw new InvalidOperationException(
+                "Actual Research UI enqueue readback mismatch for " + expectedId
+                + ";queue=" + string.Join(",", queue) + ";active=" + active);
+    }
+
+    bool WaitForResearch(object project, string expectedId)
+    {
+        object id = V(project, "ProjectId");
+        bool complete = ProjectBool(projectsState, "IsCompleted", id);
+        if (Day() >= 4)
+            throw new InvalidOperationException(
+                "RESEARCH_READINESS_BLOCKER_DAY4;project=" + expectedId
+                + ";complete=" + complete + ";progress="
+                + Convert.ToString(V(ProjectProgress(projectsState, id), "Progress")));
+        if (!complete)
+            return false;
+        if (!researchEventCounts.TryGetValue(expectedId, out int count)
+            || count <= 0
+            || !researchEventDeltas.TryGetValue(expectedId, out float delta)
+            || delta <= 0f)
+            throw new InvalidOperationException(
+                "Completed project lacks same-actor ResearchProgressEvent: "
+                + expectedId);
+        Debug.Log("WIM043_RESEARCH_COMPLETED;project=" + expectedId
+            + ";progress=" + V(ProjectProgress(projectsState, id), "Progress")
+            + ";events=" + count + ";delta=" + delta + ";day=" + Day());
+        return true;
+    }
+
+    void DisplayPlot()
+    {
+        Component[] panels = Resources.FindObjectsOfTypeAll(T("UIBuildingInfo"))
+            .Cast<UnityEngine.Object>()
+            .OfType<Component>()
+            .Where(value => value.gameObject.scene.isLoaded)
+            .ToArray();
+        if (panels.Length != 1)
+            throw new InvalidOperationException(
+                "Expected one loaded UIBuildingInfo; count=" + panels.Length);
+        var display = panels[0].GetType().GetMethod(
+            "DisplayBuildingInfo", new[] { T("BuildableObject") });
+        if (display == null || !display.IsPublic)
+            throw new InvalidOperationException(
+                "Public DisplayBuildingInfo is unavailable.");
+        display.Invoke(panels[0], new[] { plotBuilding });
+        InvokePublicNoArgs(panels[0], "OpenDispaly");
+        Canvas.ForceUpdateCanvases();
+    }
+
+    Button FindCropChoiceButton()
+    {
+        Transform[] rows = Resources.FindObjectsOfTypeAll<Transform>()
+            .Where(value => value != null
+                && value.gameObject.scene.isLoaded
+                && value.gameObject.activeInHierarchy
+                && string.Equals(value.name, "CropChoice_" + CropId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        if (rows.Length != 1)
+            throw new InvalidOperationException(
+                "Expected one active exact crop row; count=" + rows.Length);
+        Button[] buttons = rows[0].GetComponentsInChildren<Button>(true)
+            .Where(value => value.gameObject.activeInHierarchy).ToArray();
+        if (buttons.Length != 1 || !buttons[0].IsInteractable()
+            || !string.Equals(ButtonLabel(buttons[0]), "선택",
+                StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "Exact crop row does not expose one interactable 선택 button.");
+        return buttons[0];
+    }
+
+    void ValidateCropRequirements(object plot)
+    {
+        string[] requirements = ((IEnumerable)V(plot, "RequiredMaterials"))
+            .Cast<object>()
+            .Select(value => Convert.ToString(V(value, "Key"))
+                + "x" + Convert.ToInt32(V(value, "Value")))
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string[] expected =
+        {
+            "resource:clean-waterx1",
+            "seed-lot:twilight-grainx1",
+            "supply:nitrate-fertilizerx1"
+        };
+        Array.Sort(expected, StringComparer.Ordinal);
+        if (!requirements.SequenceEqual(expected, StringComparer.Ordinal)
+            || Convert.ToInt32(V(plot, "CycleWaterQuantity")) != 1)
+            throw new InvalidOperationException(
+                "Authored crop input vector mismatch: "
+                + string.Join(",", requirements));
+        materialDestinationId = Convert.ToString(V(
+            plot, "MaterialDestinationId"));
+        if (string.IsNullOrWhiteSpace(materialDestinationId))
+            throw new InvalidOperationException(
+                "Crop material destination authority is empty.");
+    }
+
+    void ValidateFloodWindow()
+    {
+        if (floodEventCount != 1 || floodEventDay != FloodDay || !floodPhysical)
+            throw new InvalidOperationException(
+                "Actual Day1 flood start event mismatch: count=" + floodEventCount
+                + ";day=" + floodEventDay + ";physical=" + floodPhysical);
+        if (!ActiveSeasonalIds().SequenceEqual(
+                new[] { FloodEventId }, StringComparer.Ordinal))
+            throw new InvalidOperationException(
+                "Actual Day1 active seasonal event is not the flood.");
+        if (Convert.ToInt32(V(dailyDiagnostic,
+                "LastDailyEvaluationAbsoluteDay")) != FloodDay
+            || !Convert.ToBoolean(V(dailyDiagnostic,
+                "LastDailyEvaluationSucceeded")))
+            throw new InvalidOperationException(
+                "Day1 daily evaluation did not succeed.");
+        if (RemainingFloodDays() != 1
+            || !Mathf.Approximately(DelayMultiplier(), 0.8f))
+            throw new InvalidOperationException(
+                "Day1 flood delay authority is not 1 day / 0.8x.");
+        floodProjectionEvidence = CaptureActorProjection(
+            "day1-flood", out floodActorMultiplier);
+        if (floodActorMultiplier <= 0f
+            || float.IsNaN(floodActorMultiplier)
+            || float.IsInfinity(floodActorMultiplier))
+            throw new InvalidOperationException(
+                "Day1 same-actor Sow context multiplier is not finite positive.");
+        floodWindowEvidence = "active=" + string.Join(",", ActiveSeasonalIds())
+            + ";remaining=1;typed=0.8;preProjection=["
+            + preFloodProjectionEvidence + "];floodProjection=["
+            + floodProjectionEvidence + "]";
+    }
+
+    void SpawnExactCropInputs()
+    {
+        plotSnapshot = FindPlotSnapshot(cropRuntime, plotId);
+        ValidateCropRequirements(plotSnapshot);
+        Vector2Int position = (Vector2Int)V(plotSnapshot, "Position");
+        object itemState = Enum.Parse(
+            T("WorldItemStackState", "DungeonStory.Items"),
+            "FacilityBuffer");
+        object economy = Resolve(
+            "IResourceEconomyContentCatalog", "DungeonStory.Economy");
+        var tryCrop = economy.GetType().GetMethod(
+            "TryGetCrop", new[]
+            {
+                typeof(string),
+                T("CropDefinitionSO", "DungeonStory.Economy").MakeByRefType()
+            });
+        object[] cropArguments = { CropId, null };
+        if (tryCrop == null || !tryCrop.IsPublic
+            || !(bool)tryCrop.Invoke(economy, cropArguments))
+            throw new InvalidOperationException(
+                "Authored twilight-grain crop is unavailable.");
+        object crop = cropArguments[1];
+        if (!string.Equals(Convert.ToString(V(crop, "SeedItemId")),
+                SeedItemId, StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "Twilight-grain seed item authority mismatch.");
+
+        object seedState = Activator.CreateInstance(
+            T("SeedLotState", "DungeonStory.Economy"));
+        SetV(seedState, "cropId", CropId);
+        SetV(seedState, "cultivarGenomeId",
+            Convert.ToString(V(V(crop, "BaseGenome"), "GenomeId")));
+        SetV(seedState, "generation", 0);
+        SetV(seedState, "pathogenLoad", 0f);
+        Type codec = T("SeedLotItemStateCodec", "DungeonStory.Economy");
+        var encode = codec.GetMethod("Encode", new[] { seedState.GetType() });
+        object component = encode.Invoke(null, new[] { seedState });
+        Type componentType = T(
+            "ItemInstanceComponentSaveData", "DungeonStory.Items");
+        Array components = Array.CreateInstance(componentType, 1);
+        components.SetValue(component, 0);
+
+        object transfers = Resolve("IItemTransferService");
+        var spawnSeed = transfers.GetType().GetMethods()
+            .Single(method => method.IsPublic
+                && string.Equals(method.Name, "TrySpawnItemWithComponents",
+                    StringComparison.Ordinal)
+                && method.GetParameters().Length == 7);
+        object[] seedArguments =
+        {
+            SeedItemId, 1, position, itemState,
+            materialDestinationId, components, 0
+        };
+        bool seedOk = (bool)spawnSeed.Invoke(transfers, seedArguments);
+        int seedCount = Convert.ToInt32(seedArguments[6]);
+
+        object items = Resolve("IWorldItemStackRuntime");
+        Type stateType = T("WorldItemStackState", "DungeonStory.Items");
+        int clean = SpawnPlain(items, stateType, "resource:clean-water",
+            position, itemState);
+        int nitrate = SpawnPlain(items, stateType, "supply:nitrate-fertilizer",
+            position, itemState);
+        if (!seedOk || seedCount != 1 || clean != 1 || nitrate != 1)
+            throw new InvalidOperationException(
+                "Exact crop physical input spawn mismatch: seed=" + seedCount
+                + ";water=" + clean + ";nitrate=" + nitrate);
+        inputEvidence = SeedItemId + "x1|resource:clean-waterx1|"
+            + "supply:nitrate-fertilizerx1;destination="
+            + materialDestinationId + ";position=" + position;
+    }
+
+    int SpawnPlain(
+        object items,
+        Type stateType,
+        string itemId,
+        Vector2Int position,
+        object state)
+    {
+        var method = items.GetType().GetMethod("SpawnItemAt", new[]
+        {
+            typeof(string), typeof(int), typeof(Vector2Int), stateType,
+            typeof(string), typeof(int).MakeByRefType()
+        });
+        if (method == null || !method.IsPublic)
+            throw new InvalidOperationException(
+                "Public exact SpawnItemAt overload is unavailable.");
+        object[] arguments =
+        {
+            itemId, 1, position, state, materialDestinationId, 0
+        };
+        bool ok = (bool)method.Invoke(items, arguments);
+        int spawned = Convert.ToInt32(arguments[5]);
+        if (!ok)
+            throw new InvalidOperationException(
+                "Physical crop input spawn rejected: " + itemId);
+        return spawned;
+    }
+
+    void ObserveSow()
+    {
+        float now = Convert.ToSingle(V(gameClock, "Time"));
+        if (lastSowReadinessGameTime < 0f || now - lastSowReadinessGameTime >= 15f)
+            CaptureSowReadiness("day1-observation");
+        plotSnapshot = FindPlotSnapshot(cropRuntime, plotId);
+        float progress = Convert.ToSingle(V(plotSnapshot, "SowProgress"));
+        if (progress > maximumSowProgress)
+            maximumSowProgress = progress;
+        string assigned = IdValue(V(workerWork, "AssignedWorkTypeId"));
+        bool working = Convert.ToBoolean(V(workerWork, "isWorking"));
+        object brain = V(worker, "Brain");
+        string action = brain == null ? "<no-brain>"
+            : Convert.ToString(V(brain, "CurrentActionDebugLabel"))
+                + "/" + Convert.ToString(V(brain, "CurrentActionPhase"))
+                + "/" + Convert.ToString(V(brain, "CurrentActionPhaseDetail"));
+        if (progress > 0f && working
+            && string.Equals(assigned, IdValue(sowWorkType),
+                StringComparison.Ordinal))
+        {
+            actualSowObserved = true;
+            sowActionEvidence = "actor=" + expectedActorId
+                + ";working=true;assigned=" + assigned
+                + ";progress=" + progress + ";action=" + action;
+            if (!sowUiObserved
+                && string.Equals(Convert.ToString(V(plotSnapshot, "Phase")),
+                    "Sowing", StringComparison.Ordinal))
+            {
+                Time.timeScale = 0f;
+                DisplayPlot();
+                Transform[] roots = Resources.FindObjectsOfTypeAll<Transform>()
+                    .Where(value => value != null
+                        && value.gameObject.scene.isLoaded
+                        && value.gameObject.activeInHierarchy
+                        && string.Equals(value.name, "CropProgress",
+                            StringComparison.Ordinal))
+                    .ToArray();
+                if (roots.Length != 1)
+                    throw new InvalidOperationException(
+                        "Expected one active CropProgress; count=" + roots.Length);
+                Type textType = T("TMPro.TMP_Text", "Unity.TextMeshPro");
+                string[] labels = roots[0].GetComponentsInChildren(textType, true)
+                    .Cast<Component>()
+                    .Select(value => Convert.ToString(V(value, "text")))
+                    .Where(value => !string.IsNullOrWhiteSpace(value))
+                    .ToArray();
+                if (labels.Length != 1
+                    || labels[0].IndexOf("파종 중", StringComparison.Ordinal) < 0)
+                    throw new InvalidOperationException(
+                        "CropProgress did not render actual Sowing: "
+                        + string.Join("|", labels));
+                sowUiObserved = true;
+                sowUiEvidence = labels[0];
+                Time.timeScale = 1f;
+            }
+        }
+    }
+
+    void CaptureSowReadiness(string boundary)
+    {
+        plotSnapshot = FindPlotSnapshot(cropRuntime, plotId);
+        Type workSnapshotType = T("CropPlotWorkSnapshot");
+        var query = cropRuntime.GetType().GetMethod("TryGetWork", new[]
+        {
+            T("BuildableObject"), T("WorkTypeId", "DungeonStory.Work"),
+            workSnapshotType.MakeByRefType()
+        });
+        if (query == null || !query.IsPublic)
+            throw new InvalidOperationException("Missing exact public crop TryGetWork signature.");
+        object[] arguments = { plotBuilding, sowWorkType, null };
+        bool found = (bool)query.Invoke(cropRuntime, arguments);
+        object work = arguments[2];
+        string required = string.Join(",", ((IEnumerable<KeyValuePair<string, int>>)
+                V(plotSnapshot, "RequiredMaterials"))
+            .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .Select(pair => pair.Key + "=" + pair.Value));
+        string delivered = string.Join(",", ((IEnumerable<KeyValuePair<string, int>>)
+                V(plotSnapshot, "DeliveredMaterials"))
+            .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .Select(pair => pair.Key + "=" + pair.Value));
+        lastSowReadinessGameTime = Convert.ToSingle(V(gameClock, "Time"));
+        sowReadinessEvidence = boundary + ";gameTime=" + lastSowReadinessGameTime
+            + ";phase=" + V(plotSnapshot, "Phase")
+            + ";blocked=" + V(plotSnapshot, "BlockedReason")
+            + ";required=" + required + ";delivered=" + delivered
+            + ";waterStatus=" + V(plotSnapshot, "CycleWaterSupplyStatus")
+            + ";found=" + found
+            + ";available=" + (found && Convert.ToBoolean(V(work, "Available")))
+            + ";unavailable=" + (found ? Convert.ToString(V(work, "UnavailableReason")) : "no-work")
+            + ";worker=[" + DescribeActorSurvivalState(worker) + "]";
+        Debug.Log("WIM043_SOW_READINESS;" + sowReadinessEvidence);
+    }
+
+    int Day() => Convert.ToInt32(V(calendar, "Day"));
+
+    int RemainingFloodDays()
+    {
+        var method = delayQuery.GetType().GetMethod(
+            "GetRemainingDays", new[] { typeof(string) });
+        return Convert.ToInt32(method.Invoke(delayQuery,
+            new object[] { "flood" }));
+    }
+
+    float DelayMultiplier()
+    {
+        var method = delayQuery.GetType().GetMethod(
+            "GetWorkSpeedMultiplier", new[]
+            {
+                T("WorkTypeId", "DungeonStory.Work")
+            });
+        return Convert.ToSingle(method.Invoke(delayQuery,
+            new[] { sowWorkType }));
+    }
+
+    float ActorSowMultiplier()
+    {
+        var method = worker.GetType().GetMethod(
+            "GetWorkContextMultiplier", new[]
+            {
+                T("WorkTypeId", "DungeonStory.Work")
+            });
+        if (method == null || !method.IsPublic)
+            throw new InvalidOperationException(
+                "Public CharacterActor.GetWorkContextMultiplier is unavailable.");
+        return Convert.ToSingle(method.Invoke(worker,
+            new[] { sowWorkType }));
+    }
+
+    string CaptureActorProjection(string label, out float contextMultiplier)
+    {
+        contextMultiplier = ActorSowMultiplier();
+        float fatigue = Convert.ToSingle(InvokePublicNoArgs(
+            worker, "GetFatigueEfficiencyMultiplier"));
+        float injury = Convert.ToSingle(InvokePublicNoArgs(
+            worker, "GetInjuryEfficiencyMultiplier"));
+        return label + ":actor=" + expectedActorId
+            + ";context=" + contextMultiplier
+            + ";fatigue=" + fatigue
+            + ";injury=" + injury
+            + ";typedDelay=" + DelayMultiplier();
+    }
+
+    string[] ActiveSeasonalIds()
+    {
+        return ((IEnumerable)V(seasonalQuery, "ActiveSeasonalEvents"))
+            .Cast<object>()
+            .Select(value => Convert.ToString(V(value, "definitionId")))
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    void SubscribeEvents()
+    {
+        if (researchSubscription != null || seasonalSubscription != null)
+            throw new InvalidOperationException("WIM043_DUPLICATE_EVENT_SUBSCRIPTION.");
+        object eventBus = Resolve(
+            "DungeonStory.Foundation.IGameEventBus",
+            "DungeonStory.Foundation");
+        researchSubscription = SubscribeGeneric(
+            eventBus, T("ResearchProgressEvent"),
+            "OnResearchEvent");
+        seasonalSubscription = SubscribeGeneric(
+            eventBus, T("V20ContentEffectsResolvedEvent"),
+            "OnSeasonalEvent");
+    }
+
+    IDisposable SubscribeGeneric(
+        object eventBus,
+        Type eventType,
+        string callbackName)
+    {
+        var subscribe = eventBus.GetType().GetMethods()
+            .Single(method => method.IsPublic
+                && method.IsGenericMethodDefinition
+                && string.Equals(method.Name, "Subscribe",
+                    StringComparison.Ordinal)
+                && method.GetParameters().Length == 1);
+        var callback = GetType().GetMethod(callbackName);
+        if (subscribe == null || callback == null || !callback.IsPublic
+            || !callback.IsGenericMethodDefinition)
+            throw new InvalidOperationException(
+                "Public event subscription/callback is unavailable: "
+                + callbackName);
+        var closed = callback.MakeGenericMethod(eventType);
+        Delegate action = Delegate.CreateDelegate(
+            typeof(Action<>).MakeGenericType(eventType), this, closed);
+        IDisposable subscription = subscribe.MakeGenericMethod(eventType)
+            .Invoke(eventBus, new object[] { action }) as IDisposable;
+        return subscription ?? throw new InvalidOperationException(
+            "Event subscription returned null: " + callbackName);
+    }
+
+    public void OnResearchEvent<TEvent>(TEvent value)
+    {
+        try
+        {
+            object evt = value;
+            string projectId = Convert.ToString(V(evt, "ProjectId"));
+            string actorId = IdValue(V(evt, "Researcher"));
+            float approved = Convert.ToSingle(V(evt, "ApprovedWork"));
+            float delta = Convert.ToSingle(V(evt, "ProgressDelta"));
+            int day = Convert.ToInt32(V(evt, "AbsoluteDay"));
+            researchEvents.Add("day=" + day + ";project=" + projectId
+                + ";actor=" + actorId + ";approved=" + approved
+                + ";delta=" + delta);
+            if (projectId != GatheringId && projectId != FieldId)
+                return;
+            if (!string.Equals(actorId, expectedActorId,
+                    StringComparison.Ordinal)
+                || approved <= 0f || delta <= 0f)
+            {
+                callbackFailure = true;
+                callbackFailureDetail =
+                    "Research target had nonmatching contributor/delta: "
+                    + researchEvents[researchEvents.Count - 1];
+                return;
+            }
+            researchEventCounts[projectId] =
+                researchEventCounts.TryGetValue(projectId, out int count)
+                    ? count + 1 : 1;
+            researchEventDeltas[projectId] =
+                researchEventDeltas.TryGetValue(projectId, out float sum)
+                    ? sum + delta : delta;
+        }
+        catch (Exception exception)
+        {
+            callbackFailure = true;
+            callbackFailureDetail = "Research callback failed: "
+                + exception.GetType().Name + ": " + exception.Message;
+        }
+    }
+
+    public void OnSeasonalEvent<TEvent>(TEvent value)
+    {
+        try
+        {
+            object evt = value;
+            string definition = Convert.ToString(V(evt, "DefinitionId"));
+            string resolution = Convert.ToString(V(evt, "ResolutionId"));
+            bool physical = Convert.ToBoolean(V(evt, "PhysicalEffectsApplied"));
+            string effects = string.Join(",",
+                ((IEnumerable)V(evt, "Effects")).Cast<object>()
+                    .Select(effect => Convert.ToString(V(effect, "kind"))
+                        + ":" + Convert.ToString(V(effect, "targetId"))
+                        + ":" + Convert.ToString(V(effect, "amount"))));
+            seasonalEvents.Add("day=" + Day() + ";definition=" + definition
+                + ";resolution=" + resolution + ";physical=" + physical
+                + ";effects=" + effects);
+            if (!string.Equals(definition, FloodEventId,
+                    StringComparison.Ordinal)
+                || !string.Equals(resolution, "started",
+                    StringComparison.Ordinal))
+                return;
+            floodEventCount++;
+            floodEventDay = Day();
+            floodPhysical = physical;
+        }
+        catch (Exception exception)
+        {
+            callbackFailure = true;
+            callbackFailureDetail = "Seasonal callback failed: "
+                + exception.GetType().Name + ": " + exception.Message;
+        }
+    }
+
+    void OnPlayModeStateChanged(PlayModeStateChange state)
+    {
+        if (state != PlayModeStateChange.ExitingPlayMode
+            && state != PlayModeStateChange.EnteredEditMode)
+            return;
+        bool wasInstalled = installed;
+        Unsubscribe();
+        DisposeSubscriptions();
+        if (wasInstalled)
+            Debug.Log("WIM043 PLAY_EXIT_CLEANUP phase=" + phase);
+    }
+
+    void Finish(string outcome, bool error, string detail)
+    {
+        if (!installed)
+            return;
+        string survivalTerminal = SafeSurvivalTerminalDiagnostics();
+        try
+        {
+            if (Application.isPlaying)
+                Time.timeScale = 0f;
+        }
+        finally
+        {
+            Unsubscribe();
+            DisposeSubscriptions();
+            EditorApplication.isPaused = true;
+        }
+        string message = "WIM043 " + outcome
+            + ";phase=" + phase
+            + ";seed=" + RunSeed + ";prediction=[" + detachedPrediction + "]"
+            + ";day=" + SafeDay()
+            + ";actor=" + expectedActorId
+            + ";researchIndex=[" + researchIndexEvidence + "]"
+            + ";researchEvents=[" + string.Join("|", researchEvents) + "]"
+            + ";seasonalEvents=[" + string.Join("|", seasonalEvents) + "]"
+            + ";plot=" + plotId + ";destination=" + materialDestinationId
+            + ";plotPlacement=[" + plotPlacementEvidence + "]"
+            + ";starterStockInitial=[" + initialSurvivalStockEvidence + "]"
+            + ";survivalTerminal=[" + survivalTerminal + "]"
+            + ";inputs=[" + inputEvidence + "]"
+            + ";floodWindow=[" + floodWindowEvidence + "]"
+            + ";sowProgress=" + maximumSowProgress
+            + ";sowAction=[" + sowActionEvidence + "]"
+            + ";sowReadiness=[" + sowReadinessEvidence + "]"
+            + ";cropUi=[" + sowUiEvidence + "]"
+            + ";actorProjectionObserved=[" + preFloodProjectionEvidence
+            + "|" + floodProjectionEvidence
+            + "|" + expiredProjectionEvidence + "]"
+            + ";paused=" + (Application.isPlaying
+                && Mathf.Approximately(Time.timeScale, 0f))
+            + ";detail=" + detail;
+        if (error)
+            Debug.LogError(message);
+        else if (!string.Equals(outcome, "PASS", StringComparison.Ordinal))
+            Debug.LogWarning(message);
+        else
+            Debug.Log(message);
+    }
+
+    string SafeSurvivalTerminalDiagnostics()
+    {
+        try
+        {
+            string stock = itemRuntime == null
+                ? "<not-initialized>"
+                : DescribeStacks(((IEnumerable)InvokePublicNoArgs(
+                        itemRuntime, "GetAllStacks"))
+                    .Cast<object>()
+                    .Where(value => value != null
+                        && (string.Equals(Convert.ToString(V(value, "ItemId")),
+                                StarterFoodId, StringComparison.Ordinal)
+                            || string.Equals(Convert.ToString(V(value, "ItemId")),
+                                StarterWaterId, StringComparison.Ordinal)))
+                    .OrderBy(value => Convert.ToString(V(value, "ItemId")),
+                        StringComparer.Ordinal)
+                    .ThenBy(value => Convert.ToString(V(value, "StackId")),
+                        StringComparer.Ordinal));
+            string actorRows = string.Join("|", ActiveActors().Select(
+                DescribeActorSurvivalState));
+            return "actors=[" + actorRows + "];physical=[" + stock + "]";
+        }
+        catch (Exception exception)
+        {
+            return "diagnostic-error=" + exception.GetType().Name
+                + ":" + exception.Message;
+        }
+    }
+
+    static string DescribeActorSurvivalState(Component actor)
+    {
+        object brain = V(actor, "Brain");
+        object blackboard = V(actor, "Blackboard");
+        object work;
+        bool hasWork = TryGetWork(actor, out work);
+        Type branchType = T("CharacterAiBranch", "DungeonStory.AI");
+        var branchRejection = brain.GetType().GetMethod(
+            "GetCurrentJobGiverEvaluationRejectionSummary", new[] { branchType });
+        if (branchRejection == null || !branchRejection.IsPublic)
+            throw new InvalidOperationException("Missing public cached branch rejection query.");
+        object rejected = null;
+        bool hasRejected = false;
+        if (hasWork)
+        {
+            Type candidateType = T("WorkTargetCandidate", "DungeonStory.Work");
+            var rejectedQuery = work.GetType().GetMethod(
+                "TryGetLastRejectedWorkCandidate", new[] { candidateType.MakeByRefType() });
+            if (rejectedQuery == null || !rejectedQuery.IsPublic)
+                throw new InvalidOperationException("Missing public cached rejected-candidate query.");
+            object[] candidateArguments = { Activator.CreateInstance(candidateType) };
+            hasRejected = (bool)rejectedQuery.Invoke(work, candidateArguments);
+            rejected = candidateArguments[0];
+        }
+        return "actor=" + ActorId(actor)
+            + ";alive=" + !Convert.ToBoolean(V(actor, "IsDead"))
+            + ";lifecycle=" + Convert.ToString(V(
+                actor, "CurrentLifecycleState"))
+            + ";canRun=" + Convert.ToBoolean(V(actor, "CanRunAi"))
+            + ";hunger=" + ReadNeed(actor, "HUNGER")
+            + ";thirst=" + ReadNeed(actor, "THIRST")
+            + ";action=" + Convert.ToString(V(brain,
+                "CurrentActionDebugLabel"))
+            + ";phase=" + Convert.ToString(V(brain, "CurrentActionPhase"))
+            + ";detail=" + Convert.ToString(V(
+                brain, "CurrentActionPhaseDetail"))
+            + ";destination=" + Convert.ToString(V(
+                brain, "CurrentDestinationDebugLabel"))
+            + ";failure=" + Convert.ToString(V(brain, "LastActionFailure"))
+            + ";jobRejected=" + Convert.ToString(V(
+                brain, "CurrentJobGiverEvaluationRejectionSummary"))
+            + ";workBranchRejected=" + Convert.ToString(branchRejection.Invoke(
+                brain, new[] { Enum.Parse(branchType, "Work", false) }))
+            + ";route=" + Convert.ToString(V(
+                blackboard, "LastDecisionRouteSummary"))
+            + ";trace=" + Convert.ToString(V(blackboard, "LastDecisionTrace"))
+            + ";lastRejectedTarget=" + (hasRejected
+                ? Convert.ToString(V(rejected, "Building"))
+                    + "/" + IdValue(V(rejected, "WorkTypeId"))
+                    + "/" + Convert.ToString(V(rejected, "FailureKind"))
+                    + "/" + Convert.ToString(V(rejected, "FailureReason"))
+                : "none")
+            + ";work=" + (hasWork
+                ? "active=" + Convert.ToBoolean(V(work, "isWorking"))
+                    + "/routine=" + Convert.ToBoolean(V(
+                        work, "HasActiveWorkRoutineForDiagnostics"))
+                    + "/assigned=" + IdValue(V(
+                        work, "AssignedWorkTypeId"))
+                : "none");
+    }
+
+    static string ReadNeed(Component actor, string conditionName)
+    {
+        object stats = V(actor, "Stats");
+        Type conditionType = T(
+            "CharacterCondition", "DungeonStory.Characters");
+        var method = stats.GetType().GetMethod(
+            "TryGetConditionValue", new[]
+            {
+                conditionType, typeof(float).MakeByRefType()
+            });
+        if (method == null || !method.IsPublic)
+            return "<query-missing>";
+        object[] arguments =
+        {
+            Enum.Parse(conditionType, conditionName), 0f
+        };
+        return (bool)method.Invoke(stats, arguments)
+            ? Convert.ToSingle(arguments[1]).ToString("0.###")
+            : "<missing>";
+    }
+
+    int SafeDay()
+    {
+        try { return calendar == null ? -1 : Day(); }
+        catch { return -1; }
+    }
+
+    void DisposeSubscriptions()
+    {
+        try { researchSubscription?.Dispose(); }
+        catch (Exception exception)
+        {
+            Debug.LogError("WIM043 research subscription cleanup failed: "
+                + exception.Message);
+        }
+        try { seasonalSubscription?.Dispose(); }
+        catch (Exception exception)
+        {
+            Debug.LogError("WIM043 seasonal subscription cleanup failed: "
+                + exception.Message);
+        }
+        researchSubscription = null;
+        seasonalSubscription = null;
+    }
+
+    void Unsubscribe()
+    {
+        EditorApplication.update -= OnEditorUpdate;
+        EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+        installed = false;
+    }
+}
+```
+
+Expected terminal: `WIM043 PASS`. A `RESEARCH_READINESS_BLOCKER_DAY4`, missing exact initial starter stack/read-only available-stock selection, missing public P23 initial-placement anchor with its candidate diagnostics, unmatched seed-13 prediction, absent exact UI row, nonmatching physical destination/input, or any `INCOMPLETE_*`/`FAILED_*` is preserved as a blocker and is not retried in the same Play. Every terminal includes the live hunger/thirst, AI action/phase/failure, work state, and current exact food/water stack rows; this distinguishes a survival interruption without mutating needs or invoking a meal/drink planner. The initial x24/x30 success is only a same-frame physical-stock/available-query observation, not evidence that the three actors survive through Day 5; actor path reachability remains explicitly `NOT_CHECKED`. This input does not touch a save slot or scene asset; after the terminal marker the operator exits the disposable Play without saving. The detached preflight is selection prediction only and is not counted as live flood proof.
+
+WIM046 -- minimal live access-failure route (research-free construction)
+1. Reuse the authored dungeon-entrance InteriorDoor (BuildingSO id=8) already resolved by the live drop-zone/entry query.  Preflight one exterior cell with GridBuildingPlacementService.CanPlaceBuilding(Wall) and the selected worker's actor-aware path broker; its only route to a Wall work-access cell must cross that Door.  If an alternate route exists, stop rather than fabricate a maze.
+2. Wall (BuildingSO id=7) is unlocked and has no research gate; its authored construction input is material:stone-block x1 and construction work is 45.  Use only the normal public placement/order path GridBuildingPlacementService.TryPlaceConstructionSite, allowed public physical-stock command IWorldItemStackRuntime.SpawnItemAt/SpawnItemAtDropoff, and the ordinary material-delivery/Ready transition IWorkOrderRuntime.RefreshMaterialsReady.  This is a temporary Play fixture, not a new facility or research grant.
+3. With the Door individually allowed, wait for the real construct order to be Ready, then set the selected worker's existing public construction priority/target (AbilityWork.TrySetPriorityWorkTarget(..., BuiltInWorkTypeIds.Construct, ...)).  Start only after the actual AIWork action has committed its exterior ConstructionSite destination; do not call an ability or handler directly.
+4. While that action is moving toward the target, use the Door's existing Building Info > "문 사용 권한" > worker "개별 차단" control (IDoorAccessCommandService.SetIndividualRule).  AbilityMove rechecks CanTraverseDoor; after its bounded replan, CompleteBlockedActionPath emits typed NoPath against expectedAction.destination, then AIBrain.ReportRuntimeActionFailure records the still-live ConstructionSite.
+5. Observe Operations "작업·물류" through IGameplayFlowDiagnosticsQuery.Capture and the worker Character detail's "실행 차단 관측": action=construction, target=that site ID, failure=NoPath/access, epoch.  Terminal EndExpectedAction may make the row "현재성 미확인" rather than current; that remains the designed post-teardown observation, not a failure to display.
+6. Restore the same individual rule with "개별 허용" and wait for the preserved priority's ordinary AI replan to finish the same construction order.  Successful EndExpectedAction(clearFailures:true) removes the current block; the Character panel may retain only recent history.  Stop if the order is no longer Ready, the target/site was removed, or a different worker/action takes it.
+7. Existing focused consumer evidence is WimDoorConsumerScenario's production Door denial/reopen path, which proves typed NoPath and cleanup but deliberately uses controlled Pending/fixture setup.  It is not natural-event proof and must not be used as the proposed live run or expanded into a new framework.
+
+Status: preparation only; neither WIM is a live execution PASS and no gameplay state was changed.

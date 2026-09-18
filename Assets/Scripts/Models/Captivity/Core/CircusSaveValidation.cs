@@ -74,9 +74,15 @@ public static class CircusSaveValidation
         }
 
         HashSet<string> wildlifeIds = new(StringComparer.Ordinal);
+        HashSet<string> companionOwnerIds = new(StringComparer.Ordinal);
         foreach (CapturedWildlifeState wildlife in payload.capturedWildlife)
         {
-            ValidateCapturedWildlife(wildlife, orderIds, wildlifeIds, report);
+            ValidateCapturedWildlife(
+                wildlife,
+                orderIds,
+                wildlifeIds,
+                companionOwnerIds,
+                report);
         }
 
         foreach (CircusShowOrder order in payload.orders.Where(
@@ -309,6 +315,7 @@ public static class CircusSaveValidation
         CapturedWildlifeState wildlife,
         ISet<string> orderIds,
         ISet<string> wildlifeIds,
+        ISet<string> companionOwnerIds,
         DungeonGameRestoreReport report)
     {
         string wildlifeId = wildlife?.wildlifeId ?? string.Empty;
@@ -360,6 +367,63 @@ public static class CircusSaveValidation
                 $"Captured wildlife '{wildlifeId}' has invalid numeric state.");
         }
         ValidateCapturedWildlifeFeed(wildlife, report);
+        ValidateCapturedWildlifeCapability(
+            wildlife,
+            companionOwnerIds,
+            report);
+    }
+
+    private static void ValidateCapturedWildlifeCapability(
+        CapturedWildlifeState wildlife,
+        ISet<string> companionOwnerIds,
+        DungeonGameRestoreReport report)
+    {
+        if (!CapturedWildlifeCapabilityStateCodec.TryRead(
+                wildlife.capabilityState,
+                out CapturedWildlifeRoleId roleId,
+                out string failureReason))
+        {
+            report.AddError(
+                $"Captured wildlife '{wildlife.wildlifeId}' has invalid capability state: {failureReason}");
+            return;
+        }
+
+        if (roleId.Equals(CapturedWildlifeRoleIds.Haul))
+        {
+            if (!CapturedWildlifeCapabilityStateCodec.TryReadHaul(
+                    wildlife.capabilityState,
+                    out _,
+                    out failureReason)
+                || !wildlife.isTamed
+                || wildlife.escaped
+                || wildlife.transportState != CapturedWildlifeTransportState.Penned
+                || !string.IsNullOrEmpty(wildlife.assignedShowOrderId))
+            {
+                report.AddError(
+                    $"Captured wildlife '{wildlife.wildlifeId}' has incoherent haul state: {failureReason}");
+            }
+            return;
+        }
+
+        if (!roleId.Equals(CapturedWildlifeRoleIds.Companion))
+        {
+            return;
+        }
+
+        if (!CapturedWildlifeCapabilityStateCodec.TryReadCompanion(
+                wildlife.capabilityState,
+                out CharacterId ownerId,
+                out _,
+                out failureReason)
+            || !wildlife.isTamed
+            || wildlife.escaped
+            || wildlife.transportState != CapturedWildlifeTransportState.Penned
+            || !string.IsNullOrEmpty(wildlife.assignedShowOrderId)
+            || !companionOwnerIds.Add(ownerId.Value))
+        {
+            report.AddError(
+                $"Captured wildlife '{wildlife.wildlifeId}' has incoherent companion state: {failureReason}");
+        }
     }
 
     private static void ValidateCapturedWildlifeFeed(

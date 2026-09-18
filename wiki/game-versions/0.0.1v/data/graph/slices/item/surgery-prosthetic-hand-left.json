@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "surgery-prosthetic-hand-left",
+    "spoiler_tier": "none",
+    "title": "왼손 정밀 보철"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-precision-hand",
+      "label": "생산·해금",
+      "to": "item/surgery-prosthetic-hand-left",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

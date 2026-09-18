@@ -10,10 +10,15 @@ public static class CharacterTraitSelectionRules
         IEnumerable<CharacterTraitConflictRule> conflictRules,
         IRandomStream random,
         string speciesTag = null,
-        int maximumCount = 4)
+        int maximumCount = 4,
+        int traitCountBonus = 0)
     {
         if (random == null) throw new ArgumentNullException(nameof(random));
         if (maximumCount <= 0) return Array.Empty<int>();
+        if (traitCountBonus < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(traitCountBonus));
+        }
 
         CharacterTraitConflictRule[] conflicts = (conflictRules
                 ?? Array.Empty<CharacterTraitConflictRule>())
@@ -29,7 +34,9 @@ public static class CharacterTraitSelectionRules
             .OrderBy(value => value.id)
             .ToArray();
 
-        int targetCount = Math.Min(maximumCount, RollTraitCount(random));
+        int targetCount = Math.Min(
+            maximumCount,
+            RollTraitCount(random) + traitCountBonus);
         List<CharacterTraitSO> available = orderedCandidates.ToList();
         List<CharacterTraitSO> selectedTraits = new(targetCount);
         while (selectedTraits.Count < targetCount)

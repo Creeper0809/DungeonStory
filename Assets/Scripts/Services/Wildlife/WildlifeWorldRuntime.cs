@@ -11,10 +11,12 @@ internal sealed class WildlifeWorldRuntime
     private readonly IGameClock gameClock;
     private readonly IRandomStreamProvider randomStreamProvider;
     private readonly IDoorAccessQuery doorAccessQuery;
+    private readonly IWildlifeHaulLifecycleSink haulLifecycle;
 
     public WildlifeWorldRuntime(
         WildlifeWorldServices world,
-        WildlifeExecutionServices execution)
+        WildlifeExecutionServices execution,
+        IWildlifeHaulLifecycleSink haulLifecycle)
     {
         WildlifeWorldServices requiredWorld = world
             ?? throw new ArgumentNullException(nameof(world));
@@ -25,6 +27,8 @@ internal sealed class WildlifeWorldRuntime
         gameClock = requiredExecution.Clock;
         randomStreamProvider = requiredExecution.RandomStreams;
         doorAccessQuery = requiredExecution.Doors;
+        this.haulLifecycle = haulLifecycle
+            ?? throw new ArgumentNullException(nameof(haulLifecycle));
     }
 
     public WildlifeActor CreateActor(
@@ -58,7 +62,8 @@ internal sealed class WildlifeWorldRuntime
                 worldRegistry,
                 gameClock,
                 randomStreamProvider,
-                doorAccessQuery);
+                doorAccessQuery,
+                haulLifecycle);
             actor.Initialize(grid, species, wildlifeId, position, saveData);
             return actor;
         }

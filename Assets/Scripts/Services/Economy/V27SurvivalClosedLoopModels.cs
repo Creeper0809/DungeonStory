@@ -18,6 +18,7 @@ namespace DungeonStory.Balance
             long cropHarvestMilliWu,
             int cropYieldUnits,
             long cropDailyWaterMilliUnits,
+            long manualWaterRefillMilliWuPerUnit,
             int waterOutputUnitsPerBatch,
             long waterBatchMilliWu,
             long cookingWaterMilliUnitsPerBatch,
@@ -56,6 +57,9 @@ namespace DungeonStory.Balance
             CropDailyWaterMilliUnits = RequireNonNegative(
                 cropDailyWaterMilliUnits,
                 nameof(cropDailyWaterMilliUnits));
+            ManualWaterRefillMilliWuPerUnit = RequirePositive(
+                manualWaterRefillMilliWuPerUnit,
+                nameof(manualWaterRefillMilliWuPerUnit));
             WaterOutputUnitsPerBatch = RequirePositive(
                 waterOutputUnitsPerBatch,
                 nameof(waterOutputUnitsPerBatch));
@@ -89,6 +93,7 @@ namespace DungeonStory.Balance
         public long CropHarvestMilliWu { get; }
         public int CropYieldUnits { get; }
         public long CropDailyWaterMilliUnits { get; }
+        public long ManualWaterRefillMilliWuPerUnit { get; }
         public int WaterOutputUnitsPerBatch { get; }
         public long WaterBatchMilliWu { get; }
         public long CookingWaterMilliUnitsPerBatch { get; }
@@ -133,6 +138,7 @@ namespace DungeonStory.Balance
             int grossDrinkingWaterCoveragePermille,
             long totalWaterMilliUnitsPerDay,
             long waterMilliWuPerDay,
+            long manualWaterRefillMilliWuPerDay,
             long recurringMilliWuPerDay,
             int recurringSharePermille,
             int immediateMealUnits,
@@ -162,6 +168,7 @@ namespace DungeonStory.Balance
             GrossDrinkingWaterCoveragePermille = grossDrinkingWaterCoveragePermille;
             TotalWaterMilliUnitsPerDay = totalWaterMilliUnitsPerDay;
             WaterMilliWuPerDay = waterMilliWuPerDay;
+            ManualWaterRefillMilliWuPerDay = manualWaterRefillMilliWuPerDay;
             RecurringMilliWuPerDay = recurringMilliWuPerDay;
             RecurringSharePermille = recurringSharePermille;
             ImmediateMealUnits = immediateMealUnits;
@@ -192,6 +199,7 @@ namespace DungeonStory.Balance
         public int GrossDrinkingWaterCoveragePermille { get; }
         public long TotalWaterMilliUnitsPerDay { get; }
         public long WaterMilliWuPerDay { get; }
+        public long ManualWaterRefillMilliWuPerDay { get; }
         public long RecurringMilliWuPerDay { get; }
         public int RecurringSharePermille { get; }
         public int ImmediateMealUnits { get; }
@@ -275,8 +283,13 @@ namespace DungeonStory.Balance
                 waterCyclesMilli,
                 definition.WaterBatchMilliWu,
                 1000L);
+            long manualWaterRefillWu = CeilRatio(
+                cropWater,
+                definition.ManualWaterRefillMilliWuPerUnit,
+                1000L);
 
-            long recurring = checked(cropWu + cookWu + waterWu);
+            long recurring = checked(
+                cropWu + cookWu + waterWu + manualWaterRefillWu);
             long available = checked(
                 definition.Population * EffectiveMilliWuPerAdultDay);
             int share = checked((int)CeilRatio(recurring, 1000L, available));
@@ -352,6 +365,7 @@ namespace DungeonStory.Balance
                 grossWaterCoverage,
                 totalWater,
                 waterWu,
+                manualWaterRefillWu,
                 recurring,
                 share,
                 immediateMeals,

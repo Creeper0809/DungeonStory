@@ -1,0 +1,43 @@
+{
+  "success": true,
+  "command": "job wait",
+  "data": {
+    "jobId": "52c862fe1c7f4b9aa127bc0e296a7502",
+    "command": "eval",
+    "state": "completed",
+    "cancellationRequested": false,
+    "result": {
+      "output": null,
+      "diagnostics": [],
+      "success": true,
+      "command": "eval",
+      "result": {
+        "checks": [
+          {
+            "name": "export-create-only",
+            "rejected": true,
+            "failure": "controlled-output-collision: Output path already exists and will not be overwritten: 'F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Artifacts\\Exports\\NarrativeControlledInputs\\20260915-v26-controlled-bridge-r3'."
+          },
+          {
+            "name": "duplicate-case-id",
+            "rejected": true,
+            "failure": "controlled-input-case-id-duplicate: caseId 'skill-riverbank-rope' occurs more than once."
+          }
+        ],
+        "negative": "{\"acceptedCount\":0,\"manifestPath\":\"F:/01_Programming/01_Project/02_Unity/DungeonStory/Artifacts/Exports/NarrativeControlledInputs/20260915-v26-controlled-bridge-negative-r1/manifest.json\",\"outputDirectory\":\"F:/01_Programming/01_Project/02_Unity/DungeonStory/Artifacts/Exports/NarrativeControlledInputs/20260915-v26-controlled-bridge-negative-r1\",\"rejectedCount\":9,\"schemaVersion\":1}",
+        "replay": "{\"acceptedCount\":9,\"manifestPath\":\"F:/01_Programming/01_Project/02_Unity/DungeonStory/Artifacts/Exports/NarrativeControlledInputs/20260915-v26-controlled-bridge-replay-r1/manifest.json\",\"outputDirectory\":\"F:/01_Programming/01_Project/02_Unity/DungeonStory/Artifacts/Exports/NarrativeControlledInputs/20260915-v26-controlled-bridge-replay-r1\",\"rejectedCount\":0,\"schemaVersion\":1}",
+        "history": "{\"acceptedCount\":3,\"manifestPath\":\"F:/01_Programming/01_Project/02_Unity/DungeonStory/Artifacts/Exports/NarrativeControlledInputs/20260915-v26-controlled-bridge-history-r1/manifest.json\",\"outputDirectory\":\"F:/01_Programming/01_Project/02_Unity/DungeonStory/Artifacts/Exports/NarrativeControlledInputs/20260915-v26-controlled-bridge-history-r1\",\"rejectedCount\":0,\"schemaVersion\":1}"
+      },
+      "executionTimeMs": 2365,
+      "message": null,
+      "error": null,
+      "errorDetails": null,
+      "executedAt": "2026-09-15T14:11:06.7901693Z"
+    },
+    "error": null,
+    "errorDetails": null,
+    "progress": null
+  },
+  "errors": [],
+  "warnings": []
+}

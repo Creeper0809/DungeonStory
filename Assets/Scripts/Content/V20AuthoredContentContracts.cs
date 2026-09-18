@@ -173,7 +173,8 @@ public enum V20ContentEffectKind
     Threat,
     DiseaseExposure,
     AmbitionProgress,
-    MilestonePressure
+    MilestonePressure,
+    RetirementSchedule
 }
 
 [Serializable]
@@ -185,7 +186,12 @@ public sealed class V20ContentEffect
     [Min(0)] public int durationDays;
 
     public bool IsValid => kind != V20ContentEffectKind.None
-        && (kind != V20ContentEffectKind.WorldFlag || !string.IsNullOrWhiteSpace(targetId));
+        && (kind != V20ContentEffectKind.WorldFlag
+            || !string.IsNullOrWhiteSpace(targetId))
+        && (kind != V20ContentEffectKind.RetirementSchedule
+            || !string.IsNullOrWhiteSpace(targetId)
+                && Mathf.Approximately(amount, 0f)
+                && durationDays >= 0);
 }
 
 [Serializable]

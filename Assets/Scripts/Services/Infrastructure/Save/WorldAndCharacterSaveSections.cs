@@ -103,7 +103,7 @@ public sealed class CharacterWorldSaveSection :
     IDungeonRollbackFreeSaveSection
 {
     public const string Id = "characters.world";
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 5;
 
     private readonly ICharacterWorldSaveService saveService;
     private readonly IGridSystemProvider gridSystemProvider;

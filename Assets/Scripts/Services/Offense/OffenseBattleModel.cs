@@ -17,6 +17,7 @@ public sealed class OffenseBattleSession
     private readonly ICombatResolutionService combatResolution;
     private readonly ICombatEquipmentRuntime combatEquipmentRuntime;
     private readonly OffenseBattleEncounterRules encounterRules;
+    private OffenseExpeditionRun settlementOwner;
     private readonly Dictionary<string, string> thrownOwnerByInstance =
         new Dictionary<string, string>(StringComparer.Ordinal);
     private bool recoverableEquipmentFinalized;
@@ -128,6 +129,20 @@ public sealed class OffenseBattleSession
             combatant.PersistentId,
             persistentId,
             StringComparison.Ordinal));
+    }
+
+    internal void BindSettlementOwner(OffenseExpeditionRun expedition)
+    {
+        if (expedition == null
+            || !string.Equals(
+                expedition.ExpeditionId,
+                ExpeditionId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Offense battle settlement owner does not match the battle expedition.");
+        }
+        settlementOwner = expedition;
     }
 
     public OffenseBattlePersistenceState CapturePersistentState()
@@ -806,7 +821,12 @@ public sealed class OffenseBattleSession
 
     internal float Heal(OffenseBattleCombatant target, float amount)
     {
-        return target?.Heal(amount) ?? 0f;
+        float applied = target?.Heal(amount) ?? 0f;
+        if (applied > 0f && target.Team == OffenseBattleTeam.Allies)
+        {
+            settlementOwner?.RecordHealing(target.PersistentId, applied);
+        }
+        return applied;
     }
 
     internal void AddStatus(
@@ -1046,9 +1066,25 @@ public sealed class OffenseBattleSession
 
         if (weapon.RequiresAmmo && !string.IsNullOrWhiteSpace(weapon.InstanceId))
         {
-            combatEquipmentRuntime?.TryConsumeLoadedAmmo(
-                weapon.InstanceId,
-                Mathf.Max(1, resolved.AmmunitionConsumed));
+            int ammunitionConsumed = Mathf.Max(1, resolved.AmmunitionConsumed);
+            string ammunitionItemId = combatEquipmentRuntime != null
+                && combatEquipmentRuntime.TryGetInstance(
+                    weapon.InstanceId,
+                    out CombatEquipmentInstance liveWeapon)
+                ? liveWeapon.loadedAmmunition?.ammunitionItemId ?? string.Empty
+                : string.Empty;
+            if (combatEquipmentRuntime?.TryConsumeLoadedAmmo(
+                    weapon.InstanceId,
+                    ammunitionConsumed) == true)
+            {
+                if (actor.Team == OffenseBattleTeam.Allies)
+                {
+                    settlementOwner?.RecordAmmunitionConsumption(
+                        weapon.InstanceId,
+                        ammunitionItemId,
+                        ammunitionConsumed);
+                }
+            }
             if (combatEquipmentRuntime != null
                 && combatEquipmentRuntime.TryGetActiveWeapon(
                     actor.PersistentId,

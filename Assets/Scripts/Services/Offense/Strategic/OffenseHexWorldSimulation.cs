@@ -22,6 +22,7 @@ public interface IOffenseWorldSimulation
     bool TryGetSite(string siteId, out OffenseWorldSiteStateData site);
     bool TryGetUrgentSite(string siteId, out OffenseUrgentSiteStateData site);
     bool TryRevealSite(string siteId);
+    bool TryEngageSite(string siteId);
     bool TryResolveSite(string siteId);
     bool TryRegisterStrategicSite(OffenseWorldSiteStateData site);
     bool TrySpawnUrgentSite(string definitionId, OffenseHexCoord coord, out string siteId);
@@ -42,6 +43,42 @@ public interface IWorldThreatModifierQuery
     OffenseThreatModifierSnapshot GetModifier(OffenseThreatModifierKind kind);
     float GetMultiplier(OffenseThreatModifierKind kind);
     IReadOnlyList<OffenseThreatModifierSnapshot> GetActiveModifiers();
+}
+
+public static class OffenseTraversalCostRules
+{
+    public const float MinimumStepCost = 0.1f;
+
+    public static float GetStepCost(
+        OffenseHexTileState tile,
+        OffenseTravelProfile profile)
+    {
+        if (tile == null)
+        {
+            throw new ArgumentNullException(nameof(tile));
+        }
+
+        float terrain = tile.terrain switch
+        {
+            OffenseHexTerrain.Forest => 1.35f,
+            OffenseHexTerrain.Hills => 1.6f,
+            OffenseHexTerrain.Marsh => 1.85f,
+            OffenseHexTerrain.Mountain => 2.5f,
+            OffenseHexTerrain.River => 2.1f,
+            _ => 1f
+        };
+        if (tile.hasRoad)
+        {
+            terrain *= profile.RoadMultiplier;
+        }
+
+        return Mathf.Max(
+            MinimumStepCost,
+            terrain
+            * profile.WeatherMultiplier
+            * profile.InjuryMultiplier
+            * profile.LoadMultiplier);
+    }
 }
 
 internal sealed class OffenseHexWorldRestoreCandidate
@@ -233,12 +270,27 @@ public sealed class OffenseHexWorldSimulation :
         return true;
     }
 
+    public bool TryEngageSite(string siteId)
+    {
+        if (!TryGetSite(siteId, out OffenseWorldSiteStateData site)
+            || site.state != OffenseWorldSiteState.Revealed)
+        {
+            return false;
+        }
+
+        site.state = OffenseWorldSiteState.Engaged;
+        site.expiresDay = int.MaxValue;
+        Changed?.Invoke();
+        return true;
+    }
+
     public bool TryRegisterStrategicSite(OffenseWorldSiteStateData site)
     {
         if (site == null
             || string.IsNullOrWhiteSpace(site.siteId)
             || !tiles.TryGetValue(site.Coord, out OffenseHexTileState tile)
-            || tile.blocked)
+            || tile.blocked
+            || !ValidSeasonalOfferShape(site.seasonalOffer))
         {
             return false;
         }
@@ -390,7 +442,8 @@ public sealed class OffenseHexWorldSimulation :
                     continue;
                 }
 
-                float newCost = costs[current] + GetTravelCost(nextTile, profile);
+                float newCost = costs[current]
+                    + OffenseTraversalCostRules.GetStepCost(nextTile, profile);
                 if (costs.TryGetValue(next, out float knownCost)
                     && newCost >= knownCost - 0.0001f)
                 {
@@ -399,7 +452,9 @@ public sealed class OffenseHexWorldSimulation :
 
                 costs[next] = newCost;
                 previous[next] = current;
-                float priority = newCost + next.DistanceTo(goal);
+                float priority = newCost
+                    + OffenseTraversalCostRules.MinimumStepCost
+                    * next.DistanceTo(goal);
                 frontier.Enqueue(next, priority);
             }
         }
@@ -579,7 +634,8 @@ public sealed class OffenseHexWorldSimulation :
             if (site == null
                 || string.IsNullOrWhiteSpace(site.siteId)
                 || !restoredTiles.ContainsKey(site.Coord)
-                || restoredSites.ContainsKey(site.siteId))
+                || restoredSites.ContainsKey(site.siteId)
+                || !ValidSeasonalOfferShape(site.seasonalOffer))
             {
                 throw new InvalidOperationException(
                     $"Invalid or duplicate offense site '{site?.siteId ?? "null"}'.");
@@ -917,32 +973,6 @@ public sealed class OffenseHexWorldSimulation :
             && !tile.blocked;
     }
 
-    private static float GetTravelCost(
-        OffenseHexTileState tile,
-        OffenseTravelProfile profile)
-    {
-        float terrain = tile.terrain switch
-        {
-            OffenseHexTerrain.Forest => 1.35f,
-            OffenseHexTerrain.Hills => 1.6f,
-            OffenseHexTerrain.Marsh => 1.85f,
-            OffenseHexTerrain.Mountain => 2.5f,
-            OffenseHexTerrain.River => 2.1f,
-            _ => 1f
-        };
-        if (tile.hasRoad)
-        {
-            terrain *= profile.RoadMultiplier;
-        }
-
-        return Mathf.Max(
-            0.1f,
-            terrain
-            * profile.WeatherMultiplier
-            * profile.InjuryMultiplier
-            * profile.LoadMultiplier);
-    }
-
     private void BuildRoadTo(OffenseHexCoord goal)
     {
         OffenseHexCoord current = DungeonCoord;
@@ -1148,8 +1178,63 @@ public sealed class OffenseHexWorldSimulation :
             createdDay = source.createdDay,
             expiresDay = source.expiresDay,
             pressureAxis = source.pressureAxis,
-            pressureAmount = source.pressureAmount
+            pressureAmount = source.pressureAmount,
+            seasonalOffer = CloneSeasonalOffer(source.seasonalOffer)
         };
+    }
+
+    private static OffenseSeasonalExpeditionOfferData CloneSeasonalOffer(
+        OffenseSeasonalExpeditionOfferData source)
+    {
+        if (source == null)
+            return new OffenseSeasonalExpeditionOfferData();
+        return new OffenseSeasonalExpeditionOfferData
+        {
+            configured = source.configured,
+            occurrenceInstanceId = source.occurrenceInstanceId,
+            definitionId = source.definitionId,
+            offerDeadlineAbsoluteDay = source.offerDeadlineAbsoluteDay,
+            description = source.description,
+            recommendedDanger = source.recommendedDanger,
+            durationSeconds = source.durationSeconds,
+            requiredMembers = source.requiredMembers,
+            recommendedPower = source.recommendedPower,
+            campaignOrder = source.campaignOrder,
+            authoredEncounterId = source.authoredEncounterId,
+            encounterPreviewText = source.encounterPreviewText,
+            encounterRewardPreviewText = source.encounterRewardPreviewText,
+            physicalRewards = (source.physicalRewards
+                    ?? new List<OffenseSeasonalPhysicalRewardData>())
+                .Where(value => value != null)
+                .Select(value => new OffenseSeasonalPhysicalRewardData
+                {
+                    itemId = value.itemId,
+                    displayLabel = value.displayLabel,
+                    exactQuantity = value.exactQuantity
+                })
+                .ToList()
+        };
+    }
+
+    private static bool ValidSeasonalOfferShape(
+        OffenseSeasonalExpeditionOfferData offer)
+    {
+        if (offer?.configured == true)
+            return offer.IsValid;
+        return offer != null
+            && string.IsNullOrEmpty(offer.occurrenceInstanceId)
+            && string.IsNullOrEmpty(offer.definitionId)
+            && offer.offerDeadlineAbsoluteDay == 0
+            && string.IsNullOrEmpty(offer.description)
+            && offer.recommendedDanger == 0f
+            && offer.durationSeconds == 0f
+            && offer.requiredMembers == 0
+            && offer.recommendedPower == 0f
+            && offer.campaignOrder == 0
+            && string.IsNullOrEmpty(offer.authoredEncounterId)
+            && string.IsNullOrEmpty(offer.encounterPreviewText)
+            && string.IsNullOrEmpty(offer.encounterRewardPreviewText)
+            && (offer.physicalRewards?.Count ?? 0) == 0;
     }
 
     private static OffenseUrgentSiteStateData CloneUrgentSite(

@@ -15,6 +15,7 @@ public sealed class WorldItemStackRuntime :
     IWorldItemCarryRecoveryRuntime,
     IPhysicalItemRestoreStaging,
     IPhysicalItemRestoreCandidateQuery,
+    IPhysicalItemRestoreCandidateStackQuery,
     IProductionInputDestinationCustodyDrainRestoreCandidateQuery,
     IPhysicalItemRestoreCandidateOutputQuery,
     IFacilityBufferPlannedOutputRestoreCandidateQuery,
@@ -26,6 +27,8 @@ public sealed class WorldItemStackRuntime :
     IWorldItemMarkerDataSource,
     IHaulPlanBuilder,
     IWarehouseOverCapacityEvacuationQuery,
+    IActiveEmergencySupportHaulPlanRuntime,
+    IMemoryErasureSealStoredPickupRuntime,
     IStartable,
     ITickable,
     IDisposable
@@ -64,6 +67,8 @@ public sealed class WorldItemStackRuntime :
     private int projectedRestoreRevision;
     private IReadOnlyList<PhysicalItemRestoreCandidateDispositionSnapshot>
         restoreCandidateDispositions;
+    private Dictionary<string, WorldItemStackRecord>
+        restoreCandidateStacksByInstanceId;
     private Dictionary<string, PhysicalItemRestoreCandidateDispositionSnapshot>
         restoreCandidateDispositionsByOperation;
     private IReadOnlyList<ProductionInputDestinationCustodyDrainSaveData>
@@ -810,6 +815,33 @@ public sealed class WorldItemStackRuntime :
                 out disposition);
     }
 
+    public bool TryGetStack(
+        ItemInstanceId itemInstanceId,
+        out PhysicalItemRestoreCandidateStackSnapshot stack)
+    {
+        stack = null;
+        if (!IsCandidateAvailable
+            || !itemInstanceId.IsValid
+            || restoreCandidateStacksByInstanceId == null
+            || !restoreCandidateStacksByInstanceId.TryGetValue(
+                itemInstanceId.Value,
+                out WorldItemStackRecord record))
+        {
+            return false;
+        }
+
+        stack = new PhysicalItemRestoreCandidateStackSnapshot(
+            record.stackId,
+            (ItemInstanceId)record.itemInstanceId,
+            record.itemId,
+            record.quantity,
+            record.state,
+            record.position,
+            record.destinationId,
+            record.forbidden);
+        return true;
+    }
+
     IReadOnlyList<ProductionInputDestinationCustodyDrainSaveData>
         IProductionInputDestinationCustodyDrainRestoreCandidateQuery.Drains =>
         restoreCandidateInputDestinationDrains
@@ -1019,6 +1051,7 @@ public sealed class WorldItemStackRuntime :
             throw new ArgumentNullException(nameof(staged));
         }
         if (restoreCandidateDispositions != null
+            || restoreCandidateStacksByInstanceId != null
             || restoreCandidateDispositionsByOperation != null
             || restoreCandidateInputDestinationDrains != null
             || restoreCandidateInputDestinationDrainsByStep != null
@@ -1033,6 +1066,23 @@ public sealed class WorldItemStackRuntime :
         {
             throw new InvalidOperationException(
                 "A physical-item restore candidate is already indexed.");
+        }
+
+        Dictionary<string, WorldItemStackRecord> stacksByInstanceId =
+            new(StringComparer.Ordinal);
+        foreach (WorldItemStackRecord record in staged.RepositoryState.Records
+                     .Where(value => value != null
+                         && value.quantity > 0
+                         && !string.IsNullOrWhiteSpace(value.itemInstanceId))
+                     .OrderBy(value => value.itemInstanceId, StringComparer.Ordinal))
+        {
+            if (!stacksByInstanceId.TryAdd(
+                    record.itemInstanceId,
+                    record))
+            {
+                throw new InvalidOperationException(
+                    $"Duplicate physical restore candidate item instance '{record.itemInstanceId}'.");
+            }
         }
 
         PhysicalItemRestoreCandidateDispositionSnapshot[] snapshots =
@@ -1160,6 +1210,7 @@ public sealed class WorldItemStackRuntime :
         // every potentially throwing projection and duplicate check above in
         // locals so a rejected candidate cannot leave a partially visible
         // cross-section restore index behind.
+        restoreCandidateStacksByInstanceId = stacksByInstanceId;
         restoreCandidateDispositions = Array.AsReadOnly(snapshots);
         restoreCandidateDispositionsByOperation = byOperation;
         restoreCandidateInputDestinationDrains = Array.AsReadOnly(inputDrains);
@@ -1227,6 +1278,7 @@ public sealed class WorldItemStackRuntime :
 
     private void ClearPhysicalRestoreCandidateIndex()
     {
+        restoreCandidateStacksByInstanceId = null;
         restoreCandidateDispositions = null;
         restoreCandidateDispositionsByOperation = null;
         restoreCandidateInputDestinationDrains = null;
@@ -1731,6 +1783,28 @@ public sealed class WorldItemStackRuntime :
         }
     }
 
+    public bool TryPreviewActiveEmergencySupportHaulPlan(
+        CharacterActor actor,
+        out WorldItemHaulPlan plan,
+        out string failureReason)
+    {
+        return haulPlanningService.TryPreviewActiveEmergencySupportPlan(
+            actor,
+            out plan,
+            out failureReason);
+    }
+
+    public bool TryReserveActiveEmergencySupportHaulPlan(
+        CharacterActor actor,
+        out WorldItemHaulPlan plan,
+        out string failureReason)
+    {
+        return haulPlanningService.TryReserveActiveEmergencySupportPlan(
+            actor,
+            out plan,
+            out failureReason);
+    }
+
     public bool TryReserveStoredItemForDirectPickup(
         CharacterActor actor,
         string itemId,
@@ -1746,6 +1820,150 @@ public sealed class WorldItemStackRuntime :
             out reservation,
             out pickupStandPosition,
             out failureReason);
+    }
+
+    [GameplayInternalOnly(
+        "The memory-erasure order reserves one exact warehouse stack under its own operation identity.",
+        "MemoryErasureSealCommandService")]
+    public bool TryReserveStoredMemoryErasureSeal(
+        CharacterActor actor,
+        string ownerOperationId,
+        out WorldItemReservedStackQuantity reservation,
+        out Vector2Int pickupStandPosition,
+        out string failureReason)
+    {
+        return warehouseService.TryReserveStoredForDirectPickup(
+            actor,
+            MemoryErasureSealItemRules.ItemId,
+            MemoryErasureSealItemRules.UseQuantity,
+            ItemReservationPurpose.DirectPlayerOrder,
+            ownerOperationId,
+            out reservation,
+            out pickupStandPosition,
+            out failureReason);
+    }
+
+    [GameplayInternalOnly(
+        "The memory-erasure order preserves the exact source warehouse on its one carried unit so active rollback can return it without a loose drop.",
+        "MemoryErasureSealCommandService")]
+    public bool TryPickupStoredMemoryErasureSeal(
+        CharacterActor actor,
+        CharacterCarryInventory carry,
+        WorldItemReservedStackQuantity reservation,
+        out int pickedUp,
+        out string failureReason)
+    {
+        pickedUp = 0;
+        failureReason = string.Empty;
+        if (actor == null
+            || carry == null
+            || !reservation.IsValid
+            || reservation.Quantity != MemoryErasureSealItemRules.UseQuantity
+            || !string.Equals(
+                reservation.ItemId,
+                MemoryErasureSealItemRules.ItemId,
+                StringComparison.Ordinal)
+            || !itemRepository.RecordsById.TryGetValue(
+                reservation.StackId,
+                out WorldItemStackRecord source)
+            || source == null
+            || source.state != WorldItemStackState.Stored
+            || !string.Equals(
+                source.itemId,
+                MemoryErasureSealItemRules.ItemId,
+                StringComparison.Ordinal)
+            || string.IsNullOrWhiteSpace(source.sourceStorageDestinationId))
+        {
+            failureReason = "memory-erasure-seal-stored-source-invalid";
+            return false;
+        }
+
+        string sourceStorageDestinationId =
+            source.sourceStorageDestinationId.Trim();
+        if (!itemTransferService.TryPickupReservedStackQuantity(
+                actor,
+                carry,
+                reservation,
+                out pickedUp,
+                out failureReason)
+            || pickedUp != MemoryErasureSealItemRules.UseQuantity)
+        {
+            return false;
+        }
+
+        CharacterCarriedItemSaveData[] candidates = carry.Items
+            .Where(value => value != null
+                && value.quantity == MemoryErasureSealItemRules.UseQuantity
+                && string.Equals(
+                    value.ownerOperationId,
+                    reservation.OwnerOperationId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    value.sourceStackId,
+                    reservation.StackId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    value.itemId,
+                    MemoryErasureSealItemRules.ItemId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        if (candidates.Length != 1
+            || !itemRepository.RecordsById.TryGetValue(
+                candidates[0].carriedStackId,
+                out WorldItemStackRecord carried)
+            || carried == null
+            || carried.state != WorldItemStackState.Carried
+            || carried.quantity != MemoryErasureSealItemRules.UseQuantity)
+        {
+            failureReason =
+                "memory-erasure-seal-carried-source-binding-failed";
+            return false;
+        }
+
+        carried.sourceStorageDestinationId = sourceStorageDestinationId;
+        itemRepository.MarkChanged();
+        return true;
+    }
+
+    [GameplayInternalOnly(
+        "The memory-erasure order releases its lease and restores any remaining stored source route after cancellation or pickup.",
+        "MemoryErasureSealCommandService")]
+    public bool TryFinalizeStoredMemoryErasureSealPickup(
+        string ownerOperationId,
+        string sourceStackId,
+        ItemReservationReleaseReason releaseReason,
+        out string failureReason)
+    {
+        return warehouseService.TryFinalizeStoredDirectPickup(
+            ownerOperationId,
+            sourceStackId,
+            releaseReason,
+            out failureReason);
+    }
+
+    [GameplayInternalOnly(
+        "Active memory-erasure failures return their exact carried unit to the preserved source stack and warehouse.",
+        "MemoryErasureSealCommandService")]
+    public bool TryReturnCarriedMemoryErasureSealToStoredSource(
+        CharacterActor actor,
+        CharacterCarryInventory carry,
+        string ownerOperationId,
+        out string failureReason)
+    {
+        if (itemTransferService is
+            IMemoryErasureSealStoredCargoReturnService storedReturns)
+        {
+            return storedReturns
+                .TryReturnCarriedMemoryErasureSealToStoredSource(
+                    actor,
+                    carry,
+                    ownerOperationId,
+                    out failureReason);
+        }
+
+        failureReason =
+            "memory-erasure-seal-stored-return-service-missing";
+        return false;
     }
 
     public bool TryReserveAvailableItemForDirectPickup(

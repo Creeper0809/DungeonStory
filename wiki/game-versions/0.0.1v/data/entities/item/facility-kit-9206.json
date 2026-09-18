@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "가계와 계승의 기록을 영구히 보관하는 계보전의 설치 부품이며, 오르데나의 시설과도 체결 규격이 맞는다.",
+  "in_game_description": "가계와 계승의 기록을 영구히 보관하는 계보전의 설치 부품이다. 오르데나 등기원에서 지운 이름도 영원 계보전의 계보 기록에는 혈연과 양육 관계를 따라 남는다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

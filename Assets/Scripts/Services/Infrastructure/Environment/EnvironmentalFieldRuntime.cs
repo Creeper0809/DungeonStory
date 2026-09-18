@@ -26,10 +26,12 @@ public sealed class EnvironmentalFieldRuntimeApplicationAdapter :
     private readonly ISurvivalEnvironmentQuery survivalEnvironment;
     private readonly IPowerInfrastructureQuery power;
     private readonly IGameClock clock;
+    private readonly IGameCalendar calendar;
     private readonly EnvironmentalFieldAggregateStateStore stateStore;
     private readonly IRestoreWorldCandidateQuery restoreWorldCandidates;
     private readonly WeakReference<Grid> gridReference = new(null);
     private readonly List<EnvironmentalFieldSourceDescriptor> sources = new();
+    private readonly List<(Door Door, int Revision)> operationDoors = new();
 
     private EnvironmentalFieldAggregateState State => stateStore.Current;
     private Grid grid => gridReference.TryGetTarget(out Grid current)
@@ -54,6 +56,7 @@ public sealed class EnvironmentalFieldRuntimeApplicationAdapter :
         ISurvivalEnvironmentQuery survivalEnvironment,
         IPowerInfrastructureQuery power,
         IGameClock clock,
+        IGameCalendar calendar,
         EnvironmentalFieldAggregateStateStore stateStore,
         IRestoreWorldCandidateQuery restoreWorldCandidates)
     {
@@ -66,6 +69,8 @@ public sealed class EnvironmentalFieldRuntimeApplicationAdapter :
         this.power = power
             ?? throw new ArgumentNullException(nameof(power));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        this.calendar = calendar
+            ?? throw new ArgumentNullException(nameof(calendar));
         this.stateStore = stateStore
             ?? throw new ArgumentNullException(nameof(stateStore));
         this.restoreWorldCandidates = restoreWorldCandidates
@@ -260,11 +265,14 @@ public sealed class EnvironmentalFieldRuntimeApplicationAdapter :
         result.width = grid.width;
         result.height = grid.height;
         float outdoorTemperature = GetOutdoorTemperature();
+        float exteriorAmbientLight = GetExteriorAmbientLight();
         int count = grid.width * grid.height;
         for (int index = 0; index < count; index++)
         {
             Vector2Int position = grid.GetPositionFromCellIndex(index);
-            float baseLight = GetBaseLight(exterior[index]);
+            float baseLight = GetBaseLight(
+                exterior[index],
+                exteriorAmbientLight);
             if (Mathf.Abs(temperature[index] - outdoorTemperature) < 0.05f
                 && Mathf.Abs(air[index] - 100f) < 0.05f
                 && Mathf.Abs(light[index] - baseLight) < 0.05f)
@@ -524,6 +532,7 @@ public sealed class EnvironmentalFieldRuntimeApplicationAdapter :
                 loadedGrid.height,
                 GetOutdoorTemperature(),
                 exteriorTopology,
+                GetExteriorAmbientLight(),
                 version);
     }
 
@@ -531,7 +540,11 @@ public sealed class EnvironmentalFieldRuntimeApplicationAdapter :
     {
         RefreshTopologyIfNeeded();
         DungeonStory.Environment.EnvironmentalFieldSimulationRules
-            .StepDiffusion(State, GetOutdoorTemperature(), deltaTime);
+            .StepDiffusion(
+                State,
+                GetOutdoorTemperature(),
+                GetExteriorAmbientLight(),
+                deltaTime);
         ApplySources(deltaTime);
         DungeonStory.Environment.EnvironmentalFieldSimulationRules
             .CompleteStep(State);
@@ -542,26 +555,51 @@ public sealed class EnvironmentalFieldRuntimeApplicationAdapter :
         for (int sourceIndex = 0; sourceIndex < sources.Count; sourceIndex++)
         {
             EnvironmentalFieldSourceDescriptor source = sources[sourceIndex];
-            if (source.Building == null
-                || source.Building.isDestroy
-                || source.RequiresPower && !power.IsPowered(source.Building))
+            bool active = source.Building != null && !source.Building.isDestroy
+                && source.Building.isActiveAndEnabled && !source.Building.IsDetachedRestoreCandidate
+                && source.Building.Grid == grid
+                && !(source.Building.IsDamaged
+                    && source.Building.Facility?.disabledWhenDamaged == true);
+            bool powered = active && (!(source.RequiresPower || source.LightRequiresPower)
+                || power.IsPowered(source.Building));
+            bool fuelSupplied = !source.RequiresFuel
+                || survivalEnvironment.HasFuelSupply(source.Building);
+            bool emitsLight = active && (!source.LightRequiresPower || powered)
+                && (!source.LightRequiresFuel || fuelSupplied);
+            source.LightVisual?.SetEmissionEnabled(emitsLight);
+            if (!active) continue;
+
+            bool emitsThermal = source.Thermal != null
+                && (!source.RequiresPower || powered)
+                && (!source.ThermalRequiresFuel || fuelSupplied);
+            bool runsLegacyHeating = source.LegacyTemperature != null
+                && (!source.LegacyTemperatureRequiresFuel || fuelSupplied);
+            float operatingSeconds = source.RequiresFuel
+                ? Mathf.Min(
+                    deltaTime,
+                    survivalEnvironment.GetRemainingFuelGameSeconds(
+                        source.Building))
+                : deltaTime;
+            if (emitsThermal)
             {
-                continue;
+                ApplyThermalSource(source, operatingSeconds);
             }
 
-            if (source.Thermal != null)
-            {
-                ApplyThermalSource(source, deltaTime);
-            }
-
-            if (source.Air != null)
+            if (source.Air != null && (!source.RequiresPower || powered))
             {
                 ApplyAirSource(source, deltaTime);
             }
 
-            if (source.Light != null)
+            if (source.Light != null && emitsLight)
             {
                 ApplyLightSource(source);
+            }
+
+            if (source.RequiresFuel
+                && operatingSeconds > 0f
+                && (emitsThermal || runsLegacyHeating || emitsLight))
+            {
+                source.Building.ConsumeFacilityFuelGameSeconds(operatingSeconds);
             }
         }
     }
@@ -766,13 +804,23 @@ public sealed class EnvironmentalFieldRuntimeApplicationAdapter :
         {
             RebuildTopology();
         }
+        for (int i = 0; i < operationDoors.Count; i++)
+        {
+            var entry = operationDoors[i];
+            if (entry.Door == null || entry.Revision == entry.Door.OperationRevision) continue;
+            foreach (Vector2Int position in entry.Door.buildPoses)
+                if (grid.TryGetCellIndex(position, out int index)) State.ClosedDoors[index] = !entry.Door.IsOpen;
+            operationDoors[i] = (entry.Door, entry.Door.OperationRevision);
+        }
     }
 
     private void RebuildTopology()
     {
         sources.Clear();
+        operationDoors.Clear();
         Array.Clear(barriers, 0, barriers.Length);
         Array.Clear(doors, 0, doors.Length);
+        Array.Clear(State.ClosedDoors, 0, State.ClosedDoors.Length);
         Array.Clear(ductExchange, 0, ductExchange.Length);
         for (int index = 0; index < exterior.Length; index++)
         {
@@ -802,6 +850,8 @@ public sealed class EnvironmentalFieldRuntimeApplicationAdapter :
                     : new[] { building.centerPos };
             bool wall = RoomDetector.IsWall(building);
             bool door = RoomDetector.IsDoor(building);
+            if (building is Door physicalDoor)
+                operationDoors.Add((physicalDoor, physicalDoor.OperationRevision));
             BuildingAirDuctAbility duct =
                 building.BuildingData.GetAbility<BuildingAirDuctAbility>();
             for (int positionIndex = 0;
@@ -815,6 +865,7 @@ public sealed class EnvironmentalFieldRuntimeApplicationAdapter :
 
                 barriers[index] |= wall && !door;
                 doors[index] |= door;
+                State.ClosedDoors[index] |= building is Door leaf && !leaf.IsOpen;
                 if (duct != null)
                 {
                     ductExchange[index] = Mathf.Max(
@@ -831,8 +882,13 @@ public sealed class EnvironmentalFieldRuntimeApplicationAdapter :
                     .GetAbility<BuildingAirExchangeAbility>();
             BuildingLightingAbility lighting =
                 building.BuildingData.GetAbility<BuildingLightingAbility>();
+            BuildingTemperatureAbility legacyTemperature =
+                building.BuildingData.GetAbility<BuildingTemperatureAbility>();
 
-            if (thermal == null && airExchange == null && lighting == null)
+            if (thermal == null
+                && airExchange == null
+                && lighting == null
+                && legacyTemperature == null)
             {
                 continue;
             }
@@ -844,6 +900,7 @@ public sealed class EnvironmentalFieldRuntimeApplicationAdapter :
                 thermal,
                 airExchange,
                 lighting,
+                legacyTemperature,
                 thermal?.requiresPower == true
                     || airExchange?.requiresPower == true));
         }
@@ -869,10 +926,18 @@ public sealed class EnvironmentalFieldRuntimeApplicationAdapter :
         return survivalEnvironment.GetEnvironmentSnapshot().OutdoorTemperature;
     }
 
-    private static float GetBaseLight(bool isExterior)
+    private float GetExteriorAmbientLight()
     {
         return DungeonStory.Environment.EnvironmentalFieldSimulationRules
-            .GetBaseLight(isExterior);
+            .ResolveExteriorAmbientLight(calendar.TimeOfDay == TimeOfDay.Night);
+    }
+
+    private static float GetBaseLight(
+        bool isExterior,
+        float exteriorAmbientLight)
+    {
+        return DungeonStory.Environment.EnvironmentalFieldSimulationRules
+            .GetBaseLight(isExterior, exteriorAmbientLight);
     }
 
     private static bool IsFiniteInRange(
@@ -902,6 +967,7 @@ internal sealed class EnvironmentalFieldSourceDescriptor
         BuildingThermalEmitterAbility thermal,
         BuildingAirExchangeAbility air,
         BuildingLightingAbility light,
+        BuildingTemperatureAbility legacyTemperature,
         bool requiresPower)
     {
         Building = building;
@@ -910,7 +976,18 @@ internal sealed class EnvironmentalFieldSourceDescriptor
         Thermal = thermal;
         Air = air;
         Light = light;
+        LegacyTemperature = legacyTemperature;
         RequiresPower = requiresPower;
+        bool consumesFuel = building.BuildingData
+            .GetAbility<BuildingFuelConsumerAbility>() != null;
+        RequiresFuel = consumesFuel
+            && (thermal != null || light != null || legacyTemperature != null);
+        ThermalRequiresFuel = thermal != null && consumesFuel;
+        LegacyTemperatureRequiresFuel = legacyTemperature != null && consumesFuel;
+        LightRequiresPower = light != null
+            && building.BuildingData.GetAbility<BuildingPowerConsumerAbility>() != null;
+        LightRequiresFuel = light != null && consumesFuel;
+        LightVisual = light == null ? null : building.GetComponentInChildren<RoomClippedLight2D>(true);
     }
 
     internal readonly BuildableObject Building;
@@ -919,5 +996,12 @@ internal sealed class EnvironmentalFieldSourceDescriptor
     internal readonly BuildingThermalEmitterAbility Thermal;
     internal readonly BuildingAirExchangeAbility Air;
     internal readonly BuildingLightingAbility Light;
+    internal readonly BuildingTemperatureAbility LegacyTemperature;
     internal readonly bool RequiresPower;
+    internal readonly bool RequiresFuel;
+    internal readonly bool ThermalRequiresFuel;
+    internal readonly bool LegacyTemperatureRequiresFuel;
+    internal readonly bool LightRequiresPower;
+    internal readonly bool LightRequiresFuel;
+    internal readonly RoomClippedLight2D LightVisual;
 }

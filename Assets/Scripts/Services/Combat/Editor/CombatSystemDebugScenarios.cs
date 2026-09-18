@@ -2219,6 +2219,9 @@ public static class CombatSystemDebugScenarios
             Amount += Mathf.Max(0f, amount);
             return characterId.IsValid && amount > 0f;
         }
+
+        public bool AddHeatExposure(CharacterId characterId, float amount) =>
+            characterId.IsValid && amount > 0f;
     }
 
     private sealed class NoopOwnerRunLifecycleService :

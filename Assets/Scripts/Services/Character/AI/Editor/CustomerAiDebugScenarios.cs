@@ -85,12 +85,12 @@ public static class CustomerAiDebugScenarios
         report.AppendLine("section\tkey\tvalue");
 
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject lowFood = world.Place("P1_LowFoodShop", new Vector2Int(4, 0));
-        BuildableObject general = world.Place("P1_GeneralStore", new Vector2Int(10, 0));
-        BuildableObject rest = world.Place("P1_RestRoom", new Vector2Int(16, 0));
-        BuildableObject toilet = world.Place("P1_Toilet", new Vector2Int(22, 0));
-        BuildableObject washroom = world.Place("P1_Washroom", new Vector2Int(28, 0));
-        BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(34, 0));
+        BuildableObject lowFood = world.Place("D04_배식카운터", new Vector2Int(4, 0));
+        BuildableObject general = world.Place("S01_판매카운터", new Vector2Int(10, 0));
+        BuildableObject rest = world.Place("R01_간이침대", new Vector2Int(16, 0));
+        BuildableObject toilet = world.Place("H01_변기", new Vector2Int(22, 0));
+        BuildableObject washroom = world.Place("H03_세면대", new Vector2Int(28, 0));
+        BuildableObject lab = world.Place("Q01_연구책상", new Vector2Int(34, 0));
         world.StaffShop(lowFood);
         world.StaffShop(general);
 
@@ -179,14 +179,14 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyRoleCandidateFiltering()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject lowFood = world.Place("P1_LowFoodShop", new Vector2Int(3, 0));
-        BuildableObject meat = world.Place("P1_MeatRestaurant", new Vector2Int(8, 0));
-        BuildableObject general = world.Place("P1_GeneralStore", new Vector2Int(13, 0));
-        BuildableObject weapon = world.Place("P1_WeaponShop", new Vector2Int(18, 0));
-        BuildableObject rest = world.Place("P1_RestRoom", new Vector2Int(23, 0));
-        BuildableObject toilet = world.Place("P1_Toilet", new Vector2Int(28, 0));
-        BuildableObject washroom = world.Place("P1_Washroom", new Vector2Int(32, 0));
-        BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(36, 0));
+        BuildableObject lowFood = world.Place("D04_배식카운터", new Vector2Int(3, 0));
+        BuildableObject meat = world.Place("D02_고기그릴", new Vector2Int(8, 0));
+        BuildableObject general = world.Place("S01_판매카운터", new Vector2Int(13, 0));
+        BuildableObject weapon = world.Place("S07_무기보관함", new Vector2Int(18, 0));
+        BuildableObject rest = world.Place("R01_간이침대", new Vector2Int(23, 0));
+        BuildableObject toilet = world.Place("H01_변기", new Vector2Int(28, 0));
+        BuildableObject washroom = world.Place("H03_세면대", new Vector2Int(32, 0));
+        BuildableObject lab = world.Place("Q01_연구책상", new Vector2Int(36, 0));
         world.PlaceRoomDoorsFor(toilet);
         world.PlaceRoomDoorsFor(washroom);
         world.StaffShop(lowFood);
@@ -273,11 +273,11 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyNeedScoresDriveActionPriority()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject lowFood = world.Place("P1_LowFoodShop", new Vector2Int(4, 0));
-        BuildableObject general = world.Place("P1_GeneralStore", new Vector2Int(10, 0));
-        world.Place("P1_RestRoom", new Vector2Int(16, 0));
-        BuildableObject toilet = world.Place("P1_Toilet", new Vector2Int(22, 0));
-        BuildableObject washroom = world.Place("P1_Washroom", new Vector2Int(28, 0));
+        BuildableObject lowFood = world.Place("D04_배식카운터", new Vector2Int(4, 0));
+        BuildableObject general = world.Place("S01_판매카운터", new Vector2Int(10, 0));
+        world.Place("R01_간이침대", new Vector2Int(16, 0));
+        BuildableObject toilet = world.Place("H01_변기", new Vector2Int(22, 0));
+        BuildableObject washroom = world.Place("H03_세면대", new Vector2Int(28, 0));
         world.PlaceRoomDoorsFor(toilet);
         world.PlaceRoomDoorsFor(washroom);
         world.StaffShop(lowFood);
@@ -325,8 +325,8 @@ public static class CustomerAiDebugScenarios
     private static bool VerifySpeciesPreferenceCanBeatDistance()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject general = world.Place("P1_GeneralStore", new Vector2Int(3, 0));
-        BuildableObject weapon = world.Place("P1_WeaponShop", new Vector2Int(18, 0));
+        BuildableObject general = world.Place("S01_판매카운터", new Vector2Int(3, 0));
+        BuildableObject weapon = world.Place("S07_무기보관함", new Vector2Int(18, 0));
         world.StaffShop(general);
         world.StaffShop(weapon);
         GridPathSearchResult searchResult = world.Grid.SearchPath(Vector2Int.zero);
@@ -356,9 +356,9 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyToiletAndHygieneFacilityRecovery()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject restRoom = world.Place("P1_RestRoom", new Vector2Int(4, 0));
-        BuildableObject toilet = world.Place("P1_Toilet", new Vector2Int(8, 0));
-        BuildableObject washroom = world.Place("P1_Washroom", new Vector2Int(12, 0));
+        BuildableObject restRoom = world.Place("R01_간이침대", new Vector2Int(4, 0));
+        BuildableObject toilet = world.Place("H01_변기", new Vector2Int(8, 0));
+        BuildableObject washroom = world.Place("H03_세면대", new Vector2Int(12, 0));
         Facility restFacility = restRoom as Facility;
         Facility toiletFacility = toilet as Facility;
         Facility washroomFacility = washroom as Facility;
@@ -415,7 +415,7 @@ public static class CustomerAiDebugScenarios
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
         BuildableObject toilet = world.Place(
-            "P1_Toilet",
+            "H01_변기",
             new Vector2Int(8, 0));
         List<CharacterActor> occupants = new List<CharacterActor>();
         int capacity = Mathf.Max(1, toilet.EffectiveCapacity);
@@ -581,9 +581,9 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyVampireSelectsManaOrResearch()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject general = world.Place("P1_GeneralStore", new Vector2Int(3, 0));
-        BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(16, 0));
-        BuildableObject mana = world.Place("P1_ManaStorage", new Vector2Int(24, 0));
+        BuildableObject general = world.Place("S01_판매카운터", new Vector2Int(3, 0));
+        BuildableObject lab = world.Place("Q01_연구책상", new Vector2Int(16, 0));
+        BuildableObject mana = world.Place("M02_마력저장조", new Vector2Int(24, 0));
         world.StaffShop(general);
         GridPathSearchResult searchResult = world.Grid.SearchPath(Vector2Int.zero);
 
@@ -607,9 +607,9 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyUnavailableFacilitiesAreExcluded()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject lowFood = world.Place("P1_LowFoodShop", new Vector2Int(4, 0));
-        BuildableObject general = world.Place("P1_GeneralStore", new Vector2Int(10, 0));
-        BuildableObject rest = world.Place("P1_RestRoom", new Vector2Int(16, 0));
+        BuildableObject lowFood = world.Place("S01_판매카운터", new Vector2Int(4, 0));
+        BuildableObject general = world.Place("S01_판매카운터", new Vector2Int(10, 0));
+        BuildableObject rest = world.Place("R01_간이침대", new Vector2Int(16, 0));
         world.StaffShop(general);
         CharacterActor customer = world.CreateCustomer("Slime", Vector2Int.zero, 10f, 20f, 10f, 20f);
         GridPathSearchResult searchResult = world.Grid.SearchPath(Vector2Int.zero);
@@ -655,7 +655,7 @@ public static class CustomerAiDebugScenarios
     private static bool VerifySelfServiceCheckoutWithoutWorker()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject general = world.Place("P1_GeneralStore", new Vector2Int(4, 0));
+        BuildableObject general = world.Place("S01_판매카운터", new Vector2Int(4, 0));
         Shop shop = general as Shop;
         CharacterActor customer = world.CreateCustomer("Slime", Vector2Int.zero, 90f, 90f, 10f, 20f);
         CharacterActor calmCustomer = world.CreateCustomer("Slime", new Vector2Int(1, 0), 90f, 90f, 90f, 90f);
@@ -703,7 +703,7 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyUnstaffedShopAllowsSelfServiceCheckout()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject general = world.Place("P1_GeneralStore", new Vector2Int(4, 0));
+        BuildableObject general = world.Place("S01_판매카운터", new Vector2Int(4, 0));
         Shop shop = general as Shop;
         CharacterActor customer = world.CreateCustomer("Slime", Vector2Int.zero, 90f, 90f, 10f, 20f);
         CharacterActor calmCustomer = world.CreateCustomer("Slime", new Vector2Int(1, 0), 90f, 90f, 90f, 90f);
@@ -770,7 +770,7 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyReplacedShopTransactionCannotCommit()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        Shop shop = world.Place("P1_GeneralStore", new Vector2Int(4, 0)) as Shop;
+        Shop shop = world.Place("S01_판매카운터", new Vector2Int(4, 0)) as Shop;
         CharacterActor customer = world.CreateCustomer(
             "Slime",
             Vector2Int.zero,
@@ -828,7 +828,7 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyConcurrentShopBuyersCannotOversellSingleStock()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        Shop shop = world.Place("P1_GeneralStore", new Vector2Int(4, 0)) as Shop;
+        Shop shop = world.Place("S01_판매카운터", new Vector2Int(4, 0)) as Shop;
         CharacterActor firstCustomer = world.CreateCustomer("Slime", Vector2Int.zero, 90f, 90f, 10f, 20f);
         CharacterActor secondCustomer = world.CreateCustomer("Slime", new Vector2Int(0, 1), 90f, 90f, 10f, 20f);
         AbilityShopping firstShopping = firstCustomer?.GetAbility<AbilityShopping>();
@@ -927,7 +927,7 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyRetailActivationAndRestockOwnershipRoundTrip()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        Shop shop = world.Place("P1_GeneralStore", new Vector2Int(4, 0)) as Shop;
+        Shop shop = world.Place("S01_판매카운터", new Vector2Int(4, 0)) as Shop;
         if (shop == null)
         {
             return false;
@@ -994,7 +994,7 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyAuthoredUniqueRetailEquipmentCommitsExactSink()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        Shop shop = world.Place("P1_WeaponShop", new Vector2Int(4, 0)) as Shop;
+        Shop shop = world.Place("S01_판매카운터", new Vector2Int(4, 0)) as Shop;
         CharacterActor customer = world.CreateCustomer(
             "Slime",
             Vector2Int.zero,
@@ -1093,8 +1093,8 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyAbandonedCheckoutPreservesVisit()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject shop = world.Place("P1_GeneralStore", new Vector2Int(4, 0));
-        BuildableObject alternative = world.Place("P1_WeaponShop", new Vector2Int(12, 0));
+        BuildableObject shop = world.Place("S01_판매카운터", new Vector2Int(4, 0));
+        BuildableObject alternative = world.Place("S01_판매카운터", new Vector2Int(12, 0));
         CharacterActor customer = world.CreateCustomer("Slime", Vector2Int.zero, 90f, 90f, 10f, 20f);
         AbilityShopping shopping = customer.GetAbility<AbilityShopping>();
         // This row proves visit ownership, not purchasing-power balance. Keep
@@ -1117,7 +1117,7 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyCheckoutComplaintCreatesFacilityMemory()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject shop = world.Place("P1_GeneralStore", new Vector2Int(4, 0));
+        BuildableObject shop = world.Place("S01_판매카운터", new Vector2Int(4, 0));
         CharacterActor customer = world.CreateCustomer("Slime", Vector2Int.zero, 90f, 90f, 10f, 20f);
         CharacterSocialMemory memory = customer.SocialMemory;
         float before = memory != null ? memory.GetFacilitySentiment(shop) : 0f;
@@ -1140,7 +1140,7 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyCheckoutWaitCoroutineAbandons()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        Shop shop = world.Place("P1_GeneralStore", new Vector2Int(4, 0), requireStaffedService: true) as Shop;
+        Shop shop = world.Place("S01_판매카운터", new Vector2Int(4, 0), requireStaffedService: true) as Shop;
         CharacterActor customer = world.CreateCustomer("Slime", Vector2Int.zero, 90f, 90f, 10f, 70f);
         AbilityShopping shopping = customer.GetAbility<AbilityShopping>();
         if (shop == null || shopping == null || shop.HasServingWorker)
@@ -1205,7 +1205,7 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyUnaffordableShopEndsVisitCycle()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject general = world.Place("P1_GeneralStore", new Vector2Int(4, 0));
+        BuildableObject general = world.Place("S01_판매카운터", new Vector2Int(4, 0));
         world.StaffShop(general);
         CharacterActor customer = world.CreateCustomer("Slime", Vector2Int.zero, 90f, 90f, 10f, 20f);
         AbilityShopping shopping = customer.GetAbility<AbilityShopping>();
@@ -1323,7 +1323,7 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyUnavailableHighScoreNeedSelectsReachableAction()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject restRoom = world.Place("P1_RestRoom", new Vector2Int(6, 0));
+        BuildableObject restRoom = world.Place("R01_간이침대", new Vector2Int(6, 0));
         CharacterActor customer = world.CreateCustomer("Slime", Vector2Int.zero, 5f, 5f, 90f, 90f);
         List<ScriptableObject> owned = new List<ScriptableObject>();
 
@@ -1355,8 +1355,8 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyNoveltyAndCrowdScores()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject general = world.Place("P1_GeneralStore", new Vector2Int(4, 0));
-        BuildableObject rest = world.Place("P1_RestRoom", new Vector2Int(10, 0));
+        BuildableObject general = world.Place("S01_판매카운터", new Vector2Int(4, 0));
+        BuildableObject rest = world.Place("R01_간이침대", new Vector2Int(10, 0));
         world.StaffShop(general);
         CharacterActor customer = world.CreateCustomer("Slime", Vector2Int.zero, 90f, 90f, 10f, 10f);
         GridPathSearchResult searchResult = world.Grid.SearchPath(Vector2Int.zero);
@@ -1585,7 +1585,7 @@ public static class CustomerAiDebugScenarios
     private static void AppendUnavailableHighScoreDecision(System.Text.StringBuilder report)
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject restRoom = world.Place("P1_RestRoom", new Vector2Int(6, 0));
+        BuildableObject restRoom = world.Place("R01_간이침대", new Vector2Int(6, 0));
         CharacterActor customer = world.CreateCustomer("Slime", Vector2Int.zero, 5f, 5f, 90f, 90f);
         List<ScriptableObject> owned = new List<ScriptableObject>();
 
@@ -1617,11 +1617,11 @@ public static class CustomerAiDebugScenarios
     private static void AppendNeedScoreDecision(System.Text.StringBuilder report)
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject lowFood = world.Place("P1_LowFoodShop", new Vector2Int(4, 0));
-        BuildableObject general = world.Place("P1_GeneralStore", new Vector2Int(10, 0));
-        world.Place("P1_RestRoom", new Vector2Int(16, 0));
-        BuildableObject toilet = world.Place("P1_Toilet", new Vector2Int(22, 0));
-        BuildableObject washroom = world.Place("P1_Washroom", new Vector2Int(28, 0));
+        BuildableObject lowFood = world.Place("D04_배식카운터", new Vector2Int(4, 0));
+        BuildableObject general = world.Place("S01_판매카운터", new Vector2Int(10, 0));
+        world.Place("R01_간이침대", new Vector2Int(16, 0));
+        BuildableObject toilet = world.Place("H01_변기", new Vector2Int(22, 0));
+        BuildableObject washroom = world.Place("H03_세면대", new Vector2Int(28, 0));
         world.PlaceRoomDoorsFor(toilet);
         world.PlaceRoomDoorsFor(washroom);
         world.StaffShop(lowFood);
@@ -1800,7 +1800,7 @@ public static class CustomerAiDebugScenarios
             bool requireStaffedService = false)
         {
             BuildingSO buildingData = AssetDatabase.LoadAssetAtPath<BuildingSO>(
-                $"Assets/Resources/SO/Building/P1/{assetName}.asset");
+                $"Assets/Resources/SO/Building/Modular/{assetName}.asset");
             if (buildingData == null)
             {
                 throw new InvalidOperationException($"{assetName} asset not found.");

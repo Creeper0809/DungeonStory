@@ -160,6 +160,17 @@ public interface IWorkOrderRuntime
     int DebugCompleteAllOrders();
 }
 
+internal interface IWorkAccidentOperationIdAuthority
+{
+    [GameplayInternalOnly(
+        "Allocates a persisted monotonic identity before one work-accident damage commit.",
+        "WorkTaskExecutor.TryTriggerWorkAccident only")]
+    string AllocateWorkAccidentOperationId(
+        CharacterId workerId,
+        WorkTypeId workTypeId,
+        BuildingInstanceId facilityId);
+}
+
 public interface IConstructionProjectWorkforceRuntime
 {
     bool TryJoinConstructionProject(

@@ -23,6 +23,12 @@ public sealed class DungeonCharacterSaveData
     public CharacterRole role;
     public int gridX;
     public int gridY;
+    public string societyResponseMovementOperationId = string.Empty;
+    public string societyResponseMovementExternalOperationId = string.Empty;
+    public string societyResponseMovementFacilityId = string.Empty;
+    public int societyResponseMovementDestinationX;
+    public int societyResponseMovementDestinationY;
+    public string societyResponseMovementReceiptId = string.Empty;
     public CharacterLifecycleState lifecycleState =
         CharacterLifecycleState.Active;
     public float currentHealth;
@@ -45,6 +51,7 @@ public sealed class DungeonCharacterSaveData
     public List<string> equippedSkillIds = new List<string>();
     public CharacterGrowthState growth = new CharacterGrowthState();
     public CharacterNarrativeLedger narrative = new CharacterNarrativeLedger();
+    public CharacterAcquiredTraitAggregateState acquiredTraits;
     public CharacterSocialMemorySnapshot socialMemory =
         new CharacterSocialMemorySnapshot();
     public CharacterExpeditionRecoveryState expeditionRecovery =

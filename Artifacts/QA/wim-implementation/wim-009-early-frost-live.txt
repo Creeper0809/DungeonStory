@@ -1,0 +1,11 @@
+isolation=run-flow event subscriptions disposed and fresh invasion threat producer disabled; actual seasonal daily subscriber and save participants retained
+crops=actual P23 outdoor + P24 indoor; twilight-grain; every runtime RequiredMaterials lot physically supplied and sow work completed
+[PASS] actual main day61 clear-front dispatch created no early-frost occurrence or resolution
+[PASS] actual main day62 cold-snap dispatch created exactly one early-frost occurrence; deadlineDelta=2; startEffects=0
+[PASS] real crop ticks under active frost: outdoor -20C growth unchanged/TooCold; indoor 20C growth advanced/Suitable; actual presenter reports current temperature and adjusted range
+[PASS] same outdoor crop resumed growth at 20C while the frost occurrence remained active; no fixed frost multiplier or crop reset
+[PASS] current whole-world JSON restored cold-snap, exact frost instance/deadline and both real plot environment projections; no frost-specific crop save field
+[PASS] day after deadline removed the event occurrence without healing, damaging, rerolling or otherwise mutating either crop
+result=PASS
+scope=actual main daily event subscriber/content transaction, real P23/P24 crop runtime, existing per-cell temperature authority, current crop presenter and current whole-world save; owner/party UI is real; research/placement/climate/calendar/environment cells are controlled setup; no natural weather selection/heating performance/AI farm/six-adult balance/whole-WIM009 claim
+cleanup=operator stops disposable protected Play; save/profile writers disposed; no scene or user persistence writes

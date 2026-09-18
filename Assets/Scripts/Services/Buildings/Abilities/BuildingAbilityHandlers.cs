@@ -6,7 +6,8 @@ public readonly struct BuildingAbilityWorkContext
     public BuildingAbilityWorkContext(
         IBuildingVisitorPort actor,
         BuildableObject building,
-        WorkTypeId workTypeId)
+        WorkTypeId workTypeId,
+        float approvedWork)
     {
         if (!workTypeId.IsValid)
         {
@@ -14,10 +15,19 @@ public readonly struct BuildingAbilityWorkContext
                 "Building ability work context requires a valid work type id.",
                 nameof(workTypeId));
         }
+        if (float.IsNaN(approvedWork)
+            || float.IsInfinity(approvedWork)
+            || approvedWork < 0f)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(approvedWork),
+                "Building ability work context requires finite nonnegative approved work.");
+        }
 
         Actor = actor;
         Building = building;
         WorkTypeId = workTypeId;
+        ApprovedWork = approvedWork;
         WorkType = WorkTypeCatalog.TryGet(workTypeId, out WorkTypeDefinition definition)
             ? FacilityWorkTypeMap.GetRequired(definition)
             : FacilityWorkType.None;
@@ -26,6 +36,7 @@ public readonly struct BuildingAbilityWorkContext
     public IBuildingVisitorPort Actor { get; }
     public BuildableObject Building { get; }
     public WorkTypeId WorkTypeId { get; }
+    public float ApprovedWork { get; }
     internal FacilityWorkType WorkType { get; }
 }
 
@@ -46,7 +57,8 @@ public interface IBuildingAbilityRuntimeDispatcher
     int ApplyWorkCompleted(
         IBuildingVisitorPort actor,
         BuildableObject building,
-        WorkTypeId workTypeId);
+        WorkTypeId workTypeId,
+        float approvedWork);
 }
 
 public sealed class BuildingAbilityRuntimeDispatcher :
@@ -66,16 +78,21 @@ public sealed class BuildingAbilityRuntimeDispatcher :
     public int ApplyWorkCompleted(
         IBuildingVisitorPort actor,
         BuildableObject building,
-        WorkTypeId workTypeId)
+        WorkTypeId workTypeId,
+        float approvedWork)
     {
         if (building?.BuildingData == null)
         {
             return 0;
         }
 
-        building.RecordCompletedWorkCycle();
         BuildingAbilityWorkContext context =
-            new BuildingAbilityWorkContext(actor, building, workTypeId);
+            new BuildingAbilityWorkContext(
+                actor,
+                building,
+                workTypeId,
+                approvedWork);
+        building.RecordCompletedWorkCycle();
         int totalProduced = 0;
         foreach (BuildingAbility ability in building.BuildingData.Abilities)
         {

@@ -275,6 +275,7 @@ public sealed class RepairWorkExecutionHandler :
                 jamFailure.Code.ToString(),
                 context.Target);
             result.CompletedSuccessfully = false;
+            result.Failure = jamFailure;
             yield break;
         }
 
@@ -302,6 +303,7 @@ public sealed class RepairWorkExecutionHandler :
                     repairFailure.Code.ToString(),
                     context.Target);
                 result.CompletedSuccessfully = false;
+                result.Failure = repairFailure;
                 yield break;
             }
 
@@ -447,6 +449,8 @@ public sealed class RepairWorkExecutionHandler :
             if (!command.Succeeded)
             {
                 result.CompletedSuccessfully = false;
+                result.Failure = command.Failure;
+                result.ObserveFailureSource(() => automationQuery.Version);
                 context.Actor?.AddActivity(CharacterActivityEvent.Work(
                     FacilityWorkType.Repair,
                     CharacterActivityOutcomes.Blocked,

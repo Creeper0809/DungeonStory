@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "의료 호출판에서 환자를 살피고 필요한 처치를 이어 갈 수 있게 꾸린 설치 부품이며, 므네실라에서도 이 부품의 치수를 알아본다.",
+  "in_game_description": "의료 호출판에서 환자를 살피고 필요한 처치를 이어 갈 수 있게 꾸린 설치 부품이다. 므네실라에서는 의료 호출판 틈에 포자가 검게 피면 사용을 멈추고 물길부터 닫는다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

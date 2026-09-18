@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Text;
+using DungeonStory.Environment;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -19,6 +20,10 @@ public sealed class CharacterSummaryPopulationPresenter
     private readonly IReproductionService reproduction;
     private readonly IChildSafetyPolicy childSafety;
     private readonly IWorldHazardZoneQuery hazards;
+    private readonly IEnvironmentalFireQuery fires;
+    private readonly IEnvironmentalFireSuppressionWorkRuntime fireResponse;
+    private readonly IEnvironmentalFireSuppressionAccessQuery fireAccess;
+    private readonly IBuildingWorldQuery buildings;
     private TMP_Text summaryText;
     private Button globalPolicyButton;
     private Button characterPermissionButton;
@@ -31,7 +36,11 @@ public sealed class CharacterSummaryPopulationPresenter
         ICareerService careers,
         IReproductionService reproduction,
         IChildSafetyPolicy childSafety,
-        IWorldHazardZoneQuery hazards)
+        IWorldHazardZoneQuery hazards,
+        IEnvironmentalFireQuery fires,
+        IEnvironmentalFireSuppressionWorkRuntime fireResponse,
+        IEnvironmentalFireSuppressionAccessQuery fireAccess,
+        IBuildingWorldQuery buildings)
     {
         this.life = life ?? throw new ArgumentNullException(nameof(life));
         this.kinship = kinship ?? throw new ArgumentNullException(nameof(kinship));
@@ -45,6 +54,13 @@ public sealed class CharacterSummaryPopulationPresenter
         this.childSafety = childSafety
             ?? throw new ArgumentNullException(nameof(childSafety));
         this.hazards = hazards ?? throw new ArgumentNullException(nameof(hazards));
+        this.fires = fires ?? throw new ArgumentNullException(nameof(fires));
+        this.fireResponse = fireResponse
+            ?? throw new ArgumentNullException(nameof(fireResponse));
+        this.fireAccess = fireAccess
+            ?? throw new ArgumentNullException(nameof(fireAccess));
+        this.buildings = buildings
+            ?? throw new ArgumentNullException(nameof(buildings));
     }
 
     public void Bind(
@@ -80,6 +96,7 @@ public sealed class CharacterSummaryPopulationPresenter
         AppendDisease(text, id);
         AppendCareer(text, id);
         AppendSafety(text, actor, id, record.LifeStage);
+        AppendEnvironmentalFireNotice(text, actor, id);
         summaryText.text = text.ToString().TrimEnd();
         RefreshButtons(id, record.LifeStage);
     }
@@ -239,6 +256,28 @@ public sealed class CharacterSummaryPopulationPresenter
             .AppendLine(mentorship.MentorCharacterId.IsValid
                 ? mentorship.MentorCharacterId.Value
                 : "없음");
+        if (career.RetirementScheduleStatus == RetirementScheduleStatus.Pending)
+        {
+            text.Append("은퇴 일정 · 결정 ")
+                .Append(career.RetirementDecisionAbsoluteDay)
+                .Append("일 · 예정 ")
+                .Append(career.RetirementDueAbsoluteDay)
+                .AppendLine("일");
+        }
+        else if (career.RetirementScheduleStatus ==
+                 RetirementScheduleStatus.Completed)
+        {
+            text.Append("은퇴 일정 완료 · ")
+                .Append(career.RetirementTerminalAbsoluteDay)
+                .AppendLine("일");
+        }
+        else if (career.RetirementScheduleStatus ==
+                 RetirementScheduleStatus.CancelledByDeath)
+        {
+            text.Append("은퇴 일정 사망 취소 · ")
+                .Append(career.RetirementTerminalAbsoluteDay)
+                .AppendLine("일");
+        }
     }
 
     private void AppendSafety(
@@ -264,6 +303,111 @@ public sealed class CharacterSummaryPopulationPresenter
                     : "금지"
                 : "청소년만 설정 가능");
     }
+
+    private void AppendEnvironmentalFireNotice(
+        StringBuilder text,
+        CharacterActor actor,
+        CharacterId actorId)
+    {
+        EnvironmentalFireSnapshot[] active = fires.ActiveFires
+            .Where(fire => fire != null)
+            .OrderBy(fire => fire.FireId, StringComparer.Ordinal)
+            .ToArray();
+        if (active.Length == 0)
+            return;
+
+        text.AppendLine().AppendLine("[화재 경보]");
+        foreach (EnvironmentalFireSnapshot fire in active.Take(3))
+        {
+            text.Append("위치 (")
+                .Append(fire.Position.x)
+                .Append(", ")
+                .Append(fire.Position.y)
+                .Append(") · 원인 ")
+                .Append(FireCauseLabel(fire.IgnitionKind))
+                .Append(" · 피해 ")
+                .Append(fire.TotalDamage.ToString("0.##"))
+                .Append(" · ")
+                .AppendLine(FireResponseStatus(fire, actor, actorId));
+        }
+        if (active.Length > 3)
+        {
+            text.Append("추가 활성 화재 ")
+                .Append(active.Length - 3)
+                .AppendLine("건");
+        }
+    }
+
+    private string FireResponseStatus(
+        EnvironmentalFireSnapshot fire,
+        CharacterActor actor,
+        CharacterId actorId)
+    {
+        BuildableObject target = buildings.Buildings
+            .FirstOrDefault(building => building != null
+                && !building.isDestroy
+                && building.PersistentInstanceId.IsValid
+                && string.Equals(
+                    building.PersistentInstanceId.Value,
+                    fire.Target.TargetId,
+                    StringComparison.Ordinal));
+        if (target == null
+            || !fireResponse.TryGetWork(target, actor, out var work))
+        {
+            return "진화 대상 확인 불가";
+        }
+        if (!work.Available)
+            return FireWorkUnavailableLabel(work.UnavailableReason);
+
+        Vector2Int current = actor != null ? actor.GetNowXY() : default;
+        if (!fireAccess.CanSuppress(
+                actorId.Value,
+                current,
+                fire.Target,
+                out string accessReason))
+        {
+            return "진화 접근 대기 · " + FireAccessLabel(accessReason);
+        }
+        return work.Mode == EnvironmentalFireSuppressionMode.Water
+            ? $"물 {work.RequiredWater}개 준비됨 · 진화 가능"
+            : "초기 진화 가능";
+    }
+
+    private static string FireWorkUnavailableLabel(string reason)
+    {
+        if (reason?.IndexOf("water", StringComparison.OrdinalIgnoreCase) >= 0)
+            return "진화 대기 · 실물 물 부족";
+        if (reason?.IndexOf("electrical", StringComparison.OrdinalIgnoreCase) >= 0)
+            return "진화 대기 · 전기 격리 필요";
+        return "진화 대기 · " + FireAccessLabel(reason);
+    }
+
+    private static string FireAccessLabel(string reason) =>
+        reason?.Trim() switch
+        {
+            "environmental-fire-suppression-worker-not-at-stand" =>
+                "안전한 인접 접근 위치로 이동 필요",
+            "environmental-fire-suppression-not-at-authored-access" =>
+                "작성된 작업 접근 위치가 아님",
+            "environmental-fire-suppression-stand-forbidden" =>
+                "접근 위치가 화재 위험 구역임",
+            "environmental-fire-suppression-worker-unavailable" =>
+                "선택 인력이 작업 불가",
+            _ when string.IsNullOrWhiteSpace(reason) =>
+                "안전한 인접 접근 위치 부족",
+            _ => reason.Trim()
+        };
+
+    private static string FireCauseLabel(EnvironmentalFireIgnitionKind kind) => kind switch
+    {
+        EnvironmentalFireIgnitionKind.ElectricalFault => "전기 고장",
+        EnvironmentalFireIgnitionKind.ActiveHeatSource => "가동 열원",
+        EnvironmentalFireIgnitionKind.ProcessAccident => "공정 사고",
+        EnvironmentalFireIgnitionKind.AuthoredFlameImpact => "화염 적중",
+        EnvironmentalFireIgnitionKind.FeedSelfHeating => "사료 자연발열",
+        EnvironmentalFireIgnitionKind.Spread => "인접 화재 확산",
+        _ => kind.ToString()
+    };
 
     private void RefreshButtons(CharacterId id, CharacterLifeStage stage)
     {

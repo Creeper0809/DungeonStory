@@ -32,7 +32,7 @@ public sealed class DungeonStoryHostStructuredChatBackend :
     private const string SystemInstruction =
         "Return exactly one compact JSON object matching the supplied schema. " +
         "Write player-facing prose in Korean. Do not reveal hidden reasoning, " +
-        "markdown, internal ids other than supplied Fxx/Mxx references, or extra keys.";
+        "markdown, invented ids, or extra keys. Copy only ids explicitly supplied by the request.";
 
     private readonly Func<string> sessionTokenProvider;
 
@@ -178,7 +178,7 @@ public sealed class DungeonStoryHostStructuredChatBackend :
         AppendJsonString(body, prompt.Prompt);
         body.Append(",\"grammar\":");
         AppendJsonString(body, grammar);
-        body.Append(",\"temperature\":0,\"n_predict\":4,\"cache_prompt\":true,\"stream\":false}");
+        body.Append(",\"temperature\":0,\"n_predict\":32,\"cache_prompt\":true,\"stream\":false}");
 
         UnityWebRequest request = new UnityWebRequest(
             baseEndpoint + "/completion",
@@ -211,17 +211,25 @@ public sealed class DungeonStoryHostStructuredChatBackend :
         }
         catch (Exception exception)
         {
-            error = "DungeonStory choice response parse failed: " + exception.Message;
+            error = "EquipmentChoice.TransportEnvelopeInvalid: " + exception.Message;
             return false;
         }
 
-        if (response == null
-            || !EquipmentChoiceResultParser.TryParse(
+        if (response == null)
+        {
+            error = response?.error?.message ?? "EquipmentChoice.TransportEnvelopeInvalid";
+            return false;
+        }
+        if (!EquipmentChoiceResultParser.TryParse(
                 response.content,
                 candidateCount,
-                out selectedIndex))
+                out selectedIndex,
+                out error))
         {
-            error = response?.error?.message ?? "Bundled llama.cpp host returned an invalid choice.";
+            if (string.IsNullOrWhiteSpace(error))
+            {
+                error = response.error?.message ?? "EquipmentChoice.SchemaInvalid";
+            }
             return false;
         }
         return true;

@@ -329,7 +329,8 @@ public static class FacilityEvolutionActivationProjectionDebugScenarios
             float mastery,
             float amount = 1f,
             string actorId = "",
-            IEnumerable<string> sourceTags = null) => throw Unexpected();
+            IEnumerable<string> sourceTags = null,
+            GameplayNarrativeEventContext narrativeContext = null) => throw Unexpected();
 
         public IReadOnlyList<FacilityGenerationCandidate> GetGenerationCandidates(
             BuildableObject facility) => throw Unexpected();

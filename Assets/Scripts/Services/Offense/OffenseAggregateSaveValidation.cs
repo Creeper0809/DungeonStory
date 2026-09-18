@@ -8,7 +8,7 @@ using UnityEngine;
 [Serializable]
 public sealed class DungeonOffenseAggregateSaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 6;
 
     public int version = CurrentVersion;
     public DungeonOffenseCampaignSaveData campaign =
@@ -46,17 +46,20 @@ public sealed class OffenseAggregateAuthoredReferenceValidator
     private readonly IOffenseContentCatalog content;
     private readonly IItemDefinitionCatalog itemDefinitions;
     private readonly IOffenseCampaignCatalog campaigns;
+    private readonly IEncounterCatalog encounters;
 
     public OffenseAggregateAuthoredReferenceValidator(
         IOffenseContentCatalog content,
         IItemDefinitionCatalog itemDefinitions,
-        IOffenseCampaignCatalog campaigns)
+        IOffenseCampaignCatalog campaigns,
+        IEncounterCatalog encounters = null)
     {
         this.content = content ?? throw new ArgumentNullException(nameof(content));
         this.itemDefinitions = itemDefinitions
             ?? throw new ArgumentNullException(nameof(itemDefinitions));
         this.campaigns = campaigns
             ?? throw new ArgumentNullException(nameof(campaigns));
+        this.encounters = encounters;
     }
 
     public void Validate(OffenseAggregateRestorePlan plan)
@@ -96,6 +99,20 @@ public sealed class OffenseAggregateAuthoredReferenceValidator
         {
             Require(archetypes.Contains(site.archetypeId),
                 $"Offense site '{site.siteId}' references unknown archetype '{site.archetypeId}'.");
+            OffenseSeasonalExpeditionOfferData offer = site.seasonalOffer;
+            if (offer?.IsConfigured == true)
+            {
+                if (encounters != null)
+                    encounters.Require(offer.authoredEncounterId);
+                foreach (OffenseSeasonalPhysicalRewardData reward in
+                         offer.physicalRewards)
+                {
+                    ItemDefinitionId itemId = new(reward.itemId);
+                    Require(itemId.IsValid
+                            && itemDefinitions.TryGet(itemId, out _),
+                        $"Seasonal expedition site '{site.siteId}' references unknown reward item '{reward.itemId}'.");
+                }
+            }
         }
 
         HashSet<string> urgentDefinitions = content.UrgentSites
@@ -168,6 +185,44 @@ public sealed class OffenseAggregateAuthoredReferenceValidator
             ItemDefinitionId id = new(item.itemId);
             Require(id.IsValid && itemDefinitions.TryGet(id, out _),
                 $"Offense supply package references unknown item definition '{item.itemId}'.");
+        }
+
+        IEnumerable<string> settlementItemIds = payload.expedition
+            .activeExpeditions
+            .SelectMany(run => run.consumedSupplies.Select(value =>
+                    OffenseSupplyCatalog.GetPhysicalItemId(value.type))
+                .Concat(run.ammunitionConsumptions
+                    .Select(value => value.itemId)))
+            .Concat(payload.expedition.resultHistory
+                .SelectMany(result => result.itemReceipts
+                    .Select(value => value.itemId)
+                    .Concat(result.grantedRewards.SelectMany(reward =>
+                        reward.physicalItems.Select(value => value.itemId)))))
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.Ordinal);
+        foreach (string itemId in settlementItemIds)
+        {
+            ItemDefinitionId id = new(itemId);
+            Require(id.IsValid && itemDefinitions.TryGet(id, out _),
+                $"Expedition settlement references unknown item definition '{itemId}'.");
+        }
+        foreach (DungeonOffenseExpeditionRunSaveData run in payload.expedition
+                     .activeExpeditions.Where(value =>
+                         value.worldTarget != null))
+        {
+            foreach (OffensePhysicalItemRewardSpec reward in
+                     run.worldTarget.rewards
+                         .Select(value => value?.GrantSpec)
+                         .OfType<OffensePhysicalItemRewardSpec>())
+            {
+                ItemDefinitionId itemId = new(reward.ItemId);
+                Require(itemId.IsValid
+                        && itemDefinitions.TryGet(itemId, out _),
+                    $"Expedition '{run.expeditionId}' references unknown physical reward item '{reward.ItemId}'.");
+            }
+            if (!string.IsNullOrEmpty(run.worldTarget.authoredEncounterId)
+                && encounters != null)
+                encounters.Require(run.worldTarget.authoredEncounterId);
         }
     }
 
@@ -322,6 +377,100 @@ public static class OffenseAggregateSaveValidation
             Require(result.members.All(value =>
                     value.power >= 0f && value.damageTaken >= 0f),
                 $"Expedition result '{result.expeditionId}' has invalid member values.");
+            Require(result.grantedRewards != null
+                    && result.itemReceipts != null
+                    && result.treatmentReceipts != null
+                    && result.arrivalReceipts != null
+                    && result.currencyReceipts != null,
+                $"Expedition result '{result.expeditionId}' is missing current settlement lists.");
+            foreach (DungeonOffenseRewardGrantSaveData reward in result.grantedRewards)
+            {
+                Require(reward != null
+                        && Enum.IsDefined(typeof(OffenseRewardCategory), reward.category)
+                        && reward.requestedAmount >= 0
+                        && reward.grantedAmount >= 0
+                        && reward.grantedAmount <= reward.requestedAmount
+                        && reward.label != null
+                        && reward.detail != null
+                        && reward.physicalItems != null,
+                    $"Expedition result '{result.expeditionId}' has an invalid reward grant receipt.");
+                RequireUnique(reward.physicalItems, value => value.itemId,
+                    $"expedition result '{result.expeditionId}' reward physical item");
+                Require(reward.physicalItems.All(value => value != null
+                        && !string.IsNullOrWhiteSpace(value.itemId)
+                        && value.quantity > 0)
+                    && (reward.success || reward.physicalItems.Count == 0),
+                    $"Expedition result '{result.expeditionId}' has an invalid physical reward receipt.");
+            }
+            foreach (DungeonOffenseItemReceiptSaveData receipt in result.itemReceipts)
+            {
+                ValidateItemReceipt(receipt, result.expeditionId);
+            }
+            RequireUnique(result.itemReceipts, ItemReceiptCompositeKey,
+                $"expedition result '{result.expeditionId}' item receipt");
+            Dictionary<string, int> expectedRewardItems = result.grantedRewards
+                .Where(value => value.success)
+                .SelectMany(value => value.physicalItems)
+                .GroupBy(value => value.itemId, StringComparer.Ordinal)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.Sum(value => value.quantity),
+                    StringComparer.Ordinal);
+            Dictionary<string, int> actualRewardItems = result.itemReceipts
+                .Where(value => value.kind
+                    == OffenseExpeditionItemReceiptKind.RewardGranted)
+                .ToDictionary(
+                    value => value.itemId,
+                    value => value.quantity,
+                    StringComparer.Ordinal);
+            Require(expectedRewardItems.Count == actualRewardItems.Count
+                    && expectedRewardItems.All(pair =>
+                        actualRewardItems.TryGetValue(pair.Key, out int amount)
+                        && amount == pair.Value),
+                $"Expedition result '{result.expeditionId}' physical rewards do not match their successful grants.");
+            ValidateTreatments(result.treatmentReceipts, result.expeditionId);
+            RequireUnique(result.arrivalReceipts, value => value.arrivalId,
+                $"expedition result '{result.expeditionId}' arrival receipt");
+            foreach (DungeonOffenseArrivalReceiptSaveData arrival in result.arrivalReceipts)
+            {
+                Require(arrival != null
+                        && !string.IsNullOrWhiteSpace(arrival.arrivalId)
+                        && !string.IsNullOrWhiteSpace(arrival.kind)
+                        && Enum.IsDefined(
+                            typeof(OffenseExpeditionArrivalResolution),
+                            arrival.resolution)
+                        && arrival.requestedAmount > 0
+                        && arrival.materializedAmount >= 0
+                        && arrival.materializedAmount <= arrival.requestedAmount
+                        && arrival.securedAmount >= 0
+                        && arrival.escapedAmount >= 0
+                        && arrival.securedAmount + arrival.escapedAmount
+                            <= arrival.materializedAmount,
+                    $"Expedition result '{result.expeditionId}' has an invalid return-arrival receipt.");
+                Require(arrival.resolution switch
+                    {
+                        OffenseExpeditionArrivalResolution.Pending => true,
+                        OffenseExpeditionArrivalResolution.Secured =>
+                            arrival.securedAmount == arrival.requestedAmount
+                            && arrival.escapedAmount == 0,
+                        OffenseExpeditionArrivalResolution.Escaped =>
+                            arrival.escapedAmount > 0
+                            && arrival.securedAmount + arrival.escapedAmount
+                                == arrival.requestedAmount,
+                        _ => false
+                    },
+                    $"Expedition result '{result.expeditionId}' has inconsistent arrival resolution counts.");
+            }
+            RequireUnique(result.currencyReceipts, value => value.operationId,
+                $"expedition result '{result.expeditionId}' currency receipt");
+            Require(result.currencyReceipts.All(value => value != null
+                    && string.Equals(
+                        value.currencyId,
+                        OffenseSettlementCurrencyIds.Gold,
+                        StringComparison.Ordinal)
+                    && value.amount > 0
+                    && !string.IsNullOrWhiteSpace(value.operationId)),
+                $"Expedition result '{result.expeditionId}' has an invalid currency receipt.");
         }
 
         if (!data.hasActiveBattle)
@@ -362,6 +511,18 @@ public static class OffenseAggregateSaveValidation
             $"Expedition '{run.expeditionId}' must contain one to five members.");
         RequireUniqueNonEmpty(run.memberPersistentIds,
             $"expedition '{run.expeditionId}' member");
+        Require(run.returnProgress != null && run.returnMessage != null,
+            "Expedition return state is missing.");
+        Require(run.returnProgress.All(value => value != null
+                && Enum.IsDefined(typeof(ExpeditionReturnStage), value.stage)),
+            "Expedition return has an invalid stage.");
+        RequireUnique(run.returnProgress, value => value.characterId, "expedition return member");
+        var returnMembers = run.memberPersistentIds.Concat(run.protectedRescueMemberPersistentIds)
+            .OrderBy(value => value, StringComparer.Ordinal);
+        Require(run.returnPending
+                ? run.returnProgress.Select(value => value.characterId).OrderBy(value => value, StringComparer.Ordinal).SequenceEqual(returnMembers)
+                : run.returnProgress.Count == 0 && !run.returnSuccess && run.returnMessage.Length == 0,
+            "Expedition return progress does not exactly match its pending party.");
         RequireUniqueNonEmpty(run.protectedRescueMemberPersistentIds,
             $"expedition '{run.expeditionId}' protected rescue member");
         Require(!run.memberPersistentIds.Intersect(
@@ -386,6 +547,84 @@ public static class OffenseAggregateSaveValidation
             $"expedition '{run.expeditionId}' supply type");
         Require(run.supplies.All(value => value.amount > 0),
             $"Expedition '{run.expeditionId}' has a non-positive supply amount.");
+        Require(run.consumedSupplies != null
+                && run.treatmentReceipts != null
+                && run.equipmentBaselines != null
+                && run.ammunitionConsumptions != null
+                && run.returnResourceFailure != null
+                && run.returnItemReceipts != null
+                && run.returnCurrencyReceipts != null,
+            $"Expedition '{run.expeditionId}' is missing current settlement receipt state.");
+        RequireUnique(run.consumedSupplies, value => value.type,
+            $"expedition '{run.expeditionId}' consumed supply type");
+        Require(run.consumedSupplies.All(value => value != null
+                && Enum.IsDefined(typeof(OffenseSupplyType), value.type)
+                && value.amount > 0),
+            $"Expedition '{run.expeditionId}' has an invalid consumed supply receipt.");
+        ValidateTreatments(run.treatmentReceipts, run.expeditionId);
+        HashSet<string> participantIds = run.memberPersistentIds
+            .Concat(run.protectedRescueMemberPersistentIds)
+            .ToHashSet(StringComparer.Ordinal);
+        Require(run.treatmentReceipts.All(value =>
+                participantIds.Contains(value.characterId)),
+            $"Expedition '{run.expeditionId}' has a treatment receipt for a non-participant.");
+        RequireUnique(run.equipmentBaselines, value => value.instanceId,
+            $"expedition '{run.expeditionId}' equipment baseline");
+        Require(run.equipmentBaselines.All(value => value != null
+                && !string.IsNullOrWhiteSpace(value.instanceId)
+                && !string.IsNullOrWhiteSpace(value.definitionId)
+                && value.durabilityRatio is >= 0f and <= 1f),
+            $"Expedition '{run.expeditionId}' has an invalid equipment baseline.");
+        RequireUnique(run.ammunitionConsumptions,
+            value => (value.instanceId, value.itemId),
+            $"expedition '{run.expeditionId}' ammunition consumption");
+        HashSet<string> baselineIds = run.equipmentBaselines
+            .Select(value => value.instanceId)
+            .ToHashSet(StringComparer.Ordinal);
+        Require(run.ammunitionConsumptions.All(value => value != null
+                && !string.IsNullOrWhiteSpace(value.instanceId)
+                && !string.IsNullOrWhiteSpace(value.itemId)
+                && value.quantity > 0
+                && baselineIds.Contains(value.instanceId)),
+            $"Expedition '{run.expeditionId}' has invalid committed ammunition consumption.");
+        foreach (DungeonOffenseItemReceiptSaveData receipt in
+                 run.returnItemReceipts)
+        {
+            ValidateItemReceipt(receipt, run.expeditionId);
+            Require(receipt.kind is
+                    OffenseExpeditionItemReceiptKind.SupplyReturned
+                    or OffenseExpeditionItemReceiptKind.LootRecovered
+                    or OffenseExpeditionItemReceiptKind.EquipmentRecovered,
+                $"Expedition '{run.expeditionId}' contains a non-return resource receipt in its retry state.");
+        }
+        RequireUnique(run.returnItemReceipts, ItemReceiptCompositeKey,
+            $"expedition '{run.expeditionId}' committed return item receipt");
+        RequireUnique(run.returnCurrencyReceipts,
+            value => value.operationId,
+            $"expedition '{run.expeditionId}' committed return currency receipt");
+        Require(run.returnCurrencyReceipts.All(value => value != null
+                && string.Equals(
+                    value.currencyId,
+                    OffenseSettlementCurrencyIds.Gold,
+                    StringComparison.Ordinal)
+                && value.amount > 0
+                && string.Equals(
+                    value.operationId,
+                    run.expeditionId,
+                    StringComparison.Ordinal)),
+            $"Expedition '{run.expeditionId}' has an invalid committed return currency receipt.");
+        Require(run.returnPending
+                || !run.returnResourcesCommitted
+                    && run.returnResourceFailure.Length == 0
+                    && run.returnItemReceipts.Count == 0
+                    && run.returnCurrencyReceipts.Count == 0,
+            $"Expedition '{run.expeditionId}' retains return settlement state before return begins.");
+        Require(!run.returnResourcesCommitted
+                || run.returnResourceFailure.Length == 0,
+            $"Expedition '{run.expeditionId}' marks both committed and failed return resources.");
+        Require(run.returnCurrencyReceipts.Count == 0
+                || run.fieldFundsReturned && run.fieldFunds == 0,
+            $"Expedition '{run.expeditionId}' currency receipt is torn from its returned field funds.");
         RequireUnique(run.carriedStock, value => value.category,
             $"expedition '{run.expeditionId}' carried stock category");
         Require(run.carriedStock.All(value => value.amount > 0),
@@ -408,6 +647,24 @@ public static class OffenseAggregateSaveValidation
                 $"strategic expedition '{run.expeditionId}' world site ID");
             Require(run.worldTarget != null && run.worldTarget.IsValid,
                 $"Strategic expedition '{run.expeditionId}' has no valid authored target snapshot.");
+            if (!string.IsNullOrEmpty(
+                    run.worldTarget.seasonalOccurrenceInstanceId))
+            {
+                Require(Canonical(
+                            run.worldTarget.seasonalOccurrenceInstanceId)
+                        && Canonical(run.worldTarget.authoredEncounterId)
+                        && Canonical(run.worldTarget.encounterPreviewText)
+                        && Canonical(
+                            run.worldTarget.encounterRewardPreviewText)
+                        && run.worldTarget.rewards != null
+                        && run.worldTarget.rewards.Length > 0
+                        && run.worldTarget.rewards.All(value =>
+                            value?.GrantSpec is
+                                OffensePhysicalItemRewardSpec physical
+                            && Canonical(physical.ItemId)
+                            && value.amount > 0),
+                    $"Seasonal expedition '{run.expeditionId}' has an invalid frozen encounter or reward.");
+            }
         }
         else
         {
@@ -417,6 +674,126 @@ public static class OffenseAggregateSaveValidation
                     && !run.worldObjectiveBattleActive,
                 $"Campaign expedition '{run.expeditionId}' contains strategic-world state.");
         }
+    }
+
+    private static void ValidateTreatments(
+        IEnumerable<DungeonOffenseTreatmentReceiptSaveData> treatments,
+        string expeditionId)
+    {
+        foreach (DungeonOffenseTreatmentReceiptSaveData treatment in treatments)
+        {
+            Require(treatment != null
+                    && Enum.IsDefined(
+                        typeof(OffenseExpeditionTreatmentKind),
+                        treatment.kind)
+                    && !string.IsNullOrWhiteSpace(treatment.characterId)
+                    && treatment.healedAmount >= 0f
+                    && (treatment.kind == OffenseExpeditionTreatmentKind.Healing
+                        ? treatment.healedAmount > 0f
+                            && string.IsNullOrEmpty(treatment.anatomyNodeId)
+                        : treatment.healedAmount == 0f
+                            && !string.IsNullOrWhiteSpace(treatment.anatomyNodeId)),
+                $"Expedition '{expeditionId}' has an invalid treatment receipt.");
+        }
+    }
+
+    private static void ValidateItemReceipt(
+        DungeonOffenseItemReceiptSaveData receipt,
+        string expeditionId)
+    {
+        Require(receipt != null
+                && Enum.IsDefined(
+                    typeof(OffenseExpeditionItemReceiptKind),
+                    receipt.kind)
+                && !string.IsNullOrWhiteSpace(receipt.itemId)
+                && string.Equals(
+                    receipt.itemId,
+                    receipt.itemId.Trim(),
+                    StringComparison.Ordinal)
+                && receipt.quantity > 0
+                && receipt.durabilityLoss is >= 0f and <= 1f
+                && receipt.valuation != null,
+            $"Expedition result '{expeditionId}' has an invalid item receipt.");
+        bool validShape = receipt.kind switch
+        {
+            OffenseExpeditionItemReceiptKind.SupplyConsumed
+                or OffenseExpeditionItemReceiptKind.SupplyReturned
+                or OffenseExpeditionItemReceiptKind.LootRecovered
+                or OffenseExpeditionItemReceiptKind.RewardGranted =>
+                string.IsNullOrEmpty(receipt.instanceId)
+                && receipt.durabilityLoss == 0f,
+            OffenseExpeditionItemReceiptKind.AmmunitionConsumed =>
+                !string.IsNullOrWhiteSpace(receipt.instanceId)
+                && string.Equals(
+                    receipt.instanceId,
+                    receipt.instanceId.Trim(),
+                    StringComparison.Ordinal)
+                && receipt.durabilityLoss == 0f,
+            OffenseExpeditionItemReceiptKind.EquipmentWorn =>
+                receipt.quantity == 1
+                && !string.IsNullOrWhiteSpace(receipt.instanceId)
+                && string.Equals(
+                    receipt.instanceId,
+                    receipt.instanceId.Trim(),
+                    StringComparison.Ordinal)
+                && receipt.durabilityLoss > 0f,
+            OffenseExpeditionItemReceiptKind.EquipmentLost =>
+                receipt.quantity == 1
+                && !string.IsNullOrWhiteSpace(receipt.instanceId)
+                && string.Equals(
+                    receipt.instanceId,
+                    receipt.instanceId.Trim(),
+                    StringComparison.Ordinal),
+            OffenseExpeditionItemReceiptKind.EquipmentRecovered =>
+                receipt.quantity == 1
+                && !string.IsNullOrWhiteSpace(receipt.instanceId)
+                && string.Equals(
+                    receipt.instanceId,
+                    receipt.instanceId.Trim(),
+                    StringComparison.Ordinal)
+                && receipt.durabilityLoss == 0f,
+            _ => false
+        };
+        Require(validShape,
+            $"Expedition result '{expeditionId}' item receipt '{receipt.kind}' has an invalid kind-specific shape.");
+        DungeonOffenseItemValuationSaveData valuation = receipt.valuation;
+        Require(string.Equals(
+                    valuation.itemId,
+                    receipt.itemId,
+                    StringComparison.Ordinal)
+                && valuation.quantity == receipt.quantity
+                && Enum.IsDefined(
+                    typeof(OffenseSettlementValuationState),
+                    valuation.state)
+                && valuation.acquisitionMilliEwuPerUnit >= 0L
+                && valuation.recoverableMilliEwuPerUnit >= 0L
+                && valuation.recoverableMilliEwuPerUnit
+                    <= valuation.acquisitionMilliEwuPerUnit,
+            $"Expedition result '{expeditionId}' has an invalid item valuation receipt.");
+        Require(valuation.state == OffenseSettlementValuationState.Valued
+                ? !string.IsNullOrWhiteSpace(valuation.basisId)
+                    && !string.IsNullOrWhiteSpace(valuation.selectedSourceId)
+                : valuation.acquisitionMilliEwuPerUnit == 0L
+                    && valuation.recoverableMilliEwuPerUnit == 0L
+                    && string.IsNullOrEmpty(valuation.basisId)
+                    && string.IsNullOrEmpty(valuation.selectedSourceId),
+            $"Expedition result '{expeditionId}' has inconsistent valuation authority fields.");
+    }
+
+    private static (
+        OffenseExpeditionItemReceiptKind kind,
+        string itemId,
+        string instanceId) ItemReceiptCompositeKey(
+        DungeonOffenseItemReceiptSaveData receipt)
+    {
+        string instance = receipt.kind is
+                OffenseExpeditionItemReceiptKind.AmmunitionConsumed
+                or OffenseExpeditionItemReceiptKind.EquipmentWorn
+                or OffenseExpeditionItemReceiptKind.EquipmentLost
+                or OffenseExpeditionItemReceiptKind.EquipmentRecovered
+            ? receipt.instanceId
+            : string.Empty;
+        return (receipt.kind, receipt.itemId, instance);
     }
 
     private static void ValidatePersistentBattle(
@@ -513,6 +890,8 @@ public static class OffenseAggregateSaveValidation
         RequireUnique(data.tiles, value => $"{value.q}:{value.r}",
             "offense world tile coordinate");
         RequireUnique(data.sites, value => value.siteId, "offense world site");
+        foreach (OffenseWorldSiteStateData site in data.sites)
+            ValidateSeasonalOffer(site);
         RequireUnique(data.urgentSites, value => value.siteId,
             "offense urgent site");
         HashSet<string> expeditionIds = RequireUnique(
@@ -549,7 +928,15 @@ public static class OffenseAggregateSaveValidation
             Require(travel.progressToNextTile >= 0f
                     && travel.exposure is >= 0f and <= 100f
                     && travel.eventSequence >= 0
-                    && travel.movementTimeMultiplier >= 1f,
+                    && travel.routeRoadMultiplier >= 0.1f
+                    && travel.routeWeatherMultiplier >= 0.1f
+                    && travel.routeLoadMultiplier >= 0.1f
+                    && travel.movementTimeMultiplier is >= 1f and <= 2.5f
+                    && travel.milestoneTimeMultiplier is >= 0.1f and <= 1f
+                    && travel.facilityTimeMultiplier is > 0f and <= 1f
+                    && travel.activeSegmentWeatherMultiplier >= 0f
+                    && travel.activeSegmentTraversalCost >= 0f
+                    && travel.activeSegmentDurationSeconds >= 0f,
                 $"Travel state '{travel.expeditionId}' has invalid progress values.");
             if (!string.IsNullOrEmpty(travel.destinationSiteId))
             {
@@ -570,6 +957,9 @@ public static class OffenseAggregateSaveValidation
             Require(tilesByCoordinate.ContainsKey(currentCoordinate)
                     && tilesByCoordinate.ContainsKey(destinationCoordinate),
                 $"Travel state '{travel.expeditionId}' references a missing current or destination tile.");
+            Require(travel.remainingPath.All(value => value != null),
+                $"Travel state '{travel.expeditionId}' contains a null path coordinate.");
+            OffenseHexCoord previous = travel.CurrentCoord;
             foreach (OffenseHexCoordSaveData pathCoordinate in
                      travel.remainingPath)
             {
@@ -578,7 +968,62 @@ public static class OffenseAggregateSaveValidation
                         out OffenseHexTileState tile)
                         && !tile.blocked,
                     $"Travel state '{travel.expeditionId}' contains a missing or blocked path tile '{coordinate}'.");
+                OffenseHexCoord next = pathCoordinate.ToCoord();
+                Require(previous.DistanceTo(next) == 1,
+                    $"Travel state '{travel.expeditionId}' contains a non-adjacent path segment.");
+                previous = next;
             }
+            Require(travel.remainingPath.Count == 0
+                    || previous == travel.DestinationCoord,
+                $"Travel state '{travel.expeditionId}' path does not end at its destination.");
+
+            bool hasActiveSegment = travel.activeSegmentDurationSeconds > 0f;
+            if (!hasActiveSegment)
+            {
+                Require(travel.activeSegmentTraversalCost == 0f
+                        && travel.progressToNextTile == 0f
+                        && travel.ActiveSegmentCoord == travel.CurrentCoord
+                        && travel.movementTimeMultiplier == 1f
+                        && travel.milestoneTimeMultiplier == 1f
+                        && travel.facilityTimeMultiplier == 1f
+                        && string.IsNullOrEmpty(
+                            travel.activeSegmentWeatherFrontId)
+                        && IsLegacyNeutralWeatherMultiplier(
+                            travel.activeSegmentWeatherMultiplier),
+                    $"Travel state '{travel.expeditionId}' has a partial inactive segment.");
+                continue;
+            }
+
+            Require(travel.remainingPath.Count > 0
+                    && travel.ActiveSegmentCoord
+                        == travel.remainingPath[0].ToCoord()
+                    && travel.activeSegmentTraversalCost
+                        >= OffenseTraversalCostRules.MinimumStepCost
+                    && travel.progressToNextTile
+                        <= travel.activeSegmentDurationSeconds + 0.0001f,
+                $"Travel state '{travel.expeditionId}' has an inconsistent active segment.");
+            Require(
+                string.IsNullOrEmpty(travel.activeSegmentWeatherFrontId)
+                    ? IsLegacyNeutralWeatherMultiplier(
+                        travel.activeSegmentWeatherMultiplier)
+                    : string.Equals(
+                            travel.activeSegmentWeatherFrontId,
+                            travel.activeSegmentWeatherFrontId.Trim(),
+                            StringComparison.Ordinal)
+                        && travel.activeSegmentWeatherFrontId.StartsWith(
+                            "weather:",
+                            StringComparison.Ordinal)
+                        && travel.activeSegmentWeatherMultiplier >= 0.1f,
+                $"Travel state '{travel.expeditionId}' has invalid active-segment weather provenance.");
+            float expectedDuration = 2.5f
+                * travel.activeSegmentTraversalCost
+                * travel.movementTimeMultiplier
+                * travel.milestoneTimeMultiplier
+                * travel.facilityTimeMultiplier;
+            Require(Mathf.Abs(
+                    expectedDuration - travel.activeSegmentDurationSeconds)
+                    <= 0.0001f,
+                $"Travel state '{travel.expeditionId}' has a torn active-segment duration.");
         }
         foreach (OffenseReturnSafetyStateData safety in data.returnSafety)
         {
@@ -734,6 +1179,9 @@ public static class OffenseAggregateSaveValidation
                 $"rescue convoy '{convoy.rescueExpeditionId}' protected casualty");
         }
     }
+
+    private static bool IsLegacyNeutralWeatherMultiplier(float value) =>
+        value == 0f || Mathf.Abs(value - 1f) <= 0.0001f;
 
     private static void ValidateMitigationPhysicalState(
         OffenseUrgentMitigationOrderStateData order)
@@ -953,6 +1401,23 @@ public static class OffenseAggregateSaveValidation
                     && InRange(region.manpowerDamage, 0f, 100f)
                     && InRange(region.intelligenceDamage, 0f, 100f),
                 $"Offense region '{region.regionId}' pressure is outside 0..100.");
+            string awardOperation =
+                region.memoryErasureSealAwardOperationId?.Trim()
+                ?? string.Empty;
+            Require(!region.memoryErasureSealAwardPublished
+                    || awardOperation.Length > 0,
+                $"Offense region '{region.regionId}' published a memory-erasure seal without an award operation.");
+            Require(awardOperation.Length == 0
+                    || string.Equals(
+                        region.memoryErasureSealAwardOperationId,
+                        awardOperation,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        awardOperation,
+                        MemoryErasureSealBossAwardRules.BuildOperationId(
+                            region.regionId),
+                        StringComparison.Ordinal),
+                $"Offense region '{region.regionId}' has a non-canonical memory-erasure seal award operation.");
         }
         string[] requiredRegionIds =
         {
@@ -1013,6 +1478,49 @@ public static class OffenseAggregateSaveValidation
                 $"Strategic expedition '{run.expeditionId}' references missing site '{run.worldSiteId}'.");
             Require(regionIds.Contains(run.worldTarget.regionId),
                 $"Strategic expedition '{run.expeditionId}' references missing region '{run.worldTarget.regionId}'.");
+            if (!string.IsNullOrEmpty(
+                    run.worldTarget.seasonalOccurrenceInstanceId))
+            {
+                OffenseWorldSiteStateData site = data.world.sites.Single(
+                    value => string.Equals(
+                        value.siteId,
+                        run.worldSiteId,
+                        StringComparison.Ordinal));
+                Require(site.state is OffenseWorldSiteState.Engaged
+                            or OffenseWorldSiteState.Resolved
+                        && string.Equals(
+                            site.seasonalOffer.occurrenceInstanceId,
+                            run.worldTarget.seasonalOccurrenceInstanceId,
+                            StringComparison.Ordinal)
+                        && string.Equals(
+                            site.seasonalOffer.authoredEncounterId,
+                            run.worldTarget.authoredEncounterId,
+                            StringComparison.Ordinal)
+                        && SeasonalTargetMatchesOffer(
+                            site,
+                            run.worldTarget),
+                    $"Seasonal expedition '{run.expeditionId}' does not join its engaged occurrence site.");
+            }
+        }
+        foreach (OffenseWorldSiteStateData site in data.world.sites.Where(
+                     value => value?.seasonalOffer?.IsConfigured == true
+                         && value.state is OffenseWorldSiteState.Engaged
+                             or OffenseWorldSiteState.Resolved))
+        {
+            int joinedRuns = data.expedition.activeExpeditions.Count(run =>
+                run?.usesWorldTravel == true
+                && string.Equals(
+                    run.worldSiteId,
+                    site.siteId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    run.worldTarget?.seasonalOccurrenceInstanceId,
+                    site.seasonalOffer.occurrenceInstanceId,
+                    StringComparison.Ordinal));
+            Require(site.state == OffenseWorldSiteState.Engaged
+                    ? joinedRuns == 1
+                    : joinedRuns <= 1,
+                $"Seasonal offer '{site.siteId}' has an invalid active-expedition join count {joinedRuns}.");
         }
         foreach (OffenseHexTileState tile in data.world.tiles)
         {
@@ -1057,12 +1565,90 @@ public static class OffenseAggregateSaveValidation
             .Concat(data.expedition.resultHistory.Select(value =>
                 value.targetId))
             .ToHashSet(StringComparer.Ordinal);
+        Dictionary<string, string> arrivalOwners = data.returnArrivals.arrivals
+            .ToDictionary(
+                value => value.arrivalId,
+                value => value.expeditionId,
+                StringComparer.Ordinal);
+        Dictionary<string, int> arrivalReceiptOccurrences = data.expedition
+            .resultHistory
+            .SelectMany(value => value.arrivalReceipts)
+            .GroupBy(value => value.arrivalId, StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Count(),
+                StringComparer.Ordinal);
         foreach (OffenseReturnArrivalState arrival in data.returnArrivals.arrivals)
         {
             Require(knownExpeditionIds.Contains(arrival.expeditionId),
                 $"Return arrival '{arrival.arrivalId}' references missing expedition '{arrival.expeditionId}'.");
             Require(knownTargetIds.Contains(arrival.targetId),
                 $"Return arrival '{arrival.arrivalId}' references missing target '{arrival.targetId}'.");
+            DungeonOffenseExpeditionResultSaveData result = data.expedition
+                .resultHistory.SingleOrDefault(value => string.Equals(
+                    value.expeditionId,
+                    arrival.expeditionId,
+                    StringComparison.Ordinal));
+            Require(result != null,
+                $"Return arrival '{arrival.arrivalId}' has no committed expedition result.");
+            Require(arrivalReceiptOccurrences.TryGetValue(
+                        arrival.arrivalId,
+                        out int receiptOccurrence)
+                    && receiptOccurrence == 1,
+                $"Return arrival '{arrival.arrivalId}' must have exactly one globally owned result receipt.");
+            DungeonOffenseArrivalReceiptSaveData receipt = result
+                .arrivalReceipts.SingleOrDefault(value => string.Equals(
+                    value.arrivalId,
+                    arrival.arrivalId,
+                    StringComparison.Ordinal));
+            Require(receipt != null
+                    && string.Equals(
+                        receipt.kind,
+                        arrival.kind.ToString(),
+                        StringComparison.Ordinal)
+                    && receipt.requestedAmount == arrival.requestedAmount,
+                $"Return arrival '{arrival.arrivalId}' does not match its committed result receipt.");
+            OffenseExpeditionArrivalResolution expectedResolution =
+                arrival.stage switch
+                {
+                    OffenseReturnArrivalStage.Secured =>
+                        OffenseExpeditionArrivalResolution.Secured,
+                    OffenseReturnArrivalStage.Escaped =>
+                        OffenseExpeditionArrivalResolution.Escaped,
+                    _ => OffenseExpeditionArrivalResolution.Pending
+                };
+            Require(receipt.resolution == expectedResolution,
+                $"Return arrival '{arrival.arrivalId}' terminal state is torn from its committed result.");
+            if (expectedResolution != OffenseExpeditionArrivalResolution.Pending)
+            {
+                Require(receipt.materializedAmount
+                            == arrival.settledMaterializedAmount
+                        && receipt.securedAmount
+                            == arrival.settledSecuredAmount
+                        && receipt.escapedAmount
+                            == arrival.settledEscapedAmount,
+                    $"Return arrival '{arrival.arrivalId}' terminal counts are torn from its committed result.");
+            }
+        }
+        foreach (DungeonOffenseExpeditionResultSaveData result in data.expedition
+                     .resultHistory)
+        {
+            foreach (DungeonOffenseArrivalReceiptSaveData receipt in
+                     result.arrivalReceipts)
+            {
+                Require(arrivalOwners.TryGetValue(
+                            receipt.arrivalId,
+                            out string ownerExpeditionId)
+                        && string.Equals(
+                            ownerExpeditionId,
+                            result.expeditionId,
+                            StringComparison.Ordinal)
+                        && arrivalReceiptOccurrences.TryGetValue(
+                            receipt.arrivalId,
+                            out int receiptOccurrence)
+                        && receiptOccurrence == 1,
+                    $"Expedition result '{result.expeditionId}' contains an orphan, foreign-owned, or duplicate return-arrival receipt '{receipt.arrivalId}'.");
+            }
         }
         foreach (OffensePrisonerCandidatePoolState pool in
             data.returnArrivals.prisonerCandidatePools)
@@ -1163,7 +1749,103 @@ public static class OffenseAggregateSaveValidation
                 || target.durationSeconds != 90f
                 || target.requiredMembers != 1
                 || target.requiredPower != 0f
+                || !string.IsNullOrEmpty(target.seasonalOccurrenceInstanceId)
+                || !string.IsNullOrEmpty(target.authoredEncounterId)
+                || !string.IsNullOrEmpty(target.encounterPreviewText)
+                || !string.IsNullOrEmpty(target.encounterRewardPreviewText)
                 || (target.rewards?.Length ?? 0) != 0);
+    }
+
+    private static void ValidateSeasonalOffer(OffenseWorldSiteStateData site)
+    {
+        OffenseSeasonalExpeditionOfferData offer = site?.seasonalOffer;
+        if (offer?.configured != true)
+        {
+            Require(offer != null
+                    && string.IsNullOrEmpty(offer.occurrenceInstanceId)
+                    && string.IsNullOrEmpty(offer.definitionId)
+                    && offer.offerDeadlineAbsoluteDay == 0
+                    && string.IsNullOrEmpty(offer.description)
+                    && offer.recommendedDanger == 0f
+                    && offer.durationSeconds == 0f
+                    && offer.requiredMembers == 0
+                    && offer.recommendedPower == 0f
+                    && offer.campaignOrder == 0
+                    && string.IsNullOrEmpty(offer.authoredEncounterId)
+                    && string.IsNullOrEmpty(offer.encounterPreviewText)
+                    && string.IsNullOrEmpty(offer.encounterRewardPreviewText)
+                    && (offer.physicalRewards?.Count ?? 0) == 0,
+                $"Offense site '{site?.siteId}' has partial seasonal-offer state.");
+            return;
+        }
+        Require(offer.IsConfigured
+                && Canonical(offer.occurrenceInstanceId)
+                && Canonical(offer.definitionId)
+                && offer.offerDeadlineAbsoluteDay >= site.createdDay
+                && Canonical(offer.description)
+                && offer.recommendedDanger >= 0f
+                && offer.durationSeconds > 0f
+                && offer.requiredMembers is >= 1 and <= 5
+                && offer.recommendedPower >= 0f
+                && offer.campaignOrder is >= 1 and <= 6
+                && Canonical(offer.authoredEncounterId)
+                && Canonical(offer.encounterPreviewText)
+                && Canonical(offer.encounterRewardPreviewText)
+                && offer.physicalRewards != null
+                && offer.physicalRewards.Count > 0
+                && offer.physicalRewards.All(value => value != null
+                    && Canonical(value.itemId)
+                    && Canonical(value.displayLabel)
+                    && value.exactQuantity > 0)
+                && offer.physicalRewards.Select(value => value.itemId)
+                    .Distinct(StringComparer.Ordinal).Count()
+                    == offer.physicalRewards.Count
+                && !site.fixedBoss
+                && site.state != OffenseWorldSiteState.Hidden,
+            $"Offense site '{site?.siteId}' has invalid seasonal-offer state.");
+    }
+
+    private static bool Canonical(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
+
+    private static bool SeasonalTargetMatchesOffer(
+        OffenseWorldSiteStateData site,
+        OffenseTargetDefinition target)
+    {
+        OffenseSeasonalExpeditionOfferData offer = site?.seasonalOffer;
+        if (offer?.IsConfigured != true || target == null)
+            return false;
+        OffenseRewardPreview[] rewards = target.rewards
+            ?? Array.Empty<OffenseRewardPreview>();
+        if ((offer.physicalRewards?.Count ?? 0) != rewards.Length)
+            return false;
+        for (int index = 0; index < rewards.Length; index++)
+        {
+            OffenseSeasonalPhysicalRewardData offered =
+                offer.physicalRewards[index];
+            OffenseRewardPreview frozen = rewards[index];
+            if (offered == null
+                || frozen?.GrantSpec is not
+                    OffensePhysicalItemRewardSpec physical
+                || offered.itemId != physical.ItemId
+                || offered.displayLabel != frozen.label
+                || offered.exactQuantity != frozen.amount)
+                return false;
+        }
+        return target.id == site.siteId
+            && target.title == site.displayName
+            && target.description == offer.description
+            && target.regionId == site.regionId
+            && target.factionId == site.factionId
+            && target.campaignOrder == offer.campaignOrder
+            && target.danger == offer.recommendedDanger
+            && target.durationSeconds == offer.durationSeconds
+            && target.requiredMembers == offer.requiredMembers
+            && target.requiredPower == offer.recommendedPower
+            && target.encounterPreviewText == offer.encounterPreviewText
+            && target.encounterRewardPreviewText
+                == offer.encounterRewardPreviewText;
     }
 
     private static void ValidateScalar(object value, Type type, string path)

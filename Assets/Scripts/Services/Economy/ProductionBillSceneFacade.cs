@@ -44,11 +44,28 @@ public sealed class ProductionBillSceneFacade :
     }
 
     public int Version => query.Version;
+    [GameplayEntryPoint("ProductionBuildingPanelPresenter shared manual/automatic quality target")]
+    public ProductionBillCommandResult SetMinimumCraftQuality(ProductionBillId billId, int minimumTier) =>
+        orders.SetMinimumCraftQuality(billId, minimumTier);
     public IReadOnlyList<ProductionBillSnapshot> GetBills(
-        BuildableObject facility) =>
-        ProductionFacilityDefinitionIdentity.IsProductionWorkstation(facility)
-            ? query.GetBills(bridge.CaptureFacility(facility))
-            : Array.Empty<ProductionBillSnapshot>();
+        BuildableObject facility)
+    {
+        if (!ProductionFacilityDefinitionIdentity.IsProductionWorkstation(facility))
+            return Array.Empty<ProductionBillSnapshot>();
+        var handle = bridge.CaptureFacility(facility);
+        var snapshots = query.GetBills(handle);
+        if (automationModes.GetMode(handle.InstanceId) == AutomationMode.Automatic)
+            foreach (var bill in snapshots)
+                if (bill.MinimumCraftQuality >= 0 && !bill.QualityOutcomeFrozen
+                    && bill.Status != ProductionBillStatus.Suspended
+                    && bill.CurrentAutomaticCraftQuality < bill.MinimumCraftQuality)
+                {
+                    bill.Status = ProductionBillStatus.WaitingForQuality;
+                    bill.BlockedFailure = ProductionQualityTargetRules.Check(bill.MinimumCraftQuality,
+                        bill.CurrentAutomaticCraftQuality);
+                }
+        return snapshots;
+    }
     public bool HasStockSensor(BuildableObject facility) =>
         ProductionFacilityDefinitionIdentity.IsProductionWorkstation(facility)
         && query.HasStockSensor(bridge.CaptureFacility(facility));

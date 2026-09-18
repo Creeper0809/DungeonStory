@@ -170,7 +170,10 @@ public static class DomainFailureLocalizationAssetBuilder
             ["DefenseTriggerUnsupported"] = "This defense facility does not support that trigger mode.",
             ["DoctorReplacementRequested"] = "Doctor replacement requested.",
             ["DreadDefenseAlreadyArmed"] = "Dread defense already armed.",
-            ["EmergencyProcedureContinuing"] = "Emergency surgery continuing · temperature {2:0.#}°C · air {3:0.#} · light {4:0.#}",
+            ["AcuteBleeding"] = "acute bleeding",
+            ["AcuteInfection"] = "acute infection",
+            ["CriticalNonVitalNode"] = "critical non-vital tissue damage",
+            ["EmergencyProcedureContinuing"] = "Emergency surgery continuing · cause {0} · environmental risk · temperature {2:0.#}°C · air {3:0.#} · light {4:0.#}",
             ["EnvironmentColdWorkCooldownActive"] = "New cold-storage work cannot be assigned until exposure falls below the recovery threshold. Current exposure: {0}",
             ["EnvironmentEvacuationCellUnavailable"] = "No reachable evacuation cell is available. Character: {0}",
             ["EnvironmentEvacuationContextInvalid"] = "Environment evacuation context invalid.",
@@ -564,7 +567,10 @@ public static class DomainFailureLocalizationAssetBuilder
             ["DeliveryPending"] = "식사 배달을 기다리고 있습니다.",
             ["DoctorReplacementRequested"] = "집도의 행동 불능 · 대체 집도의 요청",
             ["DreadDefenseAlreadyArmed"] = "다음 침입에 적용할 공포 방어가 이미 준비되어 있습니다.",
-            ["EmergencyProcedureContinuing"] = "응급 수술 계속 · 온도 {2:0.#}°C · 공기 {3:0.#} · 조명 {4:0.#}",
+            ["AcuteBleeding"] = "급성 출혈",
+            ["AcuteInfection"] = "급성 감염",
+            ["CriticalNonVitalNode"] = "비핵심 부위 위급 손상",
+            ["EmergencyProcedureContinuing"] = "응급 수술 계속 · 원인 {0} · 환경 위험 · 온도 {2:0.#}°C · 공기 {3:0.#} · 조명 {4:0.#}",
             ["EnvironmentColdWorkCooldownActive"] = "냉기 노출이 회복 기준 미만이 될 때까지 새 냉장 작업을 배정할 수 없습니다. 현재 노출: {0}",
             ["EnvironmentEvacuationCellUnavailable"] = "도달 가능한 대피 셀이 없습니다. 캐릭터: {0}",
             ["EnvironmentEvacuationContextInvalid"] = "대피할 캐릭터 또는 그리드가 없습니다.",
@@ -1212,6 +1218,10 @@ public static class DomainFailureLocalizationAssetBuilder
                 .Cast<SurgeryRiskSummaryCode>()
                 .Where(code => code != SurgeryRiskSummaryCode.None)
                 .Select(code => code.ToString()))
+            .Concat(Enum.GetValues(typeof(SurgeryEmergencyCause))
+                .Cast<SurgeryEmergencyCause>()
+                .Where(cause => cause != SurgeryEmergencyCause.None)
+                .Select(cause => cause.ToString()))
             .Concat(Enum.GetValues(typeof(CharacterMedicalStatusCode))
                 .Cast<CharacterMedicalStatusCode>()
                 .Where(code => code != CharacterMedicalStatusCode.Unknown)

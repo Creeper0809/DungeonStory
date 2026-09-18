@@ -211,6 +211,39 @@ public sealed class WorldItemHaulPlan
     public string Summary => $"{ReservedStackQuantities.Count}스택 · {TotalWeight:0.#}kg";
 }
 
+public readonly struct HaulDeliveryPathFailureSnapshot
+{
+    public HaulDeliveryPathFailureSnapshot(
+        string ownerOperationId,
+        string sourceStackId,
+        string destinationId,
+        string itemId,
+        AIActionFailureKind failureKind)
+    {
+        OwnerOperationId = ownerOperationId?.Trim() ?? string.Empty;
+        SourceStackId = sourceStackId?.Trim() ?? string.Empty;
+        DestinationId = destinationId?.Trim() ?? string.Empty;
+        ItemId = itemId?.Trim() ?? string.Empty;
+        FailureKind = failureKind;
+    }
+
+    public string OwnerOperationId { get; }
+    public string SourceStackId { get; }
+    public string DestinationId { get; }
+    public string ItemId { get; }
+    public AIActionFailureKind FailureKind { get; }
+    public bool IsValid => !string.IsNullOrWhiteSpace(SourceStackId)
+        && !string.IsNullOrWhiteSpace(DestinationId)
+        && !string.IsNullOrWhiteSpace(ItemId)
+        && FailureKind == AIActionFailureKind.NoPath;
+}
+
+public interface IHaulDeliveryPathFailureQuery
+{
+    bool TryGetLastDeliveryPathFailure(
+        out HaulDeliveryPathFailureSnapshot snapshot);
+}
+
 public interface IHaulPlanBuilder
 {
     bool TryReserveBestHaulPlan(CharacterActor actor, out WorldItemHaulPlan plan, out string failureReason);
@@ -757,6 +790,7 @@ public readonly struct HaulCarryDropContext
     public bool IsValid => !string.IsNullOrEmpty(CarrierPersistentId)
         && InterruptionKind is WorldItemCarryInterruptionKind.Downed
             or WorldItemCarryInterruptionKind.Dead
+            or WorldItemCarryInterruptionKind.Disabled
         && !double.IsNaN(DroppedAtGameTime)
         && !double.IsInfinity(DroppedAtGameTime)
         && DroppedAtGameTime >= 0d

@@ -1,0 +1,7 @@
+isolation=unrelated run-flow subscriptions and invasion threat producer disabled; V20 daily and seasonal cargo subscribers retained
+[PASS] actual daily dispatch -> Spring occurrence -> exact Loose lumber6
+[PASS] real AI Loose -> Carried -> Stored; secured component preserved; deadline removed zero secured units
+[PASS] separate unpicked Loose lumber6 expired through physical Sink; prior secured Stored lumber6 remained
+result=PASS
+scope=controlled Spring eligibility/date through production OperatingDayStartedEvent; actual V20 daily resolution, seasonal application adapter, physical Loose/Carried/Stored ownership, ordinary AI haul, secured preservation and unpicked expiry; not free-running calendar duration, all seasonal definitions, or six-adult balance
+cleanup=paused disposable protected Play; persistence disabled before owner preparation; operator stops without scene/profile/save writes

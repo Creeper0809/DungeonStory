@@ -158,7 +158,8 @@ internal sealed class CharacterAiMacroDecisionRunner
             hostile ? "insulted" : "public-question",
             hostile ? 4f : 1f,
             CharacterCommandOrigin.Autonomous,
-            Math.Max(0, calendar?.Day ?? 0)));
+            Math.Max(0, calendar?.Day ?? 0),
+            $"social-conflict-operation:{Guid.NewGuid():N}"));
     }
 
     public CharacterAiDecisionTickResult ApplyAvoidFacility(
@@ -213,6 +214,22 @@ internal sealed class CharacterAiMacroDecisionRunner
         if (!actor.TryGetAbility(out AbilityMove move))
         {
             return Result(false, "ExitDungeon", "AbilityMove is missing.", blackboard);
+        }
+
+        if (!move.CanStartExitDungeon(out AIActionFailure admissionFailure))
+        {
+            actor.Brain?.ReportRuntimeActionFailure(
+                admissionFailure,
+                requestImmediateReplan: false);
+            blackboard.ClearCommitment(
+                CharacterAiInterruptReason.MacroGoalChanged,
+                admissionFailure.Reason);
+            blackboard.ClearMacroGoal(admissionFailure.Reason);
+            return Result(
+                false,
+                "ExitDungeon",
+                admissionFailure.Reason,
+                blackboard);
         }
 
         if (CharacterWorkRoleUtility.TryGetWork(actor, out _))

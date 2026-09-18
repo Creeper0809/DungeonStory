@@ -1,0 +1,15 @@
+origin=36,0
+placedBuildings=35
+powerRawRoute=REJECTED:facility_buffer_managed_route_required
+powerFuelCarriedRestore=350g
+power=32/10
+powerFuelRoute=exact-stack-admission-ai-haul
+main-EventSystem-consumer-disconnect-stops-live-power-fluid-unchanged=PASS
+serialized-disconnection-restore-and-invalid-command-restore-atomicity=PASS
+authored-utility-disconnect-isolates-node-and-noncontrollable-generator-rejected=PASS
+main-reconnect-and-original-domain-state-round-trip=PASS
+connection-scope=authored-production-consumer-utility-connector-and-existing-full-fuel-custody-restore
+throughput-branch-boundaries=separate-pure-flow-contract-report
+mode=power-fuel-only
+cleanup=exact-except-meta-elapsed-float-rounding-under-0.00001s
+result=PASS

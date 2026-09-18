@@ -85,6 +85,17 @@
     },
     {
       "amount": null,
+      "from": "research/research-industry-electric-lighting",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9828",
+      "target_spoiler_tier": "none",
+      "target_title": "태양등",
+      "to": "facility/building-9828",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
       "from": "recipe/recipe-component-insulated-wiring",
       "label": "필요 조건",
       "to": "research/research-industry-electric-lighting",

@@ -16,6 +16,8 @@ public sealed class CharacterProgression : MonoBehaviour
     [SerializeField, Min(0)] private int currentExperience;
     [SerializeField] private CharacterGrowthState growthState = new CharacterGrowthState();
     [SerializeField] private CharacterNarrativeLedger narrativeLedger = new CharacterNarrativeLedger();
+    [SerializeField] private CharacterAcquiredTraitAggregateState acquiredTraitState =
+        new CharacterAcquiredTraitAggregateState();
 
     private readonly List<string> learnedSkillIds = new List<string>();
     private readonly List<string> equippedSkillIds = new List<string>();
@@ -24,6 +26,7 @@ public sealed class CharacterProgression : MonoBehaviour
     private ICharacterSkillSystemSettingsProvider settingsProvider;
     private CharacterProgressionNotificationApplicationAdapter notifications;
     private CharacterProgressionProfileProjector profileProjector;
+    private IGameplayOutcomeEvidenceUseTransaction evidenceUseTransaction;
     private bool suppressPublicSkillNotifications;
 
     public CharacterActor Actor => actor;
@@ -47,6 +50,7 @@ public sealed class CharacterProgression : MonoBehaviour
     }
     public CharacterNarrativeLedger NarrativeLedger =>
         narrativeLedger ??= new CharacterNarrativeLedger();
+    public int AcquiredTraitRevision => acquiredTraitState?.revision ?? 0;
     public CharacterPotentialGrade PotentialGrade => GrowthState.potentialGrade;
     public IReadOnlyList<CharacterSkillInstance> ActiveSkills => GrowthState.activeSkills;
     public IReadOnlyList<CharacterSkillInstance> PassiveSkills => GrowthState.passiveSkills;
@@ -80,6 +84,26 @@ public sealed class CharacterProgression : MonoBehaviour
     }
 
     [Inject]
+    public void ConstructCharacterProgression(
+        ICharacterSkillGenerationService generationService,
+        ICharacterSkillSystemSettingsProvider settingsProvider,
+        CharacterProgressionNotificationApplicationAdapter notifications,
+        CharacterProgressionProfileProjector profileProjector,
+        IGameplayOutcomeEvidenceUseTransaction evidenceUseTransaction)
+    {
+        this.generationService = generationService
+            ?? throw new ArgumentNullException(nameof(generationService));
+        this.settingsProvider = settingsProvider
+            ?? throw new ArgumentNullException(nameof(settingsProvider));
+        this.notifications = notifications
+            ?? throw new ArgumentNullException(nameof(notifications));
+        this.profileProjector = profileProjector
+            ?? throw new ArgumentNullException(nameof(profileProjector));
+        this.evidenceUseTransaction = evidenceUseTransaction
+            ?? throw new ArgumentNullException(nameof(evidenceUseTransaction));
+        CompleteConfigurationIfReady();
+    }
+
     public void ConstructCharacterProgression(
         ICharacterSkillGenerationService generationService,
         ICharacterSkillSystemSettingsProvider settingsProvider,
@@ -148,7 +172,7 @@ public sealed class CharacterProgression : MonoBehaviour
         }
 
         EnsureUnlockedDrafts();
-        Changed?.Invoke();
+        NotifyChangedWithoutAffectingCommittedState();
         return transition.LevelDelta;
     }
 
@@ -179,7 +203,7 @@ public sealed class CharacterProgression : MonoBehaviour
         }
 
         EnsureUnlockedDrafts();
-        Changed?.Invoke();
+        NotifyChangedWithoutAffectingCommittedState();
         return true;
     }
 
@@ -202,7 +226,7 @@ public sealed class CharacterProgression : MonoBehaviour
             }
         }
 
-        Changed?.Invoke();
+        NotifyChangedWithoutAffectingCommittedState();
     }
 
     public bool TryChooseActiveSkill(
@@ -230,7 +254,7 @@ public sealed class CharacterProgression : MonoBehaviour
             {
                 GrowthState.activeSkills.Add(chosen.Clone());
                 RebuildLegacySkillViews();
-                Changed?.Invoke();
+                NotifyChangedWithoutAffectingCommittedState();
             }
 
             message = "이미 확정된 기술입니다.";
@@ -255,13 +279,20 @@ public sealed class CharacterProgression : MonoBehaviour
             return false;
         }
 
-        draft.permanentlyChosen = true;
-        draft.chosenIndex = candidateIndex;
-        GrowthState.activeSkills.Add(draft.candidates[candidateIndex].Clone());
-        GrowthState.nextActiveDraftHasPity = draft.grantsUpperRarityPity;
+        CharacterSkillInstance selectedSkill = draft.candidates[candidateIndex];
+        if (!TryCommitFormulaEvidence(selectedSkill, () =>
+            {
+                draft.permanentlyChosen = true;
+                draft.chosenIndex = candidateIndex;
+                GrowthState.activeSkills.Add(selectedSkill.Clone());
+                GrowthState.nextActiveDraftHasPity = draft.grantsUpperRarityPity;
+            }, out message))
+        {
+            return false;
+        }
         message = $"{draft.candidates[candidateIndex].displayName}을(를) 영구 확정했습니다.";
         RebuildLegacySkillViews();
-        Changed?.Invoke();
+        NotifyChangedWithoutAffectingCommittedState();
         return true;
     }
 
@@ -291,6 +322,305 @@ public sealed class CharacterProgression : MonoBehaviour
             GrowthState);
     }
 
+    public CharacterAcquiredTraitAggregateState CaptureAcquiredTraitState()
+    {
+        acquiredTraitState ??= new CharacterAcquiredTraitAggregateState();
+        acquiredTraitState.EnsureCollections();
+        return acquiredTraitState.Clone();
+    }
+
+    [GameplayInternalOnly(
+        "Acquired-trait manifestation and erasure services commit a fully validated candidate state.",
+        "CharacterAcquiredTrait manifestation/erasure transaction services")]
+    public bool TryCommitAcquiredTraitState(
+        CharacterAcquiredTraitAggregateState candidate,
+        int expectedRevision,
+        CharacterAcquiredTraitSettingsSO settings,
+        IEnumerable<CharacterAcquiredTraitModuleSO> moduleDefinitions,
+        out IReadOnlyList<CharacterAcquiredTraitValidationIssue> validationIssues)
+    {
+        CharacterAcquiredTraitAggregateState current =
+            CaptureAcquiredTraitState();
+        List<CharacterAcquiredTraitValidationIssue> issues = ValidateAcquiredTraitCandidate(
+            current, candidate, expectedRevision, settings, moduleDefinitions);
+        if (issues.Count > 0)
+        {
+            validationIssues = issues;
+            return false;
+        }
+
+        acquiredTraitState = candidate.Clone();
+        validationIssues = Array.Empty<CharacterAcquiredTraitValidationIssue>();
+        Changed?.Invoke();
+        return true;
+    }
+
+    [GameplayInternalOnly(
+        "Formula acquired-trait completion atomically publishes a validated candidate and consumes its exact projected evidence once.",
+        "CharacterAcquiredTrait formula manifestation transaction service")]
+    public bool TryCommitAcquiredTraitStateWithFormulaEvidence(
+        CharacterAcquiredTraitAggregateState candidate,
+        int expectedRevision,
+        CharacterAcquiredTraitSettingsSO settings,
+        IEnumerable<CharacterAcquiredTraitModuleSO> moduleDefinitions,
+        IEnumerable<string> evidenceFactIds,
+        IEnumerable<GameplayOutcomeEvidenceBindingSnapshot> evidenceBindings,
+        out IReadOnlyList<CharacterAcquiredTraitValidationIssue> validationIssues)
+    {
+        CharacterAcquiredTraitAggregateState current = acquiredTraitState?.Clone()
+            ?? new CharacterAcquiredTraitAggregateState();
+        current.EnsureCollections();
+        CharacterAcquiredTraitModuleSO[] definitions = (moduleDefinitions
+            ?? Array.Empty<CharacterAcquiredTraitModuleSO>()).ToArray();
+        List<CharacterAcquiredTraitValidationIssue> issues = ValidateAcquiredTraitCandidate(
+            current, candidate, expectedRevision, settings, definitions);
+        string[] evidence = (evidenceFactIds ?? Array.Empty<string>()).ToArray();
+        GameplayOutcomeEvidenceBindingSnapshot[] exactBindings = (evidenceBindings
+                ?? Array.Empty<GameplayOutcomeEvidenceBindingSnapshot>())
+            .Where(value => value != null)
+            .Select(value => value.Clone()).ToArray();
+        HashSet<string> exactIds = exactBindings
+            .Select(value => value.publicFactId)
+            .ToHashSet(StringComparer.Ordinal);
+        if (evidence.Length == 0
+            || evidence.Any(value => !IsCanonicalProjectedTraitEvidenceId(value))
+            || evidence.Distinct(StringComparer.Ordinal).Count() != evidence.Length)
+        {
+            issues.Add(new CharacterAcquiredTraitValidationIssue(
+                CharacterAcquiredTraitValidationIssueCode.InvalidEvidence,
+                "Formula acquired-trait evidence IDs must be non-empty, distinct canonical public-fact:sha256 IDs."));
+        }
+
+        List<CharacterNarrativeFact> selectedFacts = new List<CharacterNarrativeFact>();
+        if (issues.All(value => value.Code != CharacterAcquiredTraitValidationIssueCode.InvalidEvidence))
+        {
+            foreach (string evidenceId in evidence)
+            {
+                if (exactIds.Contains(evidenceId))
+                    continue;
+                if (!CharacterAcquiredTraitEvidenceProjection.TryResolve(
+                        NarrativeLedger,
+                        evidenceId,
+                        out CharacterNarrativeFact[] resolved,
+                        out string resolutionError)
+                    || resolved.Length != 1
+                    || resolved[0].influenceUseCount == int.MaxValue)
+                {
+                    issues.Add(new CharacterAcquiredTraitValidationIssue(
+                        CharacterAcquiredTraitValidationIssueCode.InvalidEvidence,
+                        resolved.Length == 1 && resolved[0].influenceUseCount == int.MaxValue
+                            ? $"Formula acquired-trait evidence '{evidenceId}' exhausted its influence counter."
+                            : resolutionError));
+                    continue;
+                }
+                selectedFacts.Add(resolved[0]);
+            }
+        }
+
+        if (candidate != null && evidence.Length > 0)
+        {
+            HashSet<string> previousIds = new HashSet<string>(
+                (current.instances ?? new List<CharacterAcquiredTraitInstanceState>())
+                .Where(value => value != null)
+                .Select(value => value.instanceId),
+                StringComparer.Ordinal);
+            CharacterAcquiredTraitInstanceState[] published = (candidate.instances
+                    ?? new List<CharacterAcquiredTraitInstanceState>())
+                .Where(value => value != null
+                    && value.formulaVersion > 0
+                    && value.acceptedRevision == candidate.revision
+                    && !previousIds.Contains(value.instanceId))
+                .ToArray();
+            string[] canonicalEvidence = evidence.OrderBy(value => value, StringComparer.Ordinal).ToArray();
+            string[] publishedExact = published.Length == 1
+                ? (published[0].evidenceBindings
+                        ?? new List<GameplayOutcomeEvidenceBindingSnapshot>())
+                    .Where(value => value != null)
+                    .Select(value => value.publicFactId)
+                    .OrderBy(value => value, StringComparer.Ordinal).ToArray()
+                : Array.Empty<string>();
+            if (published.Length != 1
+                || published[0].evidenceFactIds == null
+                || !published[0].evidenceFactIds.SequenceEqual(canonicalEvidence, StringComparer.Ordinal)
+                || !publishedExact.SequenceEqual(
+                    exactIds.OrderBy(value => value, StringComparer.Ordinal),
+                    StringComparer.Ordinal)
+                || exactIds.Any(value => !evidence.Contains(value, StringComparer.Ordinal)))
+            {
+                issues.Add(new CharacterAcquiredTraitValidationIssue(
+                    CharacterAcquiredTraitValidationIssueCode.InvalidEvidence,
+                    "Formula acquired-trait commit must publish exactly one new v1 instance with the exact consumed evidence IDs."));
+            }
+        }
+
+        if (issues.Count > 0)
+        {
+            validationIssues = issues;
+            return false;
+        }
+
+        CharacterAcquiredTraitAggregateState frozenCandidate = candidate.Clone();
+        CharacterAcquiredTraitAggregateState previous = acquiredTraitState?.Clone()
+            ?? new CharacterAcquiredTraitAggregateState();
+        PreparedGameplayOutcomeEvidenceUse prepared = null;
+        if (exactBindings.Length > 0)
+        {
+            CharacterAcquiredTraitInstanceState published = frozenCandidate.instances
+                .Single(value => value != null
+                    && value.formulaVersion > 0
+                    && value.acceptedRevision == frozenCandidate.revision);
+            string prepareFailure = evidenceUseTransaction == null
+                ? "evidence-transaction-unavailable"
+                : string.Empty;
+            if (evidenceUseTransaction == null
+                || !evidenceUseTransaction.TryPrepareBindings(
+                    "acquired-trait",
+                    string.IsNullOrWhiteSpace(published.presentationId)
+                        ? published.instanceId
+                        : published.presentationId,
+                    exactBindings,
+                    out prepared,
+                    out prepareFailure)
+                || !prepared.TryCommitAnchors(out prepareFailure))
+            {
+                prepared?.Cancel();
+                issues.Add(new CharacterAcquiredTraitValidationIssue(
+                    CharacterAcquiredTraitValidationIssueCode.InvalidEvidence,
+                    "Gameplay-outcome evidence anchor rejected: " + prepareFailure));
+                validationIssues = issues;
+                return false;
+            }
+        }
+        try
+        {
+            acquiredTraitState = frozenCandidate;
+            foreach (CharacterNarrativeFact fact in selectedFacts)
+                fact.influenceUseCount++;
+            prepared?.CompleteOwnerCommit();
+        }
+        catch
+        {
+            acquiredTraitState = previous;
+            foreach (CharacterNarrativeFact fact in selectedFacts)
+                fact.influenceUseCount--;
+            if (prepared != null && !prepared.TryRollbackAnchors(out string rollbackFailure))
+                Debug.LogError("Acquired-trait evidence anchor rollback failed: "
+                    + rollbackFailure);
+            throw;
+        }
+        NotifyChangedWithoutAffectingCommittedState();
+        validationIssues = Array.Empty<CharacterAcquiredTraitValidationIssue>();
+        return true;
+    }
+
+    private void NotifyChangedWithoutAffectingCommittedState()
+    {
+        Delegate[] handlers = Changed?.GetInvocationList();
+        if (handlers == null) return;
+        for (int index = 0; index < handlers.Length; index++)
+        {
+            try
+            {
+                ((Action)handlers[index]).Invoke();
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException
+                                               and not StackOverflowException
+                                               and not AccessViolationException)
+            {
+                Debug.LogException(exception);
+            }
+        }
+    }
+
+    private List<CharacterAcquiredTraitValidationIssue> ValidateAcquiredTraitCandidate(
+        CharacterAcquiredTraitAggregateState current,
+        CharacterAcquiredTraitAggregateState candidate,
+        int expectedRevision,
+        CharacterAcquiredTraitSettingsSO settings,
+        IEnumerable<CharacterAcquiredTraitModuleSO> moduleDefinitions)
+    {
+        List<CharacterAcquiredTraitValidationIssue> issues = new List<CharacterAcquiredTraitValidationIssue>();
+        if (expectedRevision < 0
+            || current == null
+            || current.revision != expectedRevision
+            || expectedRevision == int.MaxValue
+            || candidate == null
+            || candidate.revision != expectedRevision + 1)
+        {
+            issues.Add(new CharacterAcquiredTraitValidationIssue(
+                CharacterAcquiredTraitValidationIssueCode.InvalidRevision,
+                $"Acquired-trait commit expected revision {expectedRevision}, "
+                + $"current revision is {current?.revision.ToString() ?? "missing"}, and candidate revision is "
+                + $"{candidate?.revision.ToString() ?? "missing"}."));
+        }
+        if (candidate != null)
+        {
+            issues.AddRange(CharacterAcquiredTraitStateValidator.ValidateWithDefinitions(
+                candidate,
+                NarrativeLedger,
+                settings,
+                moduleDefinitions));
+        }
+        return issues;
+    }
+
+    private static bool IsCanonicalProjectedTraitEvidenceId(string value)
+    {
+        string prefix = CharacterAcquiredTraitEvidenceProjection.ProjectedFactIdPrefix;
+        return value != null
+            && value.Length == prefix.Length + 64
+            && value.StartsWith(prefix, StringComparison.Ordinal)
+            && value.Skip(prefix.Length).All(character =>
+                character is >= '0' and <= '9' or >= 'a' and <= 'f');
+    }
+
+    [GameplayInternalOnly(
+        "A failed cross-aggregate erasure transaction restores the exact pre-commit acquired-trait aggregate.",
+        "MemoryErasureSealTransactionService")]
+    public bool TryRollbackAcquiredTraitState(
+        CharacterAcquiredTraitAggregateState rollbackState,
+        int expectedCurrentRevision,
+        CharacterAcquiredTraitSettingsSO settings,
+        IEnumerable<CharacterAcquiredTraitModuleSO> moduleDefinitions,
+        out IReadOnlyList<CharacterAcquiredTraitValidationIssue> validationIssues)
+    {
+        CharacterAcquiredTraitAggregateState current =
+            CaptureAcquiredTraitState();
+        List<CharacterAcquiredTraitValidationIssue> issues = new();
+        if (rollbackState == null
+            || expectedCurrentRevision <= 0
+            || current.revision != expectedCurrentRevision
+            || rollbackState.revision != expectedCurrentRevision - 1)
+        {
+            issues.Add(new CharacterAcquiredTraitValidationIssue(
+                CharacterAcquiredTraitValidationIssueCode.InvalidRevision,
+                "Acquired-trait rollback does not match the currently published "
+                + $"revision {current.revision}."));
+        }
+        if (rollbackState != null)
+        {
+            issues.AddRange(
+                CharacterAcquiredTraitStateValidator.ValidateWithDefinitions(
+                    rollbackState,
+                    NarrativeLedger,
+                    settings,
+                    moduleDefinitions));
+        }
+        if (issues.Count > 0)
+        {
+            validationIssues = issues;
+            return false;
+        }
+
+        // Restore the exact previous revision instead of publishing a second
+        // gameplay transition. This method is only legal while the paired
+        // physical mutation is still held by its synchronous rollback handle.
+        acquiredTraitState = rollbackState.Clone();
+        validationIssues = Array.Empty<CharacterAcquiredTraitValidationIssue>();
+        Changed?.Invoke();
+        return true;
+    }
+
     public CharacterRuntimeProfile GetEffectiveRuntimeProfile()
     {
         EnsureInitialized();
@@ -311,9 +641,34 @@ public sealed class CharacterProgression : MonoBehaviour
         string outcome,
         float value = 0f,
         int day = 0,
-        bool triggerPassives = true)
+        bool triggerPassives = true,
+        GameplayNarrativeEventContext eventContext = null)
     {
-        NarrativeLedger.Record(domain, factId, subjectId, outcome, value, day);
+        if (string.IsNullOrWhiteSpace(factId)) return;
+        RecordNarrative(
+            domain,
+            factId,
+            subjectId,
+            outcome,
+            value,
+            day,
+            CharacterNarrativeEvidenceMetadata.Ordinary(domain, factId),
+            triggerPassives,
+            eventContext);
+    }
+
+    public void RecordNarrative(
+        CharacterNarrativeDomain domain,
+        string factId,
+        string subjectId,
+        string outcome,
+        float value,
+        int day,
+        CharacterNarrativeEvidenceMetadata evidenceMetadata,
+        bool triggerPassives = true,
+        GameplayNarrativeEventContext eventContext = null)
+    {
+        NarrativeLedger.Record(domain, factId, subjectId, outcome, value, day, evidenceMetadata, eventContext);
         EnsureUnlockedDrafts();
         if (triggerPassives)
         {
@@ -321,6 +676,34 @@ public sealed class CharacterProgression : MonoBehaviour
         }
 
         Changed?.Invoke();
+    }
+
+    public void RecordNarrative(
+        CharacterNarrativeDomain domain,
+        string factId,
+        string subjectId,
+        string outcome,
+        float value,
+        int day,
+        string eventGroupKey,
+        string actionKey,
+        string relationshipKey,
+        float importancePoints,
+        bool triggerPassives = true)
+    {
+        RecordNarrative(
+            domain,
+            factId,
+            subjectId,
+            outcome,
+            value,
+            day,
+            new CharacterNarrativeEvidenceMetadata(
+                eventGroupKey,
+                actionKey,
+                relationshipKey,
+                importancePoints),
+            triggerPassives);
     }
 
     public bool CanUseUltimate(CharacterUltimateDomain domain, int serial)
@@ -388,7 +771,7 @@ public sealed class CharacterProgression : MonoBehaviour
             CommitAutomaticUltimate(draft);
         }
 
-        Changed?.Invoke();
+        NotifyChangedWithoutAffectingCommittedState();
     }
 
     private void RequestGrowthTab()
@@ -408,7 +791,8 @@ public sealed class CharacterProgression : MonoBehaviour
             Level,
             CurrentExperience,
             GrowthState.Clone(),
-            NarrativeLedger.Clone());
+            NarrativeLedger.Clone(),
+            CaptureAcquiredTraitState());
     }
 
     public void RestorePersistentState(CharacterProgressionSnapshot snapshot)
@@ -416,6 +800,20 @@ public sealed class CharacterProgression : MonoBehaviour
         if (snapshot == null)
         {
             return;
+        }
+
+        CharacterAcquiredTraitAggregateState restoredAcquiredTraits =
+            snapshot.AcquiredTraitState.Clone();
+        ValidateRestoredFormulaState(snapshot.GrowthState, snapshot.NarrativeLedger);
+        IReadOnlyList<CharacterAcquiredTraitValidationIssue> acquiredTraitIssues =
+            CharacterAcquiredTraitStateValidator.ValidatePersistentState(
+                restoredAcquiredTraits,
+                snapshot.NarrativeLedger);
+        if (acquiredTraitIssues.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "Character progression restore rejected acquired-trait state: "
+                + string.Join(" | ", acquiredTraitIssues));
         }
 
         generationService?.CancelRequests(this);
@@ -427,6 +825,7 @@ public sealed class CharacterProgression : MonoBehaviour
         currentExperience = transition.CurrentExperience;
         growthState = snapshot.GrowthState?.Clone() ?? new CharacterGrowthState();
         narrativeLedger = snapshot.NarrativeLedger?.Clone() ?? new CharacterNarrativeLedger();
+        acquiredTraitState = restoredAcquiredTraits;
         InvalidateEffectiveRuntimeProfile();
         GrowthState.EnsureCollections();
         RebuildLegacySkillViews();
@@ -462,8 +861,14 @@ public sealed class CharacterProgression : MonoBehaviour
         int? startingProficiencySeed = null,
         CharacterStartingProfileState startingProfile = null,
         IEnumerable<CharacterStartingProficiencyExperience>
-            preparedStartingProficiencies = null)
+            preparedStartingProficiencies = null,
+        int maximumTraitCount = 4)
     {
+        if (maximumTraitCount is < 0 or > 5)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maximumTraitCount));
+        }
+
         generationService?.CancelRequests(this);
         GrowthState.skillGenerationRevision++;
         GrowthState.initialized = true;
@@ -473,7 +878,10 @@ public sealed class CharacterProgression : MonoBehaviour
             CharacterGrowthState.CurrentTraitSelectionAuthorityVersion;
         GrowthState.traitSelectionAuthorityOrigin =
             CharacterTraitSelectionAuthorityOrigin.PreparedSelection;
-        GrowthState.traitIds = traitIds?.Distinct().Take(4).ToList() ?? new List<int>();
+        GrowthState.traitIds = traitIds?
+            .Distinct()
+            .Take(maximumTraitCount)
+            .ToList() ?? new List<int>();
         GrowthState.startingProfile = startingProfile?.Clone()
             ?? new CharacterStartingProfileState();
         GrowthState.startingProficiencies = (preparedStartingProficiencies
@@ -492,6 +900,7 @@ public sealed class CharacterProgression : MonoBehaviour
         GrowthState.drafts.Clear();
         GrowthState.pendingRequestKeys.Clear();
         GrowthState.nextActiveDraftHasPity = false;
+        acquiredTraitState = new CharacterAcquiredTraitAggregateState();
         InvalidateEffectiveRuntimeProfile();
         WarmEffectiveRuntimeProfile();
         EnsureUnlockedDrafts();
@@ -515,6 +924,8 @@ public sealed class CharacterProgression : MonoBehaviour
     {
         level = Mathf.Clamp(level, 1, MaxLevel);
         GrowthState.EnsureCollections();
+        acquiredTraitState ??= new CharacterAcquiredTraitAggregateState();
+        acquiredTraitState.EnsureCollections();
         if (actor?.Identity?.Data == null)
         {
             return;
@@ -631,13 +1042,21 @@ public sealed class CharacterProgression : MonoBehaviour
             return;
         }
 
-        draft.permanentlyChosen = true;
-        draft.chosenIndex = 0;
         CharacterSkillInstance skill = draft.candidates[0].Clone();
-        GrowthState.passiveSkills.Add(skill);
+        if (!TryCommitFormulaEvidence(skill, () =>
+            {
+                draft.permanentlyChosen = true;
+                draft.chosenIndex = 0;
+                GrowthState.passiveSkills.Add(skill);
+            }, out string evidenceError))
+        {
+            throw new InvalidOperationException(evidenceError);
+        }
         if (!suppressPublicSkillNotifications)
         {
-            notifications?.NotifySkillUnlocked(skill, isUltimate: false);
+            NotifySkillUnlockedWithoutAffectingCommittedState(
+                skill,
+                isUltimate: false);
         }
     }
 
@@ -648,19 +1067,48 @@ public sealed class CharacterProgression : MonoBehaviour
             return;
         }
 
-        draft.permanentlyChosen = true;
-        draft.chosenIndex = 0;
-        GrowthState.ultimate = draft.candidates[0].Clone();
+        CharacterSkillInstance skill = draft.candidates[0].Clone();
+        if (!TryCommitFormulaEvidence(skill, () =>
+            {
+                draft.permanentlyChosen = true;
+                draft.chosenIndex = 0;
+                GrowthState.ultimate = skill;
+            }, out string evidenceError))
+        {
+            throw new InvalidOperationException(evidenceError);
+        }
         if (!suppressPublicSkillNotifications)
         {
-            notifications?.NotifySkillUnlocked(
+            NotifySkillUnlockedWithoutAffectingCommittedState(
                 GrowthState.ultimate,
                 isUltimate: true);
         }
     }
 
+    private void NotifySkillUnlockedWithoutAffectingCommittedState(
+        CharacterSkillInstance skill,
+        bool isUltimate)
+    {
+        if (notifications == null)
+            return;
+        try
+        {
+            notifications.NotifySkillUnlocked(skill, isUltimate);
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException
+                                           and not StackOverflowException
+                                           and not AccessViolationException)
+        {
+            Debug.LogException(exception);
+        }
+    }
+
     private int ChooseBestCandidateIndex(CharacterSkillDraft draft)
     {
+        if (draft?.formulaVersion > 0)
+        {
+            return 0;
+        }
         int bestIndex = 0;
         float bestScore = float.MinValue;
         for (int i = 0; i < draft.candidates.Count; i++)
@@ -680,6 +1128,143 @@ public sealed class CharacterProgression : MonoBehaviour
         }
 
         return bestIndex;
+    }
+
+    private bool TryCommitFormulaEvidence(
+        CharacterSkillInstance skill,
+        Action ownerCommit,
+        out string error)
+    {
+        error = string.Empty;
+        if (skill == null)
+        {
+            error = "Cannot commit a null CharacterSkill.";
+            return false;
+        }
+        if (ownerCommit == null)
+        {
+            error = "CharacterSkill owner commit is missing.";
+            return false;
+        }
+        if (skill.formulaVersion == 0)
+        {
+            ownerCommit();
+            return true;
+        }
+        try
+        {
+            CharacterSkillFormulaGeneration.ValidateRestoredFormulaSkill(
+                skill,
+                SkillSettings);
+        }
+        catch (InvalidOperationException exception)
+        {
+            error = exception.Message;
+            return false;
+        }
+
+        string[] ids = (skill.evidenceIds ?? new List<string>()).ToArray();
+        if (ids.Any(string.IsNullOrWhiteSpace)
+            || ids.Distinct(StringComparer.Ordinal).Count() != ids.Length)
+        {
+            error = "Formula skill evidence IDs are blank or duplicated.";
+            return false;
+        }
+        CharacterNarrativeFact[] factValues = NarrativeLedger.Facts
+            .Where(value => value != null).ToArray();
+        if (factValues.Select(CharacterSkillFormulaGeneration.BuildEvidenceId)
+            .Distinct(StringComparer.Ordinal).Count() != factValues.Length)
+        {
+            error = "The narrative ledger contains duplicate formula evidence identities.";
+            return false;
+        }
+        Dictionary<string, CharacterNarrativeFact> facts = factValues
+            .ToDictionary(CharacterSkillFormulaGeneration.BuildEvidenceId, StringComparer.Ordinal);
+        List<CharacterNarrativeFact> selected = new List<CharacterNarrativeFact>();
+        HashSet<string> exactIds = (skill.evidenceBindings
+                ?? new List<GameplayOutcomeEvidenceBindingSnapshot>())
+            .Where(value => value != null)
+            .Select(value => value.publicFactId)
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (string id in ids)
+        {
+            if (exactIds.Contains(id))
+                continue;
+            if (!facts.TryGetValue(id, out CharacterNarrativeFact fact)
+                || fact.influenceUseCount == int.MaxValue)
+            {
+                error = $"Formula skill references unknown or exhausted evidence '{id}'.";
+                return false;
+            }
+            selected.Add(fact);
+        }
+        PreparedGameplayOutcomeEvidenceUse prepared = null;
+        if (exactIds.Count > 0)
+        {
+            if (evidenceUseTransaction == null
+                || !evidenceUseTransaction.TryPrepareBindings(
+                    "character-skill",
+                    skill.presentationId,
+                    skill.evidenceBindings,
+                    out prepared,
+                    out error))
+                return false;
+            if (!prepared.TryCommitAnchors(out error))
+            {
+                prepared.Cancel();
+                return false;
+            }
+        }
+        try
+        {
+            foreach (CharacterNarrativeFact fact in selected)
+                fact.influenceUseCount++;
+            ownerCommit();
+            prepared?.CompleteOwnerCommit();
+            return true;
+        }
+        catch
+        {
+            foreach (CharacterNarrativeFact fact in selected)
+                fact.influenceUseCount--;
+            if (prepared != null && !prepared.TryRollbackAnchors(out string rollbackFailure))
+                Debug.LogError("CharacterSkill evidence anchor rollback failed: " + rollbackFailure);
+            throw;
+        }
+    }
+
+    private void ValidateRestoredFormulaState(
+        CharacterGrowthState restoredGrowth,
+        CharacterNarrativeLedger restoredLedger)
+    {
+        if (restoredGrowth == null) return;
+        IEnumerable<CharacterSkillInstance> committed =
+            (restoredGrowth.activeSkills ?? new List<CharacterSkillInstance>())
+            .Concat(restoredGrowth.passiveSkills ?? new List<CharacterSkillInstance>())
+            .Concat(restoredGrowth.ultimate == null
+                ? Array.Empty<CharacterSkillInstance>()
+                : new[] { restoredGrowth.ultimate });
+        IEnumerable<CharacterSkillInstance> pending =
+            (restoredGrowth.drafts ?? new List<CharacterSkillDraft>())
+            .Where(value => value != null)
+            .SelectMany(value => value.frozenMechanics ?? new List<CharacterSkillInstance>());
+        HashSet<string> availableEvidence = new HashSet<string>(
+            (restoredLedger?.Facts ?? Array.Empty<CharacterNarrativeFact>())
+                .Where(value => value != null)
+                .Select(CharacterSkillFormulaGeneration.BuildEvidenceId),
+            StringComparer.Ordinal);
+        foreach (CharacterSkillInstance skill in committed.Concat(pending)
+            .Where(value => value != null && value.formulaVersion > 0))
+        {
+            CharacterSkillFormulaGeneration.ValidateRestoredFormulaSkill(skill, SkillSettings);
+            if ((skill.evidenceIds ?? new List<string>()).Any(id => !availableEvidence.Contains(id)))
+                throw new InvalidOperationException(
+                    $"Character progression restore rejected unknown formula evidence on skill '{skill.id}'.");
+        }
+        foreach (CharacterSkillInstance skill in committed
+            .Where(value => value != null && value.formulaVersion > 0 && !value.IsReady))
+            throw new InvalidOperationException(
+                $"Character progression restore rejected unpublished formula skill '{skill.id}'.");
     }
 
     private void RebuildLegacySkillViews()
@@ -729,11 +1314,28 @@ public sealed class CharacterProgressionSnapshot
         int currentExperience,
         CharacterGrowthState growthState,
         CharacterNarrativeLedger narrativeLedger)
+        : this(
+            level,
+            currentExperience,
+            growthState,
+            narrativeLedger,
+            new CharacterAcquiredTraitAggregateState())
+    {
+    }
+
+    public CharacterProgressionSnapshot(
+        int level,
+        int currentExperience,
+        CharacterGrowthState growthState,
+        CharacterNarrativeLedger narrativeLedger,
+        CharacterAcquiredTraitAggregateState acquiredTraitState)
     {
         Level = Mathf.Clamp(level, 1, CharacterProgression.MaxLevel);
         CurrentExperience = Mathf.Max(0, currentExperience);
         GrowthState = growthState?.Clone() ?? new CharacterGrowthState();
         NarrativeLedger = narrativeLedger?.Clone() ?? new CharacterNarrativeLedger();
+        AcquiredTraitState = (acquiredTraitState
+            ?? throw new ArgumentNullException(nameof(acquiredTraitState))).Clone();
     }
 
     public CharacterProgressionSnapshot(
@@ -749,6 +1351,7 @@ public sealed class CharacterProgressionSnapshot
     public int CurrentExperience { get; }
     public CharacterGrowthState GrowthState { get; }
     public CharacterNarrativeLedger NarrativeLedger { get; }
+    public CharacterAcquiredTraitAggregateState AcquiredTraitState { get; }
     public IReadOnlyList<string> LearnedSkillIds => GrowthState.activeSkills?
         .Where(item => item != null).Select(item => item.id).ToArray()
         ?? Array.Empty<string>();

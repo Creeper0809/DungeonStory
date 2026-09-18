@@ -214,6 +214,7 @@ public sealed class SurvivalWorkExecutionHandler :
                     ProductionBillSnapshot bill = begin.Bill;
                     bool applied = true;
                     bool completed = false;
+                    DomainFailure executionFailure = DomainFailure.None;
                     yield return context.ExecutePersistentWorkAmount(
                         bill.RequiredWork,
                         bill.CompletedWork,
@@ -228,10 +229,19 @@ public sealed class SurvivalWorkExecutionHandler :
                                     delta);
                             applied &= work.Succeeded;
                             completed |= work.CycleCompleted;
+                            if (!work.Succeeded && work.Failure.IsFailure)
+                            {
+                                executionFailure = work.Failure;
+                            }
                             return work.Succeeded;
                         });
                     result.CompletedSuccessfully = applied && completed;
                     result.CompletionEffectsAlreadyApplied = completed;
+                    result.Failure = executionFailure;
+                    if (executionFailure.IsFailure)
+                    {
+                        ObserveProductionFailureSource(result);
+                    }
                     yield break;
                 }
 
@@ -239,6 +249,10 @@ public sealed class SurvivalWorkExecutionHandler :
                 // after BeginWork rejects could consume legacy process fluids or
                 // create byproducts without committing the production WIP.
                 result.CompletedSuccessfully = false;
+                result.Failure = begin.Failure.IsFailure
+                    ? begin.Failure
+                    : begin.Bill?.BlockedFailure ?? DomainFailure.None;
+                ObserveProductionFailureSource(result);
                 yield break;
             }
             if (ProductionFacilityDefinitionIdentity.IsProductionWorkstation(
@@ -247,6 +261,10 @@ public sealed class SurvivalWorkExecutionHandler :
                     .BlocksManualProductionFallback(availability.Failure))
             {
                 result.CompletedSuccessfully = false;
+                result.Failure = availability.Failure.IsFailure
+                    ? availability.Failure
+                    : availability.Bill?.BlockedFailure ?? DomainFailure.None;
+                ObserveProductionFailureSource(result);
                 yield break;
             }
         }
@@ -255,10 +273,76 @@ public sealed class SurvivalWorkExecutionHandler :
             && !processFluids.TryConsumeCycle(
                 context.Target,
                 context.WorkTypeId,
-                out _))
+                out DomainFailure fluidFailure))
         {
             result.CompletedSuccessfully = false;
+            result.Failure = fluidFailure;
+            result.FailureAxis = CharacterOperationBlockAxis.Water;
             yield break;
+        }
+
+        if (context.WorkTypeId == BuiltInWorkTypeIds.Treat)
+        {
+            if (survivalRuntime is not ISurvivalTreatmentCompletionCommand treatment)
+            {
+                throw new InvalidOperationException(
+                    "The survival Treat handler requires the typed treatment completion command.");
+            }
+            if (!treatment.TryEnsureTreatmentSupply(
+                    context.Actor?.BuildingVisitor,
+                    context.Target,
+                    context.RunId,
+                    out bool completionOnly,
+                    out DomainFailure supplyFailure))
+            {
+                result.CompletedSuccessfully = false;
+                result.Failure = supplyFailure;
+                yield break;
+            }
+            if (completionOnly)
+            {
+                result.CompletedSuccessfully = treatment.TryApplyTreatmentWork(
+                    context.Actor?.BuildingVisitor,
+                    context.Target,
+                    context.RunId,
+                    out _,
+                    out DomainFailure completionFailure);
+                result.Failure = completionFailure;
+                result.CompletionEffectsAlreadyApplied =
+                    result.CompletedSuccessfully;
+                yield break;
+            }
+        }
+
+        if (context.WorkTypeId == BuiltInWorkTypeIds.Refuel)
+        {
+            if (survivalRuntime is not ISurvivalRefuelCompletionCommand refuel)
+            {
+                throw new InvalidOperationException(
+                    "The survival Refuel handler requires the typed refuel completion command.");
+            }
+            if (!refuel.TryEnsureRefuelSupply(
+                    context.Actor?.BuildingVisitor,
+                    context.Target,
+                    out bool completionOnly,
+                    out DomainFailure supplyFailure))
+            {
+                result.CompletedSuccessfully = false;
+                result.Failure = supplyFailure;
+                yield break;
+            }
+            if (completionOnly)
+            {
+                result.CompletedSuccessfully = refuel.TryApplyRefuelWork(
+                    context.Actor?.BuildingVisitor,
+                    context.Target,
+                    out _,
+                    out DomainFailure completionFailure);
+                result.Failure = completionFailure;
+                result.CompletionEffectsAlreadyApplied =
+                    result.CompletedSuccessfully;
+                yield break;
+            }
         }
 
         result.CompletedSuccessfully =
@@ -280,5 +364,47 @@ public sealed class SurvivalWorkExecutionHandler :
             Mathf.Max(0.1f, resolveAmount(context.Target)),
             WorkTaskCatalog.GetLegacyDisplayName(context.LegacyWorkType));
         result.CompletedSuccessfully = context.CanContinue;
+        if (result.CompletedSuccessfully
+            && context.WorkTypeId == BuiltInWorkTypeIds.Treat)
+        {
+            if (survivalRuntime is not ISurvivalTreatmentCompletionCommand treatment)
+            {
+                throw new InvalidOperationException(
+                    "The survival Treat handler requires the typed treatment completion command.");
+            }
+            result.CompletedSuccessfully = treatment.TryApplyTreatmentWork(
+                context.Actor?.BuildingVisitor,
+                context.Target,
+                context.RunId,
+                out _,
+                out _);
+            result.CompletionEffectsAlreadyApplied =
+                result.CompletedSuccessfully;
+        }
+        else if (result.CompletedSuccessfully
+            && context.WorkTypeId == BuiltInWorkTypeIds.Refuel)
+        {
+            if (survivalRuntime is not ISurvivalRefuelCompletionCommand refuel)
+            {
+                throw new InvalidOperationException(
+                    "The survival Refuel handler requires the typed refuel completion command.");
+            }
+            result.CompletedSuccessfully = refuel.TryApplyRefuelWork(
+                context.Actor?.BuildingVisitor,
+                context.Target,
+                out _,
+                out DomainFailure completionFailure);
+            result.Failure = completionFailure;
+            result.CompletionEffectsAlreadyApplied =
+                result.CompletedSuccessfully;
+        }
+    }
+
+    private void ObserveProductionFailureSource(WorkExecutionResult result)
+    {
+        if (productionBills is IProductionBillQuery query)
+        {
+            result.ObserveFailureSource(() => query.Version);
+        }
     }
 }

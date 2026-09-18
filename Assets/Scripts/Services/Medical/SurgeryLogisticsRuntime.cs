@@ -7,14 +7,6 @@ using UnityEngine;
 internal sealed class SurgeryLogisticsRuntime
 {
     private const float AdmissionRetryInterval = 1.5f;
-    private static readonly Vector2Int[] CardinalDirections =
-    {
-        Vector2Int.left,
-        Vector2Int.right,
-        Vector2Int.up,
-        Vector2Int.down
-    };
-
     private readonly ISurgicalPartRuntime parts;
     private readonly ICharacterWorldQuery characters;
     private readonly IWildlifeWorldQuery wildlife;
@@ -129,7 +121,10 @@ internal sealed class SurgeryLogisticsRuntime
                 return false;
             }
 
-            if (ManhattanToFacility(animal.GridPosition, facility) <= 1)
+            if (facility.IsWorkAccessGridPosition(
+                    facility.Grid,
+                    animal.GridPosition)
+                || facility.ContainsGridPosition(animal.GridPosition))
             {
                 order.patientAdmitted = true;
                 order.statusData.Set(
@@ -138,7 +133,10 @@ internal sealed class SurgeryLogisticsRuntime
                 return true;
             }
 
-            if (!TryFindAdmissionCell(facility, animal.GridPosition, out Vector2Int admission))
+            if (!facility.TryGetNearestWorkAccessGridPosition(
+                    facility.Grid,
+                    animal.GridPosition,
+                    out Vector2Int admission))
             {
                 order.statusData.Set(
                     SurgeryStatusCode.PatientAdmissionCellMissing,
@@ -178,7 +176,9 @@ internal sealed class SurgeryLogisticsRuntime
             return true;
         }
 
-        if (ManhattanToFacility(patient.GetNowXY(), facility) <= 1
+        if (facility.IsWorkAccessGridPosition(
+                facility.Grid,
+                patient.GetNowXY())
             || facility.ContainsGridPosition(patient.GetNowXY()))
         {
             order.patientAdmitted = true;
@@ -241,7 +241,10 @@ internal sealed class SurgeryLogisticsRuntime
             return false;
         }
 
-        if (!TryFindAdmissionCell(facility, patient.GetNowXY(), out Vector2Int admissionCell))
+        if (!facility.TryGetNearestWorkAccessGridPosition(
+                facility.Grid,
+                patient.GetNowXY(),
+                out Vector2Int admissionCell))
         {
             order.statusData.Set(
                 SurgeryStatusCode.PatientAdmissionCellMissing,
@@ -657,53 +660,4 @@ internal sealed class SurgeryLogisticsRuntime
         return worldQuantity + carriedQuantity;
     }
 
-    private static bool TryFindAdmissionCell(
-        BuildableObject facility,
-        Vector2Int origin,
-        out Vector2Int admission)
-    {
-        admission = default;
-        if (facility?.Grid == null)
-        {
-            return false;
-        }
-
-        List<Vector2Int> candidates = new();
-        foreach (Vector2Int occupied in facility.buildPoses)
-        {
-            foreach (Vector2Int direction in CardinalDirections)
-            {
-                Vector2Int cell = occupied + direction;
-                if (!facility.ContainsGridPosition(cell)
-                    && facility.Grid.IsValidGridPos(cell)
-                    && facility.Grid.IsWalkable(cell)
-                    && !candidates.Contains(cell))
-                {
-                    candidates.Add(cell);
-                }
-            }
-        }
-
-        if (candidates.Count == 0)
-        {
-            return false;
-        }
-
-        admission = candidates
-            .OrderBy(cell => Mathf.Abs(cell.x - origin.x) + Mathf.Abs(cell.y - origin.y))
-            .ThenBy(cell => cell.y)
-            .ThenBy(cell => cell.x)
-            .First();
-        return true;
-    }
-
-    private static int ManhattanToFacility(
-        Vector2Int position,
-        BuildableObject facility)
-    {
-        return facility?.buildPoses?
-            .Select(cell => Mathf.Abs(cell.x - position.x) + Mathf.Abs(cell.y - position.y))
-            .DefaultIfEmpty(int.MaxValue)
-            .Min() ?? int.MaxValue;
-    }
 }

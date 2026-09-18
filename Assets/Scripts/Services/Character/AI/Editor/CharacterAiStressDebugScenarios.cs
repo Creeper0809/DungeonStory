@@ -2563,12 +2563,12 @@ public static class CharacterAiStressDebugScenarios
         {
             string[] assetNames =
             {
-                "P1_LowFoodShop",
-                "P1_MeatRestaurant",
-                "P1_GeneralStore",
-                "P1_RestRoom",
-                "P1_ResearchLab",
-                "P1_ManaStorage"
+                "S01_판매카운터",
+                "D02_고기그릴",
+                "S01_판매카운터",
+                "R01_간이침대",
+                "Q01_연구책상",
+                "M02_마력저장조"
             };
 
             int[] nextPositionsByFloor = new int[activeFloorCount];
@@ -2833,7 +2833,7 @@ public static class CharacterAiStressDebugScenarios
         private BuildableObject Place(string assetName, Vector2Int position)
         {
             return PlaceAsset(
-                $"Assets/Resources/SO/Building/P1/{assetName}.asset",
+                $"Assets/Resources/SO/Building/Modular/{assetName}.asset",
                 position,
                 removeRoomRequirement: true,
                 trackDenseFacility: false);

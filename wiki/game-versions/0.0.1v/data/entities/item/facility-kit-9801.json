@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "전력선을 현장에 세워 공간의 용도와 작업 동선을 갖추는 데 쓰는 설치 부품이며, 제4주조도시에서도 같은 규격으로 조립한다.",
+  "in_game_description": "전력선을 현장에 세워 공간의 용도와 작업 동선을 갖추는 데 쓰는 설치 부품이다. 제4주조도시제 전력선의 이음부에는 몸과 설비를 같은 공구로 고칠 수 있는 네모 눈금이 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

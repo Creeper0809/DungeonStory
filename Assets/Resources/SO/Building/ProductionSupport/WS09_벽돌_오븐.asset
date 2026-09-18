@@ -59,7 +59,6 @@ MonoBehaviour:
     - rid: 1008
     - rid: 1009
     - rid: 1010
-    - rid: 1011
   width: 1
   height: 1
   layer: 1
@@ -144,14 +143,6 @@ MonoBehaviour:
           - material:charcoal
           - feed:silage
           - craft:candle
-    - rid: 1011
-      type: {class: BuildingFuelConsumerAbility, ns: , asm: DungeonStory.Survival}
-      data:
-        abilityId: BuildingFuelConsumerAbility
-        fuelPerRefuel: 1
-        workSeconds: 0.8
-        warmth: 8
-        lightSafety: 4
     - rid: 7737212195140797138
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:

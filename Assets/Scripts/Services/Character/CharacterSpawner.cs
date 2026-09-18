@@ -28,6 +28,10 @@ public enum CharacterSpawnRejection
 public class CharacterSpawner : BuildableObject,IInteractable
 {
     private const float FallbackOutsideSpawnDistance = 1f;
+    private const string CaptiveOwnedExitFailureReason =
+        "exit-dungeon-captive-owned";
+    private const string SocietyIncidentOwnedExitFailureReason =
+        "exit-dungeon-society-incident-owned";
     public CharacterSO[] characters;
     public GameObject characterPrefab;
     [SerializeField] private Transform outsideSpawnPoint;
@@ -45,6 +49,9 @@ public class CharacterSpawner : BuildableObject,IInteractable
     private IRunCharacterCatalog characterCatalog;
     private ICharacterPopulationService characterPopulationService;
     private IFactionContractQuery factionContracts;
+    private ICaptivityRuntime captivityRuntime;
+    private ISocietyIncidentOwnedCharacterIdQuery societyIncidentOwners;
+    private ICombatEquipmentRuntime combatEquipmentRuntime;
     private IOwnerRunManagerProvider ownerRunManagerProvider;
     private IBuildingWorldQuery buildingWorldQuery;
     private IRandomStream respawnRandomStream;
@@ -52,11 +59,13 @@ public class CharacterSpawner : BuildableObject,IInteractable
     private bool deterministicSimulationPausedForDiagnostics;
     private long visitorExitHandoffAttemptCount;
     private long visitorExitHandoffCompletedCount;
+    private long exitInteractionAttemptCount;
     private string lastVisitorExitPersistentId = string.Empty;
     private string lastVisitorExitHandoffStage = string.Empty;
 
     public long VisitorExitHandoffAttemptCount => visitorExitHandoffAttemptCount;
     public long VisitorExitHandoffCompletedCount => visitorExitHandoffCompletedCount;
+    public long ExitInteractionAttemptCount => exitInteractionAttemptCount;
     public string LastVisitorExitPersistentId => lastVisitorExitPersistentId;
     public string LastVisitorExitHandoffStage => lastVisitorExitHandoffStage;
 
@@ -96,6 +105,29 @@ public class CharacterSpawner : BuildableObject,IInteractable
             .Get("character-spawner");
         scopeTeardownStarted = false;
         sceneAdapter.ResetInjectedProjection();
+    }
+
+    [Inject]
+    public void ConstructExitDungeonAdmission(ICaptivityRuntime captivityRuntime)
+    {
+        this.captivityRuntime = captivityRuntime
+            ?? throw new ArgumentNullException(nameof(captivityRuntime));
+    }
+
+    [Inject]
+    public void ConstructSocietyIncidentExitAdmission(
+        ISocietyIncidentOwnedCharacterIdQuery societyIncidentOwners)
+    {
+        this.societyIncidentOwners = societyIncidentOwners
+            ?? throw new ArgumentNullException(nameof(societyIncidentOwners));
+    }
+
+    [Inject]
+    public void ConstructEquipmentRetirement(
+        ICombatEquipmentRuntime combatEquipmentRuntime)
+    {
+        this.combatEquipmentRuntime = combatEquipmentRuntime
+            ?? throw new ArgumentNullException(nameof(combatEquipmentRuntime));
     }
 
     private void Awake()
@@ -307,6 +339,9 @@ public class CharacterSpawner : BuildableObject,IInteractable
         }
 
         spawnedCharacter.SetLifecycleState(CharacterLifecycleState.SpawningOutside);
+        // Initialize resets authoritative vitals, so the acquired profile ID
+        // must already be the aggregate key rather than the pooled actor's old ID.
+        spawnedCharacter.Identity.SetPersistentId(worldProfile.persistentId);
         spawnedCharacter.Initialize(characterData);
         characterPopulationService.BindActor(worldProfile, spawnedCharacter);
         RequireCharacterObjectFactory().Publish(spawnedCharacterGameobject);
@@ -643,9 +678,57 @@ public class CharacterSpawner : BuildableObject,IInteractable
                 "CharacterSpawner requires the Character visitor adapter.");
         }
 
+        ICaptivityRuntime captivity = captivityRuntime
+            ?? throw new InvalidOperationException(
+                $"{nameof(CharacterSpawner)} requires "
+                + $"{nameof(ICaptivityRuntime)} injection before exit handoff.");
+
         CharacterIdentity identity = actor != null ? actor.Identity : null;
         if (identity == null || identity.Data == null) return;
 
+        if (captivity.IsCaptive(identity.PersistentId))
+        {
+            if (actor.CurrentLifecycleState
+                == CharacterLifecycleState.ExitingDungeon)
+            {
+                actor.SetLifecycleState(CharacterLifecycleState.Active);
+            }
+            actor.Brain?.ReportRuntimeActionFailure(
+                AIActionFailure.Create(
+                    AIActionFailureKind.CannotStart,
+                    CaptiveOwnedExitFailureReason),
+                requestImmediateReplan: false);
+            return;
+        }
+
+        ISocietyIncidentOwnedCharacterIdQuery incidentOwners =
+            societyIncidentOwners
+            ?? throw new InvalidOperationException(
+                $"{nameof(CharacterSpawner)} requires "
+                + $"{nameof(ISocietyIncidentOwnedCharacterIdQuery)} injection "
+                + "before exit handoff.");
+        CharacterId exitingCharacterId =
+            CharacterPersistentIdentity.Require(actor);
+        IReadOnlyCollection<CharacterId> ownedCustomerIds =
+            incidentOwners.GetOwnedCustomerIds()
+            ?? throw new InvalidOperationException(
+                "Society incident ownership query returned a null CharacterId collection.");
+        if (ownedCustomerIds.Contains(exitingCharacterId))
+        {
+            if (actor.CurrentLifecycleState
+                == CharacterLifecycleState.ExitingDungeon)
+            {
+                actor.SetLifecycleState(CharacterLifecycleState.Active);
+            }
+            actor.Brain?.ReportRuntimeActionFailure(
+                AIActionFailure.Create(
+                    AIActionFailureKind.CannotStart,
+                    SocietyIncidentOwnedExitFailureReason),
+                requestImmediateReplan: false);
+            return;
+        }
+
+        exitInteractionAttemptCount++;
         EnsureRuntimeState();
         bool isStaffProfile = characterPopulationService != null
             && characterPopulationService.TryGetProfile(actor, out WorldCharacterProfile profile)
@@ -671,7 +754,14 @@ public class CharacterSpawner : BuildableObject,IInteractable
             return;
         }
 
-        string profileId = identity.PersistentId;
+        string profileId = CharacterPersistentIdentity.Require(actor).Value;
+        ICombatEquipmentRuntime equipment = combatEquipmentRuntime
+            ?? throw new InvalidOperationException(
+                $"{nameof(CharacterSpawner)} requires "
+                + $"{nameof(ICombatEquipmentRuntime)} injection before exit handoff.");
+        // The existing retirement authority preserves equipment instances and
+        // history while removing this departing character's loadout ownership.
+        equipment.HandleCharacterDeath(profileId);
         visitorExitHandoffAttemptCount++;
         lastVisitorExitPersistentId = profileId ?? string.Empty;
         lastVisitorExitHandoffStage = "visitor-exit:handoff-started";

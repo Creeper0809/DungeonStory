@@ -146,21 +146,17 @@ public static class CropHarvestSpecialThroughputDebugScenarios
 
         decimal outdoorExpected = Exact(
                 outdoor.GetAbility<BuildingCropPlotAbility>().GrowthMultiplier)
-            * 1.10m * 1.05m * Exact(genome.GrowthMultiplier)
-            * (115m + 65m * 0.55m) / 180m;
+            * 1.10m * 1.05m * Exact(genome.GrowthMultiplier);
         decimal indoorExpected = Exact(
                 hydroponics.GetAbility<BuildingCropPlotAbility>()
                     .GrowthMultiplier)
             * 1.08m * 1.05m * Exact(genome.GrowthMultiplier);
         Require(outdoorCycle.MaximumSustainableGrowthRate == outdoorExpected,
-            "Outdoor crop cycle did not integrate the 65-second night window.");
+            "Sufficient-light maximum retained the removed unconditional night penalty.");
         Require(indoorCycle.MaximumSustainableGrowthRate == indoorExpected,
             "Indoor crop cycle incorrectly inherited outdoor night slowdown.");
-        Require(CropGrowthCycleAuthority.ResolveOutdoorTimeOfDayMultiplier(
-                TimeOfDay.Night) == 0.55f
-            && CropGrowthCycleAuthority.ResolveOutdoorTimeOfDayMultiplier(
-                TimeOfDay.Noon) == 1f,
-            "Crop runtime day/night multiplier drifted.");
+        Require(CropGrowthCycleAuthority.EvaluateLight(crop, true, 100f).GrowthMultiplier == 1f,
+            "Sufficient-light ceiling does not correspond to authored crop growth.");
     }
 
     private static void VerifyGenomeWitnesses(

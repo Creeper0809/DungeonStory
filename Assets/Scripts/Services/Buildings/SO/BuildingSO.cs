@@ -649,6 +649,8 @@ public class BuildingSO : DataScriptableObject, IGridBuildAreaCapability
                 $"BuildingSO '{name}' (id={id}) has an invalid storage ability: "
                 + "both legacy count capacity and canonical gram capacity are nonpositive.");
         }
+
+        GetAbility<BuildingEnvironmentalFireAbility>()?.CreateProfileOrThrow();
     }
 
     public List<Vector2Int> GetGridPosList(Vector2Int center)

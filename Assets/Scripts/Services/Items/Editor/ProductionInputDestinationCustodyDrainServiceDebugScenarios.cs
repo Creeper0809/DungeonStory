@@ -48,6 +48,30 @@ public static class ProductionInputDestinationCustodyDrainServiceDebugScenarios
             + "retry=exact-once; acknowledgement=exact";
     }
 
+    public static string RunMovingCargoDrainFocused()
+    {
+        using Fixture fixture = Fixture.Create();
+        CargoContext cargo = fixture.CreateActiveCargo();
+        Vector2Int dropCell = new(4, 1);
+        fixture.PlaceActorForMovingCargo(cargo, dropCell);
+        WorldItemStackSnapshot carried = fixture.Runtime.GetAllStacks()
+            .Single(x => x.StackId == cargo.CarriedStackId);
+        Require(carried.State == WorldItemStackState.Carried && carried.Position == ActorCell
+            && cargo.Actor.GetNowXY() == dropCell && dropCell != ActorCell,
+            "Fixture must retain pickup metadata while the owning actor has moved.");
+        var request = fixture.CaptureRequest();
+        Require(fixture.Service.TryPrepare(request).Status == ProductionInputDestinationCustodyDrainStatus.Applied,
+            "Moving-cargo custody preparation failed.");
+        var result = fixture.CommitSynchronously(request, () => fixture.RequireActorAndOperationClosed(cargo));
+        fixture.RequireExactReleasedPhysical(request, cargo, dropCell);
+        var replay = fixture.Service.TryCommit(StepOperationId, request.RequestFingerprint);
+        Require(replay.Status == ProductionInputDestinationCustodyDrainStatus.Replay
+            && replay.CommitId == result.CommitId && replay.ReceiptFingerprint == result.ReceiptFingerprint,
+            "Moving-cargo drain replay changed its receipt.");
+        fixture.RequireExactReleasedPhysical(request, cargo, dropCell);
+        return "PASS moved actor4,1; carried pickup metadata2,1; exact current-cell drop; buffer owner cell retained; quantities/mass/IDs conserved; no active lease/intent; receipt replay exact";
+    }
+
     private static void VerifyOneShotSnapshotBuildAndTamperRejection()
     {
         using Fixture fixture = Fixture.Create();
@@ -619,7 +643,8 @@ public static class ProductionInputDestinationCustodyDrainServiceDebugScenarios
 
         internal void RequireExactReleasedPhysical(
             ProductionInputDestinationCustodyDrainRequest request,
-            CargoContext cargo)
+            CargoContext cargo,
+            Vector2Int? expectedDropCell = null)
         {
             Require(Service.TryCapture(
                     StepOperationId,
@@ -648,7 +673,7 @@ public static class ProductionInputDestinationCustodyDrainServiceDebugScenarios
                     cargo.BufferStackId,
                     StringComparison.Ordinal));
             Require(carried.State == WorldItemStackState.Loose
-                    && carried.Position == ActorCell
+                    && carried.Position == (expectedDropCell ?? ActorCell)
                     && string.IsNullOrEmpty(carried.DestinationId),
                 "Carried input teleported instead of dropping at the actor cell.");
             Require(buffered.State == WorldItemStackState.Loose
@@ -660,6 +685,12 @@ public static class ProductionInputDestinationCustodyDrainServiceDebugScenarios
             Require(quantity == request.InputQuantity
                     && mass == request.InputMassGrams,
                 "Released physical graph violated exact quantity or gram mass.");
+        }
+
+        internal void PlaceActorForMovingCargo(CargoContext cargo, Vector2Int cell)
+        {
+            // Controlled position setup only. Live clinical coverage observes real movement.
+            cargo.Actor.transform.position = grid.GetWorldPos(cell);
         }
 
         internal void RequirePhase(

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "320"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "손상되거나 잃은 몸통의 기능을 대신하도록 신체에 연결하는 보철 부품이다. 제4주조도시의 보철 장인은 골격 보강 몸통을 맞추기 전에 관절의 빈 움직임을 금속판에 옮겨 찍는다. 다음 수리 때 같은 몸의 리듬을 되찾기 위해서다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "surgery-prosthetic-torso",
+  "spoiler_tier": "none",
+  "summary": "몸통 슬롯에 장착하는 하중 분산 골격 보철.",
+  "title": "골격 보강 몸통"
+}

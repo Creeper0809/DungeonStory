@@ -69,6 +69,8 @@ public static class DungeonProgressionOffenseRegistration
 
         builder.Register<MetaProgressionRuntimeReader>(Lifetime.Singleton)
             .As<IMetaProgressionRuntimeReader>();
+        builder.Register<LiveStartingOwnerTraitCountBonusQuery>(Lifetime.Singleton)
+            .As<IStartingOwnerTraitCountBonusQuery>();
         builder.Register<MetaRuntimeApplicationAdapter>(Lifetime.Singleton)
             .As<IMetaRuntimeApplicationPort>();
         builder.Register<MetaRunSceneTransitionAdapter>(Lifetime.Singleton)
@@ -82,8 +84,12 @@ public static class DungeonProgressionOffenseRegistration
 
         builder.Register<OffenseExpeditionResultFinalizer>(Lifetime.Singleton)
             .As<IOffenseExpeditionResultFinalizer>();
+        builder.Register<V27EmbeddedWorkValueProjectionResourceSource>(
+                Lifetime.Singleton)
+            .As<IV27EmbeddedWorkValueProjectionQuery>();
         builder.Register<OffenseExpeditionReturnPort>(Lifetime.Singleton)
-            .As<IOffenseExpeditionReturnPort>();
+            .As<IOffenseExpeditionReturnPort>()
+            .As<IOffenseExpeditionReturnSettlementPort>();
         builder.Register<OffenseExpeditionReturnCoordinator>(Lifetime.Singleton)
             .As<IOffenseExpeditionReturnCoordinator>();
         builder.Register<OffenseApplication>(Lifetime.Singleton)
@@ -92,7 +98,8 @@ public static class DungeonProgressionOffenseRegistration
         builder.Register<OffenseExpeditionMemberQuery>(Lifetime.Singleton)
             .As<IOffenseExpeditionMemberQuery>();
         builder.Register<OffenseRegionRuntime>(Lifetime.Singleton)
-            .As<IOffenseRegionRuntime>();
+            .As<IOffenseRegionRuntime>()
+            .As<IOffenseRegionMemoryErasureSealAwardAuthority>();
         builder.Register<DataCatalogOffenseContentCatalog>(Lifetime.Singleton)
             .As<IOffenseContentCatalog>();
         builder.Register<ResourceOffenseCampaignCatalog>(Lifetime.Singleton)
@@ -115,6 +122,12 @@ public static class DungeonProgressionOffenseRegistration
             .AsSelf()
             .As<IOffenseWorldSimulation>()
             .As<IWorldThreatModifierQuery>();
+        builder.RegisterEntryPoint<SeasonalSpecialExpeditionApplicationAdapter>(
+                Lifetime.Singleton)
+            .AsSelf()
+            .As<IDungeonSaveRestoreCompletedHook>();
+        builder.RegisterEntryPoint<SeasonalManaLightningApplicationAdapter>(
+            Lifetime.Singleton);
         builder.RegisterDungeonFactionWar();
         builder.Register<OffenseReturnSafetyRuntime>(Lifetime.Singleton)
             .As<IOffenseReturnSafetyRuntime>();
@@ -128,8 +141,17 @@ public static class DungeonProgressionOffenseRegistration
             .As<IOffenseStrategicBattleLauncher>();
         builder.Register<OffenseStrategicTravelEventHandler>(Lifetime.Singleton)
             .As<IOffenseStrategicTravelEventHandler>();
+        builder.RegisterEntryPoint<MemoryErasureSealBossAwardService>(
+                Lifetime.Singleton)
+            .As<IMemoryErasureSealBossAwardService>()
+            .As<IDungeonSaveRestoreCompletedHook>();
         builder.Register<OffenseExpeditionBattleCompletionHandler>(Lifetime.Singleton)
             .As<IOffenseExpeditionBattleCompletionHandler>();
+        builder.Register<MemoryErasureSealTransactionService>(Lifetime.Singleton)
+            .As<IMemoryErasureSealTransactionService>();
+        builder.RegisterEntryPoint<MemoryErasureSealCommandService>(
+                Lifetime.Singleton)
+            .As<IMemoryErasureSealCommandService>();
         builder.Register<OffenseUrgentMitigationInputOwnerRuntime>(
                 Lifetime.Singleton)
             .As<IOffenseUrgentMitigationInputOwnerRuntime>();
@@ -204,6 +226,8 @@ public static class DungeonProgressionOffenseRegistration
         builder.Register<OffenseMoneyRewardGrantHandler>(Lifetime.Singleton)
             .As<IOffenseRewardGrantHandler>();
         builder.Register<OffenseStockRewardGrantHandler>(Lifetime.Singleton)
+            .As<IOffenseRewardGrantHandler>();
+        builder.Register<OffensePhysicalItemRewardGrantHandler>(Lifetime.Singleton)
             .As<IOffenseRewardGrantHandler>();
         builder.Register<OffenseRareFacilityRewardGrantHandler>(Lifetime.Singleton)
             .As<IOffenseRewardGrantHandler>();

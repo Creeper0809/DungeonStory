@@ -65,6 +65,7 @@ public static class SurgerySaveValidation
             payload.orders,
             payload.orderSequence,
             procedures,
+            anatomyProfiles,
             report);
         HashSet<string> partIds = ValidateParts(
             payload.parts,
@@ -135,9 +136,11 @@ public static class SurgerySaveValidation
         IReadOnlyList<SurgeryOrder> orders,
         int sequence,
         ISurgicalProcedureCatalog procedures,
+        IAnatomyProfileCatalog anatomyProfiles,
         DungeonGameRestoreReport report)
     {
         HashSet<string> ids = new(StringComparer.Ordinal);
+        HashSet<string> activeFacilityOwners = new(StringComparer.Ordinal);
         if (orders.Count > MaximumOrders)
         {
             report.AddError($"Surgery order count exceeds {MaximumOrders}.");
@@ -175,18 +178,29 @@ public static class SurgerySaveValidation
             {
                 report.AddError($"Surgery order '{id}' contains an invalid enum.");
             }
+            SurgicalProcedureSO procedure = null;
             if (string.IsNullOrWhiteSpace(order.procedureId)
-                || !procedures.TryGet(order.procedureId, out _))
+                || !procedures.TryGet(order.procedureId, out procedure))
             {
                 report.AddError(
                     $"Surgery order '{id}' references unknown procedure '{order.procedureId}'.");
             }
             ValidateSubject(order.subject, $"order '{id}'", report);
+            ValidateEmergencyCause(
+                order,
+                procedure,
+                anatomyProfiles,
+                id,
+                report);
             if (order.IsActive && string.IsNullOrWhiteSpace(order.facilityId))
             {
                 report.AddError($"Active surgery order '{id}' has no facility.");
             }
+            bool queued = order.IsActive
+                && order.state == SurgeryOrderState.PatientWaiting
+                && !order.HasAnyMaterialAuthority;
             if (order.IsActive
+                && !queued
                 && !string.Equals(
                     order.materialDestinationId,
                     MaterialDestinationPrefix + id,
@@ -196,8 +210,8 @@ public static class SurgerySaveValidation
                     $"Active surgery order '{id}' has non-canonical material destination "
                     + $"'{order.materialDestinationId}'.");
             }
-            bool materialProjectionValid = !order.IsActive;
-            if (order.IsActive)
+            bool materialProjectionValid = !order.IsActive || queued;
+            if (order.IsActive && !queued)
             {
                 try
                 {
@@ -222,6 +236,26 @@ public static class SurgerySaveValidation
             {
                 report.AddError(
                     $"Active surgery order '{id}' has invalid material mass authority.");
+            }
+            if (order.IsActive
+                && order.HasAnyMaterialAuthority
+                && (!order.OwnsMaterialAuthority
+                    || !activeFacilityOwners.Add(order.facilityId)))
+            {
+                report.AddError(
+                    $"Active surgery facility '{order.facilityId}' has a partial or duplicate material owner.");
+            }
+            if (queued
+                && (order.materialsRequested
+                    || order.materialsConsumed
+                    || order.processFluidConsumed
+                    || order.patientAdmitted
+                    || order.admissionMoveRequested
+                    || order.patientTransportInProgress
+                    || !string.IsNullOrEmpty(order.patientTransporterId)))
+            {
+                report.AddError(
+                    $"Queued surgery order '{id}' has active logistics or patient ownership.");
             }
             bool hasRequiredMaterial = order.materials?.Any(requirement =>
                 requirement != null && !requirement.optional) == true;
@@ -282,6 +316,8 @@ public static class SurgerySaveValidation
             ValidateMaterials(order.materials, id, report);
             ValidateReachedStages(order.reachedClinicalStages, id, report);
             ValidateTransportCoherence(order, id, report);
+            ValidateOutcome(order, procedure, id, report);
+            ValidateReplacement(order, procedure, id, report);
         }
         if (sequence < largestSequence)
         {
@@ -289,6 +325,107 @@ public static class SurgerySaveValidation
                 $"Surgery order sequence {sequence} is below stored ID {largestSequence}.");
         }
         return ids;
+    }
+
+    private static void ValidateEmergencyCause(
+        SurgeryOrder order,
+        SurgicalProcedureSO procedure,
+        IAnatomyProfileCatalog anatomyProfiles,
+        string orderId,
+        DungeonGameRestoreReport report)
+    {
+        if (!Enum.IsDefined(
+                typeof(SurgeryEmergencyCause),
+                order.emergencyCause))
+        {
+            report.AddError(
+                $"Surgery order '{orderId}' has an invalid emergency cause.");
+            return;
+        }
+
+        if (order.emergencyCause == SurgeryEmergencyCause.None)
+        {
+            if (order.statusData?.code ==
+                SurgeryStatusCode.EmergencyProcedureContinuing)
+            {
+                report.AddError(
+                    $"Ordinary surgery order '{orderId}' retains an emergency continuation status.");
+            }
+            return;
+        }
+
+        if (!SurgeryEmergencyCauseRules.IsValidCauseForProcedure(
+                order.emergencyCause,
+                procedure))
+        {
+            report.AddError(
+                $"Surgery order '{orderId}' has an emergency cause that does not match its procedure.");
+        }
+
+        if (order.subject?.kind is not SurgicalSubjectKind.Character
+            and not SurgicalSubjectKind.Wildlife)
+        {
+            report.AddError(
+                $"Surgery order '{orderId}' assigns an acute emergency cause to a non-living subject.");
+            return;
+        }
+
+        string targetNodeId = order.targetNodeId?.Trim() ?? string.Empty;
+        if (targetNodeId.Length == 0
+            || !string.Equals(
+                targetNodeId,
+                order.targetNodeId,
+                StringComparison.Ordinal))
+        {
+            report.AddError(
+                $"Surgery order '{orderId}' has an invalid emergency target node.");
+            return;
+        }
+
+        AnatomyProfileDefinition profile = null;
+        if (!string.IsNullOrWhiteSpace(order.subject.anatomyProfileId))
+        {
+            if (!anatomyProfiles.TryGet(
+                    order.subject.anatomyProfileId,
+                    out profile))
+            {
+                report.AddError(
+                    $"Surgery order '{orderId}' has an emergency cause for unknown anatomy profile '{order.subject.anatomyProfileId}'.");
+                return;
+            }
+        }
+        else
+        {
+            profile = anatomyProfiles.GetForSpecies(order.subject.speciesId);
+        }
+        if (profile == null
+            || !profile.TryGetNode(
+                targetNodeId,
+                out AnatomyNodeDefinition definition))
+        {
+            report.AddError(
+                $"Surgery order '{orderId}' has an emergency cause for an unknown target node.");
+            return;
+        }
+
+        if (order.emergencyCause ==
+                SurgeryEmergencyCause.CriticalNonVitalNode
+            && (!definition.Removable || definition.Vital))
+        {
+            report.AddError(
+                $"Surgery order '{orderId}' has a critical non-vital cause for an ineligible target node.");
+        }
+
+        if (order.statusData?.code ==
+                SurgeryStatusCode.EmergencyProcedureContinuing
+            && !string.Equals(
+                order.statusData.primaryId,
+                order.emergencyCause.ToString(),
+                StringComparison.Ordinal))
+        {
+            report.AddError(
+                $"Surgery order '{orderId}' has an emergency continuation status without its frozen cause.");
+        }
     }
 
     private static HashSet<string> ValidateParts(
@@ -333,6 +470,14 @@ public static class SurgerySaveValidation
             {
                 report.AddError($"Surgical part '{id}' lacks node/display identity.");
             }
+            if (!IsCanonical(part.itemDefinitionId)
+                || !((ItemDefinitionId)part.itemDefinitionId).IsValid
+                || !IsCanonical(part.physicalItemInstanceId)
+                || !((ItemInstanceId)part.physicalItemInstanceId).IsValid)
+            {
+                report.AddError(
+                    $"Surgical part '{id}' lacks canonical physical identity.");
+            }
             if (!IsFinitePositive(part.quality)
                 || !IsFiniteNonNegative(part.freshnessSeconds)
                 || !IsFiniteRange(part.contamination, 0f, 100f)
@@ -355,7 +500,9 @@ public static class SurgerySaveValidation
                 report.AddError($"Loose surgical part '{id}' has an installed subject.");
             }
             ValidateInstallationDisposition(part, id, orderIds, report);
+            ValidateRecoveryDisposition(part, id, orderIds, report);
             ValidatePreservationDisposition(part, id, report);
+            ValidateDiscardDisposition(part, id, report);
             if (!string.IsNullOrEmpty(part.sourceProductionCommitId)
                 && !string.Equals(
                     part.sourceProductionCommitId,
@@ -372,6 +519,332 @@ public static class SurgerySaveValidation
                 $"Surgical part sequence {sequence} is below stored ID {largestSequence}.");
         }
         return ids;
+    }
+
+    private static void ValidateOutcome(
+        SurgeryOrder order,
+        SurgicalProcedureSO procedure,
+        string orderId,
+        DungeonGameRestoreReport report)
+    {
+        int effectCount = procedure?.Effects?.Count ?? 0;
+        if (!order.resultRolled)
+        {
+            if (order.resultSucceeded
+                || order.outcomeConsequencesApplied
+                || order.outcomeConsequenceStep != 0
+                || order.resolvedEffectCount != 0
+                || !string.IsNullOrEmpty(order.resultOutcomeId))
+            {
+                report.AddError(
+                    $"Unrolled surgery order '{orderId}' retains outcome state.");
+            }
+            if (order.state == SurgeryOrderState.Recovering
+                || order.state == SurgeryOrderState.Completed
+                || order.state == SurgeryOrderState.TerminalDraining
+                    && order.materialTerminalTargetState ==
+                        SurgeryOrderState.Completed)
+            {
+                report.AddError(
+                    $"Unrolled surgery order '{orderId}' entered a successful terminal state.");
+            }
+            if (order.state == SurgeryOrderState.Failed
+                || order.state == SurgeryOrderState.TerminalDraining
+                    && order.materialTerminalTargetState ==
+                        SurgeryOrderState.Failed)
+            {
+                report.AddError(
+                    $"Unrolled surgery order '{orderId}' entered a clinical failure state.");
+            }
+            return;
+        }
+        if (!IsCanonical(order.resultOutcomeId)
+            || order.resolvedEffectCount < 0
+            || order.resolvedEffectCount > effectCount
+            || !order.resultSucceeded && order.resolvedEffectCount != 0
+            || order.outcomeConsequenceStep is < 0 or > 2
+            || order.resultSucceeded
+                && (order.outcomeConsequencesApplied
+                    || order.outcomeConsequenceStep != 0)
+            || !order.resultSucceeded
+                && order.outcomeConsequencesApplied
+                    != (order.outcomeConsequenceStep == 2))
+        {
+            report.AddError(
+                $"Surgery order '{orderId}' has incoherent frozen outcome state.");
+        }
+        if (order.state == SurgeryOrderState.Cancelled
+            || order.state == SurgeryOrderState.TerminalDraining
+                && order.materialTerminalTargetState ==
+                    SurgeryOrderState.Cancelled)
+        {
+            report.AddError(
+                $"Surgery order '{orderId}' cancelled after its outcome was frozen.");
+        }
+        bool successfulTerminal = order.state == SurgeryOrderState.Recovering
+            || order.state == SurgeryOrderState.Completed
+            || order.state == SurgeryOrderState.TerminalDraining
+                && order.materialTerminalTargetState == SurgeryOrderState.Completed;
+        if (successfulTerminal
+            && (!order.resultSucceeded
+                || order.resolvedEffectCount != effectCount))
+        {
+            report.AddError(
+                $"Surgery order '{orderId}' entered successful recovery before all frozen effects completed.");
+        }
+        bool failedTerminal = order.state == SurgeryOrderState.Failed
+            || order.state == SurgeryOrderState.TerminalDraining
+                && order.materialTerminalTargetState == SurgeryOrderState.Failed;
+        if (failedTerminal
+            && (order.resultSucceeded
+                || !order.outcomeConsequencesApplied))
+        {
+            report.AddError(
+                $"Surgery order '{orderId}' has a terminal state that conflicts with its frozen outcome.");
+        }
+    }
+
+    private static void ValidateReplacement(
+        SurgeryOrder order,
+        SurgicalProcedureSO procedure,
+        string orderId,
+        DungeonGameRestoreReport report)
+    {
+        if (!Enum.IsDefined(
+                typeof(SurgicalPartReplacementPhase),
+                order.replacementPhase))
+        {
+            report.AddError(
+                $"Surgery order '{orderId}' has an invalid replacement phase.");
+            return;
+        }
+        bool hasAny = !string.IsNullOrEmpty(order.replacementOperationId)
+            || !string.IsNullOrEmpty(order.replacementExpectedOldPartId)
+            || !string.IsNullOrEmpty(order.replacementIncomingPartId)
+            || !string.IsNullOrEmpty(order.replacementAdmissionTokenId)
+            || !string.IsNullOrEmpty(
+                order.replacementPublicationOperationId)
+            || order.replacementReservationAttempt != 0
+            || !string.IsNullOrEmpty(order.replacementBatchCommitId)
+            || !string.IsNullOrEmpty(order.replacementOutcomeFingerprint)
+            || !string.IsNullOrEmpty(
+                order.replacementPlannedOutputFingerprint)
+            || order.replacementOutputX != 0
+            || order.replacementOutputY != 0
+            || !string.IsNullOrEmpty(order.replacementOutputStackId)
+            || !string.IsNullOrEmpty(
+                order.replacementOutputItemInstanceId)
+            || order.replacementOutputMassGrams != 0L
+            || order.replacementDetachedCurrentHealth != 0f
+            || order.replacementDetachedMaxHealth != 0f;
+        if (order.replacementPhase == SurgicalPartReplacementPhase.None)
+        {
+            bool hasPreparedAttempt =
+                order.replacementReservationAttempt > 0
+                && string.Equals(
+                    order.replacementPublicationOperationId,
+                    SurgicalPartReplacementIdentity.FormatPublicationOperationId(
+                        orderId,
+                        order.replacementReservationAttempt),
+                    StringComparison.Ordinal);
+            bool plannedOnly = IsCanonical(
+                    order.replacementExpectedOldPartId)
+                && ProcedureInstallsPart(procedure)
+                && order.subject?.kind == SurgicalSubjectKind.Character
+                && string.IsNullOrEmpty(order.replacementOperationId)
+                && string.IsNullOrEmpty(order.replacementIncomingPartId)
+                && string.IsNullOrEmpty(order.replacementAdmissionTokenId)
+                && (hasPreparedAttempt
+                    || order.replacementReservationAttempt == 0
+                        && string.IsNullOrEmpty(
+                            order.replacementPublicationOperationId))
+                && string.IsNullOrEmpty(order.replacementBatchCommitId)
+                && string.IsNullOrEmpty(
+                    order.replacementOutcomeFingerprint)
+                && string.IsNullOrEmpty(
+                    order.replacementPlannedOutputFingerprint)
+                && order.replacementOutputX == 0
+                && order.replacementOutputY == 0
+                && string.IsNullOrEmpty(order.replacementOutputStackId)
+                && string.IsNullOrEmpty(
+                    order.replacementOutputItemInstanceId)
+                && order.replacementOutputMassGrams == 0L
+                && order.replacementDetachedCurrentHealth == 0f
+                && order.replacementDetachedMaxHealth == 0f;
+            if (hasAny && !plannedOnly)
+            {
+                report.AddError(
+                    $"Surgery order '{orderId}' retains orphan replacement state.");
+            }
+            return;
+        }
+        int installEffectIndex = GetInstallEffectIndex(procedure);
+        if (order.replacementPhase ==
+            SurgicalPartReplacementPhase.OutputReservationPending)
+        {
+            if (installEffectIndex < 0
+                || order.subject?.kind != SurgicalSubjectKind.Character
+                || !order.IsActive
+                || !order.resultRolled
+                || !order.resultSucceeded
+                || order.resolvedEffectCount != installEffectIndex
+                || !string.Equals(
+                    order.replacementOperationId,
+                    SurgicalPartReplacementIdentity.FormatOperationId(orderId),
+                    StringComparison.Ordinal)
+                || order.replacementReservationAttempt <= 1
+                || !string.Equals(
+                    order.replacementPublicationOperationId,
+                    SurgicalPartReplacementIdentity.FormatPublicationOperationId(
+                        orderId,
+                        order.replacementReservationAttempt),
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    order.replacementBatchCommitId,
+                    SurgicalPartReplacementIdentity.FormatBatchCommitId(orderId),
+                    StringComparison.Ordinal)
+                || !IsCanonical(order.replacementExpectedOldPartId)
+                || !IsCanonical(order.replacementIncomingPartId)
+                || !string.Equals(
+                    order.replacementIncomingPartId,
+                    order.selectedPartInstanceId,
+                    StringComparison.Ordinal)
+                || !string.IsNullOrEmpty(order.replacementAdmissionTokenId)
+                || !string.IsNullOrEmpty(
+                    order.replacementOutcomeFingerprint)
+                || !string.IsNullOrEmpty(
+                    order.replacementPlannedOutputFingerprint)
+                || !string.IsNullOrEmpty(order.replacementOutputStackId)
+                || !string.IsNullOrEmpty(
+                    order.replacementOutputItemInstanceId)
+                || order.replacementOutputMassGrams != 0L
+                || !IsFinitePositive(
+                    order.replacementDetachedMaxHealth)
+                || !IsFiniteRange(
+                    order.replacementDetachedCurrentHealth,
+                    0f,
+                    order.replacementDetachedMaxHealth))
+            {
+                report.AddError(
+                    $"Surgery order '{orderId}' has an invalid pending replacement reservation.");
+            }
+            return;
+        }
+        bool published = order.replacementPhase is
+            SurgicalPartReplacementPhase.OutputPublished
+            or SurgicalPartReplacementPhase.Completed;
+        if (installEffectIndex < 0
+            || order.subject?.kind != SurgicalSubjectKind.Character
+            || !string.Equals(
+                order.replacementOperationId,
+                SurgicalPartReplacementIdentity.FormatOperationId(orderId),
+                StringComparison.Ordinal)
+            || order.replacementReservationAttempt <= 0
+            || !string.Equals(
+                order.replacementPublicationOperationId,
+                SurgicalPartReplacementIdentity.FormatPublicationOperationId(
+                    orderId,
+                    order.replacementReservationAttempt),
+                StringComparison.Ordinal)
+            || !string.Equals(
+                order.replacementBatchCommitId,
+                SurgicalPartReplacementIdentity.FormatBatchCommitId(orderId),
+                StringComparison.Ordinal)
+            || !IsCanonical(order.replacementExpectedOldPartId)
+            || !IsCanonical(order.replacementIncomingPartId)
+            || !string.Equals(
+                order.replacementIncomingPartId,
+                order.selectedPartInstanceId,
+                StringComparison.Ordinal)
+            || !IsCanonical(order.replacementAdmissionTokenId)
+            || !IsLowercaseSha256(order.replacementOutcomeFingerprint)
+            || !IsLowercaseSha256(
+                order.replacementPlannedOutputFingerprint)
+            || published != IsCanonical(order.replacementOutputStackId)
+            || published != IsCanonical(
+                order.replacementOutputItemInstanceId)
+            || order.replacementOutputMassGrams <= 0L
+            || !IsFinitePositive(order.replacementDetachedMaxHealth)
+            || !IsFiniteRange(
+                order.replacementDetachedCurrentHealth,
+                0f,
+                order.replacementDetachedMaxHealth))
+        {
+            report.AddError(
+                $"Surgery order '{orderId}' has an invalid replacement receipt.");
+            return;
+        }
+        if (order.replacementPhase is
+                SurgicalPartReplacementPhase.BodyCommitted
+                or SurgicalPartReplacementPhase.OutputPublished
+            && (!order.resultRolled
+                || !order.resultSucceeded
+                || order.resolvedEffectCount != installEffectIndex))
+        {
+            report.AddError(
+                $"Surgery order '{orderId}' has a body replacement without its frozen successful outcome.");
+        }
+        if (order.replacementPhase == SurgicalPartReplacementPhase.Completed
+            && (!order.resultRolled
+                || !order.resultSucceeded
+                || order.resolvedEffectCount <= installEffectIndex))
+        {
+            report.AddError(
+                $"Surgery order '{orderId}' completed replacement before its install effect committed.");
+        }
+    }
+
+    private static bool ProcedureInstallsPart(SurgicalProcedureSO procedure) =>
+        GetInstallEffectIndex(procedure) >= 0;
+
+    private static int GetInstallEffectIndex(SurgicalProcedureSO procedure)
+    {
+        IReadOnlyList<SurgicalProcedureEffect> effects = procedure?.Effects
+            ?? Array.Empty<SurgicalProcedureEffect>();
+        for (int index = 0; index < effects.Count; index++)
+        {
+            if (effects[index] is InstallSurgicalPartEffect)
+                return index;
+        }
+        return -1;
+    }
+
+    private static void ValidateRecoveryDisposition(
+        SurgicalPartInstance part,
+        string partId,
+        ISet<string> orderIds,
+        DungeonGameRestoreReport report)
+    {
+        bool hasAny = part.detachedDurabilityCurrent != 0f
+            || part.detachedDurabilityMaximum != 0f
+            || !string.IsNullOrEmpty(part.recoveryOperationId)
+            || !string.IsNullOrEmpty(part.recoveryOrderId)
+            || !string.IsNullOrEmpty(part.recoveryCommitId);
+        if (!hasAny)
+        {
+            return;
+        }
+        if (!part.installed && !IsCanonical(part.worldStackId)
+            || !orderIds.Contains(part.recoveryOrderId)
+            || !string.Equals(
+                part.recoveryOperationId,
+                SurgicalPartReplacementIdentity.FormatOperationId(
+                    part.recoveryOrderId),
+                StringComparison.Ordinal)
+            || !string.Equals(
+                part.recoveryCommitId,
+                SurgicalPartReplacementIdentity.FormatBatchCommitId(
+                    part.recoveryOrderId),
+                StringComparison.Ordinal)
+            || !IsFinitePositive(part.detachedDurabilityMaximum)
+            || !IsFiniteRange(
+                part.detachedDurabilityCurrent,
+                0f,
+                part.detachedDurabilityMaximum))
+        {
+            report.AddError(
+                $"Surgical part '{partId}' has invalid physical recovery provenance.");
+        }
     }
 
     private static void ValidatePreservationDisposition(
@@ -398,6 +871,54 @@ public static class SurgerySaveValidation
             || part.preservationInputMassGrams <= 0
             || part.preservationOutcomePublished != part.preservationCanisterApplied)
             report.AddError($"Surgical part '{partId}' has invalid preservation Sink provenance.");
+    }
+
+    private static void ValidateDiscardDisposition(
+        SurgicalPartInstance part,
+        string partId,
+        DungeonGameRestoreReport report)
+    {
+        bool pending = !string.IsNullOrEmpty(part.discardOperationId);
+        if (!pending)
+        {
+            if (!string.IsNullOrEmpty(part.discardCommitId)
+                || !string.IsNullOrEmpty(part.discardSourceStackId)
+                || part.discardInputMassGrams != 0L
+                || part.discardOutcomePublished)
+            {
+                report.AddError(
+                    $"Surgical part '{partId}' has orphan manual-discard provenance.");
+            }
+            return;
+        }
+
+        string expectedOperation =
+            SurgicalPartDiscardIdentity.FormatOperationId(partId);
+        string expectedCommit =
+            $"physical-batch-disposition:3:{expectedOperation}:1:{part.discardInputMassGrams}";
+        if (!string.Equals(
+                part.discardOperationId,
+                expectedOperation,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                part.discardCommitId,
+                expectedCommit,
+                StringComparison.Ordinal)
+            || !IsCanonical(part.discardSourceStackId)
+            || !string.Equals(
+                part.worldStackId,
+                part.discardSourceStackId,
+                StringComparison.Ordinal)
+            || part.discardInputMassGrams <= 0L
+            || part.installed
+            || !string.IsNullOrEmpty(part.installedSubjectId)
+            || !string.IsNullOrEmpty(part.reservedOrderId)
+            || !string.IsNullOrEmpty(part.installationOperationId)
+            || !string.IsNullOrEmpty(part.preservationOperationId))
+        {
+            report.AddError(
+                $"Surgical part '{partId}' has invalid manual-discard Sink provenance.");
+        }
     }
 
     private static void ValidateInstallationDisposition(
@@ -787,11 +1308,22 @@ public static class SurgerySaveValidation
     {
         foreach (SurgeryOrder order in orders.Where(order => order != null))
         {
-            if (!string.IsNullOrEmpty(order.selectedPartInstanceId)
+            bool completedReplacementHistory = !order.IsActive
+                && order.replacementPhase ==
+                    SurgicalPartReplacementPhase.Completed;
+            if (!completedReplacementHistory
+                && !string.IsNullOrEmpty(order.selectedPartInstanceId)
                 && !partIds.Contains(order.selectedPartInstanceId))
             {
                 report.AddError(
                     $"Surgery order '{order.orderId}' references missing part '{order.selectedPartInstanceId}'.");
+            }
+            if (!completedReplacementHistory
+                && !string.IsNullOrEmpty(order.replacementExpectedOldPartId)
+                && !partIds.Contains(order.replacementExpectedOldPartId))
+            {
+                report.AddError(
+                    $"Surgery order '{order.orderId}' references missing replacement part '{order.replacementExpectedOldPartId}'.");
             }
         }
     }
@@ -933,8 +1465,8 @@ public static class SurgerySaveValidation
             report.AddError(
                 $"Surgery order '{id}' has transport in progress without transporter.");
         }
-        if (!order.patientAdmitted
-            && (order.subjectAiWasPaused || order.patientReturnRequested))
+        // Prior AI pause is restoration memory, not proof of admission.
+        if (!order.patientAdmitted && order.patientReturnRequested)
         {
             report.AddError(
                 $"Surgery order '{id}' has admitted-patient state without admission.");

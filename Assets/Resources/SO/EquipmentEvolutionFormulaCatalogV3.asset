@@ -1,0 +1,319 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d238e6e0cb746afa813fe615f1acd80, type: 3}
+  m_Name: EquipmentEvolutionFormulaCatalogV3
+  m_EditorClassIdentifier: Assembly-CSharp::EquipmentEvolutionFormulaCatalogSO
+  formulaPolicy:
+    formulaVersion: 3
+    catalogSha256: d17ebf4c8d8e5cb7f558dc65c9f454292354807a5d68097e171992aadbbacd7d
+    baseBudget: 1
+    powerScale: 8
+    softCapK: 8
+    minimumImportance: 0.25
+    maximumImportance: 4
+    milestoneWeights:
+    - 0.5
+    - 1
+    - 2
+    drawbackCredit:
+      playerChoiceMaximumBudgetFraction: 0.5
+      automaticMaximumBudgetFraction: 0.35
+      absoluteMaximumCredit: 3
+      requireNegativeEvidenceForAutomatic: 1
+  milestoneThresholds: 01000000050000000a000000
+  ordinaryImportance: 0.5
+  historicalImportance: 2
+  capabilities:
+  - capabilityId: equipment:force
+    displayName: "\uC704\uB825"
+    statId: combat.damage
+    modifierKind: 0
+    baseCost: 0
+    triggerFrequencyCostPerUnit: 0
+    guaranteedProcCost: 0
+    areaCostPerExtraTarget: 0
+    multiEffectCostPerExtraEffect: 0
+    narrativeAffinity: 1
+    affinityKeys:
+    - equipment:force
+    conflictGroups:
+    - equipment-primary
+    forbiddenSynergies: []
+    appliedParameterIds:
+    - magnitude
+    formatterId: equipment:force
+    applicatorId: equipment:combat-damage:increase
+    parameterRanges:
+    - parameterId: magnitude
+      minimumUnits: 400
+      maximumUnits: 1600
+      quantumUnits: 100
+      decimalPlaces: 4
+      costPerQuantum: 1
+    - parameterId: duration
+      minimumUnits: 0
+      maximumUnits: 0
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+    - parameterId: count
+      minimumUnits: 1
+      maximumUnits: 1
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+    - parameterId: targetCount
+      minimumUnits: 1
+      maximumUnits: 1
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+  - capabilityId: equipment:precision
+    displayName: "\uC815\uBC00"
+    statId: combat.accuracy
+    modifierKind: 0
+    baseCost: 0
+    triggerFrequencyCostPerUnit: 0
+    guaranteedProcCost: 0
+    areaCostPerExtraTarget: 0
+    multiEffectCostPerExtraEffect: 0
+    narrativeAffinity: 1
+    affinityKeys:
+    - equipment:precision
+    conflictGroups:
+    - equipment-primary
+    forbiddenSynergies: []
+    appliedParameterIds:
+    - magnitude
+    formatterId: equipment:precision
+    applicatorId: equipment:combat-accuracy:increase
+    parameterRanges:
+    - parameterId: magnitude
+      minimumUnits: 400
+      maximumUnits: 1600
+      quantumUnits: 100
+      decimalPlaces: 4
+      costPerQuantum: 1
+    - parameterId: duration
+      minimumUnits: 0
+      maximumUnits: 0
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+    - parameterId: count
+      minimumUnits: 1
+      maximumUnits: 1
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+    - parameterId: targetCount
+      minimumUnits: 1
+      maximumUnits: 1
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+  - capabilityId: equipment:cadence
+    displayName: "\uC18D\uB3C4"
+    statId: combat.reload
+    modifierKind: 1
+    baseCost: 0
+    triggerFrequencyCostPerUnit: 0
+    guaranteedProcCost: 0
+    areaCostPerExtraTarget: 0
+    multiEffectCostPerExtraEffect: 0
+    narrativeAffinity: 1
+    affinityKeys:
+    - equipment:cadence
+    conflictGroups:
+    - equipment-primary
+    forbiddenSynergies: []
+    appliedParameterIds:
+    - magnitude
+    formatterId: equipment:cadence
+    applicatorId: equipment:combat-reload:reduction
+    parameterRanges:
+    - parameterId: magnitude
+      minimumUnits: 400
+      maximumUnits: 1600
+      quantumUnits: 100
+      decimalPlaces: 4
+      costPerQuantum: 1
+    - parameterId: duration
+      minimumUnits: 0
+      maximumUnits: 0
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+    - parameterId: count
+      minimumUnits: 1
+      maximumUnits: 1
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+    - parameterId: targetCount
+      minimumUnits: 1
+      maximumUnits: 1
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+  - capabilityId: equipment:control
+    displayName: "\uC81C\uC555"
+    statId: combat.accuracy
+    modifierKind: 0
+    baseCost: 0
+    triggerFrequencyCostPerUnit: 0
+    guaranteedProcCost: 0
+    areaCostPerExtraTarget: 0
+    multiEffectCostPerExtraEffect: 0
+    narrativeAffinity: 1
+    affinityKeys:
+    - equipment:control
+    conflictGroups:
+    - equipment-primary
+    forbiddenSynergies: []
+    appliedParameterIds:
+    - magnitude
+    formatterId: equipment:control
+    applicatorId: equipment:combat-accuracy:increase
+    parameterRanges:
+    - parameterId: magnitude
+      minimumUnits: 400
+      maximumUnits: 1600
+      quantumUnits: 100
+      decimalPlaces: 4
+      costPerQuantum: 1
+    - parameterId: duration
+      minimumUnits: 0
+      maximumUnits: 0
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+    - parameterId: count
+      minimumUnits: 1
+      maximumUnits: 1
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+    - parameterId: targetCount
+      minimumUnits: 1
+      maximumUnits: 1
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+  - capabilityId: equipment:execution
+    displayName: "\uCC98\uD615"
+    statId: combat.damage
+    modifierKind: 0
+    baseCost: 0
+    triggerFrequencyCostPerUnit: 0
+    guaranteedProcCost: 0
+    areaCostPerExtraTarget: 0
+    multiEffectCostPerExtraEffect: 0
+    narrativeAffinity: 1
+    affinityKeys:
+    - equipment:execution
+    conflictGroups:
+    - equipment-primary
+    forbiddenSynergies: []
+    appliedParameterIds:
+    - magnitude
+    formatterId: equipment:execution
+    applicatorId: equipment:combat-damage:increase
+    parameterRanges:
+    - parameterId: magnitude
+      minimumUnits: 400
+      maximumUnits: 1600
+      quantumUnits: 100
+      decimalPlaces: 4
+      costPerQuantum: 1
+    - parameterId: duration
+      minimumUnits: 0
+      maximumUnits: 0
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+    - parameterId: count
+      minimumUnits: 1
+      maximumUnits: 1
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+    - parameterId: targetCount
+      minimumUnits: 1
+      maximumUnits: 1
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+  - capabilityId: equipment:durability
+    displayName: "\uB0B4\uAD6C"
+    statId: combat.durability
+    modifierKind: 0
+    baseCost: 0
+    triggerFrequencyCostPerUnit: 0
+    guaranteedProcCost: 0
+    areaCostPerExtraTarget: 0
+    multiEffectCostPerExtraEffect: 0
+    narrativeAffinity: 1
+    affinityKeys:
+    - equipment:durability
+    conflictGroups:
+    - equipment-primary
+    forbiddenSynergies: []
+    appliedParameterIds:
+    - magnitude
+    formatterId: equipment:durability
+    applicatorId: equipment:combat-durability:increase
+    parameterRanges:
+    - parameterId: magnitude
+      minimumUnits: 400
+      maximumUnits: 1600
+      quantumUnits: 100
+      decimalPlaces: 4
+      costPerQuantum: 1
+    - parameterId: duration
+      minimumUnits: 0
+      maximumUnits: 0
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+    - parameterId: count
+      minimumUnits: 1
+      maximumUnits: 1
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+    - parameterId: targetCount
+      minimumUnits: 1
+      maximumUnits: 1
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+  catalogModuleIds:
+  - equipment:cadence
+  - equipment:control
+  - equipment:drawback-blunted
+  - equipment:drawback-devalued
+  - equipment:drawback-fragile
+  - equipment:drawback-heavy
+  - equipment:drawback-inaccurate
+  - equipment:drawback-poor-penetration
+  - equipment:drawback-slow-reload
+  - equipment:durability
+  - equipment:execution
+  - equipment:force
+  - equipment:guard
+  - equipment:melee
+  - equipment:penetration
+  - equipment:precision
+  - equipment:ranged
+  - equipment:risky
+  - equipment:survivor

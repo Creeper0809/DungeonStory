@@ -222,6 +222,13 @@ public sealed class ProductionDomainPublishedStackSaveData
     public string stackId = string.Empty;
     public int quantity;
     public long massGrams;
+    public string displayText = string.Empty;
+    public string displaySnapshotRevision = string.Empty;
+    public int pronunciationMode;
+    public string pronunciationValue = string.Empty;
+    public int explicitFinalConsonant;
+    public string pronunciationRevision = string.Empty;
+    public string locale = string.Empty;
 
     public ProductionDomainPublishedStackSaveData Clone() => new()
     {
@@ -230,7 +237,39 @@ public sealed class ProductionDomainPublishedStackSaveData
         itemInstanceId = itemInstanceId ?? string.Empty,
         stackId = stackId ?? string.Empty,
         quantity = quantity,
-        massGrams = massGrams
+        massGrams = massGrams,
+        displayText = displayText ?? string.Empty,
+        displaySnapshotRevision = displaySnapshotRevision ?? string.Empty,
+        pronunciationMode = pronunciationMode,
+        pronunciationValue = pronunciationValue ?? string.Empty,
+        explicitFinalConsonant = explicitFinalConsonant,
+        pronunciationRevision = pronunciationRevision ?? string.Empty,
+        locale = locale ?? string.Empty
+    };
+}
+
+[Serializable]
+public sealed class ProductionDomainGameplayOutcomeAttachmentSaveData
+{
+    public string producerId = string.Empty;
+    public string operationId = string.Empty;
+    public long commitRevision;
+    public int localResultIndex;
+    public string outcomeRunId = string.Empty;
+    public long outcomeSequence;
+    public int replayState;
+    public string canonicalPayloadHash = string.Empty;
+
+    public ProductionDomainGameplayOutcomeAttachmentSaveData Clone() => new()
+    {
+        producerId = producerId ?? string.Empty,
+        operationId = operationId ?? string.Empty,
+        commitRevision = commitRevision,
+        localResultIndex = localResultIndex,
+        outcomeRunId = outcomeRunId ?? string.Empty,
+        outcomeSequence = outcomeSequence,
+        replayState = replayState,
+        canonicalPayloadHash = canonicalPayloadHash ?? string.Empty
     };
 }
 
@@ -285,6 +324,13 @@ public sealed class ProductionDomainOutputPublicationSaveData
     public bool outputPublished;
     public bool admissionCommitted;
     public bool outputAcknowledged;
+    public bool gameplayOutcomeExpected;
+    public long gameplayOutcomeOwnerRevision;
+    public string expectedOutcomeProducerId = string.Empty;
+    public string expectedOutcomeOperationId = string.Empty;
+    public long expectedOutcomeCommitRevision;
+    public int expectedOutcomeLocalResultIndex;
+    public ProductionDomainGameplayOutcomeAttachmentSaveData gameplayOutcome;
     [NonSerialized]
     public bool restoredInCurrentTransaction;
     public List<ProductionDomainPublishedStackSaveData> stacks = new();
@@ -318,6 +364,13 @@ public sealed class ProductionDomainOutputPublicationSaveData
         && !outputPublished
         && !admissionCommitted
         && !outputAcknowledged
+        && !gameplayOutcomeExpected
+        && gameplayOutcomeOwnerRevision == 0L
+        && string.IsNullOrEmpty(expectedOutcomeProducerId)
+        && string.IsNullOrEmpty(expectedOutcomeOperationId)
+        && expectedOutcomeCommitRevision == 0L
+        && expectedOutcomeLocalResultIndex == 0
+        && gameplayOutcome == null
         && (stacks == null || stacks.Count == 0);
 
     public ProductionDomainOutputPublicationSaveData Clone() => new()
@@ -349,6 +402,13 @@ public sealed class ProductionDomainOutputPublicationSaveData
         outputPublished = outputPublished,
         admissionCommitted = admissionCommitted,
         outputAcknowledged = outputAcknowledged,
+        gameplayOutcomeExpected = gameplayOutcomeExpected,
+        gameplayOutcomeOwnerRevision = gameplayOutcomeOwnerRevision,
+        expectedOutcomeProducerId = expectedOutcomeProducerId ?? string.Empty,
+        expectedOutcomeOperationId = expectedOutcomeOperationId ?? string.Empty,
+        expectedOutcomeCommitRevision = expectedOutcomeCommitRevision,
+        expectedOutcomeLocalResultIndex = expectedOutcomeLocalResultIndex,
+        gameplayOutcome = gameplayOutcome?.Clone(),
         restoredInCurrentTransaction = restoredInCurrentTransaction,
         stacks = stacks?
             .Where(value => value != null)

@@ -12,6 +12,6 @@
   "schema_version": 1,
   "slug": "climate-mycelial-depths",
   "spoiler_tier": "none",
-  "summary": "평균 기온 16℃, 연교차 5℃, 현지 시각 보정 0시간을 제공해 지역별 장기 환경 기준을 만든다.",
+  "summary": "평균 기온 16℃를 중심으로 계절 기온 진폭 5℃가 적용되며, 날씨·일일 잡음 제외 최고-최저차는 10℃이다. 현지 시각 보정은 0시간이다.",
   "title": "균사 심층"
 }

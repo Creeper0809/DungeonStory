@@ -1,0 +1,32 @@
+{
+  "success": true,
+  "command": "job wait",
+  "data": {
+    "jobId": "e35568b080ce44a6b4c1e395bdff7a4e",
+    "command": "eval",
+    "state": "completed",
+    "cancellationRequested": false,
+    "result": {
+      "output": null,
+      "diagnostics": [],
+      "success": true,
+      "command": "eval",
+      "result": {
+        "directory": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Artifacts\\Exports\\NarrativeMechanicCatalog\\20260915-v26-training-preflight-r4-baseline",
+        "inputDigest": "sha256:fafc75af266d751b3363b36fa58ee799c5c2310aac65a3496ca97af0cdf55d59",
+        "catalogHash": "sha256:38706406b7a4192ff8408d34a44c507a4b94ae308da9a82cceb3feb42545bd25",
+        "trainingEligible": false
+      },
+      "executionTimeMs": 25026,
+      "message": null,
+      "error": null,
+      "errorDetails": null,
+      "executedAt": "2026-09-15T11:29:06.2044045Z"
+    },
+    "error": null,
+    "errorDetails": null,
+    "progress": null
+  },
+  "errors": [],
+  "warnings": []
+}

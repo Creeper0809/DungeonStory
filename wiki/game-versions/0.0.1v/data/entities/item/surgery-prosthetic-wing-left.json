@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "260"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "손상되거나 잃은 왼날개의 기능을 대신하도록 신체에 연결하는 보철 부품이다. 제4주조도시의 기억판 안치에서는 왼날개 보철을 떼어 내기 전에 이전 사용자의 기억판부터 기록한다. 보철이 바뀌어도 사람의 이력은 남긴다는 뜻이다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "surgery-prosthetic-wing-left",
+  "spoiler_tier": "none",
+  "summary": "조류형 왼날개의 비행·조작 구조를 대체하는 보철.",
+  "title": "왼날개 보철"
+}

@@ -12,6 +12,15 @@
       "target_spoiler_tier": "none",
       "target_title": "양초",
       "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-8887",
+      "target_spoiler_tier": "none",
+      "target_title": "추모실",
+      "type": "requires"
     }
   ],
   "schema_version": 1,

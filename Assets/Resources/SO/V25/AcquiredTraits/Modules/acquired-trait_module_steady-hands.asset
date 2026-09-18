@@ -1,0 +1,83 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa10b2a63b654e309daf38d4e7e5ecdc, type: 3}
+  m_Name: acquired-trait_module_steady-hands
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterAcquiredTraitModuleSO
+  moduleId: acquired-trait:module:steady-hands
+  displayName: "\uD754\uB4E4\uB9BC \uC5C6\uB294 \uC190"
+  description: "\uBC18\uBCF5\uB41C \uC81C\uC791 \uACBD\uD5D8\uC774 \uC190\uB05D\uC758
+    \uC815\uBC00\uD568\uC73C\uB85C \uB0A8\uC544 \uC81C\uC791 \uD488\uC9C8 \uC810\uC218\uAC00
+    \uB192\uC544\uC9D1\uB2C8\uB2E4."
+  cost: 2
+  conflictGroups: []
+  domainAffinities: 00000000
+  effects:
+  - bindingId: acquired-trait:module:steady-hands:effect:0
+    definition: {fileID: 11400000, guid: 8c26059caa737df4cb1c0d3159b1d8ec, type: 2}
+    value: 2
+    condition: {fileID: 0}
+  drawbackBindingIds: []
+  specialReactions:
+  - reactionId: acquired-trait:reaction:finished-work-insight
+    trigger: 0
+    ownerRole: 0
+    condition: 1
+    action: 0
+    baseValue: 3
+    durationDays: 0
+    cooldownDays: 1
+    maximumTriggersPerDay: 1
+    maximumLifetimeTriggers: 0
+    displayLabel: "\uC644\uC131\uD488\uC5D0\uC11C \uC5BB\uC740 \uAE68\uB2EC\uC74C"
+  capabilityId: acquired-trait:acquired-trait:module:steady-hands
+  formula:
+    appliedParameterIds:
+    - magnitude
+    baseCost: 2
+    triggerFrequencyCostPerUnit: 1
+    guaranteedProcCost: 1
+    areaCostPerExtraTarget: 1
+    multiEffectCostPerExtraEffect: 1
+    pairSynergyCosts: []
+    narrativeAffinity: 1
+    affinityKeys:
+    - Work
+    conflictGroups:
+    - capability:acquired-trait:acquired-trait:module:steady-hands
+    forbiddenSynergies: []
+    formatterId: acquired-trait:acquired-trait:module:steady-hands
+    applicatorId: acquired-trait:acquired-trait:module:steady-hands
+    parameterRanges:
+    - parameterId: magnitude
+      minimumUnits: 10000
+      maximumUnits: 14000
+      quantumUnits: 1000
+      decimalPlaces: 4
+      costPerQuantum: 1
+    - parameterId: duration
+      minimumUnits: 0
+      maximumUnits: 0
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+    - parameterId: count
+      minimumUnits: 1
+      maximumUnits: 1
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+    - parameterId: targetCount
+      minimumUnits: 1
+      maximumUnits: 1
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1

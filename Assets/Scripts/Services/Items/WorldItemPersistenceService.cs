@@ -113,6 +113,9 @@ public sealed class WorldItemPersistenceService
             pendingBatchDispositions = repository
                 .CapturePendingBatchDispositions()
                 .ToList(),
+            physicalItemRelocations = repository
+                .CapturePhysicalItemRelocations()
+                .ToList(),
             pendingExactOutputRoutes = exactRouteOutboxPersistence
                 .CaptureOutbox()
                 .OrderBy(value => value.routeOperationId, StringComparer.Ordinal)
@@ -500,6 +503,7 @@ public sealed class WorldItemPersistenceService
                 snapshot.nextHaulOperationSequence,
                 warehouseAssessment.OverCapacityWarehouseIds,
                 snapshot.pendingBatchDispositions,
+                snapshot.physicalItemRelocations,
                 snapshot.pendingProductionCustodyDrains,
                 snapshot.pendingProductionInputDestinationDrains,
                 snapshot.pendingCapacityRoutingDrains),
@@ -603,6 +607,8 @@ public sealed class WorldItemPersistenceService
                 throw new InvalidOperationException(
                     $"Invalid physical unique item '{unique?.itemInstanceId}': {decodeError}");
             }
+            EquipmentEvolutionRules.ValidateFormulaState(
+                payload.equipment.evolution ?? new EquipmentEvolutionState());
             equipment.Add(unique.itemInstanceId, payload.equipment.Clone());
             foreach (EquipmentModuleInstance module in payload.attachedModules)
             {

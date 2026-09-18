@@ -1,0 +1,9 @@
+preparation=crafter:character:staff:1:01; M06:building:44d0dae840bb49e49f34905173b49b40@(13, 0)
+result=FAIL
+System.InvalidOperationException: Authored M06 four-batch/7200g capacity unavailable.
+  at PhysicalItemLogisticsPlayModeVerificationRunner+<RunWim023PartProduction>d__240.MoveNext () in Assets/Scripts/Services/Items/Editor/Wim023PartProductionLiveWitness.cs:137
+  at PhysicalItemLogisticsPlayModeVerificationRunner+<ObserveWim023PartProduction>d__239.MoveNext () in Assets/Scripts/Services/Items/Editor/Wim023PartProductionLiveWitness.cs:55
+Observed afterward in the same paused run: profile absent, reserved=0, authored cycles=4. No bill or output had been created.
+Corrected interpretation after final source/Console review: first-profile absence alone does NOT establish a fixture-only failure. ProductionBillRuntime.Tick calls ReconcileOutputDestinationAuthorities BEFORE its clock.IsPaused gate; pause does not suppress registration. The subsequently captured invalid-proficiency exception blocks this same portfolio reconciliation. Earlier explanations based on absent background registration or a paused clock were wrong and are superseded here. The direct-work witness may still omit a pre-bill wait because AssessCycleStart explicitly supports read-only bootstrap and TryReserve can publish the pair; its exact post-publication capacity assertion remains intact.
+Correction: remove the assumed background pre-bill registration; keep exact 7200g capacity / zero leaked reservation assertions after actual production. No timeout extension or production change.
+Scope: controlled main M06 producer fixture only. Not natural crafting/hauling/surgery/save evidence. User persistence disabled before preparation; operator stopped Play without saving the scene.

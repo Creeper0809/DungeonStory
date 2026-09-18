@@ -52,6 +52,13 @@
     },
     {
       "amount": null,
+      "from": "event/seasonal-spring-migrant-herd",
+      "label": "관련",
+      "to": "nature/deep-goat",
+      "type": "references"
+    },
+    {
+      "amount": null,
       "from": "nature/mire-leech",
       "label": "관련",
       "to": "nature/deep-goat",

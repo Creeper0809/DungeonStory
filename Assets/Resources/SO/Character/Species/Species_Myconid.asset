@@ -46,8 +46,9 @@ MonoBehaviour:
     lethalMinimum: -8
     lethalMaximum: 40
     comfortableAirMinimum: 35
-    comfortableLightMinimum: 40
-    comfortableLightMaximum: 100
+    lightAdaptationEnabled: 1
+    comfortableLightMinimum: 0
+    comfortableLightMaximum: 55
     airborneExposureMultiplier: 1
     visualStrainMultiplier: 1
     preferredHumidity: 0.5
@@ -73,10 +74,7 @@ MonoBehaviour:
   - work:perform
   shortDescription: "\uADE0\uC0AC \uC2EC\uB9BC \uCD9C\uC2E0 \xB7 \uC7AC\uBC30\uC2E4\xB7\uD1F4\uBE44\uC2E4\xB7\uC57D\uC81C\uC2E4
     \uC120\uD638"
-  description: "\uADE0\uC0AC\uC778\uC740(\uB294) \uADE0\uC0AC \uC2EC\uB9BC\uC744
-    \uB300\uD45C\uD558\uB294 \uC885\uC871\uC774\uB2E4. \uC190\uB2D8\xB7\uBAA8\uC9D1
-    \uC9C1\uC6D0\xB7\uC0C1\uC778\xB7\uD3EC\uB85C\xB7\uB3D9\uB9F9 \uC9C0\uC6D0\uAD70\uC73C\uB85C
-    \uB4F1\uC7A5\uD55C\uB2E4."
+  description: "균사인은 균사 심림을 대표하는 종족이다. 강한 조명에서는 밝기 적응으로 불편을 겪지만, 습도와 건조 적응은 생태 설정일 뿐 별도 수치 효과가 없다. 손님·모집 직원·상인·포로·동맹 지원군으로 등장한다."
   preferredFacilityLabels:
   - "\uC7AC\uBC30\uC2E4"
   - "\uD1F4\uBE44\uC2E4"
@@ -91,15 +89,13 @@ MonoBehaviour:
   incident:
     incidentId: species-incident:myconid-spore-bloom
     displayName: "\uD3EC\uC790 \uAC1C\uD654"
-    description: "\uAC74\uC870 \uB178\uCD9C\uACFC \uBD88\uB9CC\uC774 \uACB9\uCE58\uBA74
-      \uC2E4\uC81C \uD3EC\uC790 \uC624\uC5FC\uC744 \uC8FC\uBCC0 \uC140\uC5D0 \uC0DD\uC131\uD55C\uB2E4."
+    description: "불만이 커지면 실제 포자 오염을 주변 셀에 생성한다. 습도와 건조 적응은 설정 설명이며 별도 수치 효과가 없다."
     mitigatingRoles: 4352
     triggerTags:
     - discontent
     - species-specific
   incidentName: "\uD3EC\uC790 \uAC1C\uD654"
-  incidentDescription: "\uAC74\uC870 \uB178\uCD9C\uACFC \uBD88\uB9CC\uC774 \uACB9\uCE58\uBA74
-    \uC2E4\uC81C \uD3EC\uC790 \uC624\uC5FC\uC744 \uC8FC\uBCC0 \uC140\uC5D0 \uC0DD\uC131\uD55C\uB2E4."
+  incidentDescription: "불만이 커지면 실제 포자 오염을 주변 셀에 생성한다. 습도와 건조 적응은 설정 설명이며 별도 수치 효과가 없다."
   incidentMitigatingRoles: 4352
   combatPassive:
     passiveId: species-passive:myconid

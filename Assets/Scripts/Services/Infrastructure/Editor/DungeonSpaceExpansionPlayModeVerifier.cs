@@ -167,9 +167,9 @@ public sealed class DungeonSpaceExpansionPlayModeVerificationRunner : MonoBehavi
             Facility facility = facilityRoot.AddComponent<Facility>();
             CharacterAiEditorTestDependencies.Inject(facility, research);
             BuildingSO facilityDefinition = AssetDatabase.LoadAssetAtPath<BuildingSO>(
-                "Assets/Resources/SO/Building/P1/P1_ResearchLab.asset");
+                "Assets/Resources/SO/Building/Modular/Q01_연구책상.asset");
             Require(facilityDefinition != null,
-                "P1_ResearchLab asset is unavailable.");
+                "Q01_연구책상 asset is unavailable.");
             Vector2Int facilityAnchor = new(20, 1);
             facility.SetGrid(gridAuthority.Grid);
             facility.Initialization(facilityDefinition, facilityAnchor);
@@ -191,7 +191,7 @@ public sealed class DungeonSpaceExpansionPlayModeVerificationRunner : MonoBehavi
                     facility)),
                 "The authored research facility was not registered on the live grid.");
             Require(facility.SupportsWork(BuiltInWorkTypeIds.Research),
-                "P1_ResearchLab does not expose authored Research work.");
+                "Q01_연구책상 does not expose authored Research work.");
 
             Require(expansion.TryReconcileNewRunTierZero(
                     out DungeonSpaceExpansionResult tierZero,

@@ -22,6 +22,26 @@ internal static class EnvironmentalWorkwearProductionOutputSemantics
         _ => CraftsmanshipQualityTier.Normal
     };
 
+    internal static float ApplyCraftQualityCeiling(float qualityModifier, float maximumScore)
+    {
+        if (float.IsNaN(maximumScore) || float.IsInfinity(maximumScore)
+            || maximumScore < 0f || maximumScore > 100f)
+            throw new ArgumentOutOfRangeException(nameof(maximumScore));
+        CraftsmanshipQualityTier ceiling = DeterministicCraftQualityResolver.FromScore(maximumScore);
+        if (ResolveCraftsmanship(qualityModifier) <= ceiling) return qualityModifier;
+        // Preserve the existing modifier->tier contract used by publication and restore.
+        return ceiling switch
+        {
+            CraftsmanshipQualityTier.Awful => -0.66f,
+            CraftsmanshipQualityTier.Poor => -0.31f,
+            CraftsmanshipQualityTier.Normal => 0f,
+            CraftsmanshipQualityTier.Good => 0.15f,
+            CraftsmanshipQualityTier.Excellent => 0.35f,
+            CraftsmanshipQualityTier.Masterwork => 0.65f,
+            _ => qualityModifier
+        };
+    }
+
     internal static TextileSourceKind ResolveSourceKind(
         TextileMaterialTag tags)
     {

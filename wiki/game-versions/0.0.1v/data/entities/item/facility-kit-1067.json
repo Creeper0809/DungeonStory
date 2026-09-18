@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "소형러그를 현장에 세워 공간의 용도와 작업 동선을 갖추는 데 쓰는 설치 부품이며, 하르나크에서도 같은 규격으로 조립한다.",
+  "in_game_description": "소형러그를 현장에 세워 공간의 용도와 작업 동선을 갖추는 데 쓰는 설치 부품이다. 하르나크의 소형러그 도면에는 뿔, 날개, 꼬리와 골렘의 무게가 부딪히는 지점을 따로 표시한다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

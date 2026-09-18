@@ -113,6 +113,551 @@ MonoBehaviour:
     secondTraitId: 106
   - firstTraitId: 102
     secondTraitId: 103
+  formulaPolicy:
+    formulaVersion: 6
+    baseBudget: 3
+    powerScale: 15
+    softCapK: 8
+    minimumImportance: 0
+    maximumImportance: 4
+    milestoneWeights:
+    - 1
+    - 1.5
+    - 2
+    - 3
+    - 5
+    drawbackCredit:
+      playerChoiceMaximumBudgetFraction: 0.25
+      automaticMaximumBudgetFraction: 0.1
+      absoluteMaximumCredit: 3
+      requireNegativeEvidenceForAutomatic: 1
+    triggerCosts:
+    - trigger: 0
+      frequencyUnits: 1
+      guaranteedProc: 1
+    - trigger: 1
+      frequencyUnits: 1
+      guaranteedProc: 1
+    - trigger: 2
+      frequencyUnits: 3
+      guaranteedProc: 1
+    - trigger: 3
+      frequencyUnits: 2
+      guaranteedProc: 1
+    - trigger: 4
+      frequencyUnits: 1
+      guaranteedProc: 1
+    - trigger: 5
+      frequencyUnits: 1
+      guaranteedProc: 1
+    - trigger: 6
+      frequencyUnits: 2
+      guaranteedProc: 1
+    - trigger: 7
+      frequencyUnits: 2
+      guaranteedProc: 1
+    - trigger: 8
+      frequencyUnits: 3
+      guaranteedProc: 1
+    - trigger: 9
+      frequencyUnits: 3
+      guaranteedProc: 1
+    - trigger: 10
+      frequencyUnits: 3
+      guaranteedProc: 1
+    - trigger: 11
+      frequencyUnits: 1
+      guaranteedProc: 1
+    - trigger: 12
+      frequencyUnits: 1
+      guaranteedProc: 1
+    targetCosts:
+    - target: 0
+      targetCount: 1
+    - target: 1
+      targetCount: 1
+    - target: 2
+      targetCount: 1
+    - target: 3
+      targetCount: 3
+    - target: 4
+      targetCount: 3
+    - target: 5
+      targetCount: 1
+    - target: 6
+      targetCount: 1
+    catalogSha256: cca38ea0a40dc874dfb70a65bd0e4d136d651ebd040e6d517e68e08fc0538968
+  drawbackCapabilities:
+  - drawbackId: character-skill:drawback:accident-chance
+    capabilityId: character-skill-drawback-accident-chance
+    displayName: "\uBD88\uC548\uC815\uD55C \uC791\uC5C5 \uC2B5\uAD00"
+    description: "\uAE30\uC220\uC744 \uC7A5\uCC29\uD55C \uB3D9\uC548 \uC0AC\uACE0
+      \uD655\uB960\uC5D0 \uD574\uB85C\uC6B4 \uBCC0\uD654\uAC00 \uC801\uC6A9\uB41C\uB2E4.
+      C#\uC774 \uC608\uC0B0 \uC548\uC5D0\uC11C \uC815\uD655\uD55C \uC218\uCE58\uB97C
+      \uD655\uC815\uD55C\uB2E4."
+    applicationKind: 2
+    effectDefinition: {fileID: 11400000, guid: ab46736f68b07c442bc3c27bbc87e7cc, type: 2}
+    statDeltaPerCredit: 0.03
+    allowedKinds: 020000000300000004000000
+    allowedTriggers: 0c00000006000000070000000b000000
+    domainAffinities: 000000000100000005000000
+    maximumCredit: 2
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 1
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Work
+      - FacilityUse
+      - Injury
+      conflictGroups:
+      - drawback:character-skill-cooldown
+      forbiddenSynergies: []
+      formatterId: character-skill-drawback-accident-chance
+      applicatorId: character-skill-drawback-accident-chance
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 1
+        maximumUnits: 2
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: character-skill:drawback:combat-cooldown
+    capabilityId: character-skill-drawback-combat-cooldown
+    displayName: "\uAE34 \uC804\uD22C \uC7AC\uC815\uBE44"
+    description: "\uBD80\uC815\uC801\uC778 \uC804\uD22C \uACBD\uD5D8 \uB54C\uBB38\uC5D0
+      \uBC1C\uB3D9 \uB4A4 \uC7AC\uC0AC\uC6A9 \uB300\uAE30\uC2DC\uAC04\uC774 \uB298\uC5B4\uB09C\uB2E4.
+      C#\uC774 \uC608\uC0B0 \uC548\uC5D0\uC11C \uC99D\uAC00 \uD134\uC744 \uD655\uC815\uD55C\uB2E4."
+    applicationKind: 0
+    effectDefinition: {fileID: 0}
+    statDeltaPerCredit: 0.03
+    allowedKinds: 0200000004000000
+    allowedTriggers: 000000000100000002000000030000000400000005000000
+    domainAffinities: 0500000006000000070000000800000009000000
+    maximumCredit: 2
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 1
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Injury
+      - Survival
+      - Invasion
+      - Expedition
+      - Combat
+      conflictGroups:
+      - drawback:character-skill-cooldown
+      forbiddenSynergies: []
+      formatterId: character-skill-drawback-combat-cooldown
+      applicatorId: character-skill-drawback-combat-cooldown
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 1
+        maximumUnits: 2
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: character-skill:drawback:combat-power
+    capabilityId: character-skill-drawback-combat-power
+    displayName: "\uC804\uD22C \uD6C4\uC720\uC99D"
+    description: "\uAE30\uC220\uC744 \uC7A5\uCC29\uD55C \uB3D9\uC548 \uC804\uD22C\uB825\uC5D0
+      \uD574\uB85C\uC6B4 \uBCC0\uD654\uAC00 \uC801\uC6A9\uB41C\uB2E4. C#\uC774 \uC608\uC0B0
+      \uC548\uC5D0\uC11C \uC815\uD655\uD55C \uC218\uCE58\uB97C \uD655\uC815\uD55C\uB2E4."
+    applicationKind: 2
+    effectDefinition: {fileID: 11400000, guid: 137c7667173fc054eb6777aec0aa16f2, type: 2}
+    statDeltaPerCredit: 0.03
+    allowedKinds: 020000000300000004000000
+    allowedTriggers: 000000000100000002000000030000000400000005000000
+    domainAffinities: 0500000006000000070000000800000009000000
+    maximumCredit: 2
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 1
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Injury
+      - Survival
+      - Invasion
+      - Expedition
+      - Combat
+      conflictGroups:
+      - drawback:character-skill-cooldown
+      forbiddenSynergies: []
+      formatterId: character-skill-drawback-combat-power
+      applicatorId: character-skill-drawback-combat-power
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 1
+        maximumUnits: 2
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: character-skill:drawback:fatigue-rate
+    capabilityId: character-skill-drawback-fatigue-rate
+    displayName: "\uBE60\uB978 \uD53C\uB85C \uB204\uC801"
+    description: "\uAE30\uC220\uC744 \uC7A5\uCC29\uD55C \uB3D9\uC548 \uD53C\uB85C
+      \uB204\uC801\uC5D0 \uD574\uB85C\uC6B4 \uBCC0\uD654\uAC00 \uC801\uC6A9\uB41C\uB2E4.
+      C#\uC774 \uC608\uC0B0 \uC548\uC5D0\uC11C \uC815\uD655\uD55C \uC218\uCE58\uB97C
+      \uD655\uC815\uD55C\uB2E4."
+    applicationKind: 2
+    effectDefinition: {fileID: 11400000, guid: 0efffa6163b1c1d4ab0721b231ffa8ad, type: 2}
+    statDeltaPerCredit: 0.03
+    allowedKinds: 020000000300000004000000
+    allowedTriggers: 000000000100000002000000040000000c0000000600000007000000
+    domainAffinities: 0500000006000000080000000900000000000000
+    maximumCredit: 2
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 1
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Work
+      - Injury
+      - Survival
+      - Expedition
+      - Combat
+      conflictGroups:
+      - drawback:character-skill-cooldown
+      forbiddenSynergies: []
+      formatterId: character-skill-drawback-fatigue-rate
+      applicatorId: character-skill-drawback-fatigue-rate
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 1
+        maximumUnits: 2
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: character-skill:drawback:move-speed
+    capabilityId: character-skill-drawback-move-speed
+    displayName: "\uAD73\uC740 \uBC1C\uAC78\uC74C"
+    description: "\uAE30\uC220\uC744 \uC7A5\uCC29\uD55C \uB3D9\uC548 \uC774\uB3D9
+      \uC18D\uB3C4\uC5D0 \uD574\uB85C\uC6B4 \uBCC0\uD654\uAC00 \uC801\uC6A9\uB41C\uB2E4.
+      C#\uC774 \uC608\uC0B0 \uC548\uC5D0\uC11C \uC815\uD655\uD55C \uC218\uCE58\uB97C
+      \uD655\uC815\uD55C\uB2E4."
+    applicationKind: 2
+    effectDefinition: {fileID: 11400000, guid: 5efe462ac434ee74498e829584182490, type: 2}
+    statDeltaPerCredit: 0.03
+    allowedKinds: 020000000300000004000000
+    allowedTriggers: 00000000010000000200000004000000050000000c000000
+    domainAffinities: 0500000006000000070000000800000000000000
+    maximumCredit: 2
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 1
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Work
+      - Injury
+      - Survival
+      - Invasion
+      - Expedition
+      conflictGroups:
+      - drawback:character-skill-cooldown
+      forbiddenSynergies: []
+      formatterId: character-skill-drawback-move-speed
+      applicatorId: character-skill-drawback-move-speed
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 1
+        maximumUnits: 2
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: character-skill:drawback:research-speed
+    capabilityId: character-skill-drawback-research-speed
+    displayName: "\uC9D1\uC911\uB825 \uC18C\uBAA8"
+    description: "\uAE30\uC220\uC744 \uC7A5\uCC29\uD55C \uB3D9\uC548 \uC5F0\uAD6C
+      \uC18D\uB3C4\uC5D0 \uD574\uB85C\uC6B4 \uBCC0\uD654\uAC00 \uC801\uC6A9\uB41C\uB2E4.
+      C#\uC774 \uC608\uC0B0 \uC548\uC5D0\uC11C \uC815\uD655\uD55C \uC218\uCE58\uB97C
+      \uD655\uC815\uD55C\uB2E4."
+    applicationKind: 2
+    effectDefinition: {fileID: 11400000, guid: 3790d32843ae6be41bcfbace26296424, type: 2}
+    statDeltaPerCredit: 0.03
+    allowedKinds: 020000000300000004000000
+    allowedTriggers: 0c00000006000000070000000b000000
+    domainAffinities: 000000000100000003000000
+    maximumCredit: 2
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 1
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Work
+      - FacilityUse
+      - Mood
+      conflictGroups:
+      - drawback:character-skill-cooldown
+      forbiddenSynergies:
+      - research
+      formatterId: character-skill-drawback-research-speed
+      applicatorId: character-skill-drawback-research-speed
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 1
+        maximumUnits: 2
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: character-skill:drawback:work-cooldown
+    capabilityId: character-skill-drawback-work-cooldown
+    displayName: "\uAE34 \uC791\uC5C5 \uC7AC\uC815\uBE44"
+    description: "\uBD80\uC815\uC801\uC778 \uC791\uC5C5 \uACBD\uD5D8 \uB54C\uBB38\uC5D0
+      \uC0AC\uC6A9 \uB4A4 \uB2E4\uC2DC \uC9C0\uC2DC\uD560 \uC218 \uC788\uB294 \uB0A0\uC774
+      \uB2A6\uC5B4\uC9C4\uB2E4. C#\uC774 \uC608\uC0B0 \uC548\uC5D0\uC11C \uC99D\uAC00
+      \uC77C\uC218\uB97C \uD655\uC815\uD55C\uB2E4."
+    applicationKind: 1
+    effectDefinition: {fileID: 0}
+    statDeltaPerCredit: 0.03
+    allowedKinds: 02000000
+    allowedTriggers: 0c000000
+    domainAffinities: 0000000001000000
+    maximumCredit: 2
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 1
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Work
+      - FacilityUse
+      conflictGroups:
+      - drawback:character-skill-cooldown
+      forbiddenSynergies: []
+      formatterId: character-skill-drawback-work-cooldown
+      applicatorId: character-skill-drawback-work-cooldown
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 1
+        maximumUnits: 2
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+  - drawbackId: character-skill:drawback:work-speed
+    capabilityId: character-skill-drawback-work-speed
+    displayName: "\uC791\uC5C5 \uB9AC\uB4EC \uBD95\uAD34"
+    description: "\uAE30\uC220\uC744 \uC7A5\uCC29\uD55C \uB3D9\uC548 \uC791\uC5C5
+      \uC18D\uB3C4\uC5D0 \uD574\uB85C\uC6B4 \uBCC0\uD654\uAC00 \uC801\uC6A9\uB41C\uB2E4.
+      C#\uC774 \uC608\uC0B0 \uC548\uC5D0\uC11C \uC815\uD655\uD55C \uC218\uCE58\uB97C
+      \uD655\uC815\uD55C\uB2E4."
+    applicationKind: 2
+    effectDefinition: {fileID: 11400000, guid: c82e7a8d248986f4b8776ccbc743d601, type: 2}
+    statDeltaPerCredit: 0.03
+    allowedKinds: 020000000300000004000000
+    allowedTriggers: 0c00000006000000070000000b000000
+    domainAffinities: 0000000001000000
+    maximumCredit: 2
+    formula:
+      appliedParameterIds:
+      - magnitude
+      baseCost: 1
+      triggerFrequencyCostPerUnit: 0
+      guaranteedProcCost: 0
+      areaCostPerExtraTarget: 0
+      multiEffectCostPerExtraEffect: 0
+      pairSynergyCosts: []
+      narrativeAffinity: 1
+      affinityKeys:
+      - Work
+      - FacilityUse
+      conflictGroups:
+      - drawback:character-skill-cooldown
+      forbiddenSynergies:
+      - work_speed
+      formatterId: character-skill-drawback-work-speed
+      applicatorId: character-skill-drawback-work-speed
+      parameterRanges:
+      - parameterId: magnitude
+        minimumUnits: 1
+        maximumUnits: 2
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: duration
+        minimumUnits: 0
+        maximumUnits: 0
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: count
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
+      - parameterId: targetCount
+        minimumUnits: 1
+        maximumUnits: 1
+        quantumUnits: 1
+        decimalPlaces: 0
+        costPerQuantum: 1
   modules:
   - rid: 7302563063765925919
   - rid: 7302563063765925920
@@ -145,8 +690,9 @@ MonoBehaviour:
       type: {class: CharacterCombatSkillModuleRule, ns: , asm: Assembly-CSharp}
       data:
         id: damage
+        capabilityId: damage
         displayName: "\uD53C\uD574"
-        allowedKinds: 010000000200000003000000
+        allowedKinds: 020000000300000004000000
         allowedTriggers: 000000000100000002000000030000000400000005000000
         allowedTargets: 0000000001000000020000000300000004000000
         variants:
@@ -171,12 +717,58 @@ MonoBehaviour:
           duration: 0
           count: 1
           cost: 6
+        formula:
+          appliedParameterIds:
+          - magnitude
+          - count
+          baseCost: 0
+          triggerFrequencyCostPerUnit: 1
+          guaranteedProcCost: 1
+          areaCostPerExtraTarget: 1
+          multiEffectCostPerExtraEffect: 1
+          pairSynergyCosts:
+          - otherCapabilityId: conditional_amplify
+            cost: 1
+          narrativeAffinity: 1
+          affinityKeys:
+          - Combat
+          conflictGroups:
+          - capability:damage
+          forbiddenSynergies: []
+          formatterId: damage
+          applicatorId: damage
+          parameterRanges:
+          - parameterId: magnitude
+            minimumUnits: 500
+            maximumUnits: 3000
+            quantumUnits: 250
+            decimalPlaces: 3
+            costPerQuantum: 1
+          - parameterId: duration
+            minimumUnits: 0
+            maximumUnits: 0
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: count
+            minimumUnits: 1
+            maximumUnits: 4
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 2
+          - parameterId: targetCount
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
     - rid: 7302563063765925920
       type: {class: CharacterCombatSkillModuleRule, ns: , asm: Assembly-CSharp}
       data:
         id: heal
+        capabilityId: heal
         displayName: "\uD68C\uBCF5"
-        allowedKinds: 010000000200000003000000
+        allowedKinds: 020000000300000004000000
         allowedTriggers: 000000000100000002000000030000000400000005000000
         allowedTargets: 0000000001000000020000000300000004000000
         variants:
@@ -201,12 +793,55 @@ MonoBehaviour:
           duration: 0
           count: 1
           cost: 6
+        formula:
+          appliedParameterIds:
+          - magnitude
+          baseCost: 0
+          triggerFrequencyCostPerUnit: 1
+          guaranteedProcCost: 1
+          areaCostPerExtraTarget: 1
+          multiEffectCostPerExtraEffect: 1
+          pairSynergyCosts: []
+          narrativeAffinity: 1
+          affinityKeys:
+          - Combat
+          conflictGroups:
+          - capability:heal
+          forbiddenSynergies: []
+          formatterId: heal
+          applicatorId: heal
+          parameterRanges:
+          - parameterId: magnitude
+            minimumUnits: 5000
+            maximumUnits: 45000
+            quantumUnits: 5000
+            decimalPlaces: 3
+            costPerQuantum: 2
+          - parameterId: duration
+            minimumUnits: 0
+            maximumUnits: 0
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: count
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: targetCount
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
     - rid: 7302563063765925921
       type: {class: CharacterCombatSkillModuleRule, ns: , asm: Assembly-CSharp}
       data:
         id: guard
+        capabilityId: guard
         displayName: "\uBC29\uC5B4"
-        allowedKinds: 010000000200000003000000
+        allowedKinds: 020000000300000004000000
         allowedTriggers: 000000000100000002000000030000000400000005000000
         allowedTargets: 0000000001000000020000000300000004000000
         variants:
@@ -224,12 +859,57 @@ MonoBehaviour:
           duration: 2
           count: 1
           cost: 5
+        formula:
+          appliedParameterIds:
+          - magnitude
+          - duration
+          baseCost: 0
+          triggerFrequencyCostPerUnit: 1
+          guaranteedProcCost: 1
+          areaCostPerExtraTarget: 1
+          multiEffectCostPerExtraEffect: 1
+          pairSynergyCosts: []
+          narrativeAffinity: 1
+          affinityKeys:
+          - Combat
+          conflictGroups:
+          - capability:guard
+          forbiddenSynergies:
+          - protect
+          formatterId: guard
+          applicatorId: guard
+          parameterRanges:
+          - parameterId: magnitude
+            minimumUnits: 100
+            maximumUnits: 600
+            quantumUnits: 50
+            decimalPlaces: 3
+            costPerQuantum: 1
+          - parameterId: duration
+            minimumUnits: 1
+            maximumUnits: 5
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 2
+          - parameterId: count
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: targetCount
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
     - rid: 7302563063765925922
       type: {class: CharacterCombatSkillModuleRule, ns: , asm: Assembly-CSharp}
       data:
         id: dot
+        capabilityId: dot
         displayName: "\uC9C0\uC18D \uD53C\uD574"
-        allowedKinds: 010000000200000003000000
+        allowedKinds: 020000000300000004000000
         allowedTriggers: 000000000100000002000000030000000400000005000000
         allowedTargets: 0000000001000000020000000300000004000000
         variants:
@@ -247,12 +927,56 @@ MonoBehaviour:
           duration: 3
           count: 1
           cost: 6
+        formula:
+          appliedParameterIds:
+          - magnitude
+          - duration
+          baseCost: 1
+          triggerFrequencyCostPerUnit: 1
+          guaranteedProcCost: 1
+          areaCostPerExtraTarget: 1
+          multiEffectCostPerExtraEffect: 1
+          pairSynergyCosts: []
+          narrativeAffinity: 1
+          affinityKeys:
+          - Combat
+          conflictGroups:
+          - capability:dot
+          forbiddenSynergies: []
+          formatterId: dot
+          applicatorId: dot
+          parameterRanges:
+          - parameterId: magnitude
+            minimumUnits: 2000
+            maximumUnits: 12000
+            quantumUnits: 1000
+            decimalPlaces: 3
+            costPerQuantum: 1
+          - parameterId: duration
+            minimumUnits: 1
+            maximumUnits: 6
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 2
+          - parameterId: count
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: targetCount
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
     - rid: 7302563063765925923
       type: {class: CharacterCombatSkillModuleRule, ns: , asm: Assembly-CSharp}
       data:
         id: vulnerability
+        capabilityId: vulnerability
         displayName: "\uCDE8\uC57D"
-        allowedKinds: 010000000200000003000000
+        allowedKinds: 020000000300000004000000
         allowedTriggers: 000000000100000002000000030000000400000005000000
         allowedTargets: 0000000001000000020000000300000004000000
         variants:
@@ -270,12 +994,56 @@ MonoBehaviour:
           duration: 2
           count: 1
           cost: 6
+        formula:
+          appliedParameterIds:
+          - magnitude
+          - duration
+          baseCost: 1
+          triggerFrequencyCostPerUnit: 1
+          guaranteedProcCost: 1
+          areaCostPerExtraTarget: 1
+          multiEffectCostPerExtraEffect: 1
+          pairSynergyCosts: []
+          narrativeAffinity: 1
+          affinityKeys:
+          - Combat
+          conflictGroups:
+          - capability:vulnerability
+          forbiddenSynergies: []
+          formatterId: vulnerability
+          applicatorId: vulnerability
+          parameterRanges:
+          - parameterId: magnitude
+            minimumUnits: 100
+            maximumUnits: 550
+            quantumUnits: 50
+            decimalPlaces: 3
+            costPerQuantum: 1
+          - parameterId: duration
+            minimumUnits: 1
+            maximumUnits: 5
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 2
+          - parameterId: count
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: targetCount
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
     - rid: 7302563063765925924
       type: {class: CharacterCombatSkillModuleRule, ns: , asm: Assembly-CSharp}
       data:
         id: delay
+        capabilityId: delay
         displayName: "\uC9C0\uC5F0"
-        allowedKinds: 010000000200000003000000
+        allowedKinds: 020000000300000004000000
         allowedTriggers: 000000000100000002000000030000000400000005000000
         allowedTargets: 0000000001000000020000000300000004000000
         variants:
@@ -293,12 +1061,55 @@ MonoBehaviour:
           duration: 0
           count: 1
           cost: 5
+        formula:
+          appliedParameterIds:
+          - magnitude
+          baseCost: 0
+          triggerFrequencyCostPerUnit: 1
+          guaranteedProcCost: 1
+          areaCostPerExtraTarget: 1
+          multiEffectCostPerExtraEffect: 1
+          pairSynergyCosts: []
+          narrativeAffinity: 1
+          affinityKeys:
+          - Combat
+          conflictGroups:
+          - capability:delay
+          forbiddenSynergies: []
+          formatterId: delay
+          applicatorId: delay
+          parameterRanges:
+          - parameterId: magnitude
+            minimumUnits: 1000
+            maximumUnits: 6000
+            quantumUnits: 1000
+            decimalPlaces: 3
+            costPerQuantum: 3
+          - parameterId: duration
+            minimumUnits: 0
+            maximumUnits: 0
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: count
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: targetCount
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
     - rid: 7302563063765925925
       type: {class: CharacterCombatSkillModuleRule, ns: , asm: Assembly-CSharp}
       data:
         id: buff
+        capabilityId: buff
         displayName: "\uAC15\uD654"
-        allowedKinds: 010000000200000003000000
+        allowedKinds: 020000000300000004000000
         allowedTriggers: 000000000100000002000000030000000400000005000000
         allowedTargets: 0000000001000000020000000300000004000000
         variants:
@@ -316,12 +1127,56 @@ MonoBehaviour:
           duration: 2
           count: 1
           cost: 4
+        formula:
+          appliedParameterIds:
+          - magnitude
+          - duration
+          baseCost: 2
+          triggerFrequencyCostPerUnit: 1
+          guaranteedProcCost: 1
+          areaCostPerExtraTarget: 1
+          multiEffectCostPerExtraEffect: 1
+          pairSynergyCosts: []
+          narrativeAffinity: 1
+          affinityKeys:
+          - Combat
+          conflictGroups:
+          - capability:buff
+          forbiddenSynergies: []
+          formatterId: buff
+          applicatorId: buff
+          parameterRanges:
+          - parameterId: magnitude
+            minimumUnits: 50
+            maximumUnits: 500
+            quantumUnits: 50
+            decimalPlaces: 3
+            costPerQuantum: 1
+          - parameterId: duration
+            minimumUnits: 1
+            maximumUnits: 5
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 2
+          - parameterId: count
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: targetCount
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
     - rid: 7302563063765925926
       type: {class: CharacterCombatSkillModuleRule, ns: , asm: Assembly-CSharp}
       data:
         id: debuff
+        capabilityId: debuff
         displayName: "\uC57D\uD654"
-        allowedKinds: 010000000200000003000000
+        allowedKinds: 020000000300000004000000
         allowedTriggers: 000000000100000002000000030000000400000005000000
         allowedTargets: 0000000001000000020000000300000004000000
         variants:
@@ -339,12 +1194,56 @@ MonoBehaviour:
           duration: 2
           count: 1
           cost: 4
+        formula:
+          appliedParameterIds:
+          - magnitude
+          - duration
+          baseCost: 2
+          triggerFrequencyCostPerUnit: 1
+          guaranteedProcCost: 1
+          areaCostPerExtraTarget: 1
+          multiEffectCostPerExtraEffect: 1
+          pairSynergyCosts: []
+          narrativeAffinity: 1
+          affinityKeys:
+          - Combat
+          conflictGroups:
+          - capability:debuff
+          forbiddenSynergies: []
+          formatterId: debuff
+          applicatorId: debuff
+          parameterRanges:
+          - parameterId: magnitude
+            minimumUnits: 50
+            maximumUnits: 500
+            quantumUnits: 50
+            decimalPlaces: 3
+            costPerQuantum: 1
+          - parameterId: duration
+            minimumUnits: 1
+            maximumUnits: 5
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 2
+          - parameterId: count
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: targetCount
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
     - rid: 7302563063765925927
       type: {class: CharacterCombatSkillModuleRule, ns: , asm: Assembly-CSharp}
       data:
         id: cleanse
+        capabilityId: cleanse
         displayName: "\uC815\uD654"
-        allowedKinds: 010000000200000003000000
+        allowedKinds: 020000000300000004000000
         allowedTriggers: 000000000100000002000000030000000400000005000000
         allowedTargets: 0000000001000000020000000300000004000000
         variants:
@@ -362,12 +1261,55 @@ MonoBehaviour:
           duration: 0
           count: 8
           cost: 7
+        formula:
+          appliedParameterIds:
+          - count
+          baseCost: 1
+          triggerFrequencyCostPerUnit: 1
+          guaranteedProcCost: 1
+          areaCostPerExtraTarget: 1
+          multiEffectCostPerExtraEffect: 1
+          pairSynergyCosts: []
+          narrativeAffinity: 1
+          affinityKeys:
+          - Combat
+          conflictGroups:
+          - capability:cleanse
+          forbiddenSynergies: []
+          formatterId: cleanse
+          applicatorId: cleanse
+          parameterRanges:
+          - parameterId: magnitude
+            minimumUnits: 0
+            maximumUnits: 0
+            quantumUnits: 1
+            decimalPlaces: 3
+            costPerQuantum: 1
+          - parameterId: duration
+            minimumUnits: 0
+            maximumUnits: 0
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: count
+            minimumUnits: 1
+            maximumUnits: 6
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 3
+          - parameterId: targetCount
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
     - rid: 7302563063765925928
       type: {class: CharacterCombatSkillModuleRule, ns: , asm: Assembly-CSharp}
       data:
         id: protect
+        capabilityId: protect
         displayName: "\uBCF4\uD638"
-        allowedKinds: 010000000200000003000000
+        allowedKinds: 020000000300000004000000
         allowedTriggers: 000000000100000002000000030000000400000005000000
         allowedTargets: 0000000001000000020000000300000004000000
         variants:
@@ -385,12 +1327,57 @@ MonoBehaviour:
           duration: 3
           count: 1
           cost: 7
+        formula:
+          appliedParameterIds:
+          - magnitude
+          - duration
+          baseCost: 2
+          triggerFrequencyCostPerUnit: 1
+          guaranteedProcCost: 1
+          areaCostPerExtraTarget: 1
+          multiEffectCostPerExtraEffect: 1
+          pairSynergyCosts: []
+          narrativeAffinity: 1
+          affinityKeys:
+          - Combat
+          conflictGroups:
+          - capability:protect
+          forbiddenSynergies:
+          - guard
+          formatterId: protect
+          applicatorId: protect
+          parameterRanges:
+          - parameterId: magnitude
+            minimumUnits: 100
+            maximumUnits: 600
+            quantumUnits: 50
+            decimalPlaces: 3
+            costPerQuantum: 1
+          - parameterId: duration
+            minimumUnits: 1
+            maximumUnits: 5
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 2
+          - parameterId: count
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: targetCount
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
     - rid: 7302563063765925929
       type: {class: CharacterCombatSkillModuleRule, ns: , asm: Assembly-CSharp}
       data:
         id: reposition
+        capabilityId: reposition
         displayName: "\uC704\uCE58 \uC774\uB3D9"
-        allowedKinds: 010000000200000003000000
+        allowedKinds: 020000000300000004000000
         allowedTriggers: 000000000100000002000000030000000400000005000000
         allowedTargets: 0000000001000000020000000300000004000000
         variants:
@@ -408,12 +1395,55 @@ MonoBehaviour:
           duration: 0
           count: 1
           cost: 6
+        formula:
+          appliedParameterIds:
+          - magnitude
+          baseCost: 1
+          triggerFrequencyCostPerUnit: 1
+          guaranteedProcCost: 1
+          areaCostPerExtraTarget: 1
+          multiEffectCostPerExtraEffect: 1
+          pairSynergyCosts: []
+          narrativeAffinity: 1
+          affinityKeys:
+          - Combat
+          conflictGroups:
+          - capability:reposition
+          forbiddenSynergies: []
+          formatterId: reposition
+          applicatorId: reposition
+          parameterRanges:
+          - parameterId: magnitude
+            minimumUnits: 1000
+            maximumUnits: 2000
+            quantumUnits: 1000
+            decimalPlaces: 3
+            costPerQuantum: 3
+          - parameterId: duration
+            minimumUnits: 0
+            maximumUnits: 0
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: count
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: targetCount
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
     - rid: 7302563063765925930
       type: {class: CharacterCombatSkillModuleRule, ns: , asm: Assembly-CSharp}
       data:
         id: multi_target
+        capabilityId: multi_target
         displayName: "\uB2E4\uC911 \uB300\uC0C1"
-        allowedKinds: 010000000200000003000000
+        allowedKinds: 020000000300000004000000
         allowedTriggers: 000000000100000002000000030000000400000005000000
         allowedTargets: 0000000001000000020000000300000004000000
         variants:
@@ -431,12 +1461,55 @@ MonoBehaviour:
           duration: 0
           count: 8
           cost: 7
+        formula:
+          appliedParameterIds:
+          - targetCount
+          baseCost: 1
+          triggerFrequencyCostPerUnit: 1
+          guaranteedProcCost: 1
+          areaCostPerExtraTarget: 1
+          multiEffectCostPerExtraEffect: 1
+          pairSynergyCosts: []
+          narrativeAffinity: 1
+          affinityKeys:
+          - Combat
+          conflictGroups:
+          - capability:multi_target
+          forbiddenSynergies: []
+          formatterId: multi_target
+          applicatorId: multi_target
+          parameterRanges:
+          - parameterId: magnitude
+            minimumUnits: 0
+            maximumUnits: 0
+            quantumUnits: 1
+            decimalPlaces: 3
+            costPerQuantum: 1
+          - parameterId: duration
+            minimumUnits: 0
+            maximumUnits: 0
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: count
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: targetCount
+            minimumUnits: 2
+            maximumUnits: 8
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 3
     - rid: 7302563063765925931
       type: {class: CharacterCombatSkillModuleRule, ns: , asm: Assembly-CSharp}
       data:
         id: conditional_amplify
+        capabilityId: conditional_amplify
         displayName: "\uC870\uAC74\uBD80 \uC99D\uD3ED"
-        allowedKinds: 010000000200000003000000
+        allowedKinds: 020000000300000004000000
         allowedTriggers: 000000000100000002000000030000000400000005000000
         allowedTargets: 0000000001000000020000000300000004000000
         variants:
@@ -454,12 +1527,57 @@ MonoBehaviour:
           duration: 0
           count: 1
           cost: 7
+        formula:
+          appliedParameterIds:
+          - magnitude
+          baseCost: 2
+          triggerFrequencyCostPerUnit: 1
+          guaranteedProcCost: 1
+          areaCostPerExtraTarget: 1
+          multiEffectCostPerExtraEffect: 1
+          pairSynergyCosts:
+          - otherCapabilityId: damage
+            cost: 1
+          narrativeAffinity: 1
+          affinityKeys:
+          - Combat
+          conflictGroups:
+          - capability:conditional_amplify
+          forbiddenSynergies: []
+          formatterId: conditional_amplify
+          applicatorId: conditional_amplify
+          parameterRanges:
+          - parameterId: magnitude
+            minimumUnits: 100
+            maximumUnits: 1000
+            quantumUnits: 100
+            decimalPlaces: 3
+            costPerQuantum: 2
+          - parameterId: duration
+            minimumUnits: 0
+            maximumUnits: 0
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: count
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: targetCount
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
     - rid: 7302563063765925932
       type: {class: CharacterCombatSkillModuleRule, ns: , asm: Assembly-CSharp}
       data:
         id: cooldown_adjust
+        capabilityId: cooldown_adjust
         displayName: "\uC7AC\uC0AC\uC6A9 \uC870\uC791"
-        allowedKinds: 010000000200000003000000
+        allowedKinds: 020000000300000004000000
         allowedTriggers: 000000000100000002000000030000000400000005000000
         allowedTargets: 0000000001000000020000000300000004000000
         variants:
@@ -477,13 +1595,56 @@ MonoBehaviour:
           duration: 0
           count: 1
           cost: 9
+        formula:
+          appliedParameterIds:
+          - magnitude
+          baseCost: 2
+          triggerFrequencyCostPerUnit: 1
+          guaranteedProcCost: 1
+          areaCostPerExtraTarget: 1
+          multiEffectCostPerExtraEffect: 1
+          pairSynergyCosts: []
+          narrativeAffinity: 1
+          affinityKeys:
+          - Combat
+          conflictGroups:
+          - capability:cooldown_adjust
+          forbiddenSynergies: []
+          formatterId: cooldown_adjust
+          applicatorId: cooldown_adjust
+          parameterRanges:
+          - parameterId: magnitude
+            minimumUnits: 1000
+            maximumUnits: 6000
+            quantumUnits: 1000
+            decimalPlaces: 3
+            costPerQuantum: 3
+          - parameterId: duration
+            minimumUnits: 0
+            maximumUnits: 0
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: count
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: targetCount
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
     - rid: 7302563063765925933
       type: {class: CharacterManagementSkillModuleRule, ns: , asm: Assembly-CSharp}
       data:
         id: work_speed
+        capabilityId: work_speed
         displayName: "\uC791\uC5C5 \uC18D\uB3C4"
-        allowedKinds: 0200000003000000
-        allowedTriggers: 060000000700000008000000090000000a000000
+        allowedKinds: 030000000400000002000000
+        allowedTriggers: 060000000700000008000000090000000a0000000c0000000b000000
         allowedTargets: 00000000010000000500000006000000
         variants:
         - id: small
@@ -500,13 +1661,58 @@ MonoBehaviour:
           duration: 1
           count: 1
           cost: 5
+        formula:
+          appliedParameterIds:
+          - magnitude
+          baseCost: 0
+          triggerFrequencyCostPerUnit: 1
+          guaranteedProcCost: 1
+          areaCostPerExtraTarget: 1
+          multiEffectCostPerExtraEffect: 1
+          pairSynergyCosts:
+          - otherCapabilityId: output
+            cost: 1
+          narrativeAffinity: 1
+          affinityKeys:
+          - Work
+          conflictGroups:
+          - capability:work_speed
+          forbiddenSynergies: []
+          formatterId: work_speed
+          applicatorId: work_speed
+          parameterRanges:
+          - parameterId: magnitude
+            minimumUnits: 50
+            maximumUnits: 800
+            quantumUnits: 50
+            decimalPlaces: 3
+            costPerQuantum: 1
+          - parameterId: duration
+            minimumUnits: 0
+            maximumUnits: 0
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: count
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: targetCount
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
     - rid: 7302563063765925934
       type: {class: CharacterManagementSkillModuleRule, ns: , asm: Assembly-CSharp}
       data:
         id: output
+        capabilityId: output
         displayName: "\uC0DD\uC0B0\uB7C9"
-        allowedKinds: 0200000003000000
-        allowedTriggers: 060000000700000008000000090000000a000000
+        allowedKinds: 030000000400000002000000
+        allowedTriggers: 060000000700000008000000090000000a0000000c0000000b000000
         allowedTargets: 00000000010000000500000006000000
         variants:
         - id: small
@@ -523,13 +1729,58 @@ MonoBehaviour:
           duration: 1
           count: 1
           cost: 6
+        formula:
+          appliedParameterIds:
+          - magnitude
+          baseCost: 0
+          triggerFrequencyCostPerUnit: 1
+          guaranteedProcCost: 1
+          areaCostPerExtraTarget: 1
+          multiEffectCostPerExtraEffect: 1
+          pairSynergyCosts:
+          - otherCapabilityId: work_speed
+            cost: 1
+          narrativeAffinity: 1
+          affinityKeys:
+          - Work
+          conflictGroups:
+          - capability:output
+          forbiddenSynergies: []
+          formatterId: output
+          applicatorId: output
+          parameterRanges:
+          - parameterId: magnitude
+            minimumUnits: 50
+            maximumUnits: 800
+            quantumUnits: 50
+            decimalPlaces: 3
+            costPerQuantum: 1
+          - parameterId: duration
+            minimumUnits: 0
+            maximumUnits: 0
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: count
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: targetCount
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
     - rid: 7302563063765925935
       type: {class: CharacterManagementSkillModuleRule, ns: , asm: Assembly-CSharp}
       data:
         id: cleaning
+        capabilityId: cleaning
         displayName: "\uCCAD\uACB0"
-        allowedKinds: 0200000003000000
-        allowedTriggers: 060000000700000008000000090000000a000000
+        allowedKinds: 030000000400000002000000
+        allowedTriggers: 060000000700000008000000090000000a0000000c0000000b000000
         allowedTargets: 00000000010000000500000006000000
         variants:
         - id: small
@@ -546,13 +1797,56 @@ MonoBehaviour:
           duration: 0
           count: 1
           cost: 5
+        formula:
+          appliedParameterIds:
+          - magnitude
+          baseCost: 0
+          triggerFrequencyCostPerUnit: 1
+          guaranteedProcCost: 1
+          areaCostPerExtraTarget: 1
+          multiEffectCostPerExtraEffect: 1
+          pairSynergyCosts: []
+          narrativeAffinity: 1
+          affinityKeys:
+          - Work
+          conflictGroups:
+          - capability:cleaning
+          forbiddenSynergies: []
+          formatterId: cleaning
+          applicatorId: cleaning
+          parameterRanges:
+          - parameterId: magnitude
+            minimumUnits: 2000
+            maximumUnits: 32000
+            quantumUnits: 2000
+            decimalPlaces: 3
+            costPerQuantum: 1
+          - parameterId: duration
+            minimumUnits: 0
+            maximumUnits: 0
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: count
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: targetCount
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
     - rid: 7302563063765925936
       type: {class: CharacterManagementSkillModuleRule, ns: , asm: Assembly-CSharp}
       data:
         id: repair
+        capabilityId: repair
         displayName: "\uC218\uB9AC"
-        allowedKinds: 0200000003000000
-        allowedTriggers: 060000000700000008000000090000000a000000
+        allowedKinds: 030000000400000002000000
+        allowedTriggers: 060000000700000008000000090000000a0000000c0000000b000000
         allowedTargets: 00000000010000000500000006000000
         variants:
         - id: small
@@ -569,13 +1863,56 @@ MonoBehaviour:
           duration: 0
           count: 1
           cost: 6
+        formula:
+          appliedParameterIds:
+          - magnitude
+          baseCost: 0
+          triggerFrequencyCostPerUnit: 1
+          guaranteedProcCost: 1
+          areaCostPerExtraTarget: 1
+          multiEffectCostPerExtraEffect: 1
+          pairSynergyCosts: []
+          narrativeAffinity: 1
+          affinityKeys:
+          - Work
+          conflictGroups:
+          - capability:repair
+          forbiddenSynergies: []
+          formatterId: repair
+          applicatorId: repair
+          parameterRanges:
+          - parameterId: magnitude
+            minimumUnits: 5000
+            maximumUnits: 80000
+            quantumUnits: 5000
+            decimalPlaces: 3
+            costPerQuantum: 1
+          - parameterId: duration
+            minimumUnits: 0
+            maximumUnits: 0
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: count
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: targetCount
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
     - rid: 7302563063765925937
       type: {class: CharacterManagementSkillModuleRule, ns: , asm: Assembly-CSharp}
       data:
         id: stock
+        capabilityId: stock
         displayName: "\uC7AC\uACE0"
-        allowedKinds: 0200000003000000
-        allowedTriggers: 060000000700000008000000090000000a000000
+        allowedKinds: 030000000400000002000000
+        allowedTriggers: 060000000700000008000000090000000a0000000c0000000b000000
         allowedTargets: 00000000010000000500000006000000
         variants:
         - id: small
@@ -592,13 +1929,56 @@ MonoBehaviour:
           duration: 0
           count: 1
           cost: 7
+        formula:
+          appliedParameterIds:
+          - magnitude
+          baseCost: 1
+          triggerFrequencyCostPerUnit: 1
+          guaranteedProcCost: 1
+          areaCostPerExtraTarget: 1
+          multiEffectCostPerExtraEffect: 1
+          pairSynergyCosts: []
+          narrativeAffinity: 1
+          affinityKeys:
+          - Work
+          conflictGroups:
+          - capability:stock
+          forbiddenSynergies: []
+          formatterId: stock
+          applicatorId: stock
+          parameterRanges:
+          - parameterId: magnitude
+            minimumUnits: 1000
+            maximumUnits: 9000
+            quantumUnits: 1000
+            decimalPlaces: 3
+            costPerQuantum: 2
+          - parameterId: duration
+            minimumUnits: 0
+            maximumUnits: 0
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: count
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: targetCount
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
     - rid: 7302563063765925938
       type: {class: CharacterManagementSkillModuleRule, ns: , asm: Assembly-CSharp}
       data:
         id: research
+        capabilityId: research
         displayName: "\uC5F0\uAD6C"
-        allowedKinds: 0200000003000000
-        allowedTriggers: 060000000700000008000000090000000a000000
+        allowedKinds: 030000000400000002000000
+        allowedTriggers: 060000000700000008000000090000000a0000000c0000000b000000
         allowedTargets: 00000000010000000500000006000000
         variants:
         - id: small
@@ -615,13 +1995,56 @@ MonoBehaviour:
           duration: 0
           count: 1
           cost: 6
+        formula:
+          appliedParameterIds:
+          - magnitude
+          baseCost: 0
+          triggerFrequencyCostPerUnit: 1
+          guaranteedProcCost: 1
+          areaCostPerExtraTarget: 1
+          multiEffectCostPerExtraEffect: 1
+          pairSynergyCosts: []
+          narrativeAffinity: 1
+          affinityKeys:
+          - Work
+          conflictGroups:
+          - capability:research
+          forbiddenSynergies: []
+          formatterId: research
+          applicatorId: research
+          parameterRanges:
+          - parameterId: magnitude
+            minimumUnits: 2000
+            maximumUnits: 40000
+            quantumUnits: 2000
+            decimalPlaces: 3
+            costPerQuantum: 1
+          - parameterId: duration
+            minimumUnits: 0
+            maximumUnits: 0
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: count
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: targetCount
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
     - rid: 7302563063765925939
       type: {class: CharacterManagementSkillModuleRule, ns: , asm: Assembly-CSharp}
       data:
         id: needs
+        capabilityId: needs
         displayName: "\uC695\uAD6C"
-        allowedKinds: 0200000003000000
-        allowedTriggers: 060000000700000008000000090000000a000000
+        allowedKinds: 030000000400000002000000
+        allowedTriggers: 060000000700000008000000090000000a0000000c0000000b000000
         allowedTargets: 00000000010000000500000006000000
         variants:
         - id: small
@@ -638,13 +2061,56 @@ MonoBehaviour:
           duration: 0
           count: 1
           cost: 5
+        formula:
+          appliedParameterIds:
+          - magnitude
+          baseCost: 0
+          triggerFrequencyCostPerUnit: 1
+          guaranteedProcCost: 1
+          areaCostPerExtraTarget: 1
+          multiEffectCostPerExtraEffect: 1
+          pairSynergyCosts: []
+          narrativeAffinity: 1
+          affinityKeys:
+          - Work
+          conflictGroups:
+          - capability:needs
+          forbiddenSynergies: []
+          formatterId: needs
+          applicatorId: needs
+          parameterRanges:
+          - parameterId: magnitude
+            minimumUnits: 2000
+            maximumUnits: 32000
+            quantumUnits: 2000
+            decimalPlaces: 3
+            costPerQuantum: 1
+          - parameterId: duration
+            minimumUnits: 0
+            maximumUnits: 0
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: count
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: targetCount
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
     - rid: 7302563063765925940
       type: {class: CharacterManagementSkillModuleRule, ns: , asm: Assembly-CSharp}
       data:
         id: mood
+        capabilityId: mood
         displayName: "\uAE30\uBD84"
-        allowedKinds: 0200000003000000
-        allowedTriggers: 060000000700000008000000090000000a000000
+        allowedKinds: 030000000400000002000000
+        allowedTriggers: 060000000700000008000000090000000a0000000c0000000b000000
         allowedTargets: 00000000010000000500000006000000
         variants:
         - id: small
@@ -661,13 +2127,57 @@ MonoBehaviour:
           duration: 180
           count: 1
           cost: 6
+        formula:
+          appliedParameterIds:
+          - magnitude
+          - duration
+          baseCost: 0
+          triggerFrequencyCostPerUnit: 1
+          guaranteedProcCost: 1
+          areaCostPerExtraTarget: 1
+          multiEffectCostPerExtraEffect: 1
+          pairSynergyCosts: []
+          narrativeAffinity: 1
+          affinityKeys:
+          - Work
+          conflictGroups:
+          - capability:mood
+          forbiddenSynergies: []
+          formatterId: mood
+          applicatorId: mood
+          parameterRanges:
+          - parameterId: magnitude
+            minimumUnits: 2000
+            maximumUnits: 20000
+            quantumUnits: 2000
+            decimalPlaces: 3
+            costPerQuantum: 1
+          - parameterId: duration
+            minimumUnits: 60
+            maximumUnits: 420
+            quantumUnits: 60
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: count
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: targetCount
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
     - rid: 7302563063765925941
       type: {class: CharacterManagementSkillModuleRule, ns: , asm: Assembly-CSharp}
       data:
         id: relationship
+        capabilityId: relationship
         displayName: "\uAD00\uACC4"
-        allowedKinds: 0200000003000000
-        allowedTriggers: 060000000700000008000000090000000a000000
+        allowedKinds: 030000000400000002000000
+        allowedTriggers: 060000000700000008000000090000000a0000000c0000000b000000
         allowedTargets: 00000000010000000500000006000000
         variants:
         - id: small
@@ -684,13 +2194,56 @@ MonoBehaviour:
           duration: 0
           count: 1
           cost: 5
+        formula:
+          appliedParameterIds:
+          - magnitude
+          baseCost: 0
+          triggerFrequencyCostPerUnit: 1
+          guaranteedProcCost: 1
+          areaCostPerExtraTarget: 1
+          multiEffectCostPerExtraEffect: 1
+          pairSynergyCosts: []
+          narrativeAffinity: 1
+          affinityKeys:
+          - Work
+          conflictGroups:
+          - capability:relationship
+          forbiddenSynergies: []
+          formatterId: relationship
+          applicatorId: relationship
+          parameterRanges:
+          - parameterId: magnitude
+            minimumUnits: 1000
+            maximumUnits: 20000
+            quantumUnits: 1000
+            decimalPlaces: 3
+            costPerQuantum: 1
+          - parameterId: duration
+            minimumUnits: 0
+            maximumUnits: 0
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: count
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: targetCount
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
     - rid: 7302563063765925942
       type: {class: CharacterManagementSkillModuleRule, ns: , asm: Assembly-CSharp}
       data:
         id: revenue
+        capabilityId: revenue
         displayName: "\uC218\uC775"
-        allowedKinds: 0200000003000000
-        allowedTriggers: 060000000700000008000000090000000a000000
+        allowedKinds: 030000000400000002000000
+        allowedTriggers: 060000000700000008000000090000000a0000000c0000000b000000
         allowedTargets: 00000000010000000500000006000000
         variants:
         - id: small
@@ -707,3 +2260,45 @@ MonoBehaviour:
           duration: 0
           count: 1
           cost: 7
+        formula:
+          appliedParameterIds:
+          - magnitude
+          baseCost: 1
+          triggerFrequencyCostPerUnit: 1
+          guaranteedProcCost: 1
+          areaCostPerExtraTarget: 1
+          multiEffectCostPerExtraEffect: 1
+          pairSynergyCosts: []
+          narrativeAffinity: 1
+          affinityKeys:
+          - Work
+          conflictGroups:
+          - capability:revenue
+          forbiddenSynergies: []
+          formatterId: revenue
+          applicatorId: revenue
+          parameterRanges:
+          - parameterId: magnitude
+            minimumUnits: 10
+            maximumUnits: 150
+            quantumUnits: 10
+            decimalPlaces: 3
+            costPerQuantum: 1
+          - parameterId: duration
+            minimumUnits: 0
+            maximumUnits: 0
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: count
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1
+          - parameterId: targetCount
+            minimumUnits: 1
+            maximumUnits: 1
+            quantumUnits: 1
+            decimalPlaces: 0
+            costPerQuantum: 1

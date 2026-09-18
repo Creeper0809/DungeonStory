@@ -80,6 +80,11 @@ public class AbilityWork : CharacterAbility
     private ISettlementLaborAccountingService settlementLaborAccounting;
     private IReservedItemTransferService reservedItemTransfers;
     private ICharacterSettlementStandingQuery settlementStandings;
+    private IBuildingStructuralIntegrityRuntime structuralIntegrity;
+    private IEnvironmentalFireProcessAccidentProducer
+        processAccidentFireProducer;
+    private ICharacterBodyHealthMutationTransaction bodyHealthMutation;
+    private IEnvironmentGameplayOutcomeCommitter environmentOutcomes;
     private bool isScheduleBound;
     private float routineOperateCooldownUntil;
     private Coroutine activeWorkRoutine;
@@ -307,6 +312,7 @@ public class AbilityWork : CharacterAbility
     internal IWorkPolicyRegistry WorkPolicyRegistry => workPolicyRegistry;
     internal IWorkOrderRuntime WorkOrderRuntime => workOrderRuntime;
     internal IGameClock GameClock => gameClock;
+    internal IGameCalendar GameCalendar => gameCalendar;
     internal IResourceStockPolicyQuery ResourceStockPolicies => resourceStockPolicies;
 
     private InvalidOperationException MissingDependency(string dependencyName)
@@ -589,6 +595,36 @@ public class AbilityWork : CharacterAbility
         workAccidentRandom = (randomStreamProvider
                 ?? throw new ArgumentNullException(nameof(randomStreamProvider)))
             .Get(WorkAccidentRandomStreamId);
+        taskExecutor = null;
+    }
+
+    [Inject]
+    public void ConstructProcessAccidentFireProducer(
+        IEnvironmentalFireProcessAccidentProducer producer)
+    {
+        processAccidentFireProducer = producer
+            ?? throw new ArgumentNullException(nameof(producer));
+        taskExecutor = null;
+    }
+
+    [Inject]
+    public void ConstructWorkAccidentOutcomeTransaction(
+        ICharacterBodyHealthMutationTransaction bodyHealthMutation,
+        IEnvironmentGameplayOutcomeCommitter environmentOutcomes)
+    {
+        this.bodyHealthMutation = bodyHealthMutation
+            ?? throw new ArgumentNullException(nameof(bodyHealthMutation));
+        this.environmentOutcomes = environmentOutcomes
+            ?? throw new ArgumentNullException(nameof(environmentOutcomes));
+        taskExecutor = null;
+    }
+
+    [Inject]
+    public void ConstructBuildingStructuralIntegrity(
+        IBuildingStructuralIntegrityRuntime integrityRuntime)
+    {
+        structuralIntegrity = integrityRuntime
+            ?? throw new ArgumentNullException(nameof(integrityRuntime));
         taskExecutor = null;
     }
 
@@ -1656,7 +1692,8 @@ public class AbilityWork : CharacterAbility
                 workExecutionHandlerRegistry,
                 workOrderRuntime,
                 workAmountCalculator,
-                paidFacilityContracts),
+                paidFacilityContracts,
+                structuralIntegrity),
             new WorkTaskEnvironmentDependencies(
                 roomEnvironmentExperienceService,
                 characterEnvironment,
@@ -1675,7 +1712,10 @@ public class AbilityWork : CharacterAbility
             emergencyWorkAccounting,
             settlementLaborAccounting,
             reservedItemTransfers,
-            settlementStandings);
+            settlementStandings,
+            processAccidentFireProducer,
+            bodyHealthMutation,
+            environmentOutcomes);
         dutyController ??= new WorkDutyController(
             this,
             needDefinitionCatalog);

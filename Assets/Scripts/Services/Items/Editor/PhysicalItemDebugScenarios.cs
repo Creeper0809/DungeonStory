@@ -13,6 +13,203 @@ public static class PhysicalItemDebugScenarios
     public static string VerifyQualityRejectedSaleForEditor() =>
         VerifyQualityRejectedUniqueDeliveryIdentity();
 
+    public static string VerifyExpeditionRecoveredEquipmentForEditor()
+    {
+        const string EnemyId = "character:qa-wim053-recovered-enemy";
+        var gateway = new EditorEquipmentPhysicalItemGatewayProxy();
+        WorldItemStackRuntime items = CreateRuntime(
+            out _, out CombatEquipmentRuntime equipment, out _, out _, out _,
+            equipmentGatewayOverride: gateway);
+        WorldItemStackRuntime restoredItems = null;
+        try
+        {
+            string[] ids = new[] { "weapon:dagger", "armor:gambeson" }.Select(definition =>
+            {
+                CombatEquipmentInstance instance = equipment.CreateInstance(
+                    definition, CombatEquipmentQuality.Normal, CombatEquipmentWorldState.Loose);
+                Require(equipment.TryAssignToCharacter(EnemyId, instance.instanceId, out string failure),
+                    "WIM053 recovered fixture enemy equip failed: " + failure);
+                return instance.instanceId;
+            }).ToArray();
+            IReadOnlyList<CombatEquipmentInstance> recovered = equipment.ConfiscateAllForExpedition(EnemyId);
+            Require(recovered.Count == 2 && ids.All(id => recovered.Count(row => row.instanceId == id) == 1),
+                "WIM053 expedition confiscation lost/duplicated weapon or armor");
+            equipment.HandleCharacterDeath(EnemyId); // Production completion retires the now-empty enemy loadout.
+            foreach (string id in ids)
+                Require(equipment.TryGetInstance(id, out CombatEquipmentInstance packed)
+                        && packed.worldState == CombatEquipmentWorldState.ExpeditionPacked
+                        && string.IsNullOrEmpty(packed.ownerCharacterId)
+                        && string.IsNullOrEmpty(packed.sourceStackId)
+                        && !items.GetAllStacks().Any(stack => stack.ItemInstanceId == id),
+                    "WIM053 recovered equipment was not retained as stack-free Packed custody");
+            string packedPhysical = JsonUtility.ToJson(items.Capture());
+            string packedCombat = JsonUtility.ToJson(equipment.Capture());
+            restoredItems = CreateRuntime(out _, out CombatEquipmentRuntime restoredEquipment);
+            restoredItems.Restore(items.Capture());
+            restoredEquipment.PublishRestoreCandidate(restoredEquipment.BuildRestoreCandidate(equipment.Capture()));
+            Require(packedPhysical == JsonUtility.ToJson(restoredItems.Capture())
+                    && packedCombat == JsonUtility.ToJson(restoredEquipment.Capture()),
+                "WIM053 pending recovered weapon/armor sections did not roundtrip exactly");
+            restoredItems.Dispose();
+            restoredItems = null;
+
+            int spawnAttempts = gateway.UniqueSpawnAttempts;
+            gateway.FailNextUniqueSpawn = true;
+            Require(!equipment.TryMaterializeRecoveredEquipment(ids[0], Vector2Int.zero, out string spawnFailure)
+                    && !string.IsNullOrEmpty(spawnFailure)
+                    && !gateway.FailNextUniqueSpawn && gateway.UniqueSpawnAttempts == spawnAttempts + 1
+                    && packedPhysical == JsonUtility.ToJson(items.Capture())
+                    && packedCombat == JsonUtility.ToJson(equipment.Capture()),
+                "WIM053 failed recovered spawn changed pending physical/equipment authority");
+            gateway.HideNextSpawnFromLookup = true;
+            Require(!equipment.TryMaterializeRecoveredEquipment(ids[0], Vector2Int.zero, out string linkFailure)
+                    && !string.IsNullOrEmpty(linkFailure)
+                    && !gateway.HideNextSpawnFromLookup
+                    && gateway.UniqueSpawnAttempts == spawnAttempts + 2 && gateway.HiddenSpawnLookupCount == 1
+                    && packedPhysical == JsonUtility.ToJson(items.Capture())
+                    && packedCombat == JsonUtility.ToJson(equipment.Capture()),
+                "WIM053 failed recovered link lost Packed custody or left a physical orphan");
+            foreach (string id in ids)
+            {
+                Require(equipment.TryMaterializeRecoveredEquipment(id, Vector2Int.zero, out string failure),
+                    "WIM053 recovered materialization failed: " + failure);
+                WorldItemStackSnapshot[] stacks = items.GetAllStacks().Where(stack => stack.ItemInstanceId == id).ToArray();
+                Require(stacks.Length == 1 && stacks[0].Quantity == 1
+                        && stacks[0].State == WorldItemStackState.Loose
+                        && equipment.TryGetInstance(id, out CombatEquipmentInstance loose)
+                        && loose.worldState == CombatEquipmentWorldState.Loose
+                        && loose.sourceStackId == stacks[0].StackId
+                        && string.IsNullOrEmpty(loose.ownerCharacterId),
+                    "WIM053 materialized equipment lacks its one exact Loose physical stack");
+                int attempts = gateway.UniqueSpawnAttempts;
+                string physicalBefore = JsonUtility.ToJson(items.Capture());
+                Require(!equipment.TryMaterializeRecoveredEquipment(id, Vector2Int.zero, out _)
+                        && gateway.UniqueSpawnAttempts == attempts
+                        && physicalBefore == JsonUtility.ToJson(items.Capture()),
+                    "WIM053 repeated recovery spawned or changed physical equipment");
+            }
+            restoredItems = CreateRuntime(out _, out restoredEquipment);
+            restoredItems.Restore(items.Capture());
+            restoredEquipment.PublishRestoreCandidate(restoredEquipment.BuildRestoreCandidate(equipment.Capture()));
+            Require(JsonUtility.ToJson(items.Capture()) == JsonUtility.ToJson(restoredItems.Capture())
+                    && JsonUtility.ToJson(equipment.Capture()) == JsonUtility.ToJson(restoredEquipment.Capture()),
+                "WIM053 materialized weapon/armor sections did not roundtrip exactly");
+            return "WIM053_RECOVERED_EQUIPMENT_ATOMIC=PASS;weaponAndArmor=2;packedRoundtrip=true;"
+                + "spawnAndLinkFailureExact=true;looseRoundtrip=true;duplicateSpawn=0;"
+                + "scope=public-domain-fixture;actualRunOwnershipAndReturnReceipts=separate-UI-scenario";
+        }
+        finally
+        {
+            restoredItems?.Dispose();
+            items.Dispose();
+        }
+    }
+
+    public static string VerifyPhysicalBackedEquipmentAssignmentForEditor()
+    {
+        const string CharacterId = "character:qa-wim053-equipment";
+        EditorEquipmentPhysicalItemGatewayProxy gateway = new();
+        WorldItemStackRuntime items = CreateRuntime(
+            out _, out CombatEquipmentRuntime equipment, out _, out _, out _,
+            equipmentGatewayOverride: gateway);
+        WorldItemStackRuntime restoredItems = null;
+        try
+        {
+            CombatEquipmentInstance incoming = equipment.CreateInstance(
+                "weapon:dagger", CombatEquipmentQuality.Normal,
+                CombatEquipmentWorldState.Carried);
+            string itemId = PhysicalItemIds.ForEquipment(incoming.definitionId);
+            Require(items.SpawnExistingUniqueItemAt(
+                    itemId, (ItemInstanceId)incoming.instanceId, Vector2Int.zero,
+                    WorldItemStackState.Carried, CharacterId, out string stackId)
+                && equipment.TryLinkToWorldStack(
+                    incoming.instanceId, stackId, CombatEquipmentWorldState.Carried),
+                "WIM053 could not prepare exact carried equipment fixture");
+            string physicalBefore = JsonUtility.ToJson(items.Capture());
+            string combatBefore = JsonUtility.ToJson(equipment.Capture());
+            gateway.FailNextAbsorption = true;
+            Require(!equipment.TryAssignToCharacter("", incoming.instanceId, out _)
+                    && gateway.AbsorptionAttempts == 0 && gateway.FailNextAbsorption,
+                "WIM053 invalid assignment reached physical absorption");
+            Require(!equipment.TryAssignToCharacter(CharacterId, incoming.instanceId, out string newFailure)
+                    && !string.IsNullOrWhiteSpace(newFailure)
+                    && gateway.AbsorptionAttempts == 1,
+                "WIM053 new-target absorption failure was not reported");
+            Require(physicalBefore == JsonUtility.ToJson(items.Capture())
+                    && combatBefore == JsonUtility.ToJson(equipment.Capture()),
+                "WIM053 failed absorption changed physical/unique state or created a loadout");
+
+            CombatEquipmentInstance existing = equipment.CreateInstance(
+                "weapon:dagger", CombatEquipmentQuality.Normal,
+                CombatEquipmentWorldState.Loose);
+            Require(equipment.TryAssignToCharacter(CharacterId, existing.instanceId, out _)
+                    && gateway.AbsorptionAttempts == 1,
+                "WIM053 source-free assignment changed its existing contract");
+            physicalBefore = JsonUtility.ToJson(items.Capture());
+            combatBefore = JsonUtility.ToJson(equipment.Capture());
+            gateway.FailNextAbsorption = true;
+            Require(!equipment.TryAssignToCharacter(CharacterId, incoming.instanceId, out _)
+                    && gateway.AbsorptionAttempts == 2
+                    && physicalBefore == JsonUtility.ToJson(items.Capture())
+                    && combatBefore == JsonUtility.ToJson(equipment.Capture()),
+                "WIM053 failed absorption changed an existing loadout or unique/physical state");
+
+            Require(equipment.TryAssignToCharacter(CharacterId, incoming.instanceId, out string failure),
+                $"WIM053 exact physical assignment failed: {failure}");
+            Require(gateway.AbsorptionAttempts == 3
+                    && !items.GetAllStacks().Any(stack => stack.StackId == stackId)
+                    && equipment.TryGetInstance(incoming.instanceId, out CombatEquipmentInstance equipped)
+                    && equipped.worldState == CombatEquipmentWorldState.Equipped
+                    && equipped.ownerCharacterId == CharacterId
+                    && string.IsNullOrEmpty(equipped.sourceStackId),
+                "WIM053 successful assignment left a physical projection or lost its unique owner");
+            string equippedPhysical = JsonUtility.ToJson(items.Capture());
+            string equippedCombat = JsonUtility.ToJson(equipment.Capture());
+            Require(equipment.TryAssignToCharacter(CharacterId, incoming.instanceId, out _)
+                    && gateway.AbsorptionAttempts == 3
+                    && equippedPhysical == JsonUtility.ToJson(items.Capture())
+                    && equippedCombat == JsonUtility.ToJson(equipment.Capture()),
+                "WIM053 repeated assignment duplicated a loadout or physical absorption");
+
+            restoredItems = CreateRuntime(out _, out CombatEquipmentRuntime restoredEquipment);
+            restoredItems.Restore(items.Capture());
+            restoredEquipment.PublishRestoreCandidate(
+                restoredEquipment.BuildRestoreCandidate(equipment.Capture()));
+            Require(equippedPhysical == JsonUtility.ToJson(restoredItems.Capture())
+                    && equippedCombat == JsonUtility.ToJson(restoredEquipment.Capture()),
+                "WIM053 equipped physical/equipment sections did not roundtrip exactly");
+            restoredItems.Dispose();
+            restoredItems = null;
+
+            equipment.HandleCharacterDeath(CharacterId);
+            Require(equipment.TryGetInstance(incoming.instanceId, out CombatEquipmentInstance lost)
+                    && lost.worldState == CombatEquipmentWorldState.Lost
+                    && string.IsNullOrEmpty(lost.ownerCharacterId)
+                    && string.IsNullOrEmpty(lost.sourceStackId)
+                    && !items.GetAllStacks().Any(stack => stack.ItemInstanceId == incoming.instanceId)
+                    && !equipment.Capture().loadouts.Any(row => row.characterId == CharacterId),
+                "WIM053 death left a stale physical stack or discarded the Lost instance");
+            DungeonPhysicalItemSaveData lostSave = items.Capture();
+            Require(lostSave.uniqueItems.Count(row => row.itemInstanceId == incoming.instanceId) == 1,
+                "WIM053 death deleted or duplicated the authoritative Lost item");
+            restoredItems = CreateRuntime(out _, out restoredEquipment);
+            restoredItems.Restore(lostSave);
+            restoredEquipment.PublishRestoreCandidate(
+                restoredEquipment.BuildRestoreCandidate(equipment.Capture()));
+            Require(JsonUtility.ToJson(lostSave) == JsonUtility.ToJson(restoredItems.Capture())
+                    && JsonUtility.ToJson(equipment.Capture()) == JsonUtility.ToJson(restoredEquipment.Capture()),
+                "WIM053 Lost item and empty loadout did not roundtrip exactly");
+            return "WIM053_PHYSICAL_ASSIGNMENT_ATOMIC=PASS;newAndExistingTargetFailureExact=true;"
+                + "sourceFreePreserved=true;equippedAndLostRoundtrip=true;physicalStacks=0;"
+                + "scope=public-domain-fixture;actualPickupAndCarryConsumption=separate-UI-scenario";
+        }
+        finally
+        {
+            restoredItems?.Dispose();
+            items.Dispose();
+        }
+    }
+
     private sealed class MutableGameClock : IGameClock
     {
         public float CurrentTime { get; set; }
@@ -37,6 +234,8 @@ public static class PhysicalItemDebugScenarios
         "Assets/Resources/SO/Building/Industrial/I18_계보_기록실.asset";
     private const string HaulingHarnessWorkwearPath =
         "Assets/Resources/SO/Environment/Workwear/HaulingHarness.asset";
+    private const string HaulingHarnessFixtureInstanceId =
+        "apparel-instance:qa-hauling-harness";
     private const string EquipmentForgeFacilityPath =
         "Assets/Resources/SO/Building/Modular/S08_대장작업대.asset";
 
@@ -51,6 +250,10 @@ public static class PhysicalItemDebugScenarios
         Run("catalog_equipment_fallback", VerifyCatalogEquipmentFallback, lines, errors);
         Run("carry_target_band_authority", VerifyCarryTargetBandAuthority, lines, errors);
         Run("carry_weight_penalty", VerifyCarryWeightPenalty, lines, errors);
+        Run("carry_unavailable_and_zero_movement",
+            VerifyUnavailableCarryAndZeroMovement,
+            lines,
+            errors);
         Run("equipped_hauling_harness_mass_single_authority",
             VerifyEquippedHaulingHarnessMassSingleAuthority,
             lines,
@@ -291,6 +494,201 @@ public static class PhysicalItemDebugScenarios
         }
     }
 
+    private static string VerifyUnavailableCarryAndZeroMovement()
+    {
+        GameObject carrier = new("PhysicalItemUnavailableCarryTest");
+        try
+        {
+            CharacterCarryInventory inventory =
+                carrier.AddComponent<CharacterCarryInventory>();
+            CharacterActor actor = InitializeFixtureActor(carrier);
+            Require(ReferenceEquals(actor.CarryInventory, inventory),
+                "fixture actor did not cache its prepared carry inventory");
+            TestCatalogProvider catalog = new();
+            TestHaulingSettings settings = new(
+                CharacterCarryTuning.DefaultMaxCarryMultiplier);
+            inventory.Configure(
+                catalog,
+                new PhysicalItemMassQuery(catalog),
+                settings,
+                new CharacterCarryInventoryRegistry());
+            Require(inventory.TryAdd(
+                    "test:retained-load",
+                    "item:heavy",
+                    1,
+                    catalog,
+                    settings,
+                    out string addFailure),
+                $"failed to prepare retained carry load: {addFailure}");
+
+            FixedCharacterPerformanceQuery performance = new(
+                CreateCarryPerformanceSnapshot(
+                    0f,
+                    isApplicable: false,
+                    new CharacterPerformanceFailure
+                    {
+                        Code = "RequiredFunctionalCapacityBelowThreshold",
+                        CapacityId = CharacterFunctionalCapacityIds.PhysicalPower,
+                        CurrentValue = 0.09f,
+                        RequiredValue = 0.1f,
+                        Message = "fixture required physical power unavailable"
+                    }));
+            SetCharacterPerformanceAuthority(actor.Stats, performance);
+
+            Require(Mathf.Approximately(inventory.GetBaseCarryLimit(), 0f),
+                "required-capacity failure did not project zero carry capacity");
+            Require(Mathf.Approximately(inventory.GetMaxAllowedWeight(settings), 0f),
+                "zero base capacity did not project zero hard capacity");
+            Require(inventory.GetMaxAcceptableQuantity(
+                    "item:heavy",
+                    1,
+                    catalog,
+                    settings) == 0,
+                "zero capacity accepted a new pickup");
+            Require(Mathf.Approximately(
+                    inventory.GetMoveSpeedMultiplier(catalog, settings),
+                    0f),
+                "positive retained load with zero capacity did not stop movement");
+            Require(Mathf.Approximately(actor.GetMoveSpeed(), 0f),
+                "actor facade did not preserve carry-unavailable movement zero");
+            Require(Mathf.Approximately(
+                    CharacterMovementKinematics.GetMoveSpeed(actor, 1f),
+                    0f),
+                "movement kinematics replaced an actor movement zero");
+
+            inventory.RemoveAllItems();
+            Require(Mathf.Approximately(
+                    inventory.GetMoveSpeedMultiplier(catalog, settings),
+                    1f),
+                "empty inventory with zero capacity did not remain unburdened");
+            Require(actor.GetMoveSpeed() > 0f,
+                "empty inventory incorrectly made independent movement unavailable");
+
+            performance.Snapshot = CreateCarryPerformanceSnapshot(
+                0f,
+                isApplicable: false,
+                new CharacterPerformanceFailure
+                {
+                    Code = "MissingProficiencyContext",
+                    Message = "fixture missing authority"
+                });
+            Require(RejectsInvalidOperation(() => inventory.GetBaseCarryLimit()),
+                "unrecognized unavailable carry performance did not fail loud");
+
+            performance.Snapshot = CreateCarryPerformanceSnapshot(
+                0f,
+                isApplicable: false,
+                new CharacterPerformanceFailure
+                {
+                    Code = "RequiredFunctionalCapacityBelowThreshold",
+                    CapacityId = CharacterFunctionalCapacityIds.PhysicalPower,
+                    CurrentValue = 0.2f,
+                    RequiredValue = 0.1f,
+                    Message = "fixture corrupt threshold relation"
+                });
+            Require(RejectsInvalidOperation(() => inventory.GetBaseCarryLimit()),
+                "malformed required-capacity failure did not fail loud");
+
+            foreach (float invalidValue in new[]
+                     {
+                         0f,
+                         -0.1f,
+                         float.NaN,
+                         float.PositiveInfinity
+                     })
+            {
+                performance.Snapshot = CreateCarryPerformanceSnapshot(
+                    invalidValue,
+                    isApplicable: true,
+                    failure: null);
+                Require(
+                    RejectsArgumentOutOfRange(() => inventory.GetBaseCarryLimit()),
+                    $"applicable invalid carry performance {invalidValue} did not fail loud");
+            }
+
+            Require(Mathf.Approximately(
+                    CharacterMovementKinematics.GetMoveSpeed(null, 0f),
+                    0f),
+                "actor-less movement zero was replaced by a minimum fallback");
+            foreach (float invalidSpeed in new[]
+                     {
+                         -0.1f,
+                         float.NaN,
+                         float.PositiveInfinity
+                     })
+            {
+                Require(RejectsArgumentOutOfRange(() =>
+                        CharacterMovementKinematics.GetMoveSpeed(
+                            null,
+                            invalidSpeed)),
+                    $"invalid movement speed {invalidSpeed} did not fail loud");
+            }
+
+            return "capacity=0kg; pickup=0; loadedMove=0; emptyMove=positive; "
+                + "invalidApplicable=4; invalidUnavailable=2; invalidMovement=3";
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(carrier);
+        }
+    }
+
+    private static CharacterPerformanceSnapshot CreateCarryPerformanceSnapshot(
+        float value,
+        bool isApplicable,
+        CharacterPerformanceFailure failure) => new()
+    {
+        FormulaId = "performance:survival:haul-capacity",
+        DisplayName = "Fixture haul capacity",
+        Value = value,
+        IsApplicable = isApplicable,
+        Failure = failure,
+        Contributions = Array.Empty<CharacterPerformanceContributionTrace>()
+    };
+
+    private static void SetCharacterPerformanceAuthority(
+        CharacterStats stats,
+        ICharacterPerformanceQuery performance)
+    {
+        FieldInfo field = typeof(CharacterStats).GetField(
+            "performance",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        if (field == null)
+        {
+            throw new InvalidOperationException(
+                "CharacterStats performance authority field is missing.");
+        }
+
+        field.SetValue(
+            stats ?? throw new ArgumentNullException(nameof(stats)),
+            performance ?? throw new ArgumentNullException(nameof(performance)));
+    }
+
+    private static void SetActorWorldItemRuntime(
+        CharacterActor actor,
+        IWorldItemStackRuntime runtime)
+    {
+        CharacterActorRuntimeBridge bridge = (actor
+                ?? throw new ArgumentNullException(nameof(actor)))
+            .GetComponent<CharacterActorRuntimeBridge>()
+            ?? throw new InvalidOperationException(
+                "Fixture actor runtime bridge is missing.");
+        PropertyInfo property = typeof(CharacterActorRuntimeBridge).GetProperty(
+            nameof(CharacterActorRuntimeBridge.WorldItemStackRuntime),
+            BindingFlags.Instance | BindingFlags.Public);
+        MethodInfo setter = property?.GetSetMethod(nonPublic: true)
+            ?? throw new InvalidOperationException(
+                "Fixture actor world-item runtime setter is missing.");
+        setter.Invoke(
+            bridge,
+            new object[]
+            {
+                runtime ?? throw new ArgumentNullException(nameof(runtime))
+            });
+        Require(ReferenceEquals(bridge.WorldItemStackRuntime, runtime),
+            "Fixture actor did not retain the physical item runtime.");
+    }
+
     [MenuItem("DungeonStory/Debug/Items/Run Warehouse Stored Consumption Focused")]
     public static void RunWarehouseStoredConsumptionFocused()
     {
@@ -312,6 +710,10 @@ public static class PhysicalItemDebugScenarios
         List<string> errors = new();
         Run("carry_target_band_authority", VerifyCarryTargetBandAuthority, lines, errors);
         Run("carry_weight_penalty", VerifyCarryWeightPenalty, lines, errors);
+        Run("carry_unavailable_and_zero_movement",
+            VerifyUnavailableCarryAndZeroMovement,
+            lines,
+            errors);
         Run("equipped_hauling_harness_mass_single_authority",
             VerifyEquippedHaulingHarnessMassSingleAuthority,
             lines,
@@ -319,8 +721,8 @@ public static class PhysicalItemDebugScenarios
         lines.Insert(
             0,
             errors.Count == 0
-                ? "RESULT=PASS; cases=3; failed=0"
-                : $"RESULT=FAIL; cases=3; failed={errors.Count}");
+                ? "RESULT=PASS; cases=4; failed=0"
+                : $"RESULT=FAIL; cases=4; failed={errors.Count}");
         File.WriteAllLines(CarryCapacityReportPath, lines);
         if (errors.Count > 0)
         {
@@ -425,6 +827,7 @@ public static class PhysicalItemDebugScenarios
             "Authored hauling harness workwear authority is missing.");
 
         GameObject carrier = new("PhysicalItemHarnessMassTest");
+        WorldItemStackRuntime runtime = null;
         try
         {
             CharacterActor actor = InitializeFixtureActor(carrier);
@@ -444,11 +847,90 @@ public static class PhysicalItemDebugScenarios
                 massQuery,
                 settings,
                 new CharacterCarryInventoryRegistry());
+            FixedEnvironmentalWorkwearQuery workwear = new(harness);
             inventory.ConstructHaulingHarness(
-                new FixedEnvironmentalWorkwearQuery(harness),
+                workwear,
                 NoEnvironmentalWorkwearCommand.Instance);
             inventory.ConstructEquippedApparelMass(
                 new FixedEquippedApparelMassQuery(1150L));
+
+            runtime = CreateRuntime(
+                out WorldItemRepository repository,
+                out _,
+                out _,
+                out _,
+                out _,
+                itemCatalogOverride: catalog);
+            runtime.Start();
+            SetActorWorldItemRuntime(actor, runtime);
+            string equippedDestination =
+                CharacterApparelAggregate.EquippedDestinationPrefix
+                + actor.Identity.PersistentId;
+            ItemInstanceComponentSaveData[] harnessComponents =
+            {
+                ApparelItemStateCodec.Create(new ApparelInstanceState
+                {
+                    apparelDefinitionId = "apparel:hauling-harness",
+                    primaryMaterialId = "textile:common-wool",
+                    craftsmanshipQuality = CraftsmanshipQualityTier.Masterwork,
+                    sourceKind = TextileSourceKind.Animal,
+                    sourceDefinitionId = "textile:common-wool",
+                    size = ApparelSizeClass.Medium,
+                    durability = 37f,
+                    moisture = 0f,
+                    contamination = 0f,
+                    craftedAbsoluteDay = 11,
+                    deterministicBatchHash = 0xA11CEUL
+                })
+            };
+            string harnessStackId = WorldItemRepositoryEditorAccess.AddStack(
+                repository,
+                DurableToolItemRules.HaulingHarness,
+                1,
+                WorldItemStackState.Carried,
+                destinationId: equippedDestination,
+                itemInstanceId: HaulingHarnessFixtureInstanceId,
+                components: harnessComponents);
+            WorldItemStackSnapshot harnessStack = runtime.GetAllStacks()
+                .Single(stack => string.Equals(
+                    stack.StackId,
+                    harnessStackId,
+                    StringComparison.Ordinal));
+            Require(harnessStack.Quantity == 1
+                    && harnessStack.State == WorldItemStackState.Carried
+                    && string.Equals(
+                        harnessStack.ItemId,
+                        DurableToolItemRules.HaulingHarness,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        harnessStack.ItemInstanceId,
+                        HaulingHarnessFixtureInstanceId,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        harnessStack.DestinationId,
+                        equippedDestination,
+                        StringComparison.Ordinal),
+                "Fixture hauling harness does not have exact equipped physical ownership.");
+            Require(workwear.TryGetEquippedItemInstance(
+                    actor.Identity.TypedPersistentId,
+                    out ItemInstanceId workwearInstanceId,
+                    out _)
+                    && string.Equals(
+                        workwearInstanceId.Value,
+                        harnessStack.ItemInstanceId,
+                        StringComparison.Ordinal),
+                "Workwear and physical harness instance identities differ.");
+            PhysicalItemMassSubject harnessMassSubject =
+                PhysicalItemMassSubjectAdapter.Create(
+                    runtime.MassQuery,
+                    (ItemDefinitionId)harnessStack.ItemId,
+                    harnessStack.ItemInstanceId,
+                    harnessStack.Components);
+            long actualHarnessMassGrams = runtime.MassQuery.GetStackUnitMass(
+                (ItemDefinitionId)harnessStack.ItemId,
+                harnessMassSubject).Value;
+            Require(actualHarnessMassGrams == 1150L,
+                $"Physical harness mass was {actualHarnessMassGrams}g instead of 1150g.");
 
             float performance = actor.Stats.EvaluatePerformance(
                 "performance:survival:haul-capacity").Value;
@@ -483,6 +965,7 @@ public static class PhysicalItemDebugScenarios
         }
         finally
         {
+            runtime?.Dispose();
             UnityEngine.Object.DestroyImmediate(carrier);
         }
     }
@@ -2461,6 +2944,33 @@ public static class PhysicalItemDebugScenarios
                 ?? throw new ArgumentNullException(nameof(gridProvider)));
     }
 
+    internal static WorldItemStackRuntime CreateDeliveryRuntimeForCrossDomainFixture(
+        IGridSystemProvider gridProvider,
+        out WorldItemRepository repository,
+        out ItemQuantityReservationService quantityReservations,
+        out IReservedItemTransferService reservedTransfer,
+        out IReservedPhysicalItemBatchDispositionService reservedBatch,
+        out IPhysicalItemBatchDispositionService batch,
+        out FacilityBufferDestinationClaimRegistry destinationClaims)
+    {
+        WorldItemStackRuntime runtime = CreateRuntime(
+            out repository,
+            out _,
+            out quantityReservations,
+            out reservedTransfer,
+            out destinationClaims,
+            gridProvider: gridProvider
+                ?? throw new ArgumentNullException(nameof(gridProvider)));
+        PhysicalItemBatchDispositionService dispositions = new(
+            repository,
+            runtime.MassQuery,
+            EditorNullItemMarkerPresenter.Instance,
+            quantityReservations);
+        reservedBatch = dispositions;
+        batch = dispositions;
+        return runtime;
+    }
+
     private static string VerifyExpiredCommittedCarryRestore()
     {
         MutableGameClock clock = new MutableGameClock();
@@ -3167,6 +3677,13 @@ public static class PhysicalItemDebugScenarios
             quantityReservations: quantityReservations,
             quantityLeaseMutations: quantityReservations,
             bufferAggregation: bufferAggregation,
+            physicalItemRelocations:
+                new DeterministicPhysicalItemRelocationOutcomeFixture()
+                    .CreateService(
+                        repository,
+                        massQuery,
+                        itemCatalog,
+                        EditorNullItemMarkerPresenter.Instance),
             warehouseMassAdmission: null,
             retailStockPhysical: retailStockPhysical);
         reservedTransfer = itemTransferService;
@@ -4572,6 +5089,44 @@ public static class PhysicalItemDebugScenarios
         }
     }
 
+    private sealed class FixedCharacterPerformanceQuery :
+        ICharacterPerformanceQuery
+    {
+        public FixedCharacterPerformanceQuery(
+            CharacterPerformanceSnapshot snapshot)
+        {
+            Snapshot = snapshot
+                ?? throw new ArgumentNullException(nameof(snapshot));
+        }
+
+        public CharacterPerformanceSnapshot Snapshot { get; set; }
+
+        public CharacterFunctionalCapacitySnapshot GetFunctionalCapacities(
+            CharacterActor actor) => throw new InvalidOperationException(
+            "The carry-focused fixture does not project functional capacities.");
+
+        public CharacterPerformanceSnapshot Evaluate(
+            CharacterActor actor,
+            string formulaId,
+            float contextFactor = 1f,
+            GameplayEffectContext effectContext = null) => Snapshot;
+
+        public CharacterPerformanceSnapshot Evaluate(
+            CharacterActor actor,
+            string formulaId,
+            CharacterPerformanceEvaluationContext context) => Snapshot;
+
+        public CharacterPerformanceSnapshot EvaluateWork(
+            CharacterActor actor,
+            WorkTypeId workTypeId,
+            CharacterPerformanceResultChannel resultChannel,
+            CharacterPerformanceEvaluationContext context) => Snapshot;
+
+        public IReadOnlyList<CharacterPerformanceSnapshot> EvaluateDomain(
+            CharacterActor actor,
+            CharacterPerformanceFormulaDomain domain) => new[] { Snapshot };
+    }
+
     private sealed class TestCatalogProvider : IDungeonItemCatalogProvider
     {
         private readonly Dictionary<string, DungeonItemDefinition> definitions =
@@ -5045,6 +5600,8 @@ public static class PhysicalItemDebugScenarios
                 physicalDispositions,
                 CreateNullProxy<IWorldFilthQuery>(),
                 CreateNullProxy<IGameClock>(),
+                NoEnvironmentalFieldQuery.Instance,
+                NeutralSeasonalEventQuery.Instance,
                 CreateNullProxy<IFacilityCapabilityQuery>(),
                 CreateNullProxy<IBuildingFacilityStateChangePort>(),
                 new DungeonRuntimeAggregateRootStore()
@@ -5060,6 +5617,19 @@ public static class PhysicalItemDebugScenarios
             return false;
         }
         catch (InvalidOperationException)
+        {
+            return true;
+        }
+    }
+
+    private static bool RejectsArgumentOutOfRange(Action action)
+    {
+        try
+        {
+            action();
+            return false;
+        }
+        catch (ArgumentOutOfRangeException)
         {
             return true;
         }
@@ -5408,12 +5978,22 @@ public static class PhysicalItemDebugScenarios
         {
             bool found = TryGetEquipped(characterId, out equipped);
             itemInstanceId = found
-                ? (ItemInstanceId)"apparel-instance:qa-hauling-harness"
+                ? (ItemInstanceId)HaulingHarnessFixtureInstanceId
                 : default;
             return found;
         }
 
         public int GetAvailableStock(string workwearId) => 0;
+
+        public bool CanAutoEquipForCold(
+            CharacterActor actor,
+            Vector2Int destination,
+            out DomainFailure failure)
+        {
+            failure = new DomainFailure(
+                FailureCode.EnvironmentWorkwearStockMissing);
+            return false;
+        }
     }
 
     private sealed class NoGridProvider : IGridSystemProvider

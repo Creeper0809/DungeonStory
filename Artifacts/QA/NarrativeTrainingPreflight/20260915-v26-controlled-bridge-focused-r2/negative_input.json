@@ -1,0 +1,515 @@
+{
+  "cases": [
+    {
+      "caseId": "skill-unknown-state-field",
+      "events": [
+        {
+          "count": 1,
+          "day": 4,
+          "domain": "Combat",
+          "eventKey": "combat:riverbank-wolf",
+          "outcome": "outcome:completed",
+          "text": "강둑에서 늑대가 달려들자 연호는 옆으로 피한 뒤 짐막대로 한 번 쳐서 물러나게 했다.",
+          "valueDecimal": "1"
+        },
+        {
+          "count": 1,
+          "day": 5,
+          "domain": "Work",
+          "eventKey": "work:wet-rope",
+          "outcome": "outcome:completed",
+          "text": "연호는 비에 젖은 밧줄을 펴서 말리고, 풀어진 끝을 다시 묶었다.",
+          "valueDecimal": "1"
+        }
+      ],
+      "profileId": "CharacterSkill",
+      "scenarioFamilyId": "authored:riverbank-rescue",
+      "state": {
+        "inventedBudget": 999,
+        "kind": "Active",
+        "pity": false,
+        "potential": "Ordinary",
+        "requestRevision": 0,
+        "unlockLevel": 1
+      },
+      "subject": {
+        "background": "연호는 강가의 짐터에서 밧줄을 손질하며 지낸다. 물가에서는 미끄러운 돌을 밟지 않으려 발밑부터 살핀다.",
+        "displayName": "연호",
+        "persistentId": "character:authored:riverbank-rescue"
+      }
+    },
+    {
+      "caseId": "skill-numeric-enum-alias",
+      "events": [
+        {
+          "count": 1,
+          "day": 4,
+          "domain": "Combat",
+          "eventKey": "combat:riverbank-wolf",
+          "outcome": "outcome:completed",
+          "text": "강둑에서 늑대가 달려들자 연호는 옆으로 피한 뒤 짐막대로 한 번 쳐서 물러나게 했다.",
+          "valueDecimal": "1"
+        },
+        {
+          "count": 1,
+          "day": 5,
+          "domain": "Work",
+          "eventKey": "work:wet-rope",
+          "outcome": "outcome:completed",
+          "text": "연호는 비에 젖은 밧줄을 펴서 말리고, 풀어진 끝을 다시 묶었다.",
+          "valueDecimal": "1"
+        }
+      ],
+      "profileId": "CharacterSkill",
+      "scenarioFamilyId": "authored:riverbank-rescue",
+      "state": {
+        "kind": "0",
+        "pity": false,
+        "potential": "Ordinary",
+        "requestRevision": 0,
+        "unlockLevel": 1
+      },
+      "subject": {
+        "background": "연호는 강가의 짐터에서 밧줄을 손질하며 지낸다. 물가에서는 미끄러운 돌을 밟지 않으려 발밑부터 살핀다.",
+        "displayName": "연호",
+        "persistentId": "character:authored:riverbank-rescue"
+      }
+    },
+    {
+      "caseId": "facility-numeric-domain-alias",
+      "events": [
+        {
+          "count": 1,
+          "day": 7,
+          "domain": "1",
+          "eventKey": "work:queue-portions",
+          "outcome": "outcome:completed",
+          "text": "조리 담당자가 화덕 앞에 몰린 주문을 적어 먼저 온 손님부터 음식을 내주었다.",
+          "valueDecimal": "1"
+        },
+        {
+          "count": 1,
+          "day": 8,
+          "domain": "Work",
+          "eventKey": "work:split-firewood",
+          "outcome": "outcome:completed",
+          "text": "마른 장작과 젖은 장작을 따로 쌓은 뒤 마른 장작부터 화덕에 넣었다.",
+          "valueDecimal": "1"
+        }
+      ],
+      "profileId": "FacilityEvolution",
+      "scenarioFamilyId": "authored:market-hearth",
+      "state": {
+        "lineageTags": [],
+        "mutationTags": [],
+        "sourceFacilityId": "building:1000",
+        "starGrade": 1,
+        "unlockedResearchIds": []
+      },
+      "subject": {
+        "background": "장터 입구의 간이화덕이다. 점심 무렵이면 짐꾼들이 들러 데운 음식을 받아 간다.",
+        "displayName": "간이화덕",
+        "persistentId": "building:authored:market-hearth"
+      }
+    },
+    {
+      "caseId": "facility-unknown-definition",
+      "events": [
+        {
+          "count": 1,
+          "day": 7,
+          "domain": "Work",
+          "eventKey": "work:queue-portions",
+          "outcome": "outcome:completed",
+          "text": "조리 담당자가 화덕 앞에 몰린 주문을 적어 먼저 온 손님부터 음식을 내주었다.",
+          "valueDecimal": "1"
+        },
+        {
+          "count": 1,
+          "day": 8,
+          "domain": "Work",
+          "eventKey": "work:split-firewood",
+          "outcome": "outcome:completed",
+          "text": "마른 장작과 젖은 장작을 따로 쌓은 뒤 마른 장작부터 화덕에 넣었다.",
+          "valueDecimal": "1"
+        }
+      ],
+      "profileId": "FacilityEvolution",
+      "scenarioFamilyId": "authored:market-hearth",
+      "state": {
+        "lineageTags": [],
+        "mutationTags": [],
+        "sourceFacilityId": "building:2147483647",
+        "starGrade": 1,
+        "unlockedResearchIds": []
+      },
+      "subject": {
+        "background": "장터 입구의 간이화덕이다. 점심 무렵이면 짐꾼들이 들러 데운 음식을 받아 간다.",
+        "displayName": "간이화덕",
+        "persistentId": "building:authored:market-hearth"
+      }
+    },
+    {
+      "caseId": "equipment-invalid-day",
+      "events": [
+        {
+          "actorId": "character:authored:gaon",
+          "actorName": "가온",
+          "count": 2,
+          "day": 3,
+          "domain": "Combat",
+          "eventId": "combat:block",
+          "eventKey": "combat:block",
+          "historicalEvidenceKind": "ProtectedOwner",
+          "outcome": "outcome:blocked",
+          "sourceTags": [
+            "melee"
+          ],
+          "text": "다리 입구에서 가온은 날아오는 돌을 방패로 두 번 막고 난간 뒤로 물러났다.",
+          "valueDecimal": "12"
+        },
+        {
+          "actorId": "character:authored:gaon",
+          "actorName": "가온",
+          "count": 1,
+          "day": -1,
+          "domain": "Combat",
+          "eventId": "combat:hit",
+          "eventKey": "combat:hit",
+          "historicalEvidenceKind": "None",
+          "outcome": "outcome:hit",
+          "sourceTags": [
+            "melee"
+          ],
+          "text": "뒤쫓던 습격자가 다가오자 가온은 방패를 앞으로 밀어 상대를 한 번 쳤다.",
+          "valueDecimal": "3"
+        }
+      ],
+      "profileId": "EquipmentChoice",
+      "scenarioFamilyId": "authored:bridge-shield-return",
+      "state": {
+        "generation": 0,
+        "ownerId": "character:authored:gaon",
+        "ownerName": "가온"
+      },
+      "subject": {
+        "background": "가온이 나루를 지킬 때 들고 다닌 나무 방패다. 금속 테두리에는 오래된 흠집이 있다.",
+        "displayName": "테두리 닳은 방패",
+        "persistentId": "equipment:authored:bridge-shield"
+      }
+    },
+    {
+      "caseId": "equipment-numeric-evidence-alias",
+      "events": [
+        {
+          "actorId": "character:authored:gaon",
+          "actorName": "가온",
+          "count": 2,
+          "day": 3,
+          "domain": "Combat",
+          "eventId": "combat:block",
+          "eventKey": "combat:block",
+          "historicalEvidenceKind": "1",
+          "outcome": "outcome:blocked",
+          "sourceTags": [
+            "melee"
+          ],
+          "text": "다리 입구에서 가온은 날아오는 돌을 방패로 두 번 막고 난간 뒤로 물러났다.",
+          "valueDecimal": "12"
+        },
+        {
+          "actorId": "character:authored:gaon",
+          "actorName": "가온",
+          "count": 1,
+          "day": 3,
+          "domain": "Combat",
+          "eventId": "combat:hit",
+          "eventKey": "combat:hit",
+          "historicalEvidenceKind": "None",
+          "outcome": "outcome:hit",
+          "sourceTags": [
+            "melee"
+          ],
+          "text": "뒤쫓던 습격자가 다가오자 가온은 방패를 앞으로 밀어 상대를 한 번 쳤다.",
+          "valueDecimal": "3"
+        }
+      ],
+      "profileId": "EquipmentChoice",
+      "scenarioFamilyId": "authored:bridge-shield-return",
+      "state": {
+        "generation": 0,
+        "ownerId": "character:authored:gaon",
+        "ownerName": "가온"
+      },
+      "subject": {
+        "background": "가온이 나루를 지킬 때 들고 다닌 나무 방패다. 금속 테두리에는 오래된 흠집이 있다.",
+        "displayName": "테두리 닳은 방패",
+        "persistentId": "equipment:authored:bridge-shield"
+      }
+    },
+    {
+      "caseId": "equipment-frozen-evidence-cap",
+      "events": [
+        {
+          "actorId": "character:authored:gaon",
+          "actorName": "가온",
+          "count": 2,
+          "day": 3,
+          "domain": "Combat",
+          "eventId": "combat:block",
+          "eventKey": "combat:block",
+          "historicalEvidenceKind": "ProtectedOwner",
+          "outcome": "outcome:blocked",
+          "sourceTags": [
+            "melee"
+          ],
+          "text": "다리 입구에서 가온은 날아오는 돌을 방패로 두 번 막고 난간 뒤로 물러났다.",
+          "valueDecimal": "12"
+        },
+        {
+          "actorId": "character:authored:gaon",
+          "actorName": "가온",
+          "count": 1,
+          "day": 3,
+          "domain": "Combat",
+          "eventId": "combat:hit",
+          "eventKey": "combat:hit",
+          "historicalEvidenceKind": "None",
+          "outcome": "outcome:hit",
+          "sourceTags": [
+            "melee"
+          ],
+          "text": "뒤쫓던 습격자가 다가오자 가온은 방패를 앞으로 밀어 상대를 한 번 쳤다.",
+          "valueDecimal": "3"
+        },
+        {
+          "actorId": "character:authored:gaon",
+          "actorName": "가온",
+          "count": 1,
+          "day": 3,
+          "domain": "Combat",
+          "eventId": "combat:hit",
+          "eventKey": "extra-2",
+          "historicalEvidenceKind": "None",
+          "outcome": "outcome:hit",
+          "sourceTags": [
+            "melee"
+          ],
+          "text": "뒤쫓던 습격자가 다가오자 가온은 방패를 앞으로 밀어 상대를 한 번 쳤다.",
+          "valueDecimal": "3"
+        },
+        {
+          "actorId": "character:authored:gaon",
+          "actorName": "가온",
+          "count": 1,
+          "day": 3,
+          "domain": "Combat",
+          "eventId": "combat:hit",
+          "eventKey": "extra-3",
+          "historicalEvidenceKind": "None",
+          "outcome": "outcome:hit",
+          "sourceTags": [
+            "melee"
+          ],
+          "text": "뒤쫓던 습격자가 다가오자 가온은 방패를 앞으로 밀어 상대를 한 번 쳤다.",
+          "valueDecimal": "3"
+        },
+        {
+          "actorId": "character:authored:gaon",
+          "actorName": "가온",
+          "count": 1,
+          "day": 3,
+          "domain": "Combat",
+          "eventId": "combat:hit",
+          "eventKey": "extra-4",
+          "historicalEvidenceKind": "None",
+          "outcome": "outcome:hit",
+          "sourceTags": [
+            "melee"
+          ],
+          "text": "뒤쫓던 습격자가 다가오자 가온은 방패를 앞으로 밀어 상대를 한 번 쳤다.",
+          "valueDecimal": "3"
+        },
+        {
+          "actorId": "character:authored:gaon",
+          "actorName": "가온",
+          "count": 1,
+          "day": 3,
+          "domain": "Combat",
+          "eventId": "combat:hit",
+          "eventKey": "extra-5",
+          "historicalEvidenceKind": "None",
+          "outcome": "outcome:hit",
+          "sourceTags": [
+            "melee"
+          ],
+          "text": "뒤쫓던 습격자가 다가오자 가온은 방패를 앞으로 밀어 상대를 한 번 쳤다.",
+          "valueDecimal": "3"
+        },
+        {
+          "actorId": "character:authored:gaon",
+          "actorName": "가온",
+          "count": 1,
+          "day": 3,
+          "domain": "Combat",
+          "eventId": "combat:hit",
+          "eventKey": "extra-6",
+          "historicalEvidenceKind": "None",
+          "outcome": "outcome:hit",
+          "sourceTags": [
+            "melee"
+          ],
+          "text": "뒤쫓던 습격자가 다가오자 가온은 방패를 앞으로 밀어 상대를 한 번 쳤다.",
+          "valueDecimal": "3"
+        },
+        {
+          "actorId": "character:authored:gaon",
+          "actorName": "가온",
+          "count": 1,
+          "day": 3,
+          "domain": "Combat",
+          "eventId": "combat:hit",
+          "eventKey": "extra-7",
+          "historicalEvidenceKind": "None",
+          "outcome": "outcome:hit",
+          "sourceTags": [
+            "melee"
+          ],
+          "text": "뒤쫓던 습격자가 다가오자 가온은 방패를 앞으로 밀어 상대를 한 번 쳤다.",
+          "valueDecimal": "3"
+        },
+        {
+          "actorId": "character:authored:gaon",
+          "actorName": "가온",
+          "count": 1,
+          "day": 3,
+          "domain": "Combat",
+          "eventId": "combat:hit",
+          "eventKey": "extra-8",
+          "historicalEvidenceKind": "None",
+          "outcome": "outcome:hit",
+          "sourceTags": [
+            "melee"
+          ],
+          "text": "뒤쫓던 습격자가 다가오자 가온은 방패를 앞으로 밀어 상대를 한 번 쳤다.",
+          "valueDecimal": "3"
+        }
+      ],
+      "profileId": "EquipmentChoice",
+      "scenarioFamilyId": "authored:bridge-shield-return",
+      "state": {
+        "generation": 0,
+        "ownerId": "character:authored:gaon",
+        "ownerName": "가온"
+      },
+      "subject": {
+        "background": "가온이 나루를 지킬 때 들고 다닌 나무 방패다. 금속 테두리에는 오래된 흠집이 있다.",
+        "displayName": "테두리 닳은 방패",
+        "persistentId": "equipment:authored:bridge-shield"
+      }
+    },
+    {
+      "caseId": "history-wrong-choice-binding",
+      "events": [
+        {
+          "actorId": "character:authored:gaon",
+          "actorName": "가온",
+          "count": 2,
+          "day": 3,
+          "domain": "Combat",
+          "eventId": "combat:block",
+          "eventKey": "combat:block",
+          "historicalEvidenceKind": "ProtectedOwner",
+          "outcome": "outcome:blocked",
+          "sourceTags": [
+            "melee"
+          ],
+          "text": "다리 입구에서 가온은 날아오는 돌을 방패로 두 번 막고 난간 뒤로 물러났다.",
+          "valueDecimal": "12"
+        },
+        {
+          "actorId": "character:authored:gaon",
+          "actorName": "가온",
+          "count": 1,
+          "day": 3,
+          "domain": "Combat",
+          "eventId": "combat:hit",
+          "eventKey": "combat:hit",
+          "historicalEvidenceKind": "None",
+          "outcome": "outcome:hit",
+          "sourceTags": [
+            "melee"
+          ],
+          "text": "뒤쫓던 습격자가 다가오자 가온은 방패를 앞으로 밀어 상대를 한 번 쳤다.",
+          "valueDecimal": "3"
+        }
+      ],
+      "profileId": "EvolutionHistory",
+      "scenarioFamilyId": "authored:bridge-shield-return",
+      "state": {
+        "choiceInputHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "generation": 0,
+        "ownerId": "character:authored:gaon",
+        "ownerName": "가온",
+        "selectedIndex": 0
+      },
+      "subject": {
+        "background": "가온이 나루를 지킬 때 들고 다닌 나무 방패다. 금속 테두리에는 오래된 흠집이 있다.",
+        "displayName": "테두리 닳은 방패",
+        "persistentId": "equipment:authored:bridge-shield"
+      }
+    },
+    {
+      "caseId": "history-invalid-selected-index",
+      "events": [
+        {
+          "actorId": "character:authored:gaon",
+          "actorName": "가온",
+          "count": 2,
+          "day": 3,
+          "domain": "Combat",
+          "eventId": "combat:block",
+          "eventKey": "combat:block",
+          "historicalEvidenceKind": "ProtectedOwner",
+          "outcome": "outcome:blocked",
+          "sourceTags": [
+            "melee"
+          ],
+          "text": "다리 입구에서 가온은 날아오는 돌을 방패로 두 번 막고 난간 뒤로 물러났다.",
+          "valueDecimal": "12"
+        },
+        {
+          "actorId": "character:authored:gaon",
+          "actorName": "가온",
+          "count": 1,
+          "day": 3,
+          "domain": "Combat",
+          "eventId": "combat:hit",
+          "eventKey": "combat:hit",
+          "historicalEvidenceKind": "None",
+          "outcome": "outcome:hit",
+          "sourceTags": [
+            "melee"
+          ],
+          "text": "뒤쫓던 습격자가 다가오자 가온은 방패를 앞으로 밀어 상대를 한 번 쳤다.",
+          "valueDecimal": "3"
+        }
+      ],
+      "profileId": "EvolutionHistory",
+      "scenarioFamilyId": "authored:bridge-shield-return",
+      "state": {
+        "choiceInputHash": "sha256:c1131936a5d84420476cb61e9e728bf290d1e1269289b415581e1d6790ac770c",
+        "generation": 0,
+        "ownerId": "character:authored:gaon",
+        "ownerName": "가온",
+        "selectedIndex": 999
+      },
+      "subject": {
+        "background": "가온이 나루를 지킬 때 들고 다닌 나무 방패다. 금속 테두리에는 오래된 흠집이 있다.",
+        "displayName": "테두리 닳은 방패",
+        "persistentId": "equipment:authored:bridge-shield"
+      }
+    }
+  ],
+  "schemaVersion": 1
+}

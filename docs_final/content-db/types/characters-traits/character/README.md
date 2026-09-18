@@ -2,7 +2,7 @@
 
 종족·기초 능력·특성·작업 우선순위·AI 성향을 묶은 작성 캐릭터 원형을 제공한다
 
-총 15개 항목이며, 비교군은 실제 대체 가능성을 검토하기 위한 후보군이다.
+총 16개 항목이며, 비교군은 실제 대체 가능성을 검토하기 위한 후보군이다.
 
 ## 데이터
 
@@ -28,3 +28,4 @@
 | `character-archetype:9007` | 모르 | 종족·기초 능력·특성·작업 우선순위·AI 성향을 묶은 작성 캐릭터 원형을 제공한다 | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [Customer_Myconid.asset](../../../../../Assets/Resources/SO/Character/ExpandedSpecies/Customer_Myconid.asset) |
 | `character-archetype:9008` | 세라 | 종족·기초 능력·특성·작업 우선순위·AI 성향을 묶은 작성 캐릭터 원형을 제공한다 | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [Customer_Harpy.asset](../../../../../Assets/Resources/SO/Character/ExpandedSpecies/Customer_Harpy.asset) |
 | `character-archetype:9009` | 바살트-7 | 종족·기초 능력·특성·작업 우선순위·AI 성향을 묶은 작성 캐릭터 원형을 제공한다 | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [Customer_Golem.asset](../../../../../Assets/Resources/SO/Character/ExpandedSpecies/Customer_Golem.asset) |
+| `character-archetype:9010` | 아린 | 종족·기초 능력·특성·작업 우선순위·AI 성향을 묶은 작성 캐릭터 원형을 제공한다 | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [Customer_Human.asset](../../../../../Assets/Resources/SO/Character/ExpandedSpecies/Customer_Human.asset) |

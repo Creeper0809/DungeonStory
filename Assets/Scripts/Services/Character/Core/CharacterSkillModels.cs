@@ -39,6 +39,21 @@ public enum CharacterUltimateDomain
     Management
 }
 
+public enum CharacterSkillMechanicalPolicySource
+{
+    AuthoredRule,
+    RequestedUltimateDomain,
+    LegacyDeterministicDefault
+}
+
+public enum CharacterSkillPresentationState
+{
+    None = 0,
+    PresentationPending = 1,
+    Ready = 2,
+    AwaitingNarrativeRetry = 3
+}
+
 public enum CharacterSkillTrigger
 {
     ManualCombat,
@@ -52,7 +67,79 @@ public enum CharacterSkillTrigger
     NeedChanged,
     MoodChanged,
     RelationshipChanged,
-    OperatingDayStarted
+    OperatingDayStarted,
+    ManualWork
+}
+
+public enum CharacterSkillTargetingMode
+{
+    Self = 0,
+    PlayerSelected = 1,
+    DeterministicRandom = 2,
+    AllEligible = 3
+}
+
+public enum CharacterSkillEffectArea
+{
+    Single = 0,
+    Room = 1,
+    Square = 2,
+    Dungeon = 3
+}
+
+public static class CharacterSkillAreaRules
+{
+    public static void RequireValid(CharacterSkillTargetingMode targetingMode,
+        CharacterSkillEffectArea effectArea, int areaSize)
+    {
+        if (!Enum.IsDefined(typeof(CharacterSkillTargetingMode), targetingMode)
+            || !Enum.IsDefined(typeof(CharacterSkillEffectArea), effectArea))
+            throw new InvalidOperationException("Unknown CharacterSkill targeting metadata.");
+        if (effectArea == CharacterSkillEffectArea.Square)
+        {
+            if (areaSize < 3 || areaSize > 7 || areaSize % 2 == 0)
+                throw new InvalidOperationException(
+                    "CharacterSkill square areas require an odd size from 3 to 7.");
+        }
+        else if (areaSize != 1)
+        {
+            throw new InvalidOperationException(
+                "Only square CharacterSkill areas may author areaSize above one.");
+        }
+        if (targetingMode == CharacterSkillTargetingMode.AllEligible
+            && effectArea != CharacterSkillEffectArea.Dungeon)
+            throw new InvalidOperationException(
+                "AllEligible CharacterSkill targeting requires Dungeon area.");
+        if (effectArea == CharacterSkillEffectArea.Dungeon
+            && targetingMode != CharacterSkillTargetingMode.AllEligible)
+            throw new InvalidOperationException(
+                "Dungeon CharacterSkill area requires AllEligible targeting.");
+        if (targetingMode == CharacterSkillTargetingMode.Self
+            && effectArea != CharacterSkillEffectArea.Single)
+            throw new InvalidOperationException(
+                "Self CharacterSkill targeting requires Single area.");
+    }
+
+    public static int ResolveCostTargetCount(CharacterSkillEffectArea effectArea,
+        int areaSize, int authoredTargetCount)
+    {
+        RequireValid(effectArea == CharacterSkillEffectArea.Dungeon
+                ? CharacterSkillTargetingMode.AllEligible
+                : effectArea == CharacterSkillEffectArea.Single
+                    ? CharacterSkillTargetingMode.Self
+                    : CharacterSkillTargetingMode.PlayerSelected,
+            effectArea,
+            areaSize);
+        int estimate = effectArea switch
+        {
+            CharacterSkillEffectArea.Single => 1,
+            CharacterSkillEffectArea.Room => 3,
+            CharacterSkillEffectArea.Square => areaSize,
+            CharacterSkillEffectArea.Dungeon => 8,
+            _ => 1
+        };
+        return Math.Max(authoredTargetCount, estimate);
+    }
 }
 
 public enum CharacterSkillTarget
@@ -97,9 +184,53 @@ public sealed class CharacterSkillModuleSelection
 }
 
 [Serializable]
+public sealed class CharacterSkillDrawbackEffectEnvelope
+{
+    public string drawbackModuleId = string.Empty;
+    public string effectId = string.Empty;
+    public string targetId = string.Empty;
+    public GameplayEffectOperation operation;
+    public float value = 1f;
+    [Min(1)] public int severityUnits = 1;
+    public string displayName = string.Empty;
+
+    /// <summary>
+    /// Unity JsonUtility materializes an absent nested envelope with these exact
+    /// field defaults. Only that complete sentinel is equivalent to a null stat
+    /// effect; any partially populated or numerically changed envelope is data.
+    /// </summary>
+    public static bool IsExactSerializedAbsence(
+        CharacterSkillDrawbackEffectEnvelope effect)
+    {
+        return effect != null
+            && string.IsNullOrEmpty(effect.drawbackModuleId)
+            && string.IsNullOrEmpty(effect.effectId)
+            && string.IsNullOrEmpty(effect.targetId)
+            && effect.operation == GameplayEffectOperation.AddFlat
+            && effect.value == 1f
+            && effect.severityUnits == 1
+            && string.IsNullOrEmpty(effect.displayName);
+    }
+
+    public CharacterSkillDrawbackEffectEnvelope Clone() =>
+        new CharacterSkillDrawbackEffectEnvelope
+        {
+            drawbackModuleId = drawbackModuleId,
+            effectId = effectId,
+            targetId = targetId,
+            operation = operation,
+            value = value,
+            severityUnits = severityUnits,
+            displayName = displayName
+        };
+}
+
+[Serializable]
 public sealed class CharacterSkillInstance
 {
     public string id = string.Empty;
+    public string ruleId = string.Empty;
+    public string combinationId = string.Empty;
     public string displayName = string.Empty;
     [TextArea] public string description = string.Empty;
     [TextArea] public string narrativeReason = string.Empty;
@@ -107,24 +238,57 @@ public sealed class CharacterSkillInstance
     public CharacterSkillRarity rarity;
     public CharacterSkillTrigger trigger;
     public CharacterSkillTarget target;
+    public CharacterSkillTargetingMode targetingMode;
+    public CharacterSkillEffectArea effectArea;
+    [Min(1)] public int areaSize = 1;
     public CharacterUltimateDomain ultimateDomain;
     [Min(0)] public int cooldownTurns;
+    [Min(0)] public int manualDurationHours;
+    [Min(0)] public int manualCooldownDays;
     public OffenseFormationMask usableFrom = OffenseFormationMask.Any;
     public OffenseFormationMask targetPositions = OffenseFormationMask.Any;
     public List<CharacterSkillModuleSelection> modules = new List<CharacterSkillModuleSelection>();
     public string requestKey = string.Empty;
     public NarrativeGenerationTrace narrativeTrace;
+    [Tooltip("0 preserves legacy authored variant values. Positive versions require generated formula envelopes.")]
+    public int formulaVersion;
+    public string formulaCatalogSha256 = string.Empty;
+    [Min(0)] public int calculatedCost;
+    [Min(0)] public int positiveCost;
+    [Min(0)] public int drawbackCredit;
+    public string drawbackId = string.Empty;
+    public CharacterSkillDrawbackEffectEnvelope drawbackEffect;
+    [Min(0)] public int narrativeBudget;
+    public bool drawbackEvidenceQualified;
+    public List<string> evidenceIds = new List<string>();
+    public List<GameplayOutcomeEvidenceBindingSnapshot> evidenceBindings = new();
+    public List<CharacterSkillFormulaCapabilityEnvelope> formulaCapabilities =
+        new List<CharacterSkillFormulaCapabilityEnvelope>();
+    public string presentationId = string.Empty;
+    [TextArea] public string mechanicalDescription = string.Empty;
+    [TextArea] public string narrativeFlavor = string.Empty;
 
-    public bool IsReady => !string.IsNullOrWhiteSpace(id)
-        && !string.IsNullOrWhiteSpace(displayName)
-        && modules != null
-        && modules.Count > 0;
+    public bool IsReady => formulaVersion == 0
+        ? !string.IsNullOrWhiteSpace(id)
+            && !string.IsNullOrWhiteSpace(displayName)
+            && modules != null
+            && modules.Count > 0
+        : formulaVersion > 0
+            && !string.IsNullOrWhiteSpace(id)
+            && !string.IsNullOrWhiteSpace(displayName)
+            && !string.IsNullOrWhiteSpace(presentationId)
+            && !string.IsNullOrWhiteSpace(mechanicalDescription)
+            && !string.IsNullOrWhiteSpace(narrativeFlavor)
+            && formulaCapabilities != null
+            && formulaCapabilities.Count > 0;
 
     public CharacterSkillInstance Clone()
     {
         return new CharacterSkillInstance
         {
             id = id,
+            ruleId = ruleId,
+            combinationId = combinationId,
             displayName = displayName,
             description = description,
             narrativeReason = narrativeReason,
@@ -132,8 +296,13 @@ public sealed class CharacterSkillInstance
             rarity = rarity,
             trigger = trigger,
             target = target,
+            targetingMode = targetingMode,
+            effectArea = effectArea,
+            areaSize = areaSize,
             ultimateDomain = ultimateDomain,
             cooldownTurns = cooldownTurns,
+            manualDurationHours = manualDurationHours,
+            manualCooldownDays = manualCooldownDays,
             usableFrom = usableFrom == OffenseFormationMask.None
                 ? OffenseFormationMask.Any
                 : usableFrom,
@@ -143,7 +312,27 @@ public sealed class CharacterSkillInstance
             modules = modules?.Where(item => item != null).Select(item => item.Clone()).ToList()
                 ?? new List<CharacterSkillModuleSelection>(),
             requestKey = requestKey,
-            narrativeTrace = narrativeTrace
+            narrativeTrace = narrativeTrace,
+            formulaVersion = formulaVersion,
+            formulaCatalogSha256 = formulaCatalogSha256,
+            calculatedCost = calculatedCost,
+            positiveCost = positiveCost,
+            drawbackCredit = drawbackCredit,
+            drawbackId = drawbackId,
+            drawbackEffect = drawbackEffect?.Clone(),
+            narrativeBudget = narrativeBudget,
+            drawbackEvidenceQualified = drawbackEvidenceQualified,
+            evidenceIds = evidenceIds?.ToList() ?? new List<string>(),
+            evidenceBindings = evidenceBindings?
+                .Where(value => value != null)
+                .Select(value => value.Clone()).ToList()
+                ?? new List<GameplayOutcomeEvidenceBindingSnapshot>(),
+            formulaCapabilities = formulaCapabilities?.Where(item => item != null)
+                .Select(item => item.Clone()).ToList()
+                ?? new List<CharacterSkillFormulaCapabilityEnvelope>(),
+            presentationId = presentationId,
+            mechanicalDescription = mechanicalDescription,
+            narrativeFlavor = narrativeFlavor
         };
     }
 }
@@ -151,10 +340,19 @@ public sealed class CharacterSkillInstance
 [Serializable]
 public sealed class CharacterSkillCandidateRule
 {
+    public string ruleId = string.Empty;
     public CharacterSkillRarity rarity;
     [Min(1)] public int budget = 1;
     public CharacterSkillTrigger trigger;
     public CharacterSkillTarget target;
+    public CharacterSkillTargetingMode targetingMode;
+    public CharacterSkillEffectArea effectArea;
+    [Min(1)] public int areaSize = 1;
+    public CharacterUltimateDomain ultimateDomain;
+    [Min(0)] public int cooldownTurns;
+    [Min(0)] public int manualDurationHours;
+    [Min(0)] public int manualCooldownDays;
+    public CharacterSkillMechanicalPolicySource mechanicalPolicySource;
     public OffenseFormationMask usableFrom = OffenseFormationMask.Any;
     public OffenseFormationMask targetPositions = OffenseFormationMask.Any;
     public List<string> allowedModuleIds = new List<string>();
@@ -164,10 +362,19 @@ public sealed class CharacterSkillCandidateRule
     {
         return new CharacterSkillCandidateRule
         {
+            ruleId = ruleId,
             rarity = rarity,
             budget = budget,
             trigger = trigger,
             target = target,
+            targetingMode = targetingMode,
+            effectArea = effectArea,
+            areaSize = areaSize,
+            ultimateDomain = ultimateDomain,
+            cooldownTurns = cooldownTurns,
+            manualDurationHours = manualDurationHours,
+            manualCooldownDays = manualCooldownDays,
+            mechanicalPolicySource = mechanicalPolicySource,
             usableFrom = usableFrom == OffenseFormationMask.None
                 ? OffenseFormationMask.Any
                 : usableFrom,
@@ -262,6 +469,17 @@ public sealed class CharacterSkillDraft
     public bool grantsUpperRarityPity;
     public List<CharacterSkillCandidateRule> rules = new List<CharacterSkillCandidateRule>();
     public List<CharacterSkillInstance> candidates = new List<CharacterSkillInstance>();
+    public int formulaVersion;
+    public string formulaCatalogSha256 = string.Empty;
+    [Min(0)] public int formulaBudget;
+    public CharacterSkillPresentationState presentationState;
+    [Min(0)] public int presentationFailureCount;
+    [Min(0)] public int nextPresentationIndex;
+    public List<CharacterSkillInstance> frozenMechanics =
+        new List<CharacterSkillInstance>();
+    public List<CharacterSkillModuleOfferState> moduleSelectionOffers =
+        new List<CharacterSkillModuleOfferState>();
+    public List<GameplayOutcomeEvidenceBindingSnapshot> outcomeEvidenceBindings = new();
 
     public CharacterSkillInstance ChosenSkill => permanentlyChosen
         && chosenIndex >= 0
@@ -286,9 +504,83 @@ public sealed class CharacterSkillDraft
             rules = rules?.Where(item => item != null).Select(item => item.Clone()).ToList()
                 ?? new List<CharacterSkillCandidateRule>(),
             candidates = candidates?.Where(item => item != null).Select(item => item.Clone()).ToList()
-                ?? new List<CharacterSkillInstance>()
+                ?? new List<CharacterSkillInstance>(),
+            formulaVersion = formulaVersion,
+            formulaCatalogSha256 = formulaCatalogSha256,
+            formulaBudget = formulaBudget,
+            presentationState = presentationState,
+            presentationFailureCount = presentationFailureCount,
+            nextPresentationIndex = nextPresentationIndex,
+            frozenMechanics = frozenMechanics?.Where(item => item != null)
+                .Select(item => item.Clone()).ToList()
+                ?? new List<CharacterSkillInstance>(),
+            moduleSelectionOffers = moduleSelectionOffers?.Where(item => item != null)
+                .Select(item => item.Clone()).ToList()
+                ?? new List<CharacterSkillModuleOfferState>(),
+            outcomeEvidenceBindings = outcomeEvidenceBindings?
+                .Where(value => value != null)
+                .Select(value => value.Clone()).ToList()
+                ?? new List<GameplayOutcomeEvidenceBindingSnapshot>()
         };
     }
+}
+
+[Serializable]
+public sealed class CharacterSkillModuleOfferState
+{
+    public string selectionId = string.Empty;
+    public string ruleId = string.Empty;
+    public List<string> positiveModuleIds = new List<string>();
+    public List<string> drawbackModuleIds = new List<string>();
+    public List<string> evidenceFactIds = new List<string>();
+    public List<string> qualifiedNegativeEvidenceFactIds = new List<string>();
+    [Min(1)] public int maximumPositiveModules = 3;
+    [Min(0)] public int maximumDrawbackModules;
+
+    public CharacterSkillModuleOfferState Clone() => new CharacterSkillModuleOfferState
+    {
+        selectionId = selectionId,
+        ruleId = ruleId,
+        positiveModuleIds = positiveModuleIds?.ToList() ?? new List<string>(),
+        drawbackModuleIds = drawbackModuleIds?.ToList() ?? new List<string>(),
+        evidenceFactIds = evidenceFactIds?.ToList() ?? new List<string>(),
+        qualifiedNegativeEvidenceFactIds = qualifiedNegativeEvidenceFactIds?.ToList()
+            ?? new List<string>(),
+        maximumPositiveModules = maximumPositiveModules,
+        maximumDrawbackModules = maximumDrawbackModules
+    };
+}
+
+[Serializable]
+public sealed class CharacterManualSkillCooldownState
+{
+    public string skillId = string.Empty;
+    public long readyAbsoluteHour;
+    public int useCount;
+
+    public CharacterManualSkillCooldownState Clone() => new CharacterManualSkillCooldownState
+    {
+        skillId = skillId,
+        readyAbsoluteHour = readyAbsoluteHour,
+        useCount = useCount
+    };
+}
+
+[Serializable]
+public sealed class CharacterManualSkillBuffState
+{
+    public string sourceCharacterId = string.Empty;
+    public string skillId = string.Empty;
+    public long expiresAbsoluteHour;
+    public CharacterSkillInstance frozenSkill;
+
+    public CharacterManualSkillBuffState Clone() => new CharacterManualSkillBuffState
+    {
+        sourceCharacterId = sourceCharacterId,
+        skillId = skillId,
+        expiresAbsoluteHour = expiresAbsoluteHour,
+        frozenSkill = frozenSkill?.Clone()
+    };
 }
 
 [Serializable]
@@ -297,6 +589,8 @@ public sealed class CharacterSkillUseLimitState
     public int offenseBattleSerial = -1;
     public int defenseInvasionSerial = -1;
     public int managementOperatingDay = -1;
+    public List<CharacterManualSkillCooldownState> manualSkillCooldowns = new List<CharacterManualSkillCooldownState>();
+    public List<CharacterManualSkillBuffState> manualSkillBuffs = new List<CharacterManualSkillBuffState>();
 
     public bool CanUse(CharacterUltimateDomain domain, int serial)
     {
@@ -331,7 +625,13 @@ public sealed class CharacterSkillUseLimitState
         {
             offenseBattleSerial = offenseBattleSerial,
             defenseInvasionSerial = defenseInvasionSerial,
-            managementOperatingDay = managementOperatingDay
+            managementOperatingDay = managementOperatingDay,
+            manualSkillCooldowns = (manualSkillCooldowns
+                ?? new List<CharacterManualSkillCooldownState>())
+                .Where(value => value != null).Select(value => value.Clone()).ToList(),
+            manualSkillBuffs = (manualSkillBuffs
+                ?? new List<CharacterManualSkillBuffState>())
+                .Where(value => value != null).Select(value => value.Clone()).ToList()
         };
     }
 }
@@ -428,6 +728,59 @@ public sealed class CharacterGrowthState
 }
 
 [Serializable]
+public sealed class CharacterNarrativeEvidenceMetadata
+{
+    public const float OrdinaryImportance = 1f;
+
+    public CharacterNarrativeEvidenceMetadata(
+        string eventGroupKey,
+        string actionKey,
+        string relationshipKey,
+        float importancePoints)
+    {
+        this.eventGroupKey = RequireCanonical(eventGroupKey, nameof(eventGroupKey));
+        this.actionKey = RequireCanonical(actionKey, nameof(actionKey));
+        this.relationshipKey = NormalizeOptional(relationshipKey, nameof(relationshipKey));
+        if (float.IsNaN(importancePoints) || float.IsInfinity(importancePoints) || importancePoints < 0f)
+            throw new ArgumentOutOfRangeException(nameof(importancePoints));
+        this.importancePoints = importancePoints;
+    }
+
+    public string eventGroupKey { get; }
+    public string actionKey { get; }
+    public string relationshipKey { get; }
+    public float importancePoints { get; }
+
+    public static CharacterNarrativeEvidenceMetadata Ordinary(
+        CharacterNarrativeDomain domain,
+        string factId)
+    {
+        string canonicalFact = factId?.Trim() ?? string.Empty;
+        return new CharacterNarrativeEvidenceMetadata(
+            "ordinary:" + domain,
+            "ordinary:" + canonicalFact,
+            string.Empty,
+            OrdinaryImportance);
+    }
+
+    private static string RequireCanonical(string value, string name)
+    {
+        string canonical = value?.Trim() ?? string.Empty;
+        if (canonical.Length == 0 || !string.Equals(canonical, value, StringComparison.Ordinal))
+            throw new ArgumentException("A canonical non-empty narrative evidence key is required.", name);
+        return canonical;
+    }
+
+    private static string NormalizeOptional(string value, string name)
+    {
+        string canonical = value?.Trim() ?? string.Empty;
+        if (!string.Equals(canonical, value ?? string.Empty, StringComparison.Ordinal))
+            throw new ArgumentException("Narrative evidence keys must already be canonical.", name);
+        return canonical;
+    }
+}
+
+[Serializable]
 public sealed class CharacterNarrativeFact
 {
     public CharacterNarrativeDomain domain;
@@ -438,10 +791,18 @@ public sealed class CharacterNarrativeFact
     public float totalValue;
     public int lastDay;
     public int milestoneCount;
+    [Min(0)] public int influenceUseCount;
+    public string eventGroupKey = string.Empty;
+    public string actionKey = string.Empty;
+    public string relationshipKey = string.Empty;
+    [Min(0f)] public float importancePoints = 1f;
+    public GameplayNarrativeEventContext lastEventContext = new GameplayNarrativeEventContext();
 
     public CharacterNarrativeFact Clone()
     {
-        return (CharacterNarrativeFact)MemberwiseClone();
+        CharacterNarrativeFact clone = (CharacterNarrativeFact)MemberwiseClone();
+        clone.lastEventContext = lastEventContext?.Clone() ?? new GameplayNarrativeEventContext();
+        return clone;
     }
 }
 
@@ -451,6 +812,7 @@ public sealed class CharacterNarrativeLedger
     private static readonly int[] Milestones = { 1, 3, 8, 20, 50 };
 
     public List<CharacterNarrativeFact> facts = new List<CharacterNarrativeFact>();
+    public long nextEventSequence = 1L;
 
     public IReadOnlyList<CharacterNarrativeFact> Facts => facts ??= new List<CharacterNarrativeFact>();
     public int MeaningfulRecordCount => Facts.Sum(item => item?.milestoneCount ?? 0);
@@ -468,11 +830,39 @@ public sealed class CharacterNarrativeLedger
         float value = 0f,
         int day = 0)
     {
+        if (string.IsNullOrWhiteSpace(factId)) return;
+        Record(domain, factId, subjectId, outcome, value, day,
+            CharacterNarrativeEvidenceMetadata.Ordinary(domain, factId));
+    }
+
+    public void Record(
+        CharacterNarrativeDomain domain,
+        string factId,
+        string subjectId,
+        string outcome,
+        float value,
+        int day,
+        CharacterNarrativeEvidenceMetadata metadata)
+    {
+        Record(domain, factId, subjectId, outcome, value, day, metadata, null);
+    }
+
+    public void Record(
+        CharacterNarrativeDomain domain,
+        string factId,
+        string subjectId,
+        string outcome,
+        float value,
+        int day,
+        CharacterNarrativeEvidenceMetadata metadata,
+        GameplayNarrativeEventContext eventContext)
+    {
         if (string.IsNullOrWhiteSpace(factId))
         {
             return;
         }
 
+        if (metadata == null) throw new ArgumentNullException(nameof(metadata));
         facts ??= new List<CharacterNarrativeFact>();
         string normalizedFactId = factId.Trim();
         string normalizedSubject = subjectId?.Trim() ?? string.Empty;
@@ -486,9 +876,21 @@ public sealed class CharacterNarrativeLedger
             {
                 domain = domain,
                 factId = normalizedFactId,
-                subjectId = normalizedSubject
+                subjectId = normalizedSubject,
+                eventGroupKey = metadata.eventGroupKey,
+                actionKey = metadata.actionKey,
+                relationshipKey = metadata.relationshipKey,
+                importancePoints = metadata.importancePoints
             };
             facts.Add(fact);
+        }
+        else if (!string.Equals(fact.eventGroupKey, metadata.eventGroupKey, StringComparison.Ordinal)
+            || !string.Equals(fact.actionKey, metadata.actionKey, StringComparison.Ordinal)
+            || !string.Equals(fact.relationshipKey, metadata.relationshipKey, StringComparison.Ordinal)
+            || fact.importancePoints != metadata.importancePoints)
+        {
+            throw new InvalidOperationException(
+                $"Narrative fact '{normalizedFactId}' cannot change its formula evidence metadata.");
         }
 
         fact.count++;
@@ -496,13 +898,41 @@ public sealed class CharacterNarrativeLedger
         fact.lastDay = Mathf.Max(fact.lastDay, day);
         fact.outcome = outcome?.Trim() ?? string.Empty;
         fact.milestoneCount = Milestones.Count(threshold => fact.count >= threshold);
+        if (eventContext != null)
+        {
+            fact.lastEventContext = eventContext.Clone();
+            if (fact.lastEventContext.sequence <= 0L)
+                fact.lastEventContext.sequence = Math.Max(1L, nextEventSequence);
+            nextEventSequence = Math.Max(nextEventSequence, fact.lastEventContext.sequence + 1L);
+        }
+    }
+
+    public void Record(
+        CharacterNarrativeDomain domain,
+        string factId,
+        string subjectId,
+        string outcome,
+        float value,
+        int day,
+        string eventGroupKey,
+        string actionKey,
+        string relationshipKey,
+        float importancePoints)
+    {
+        Record(domain, factId, subjectId, outcome, value, day,
+            new CharacterNarrativeEvidenceMetadata(
+                eventGroupKey,
+                actionKey,
+                relationshipKey,
+                importancePoints));
     }
 
     public CharacterNarrativeLedger Clone()
     {
         return new CharacterNarrativeLedger
         {
-            facts = Facts.Where(item => item != null).Select(item => item.Clone()).ToList()
+            facts = Facts.Where(item => item != null).Select(item => item.Clone()).ToList(),
+            nextEventSequence = Math.Max(1L, nextEventSequence)
         };
     }
 }
@@ -525,6 +955,8 @@ public sealed class WorldCharacterProfile : ICharacterPopulationProfileState
     public int currentExperience;
     public CharacterGrowthState growth = new CharacterGrowthState();
     public CharacterNarrativeLedger narrative = new CharacterNarrativeLedger();
+    public CharacterAcquiredTraitAggregateState acquiredTraits =
+        new CharacterAcquiredTraitAggregateState();
 
     public bool IsReady => growth != null
         && growth.activeSkills != null
@@ -607,7 +1039,50 @@ public sealed class WorldCharacterProfile : ICharacterPopulationProfileState
             level = level,
             currentExperience = currentExperience,
             growth = growth?.Clone() ?? new CharacterGrowthState(),
-            narrative = narrative?.Clone() ?? new CharacterNarrativeLedger()
+            narrative = narrative?.Clone() ?? new CharacterNarrativeLedger(),
+            acquiredTraits = (acquiredTraits
+                ?? throw new InvalidOperationException(
+                    $"World profile '{persistentId}' has no current acquired-trait state."))
+                .Clone()
+        };
+    }
+}
+
+[Serializable]
+public sealed class CharacterSkillFormulaParameter
+{
+    public string parameterId = string.Empty;
+    public long units;
+
+    public CharacterSkillFormulaParameter Clone()
+    {
+        return new CharacterSkillFormulaParameter
+        {
+            parameterId = parameterId,
+            units = units
+        };
+    }
+}
+
+[Serializable]
+public sealed class CharacterSkillFormulaCapabilityEnvelope
+{
+    public string capabilityId = string.Empty;
+    public string formatterId = string.Empty;
+    public string applicatorId = string.Empty;
+    public List<CharacterSkillFormulaParameter> parameters =
+        new List<CharacterSkillFormulaParameter>();
+
+    public CharacterSkillFormulaCapabilityEnvelope Clone()
+    {
+        return new CharacterSkillFormulaCapabilityEnvelope
+        {
+            capabilityId = capabilityId,
+            formatterId = formatterId,
+            applicatorId = applicatorId,
+            parameters = parameters?.Where(value => value != null)
+                .Select(value => value.Clone()).ToList()
+                ?? new List<CharacterSkillFormulaParameter>()
         };
     }
 }

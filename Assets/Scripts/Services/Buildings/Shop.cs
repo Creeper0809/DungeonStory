@@ -429,9 +429,23 @@ public class Shop : BuildableObject,
         out RetailStockLotSnapshot taken,
         out string failureReason)
     {
+        return TryTakeExactRetailLot(
+            saleItemId,
+            out taken,
+            out _,
+            out failureReason);
+    }
+
+    internal bool TryTakeExactRetailLot(
+        int saleItemId,
+        out RetailStockLotSnapshot taken,
+        out string unitOperationId,
+        out string failureReason)
+    {
         return Inventory.TryTakeExactLot(
             saleItemId,
             out taken,
+            out unitOperationId,
             out failureReason);
     }
 
@@ -528,14 +542,18 @@ public class Shop : BuildableObject,
     internal void PublishShopliftingCrime(
         IBuildingVisitorPort actor,
         string detail,
-        int lossValue)
+        int lossValue,
+        string commitOperationId,
+        RetailStockLotSnapshot committedLot)
     {
         PublishGameEvent(new FacilityCrimeEvent(
             actor,
             this,
             FacilityCrimeKind.Shoplifting,
             detail,
-            lossValue));
+            lossValue,
+            committedLot,
+            commitOperationId));
         GameEventBus.RaiseAlert(
             "도난 발생",
             detail,

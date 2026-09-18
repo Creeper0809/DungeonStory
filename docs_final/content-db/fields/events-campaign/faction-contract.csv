@@ -92,6 +92,38 @@ FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:be
 FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,failureEffects.0.targetId,faction:dungeon:beastkin,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,failureEffects.0.amount,7,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,failureEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,m_Name,contract_beastkin_winter_fuel_demand,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,stableId,faction-contract:beastkin:winter-fuel-demand,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,displayName,붉은발톱 교역소 겨울 연료 요청,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,description,붉은발톱 교역소가 겨울 사건 종료 전 숯 8개의 실제 납품을 요청한다.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,authoringRevision,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,factionId,faction:dungeon:beastkin,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,seasonalEventId,seasonal:winter-fuel-demand,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,kind,0,V20FactionContractKind,Supply,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,deadlineDays,4,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,completionRequirements.items.0.itemDefinitionId,material:charcoal,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,completionRequirements.items.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,completionRequirements.items.0.consume,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,completionRequirements.facilities,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,completionRequirements.research,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,completionRequirements.characters,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,completionRequirements.factions,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,completionRequirements.worldMetrics,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,completionRequirements.requiredFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,completionRequirements.excludedFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,successEffects.0.kind,6,V20FactionContractKind,알 수 없음 (6),explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,successEffects.0.targetId,faction:dungeon:beastkin,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,successEffects.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,successEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,successEffects.1.kind,8,V20FactionContractKind,알 수 없음 (8),explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,successEffects.1.targetId,faction:dungeon:beastkin,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,successEffects.1.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,successEffects.1.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,failureEffects.0.kind,7,V20FactionContractKind,알 수 없음 (7),explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,failureEffects.0.targetId,faction:dungeon:beastkin,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,failureEffects.0.amount,7,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:winter-fuel-demand,faction-contract:beastkin:winter-fuel-demand,failureEffects.0.durationDays,0,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,m_Name,contract_demon_crisis,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,stableId,faction-contract:demon:crisis,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,displayName,잿빛 계약정 위기 대응 계약,,,explicit-serialized
@@ -185,6 +217,38 @@ FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon
 FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,failureEffects.0.targetId,faction:dungeon:demon,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,failureEffects.0.amount,7,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,failureEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,m_Name,contract_demon_winter_fuel_demand,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,stableId,faction-contract:demon:winter-fuel-demand,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,displayName,잿빛 계약정 겨울 연료 요청,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,description,잿빛 계약정이 겨울 사건 종료 전 숯 8개의 실제 납품을 요청한다.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,authoringRevision,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,factionId,faction:dungeon:demon,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,seasonalEventId,seasonal:winter-fuel-demand,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,kind,0,V20FactionContractKind,Supply,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,deadlineDays,4,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,completionRequirements.items.0.itemDefinitionId,material:charcoal,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,completionRequirements.items.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,completionRequirements.items.0.consume,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,completionRequirements.facilities,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,completionRequirements.research,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,completionRequirements.characters,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,completionRequirements.factions,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,completionRequirements.worldMetrics,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,completionRequirements.requiredFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,completionRequirements.excludedFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,successEffects.0.kind,6,V20FactionContractKind,알 수 없음 (6),explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,successEffects.0.targetId,faction:dungeon:demon,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,successEffects.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,successEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,successEffects.1.kind,8,V20FactionContractKind,알 수 없음 (8),explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,successEffects.1.targetId,faction:dungeon:demon,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,successEffects.1.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,successEffects.1.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,failureEffects.0.kind,7,V20FactionContractKind,알 수 없음 (7),explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,failureEffects.0.targetId,faction:dungeon:demon,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,failureEffects.0.amount,7,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:winter-fuel-demand,faction-contract:demon:winter-fuel-demand,failureEffects.0.durationDays,0,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,m_Name,contract_golem_crisis,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,stableId,faction-contract:golem:crisis,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,displayName,돌맥 주조소 위기 대응 계약,,,explicit-serialized
@@ -278,6 +342,38 @@ FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem
 FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,failureEffects.0.targetId,faction:dungeon:golem,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,failureEffects.0.amount,7,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,failureEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,m_Name,contract_golem_winter_fuel_demand,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,stableId,faction-contract:golem:winter-fuel-demand,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,displayName,돌맥 주조소 겨울 연료 요청,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,description,돌맥 주조소가 겨울 사건 종료 전 숯 8개의 실제 납품을 요청한다.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,authoringRevision,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,factionId,faction:dungeon:golem,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,seasonalEventId,seasonal:winter-fuel-demand,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,kind,0,V20FactionContractKind,Supply,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,deadlineDays,4,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,completionRequirements.items.0.itemDefinitionId,material:charcoal,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,completionRequirements.items.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,completionRequirements.items.0.consume,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,completionRequirements.facilities,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,completionRequirements.research,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,completionRequirements.characters,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,completionRequirements.factions,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,completionRequirements.worldMetrics,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,completionRequirements.requiredFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,completionRequirements.excludedFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,successEffects.0.kind,6,V20FactionContractKind,알 수 없음 (6),explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,successEffects.0.targetId,faction:dungeon:golem,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,successEffects.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,successEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,successEffects.1.kind,8,V20FactionContractKind,알 수 없음 (8),explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,successEffects.1.targetId,faction:dungeon:golem,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,successEffects.1.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,successEffects.1.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,failureEffects.0.kind,7,V20FactionContractKind,알 수 없음 (7),explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,failureEffects.0.targetId,faction:dungeon:golem,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,failureEffects.0.amount,7,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:winter-fuel-demand,faction-contract:golem:winter-fuel-demand,failureEffects.0.durationDays,0,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,m_Name,contract_harpy_crisis,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,stableId,faction-contract:harpy:crisis,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,displayName,폭풍둥지 위기 대응 계약,,,explicit-serialized
@@ -371,6 +467,38 @@ FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy
 FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,failureEffects.0.targetId,faction:dungeon:harpy,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,failureEffects.0.amount,7,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,failureEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,m_Name,contract_harpy_winter_fuel_demand,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,stableId,faction-contract:harpy:winter-fuel-demand,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,displayName,폭풍둥지 겨울 연료 요청,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,description,폭풍둥지가 겨울 사건 종료 전 숯 8개의 실제 납품을 요청한다.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,authoringRevision,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,factionId,faction:dungeon:harpy,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,seasonalEventId,seasonal:winter-fuel-demand,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,kind,0,V20FactionContractKind,Supply,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,deadlineDays,4,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,completionRequirements.items.0.itemDefinitionId,material:charcoal,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,completionRequirements.items.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,completionRequirements.items.0.consume,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,completionRequirements.facilities,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,completionRequirements.research,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,completionRequirements.characters,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,completionRequirements.factions,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,completionRequirements.worldMetrics,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,completionRequirements.requiredFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,completionRequirements.excludedFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,successEffects.0.kind,6,V20FactionContractKind,알 수 없음 (6),explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,successEffects.0.targetId,faction:dungeon:harpy,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,successEffects.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,successEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,successEffects.1.kind,8,V20FactionContractKind,알 수 없음 (8),explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,successEffects.1.targetId,faction:dungeon:harpy,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,successEffects.1.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,successEffects.1.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,failureEffects.0.kind,7,V20FactionContractKind,알 수 없음 (7),explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,failureEffects.0.targetId,faction:dungeon:harpy,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,failureEffects.0.amount,7,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:winter-fuel-demand,faction-contract:harpy:winter-fuel-demand,failureEffects.0.durationDays,0,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,m_Name,contract_kobold_crisis,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,stableId,faction-contract:kobold:crisis,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,displayName,깊은톱니 굴 위기 대응 계약,,,explicit-serialized
@@ -464,6 +592,38 @@ FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobo
 FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,failureEffects.0.targetId,faction:dungeon:kobold,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,failureEffects.0.amount,7,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,failureEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,m_Name,contract_kobold_winter_fuel_demand,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,stableId,faction-contract:kobold:winter-fuel-demand,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,displayName,깊은톱니 굴 겨울 연료 요청,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,description,깊은톱니 굴이 겨울 사건 종료 전 숯 8개의 실제 납품을 요청한다.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,authoringRevision,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,factionId,faction:dungeon:kobold,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,seasonalEventId,seasonal:winter-fuel-demand,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,kind,0,V20FactionContractKind,Supply,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,deadlineDays,4,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,completionRequirements.items.0.itemDefinitionId,material:charcoal,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,completionRequirements.items.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,completionRequirements.items.0.consume,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,completionRequirements.facilities,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,completionRequirements.research,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,completionRequirements.characters,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,completionRequirements.factions,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,completionRequirements.worldMetrics,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,completionRequirements.requiredFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,completionRequirements.excludedFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,successEffects.0.kind,6,V20FactionContractKind,알 수 없음 (6),explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,successEffects.0.targetId,faction:dungeon:kobold,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,successEffects.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,successEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,successEffects.1.kind,8,V20FactionContractKind,알 수 없음 (8),explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,successEffects.1.targetId,faction:dungeon:kobold,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,successEffects.1.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,successEffects.1.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,failureEffects.0.kind,7,V20FactionContractKind,알 수 없음 (7),explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,failureEffects.0.targetId,faction:dungeon:kobold,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,failureEffects.0.amount,7,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:winter-fuel-demand,faction-contract:kobold:winter-fuel-demand,failureEffects.0.durationDays,0,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,m_Name,contract_myconid_crisis,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,stableId,faction-contract:myconid:crisis,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,displayName,균사정원 위기 대응 계약,,,explicit-serialized
@@ -557,3 +717,35 @@ FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myc
 FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,failureEffects.0.targetId,faction:dungeon:myconid,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,failureEffects.0.amount,7,,,explicit-serialized
 FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,failureEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,m_Name,contract_myconid_winter_fuel_demand,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,stableId,faction-contract:myconid:winter-fuel-demand,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,displayName,균사정원 겨울 연료 요청,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,description,균사정원이 겨울 사건 종료 전 숯 8개의 실제 납품을 요청한다.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,authoringRevision,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,factionId,faction:dungeon:myconid,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,seasonalEventId,seasonal:winter-fuel-demand,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,kind,0,V20FactionContractKind,Supply,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,deadlineDays,4,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,completionRequirements.items.0.itemDefinitionId,material:charcoal,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,completionRequirements.items.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,completionRequirements.items.0.consume,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,completionRequirements.facilities,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,completionRequirements.research,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,completionRequirements.characters,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,completionRequirements.factions,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,completionRequirements.worldMetrics,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,completionRequirements.requiredFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,completionRequirements.excludedFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,successEffects.0.kind,6,V20FactionContractKind,알 수 없음 (6),explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,successEffects.0.targetId,faction:dungeon:myconid,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,successEffects.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,successEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,successEffects.1.kind,8,V20FactionContractKind,알 수 없음 (8),explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,successEffects.1.targetId,faction:dungeon:myconid,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,successEffects.1.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,successEffects.1.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,failureEffects.0.kind,7,V20FactionContractKind,알 수 없음 (7),explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,failureEffects.0.targetId,faction:dungeon:myconid,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,failureEffects.0.amount,7,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:winter-fuel-demand,faction-contract:myconid:winter-fuel-demand,failureEffects.0.durationDays,0,,,explicit-serialized

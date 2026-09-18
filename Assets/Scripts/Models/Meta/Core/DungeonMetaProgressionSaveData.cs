@@ -56,4 +56,20 @@ public sealed class DungeonRunResultSaveData
         DungeonSurvivalPressure.Standard;
     public int legacyCurrency;
     public DungeonRunOutcome outcome = DungeonRunOutcome.Defeat;
+    public List<string> completedMilestoneIds = new List<string>();
+    public List<DungeonCommittedRunChoiceSaveData> committedChoices =
+        new List<DungeonCommittedRunChoiceSaveData>();
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class DungeonCommittedRunChoiceSaveData
+{
+    public CommittedRunChoiceKind kind;
+    public string ownerId = string.Empty;
+    public string definitionId = string.Empty;
+    public string instanceId = string.Empty;
+    public string choiceId = string.Empty;
+    public string operationId = string.Empty;
+    public long ordinal;
 }

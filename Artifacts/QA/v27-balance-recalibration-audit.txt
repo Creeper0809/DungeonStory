@@ -1,4 +1,4 @@
-RESULT=PASS; rows=87443; critical=0; collapsed=215; approved=52; scc=298; minimumMarginMilliEwu=-24361604; integrityFailures=0
+RESULT=PASS; rows=87486; critical=0; collapsed=215; approved=52; scc=298; minimumMarginMilliEwu=-24361604; integrityFailures=0
 
 APPROVED crop:bloodleaf metric=authored-harvest-wu reason=v27-recurring-throughput-no-project-scale
 

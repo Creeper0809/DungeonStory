@@ -3570,7 +3570,8 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             ModularFacilityRuntimeEffects.ApplyWorkCompleted(
                 hauler.BuildingVisitor,
                 bench,
-                BuiltInWorkTypeIds.Craft);
+                BuiltInWorkTypeIds.Craft,
+                0f);
             yield return null;
         }
 
@@ -14356,7 +14357,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
     private static BuildingSO FindWarehouseAsset()
     {
         return FindBuildingAsset(asset => asset.GetStorageCapacity() > 0 && asset.StoresAllCategories())
-            ?? AssetDatabase.LoadAssetAtPath<BuildingSO>("Assets/Resources/SO/Building/P1/P1_Warehouse.asset");
+            ?? AssetDatabase.LoadAssetAtPath<BuildingSO>("Assets/Resources/SO/Building/Modular/L01_대형보관선반.asset");
     }
 
     private static BuildingSO FindCraftBenchAsset()

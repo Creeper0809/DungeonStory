@@ -73,6 +73,126 @@ public enum MedicalProcedureUrgency
     Emergency = 3
 }
 
+public enum SurgeryEmergencyCause
+{
+    None = 0,
+    AcuteBleeding = 1,
+    AcuteInfection = 2,
+    CriticalNonVitalNode = 3
+}
+
+public static class SurgeryEmergencyCauseRules
+{
+    public const float AcuteBleedingMinimum = 0.08f;
+    public const float AcuteInfectionMinimum = 35f;
+    public const float CriticalInfectionMinimum = 80f;
+    public const float CriticalHealthRatioMaximum = 0.01f;
+
+    public static SurgeryEmergencyCause Classify(
+        SurgicalProcedureSO procedure,
+        AnatomyNodeHealthState node,
+        AnatomyNodeDefinition definition)
+    {
+        if (procedure == null
+            || node == null
+            || definition == null
+            || node.missing)
+        {
+            return SurgeryEmergencyCause.None;
+        }
+
+        if (IsMatchingProcedure(
+                procedure,
+                SurgeryEmergencyCause.AcuteBleeding)
+            && node.bleedingPerSecond >= AcuteBleedingMinimum)
+        {
+            return SurgeryEmergencyCause.AcuteBleeding;
+        }
+
+        if (IsMatchingProcedure(
+                procedure,
+                SurgeryEmergencyCause.AcuteInfection)
+            && node.infection >= AcuteInfectionMinimum)
+        {
+            return SurgeryEmergencyCause.AcuteInfection;
+        }
+
+        if (IsMatchingProcedure(
+                procedure,
+                SurgeryEmergencyCause.CriticalNonVitalNode)
+            && definition.Removable
+            && !definition.Vital
+            && (node.infection >= CriticalInfectionMinimum
+                || node.HealthRatio <= CriticalHealthRatioMaximum))
+        {
+            return SurgeryEmergencyCause.CriticalNonVitalNode;
+        }
+
+        return SurgeryEmergencyCause.None;
+    }
+
+    public static bool IsValidCauseForProcedure(
+        SurgeryEmergencyCause cause,
+        SurgicalProcedureSO procedure)
+    {
+        return cause == SurgeryEmergencyCause.None
+            || IsMatchingProcedure(procedure, cause);
+    }
+
+    public static MedicalProcedureUrgency GetEffectiveUrgency(
+        SurgeryEmergencyCause cause,
+        SurgicalProcedureSO procedure)
+    {
+        return cause != SurgeryEmergencyCause.None
+            && IsValidCauseForProcedure(cause, procedure)
+                ? MedicalProcedureUrgency.Emergency
+                : procedure?.Urgency ?? MedicalProcedureUrgency.Required;
+    }
+
+    public static MedicalProcedureUrgency GetEffectiveUrgency(
+        SurgeryOrder order,
+        SurgicalProcedureSO procedure) => GetEffectiveUrgency(
+            order?.emergencyCause ?? SurgeryEmergencyCause.None,
+            procedure);
+
+    private static bool IsMatchingProcedure(
+        SurgicalProcedureSO procedure,
+        SurgeryEmergencyCause cause)
+    {
+        if (procedure == null
+            || procedure.Urgency is not MedicalProcedureUrgency.Required
+                and not MedicalProcedureUrgency.Emergency
+            || (procedure.Effects ?? Array.Empty<SurgicalProcedureEffect>())
+                .Any(effect => effect is InstallSurgicalPartEffect))
+        {
+            return false;
+        }
+
+        return cause switch
+        {
+            SurgeryEmergencyCause.AcuteBleeding =>
+                procedure.Kind == SurgicalProcedureKind.Suture
+                && string.Equals(
+                    procedure.ProcedureId,
+                    "procedure:emergency-suture",
+                    StringComparison.Ordinal),
+            SurgeryEmergencyCause.AcuteInfection =>
+                procedure.Kind == SurgicalProcedureKind.RemoveForeignBody
+                && string.Equals(
+                    procedure.ProcedureId,
+                    "procedure:foreign-body-removal",
+                    StringComparison.Ordinal),
+            SurgeryEmergencyCause.CriticalNonVitalNode =>
+                procedure.Kind == SurgicalProcedureKind.Amputate
+                && string.Equals(
+                    procedure.ProcedureId,
+                    "procedure:amputation",
+                    StringComparison.Ordinal),
+            _ => false
+        };
+    }
+}
+
 [Serializable]
 public sealed class ProcedureOperatorStatRequirement
 {
@@ -273,6 +393,29 @@ public sealed class HealSurgicalNodeEffect : SurgicalProcedureEffect
     [Min(0f)] public float infectionReduction = 10f;
 }
 
+public enum SurgicalPartReplacementPhase
+{
+    None = 0,
+    OutputReserved = 1,
+    BodyCommitted = 2,
+    OutputPublished = 3,
+    Completed = 4,
+    OutputReservationPending = 5
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class RecoverBloodLossEffect : SurgicalProcedureEffect
+{
+    [Range(0f, 100f)] public float amount = 25f;
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class StopSurgicalNodeBleedingEffect : SurgicalProcedureEffect
+{
+}
+
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class MaintainSurgicalPartEffect : SurgicalProcedureEffect
@@ -293,6 +436,7 @@ public sealed class RemoveSurgicalNodeEffect : SurgicalProcedureEffect
 public sealed class InstallSurgicalPartEffect : SurgicalProcedureEffect
 {
     public SurgicalPartKind partKind = SurgicalPartKind.NaturalOrgan;
+    public string requiredItemDefinitionId = string.Empty;
     [Range(0.1f, 1.75f)] public float efficiency = 1f;
 }
 
@@ -396,6 +540,7 @@ public sealed class SurgeryOrder
 {
     public string orderId = string.Empty;
     public string procedureId = string.Empty;
+    public SurgeryEmergencyCause emergencyCause;
     public SurgicalSubjectRef subject = new();
     public string targetNodeId = string.Empty;
     public string selectedPartInstanceId = string.Empty;
@@ -434,6 +579,28 @@ public sealed class SurgeryOrder
     public bool anesthesiaConsumed;
     public bool incisionOpen;
     public bool resultRolled;
+    public bool resultSucceeded;
+    public bool outcomeConsequencesApplied;
+    public int outcomeConsequenceStep;
+    public string resultOutcomeId = string.Empty;
+    public int resolvedEffectCount;
+    public SurgicalPartReplacementPhase replacementPhase;
+    public string replacementOperationId = string.Empty;
+    public string replacementExpectedOldPartId = string.Empty;
+    public string replacementIncomingPartId = string.Empty;
+    public string replacementAdmissionTokenId = string.Empty;
+    public string replacementPublicationOperationId = string.Empty;
+    public int replacementReservationAttempt;
+    public string replacementBatchCommitId = string.Empty;
+    public string replacementOutcomeFingerprint = string.Empty;
+    public string replacementPlannedOutputFingerprint = string.Empty;
+    public int replacementOutputX;
+    public int replacementOutputY;
+    public string replacementOutputStackId = string.Empty;
+    public string replacementOutputItemInstanceId = string.Empty;
+    public long replacementOutputMassGrams;
+    public float replacementDetachedCurrentHealth;
+    public float replacementDetachedMaxHealth;
     public bool patientAdmitted;
     public bool admissionMoveRequested;
     public bool subjectAiWasPaused;
@@ -461,6 +628,18 @@ public sealed class SurgeryOrder
     public bool IsActive => state is not SurgeryOrderState.Completed
         and not SurgeryOrderState.Failed
         and not SurgeryOrderState.Cancelled;
+
+    public bool OwnsMaterialAuthority =>
+        !string.IsNullOrWhiteSpace(materialDestinationId)
+        && materialBufferCapacityGrams > 0L
+        && materialMassAuthorityRevision > 0L
+        && !string.IsNullOrWhiteSpace(materialCapacityFingerprint);
+
+    public bool HasAnyMaterialAuthority =>
+        !string.IsNullOrEmpty(materialDestinationId)
+        || materialBufferCapacityGrams != 0L
+        || materialMassAuthorityRevision != 0L
+        || !string.IsNullOrEmpty(materialCapacityFingerprint);
 
     public float Progress01 => requiredWork <= 0f
         ? 0f
@@ -506,6 +685,7 @@ public static class SurgeryMaterialCapacityFingerprint
                 CultureInfo.InvariantCulture));
         Append(canonical, order.subject?.subjectId ?? string.Empty);
         Append(canonical, order.selectedPartInstanceId ?? string.Empty);
+        Append(canonical, order.replacementExpectedOldPartId ?? string.Empty);
         foreach (IGrouping<string, SurgicalMaterialRequirement> group in
                  (order.materials ?? new List<SurgicalMaterialRequirement>())
                      .Where(value => value != null && !value.optional)
@@ -538,6 +718,8 @@ public static class SurgeryMaterialCapacityFingerprint
 public sealed class SurgicalPartInstance
 {
     public string partInstanceId = string.Empty;
+    public string itemDefinitionId = string.Empty;
+    public string physicalItemInstanceId = string.Empty;
     public SurgicalPartKind kind;
     public string nodeId = string.Empty;
     public string displayName = string.Empty;
@@ -559,6 +741,11 @@ public sealed class SurgicalPartInstance
     public string preservationSourceStackId = string.Empty;
     public long preservationInputMassGrams;
     public bool preservationOutcomePublished;
+    public string discardOperationId = string.Empty;
+    public string discardCommitId = string.Empty;
+    public string discardSourceStackId = string.Empty;
+    public long discardInputMassGrams;
+    public bool discardOutcomePublished;
     public bool installed;
     public string installedSubjectId = string.Empty;
     public string sourceProductionCommitId = string.Empty;
@@ -567,6 +754,20 @@ public sealed class SurgicalPartInstance
     public string installationCommitId = string.Empty;
     public string installationSourceStackId = string.Empty;
     public string installationSubjectId = string.Empty;
+    public float detachedDurabilityCurrent;
+    public float detachedDurabilityMaximum;
+    public string recoveryOperationId = string.Empty;
+    public string recoveryOrderId = string.Empty;
+    public string recoveryCommitId = string.Empty;
+}
+
+public static class SurgicalPartDiscardIdentity
+{
+    public const string OperationPrefix = "surgical-part-manual-discard:";
+    public const string ReasonCode = "medical-surgical-part-manual-discard";
+
+    public static string FormatOperationId(string partInstanceId) =>
+        OperationPrefix + (partInstanceId ?? string.Empty);
 }
 
 public static class SurgicalPartInstallationIdentity
@@ -577,10 +778,31 @@ public static class SurgicalPartInstallationIdentity
         $"surgical-part-install:{orderId}:{partInstanceId}";
 }
 
+public static class SurgicalPartReplacementIdentity
+{
+    public const string OutputLineId = "recovered-part";
+
+    public static string FormatOperationId(string orderId) =>
+        "surgical-part-replacement:" + (orderId ?? string.Empty);
+
+    public static string FormatPublicationOperationId(string orderId) =>
+        FormatOperationId(orderId) + ":publication";
+
+    public static string FormatPublicationOperationId(
+        string orderId,
+        int reservationAttempt) => reservationAttempt <= 1
+        ? FormatPublicationOperationId(orderId)
+        : FormatPublicationOperationId(orderId) + ":"
+            + reservationAttempt.ToString("D4", CultureInfo.InvariantCulture);
+
+    public static string FormatBatchCommitId(string orderId) =>
+        FormatOperationId(orderId) + ":output";
+}
+
 [Serializable]
 public sealed class DungeonSurgerySaveData
 {
-    public const int CurrentVersion = 12;
+    public const int CurrentVersion = 13;
 
     public int version = CurrentVersion;
     public List<SurgeryOrder> orders = new();

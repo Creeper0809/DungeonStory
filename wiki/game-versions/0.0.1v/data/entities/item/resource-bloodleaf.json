@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "소독제와 전투 촉진제에 쓰는 붉은 약초이다. 므네실라에서는 혈엽의 붉은 잎맥이 남아 있을 때만 약재로 받고, 빛이 바랜 잎은 퇴비로 돌린다.",
+  "in_game_description": "소독제와 전투 촉진제에 쓰는 붉은 약초이다. 므네실라에서는 혈엽 찌꺼기까지 버리지 않는다. 물기를 빼면 공동 정원의 다음 흙이 된다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

@@ -7,6 +7,7 @@ public sealed class MetaRuntimeApplicationAdapter : IMetaRuntimeApplicationPort
     private readonly IGameEventBus gameEventBus;
     private readonly InvasionThreatRuntime threatRuntime;
     private readonly IRunVariableRuntimeReader runVariables;
+    private readonly ICommittedRunResultQuery committedRunResults;
     private readonly IRunResultPanelService panelService;
     private readonly List<IDisposable> subscriptions = new List<IDisposable>();
     private IMetaRuntimeEventSink runtime;
@@ -15,12 +16,15 @@ public sealed class MetaRuntimeApplicationAdapter : IMetaRuntimeApplicationPort
         IGameEventBus gameEventBus,
         InvasionSceneRuntimeReferences invasionRuntimes,
         IRunVariableRuntimeReader runVariables,
+        ICommittedRunResultQuery committedRunResults,
         IRunResultPanelService panelService)
     {
         this.gameEventBus = gameEventBus ?? throw new ArgumentNullException(nameof(gameEventBus));
         threatRuntime = (invasionRuntimes ?? throw new ArgumentNullException(nameof(invasionRuntimes))).Threat
             ?? throw new InvalidOperationException("Meta runtime requires an invasion threat runtime.");
         this.runVariables = runVariables;
+        this.committedRunResults = committedRunResults
+            ?? throw new ArgumentNullException(nameof(committedRunResults));
         this.panelService = panelService ?? throw new ArgumentNullException(nameof(panelService));
     }
 
@@ -58,8 +62,15 @@ public sealed class MetaRuntimeApplicationAdapter : IMetaRuntimeApplicationPort
             multiplier = threatRuntime.Settings.GetDifficultyMultiplier();
             difficulty = DungeonDifficultyRules.FromLegacy(threatRuntime.Settings.difficulty);
         }
-        return new MetaRunEnvironmentSnapshot(multiplier, difficulty,
-            runVariables?.GetSurvivalPressure() ?? DungeonSurvivalPressure.Standard);
+        CommittedRunResultSnapshot history =
+            committedRunResults.CaptureCommittedRunResult();
+        return new MetaRunEnvironmentSnapshot(
+            multiplier,
+            difficulty,
+            runVariables?.GetSurvivalPressure()
+                ?? DungeonSurvivalPressure.Standard,
+            history.CompletedMilestoneIds,
+            history.CommittedChoices);
     }
 
     public void PublishUpgradePurchased(MetaUpgradePurchasedEvent purchasedEvent, string message)

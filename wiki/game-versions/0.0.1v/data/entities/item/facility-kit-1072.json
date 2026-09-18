@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "방의 용도를 표시해 주민이 목적지를 찾기 쉽게 하는 방표지판 설치 부품이며, 아일라세라에서도 이 부품의 치수를 알아본다.",
+  "in_game_description": "방표지판로 연기와 탁한 공기를 빼내는 환기 설비의 설치 부품이다. 아일라세라의 하피는 방표지판을 놓기 전 연기 흐름과 날개가 펴질 폭을 바람 절벽에서 시험한다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

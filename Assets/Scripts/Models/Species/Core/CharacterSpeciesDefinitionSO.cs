@@ -112,6 +112,27 @@ public readonly struct SpeciesThermalProfile
     public float LethalMaximum { get; }
 }
 
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public readonly struct SpeciesLightAdaptationProfile
+{
+    public SpeciesLightAdaptationProfile(
+        bool enabled,
+        float comfortableMinimum,
+        float comfortableMaximum,
+        float sensitivity)
+    {
+        Enabled = enabled;
+        ComfortableMinimum = comfortableMinimum;
+        ComfortableMaximum = comfortableMaximum;
+        Sensitivity = sensitivity;
+    }
+
+    public bool Enabled { get; }
+    public float ComfortableMinimum { get; }
+    public float ComfortableMaximum { get; }
+    public float Sensitivity { get; }
+}
+
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class SpeciesEnvironmentProfile
@@ -123,6 +144,7 @@ public sealed class SpeciesEnvironmentProfile
     public float lethalMinimum = -10f;
     public float lethalMaximum = 48f;
     [Range(0f, 100f)] public float comfortableAirMinimum = 70f;
+    public bool lightAdaptationEnabled = false;
     [Range(0f, 100f)] public float comfortableLightMinimum = 40f;
     [Range(0f, 100f)] public float comfortableLightMaximum = 100f;
     [Range(0.05f, 2f)] public float airborneExposureMultiplier = 1f;
@@ -145,6 +167,31 @@ public sealed class SpeciesEnvironmentProfile
             safeMax,
             lethalMin,
             lethalMax);
+    }
+
+    public SpeciesLightAdaptationProfile ToLightAdaptationProfile()
+    {
+        if (lightAdaptationEnabled
+            && (float.IsNaN(comfortableLightMinimum)
+                || float.IsInfinity(comfortableLightMinimum)
+                || float.IsNaN(comfortableLightMaximum)
+                || float.IsInfinity(comfortableLightMaximum)
+                || float.IsNaN(visualStrainMultiplier)
+                || float.IsInfinity(visualStrainMultiplier)
+                || comfortableLightMinimum < 0f
+                || comfortableLightMaximum > 100f
+                || comfortableLightMinimum > comfortableLightMaximum
+                || visualStrainMultiplier < 0f))
+        {
+            throw new InvalidOperationException(
+                "Enabled species light adaptation has invalid authored bounds or sensitivity.");
+        }
+
+        return new SpeciesLightAdaptationProfile(
+            lightAdaptationEnabled,
+            comfortableLightMinimum,
+            comfortableLightMaximum,
+            visualStrainMultiplier);
     }
 }
 
@@ -267,6 +314,7 @@ public static class CharacterSpeciesDefinitionCatalogRequirements
                 || string.IsNullOrWhiteSpace(species.displayName)
                 || species.needs == null
                 || species.environment == null
+                || !HasValidLightAdaptation(species.environment)
                 || species.lifeHistory == null
                 || species.reproduction == null
                 || species.funeralCulture == null
@@ -290,6 +338,27 @@ public static class CharacterSpeciesDefinitionCatalogRequirements
             .ThenBy(value => value.speciesTag, StringComparer.Ordinal)
             .ToArray();
     }
+
+    private static bool HasValidLightAdaptation(
+        SpeciesEnvironmentProfile profile)
+    {
+        if (profile?.lightAdaptationEnabled != true)
+        {
+            return true;
+        }
+
+        return !float.IsNaN(profile.comfortableLightMinimum)
+            && !float.IsInfinity(profile.comfortableLightMinimum)
+            && !float.IsNaN(profile.comfortableLightMaximum)
+            && !float.IsInfinity(profile.comfortableLightMaximum)
+            && !float.IsNaN(profile.visualStrainMultiplier)
+            && !float.IsInfinity(profile.visualStrainMultiplier)
+            && profile.comfortableLightMinimum >= 0f
+            && profile.comfortableLightMaximum <= 100f
+            && profile.comfortableLightMinimum
+                <= profile.comfortableLightMaximum
+            && profile.visualStrainMultiplier >= 0f;
+    }
 }
 
 public interface ICharacterSpeciesDefinitionCatalog
@@ -307,5 +376,7 @@ public interface ICharacterSpeciesEnvironmentCatalog
         CharacterSpeciesId speciesId,
         out SpeciesThermalProfile profile);
     SpeciesThermalProfile GetRequiredThermalProfile(
+        CharacterSpeciesId speciesId);
+    SpeciesLightAdaptationProfile GetRequiredLightAdaptationProfile(
         CharacterSpeciesId speciesId);
 }

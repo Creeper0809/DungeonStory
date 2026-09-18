@@ -40,6 +40,7 @@ public static class IndustrialInfrastructureSaveValidation
             }
 
             if (!Enum.IsDefined(typeof(PowerPriority), node.priority)
+                || (node.connectionState != 1 && node.connectionState != 2)
                 || !IsNonNegativeFinite(node.storedPower)
                 || !IsNonNegativeFinite(node.fuelSeconds)
                 || !IsNonNegativeFinite(node.heat)
@@ -166,6 +167,12 @@ public static class IndustrialInfrastructureSaveValidation
                 || node.nextContainerFeedOperationSequence < 1
                 || !Enum.IsDefined(typeof(WaterContainerTransferMode), node.transferMode)
                 || !IsNonNegativeFinite(node.transferWork)
+                || node.frozenPipeOccurrenceInstanceId == null
+                || node.frozenPipeOccurrenceInstanceId.Length > 0
+                    && !IsCanonicalRequired(
+                        node.frozenPipeOccurrenceInstanceId)
+                || node.frozenPipeLatched
+                    && node.frozenPipeOccurrenceInstanceId.Length == 0
                 || !ValidateContainerFeed(node))
             {
                 report.AddError(

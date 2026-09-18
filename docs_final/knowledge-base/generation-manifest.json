@@ -1,14 +1,14 @@
 {
   "artifact_kind": "dungeonstory-system-knowledge-base",
   "generator": "tools/Documentation/generate_knowledge_base.py",
-  "output_digest": "a43403b9988d6bc5cd99919c299d74000fb409dda7ea866a90669f2854778631",
-  "output_file_count": 88,
-  "output_files_manifest_sha256": "99954b0c574529efcf3a1d92a2bccbe3570bc1e0a9332cf092edf611b995e10e",
+  "output_digest": "dced415e4351d09376f5f8a39d447f36b31b993a264e4673b7950235aafa95b0",
+  "output_file_count": 89,
+  "output_files_manifest_sha256": "5a2afaf5dddb96fcbf8d0140de9702f8af2d370794112f49b792883e3dbaa0f5",
   "output_root": "docs_final/knowledge-base",
   "schema_version": 1,
-  "source_digest": "05993bb6d2233efedd20d5f0bba06901b5c4d22fb20294bf9edf944e38f3ccbf",
-  "source_file_count": 2659,
-  "source_files_manifest_sha256": "fcafcbd703ad52f0fef5209f1e67e513e4a36af0a6def2b79fbd2f1df931974b",
+  "source_digest": "e5817ec1064a78bb6ff1806707ed9a8aa7a4b11788460fc5485ad118d52bb876",
+  "source_file_count": 2849,
+  "source_files_manifest_sha256": "f5e78f0bda477f074c6e09e0d5367b8c8418d5e18bfcda270cd02194e44b99c2",
   "source_specs": [
     {
       "name": "csharp-implementation",
@@ -71,17 +71,17 @@
     "architecture_mapped_code_file_count": 168,
     "architecture_source_link_count": 179,
     "architecture_system_count": 19,
-    "code_source_file_count": 2505,
-    "code_system_count": 74,
-    "content_impact_type_count": 73,
-    "content_source_digest": "57030c02bd4e96dfc3f70f37a6b7401f48775c0243b81f2df7de661418feb64d",
+    "code_source_file_count": 2693,
+    "code_system_count": 75,
+    "content_impact_type_count": 75,
+    "content_source_digest": "7be6a15e848d0380aacab78d9d4d4aad76f0fbc6f7bd08f9b3063b7a37d11f69",
     "document_broken_link_count": 0,
     "document_count": 74,
     "implementation_status_count": 37,
-    "observation_code_file_count": 1098,
-    "persistence_code_file_count": 399,
-    "research_unlock_relation_count": 924,
+    "observation_code_file_count": 1175,
+    "persistence_code_file_count": 410,
+    "research_unlock_relation_count": 938,
     "state_authority_count": 36,
-    "system_content_relation_count": 276
+    "system_content_relation_count": 291
   }
 }

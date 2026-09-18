@@ -22,7 +22,9 @@ public readonly struct MetaRunResultBuildContext
         float difficultyMultiplier,
         DungeonDifficulty difficulty,
         DungeonSurvivalPressure survivalPressure,
-        DungeonRunOutcome outcome = DungeonRunOutcome.Defeat)
+        DungeonRunOutcome outcome = DungeonRunOutcome.Defeat,
+        IEnumerable<string> completedMilestoneIds = null,
+        IEnumerable<CommittedRunChoiceSnapshot> committedChoices = null)
     {
         OwnerName = string.IsNullOrWhiteSpace(ownerName) ? "사장" : ownerName.Trim();
         Reason = string.IsNullOrWhiteSpace(reason) ? "사장 쓰러짐" : reason.Trim();
@@ -39,6 +41,11 @@ public readonly struct MetaRunResultBuildContext
         Difficulty = difficulty;
         SurvivalPressure = survivalPressure;
         Outcome = outcome == DungeonRunOutcome.None ? DungeonRunOutcome.Defeat : outcome;
+        CommittedRunResultSnapshot history = new(
+            completedMilestoneIds,
+            committedChoices);
+        CompletedMilestoneIds = history.CompletedMilestoneIds;
+        CommittedChoices = history.CommittedChoices;
     }
 
     public string OwnerName { get; }
@@ -56,6 +63,8 @@ public readonly struct MetaRunResultBuildContext
     public DungeonDifficulty Difficulty { get; }
     public DungeonSurvivalPressure SurvivalPressure { get; }
     public DungeonRunOutcome Outcome { get; }
+    public IReadOnlyList<string> CompletedMilestoneIds { get; }
+    public IReadOnlyList<CommittedRunChoiceSnapshot> CommittedChoices { get; }
 }
 
 public interface IMetaRunResultBuilder
@@ -83,7 +92,9 @@ public sealed class MetaRunResultBuilder : IMetaRunResultBuilder
             difficultyMultiplier: context.DifficultyMultiplier,
             outcome: context.Outcome,
             difficulty: context.Difficulty,
-            survivalPressure: context.SurvivalPressure);
+            survivalPressure: context.SurvivalPressure,
+            completedMilestoneIds: context.CompletedMilestoneIds,
+            committedChoices: context.CommittedChoices);
     }
 }
 
@@ -92,16 +103,25 @@ public readonly struct MetaRunEnvironmentSnapshot
     public MetaRunEnvironmentSnapshot(
         float difficultyMultiplier,
         DungeonDifficulty difficulty,
-        DungeonSurvivalPressure survivalPressure)
+        DungeonSurvivalPressure survivalPressure,
+        IEnumerable<string> completedMilestoneIds = null,
+        IEnumerable<CommittedRunChoiceSnapshot> committedChoices = null)
     {
         DifficultyMultiplier = Mathf.Max(0.01f, difficultyMultiplier);
         Difficulty = difficulty;
         SurvivalPressure = survivalPressure;
+        CommittedRunResultSnapshot history = new(
+            completedMilestoneIds,
+            committedChoices);
+        CompletedMilestoneIds = history.CompletedMilestoneIds;
+        CommittedChoices = history.CommittedChoices;
     }
 
     public float DifficultyMultiplier { get; }
     public DungeonDifficulty Difficulty { get; }
     public DungeonSurvivalPressure SurvivalPressure { get; }
+    public IReadOnlyList<string> CompletedMilestoneIds { get; }
+    public IReadOnlyList<CommittedRunChoiceSnapshot> CommittedChoices { get; }
 }
 
 public readonly struct MetaFacilityCandidateSnapshot

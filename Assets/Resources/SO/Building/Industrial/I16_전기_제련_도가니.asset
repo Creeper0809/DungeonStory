@@ -60,6 +60,10 @@ MonoBehaviour:
     - rid: 7737212199244661608
     - rid: 7737212199244661609
     - rid: 7737212199244661610
+    - rid: 7737212199244661611
+    - rid: 7737212199244661612
+    - rid: 7737212199244661613
+    - rid: 7737212199244661614
   width: 2
   height: 1
   layer: 1
@@ -148,3 +152,45 @@ MonoBehaviour:
           requiredWorkers: 0
           supportedWorkTypes: 4
           disabledWhenDamaged: 1
+    - rid: 7737212199244661611
+      type: {class: BuildingEnvironmentalFireAbility, ns: , asm: DungeonStory.Environment}
+      data:
+        abilityId: BuildingEnvironmentalFireAbility
+        acceptedSources: 37
+        fuelCapacity: 1
+        maximumIntensity: 0.8
+        growthPerTick: 0.05
+        fuelConsumedPerTick: 0.1
+        damagePerTick: 12
+        minimumSpreadIntensity: 0.55
+        spreadChancePerTick: 0.1
+        spreadIgnitionMultiplier: 0.5
+        waterSuppressionPerUnit: 0.5
+        electricalIgnitionHeat: 90
+        electricalIgnitionFault: 5
+        electricalIgnitionWindowSeconds: 30
+        electricalIgnitionChancePerWindow: 0.15
+        electricalIgnitionIntensity: 0.25
+    - rid: 7737212199244661612
+      type: {class: BuildingStructuralIntegrityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingStructuralIntegrityAbility
+        maxHitPoints: 148
+        toughness: 12
+        repairHitPointsPerWork: 2
+        breachable: 1
+    - rid: 7737212199244661613
+      type: {class: BuildingActiveHeatFireSourceAbility, ns: , asm: DungeonStory.Environment}
+      data:
+        abilityId: BuildingActiveHeatFireSourceAbility
+        requiresPower: 1
+        requiresActiveUser: 1
+        ignitionWindowSeconds: 30
+        ignitionChancePerWindow: 0.15
+        ignitionIntensity: 0.25
+    - rid: 7737212199244661614
+      type: {class: BuildingProcessAccidentFireSourceAbility, ns: , asm: DungeonStory.Environment}
+      data:
+        abilityId: BuildingProcessAccidentFireSourceAbility
+        workTypeId: work:operate
+        ignitionIntensity: 0.25

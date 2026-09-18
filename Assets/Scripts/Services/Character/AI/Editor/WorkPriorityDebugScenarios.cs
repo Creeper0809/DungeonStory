@@ -92,7 +92,7 @@ public static class WorkPriorityDebugScenarios
     private static bool VerifyDisabledWorkIsExcluded()
     {
         using WorkScenarioWorld world = new WorkScenarioWorld();
-        BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(2, 0));
+        BuildableObject lab = world.Place("Q01_연구책상", new Vector2Int(2, 0));
         CharacterActor character = CreateCharacter("Owner_Vampire");
         AbilityWork work = character.GetAbility<AbilityWork>();
 
@@ -126,10 +126,10 @@ public static class WorkPriorityDebugScenarios
                 "Assets/Resources/SO/Blueprint/P1/BP_SupportBasics.asset"));
             world = new WorkScenarioWorld(researchRuntime);
             BuildableObject training = world.Place(
-                "P1_TrainingRoom",
+                "T01_훈련허수아비",
                 new Vector2Int(2, 0));
             BuildableObject lab = world.Place(
-                "P1_ResearchLab",
+                "Q01_연구책상",
                 new Vector2Int(6, 0));
             GridPathSearchResult search = world.Grid.SearchPath(Vector2Int.zero);
 
@@ -189,8 +189,8 @@ public static class WorkPriorityDebugScenarios
     private static bool VerifyDamagedFacilityUrgency()
     {
         using WorkScenarioWorld world = new WorkScenarioWorld();
-        BuildableObject normal = world.Place("P1_RestRoom", new Vector2Int(2, 0));
-        BuildableObject damaged = world.Place("P1_RestRoom", new Vector2Int(6, 0));
+        BuildableObject normal = world.Place("R01_간이침대", new Vector2Int(2, 0));
+        BuildableObject damaged = world.Place("R01_간이침대", new Vector2Int(6, 0));
         damaged.SetDamaged(true);
 
         CharacterActor slime = CreateCharacter("Owner_Slime");
@@ -208,7 +208,7 @@ public static class WorkPriorityDebugScenarios
     private static bool VerifyUndamagedRepairIsExcluded()
     {
         using WorkScenarioWorld world = new WorkScenarioWorld();
-        BuildableObject normal = world.Place("P1_RestRoom", new Vector2Int(2, 0));
+        BuildableObject normal = world.Place("R01_간이침대", new Vector2Int(2, 0));
 
         CharacterActor slime = CreateCharacter("Owner_Slime");
         AbilityWork work = slime.GetAbility<AbilityWork>();
@@ -240,7 +240,7 @@ public static class WorkPriorityDebugScenarios
     private static bool VerifyFatigueProtection()
     {
         using WorkScenarioWorld world = new WorkScenarioWorld();
-        world.Place("P1_ResearchLab", new Vector2Int(2, 0));
+        world.Place("Q01_연구책상", new Vector2Int(2, 0));
         CharacterActor vampire = CreateCharacter("Owner_Vampire");
         vampire.stats[CharacterCondition.SLEEP] = 0f;
         AbilityWork work = vampire.GetAbility<AbilityWork>();
@@ -255,7 +255,7 @@ public static class WorkPriorityDebugScenarios
     private static bool VerifyRestProtectionHysteresis()
     {
         using WorkScenarioWorld world = new WorkScenarioWorld();
-        world.Place("P1_ResearchLab", new Vector2Int(2, 0));
+        world.Place("Q01_연구책상", new Vector2Int(2, 0));
         CharacterActor vampire = CreateCharacter("Owner_Vampire");
         AbilityWork work = vampire.GetAbility<AbilityWork>();
 
@@ -274,8 +274,8 @@ public static class WorkPriorityDebugScenarios
     private static bool VerifyRestockWithoutWarehouseSupplyIsExcluded()
     {
         using WorkScenarioWorld world = new WorkScenarioWorld();
-        BuildableObject shopBuilding = world.Place("P1_LowFoodShop", new Vector2Int(2, 0));
-        BuildableObject warehouseBuilding = world.Place("P1_Warehouse", new Vector2Int(8, 0));
+        BuildableObject shopBuilding = world.Place("S01_판매카운터", new Vector2Int(2, 0));
+        BuildableObject warehouseBuilding = world.Place("L01_대형보관선반", new Vector2Int(8, 0));
         Shop shop = shopBuilding as Shop;
         IWarehouseFacility warehouse = warehouseBuilding as IWarehouseFacility;
         CharacterActor slime = CreateCharacter("Owner_Slime");
@@ -318,7 +318,7 @@ public static class WorkPriorityDebugScenarios
     private static bool VerifyUrgentWorkOverridesRestProtection()
     {
         using WorkScenarioWorld world = new WorkScenarioWorld();
-        BuildableObject damaged = world.Place("P1_RestRoom", new Vector2Int(2, 0));
+        BuildableObject damaged = world.Place("R01_간이침대", new Vector2Int(2, 0));
         damaged.SetDamaged(true);
 
         CharacterActor slime = CreateCharacter("Owner_Slime");
@@ -473,7 +473,7 @@ public static class WorkPriorityDebugScenarios
     private static bool VerifyWorkContinuationIgnoresTransientBestActionLoss()
     {
         using WorkScenarioWorld world = new WorkScenarioWorld();
-        BuildableObject training = world.Place("P1_TrainingRoom", new Vector2Int(2, 0));
+        BuildableObject training = world.Place("T01_훈련허수아비", new Vector2Int(2, 0));
         CharacterActor worker = CreateCharacter("Owner_Slime");
         AbilityWork work = worker.GetAbility<AbilityWork>();
 
@@ -504,7 +504,7 @@ public static class WorkPriorityDebugScenarios
     private static bool VerifyDisablingCurrentWorkPriorityStopsWork()
     {
         using WorkScenarioWorld world = new WorkScenarioWorld();
-        BuildableObject training = world.Place("P1_TrainingRoom", new Vector2Int(2, 0));
+        BuildableObject training = world.Place("T01_훈련허수아비", new Vector2Int(2, 0));
         CharacterActor worker = CreateCharacter("Owner_Slime");
         AbilityWork work = worker.GetAbility<AbilityWork>();
 
@@ -538,7 +538,7 @@ public static class WorkPriorityDebugScenarios
     private static bool VerifyUnrelatedPriorityChangeKeepsCurrentWork()
     {
         using WorkScenarioWorld world = new WorkScenarioWorld();
-        BuildableObject training = world.Place("P1_TrainingRoom", new Vector2Int(2, 0));
+        BuildableObject training = world.Place("T01_훈련허수아비", new Vector2Int(2, 0));
         CharacterActor worker = CreateCharacter("Owner_Slime");
         AbilityWork work = worker.GetAbility<AbilityWork>();
 
@@ -568,7 +568,7 @@ public static class WorkPriorityDebugScenarios
     private static bool VerifyInterruptedOperationIsNotCompleted()
     {
         using WorkScenarioWorld world = new WorkScenarioWorld();
-        BuildableObject training = world.Place("P1_TrainingRoom", new Vector2Int(2, 0));
+        BuildableObject training = world.Place("T01_훈련허수아비", new Vector2Int(2, 0));
         CharacterActor worker = CreateCharacter("Owner_Slime");
         AbilityWork work = worker.GetAbility<AbilityWork>();
 
@@ -609,8 +609,8 @@ public static class WorkPriorityDebugScenarios
     private static bool VerifyRaisedBestPriorityReplansCurrentWork()
     {
         using WorkScenarioWorld world = new WorkScenarioWorld();
-        BuildableObject training = world.Place("P1_TrainingRoom", new Vector2Int(2, 0));
-        BuildableObject damaged = world.Place("P1_RestRoom", new Vector2Int(6, 0));
+        BuildableObject training = world.Place("T01_훈련허수아비", new Vector2Int(2, 0));
+        BuildableObject damaged = world.Place("R01_간이침대", new Vector2Int(6, 0));
         damaged.SetDamaged(true);
         CharacterActor worker = CreateCharacter("Owner_Slime");
         AbilityWork work = worker.GetAbility<AbilityWork>();
@@ -781,7 +781,7 @@ public static class WorkPriorityDebugScenarios
         public BuildableObject Place(string assetName, Vector2Int position)
         {
             BuildingSO buildingData = AssetDatabase.LoadAssetAtPath<BuildingSO>(
-                $"Assets/Resources/SO/Building/P1/{assetName}.asset");
+                $"Assets/Resources/SO/Building/Modular/{assetName}.asset");
             GridBuildingFactory factory = new GridBuildingFactory();
             BuildableObject building = factory.Create(Grid, buildingData, position);
             objects.Add(building.gameObject);

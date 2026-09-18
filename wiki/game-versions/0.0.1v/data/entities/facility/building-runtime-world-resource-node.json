@@ -16,6 +16,6 @@
   "schema_version": 1,
   "slug": "building-runtime-world-resource-node",
   "spoiler_tier": "none",
-  "summary": "Generated immutable runtime building archetype authority.",
+  "summary": "외부 구역의 자원 지점을 표시하는 항목이다.",
   "title": "외부 자원"
 }

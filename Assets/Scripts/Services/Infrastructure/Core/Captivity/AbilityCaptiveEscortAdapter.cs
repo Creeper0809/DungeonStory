@@ -6,6 +6,22 @@ using UnityEngine.Scripting.APIUpdating;
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class AbilityCaptiveEscort : MonoBehaviour
 {
+    private enum EscortMovementTarget
+    {
+        Restraint,
+        Subject,
+        Housing
+    }
+
+    private sealed class EscortMovementRequest
+    {
+        public Vector2Int Destination;
+        public string SubjectName = string.Empty;
+        public IEnumerator Movement;
+        public string FailureReason = string.Empty;
+        public bool IsReady;
+    }
+
     private ICaptiveEscortAbilityPort port;
     private IGameClock gameClock;
     private Coroutine routine;
@@ -102,22 +118,41 @@ public sealed class AbilityCaptiveEscort : MonoBehaviour
 
         if (!string.IsNullOrWhiteSpace(state.restraintStackId))
         {
-            if (!port.TryCreateMovement(
-                    state.restraintPickupPosition,
-                    CaptivityAbilityAccessKind.None,
-                    out IEnumerator restraintMovement))
+            EscortMovementRequest restraintRequest = new();
+            yield return ResolveMovement(
+                captiveId,
+                EscortMovementTarget.Restraint,
+                CaptivityStatus.Stabilizing,
+                CaptivityAbilityAccessKind.None,
+                "구속구 경로 계산 중",
+                "구속구 보관 위치로 갈 수 없습니다.",
+                restraintRequest);
+            if (!restraintRequest.IsReady)
             {
-                Fail("구속구 보관 위치로 갈 수 없습니다.");
+                Fail(restraintRequest.FailureReason);
                 yield break;
             }
 
             port.SetActionPhase(
                 "구속구를 가지러 이동",
-                state.restraintPickupPosition.ToString());
-            yield return restraintMovement;
+                restraintRequest.Destination.ToString());
+            yield return restraintRequest.Movement;
             if (!OwnsActionIntent())
             {
                 Fail("Captive escort lost AI action ownership while collecting restraints.");
+                yield break;
+            }
+            if (!TryGetState(
+                    captiveId,
+                    out state,
+                    out _,
+                    out _,
+                    out failure)
+                || state.status != CaptivityStatus.Stabilizing)
+            {
+                Fail(string.IsNullOrWhiteSpace(failure)
+                    ? "Captive escort state changed while collecting restraints."
+                    : failure);
                 yield break;
             }
             if (!port.TryPickupReservedRestraint(state, out failure))
@@ -127,25 +162,24 @@ public sealed class AbilityCaptiveEscort : MonoBehaviour
             }
         }
 
-        if (!TryGetState(
-                captiveId,
-                out state,
-                out Vector2Int subjectPosition,
-                out string subjectName,
-                out failure)
-            || !port.TryCreateMovement(
-                subjectPosition,
-                CaptivityAbilityAccessKind.None,
-                out IEnumerator subjectMovement))
+        EscortMovementRequest subjectRequest = new();
+        yield return ResolveMovement(
+            captiveId,
+            EscortMovementTarget.Subject,
+            CaptivityStatus.Stabilizing,
+            CaptivityAbilityAccessKind.None,
+            "포로 접근 경로 계산 중",
+            "쓰러진 침입자에게 갈 수 없습니다.",
+            subjectRequest);
+        if (!subjectRequest.IsReady)
         {
-            Fail(string.IsNullOrWhiteSpace(failure)
-                ? "쓰러진 침입자에게 갈 수 없습니다."
-                : failure);
+            Fail(subjectRequest.FailureReason);
             yield break;
         }
 
+        string subjectName = subjectRequest.SubjectName;
         port.SetActionPhase("포로에게 이동", subjectName);
-        yield return subjectMovement;
+        yield return subjectRequest.Movement;
         if (!OwnsActionIntent())
         {
             Fail("Captive escort lost AI action ownership while approaching the captive.");
@@ -199,17 +233,25 @@ public sealed class AbilityCaptiveEscort : MonoBehaviour
         }
 
         using System.IDisposable escortPass = port.BeginEscortPass(captiveId);
-        if (!port.TryCreateMovement(
-                state.housingPosition,
-                CaptivityAbilityAccessKind.EscortPass,
-                out IEnumerator housingMovement))
+        EscortMovementRequest housingRequest = new();
+        yield return ResolveMovement(
+            captiveId,
+            EscortMovementTarget.Housing,
+            CaptivityStatus.Escorting,
+            CaptivityAbilityAccessKind.EscortPass,
+            "호송 경로 계산 중",
+            "감방까지 안전한 호송 경로가 없습니다.",
+            housingRequest);
+        if (!housingRequest.IsReady)
         {
-            Fail("감방까지 안전한 호송 경로가 없습니다.");
+            Fail(housingRequest.FailureReason);
             yield break;
         }
 
-        port.SetActionPhase("포로 호송", state.housingPosition.ToString());
-        yield return housingMovement;
+        port.SetActionPhase(
+            "포로 호송",
+            housingRequest.Destination.ToString());
+        yield return housingRequest.Movement;
         if (!OwnsActionIntent())
         {
             Fail("Captive escort lost AI action ownership while moving to housing.");
@@ -226,6 +268,69 @@ public sealed class AbilityCaptiveEscort : MonoBehaviour
         routine = null;
         port.SetActionPhase("포로 수용 완료", subjectName);
         ReleaseActionIntent(clearFailures: true);
+    }
+
+    private IEnumerator ResolveMovement(
+        string captiveId,
+        EscortMovementTarget target,
+        CaptivityStatus expectedStatus,
+        CaptivityAbilityAccessKind accessKind,
+        string pendingPhase,
+        string unreachableReason,
+        EscortMovementRequest request)
+    {
+        while (true)
+        {
+            if (!OwnsActionIntent())
+            {
+                request.FailureReason =
+                    "Captive escort lost AI action ownership while resolving a path.";
+                yield break;
+            }
+            if (!TryGetState(
+                    captiveId,
+                    out CaptiveState state,
+                    out Vector2Int subjectPosition,
+                    out string subjectName,
+                    out string failure)
+                || state.status != expectedStatus)
+            {
+                request.FailureReason = string.IsNullOrWhiteSpace(failure)
+                    ? $"Captive escort state changed while resolving {target}."
+                    : failure;
+                yield break;
+            }
+
+            Vector2Int destination = target switch
+            {
+                EscortMovementTarget.Restraint => state.restraintPickupPosition,
+                EscortMovementTarget.Subject => subjectPosition,
+                EscortMovementTarget.Housing => state.housingPosition,
+                _ => throw new System.ArgumentOutOfRangeException(nameof(target))
+            };
+            CaptivityMovementResolution resolution = port.ResolveMovement(
+                destination,
+                accessKind,
+                out IEnumerator movement);
+            if (resolution == CaptivityMovementResolution.Pending)
+            {
+                port.SetActionPhase(pendingPhase, destination.ToString());
+                yield return null;
+                continue;
+            }
+            if (resolution != CaptivityMovementResolution.Ready
+                || movement == null)
+            {
+                request.FailureReason = unreachableReason;
+                yield break;
+            }
+
+            request.Destination = destination;
+            request.SubjectName = subjectName;
+            request.Movement = movement;
+            request.IsReady = true;
+            yield break;
+        }
     }
 
     private bool TryGetState(

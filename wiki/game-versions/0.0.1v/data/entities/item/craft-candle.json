@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "조명과 의식에 쓰는 연료성 완제품이다. 밀로세아 가도의 양초 상자는 심지가 부러지지 않도록 얕은 칸으로 나뉘고, 마지막 검문 봉인은 뚜껑에 찍힌다.",
+  "in_game_description": "조명과 의식에 쓰는 연료성 완제품이다. 밀로세아 가도를 지난 양초 묶음에는 마지막 검문소의 색실이 하나씩 더해진다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

@@ -20,6 +20,6 @@
   "schema_version": 1,
   "slug": "seasonal-summer-vermin-bloom",
   "spoiler_tier": "warning",
-  "summary": "고온에 늘어난 해충이 밭과 식량 창고를 오간다.",
+  "summary": "사건 시작 시 이미 자라는 실제 재배 주기의 주 생산량만 최대 10% 감소하며 저장 식품은 손상시키지 않는다.",
   "title": "해충 대발생"
 }

@@ -1156,12 +1156,18 @@ public sealed class WorldItemWarehouseService
         foreach (WarehouseHaulAdmissionSaveData admission in admissions)
         {
             DomainFailure failure = DomainFailure.None;
-            BuildingInstanceId warehouseId =
-                (BuildingInstanceId)(admission.warehouseId?.Trim() ?? string.Empty);
-            if (!warehouseId.IsValid
-                || !massAdmission.TryRenew(
+            if (!massAdmission.TryGetStatus(
                     admission.tokenId,
-                    massAdmission.GetWarehouseCapacityRevision(warehouseId),
+                    out WarehouseMassAdmissionStatusSnapshot status))
+            {
+                failureReason =
+                    $"warehouse admission renewal failed:{admission.tokenId}:{FailureCode.WarehouseMassAdmissionTokenMissing}";
+                return false;
+            }
+
+            if (!massAdmission.TryRenew(
+                    admission.tokenId,
+                    status.Token.WarehouseCapacityRevision,
                     out WarehouseMassAdmissionToken renewed,
                     out failure))
             {
@@ -1929,7 +1935,10 @@ public sealed class WorldItemWarehouseService
                     added.Add(target);
                 }
 
-                target.state = slice.Source.state;
+                target.state = slice.Source.state ==
+                    WorldItemStackState.FacilityOutputBuffer
+                        ? WorldItemStackState.Loose
+                        : slice.Source.state;
                 target.destinationId = destinationId;
                 target.sourceStorageDestinationId = slice.SourceStorageDestinationId;
                 target.hasDestinationPosition = true;
@@ -2189,12 +2198,42 @@ public sealed class WorldItemWarehouseService
         out Vector2Int pickupStandPosition,
         out string failureReason)
     {
+        string actorId = actor != null
+            ? characterIds.GetOrAssignPersistentId(actor)
+            : string.Empty;
+        return TryReserveStoredForDirectPickup(
+            actor,
+            itemId,
+            quantity,
+            ItemReservationPurpose.Equipment,
+            $"equipment-pickup:{actorId}:{itemId}",
+            out reservation,
+            out pickupStandPosition,
+            out failureReason);
+    }
+
+    [GameplayInternalOnly(
+        "Exact stored direct-pickup flows reserve under the caller's persisted operation identity.",
+        "WorldItemStackRuntime")]
+    internal bool TryReserveStoredForDirectPickup(
+        CharacterActor actor,
+        string itemId,
+        int quantity,
+        ItemReservationPurpose purpose,
+        string ownerOperationId,
+        out WorldItemReservedStackQuantity reservation,
+        out Vector2Int pickupStandPosition,
+        out string failureReason)
+    {
         reservation = default;
         pickupStandPosition = default;
         failureReason = string.Empty;
+        string operationId = ownerOperationId?.Trim() ?? string.Empty;
         if (actor == null
             || string.IsNullOrWhiteSpace(itemId)
             || quantity <= 0
+            || operationId.Length == 0
+            || !Enum.IsDefined(typeof(ItemReservationPurpose), purpose)
             || !gridProvider.TryGetGrid(out Grid grid))
         {
             failureReason = "items.pickup.invalid_request";
@@ -2231,14 +2270,13 @@ public sealed class WorldItemWarehouseService
             failureReason = "items.pickup.stored_item_unavailable";
             return false;
         }
-        string ownerOperationId = $"equipment-pickup:{actorId}:{itemId}";
         ItemQuantityLease quantityLease = null;
         bool reserved = quantityReservations != null
             ? quantityReservations.TryReserve(
-                ownerOperationId,
+                operationId,
                 actorId,
-                ItemReservationPurpose.Equipment,
-                $"equipment:{actorId}",
+                purpose,
+                $"direct-pickup:{actorId}",
                 new ItemQuantityReservationRequest(
                     new ItemStackId(selected.stackId),
                     Mathf.Min(
@@ -2272,9 +2310,66 @@ public sealed class WorldItemWarehouseService
             WorldItemHaulDestinationKind.Warehouse,
             selected.destinationId,
             quantityLease?.leaseId,
-            quantityLease != null ? ownerOperationId : string.Empty);
+            quantityLease != null ? operationId : string.Empty);
         repository.MarkChanged();
         markers.RefreshAt(selected.position);
+        return true;
+    }
+
+    [GameplayInternalOnly(
+        "The owning direct-pickup adapter releases its exact lease and restores the stored source route.",
+        "WorldItemStackRuntime")]
+    internal bool TryFinalizeStoredDirectPickup(
+        string ownerOperationId,
+        string sourceStackId,
+        ItemReservationReleaseReason releaseReason,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        string operation = ownerOperationId?.Trim() ?? string.Empty;
+        string stackId = sourceStackId?.Trim() ?? string.Empty;
+        if (operation.Length == 0 || stackId.Length == 0)
+        {
+            failureReason = "items.pickup.finalize_invalid_request";
+            return false;
+        }
+
+        quantityReservations?.ReleaseByOwner(operation, releaseReason);
+        if (quantityReservations != null
+            && quantityReservations.TryGetLeasesByOwner(
+                operation,
+                out IReadOnlyList<ItemQuantityLease> remaining)
+            && remaining.Count > 0)
+        {
+            failureReason = "items.pickup.finalize_lease_still_active";
+            return false;
+        }
+
+        if (!repository.RecordsById.TryGetValue(
+                stackId,
+                out WorldItemStackRecord source)
+            || source == null
+            || source.state != WorldItemStackState.Stored
+            || string.IsNullOrWhiteSpace(
+                source.sourceStorageDestinationId))
+        {
+            // A full pickup transferred this record identity to Carried. There
+            // is no remaining stored source route to restore in that case.
+            return true;
+        }
+        if (quantityReservations != null
+            && quantityReservations.GetReservedQuantity(
+                new ItemStackId(stackId)) > 0)
+        {
+            return true;
+        }
+
+        source.destinationId = source.sourceStorageDestinationId.Trim();
+        source.sourceStorageDestinationId = string.Empty;
+        source.hasDestinationPosition = false;
+        source.destinationPosition = default;
+        repository.MarkChanged();
+        markers.RefreshAt(source.position);
         return true;
     }
 

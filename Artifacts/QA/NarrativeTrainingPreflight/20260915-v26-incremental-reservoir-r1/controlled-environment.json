@@ -1,0 +1,23 @@
+{
+  "freshness": {
+    "assembly": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Library\\ScriptAssemblies\\Assembly-CSharp-Editor.dll",
+    "assemblyTicks": 639250779371478800,
+    "compiling": false,
+    "failed": false,
+    "latestScript": "Assets/Scripts/Services/Character/AI/Editor/NarrativeControlledInputExporter.cs",
+    "latestScriptMtimeNs": 1789480832834129800,
+    "playing": false,
+    "unityVersion": "6000.3.8f1",
+    "updating": false
+  },
+  "humanApprovalClaimed": false,
+  "loadedTypes": {
+    "equipment": "NarrativeControlledEquipmentCapture",
+    "exporter": "NarrativeControlledInputExporter",
+    "facility": "NarrativeControlledFacilityCapture",
+    "skill": "NarrativeControlledSkillCapture"
+  },
+  "sourceInputSha256": "sha256:ec58b082e4b708fba7c16ced9d092827af35e63188ab352399bad985d9d3f563",
+  "trainingEligible": false,
+  "window": "UNITY_VERIFY"
+}

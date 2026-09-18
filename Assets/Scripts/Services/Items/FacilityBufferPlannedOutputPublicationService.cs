@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Narrative.Korean;
 using UnityEngine;
 using VContainer;
 
@@ -161,6 +162,87 @@ public interface IFacilityBufferPlannedOutputPublicationService
         out string failureReason);
 }
 
+public readonly struct PreparedFacilityBufferOutputFact
+{
+    public PreparedFacilityBufferOutputFact(
+        in FacilityBufferPublishedOutputStackReceipt stack,
+        in KoreanNameSnapshot displayName)
+    {
+        Stack = stack;
+        DisplayName = displayName;
+    }
+
+    public FacilityBufferPublishedOutputStackReceipt Stack { get; }
+    public KoreanNameSnapshot DisplayName { get; }
+    public bool IsValid => GameplayOutcomeStableIdSyntax.IsValid(Stack.StackId)
+        && GameplayOutcomeStableIdSyntax.IsValid(Stack.OutputLineId)
+        && Stack.ItemDefinitionId.IsValid
+        && (Stack.ItemInstanceId.Length == 0
+            || GameplayOutcomeStableIdSyntax.IsValid(Stack.ItemInstanceId))
+        && Stack.Quantity > 0
+        && Stack.MassGrams > 0L
+        && GameplayOutcomeLedger.IsValidDisplayNameSnapshot(DisplayName);
+}
+
+public readonly struct PreparedFacilityBufferOutputPublicationPreview
+{
+    private readonly IReadOnlyList<PreparedFacilityBufferOutputFact> facts;
+
+    internal PreparedFacilityBufferOutputPublicationPreview(
+        FacilityBufferPlannedOutputPublicationReceipt receipt,
+        long ownerRevision,
+        IReadOnlyList<PreparedFacilityBufferOutputFact> facts)
+    {
+        Receipt = receipt;
+        OwnerRevision = ownerRevision;
+        this.facts = Array.AsReadOnly((facts
+                ?? Array.Empty<PreparedFacilityBufferOutputFact>())
+            .ToArray());
+    }
+
+    public FacilityBufferPlannedOutputPublicationReceipt Receipt { get; }
+    public long OwnerRevision { get; }
+    public IReadOnlyList<PreparedFacilityBufferOutputFact> Facts =>
+        facts ?? Array.Empty<PreparedFacilityBufferOutputFact>();
+    public bool IsValid => Receipt.Stacks is { Count: > 0 }
+        && OwnerRevision > 0L
+        && Facts.Count == Receipt.Stacks.Count
+        && Facts.All(value => value.IsValid);
+}
+
+public interface IPreparedFacilityBufferOutputPublication
+{
+    PreparedFacilityBufferOutputPublicationPreview Preview { get; }
+    bool TryApply(
+        out IReversibleFacilityBufferOutputPublication transaction,
+        out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+        out string failureReason);
+    void Cancel();
+}
+
+public interface IReversibleFacilityBufferOutputPublication
+{
+    PreparedFacilityBufferOutputPublicationPreview Preview { get; }
+    bool TryRollback(
+        out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+        out string failureReason);
+    bool TryAcknowledge(out string failureReason);
+}
+
+/// <summary>
+/// Preallocates the exact physical stack and item-instance identities before
+/// repository mutation. Persistent-ID gaps after cancellation are permitted;
+/// no inventory or save authority changes until TryApply succeeds.
+/// </summary>
+public interface IPreparedFacilityBufferOutputPublicationService
+{
+    bool TryPrepareFullBatch(
+        FacilityBufferPlannedOutputToken token,
+        out IPreparedFacilityBufferOutputPublication prepared,
+        out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+        out string failureReason);
+}
+
 #if UNITY_EDITOR
 public readonly struct FacilityBufferPlannedOutputPublicationEditorStackSnapshot
 {
@@ -215,7 +297,8 @@ public readonly struct FacilityBufferPlannedOutputPublicationEditorSnapshot
 /// only while preparing the complete batch and are never used as reservation IDs.
 /// </summary>
 public sealed class FacilityBufferPlannedOutputPublicationService :
-    IFacilityBufferPlannedOutputPublicationService
+    IFacilityBufferPlannedOutputPublicationService,
+    IPreparedFacilityBufferOutputPublicationService
 {
     private readonly WorldItemRepository repository;
     private readonly IDungeonItemCatalogProvider catalog;
@@ -432,6 +515,225 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
         repository.Remove(first);
     }
 #endif
+
+    public bool TryPrepareFullBatch(
+        FacilityBufferPlannedOutputToken token,
+        out IPreparedFacilityBufferOutputPublication prepared,
+        out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+        out string failureReason)
+    {
+        prepared = null;
+        failureCode = FacilityBufferPlannedOutputPublicationFailureCode.None;
+        failureReason = string.Empty;
+        if (!admission.TryValidatePlannedOutputPublicationToken(
+                token,
+                out bool admissionCommitted,
+                out _,
+                out string tokenFailure))
+        {
+            return Fail(
+                FacilityBufferPlannedOutputPublicationFailureCode.InvalidToken,
+                tokenFailure,
+                out failureCode,
+                out failureReason);
+        }
+        if (admissionCommitted
+            || massQuery.AuthorityRevision != token.MassAuthorityRevision)
+        {
+            return Fail(
+                FacilityBufferPlannedOutputPublicationFailureCode.InvalidToken,
+                "Prepared planned-output token is stale or already committed.",
+                out failureCode,
+                out failureReason);
+        }
+        if (!TryBuildExpectedStacks(
+                token,
+                allocateIdentities: false,
+                out _,
+                out failureCode,
+                out failureReason))
+        {
+            return false;
+        }
+        if (repository.Records.Any(record =>
+                PlannedOutputPublicationComponentCodec.HasBatchCommitId(
+                    record?.components,
+                    token.Request.BatchCommitId)))
+        {
+            return Fail(
+                FacilityBufferPlannedOutputPublicationFailureCode
+                    .ExistingPublicationConflict,
+                $"Batch '{token.Request.BatchCommitId}' is already published.",
+                out failureCode,
+                out failureReason);
+        }
+        if (!TryBuildExpectedStacks(
+                token,
+                allocateIdentities: true,
+                out List<PreparedStack> stacks,
+                out failureCode,
+                out failureReason))
+        {
+            return false;
+        }
+        FacilityBufferPlannedOutputPublicationReceipt receipt =
+            CreateReceipt(token, stacks);
+        if (!TryCapturePreparedOutputFacts(
+                receipt,
+                out PreparedFacilityBufferOutputFact[] facts,
+                out failureReason))
+        {
+            failureCode = FacilityBufferPlannedOutputPublicationFailureCode
+                .CatalogMismatch;
+            return false;
+        }
+        PreparedFacilityBufferOutputPublicationPreview preview = new(
+            receipt,
+            checked((long)repository.ItemStackVersion + 1L),
+            facts);
+        if (!preview.IsValid)
+        {
+            return Fail(
+                FacilityBufferPlannedOutputPublicationFailureCode
+                    .RepositoryTransactionFailed,
+                "Prepared planned-output preview is invalid.",
+                out failureCode,
+                out failureReason);
+        }
+        prepared = new PreparedPublication(this, token, stacks, preview);
+        return true;
+    }
+
+    private bool TryCapturePreparedOutputFacts(
+        FacilityBufferPlannedOutputPublicationReceipt receipt,
+        out PreparedFacilityBufferOutputFact[] facts,
+        out string failureReason)
+    {
+        facts = new PreparedFacilityBufferOutputFact[receipt.Stacks.Count];
+        failureReason = string.Empty;
+        for (int index = 0; index < receipt.Stacks.Count; index++)
+        {
+            FacilityBufferPublishedOutputStackReceipt stack =
+                receipt.Stacks[index];
+            if (!catalog.TryGetDefinition(
+                    stack.ItemDefinitionId.Value,
+                    out DungeonItemDefinition definition)
+                || definition == null)
+            {
+                failureReason = "prepared-output-item-definition-missing:"
+                    + stack.ItemDefinitionId.Value;
+                return false;
+            }
+            PreparedFacilityBufferOutputFact fact = new(
+                stack,
+                new KoreanNameSnapshot(
+                    definition.DisplayName,
+                    "item-definition:" + stack.ItemDefinitionId.Value + ":v1",
+                    KoreanPronunciationHint.AutoHangulDisplay(
+                        "item-definition-pronunciation-v1"),
+                    "ko-KR"));
+            if (!fact.IsValid)
+            {
+                failureReason = "prepared-output-fact-invalid:"
+                    + stack.StackId;
+                return false;
+            }
+            facts[index] = fact;
+        }
+        return true;
+    }
+
+    private bool TryApplyPrepared(
+        FacilityBufferPlannedOutputToken token,
+        IReadOnlyList<PreparedStack> stacks,
+        PreparedFacilityBufferOutputPublicationPreview preview,
+        out IReversibleFacilityBufferOutputPublication transaction,
+        out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+        out string failureReason)
+    {
+        transaction = null;
+        failureCode = FacilityBufferPlannedOutputPublicationFailureCode.None;
+        failureReason = string.Empty;
+        string tokenFailure = string.Empty;
+        bool tokenValid = admission.TryValidatePlannedOutputPublicationToken(
+            token,
+            out bool admissionCommitted,
+            out _,
+            out tokenFailure);
+        if (!preview.IsValid
+            || stacks == null
+            || stacks.Count == 0
+            || preview.OwnerRevision
+                != checked((long)repository.ItemStackVersion + 1L)
+            || massQuery.AuthorityRevision != token.MassAuthorityRevision
+            || !tokenValid
+            || admissionCommitted)
+        {
+            return Fail(
+                FacilityBufferPlannedOutputPublicationFailureCode.InvalidToken,
+                string.IsNullOrEmpty(tokenFailure)
+                    ? "Prepared planned-output authority changed."
+                    : tokenFailure,
+                out failureCode,
+                out failureReason);
+        }
+        if (repository.Records.Any(record =>
+                PlannedOutputPublicationComponentCodec.HasBatchCommitId(
+                    record?.components,
+                    token.Request.BatchCommitId)))
+        {
+            return Fail(
+                FacilityBufferPlannedOutputPublicationFailureCode
+                    .ExistingPublicationConflict,
+                $"Batch '{token.Request.BatchCommitId}' changed after prepare.",
+                out failureCode,
+                out failureReason);
+        }
+        WorldItemStackRecord[] records = stacks
+            .Select(value => value.Record)
+            .ToArray();
+        if (!repository.TryAddBatchAtomically(
+                records,
+                stacks.Where(value => value.Equipment != null)
+                    .Select(value => value.Equipment)
+                    .ToArray(),
+                index => faultInjector?.FailBeforeRepositoryAdd(index) == true,
+                out string repositoryFailure))
+        {
+            return Fail(
+                FacilityBufferPlannedOutputPublicationFailureCode
+                    .RepositoryTransactionFailed,
+                repositoryFailure,
+                out failureCode,
+                out failureReason);
+        }
+        if (repository.ItemStackVersion != preview.OwnerRevision)
+        {
+            // The atomic repository write completed but violated its promised
+            // revision. Remove the exact receipt batch before exposing failure.
+            TryRollbackPublishedBatch(
+                preview.Receipt,
+                out _,
+                out _);
+            return Fail(
+                FacilityBufferPlannedOutputPublicationFailureCode
+                    .RepositoryTransactionFailed,
+                "Prepared planned-output owner revision mismatched.",
+                out failureCode,
+                out failureReason);
+        }
+        outputClearanceTelemetry?.RecordPublication(
+            new FacilityOutputBatchPublishedObservation(
+                preview.Receipt.BatchCommitId,
+                preview.Receipt.OwnerFacilityId,
+                stacks.Aggregate(
+                    0L,
+                    (total, value) => checked(total + value.Mass.Value)),
+                FacilityOutputClearanceTelemetryRuntime
+                    .CaptureMicroGameHours(gameClock)));
+        transaction = new ReversiblePublication(this, preview);
+        return true;
+    }
 
     public bool TryPublishFullBatch(
         FacilityBufferPlannedOutputToken token,
@@ -1819,6 +2121,106 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
         failureCode = code;
         failureReason = reason ?? string.Empty;
         return false;
+    }
+
+    private sealed class PreparedPublication :
+        IPreparedFacilityBufferOutputPublication
+    {
+        private readonly FacilityBufferPlannedOutputPublicationService owner;
+        private readonly FacilityBufferPlannedOutputToken token;
+        private readonly IReadOnlyList<PreparedStack> stacks;
+        private bool terminal;
+
+        internal PreparedPublication(
+            FacilityBufferPlannedOutputPublicationService owner,
+            FacilityBufferPlannedOutputToken token,
+            IReadOnlyList<PreparedStack> stacks,
+            PreparedFacilityBufferOutputPublicationPreview preview)
+        {
+            this.owner = owner;
+            this.token = token;
+            this.stacks = stacks;
+            Preview = preview;
+        }
+
+        public PreparedFacilityBufferOutputPublicationPreview Preview { get; }
+
+        public bool TryApply(
+            out IReversibleFacilityBufferOutputPublication transaction,
+            out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+            out string failureReason)
+        {
+            if (terminal)
+            {
+                transaction = null;
+                return Fail(
+                    FacilityBufferPlannedOutputPublicationFailureCode.InvalidToken,
+                    "Prepared planned-output publication is terminal.",
+                    out failureCode,
+                    out failureReason);
+            }
+            terminal = true;
+            return owner.TryApplyPrepared(
+                token,
+                stacks,
+                Preview,
+                out transaction,
+                out failureCode,
+                out failureReason);
+        }
+
+        public void Cancel() => terminal = true;
+    }
+
+    private sealed class ReversiblePublication :
+        IReversibleFacilityBufferOutputPublication
+    {
+        private readonly FacilityBufferPlannedOutputPublicationService owner;
+        private bool terminal;
+
+        internal ReversiblePublication(
+            FacilityBufferPlannedOutputPublicationService owner,
+            PreparedFacilityBufferOutputPublicationPreview preview)
+        {
+            this.owner = owner;
+            Preview = preview;
+        }
+
+        public PreparedFacilityBufferOutputPublicationPreview Preview { get; }
+
+        public bool TryRollback(
+            out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+            out string failureReason)
+        {
+            if (terminal)
+            {
+                return Fail(
+                    FacilityBufferPlannedOutputPublicationFailureCode.InvalidToken,
+                    "Prepared planned-output transaction is terminal.",
+                    out failureCode,
+                    out failureReason);
+            }
+            bool rolledBack = owner.TryRollbackPublishedBatch(
+                Preview.Receipt,
+                out failureCode,
+                out failureReason);
+            if (rolledBack)
+                terminal = true;
+            return rolledBack;
+        }
+
+        public bool TryAcknowledge(out string failureReason)
+        {
+            if (terminal)
+            {
+                failureReason =
+                    "Prepared planned-output transaction is terminal.";
+                return false;
+            }
+            terminal = true;
+            failureReason = string.Empty;
+            return true;
+        }
     }
 
     private readonly struct PreparedStack

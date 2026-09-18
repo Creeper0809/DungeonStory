@@ -1,0 +1,9 @@
+[PASS] actual preparation estimate=adult1/45WU/day/0.4day; actual enqueue; cap1/17WU unchanged
+perturbation=thirst:60; source=(35, 2); progress=6; partialRaw=0.2204307/6; soleContribution=1
+worker=character:staff:1:01; action=Drink (AIDrink); research=False; participants=1; progress=6; generic=0.2204307/6; thirst=60; cell=(35, 2)
+result=FAIL
+System.InvalidOperationException: Drink must leave unfinished research and its workforce lease.
+  at WimR01ResearchSelfCareLiveRunner+<Run>d__18.MoveNext () [0x00d51] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Economy\Editor\WimR01ResearchSelfCareLiveRunner.cs:214 
+  at WimR01ResearchSelfCareLiveRunner+<Observe>d__17.MoveNext () [0x0004b] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Economy\Editor\WimR01ResearchSelfCareLiveRunner.cs:64 
+scope=actual owner/party and research UI; single real staff AI, physical drink and resume; one initial healthy-needs setup, priorities and one routine-thirst perturbation are controlled. No action-list replacement, forced drink/stop-work/progress, daily productivity, paired-run timing or collaborative-research claim.
+cleanup=paused disposable Play; operator stops; user persistence disabled before owner selection

@@ -93,6 +93,66 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         return true;
     }
 
+    public static bool RunHaulDeliveryPathFailureSnapshotFocused()
+    {
+        (string Name, HaulDeliveryPathFailureSnapshot Snapshot, bool Expected)[] cases =
+        {
+            ("default", default, false),
+            ("empty", new HaulDeliveryPathFailureSnapshot(
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                AIActionFailureKind.NoPath), false),
+            ("missing_source", new HaulDeliveryPathFailureSnapshot(
+                "operation",
+                string.Empty,
+                "destination",
+                "item",
+                AIActionFailureKind.NoPath), false),
+            ("missing_destination", new HaulDeliveryPathFailureSnapshot(
+                "operation",
+                "stack",
+                string.Empty,
+                "item",
+                AIActionFailureKind.NoPath), false),
+            ("missing_item", new HaulDeliveryPathFailureSnapshot(
+                "operation",
+                "stack",
+                "destination",
+                string.Empty,
+                AIActionFailureKind.NoPath), false),
+            ("complete_no_path", new HaulDeliveryPathFailureSnapshot(
+                "operation",
+                "stack",
+                "destination",
+                "item",
+                AIActionFailureKind.NoPath), true),
+            ("complete_other_failure", new HaulDeliveryPathFailureSnapshot(
+                "operation",
+                "stack",
+                "destination",
+                "item",
+                AIActionFailureKind.NoGrid), false)
+        };
+
+        foreach (var testCase in cases)
+        {
+            if (testCase.Snapshot.IsValid == testCase.Expected)
+                continue;
+
+            Debug.LogError(
+                "Haul delivery path-failure snapshot contract failed: "
+                + testCase.Name
+                + "; expected=" + testCase.Expected
+                + "; actual=" + testCase.Snapshot.IsValid + ".");
+            return false;
+        }
+
+        Debug.Log("Haul delivery path-failure snapshot contract PASS.");
+        return true;
+    }
+
     internal static string RunMultiStackHaulFocused() =>
         VerifyMultiStackHaulPlan();
 
@@ -1649,7 +1709,14 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                         quantityReservations),
                     quantityReservations: quantityReservations,
                     quantityLeaseMutations: quantityReservations,
-                    bufferAggregation: bufferAggregation);
+                    bufferAggregation: bufferAggregation,
+                    physicalItemRelocations:
+                        new DeterministicPhysicalItemRelocationOutcomeFixture()
+                            .CreateService(
+                                repository,
+                                massQuery,
+                                itemCatalog,
+                                EditorNullItemMarkerPresenter.Instance));
                 items = WorldItemEditorTestFactory.Create(
                     gridProvider,
                     itemCatalog,

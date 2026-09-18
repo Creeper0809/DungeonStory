@@ -1,5 +1,901 @@
 # DungeonStory 전역 밸런스 기준서
 
+## 서사 공식 실효 수치·확정 저장 보존 교정 (2026-09-17, Phase76 focused 검증·콘텐츠 보류)
+
+1. 기록 ID: `balance:narrative-formula-effective-values:v1`. 범위는 Phase75 검토 R1~R8의 사용자 승인 수정이며 새로운 기능·효과를 추가하는 배치가 아니다.
+2. 시대·해금·역할: 기존 기술/특성/장비/시설 해금과 서사 예산 산식을 유지한다. LLM은 합법 모듈과 근거·표현만 선택하고 C#이 선택 뒤 수치를 계산한다.
+3. Before/After: 공식의 비용 용량을 채우기 위해 실효 상한을 넘긴 범위와 중복 guard/protect 과금을 교정한다. 전열 위치0~2와 수익 최대1.15라는 실제 소비자 한도를 보존하며, 유효 증분이 없으면 잔여 예산을 명시한다. 예산 활용률 자체를 효용이나 밸런스 인증으로 사용하지 않는다.
+4. 물리 BOM·직접/내재 WU·EWU·kg·가격·공간·전력·용수·연료·정비: 새 비용/무료 출력 없음, 기존 수치와 소비 명령 유지. 효과 상한 제거로 신규 수익을 만들지 않는다. 작업 능력 시간은 실제 작성 규칙을 export에 보존하며 전투 턴으로 치환하지 않는다.
+5. 장단점·대안: 임의로 모듈을 추가해 예산을 채우는 방법보다 선택 의미를 보존하지만 본질적으로 제한된 효과에는 잔여 예산이 생긴다. 동일 효과를 별도 강화로 가장하지 않고 동등효과 충돌을 선언해 차단한다.
+6. 위험·순환: 동일 상태 갱신을 이중 이득으로 과금하지 않는다. 취소·재시도·부정 크레딧·소거의 기존 원자성과 상한을 유지한다. 알 수 없는 버전/hash는 실패하며 기존 확정 저장을 최신 공식으로 재계산하지 않는다.
+7. 권위: 현재 생성은 최신 SO 카탈로그, 과거 확정 수치 검증은 명시 등록된 버전/hash별 동결 정의, 인스턴스 상태는 기존 aggregate가 소유한다. UI·학습 export·저장 DTO에 두 번째 계산 권위를 만들지 않는다. 런타임 공유 SO 변경 없음.
+8. 연결·검증: 24개 capability의 공식/소비자 상한, 동등효과 충돌, 유효 양자/잔여 사유, 실제 발동/만료·저장 왕복·변조 거부, live/export 문맥 및 주체 일치, 새100행 사실·대상·단위·범위 검수를 기록한다. 통제 시험과 실제 UI/자연 플레이 증거를 분리한다.
+9. 상태: **밸런스 공식 검증(현재 지원 범위 한정)**. 새 assembly에서 실효 상한/중복 충돌, 수동 발동·만료/작업 속도, 등록된 v2~v5 동결 수치, 시설 V2/V3 선택·실제 JSON 저장 왕복·손상 거부, 장비 사용 기록/귀속 임계치 보존의 focused 검증을 통과했다. 전체100개 실전 발동이나 장기 밸런스 보정을 뜻하지 않는다. 원본 카탈로그를 확보하지 못한 v1 호환은 주장하지 않는다. 증거는 별도 AI 작업공간 `Artifacts/Review/Phase76FinalVerification-20260917-r1/REVIEW.md`와 원시 실행 로그에 있다.
+10. 추가 발견/미결정: 방어구·방패에는 실제 적용 가능한 이득과 동반 부담을 모두 만족하는 현행 진화 모듈이 없어 신규 생성을 차단한다. 일반 사용 원장·숙련·귀속 점수는 보존하며 미생성 단계를 달성 처리하지 않고 이유를 로그에 남긴다. 시설은 결과 생산/작업 소비자를 교차하면 D02에4개, Q02/M04에각1개가 남고 T02/S03/G04는0개다. 안전 차단은 이 콘텐츠의 구현 완료가 아니며, 유효 모듈/소비자 보강과 구형 catalog hash 유지 정책은 사용자 결정 후 별도 수치·콘텐츠 게이트를 거친다. 이전 파일럿은 새 승인 근거로 승계하지 않는다.
+
+Phase76 통합 검토 추가 계약: 시설 신규 생성은 결과 `BuildingSO`의 실제 역할·작업 소비자가 사용하는 stat만 허용한다. 같은 stat의 이득/부담을 내부에 함께 가진 모듈, 소비자가 없는 이득·내재 운영비·선택 부담은 새 후보/대기 요청의 확정에서 거부한다. 기존 확정 노드의 원본 수치·효과 투영과 모든 restore-valid 노드를 포괄하는 작업 속도 상한은 보존한다. 별도 상태 저장소·숫자 권위·모듈 ID별 분기는 추가하지 않고 읽기 전용 소비자 적합성 정책을 기존 투영과 공유한다. 이 수정은 무료 출력이나 새로운 시설 기능을 만드는 대신 무효 조합을 제외하며, 원본 자산의 수치를 바꾸지 않는다.
+
+## P1 시설 계보의 실제 소비자 보강 (2026-09-17, Phase77 SOURCE_EDIT)
+
+1. 기록 ID: `balance:facility-evolution:p1-real-consumers:v1`. 대상은 신규 P1 T02 궁술 표적, S03 잠금 진열장, G04 전술 탁자뿐이며, 구형 및 이미 확정된 시설 계보 노드는 재계산하거나 변경하지 않는다.
+2. 시대·역할: 기존 진화 해금·physical recipe replacement·재료 비용과 `facility:visit` 기록 시점을 보존한다. S02/S03은 방문 이용을 기록할 수 있는 `Purchase` 시설이지만 런타임 종류는 여전히 `Facility`이며 `Shop`·재고·무료 물품 생산을 추가하지 않는다.
+3. 작성값: `facility:training-operations`, `facility:service-support`, `facility:security-operations`은 각각 `training.speed`, `service.support-speed`, `security.speed`의 순수 이득이다. 각 기본 multiplier는 `1.10`, potency `0.5~1.0`와 기존 양자에 따라 실제 `1.05~1.10`이며, 기본 공식 비용은 기존 `1`이다. 도달 불가 또는 같은 축 상쇄 부담으로 예산을 만들지 않는다.
+4. 실제 소비자: T02의 `training.speed`은 `WorkAmountCalculator → FacilityEvolutionModifierQuery`의 Training+Operate 작업 속도, G04의 `security.speed`은 같은 경로의 Security+Guard 작업 및 실제 경보 충전, S03의 `service.support-speed`은 `ServiceSessionRuntime.GetHubSnapshot/CreateContract`의 서비스 보조 작업 속도에만 투영된다.
+5. 물리 BOM·직접/내재 WU·EWU·kg·가격·공간·전력·용수·연료·정비: 변경 없음. S02→S03 replacement는 기존 retail display의 static revenue modifier `+2`를 유지할 뿐, 공식 module은 수익·stock·결제 수치를 만들지 않는다.
+6. 근거 생산자: 세 recipe 모두 실제 `FacilityEvolutionRecordEventRecorder.RecordVisit`의 `facility:visit`만 최소 재생 근거로 사용한다. Shop·Defense·clean-day 사실을 새로 만들거나 source로 가장하지 않는다.
+7. 적합성·차단: target `BuildingSO`의 ability·role·operative work consumer로 일반화한 판정이 신규 offer·선택 요청·pending 최종화를 모두 검사한다. T02/G04/S03 이외 target에서 해당 positive module은 차단되고, 같은 축 positive/burden 또는 임의 module tamper도 차단된다.
+8. 저장·원자성: v1+는 기존 resolved snapshot에 formula node와 evidence 사용량을 함께 저장·게시한다. 기존 formulaVersion=0 및 restore-valid V3 snapshot의 원본 수치·historical offer list·projection은 새 적합성 규칙으로 소급 거부하지 않는다.
+9. 실행 증거·상태: SOURCE_EDIT 정적 작성까지 완료했다. 실제 Unity compile, formula-only asset digest 재작성, focused Editor test와 자연 방문→진화→서비스/경비 작업 재생은 통제 UNITY_VERIFY에서 별도로 확인해야 하며, 이 기록은 밸런스 완료 선언이 아니다.
+
+### Phase77 장비 순수 내구도 공식 카탈로그 V4 (2026-09-17, SOURCE_EDIT)
+
+1. 기록 ID: `balance:narrative-equipment:pure-durability-v4`.
+2. 시대·역할: 기존 장비 귀속 및 재단조 진화가 열리는 시점과 기존 증거·예산 산식은 유지한다. 이전에는 실제 내구도 소비자가 있는 방어구·방패가 `combat.reload` 부담 때문에 후보를 받지 못했다. 이후에는 V4가 실제 `Armor|Shield`에만 적용되는 `equipment:reinforced-durability` 순수 내구도 capability를 후보로 제시한다.
+3. 작성값: 새 capability의 범위·비용 양자는 기존 장비 공식과 같은 `magnitude 0.04~0.16`, 0.01 양자, 양자당 예산1이다. 적용기는 기존 `combat.durability` 증가 투영을 재사용한다. module 정의에는 `combat.durability ×1.12` 기준 benefit만 있고 burden·riskWeight·선택 단점·drawback credit은 없다. 방어구와 방패에는 이 capability 하나만 실제 이로운 후보로 남고, 무기는 damage/accuracy/reload 소비자에 맞는 기존 후보만 유지한다.
+4. 물리 BOM·직접/내재 WU·EWU·kg·가격·공간·전력·용수·연료·정비: 변경 0. 새 아이템, 재료, 제작식, 수리 소비, 작업 주문, 물리 출력 또는 무료 재고는 만들지 않는다. 기존 귀속 점수·재단조 작업·재료 custody와 실제 내구도 투영만 사용한다.
+5. 시간·해금·플레이어 주의력: 신규 쿨다운, 연구, 등급, 메뉴 또는 자동 확정 선택은 없다. 기존 presentation-pending/서사 확정 뒤 한 번만 commit하는 수명과 장비당 기존 공식 예산·선택 한도를 그대로 따른다.
+6. 같은 시대 대안과 장단점: 무기는 기존 공격·명중·재사용 대기 capability로 공격적 선택을 유지한다. 방어구·방패는 무효 부담을 붙여 예산을 상쇄하는 대신, 순수 내구도만 얻고 공격·명중·재사용 대기 효과는 얻지 않는다. 따라서 새 모듈은 새 역할이나 수익 경로가 아니라 이전에 막힌 실제 내구도 소비자의 최소 진화 경로다.
+7. 위험·순환·크레딧: 순수 module에는 burden이 없으므로 `positiveCost == calculatedCost`, `drawbackCredit == 0`, `burdenEffectId == empty`가 필수다. 같은 축을 상쇄하는 선택 단점은 registry의 선언적 forbidden synergy로 계속 거부한다. 예산·근거 재사용 감쇠·노드 활성/제거·재단조 취소의 기존 원자성은 바꾸지 않아 무료 크레딧, 재굴림 또는 소비 없는 반복 진화를 만들지 않는다.
+8. 실제 대상성: 새 생성은 immutable `CombatEquipmentDefinitionSO`와 instance의 canonical definition ID에서 구성한 `EquipmentFormulaTargetContext`를 반드시 요구한다. `combat.durability`는 `Armor|Shield`에서만, weapon stat은 weapon kind에서만 실제 소비자로 판정한다. shared asset을 런타임에 바꾸거나 pilot ID/서사 방향으로 kind를 추측하지 않는다.
+9. 저장·호환 권위: 현재 생성은 V4 SO 카탈로그 hash `a582e7b62a3c53b539fc93e02438e1cb5b92b765a36ab7489a6932a5278a01a7`을 기록한다. committed/pending V3은 별도 `EquipmentEvolutionFormulaCatalogV3`의 hash `d17ebf4c8d8e5cb7f558dc65c9f454292354807a5d68097e171992aadbbacd7d`만 사용하며 V4로 재계산·투영·선택 문구를 갱신하지 않는다. 알 수 없는 V3+ version/hash는 fail-closed한다.
+10. 연결·검증: `EquipmentEvolutionFormulaCatalogSO`가 version별 module membership와 canonical hash를 검증하고, `EquipmentEvolutionRules`/`EquipmentEvolutionRuntime`/`CombatEquipmentStatProjector`가 persisted node version에 맞는 카탈로그만 load한다. V18 focused contract는 melee의 내구도 배제, armor/shield의 순수 후보, credit 0, V3 round-trip hash 보존을 확인한다.
+11. 상태: **밸런스 기준 배정**. 작성 수치·물리 영향0·저장 경계·결정론적 focused 계약은 명시했으나, Unity compile/entrypoint 실행과 실제 장기 전투·수리 비용/승률 자료는 주 검증 창의 후속 증거다. 이 기록은 장기 밸런스 완료나 실전 보정을 선언하지 않는다.
+
+## 서사 공식의 인스턴스 한정 부정 효과 크레딧 (2026-09-16, 구현·공식 검증 진행 중)
+
+1. 기록 ID: `balance:narrative-formula-drawback-credit:v1`.
+2. 범위: 신규 캐릭터 기술, 후천 특성, 장비 진화, 시설 진화의 공식 생성 인스턴스에 이미 실제 소비자가 있는 부정 효과를 이득과 불가분으로 결속하고, 해당 생성 1건에서만 양의 효과 비용을 일부 상쇄한다.
+3. 계산: `netCost = positiveCost - acceptedDrawbackCredit <= narrativeBudget`. 크레딧은 전역·누적·다음 생성으로 이전되지 않는다. 플레이어 선택은 서사 예산의 최대 25%, 자동 확정은 최대 10%, 공통 절대 상한은 3이다. 자동 확정은 C# 원장에 실패·부상·파손·손실 등 부정 원인 증거가 있을 때만 크레딧을 받는다.
+4. 실제 대가: 캐릭터 액티브는 후보별 확정 쿨다운 증가, 궁극기는 부정 원장 근거가 있는 경우에만 자동 쿨다운 증가를 사용할 수 있다. 후천 특성은 명시적으로 작성된 조건부 부정 `GameplayEffectBinding`, 장비·시설은 `EvolutionModuleDefinition.Burdens`만 인정한다. 패시브처럼 공통적으로 강제할 실제 대가가 없는 경로는 크레딧 0이다.
+5. 안전 조건: 도달 불가, 선택적, 토글 가능, 이득과 별도 제거 가능, 같은 축에서 이득을 단순 상쇄하는 대가는 fail-closed한다. 효과 제거·망각·노드 비활성화는 결속된 이득과 대가를 함께 제거하며 원본 서사 원장과 영향 사용 횟수는 되돌리지 않는다.
+6. 기존 대안: 모든 결과를 순수 상향으로 만드는 안전안보다 선택 성격과 서사 흔적이 선명하지만, 위험 후보가 지배 전략이 될 수 있다. 이를 선택/자동 상한, 부정 증거 게이트, 결정론적 저장, 다음 양자 추가 불가 검사로 제한한다.
+7. 순환·차익: 부정 효과를 해제한 채 크레딧만 유지하거나 저장/복원·취소·표현 재시도로 크레딧을 재사용하는 경로는 허용하지 않는다. `positiveCost`, `drawbackCredit`, `netCost`, `drawbackId`, 원래 서사 예산을 인스턴스에 함께 저장하고 원자적으로 검증한다.
+8. 검증: 크레딧 상한, 자동 부정 증거 요구, 선택적/도달 불가/상쇄 대가 거부, 실제 쿨다운·binding·burden 소비, 제거 원자성, 저장 왕복, 같은 입력 결정론과 C# 기계 설명을 focused 시나리오로 확인한다.
+9. 현재 상태: **밸런스 공식 검증 진행 중**. 공용 signed-cost 단위 시나리오는 추가됐으며, 네 도메인 자산 재작성·실제 소비·저장 왕복·새 파일럿 검증 전에는 밸런스 완료가 아니다.
+
+## 서사 기반 공식 수치 생성 권위 (2026-09-16, 구현 전 기준 배정)
+
+1. 기록 ID: `balance:narrative-formula-mechanics:v1`.
+2. 콘텐츠 종류: 신규 캐릭터 액티브·패시브·궁극기, 후천 특성, 장비 진화, 시설 계보 진화의 기능·수치 생성 공통 계약.
+3. 정의·카탈로그·실행기 위치: 시스템별 공식 정책 ScriptableObject, 명시적 capability registry, 공용 순수 공식 계산기, CharacterSkill/AcquiredTrait/EquipmentEvolution/FacilityEvolution 소유 aggregate와 commit service. 상세 구조는 `Tools/Documentation/narrative-formula-mechanics-contract.md`.
+4. 등장 시대와 연구: 각 기존 시스템의 현재 해금·발현·진화 시점을 그대로 사용한다. 레벨·등급 고정 예산표를 신규 권위로 사용하지 않고, 그 시점까지 실제 C# 원장에 확정된 다양성·숙련 이정표·사건 중요도만 계산한다.
+5. 플레이어에게 주는 새 결정: 액티브 기술은 핵심 효과가 서로 다른3개, 시설 진화는 규칙 순위 후보를 보고 선택한다. 패시브·궁극기·후천 특성·장비 진화는 같은 입력에서 같은 자동 결과를 확정한다. LLM 이름/문장은 선택지가 아니다.
+6. 목표 시스템 결합 등급과 근거: 실제 기록→공식 예산→capability 수치→기존 효과 소비자→인스턴스 저장/UI 설명의 직접 결합. 서사 문장은 이 경로의 표현 계층이며 기계 권위와 분리한다.
+7. 발생 생산자와 실제 원인 증거: 기존 Character narrative ledger, 장비 사용 이력, 시설 usage ledger와 관계/행동/도메인 typed 기록만 사용한다. 후보 생성용 가상 사실과 LLM 추론 사실은 원인으로 쓰지 않는다.
+8. 실제 도메인 명령·진행·해결 영수증: 각 기존 생성/진화 명령이 `PresentationPending`을 만들고 유효 표현 응답 뒤 한 번만 효과·비용·영향 사용·기록을 함께 commit한다. 취소·실패·5회 표현 실패는 commit 영수증이 없다.
+9. 영속 흔적과 역반응 소비자: 원본 원장과 별도 `influenceUseCount`, formulaVersion, 계산 매개변수, 증거 ID와 획득/진화 기록을 소유 aggregate에 저장한다. 망각의 인장은 후천 특성 효과/표시만 제거하며 원본 사실과 영향 사용 이력은 되돌리지 않는다.
+10. 물리 BOM·입력·출력: 신규 물리 BOM과 무료 물품 출력 없음. 기존 진화/망각 명령의 실제 재료·아이템 소비는 유효 표현까지 성공한 최종 원자 commit에서만 기존 물리 권위를 사용한다.
+11. 직접 작업량과 계산 근거: 기존 진화 작업량을 바꾸지 않는다. 생성 예산은 `R=.40D+.35M+.25I`, `P=1-exp(-R/softCapK)`, `baseBudget+floor(powerScale*P)`이며 같은 기록은 `1/(1+useCount)`로 감쇠한다. base/powerScale/softCap과 비용곡선은 시스템별 작성 권위다.
+12. EWU와 목표 회수 기간: 신규 EWU 면제나 즉시 회수 없음. 작업/전투/시설 효과의 실효 가치는 생성된 예산 상한 안에만 있고, 기존 대안 대비 승률·처리량·회수 기간은 공식 시뮬레이션과 실제 플레이 전까지 미확정이다.
+13. 공간·전력·물·연료·정비: 기존 시설/장비 효과 소비자의 실제 조건을 그대로 통과한다. 공식 생성이 공간·전력·물·연료·정비를 대신 충족하거나 BuildingSO 원본을 변경하지 않는다.
+14. 위험·실패·회복 방식: 누락 공식/범위/양자화/친화도/충돌, 비유한 값, 예산 초과, 금지 시너지, 알 수 없는 증거, LLM의 기계 필드는 fail-closed. 표현5회 실패는 같은 동결 결과의 `AwaitingNarrativeRetry`; 숨은 문구/첫 후보 폴백과 재굴림 없음.
+15. 사회·비가역 비용: 강한 기능은 실제 누적 기록과 이미 사용된 기록의 점감이라는 기회비용을 가진다. 원본 사실은 삭제하지 않으며 효과 제거가 능력치 성장·패시브 조건의 사실 원장을 훼손하지 않는다.
+16. 기존 대안과의 장단점: 고정 변형보다 같은 capability 안에서 서사에 맞는 연속적 수치 배분을 제공하지만 공식 작성·시뮬레이션·설명이 필요하다. LLM 수치 생성보다 결정론·저장 재현성이 높고, 레벨 고정표보다 실제 행적을 반영하지만 반복 농사는 감쇠한다.
+17. 지배 전략 방지 조건: 누적 소프트캡, 기록 재사용 감쇠, 금지 시너지·충돌·대상·도메인 검증, 정량 예산과 다음 양자 추가 불가 검사를 모두 요구한다. 같은 사건 반복만으로 선형/무한 성장하지 않아야 한다.
+18. 저장 권위와 실행 명령: 생성 수치는 캐릭터 기술/후천 특성 인스턴스, 장비 진화 노드, 시설 인스턴스 계보 modifier가 소유한다. 공유 SO/BuildingSO와 UI/LLM DTO는 쓰기 권위가 아니다. 기존 확정 고정 저장은 `formulaVersion=0`으로 byte-equivalent 의미를 유지한다.
+19. 자동 감사 ID와 필수 목록 포함 여부: `narrative-formula-v1` 감사가 모든 등록 capability의 공식/범위/양자/친화도/충돌/formatter/applicator, 비등록0, 콘텐츠 ID 분기0과 legacy 신규작성0을 전수 검사한다.
+20. 검증 매트릭스와 보고서 위치: 단조 증가·소프트캡·1,1/2,1/3 감쇠·NaN/음수/overflow, 예산 이하/양자 최대화, 동일입력 결정론/서사별 분포, 취소·실패·저장 왕복 원자성, 금지 응답 필드, 기존 저장 불변을 focused Unity 및 대량 순수 시뮬레이션으로 검증하고 `Artifacts/QA/narrative-formula-mechanics-v1`에 보존한다.
+21. 현재 밸런스 상태: **밸런스 기준 배정**. 사용자 공식과 권위 구조는 승인됐으나 capability별 cost/range의 전수 작성, 컴파일, 시뮬레이션과 실제 플레이 보정 전이며 구현/밸런스 완료가 아니다.
+
+## WIM040 실제 상점 절도 원인 연결과 사회 충돌 생산자 차단 (2026-09-13, 소스 적용/Unity 검증 전)
+
+1. 기록 ID: `balance:wim:040:committed-shoplifting-and-social-conflict-causes`.
+2. 시대·역할: 실제 방문 중 발생한 ServiceIncident 원인을 현재 월드의 손님·시설·물리/사회 명령에 연결하는 두 번째 수직 묶음이다. 신규 사건 정의·확률·대응 효과를 추가하지 않는다.
+3. Before: 상점 절도는 exact `RetailStockLotSnapshot`을 실제 외부 Sink한 뒤 `FacilityCrimeEvent`를 발행하지만 이벤트가 lot/operation identity를 버려 Society 사건이 될 수 없다. friendly assault의 `SocialConflictEvent`는 계산된 피해 뒤 실제 신체 적용 전에 발행되고 operation/서비스 공간 receipt가 없다. 불만 `SocialConflictEvent`는 `conflictId` 문자열은 있으나 고유 commit operation과 방문객 시설 receipt가 없다.
+4. After: Theft만 실제 Customer가 Shop에서 exact lot 1개를 성공적으로 Sink한 뒤의 typed `Shoplifting` 이벤트와 lot receipt로 생성한다. source operation에서 해당 단위의 commit operation을 결정론적으로 분리하고, item definition/optional instance·stack, 수량1, unit gram, Shop instance/위치, Customer를 발생 당시 동결한다. Brawl과 CulturalInsult는 각각 실제 피해 적용 뒤의 operation+서비스 공간 receipt, 실제 사회 커밋의 고유 operation+서로 다른 문화+같은 방문객 시설 receipt가 생기기 전 설정 전용 비활성이다. EnvoyConflict/Sabotage도 계속 비활성이다.
+5. 물리 BOM: 변경0. Theft 사건은 이미 Sink된 lot을 다시 소비·복원·보상하지 않는다. 사건 cap/cooldown 거절도 성공한 원래 절도를 되돌리지 않는다.
+6. Direct WU: 변경0. 수색·중재·체포·사과 등 기존 작성 선택의 의미를 새 작업으로 재해석하지 않으며 `replace`·`emergency-care`·`transfer`의 차단 계약도 유지한다.
+7. EWU·kg·가격: item의 실제 `unitMassGrams`와 기존 손실가만 원인 설명에 보존하며 질량·가격·보상 수치를 바꾸지 않는다. 가상 도난품이나 무료 대체품을 만들지 않는다.
+8. 시간: 절도 Sink commit 직후 동일 callback에서 한 번 발생 시도하고 기존 사건 deadline/category/cooldown을 사용한다. 거절된 원인을 다음 날 재추첨·대기시키지 않는다.
+9. 공간: 실제 Shop instance와 commit 당시 center cell만 사용한다. 이름/표시 문자열로 상점을 추측하거나 다른 객실·방을 원인으로 합성하지 않는다.
+10. 전력·용수·폐기물: 변경0.
+11. 위험: 사건 생성/표시 실패는 이미 성공한 물리 Sink를 재실행하거나 rollback하지 않는다. exact replay는 동일 payload만 허용하고 같은 operation의 target/lot/facility 변경은 fail-loud한다.
+12. 대안: 범용 사고 프레임워크나 일일 무작위 주민 추첨 대신 기존 observed ServiceIncident occurrence·cap/category/cooldown·Customer owner/save join을 재사용한다. 부족한 Brawl/CulturalInsult 계약은 문자열·이름·사후 위치로 보충하지 않는다.
+13. 지배 전략 방지: 상점 절도 확률·경비/혼잡/가치 위험 계산과 손실가를 바꾸지 않는다. 사건을 만들기 위해 절도를 강제하거나 사건 거절을 물품 환급으로 이용할 수 없다.
+14. 중복·차익 방지: exact 단위 commit operation당 사건 최대1개이며, 같은 source lot의 여러 단위를 한 사건으로 오인하지 않는다. 같은 commit operation의 다른 payload 재사용은 원자 거절한다. 물리 lot Sink는 원 생산자 권위이고 Society는 동결 원인/수명만 소유한다.
+15. 실행 경로: `ShopInventoryRuntime.TryTakeExactLot`가 source 잔량으로 고유 단위 commit operation을 동결→`ShopCrimeRuntime.TryResolve` exact lot external Sink 성공→operation+lot을 포함한 `FacilityCrimeEvent(Shoplifting)`→기존 V20 observed-cause adapter→Society occurrence/alert. Brawl/CulturalInsult에는 이 행에 대응하는 충분한 현재 producer→receipt 경로가 없어 연결하지 않는다.
+16. 저장 권위: Society V7/observed evidence V2 current-format에 source kind, 고유 commit/source operation과 exact Theft lot 필드를 저장하고 operation history, occurrence, target-owner/CharacterWorld join을 함께 검증한다. Shop/아이템 상태를 Society에 복제하지 않고 frozen cause만 보존한다. 과거 save migration은 없다.
+17. 증거·상태: SOURCE_EDIT에서 producer 순서·typed event·payload validation·dormant cause를 정적/focused C# 시나리오로 검사한다. 소스는 적용됐지만 주 Unity compile과 실제 상점 AI 절도→알림→whole restore는 후속 검증 전이며, Brawl/CulturalInsult/EnvoyConflict/Sabotage와 WIM040 전체는 OPEN이다. 밸런스 영향 없음: 확률·BOM·WU·kg·가격·효과 변경0이고 실제 발생 증거의 보존만 추가한다.
+
+## WIM023 연령 치료의 전용 주 시설 자격 단일화 (2026-09-12, 구현 전)
+
+2026-09-12 해당 수직 묶음 검증: authoring21ACA024(47/5/42, Building370), main liveF95F7853 PASS. 정상5·교차20/실제 UI 주문·취소/전용 명령/잘못된 incoming 시설·return의 원자 거절/정상 whole restore·대기 소유권 보존 확인. 컴파일 Runtime2A40589E/Editor63CE9820/Medical609AB12F, 새 Console29→69 W/E0/0. 임상 효과·응급 환경·44WU·전수023·전수 밸런스 완료는 아니다. 현재 이 변경은 시설 자격·상태 연결 검증이며 수치/BOM/WU/kg/EWU/가격 변경0.
+
+같은 실행 경로에서 확인한 교정: 연령 치료는 실제로 신체 부위가 비어 있는 `ApplyAgeTreatmentEffect` 공정이다. 공용 읽기 전용 effect-derived 판정으로 전신 치료를 구분해 일반/전용 주문과 UI가 가짜 부위·이식 부품을 요구하지 않게 한다. 부위별 수술의 기존 검증은 유지하며, 새 효과·수치·저장 상태는 만들지 않는다. 실제 UI의 선택·주문·취소와 전용 명령의 빈 부위/부품 주문을 집중 검증한다.
+
+복원 집중 검사에서 확인한 계약 교정: `subjectAiWasPaused`는 입실 여부가 아니라 주문 전 AI 정지 상태를 돌려주기 위한 기존 메모리다. 실제 `PrepareAdmission`은 입실 전에 이 값을 기록하며 취소 후에도 남긴다. 이 값만으로 입실 전/종료 주문을 invalid로 판정하지 않는다. 실제 `patientReturnRequested && !patientAdmitted` 거절은 유지하고, 기존 정지 상태의 보존/취소와 잘못된 복원의 원자성을 같은 focused 경로에서 확인한다. 저장 스키마·물리량·비용·효과 변경 없음.
+
+같은 복원의 publication은 입실 완료 환자뿐 아니라 정상 주문이 이미 제어하는 입실 전 환자의 대기도 다시 적용한다. 기존 주문의 재료 소유권·대상 상태로 판정하며 queued 비소유 주문이나 종료 주문이 새로 환자를 붙잡지 않는다. 복원된 actor에서 `subjectAiWasPaused`를 다시 캡처하지 않고 기존 값을 보존한다. 이는 기존 수술 hold의 복원이며 일반 AI 정지 상태의 별도 저장 기능이 아니다.
+
+1. 기록 ID: `balance:wim:023:age-treatment-primary-facility`.
+2. 시대·역할: 현행 연구가 해금하는 연령 치료5종의 실제 주 시설 자격.
+3. Before: 전용 AgeTreatmentCommand는5개 building ID를 검사하지만 일반 수술 UI/직접 예약/작업/복원은 합쳐진 AgeTreatment 태그만 검사한다.
+4. After: 기존 SurgicalProcedureSO에 선택적 전용 주 시설 definition ID를 작성하고 공용 SurgicalFacilityQuery의 procedure-aware Evaluate를 모든 경로에서 사용한다. 대응은 organ-regeneration→8868, blood-rejuvenation→8869, rune-hibernation→8870, whole-body-regeneration→8871, temporal-stasis→8872로 기존 전용 명령과 동일하다. 다른 시술은 제한 없음0과 기존 태그/지원 시설 조건을 유지한다.
+5. 물리 BOM: 변경0. 일반 수술 재료·별도 공정 유체·유지 운영물자 그대로.
+6. Direct WU: 변경0. 잘못된 시설에서는 예약/소비/노동 전 거절한다.
+7. Embedded WU/EWU·kg·가격: 변경0. 치료/시설을 신설하거나 비용을 상쇄하지 않는다.
+8. 시간: 기존 단계·안정화·회복·연령/재시술 cooldown 유지.
+9. 공간: 기존 주 시설과 같은 방의 지원 조건 유지. 지원 시설에 전용 ID가 있어도 다른 주 시설의 자격을 대신하지 못한다.
+10. 전력·용수·폐기물: 기존 운영 조건 그대로; query가 물자/전력을 소비하지 않는다.
+11. 위험: 일반 예약을 통한 교차 시설 우회와 잘못된 incoming active 주문의 게시를 막는다. 오류 시 기존 주문/재고/환자 상태 보존.
+12. 대안: 기존 SO·query·예약·restore 사용. 새 시설 카탈로그/저장 section/전역 규칙 엔진/과거 save migration 없음.
+13. 지배 전략 방지: 가장 저렴한 AgeTreatment 시설 하나로 모든 치료를 대체하지 못한다. 정상5조합의 기존 자격은 유지한다.
+14. 순환 차익 방지: 읽기 전용 자격/예약 전 거절이며 치료·재료·보상 반복 없음. 기존 수술 receipt 변경0.
+15. 실행 경로: 작성 SO/builder→SurgicalFacilityQuery→UI 후보/전용·일반 Schedule→작업 재검증/현재 restore.
+16. 저장 권위: 기존 procedureId/facilityId 및 현재 catalog에서 자격 대조. 전용 시설 숫자를 주문에 중복 저장하지 않는다.
+17. 검증: 실제5종 작성/후보의 정상5·교차20, direct Schedule 사전 거절, 정상 및 잘못된 active current restore의 보존성을 focused로 확인한다. 기존44WU·회수·취소18사례는 관련 실행 소유권을 바꾸지 않으면 반복하지 않는다. 현재 구현 전이며 전체023/밸런스 완료 아님.
+
+## WIM040 실제 식사 사건의 원인·대상 소유권 (2026-09-11, 구현 전)
+
+2026-09-12 실행 증거: 첫 원인 묶음4개 하위 체크를 닫았다. local6986D79A와 실제 Customer 야전 식사/whole-save/보상 A2816E32 PASS, compile119289E1/8AE3A054. 실제 식사−1/보상−60 1회, 입력 세이브의 대상 누락·사건 소유권 누락 원자 거부, 정상 복원·출구 소유 해제를 확인했다. 사용자 씬/저장/설정5개 byte 동일, WU/BOM/kg/EWU/가격 변경0. 실제 의료·자연 식당 AI·다른6종·전수 밸런스 완료는 아니다. MCP 응답 timeout1건은 기능 PASS와 별도 기록하며 전체 Console0/0로 표현하지 않는다.
+
+2026-09-12 통합 계약 교정: inline JSON의 빈 객체와 실제 근거를 구분하는 `hasObservedMealIncident`를 사용한다. true인 근거는 버전/ID/관측값/operation을 엄격히 검증하고, false인 일반 사건에 실제 식별자·관측값이 끼어 있으면 거부한다. 활성 손님의 복원은 `SocietyEventsSaveSection`의 검증된 incoming 대상 목록을 stage 전용 query로 외부활동 복원기에 전달한다. 외부활동 섹션은 Society 섹션 이후 stage하며, 동일 대상의 이중 사건 소유와 소유자 없는 Customer는 계속 거부한다. live Society를 incoming 세이브의 소유자로 대신 쓰지 않는다. stage 시작/실패/폐기/게시에서 임시 목록을 정리하며 저장 필드·게임플레이 수치는 추가하지 않는다. 아래17필드 기록의 실행·저장 경계에 대한 교정이고 WIM040 전체 완료는 아니다.
+
+1. 기록 ID: `balance:wim:040:observed-meal-incident-evidence`.
+2. 시대·역할: 현재 손님 식사에서 확인된 금기 위반/식사 직후 쓰러짐을 사회 사건으로 연결하는 첫 원인 수직 묶음.
+3. Before: 원인 조건이 비어 있는8개 ServiceIncident가 일반 일일 후보에 들어가 무관한 주민을 대상으로 선택될 수 있다. 실제 식사 operation과 참가 대상의 연결이 없다.
+4. After: 성공한 실제 PhysicalMealConsumedEvent의 일치 operation/Customer 대상만 검토한다. PolicyViolation이면 ForbiddenMeal, 같은 callback의 실제 Downed·생존이면 MedicalCollapse 후보이다. 둘 다면 의료 응급 우선으로 동일 operation에서 최대1건만 생성한다. 기존 slot/category/cooldown을 즉시 재검증하며 거절된 사실을 다음 날 강제 재생하지 않는다. 나머지6종은 실제 근거가 연결되기 전까지 비적격이며 완료 처리하지 않는다.
+5. 물리 BOM: 식사 원본 소비/포장·부산물/receipt 권위 그대로. 사건 캡처가 물품을 다시 소비하거나 출력하지 않는다.
+6. Direct WU: 변경0. 이 묶음은 치료·이동·수리 작업을 알림 클릭으로 대신하지 않으며 해당 실제 대응 연결은 별도040 잔여다.
+7. EWU·kg·가격: 변경0. 기존 보상 선택의 Money 등 즉시 효과 정책은 보존하고 무료 추가 보상은 없다.
+8. 시간: 실제 식사 callback에서 즉시 발생 시도, 이후 기존 사건 deadline/해결/만료가 수명 권위다. occurrence 이전의 새 방문객 대기 큐는 만들지 않는다.
+9. 공간: 실제 식사 시설 instance/셀 또는 명시적 야전 식사 구분을 동결한다. 새로운 시설/통로를 만들지 않는다.
+10. 전력·용수·폐기물: 변경0. 기존 서비스 소비처 유지.
+11. 위험: 실제 결과 뒤 callback임을 사용하되 Downed를 특정 질병이나 식중독이 원인이라고 단정하지 않는다. 원인 문구는 ‘식사 직후 확인된 쓰러짐’과 실제 관측값이다. 작성 riskTier와 관측 사실을 분리한다.
+12. 대안: 새 사고 시뮬레이터/전원 Customer 영속화/일일 가짜 사고 대신 기존 Society occurrence·cap·cooldown·target-owner/save 경계를 사용한다. 근거 없는6종을 피로 같은 공통 수치로 합성하지 않는다.
+13. 지배 전략 방지: 금기 식사의 기존 정책 검사·긴급 허용/페널티를 바꾸지 않는다. 사건을 위해 금기 식사를 강제로 공급하지 않는다.
+14. 중복·차익 방지: 동일 성공 operation의 사회 사건 발생은 최대1회이며 occurrence/저장·재시도 경계에 이를 유지한다. 사건 효과·물리 소비를 캡처 단계에서 재실행하지 않는다.
+15. 실행 경로: 기존 실제 meal commit/effects→PhysicalMealConsumedEvent→V20 adapter의 typed 캡처→Society 원자 명령/occurrence→기존 알림. 일반 무근거8종 일일 추첨 경로는 닫는다.
+16. 저장 권위: Society가 동결 operation/item/stack/facility/관측 사실/정확한 참가 ID를 가진다. 활성 미해결 incident가 소유한 Customer만 기존 actor capture/출구 수명에 연결하고, incoming CharacterWorld candidate와 join을 검증한다. 소유가 끝나면 정상 출구 경로를 재개한다. resolved 역사 ID를 신규 살아 있는 actor 소유로 취급하지 않는다. 과거 세이브 마이그레이션은 없다.
+17. 검증: 성공/실패·직원 제외/금기·Downed 분기, cap/cooldown/무근거6종 제외, 동일 operation 재시도·current save·잘못된 target join 원자 거부, 발생 당시 원인·알림/보호 대상 출구를 묶는다. root 중요 테스트와 주 Unity compile/실행 전에는 체크를 닫지 않는다. 현재는 코드 적용 전 계약이다.
+
+### WIM040 실제 오염 식사 활성화·작업 응답 fail-closed (2026-09-13, 소스 적용/Unity 검증 전)
+
+1. 기록 ID: `balance:wim:040:consumed-contamination-and-response-contract`.
+2. 시대·역할: 기존 실제 손님 식사 사건의 원인 확장과 ForbiddenMeal/MedicalCollapse의 작업형 대응 경계.
+3. Before: 성공한 실제 오염 식사도 PolicyViolation/Downed가 아니면 사건이 아니며, `replace`·`emergency-care`·`transfer`는 식사 배송·의료 주문 영수증 없이 작성 효과만 적용하고 즉시 종결한다.
+4. After: 동일 PhysicalMealConsumedEvent가 `Contaminated`를 실제로 보고한 살아 있는 Customer만 Contamination 후보이다. Downed가 함께 관측되면 기존 MedicalCollapse 우선, 그 외에는 Contamination이 ForbiddenMeal보다 우선하여 동일 operation 최대1건이다. 세 작업형 대응은 실제 operation/order 영수증을 사건에 소유시키는 계약이 추가되기 전 `BLOCKED_CONTRACT`로 거절하며 상태·효과를 바꾸지 않는다.
+5. 물리 BOM: 변경0. 오염 사건 캡처가 식사를 재소비하지 않고, 대체식도 현재 구현에서 소비 성공으로 가장하지 않는다.
+6. Direct WU: 변경0. 응급치료·격리이동·대체식 운반/섭취를 알림 클릭 효과로 대신하지 않는다.
+7. EWU·kg·가격: 변경0. 기존 작성 효과·물품 질량·가격을 바꾸거나 무료 대체식을 생성하지 않는다.
+8. 시간: 실제 식사 callback 즉시 발생 시도와 기존 deadline/cooldown을 유지한다. 작업형 대응은 영수증 계약 전 완료·대기열·가짜 재시도를 만들지 않는다.
+9. 공간: 기존 식사 facility instance/셀 또는 야전 구분을 그대로 동결한다. 객실 오염이나 다른 공간 원인을 추론하지 않는다.
+10. 전력·용수·폐기물: 변경0.
+11. 위험: 오염은 소비 결과의 `Contaminated`만 근거이고 질병 진단은 아니다. Downed는 기존처럼 특정 원인 진단 없이 MedicalCollapse로 우선한다.
+12. 대안: 주변 오염/일일 무작위 발생, 일반 사고 시뮬레이터, `selectedChoiceId`에 외부 operation을 임시 인코딩하는 교차 저장 권위는 사용하지 않는다.
+13. 지배 전략 방지: 금기 정책·긴급 식사 허용·오염 판정·기존 사건 cap/cooldown은 바꾸지 않는다.
+14. 중복·차익 방지: 기존 operation history가 같은 실제 식사 재생을 차단한다. 세 작업형 대응은 실제 소비·안정화·이동 전에 Mood/Health/WorkDelay 효과와 종결을 지급하지 않는다.
+15. 실행 경로: 기존 meal commit/effects→PhysicalMealConsumedEvent의 실제 `Contaminated`→V20 adapter→기존 observed-meal command/Society occurrence→기존 알림. 작업형 대응은 dispatcher→content resolution→typed `ServiceProcessContractMissing`에서 fail-closed한다.
+16. 저장 권위: 이 묶음 자체는 새 필드를 만들지 않았고, 후속 실제 절도 원인 묶음이 올린 현재 Society V7/ObservedMealIncidentEvidence V2에서도 Contamination kind와 기존 operation/item/stack/facility/target/day로 원인을 재구성한다. 작업 응답 operation/order 소유권은 아직 없으므로 저장 성공을 주장하지 않는다.
+17. 증거·상태: 신규 isolated campaign focused는 오염 kind/원인/current JSON과 세 작업형 선택의 무효과 거절을 대상으로 한다. 실제 contaminated physical consumption, dispatcher typed UI, 실제 대체식/의료/격리 operation 연결 및 주 Unity compile 전에는 이 델타와 WIM040 전체를 완료로 닫지 않는다. Brawl/Theft/CulturalInsult/EnvoyConflict/Sabotage/작업사고는 승인된 exact producer·receipt/save 계약 전 비활성이다.
+
+## WIM023 실제 입실·작성 재료량 일치 교정 (2026-09-10, 구현 전)
+
+2026-09-10 검증 후속: 실제 V4 NPC44WU 두 번째 교체에서 기존 부품 physical identity·quality0.7·내구7.7/22·수량1 회수와 신규 부품 body-only, current Capture join PASS. 취소 projection 후속은611B64AC/current06EB4603에서 publicNone/publicOutputReserved/internalDeathOutputReserved3건 PASS; 기존 token/part/physical 소유권 정상 해제, 추가 소비·작업·판정0. 준비 fixture와 기존 저장 증거 범위는 actual-route packet/P02에 명시한다. 수치·콘텐츠 정의·가격 변경0, 자연 생존 전수/새 Restore/전수 밸런스 완료는 주장하지 않는다.
+
+2026-09-10 취소 projection 후속(구현 전): 사망 감지는 실제로 기존 terminal drain에 진입했지만 replacement abort가 예약 시 fingerprint에 포함된 expectedOldPartId를 먼저 지워 material authority revoke가 영구 Deferred 됐다. 취소 orchestration에서 output token/phase abort는 유지하고 원래 expectedOldPartId만 revoke 성공까지 보존한 뒤 기존 terminal owner finalize에서 정리한다. PhaseNone/OutputReserved와 내부/공개 취소 모두 적용한다. fingerprint 검증 완화, child drain·저장 DTO 변경, 수치·BOM·WU·가격·환급 변경은 없다. 실제 두 번째 설치/회수 PASS는 유지하고 취소 projection·예약 해제·물리 보존만 집중 확인한다.
+
+2026-09-10 수명 경계 후속(구현 전): 실제로 존재하는 Character 환자가 사망했는데 미판정 주문이 PatientMissing/PatientWaiting을 반복하며 시설·부품·재료 권위를 계속 보유함을 확인했다. 동일 기록의 After에 결과 미동결 사망 환자를 기존 TryBeginInternalCancellation/terminal drain으로 정리하는 최소 교정을 포함한다. null/missing 일시 부재와 야생동물은 이 Character 판정으로 취소하지 않으며 frozen outcome/이미 소비된 재료/교체 commit-forward 계약은 유지한다. 작성 BOM/WU/kg/가격/시간/공간·저장 형식 변경0, 사망이나 취소로 소비 재료를 환급하지 않는다. 실제 살아 있는 환자 설치·교체와 동일 실행의 후속 사망 주문 취소/물리 보존을 구분 검증한다. 이 기록 자체는 PASS가 아니다.
+
+1. 기록 ID: `balance:wim:023:authored-material-and-reachable-admission`.
+2. 시대·역할: 승인된 일반 NPC 보철 설치·교체의 기존 수술 주문과 환자 입실.
+3. Before: 새 SurgicalMaterialRequirement.quantity 기본1에 Add가 작성 수량을 더해 최초 품목마다 +1. 실제 보철 주문은 목재3/마취제2/소독제2/물2를 요구했다. 입실은 walkable 후보의 Manhattan 순서만 사용해 끊어진 다른 층 칸을 선택했다.
+4. After: 합산 항등원0에서 작성 절차·지원시설 요구만 더한다. 기존 실제 작업 접근 계약과 경로/문 권한을 지키는 입실 후보를 사용한다. Pending과 Unreachable을 성공/서로의 의미로 바꾸지 않는다.
+5. 물리 BOM: 작성 SO는 변경0. 현재 보철+M04 사례의 정상 요구는 목재2/마취제1/소독제1/물1이며 M03 process-water는 기존 별도 권위다. 중복 동일 품목은 작성 기여의 정확한 합만 요구한다.
+6. Direct WU: 보철 수술44/부품 제작32 WU 변경0. 실제 이동·운반은 기존 AI이며 순간이동이나 직접 수술 work 완료를 쓰지 않는다.
+7. EWU·kg·가격: 작성 중량·가격 변경0. 잘못 추가한 원료1개 비용만 제거하며 이 교정만으로 전수 경제 재보정 완료를 주장하지 않는다.
+8. 시간: 실제 예약·입실·임상 시계 유지. 최단 Manhattan 칸이 끊긴 경우 도달 가능한 합법 접근칸 사용; 의도적 대기/차단은 명시한다.
+9. 공간: 기존 시설 footprint·작업 접근·층/계단·문 정책 유지. 새로운 통로를 자동 생성하거나 전용 의료 좌표를 하드코딩하지 않는다.
+10. 전력·용수·폐기물: authored process fluid/support 수치 유지. 일반 수술 물품과 별도 process-water를 혼동하지 않는다.
+11. 위험: 품목마다 암묵적 추가 소비, 잘못된 층 입실로 영구 대기, Pending을 no-path로 오인하는 우회를 방지한다.
+12. 대안: 기존 접근 후보/경로 capability를 재사용한다. 전역 이동 재설계·새 검증 프레임워크·SO 변경·구형 세이브 마이그레이션은 제외한다.
+13. 지배 전략 방지: 무료 재료/의료 효과·자격 완화 없음. 작성된 비용만 복원하며 door/access 권한을 우회하지 않는다.
+14. 순환 차익 방지: 기존 part/physical receipt·교체 exact-once 계약 유지. 이미 저장된 주문 재료를 임의 재작성하지 않는다.
+15. 실행 경로: CharacterSurgeryWindow 실제 Schedule→SurgeryOrderPlanningService.BuildMaterials/Add→SurgeryLogisticsRuntime 입실→AbilityMove/기존 work access→실제 doctor surgery work.
+16. 저장 권위: 기존 SurgeryOrder 입력/입실과 기존 이동 소유권을 유지한다. candidate/query를 새 저장 권위로 만들지 않는다.
+17. 검증: root 실제 준비 world에서 +1 주문량, PatientWaiting0/44(150.53 실제초/327.027 게임초), (19,0)→(43,0) 경로0/(42,1)24/(46,1)28단계를 관측했다. 준비와 수술 증거는 분리한다. 교정 후 기존 focused 검증의 정확한 합산·층/차단 후보 사례와 실제 UI/운반/입실/설치·교체/회수만 실행한다. 기존18/18 전체 suite 재실행은 요구하지 않는다. 현재 상태는 결함/구현 전 기준 배정이며 PASS가 아니다.
+
+2026-09-10 후속: 현재 UI BOM2/1/1/1과 실제 patient19,0→42,1 입실은 PASS. 일반 재료/별도 물 실제 운반 후 selected 보철만 M06에 남았다. 원인은 mass-admission delivery retarget이 FacilityOutputBuffer 상태를 유지하여 기존 haul 후보(Loose/FacilityBuffer/outbound Stored)에서 제외되는 것이다. 동일 기록의 최소 After에, 기존 non-mass delivery와 동일한 FacilityOutputBuffer→Loose 전환을 exact retarget transaction 안에서 추가한다. 원래 position/identity/quantity/mass/목적지·예약을 보존하고 기존 undo.State로 commit 실패를 원복한다. 새 아이템·BOM·WU·공간·가격·저장 형식·haul fallback 없음. 실제 selected unique의 retarget→별도 AI 운반→설치/회수 및 기존 retarget의 거절/rollback 경계만 확인하며 전수 kg/저장 인증을 재실행하지 않는다.
+
+
+
+## WIM015 연구 준비 기준 추정의 정직한 표시 (2026-09-08, 구현 전)
+
+1. 기록 ID: `balance:wim:015:honest-preparation-estimate`.
+2. 시대·역할: 기존 연구 상세 화면의 사전 일정 안내.
+3. Before: 잔여 선행/본 연구 WU를 근거 없는99 WU/일로 나누며 교대와 게임일을 동일하게 표시한다.
+4. After: 기존 SettlementLaborAuthority의45 WU/성인·일을 참조한 성인1명 준비 기준 추정임을 명시하고 실제 연구 속도/생활 이탈 실측 미반영을 알린다.
+5. 물리 BOM: 변경0.
+6. Direct WU: 연구 작성량·실제 승인량 변경0.
+7. EWU·kg·가격: 변경0.45를 별도 상수로 복제하지 않는다.
+8. 시간: 실제 시계 변경0. 교대 수로 환산하지 않으며 차단 상태는 완료일 보장이 아님을 표시한다.
+9. 공간: 기존 시설 수용/차단 안내 유지, 동시 연구자 상한 변경0.
+10. 전력·용수·폐기물: 변경0.
+11. 위험: 일반 노동 기준을 실제 연구 측정값으로 오인하거나 다인 기여가 반영됐다고 착각하지 않게 한다.
+12. 대안: 실제 배정자 예측/실측은 후속 기존 R01 검증으로 분리하며 표시만 고쳐 실측 완료를 주장하지 않는다.
+13. 지배 전략 방지: 정보 수정이며 생산·배율 보너스 없음.
+14. 순환 차익 방지: read-only 표시, RNG·재고·연구 진척·저장 변경0.
+15. 실행 경로: ResearchTreeWindow.RebuildDetail→기존 잔여 연구량 계산→공용 노동 기준→기존 detailText.
+16. 저장 권위: 새 필드 없음. 기존 연구 state에서 재계산한다.
+17. 검증: 공용 기준 참조/선행 중복 제거/차단 안내 보존은 기존 리뷰 유지.2026-09-09 실제 보고EF6BAA2E에서 물류17WU 상세의 성인1명·45WU/게임일·약0.4일 및 기초1/1 표시, 실제 예약 클릭/큐 게시를 확인했다. 직원 탭 QA 선택자 불일치 뒤 기여량은 미관측이므로 실제 연구 속도·실측 ETA 증거가 아니다. 분류는 밸런스 영향 없음(정보 연결), 전체 연구 실측은 미완료다.
+
+추가 검증(2026-09-09, 기록17의 후속): 실제 보고CF7103A1에서 대표 연구 전담1명이 정상 UI/AI로 물류17WU를69.5153075게임초에 완료하고 같은 상태의 완료 UI/큐 제거/버튼 비활성을 확인했다. 선택직원 단독3이벤트의 승인18/진척17(마지막6→5 상한 적용), 다른 기여자0.45WU/일 준비 환산68초 대비+2.2284%이며 이 표본에 한한 비교다. 원 QA의 열린 탭 재토글 오류는 연구 재실행 없이 UI-only 후속으로 확인했다. 전역18,000mWU는 actor rawWU로 간주하지 않는다. 현재 연구180개가 모두 동시1명이라3인/6인 검증은 작성 정책 결정 대기이며, 이 결과만으로 전체 연구 밸런스 완료를 선언하지 않는다. 수치/에셋/저장 변경0.
+
+## R01 연구 참여권 취소 연결 (2026-09-11, 구현 전)
+
+2026-09-11 실행 증거 추가(아래015 cancellation/continuation/routine-drink 변경군): 현재 주 Unity RuntimeB49426B5/Editor09288080·fixture68AB3FBF, `wim-r01-research-self-care-live-participation.txt` SHA4BC5FD27 PASS. 프로젝트6→17, 음용 중6보존/물1개 exact/참여권0→복귀1→완료0, 같은 직원 승인18·최종진척17(6/6,6/6,6/5). 실제 단독 AI·물리 음용/복귀이며 안전 환경장·초기 욕구·한 번 갈증60은 통제 입력이다. 전체150.5375게임초/93.42224wall, 음용0.1179428게임초; 45WU/일/68초는 준비 기준일 뿐 이 표본의 실측 ETA 또는 하루 생산성으로 주장하지 않는다. 기간 차이의 보정별 귀속은 별도 R01 잔여, 실제 조명 건설·전력 검증 아님. 수치·에셋·저장 형식 변경0, Console0/0, 씬/사용자 파일5개 보존.
+
+구현 전 기록 `balance:wim:029:companion-reciprocal-defense`: 1 시대=동행 가능한 현행 동굴사냥개; 2 역할=주인과 함께 싸우는 실제 피격 대상; 3 Before=동행 동물은 공격하지만 침입자 근접 교전은 LeadGuard만 공격; 4 After=현재 주인의 실제 생존·포획 상태 동료가 침입자와 적대이며 같은 층 좌우1칸이면 후보에 포함; 5 BOM=변경0; 6 Direct WU=변경0; 7 EWU/kg/가격=변경0; 8 시간=기존 침입자 공격 간격·동물 cooldown 유지, 피격 후 즉시 재공격 금지; 9 공간=기존 guard와 동료의 실제 근접 가능 셀만 허용; 10 전력·용수·폐기물=변경0; 11 위험=동료 사망을 경비 사망으로 오인하거나 오래된 role/ref에 피해 적용 금지; 12 대안=기존 participant/stats/result-applier 및 보존되는 ExchangeCount 사용, 새로운 HP·위협도·저장 커서 없음; 13 지배전략=무적 동료 방지, 동률 후보 stable-ID 정렬 뒤 ExchangeCount/2로 결정론적 순번 선택(원거리 등도 count를 사용하므로 엄밀한 침입자별 round-robin은 아님); 14 차익=공격 자원·피해·cooldown 한번씩만 적용; 15 실행 경로=DefenseEngagementCombatRuntime→DefenseCombatExecutor→기존 CombatCommandResultApplier; 16 저장 권위=기존 동행 role/동물 HP/교전 ExchangeCount 유지; 17 검증=기존 Character 피해 경로 보존 diff와 실제 owned-wildlife 피격·비적대/비인접 제외·동료 사망 후 경비 생존/간격 집중 검증, 구현 전 PASS 아님.
+
+추가 구현 전 기록 `balance:wim:015:research-continuation-admission`: 1 시대=현행 연구; 2 역할=기존 연구자 continuation과 신규 입장 구분; 3 Before=현재 참여자도 CanJoin으로 검사하여 자기 슬롯 때문에 취소; 4 After=같은 프로젝트의 기존 참여자는 작업 유지, 신규·다른 프로젝트 참여자는 기존 입장 규칙 유지; 5 물리 BOM=변경0; 6 Direct WU=변경0; 7 Embedded WU/EWU=변경0; 8 시간=속도·재시도·연구기간 변경0; 9 공간=프로젝트당 동시1명 유지; 10 전력·용수·폐기물=변경0; 11 위험=중복 lease 및 다른 프로젝트 입장 우회 금지; 12 대안=기존 GetContributionMultiplier로 정확한 프로젝트 참여 확인, 새 상태 권위 없음; 13 지배전략=인원·보너스 추가0; 14 순환 차익=반복 참여로 진척 추가 금지; 15 실행 경로=AIWork.CanContinue→WorkDutyController.CanContinueAssignedWork→ResearchWorkExecutionHandler.IsAvailable; 16 저장 권위=기존 연구·workforce 권위 유지, schema 변경0; 17 검증=새 입장은 CanJoin/TryJoin 그대로 유지하는 diff 확인과 실제 단독 연구→음용→자동 복귀 집중 검사, 실행 전 PASS 아님.
+
+1. 기록 ID: `balance:wim:015:research-cancellation-lease`.
+2. 시대·역할: 기존 모든 연구의 직원 생활 이탈.
+3. Before: 강제 코루틴 중단 시 using에만 보관한 참여권이 남아 연구 슬롯을 점유한다. 실제6/17·음용 전환 및 추가5.053066게임초에서 참여자1 유지 관측.
+4. After: 같은 참여권을 기존 작업 취소 자원 소유자에 등록해 취소 시 동기 해제한다.
+5. 물리 BOM: 변경0.
+6. Direct WU: 작성17WU/대표 작업6WU 및 승인 공식 변경0; 미완료 작업을 승인 진척으로 추가하지 않는다.
+7. EWU·kg·가격: 변경0.
+8. 시간: 시계·음용 시간·연구 속도 변경0. 중단 후 슬롯 정상 반환만 복구한다.
+9. 공간: 프로젝트당 동시1명·시설 접근 조건 유지.
+10. 전력·용수·폐기물: 변경0; 실제 음용 물1개 소비는 기존 경로가 소유한다.
+11. 위험: 중단된 슬롯의 영구 점유와 중복 Dispose를 구분한다.
+12. 대안: 이미 대형 프로젝트에서 쓰는 RegisterCancellationResource를 재사용; 수동 정리·watchdog·코루틴 체계 재설계 없음.
+13. 지배 전략 방지: 추가 작업량/동시 기여 없음.
+14. 순환 차익 방지: Dispose는 멱등이고 중단된 raw 작업을 연구 보상으로 지급하지 않는다.
+15. 실행 경로: ResearchWorkExecutionHandler.Execute→WorkExecutionContext.RegisterCancellationResource→WorkTaskExecutor.CancelActiveRun→ProjectWorkerLease.Dispose.
+16. 저장 권위: 변경0. 참여권은 기존 런타임 권위이며 새 저장 필드 없음.
+17. 검증: 실패 원본40CDD37D와 동일 월드5초 관측 보존; 같은 실제 UI/AI 연구→routine drink→재개 검사를 수정 후 수행. 현재 분류는 밸런스 기준 배정/회귀 검증 대기이며 전체 밸런스 완료가 아니다.
+
+후속 구현 전 기록(2026-09-11, `balance:wim:015:research-cancellation-lease`와 같은 생활 이탈 변경군): 1 기록ID=`balance:wim:015:routine-drink-work-resume`; 2 시대/역할=기존 직원 일반 음용 후 작업 복귀; 3 Before=실물 물 소비 성공 뒤 기존 복귀 완료 알림 누락으로 대기; 4 After=RunRoutine 성공 시 기존 NotifyRoutineNeedServiceCompleted 연결; 5 BOM=0변경; 6 DirectWU=0변경; 7 EWU/kg/가격=0변경; 8 시간=음용/연구 속도·재시도 시간 변경0; 9 공간=기존target/workType 재검증·cap1유지; 10 전력/물/폐기물=기존물1소비외추가없음; 11 위험=취소/실패 때 복귀 성공으로 오인 금지; 12 대안=시설 완료와 같은 기존 명령 재사용, BT/캐시 재설계없음; 13 지배전략=새 작업보너스 없음; 14 차익=물소비/승인WU 중복없음; 15 실행=RunRoutine→TryConsumePlan성공→AbilityWork.NotifyRoutineNeedServiceCompleted→WorkDutyController의 기존target재검증/복귀게시→기존EndExpectedAction; 16 저장=새필드0·기존런타임임시복귀intent권위; 17 검증=실패FF7F9C55/공개진단 보존, 동일 실제 음용/복귀 witness 재검증 대기. 밸런스 완료 주장 없음.
+
+## WIM023 승인된 교체 부품 물리 회수 (2026-09-08, 구현 전)
+
+1. 기록 ID: `balance:wim:023:replacement-part-physical-recovery`.
+2. 시대·역할: 기존 명시적 교체 수술에서 제거한 보철·이식 부품의 재고 회수. 미정 수술 의미·콘텐츠는 제외한다.
+3. Before: 새 부품 설치 후 기존 신체 snapshot을 버리며, 제거 부품의 installed 참조와 원래 physical identity가 일치하지 않는다.
+4. After: 기존 의료 aggregate에 원래 물리 identity/상태를 보존하고, 신체 교체와 같은 operation으로 제거 부품 하나를 시설의 합법 물리 출력에 반환한다.
+5. 물리 BOM: 기존 수술/제작 입력 정의·수량 유지. 제거한 실제 부품 외 추가 보상 없음.
+6. Direct WU: 기존 수술·운반 작성값 변경0. 실제 회수 운반은 기존 AI가 수행한다.
+7. EWU·kg·가격: 작성값 변경0. 기존 exact runtime subject 질량으로 admission하며 미승인12500g이나 count12 재해석 금지.
+8. 시간: 기존 수술 판정 시점 유지. 완료 경계의 출력 공간 부족은 RNG/신체 교체 전에 기다리며 일반 재료를 추가 소비하지 않는다.
+9. 공간: 현재 주문의 material destination/profile과 기존 FacilityBuffer publication/terminal drain을 재사용한다. 시설당 물리 실행 owner는1개이며 대기 주문은 claim을 만들지 않는다.
+10. 전력·용수·폐기물: 작성값 유지. 실제 회수품을 Sink·폐기물·일반 바닥 임의 spawn으로 대체하지 않는다.
+11. 위험: 설치된 부품의 이중 소유, 제거품 소실, 재시도 복제, 저장 뒤 재판정, 공간 부족의 가상 회수를 막는다.
+12. 대안: 기존 receipt/outbox/medical aggregate를 확장한다. 별도 회수 registry·전역 트랜잭션 시스템·구형 세이브 마이그레이션은 만들지 않는다.
+13. 지배 전략 방지: 품질·내구/부위 손상 상태를 보존하고 재설치로 무료 수리·품질 재굴림하지 않는다. 새 자연 장기 추출 보상으로 확대하지 않는다.
+14. 순환 차익 방지: expected-old-part 교체와 exact physical identity의1회 publication, 실패한 임상 결과의 미사용 예약 해제, CAS 뒤 실패의 동일 operation commit-forward를 요구한다.
+15. 실행 경로: 기존 prepared part producer→SurgeryRuntime 완료 전 준비→기존 install effect/신체 명령→기존 planned output publication→terminal custody drain. 새 품목 ID 분기 없음.
+16. 저장 권위: 기존 surgery.aggregate와 신체/물리 aggregate의 현재 포맷. body↔installed part↔detached physical stack/receipt join을 검증하며 cache를 권위로 저장하지 않는다.
+17. 집중 검증: 실제 교체 A→B/A회수1개, 공간 부족 무추가소비·무재판정, 재시도/현행 저장 복원 무중복, 동일 시설 대기/취소를 기존 fixture에서 확인한다. 전체 수술·경제 전수 검사를 새로 요구하지 않는다. 현재는 구현 전 기준 배정이며 완료 증거가 아니다.
+
+## WIM014 기존 장기 보존 기준의 실제 위치 연결 (2026-09-08, 구현 전)
+
+1. 기록 ID: `balance:wim:014:physical-organ-preservation`.
+2. 시대·역할: 적출 자연 장기의 보관·배송·이식 전 사용 가능 상태.
+3. Before: 기존2일/보존15일 수명은 있으나 destination만 있으면 운반 중에도 저장 보너스·보존액 소비가 가능하고 실제2~8°C query는 미연결이다. 만료는 delete/spawn 결과를 무시한다.
+4. After: 실제 도착한 FacilityBuffer와 기존 안전 온도·시설·연료·캐니스터 조건에서만 기존 보존 배율을 적용한다. 최초 이식 소비 직전 신선도를 재확인한다.
+5. 물리 BOM: 보존 캐니스터·연료의 품목/수량 유지. 새 냉매·냉각 시설을 만들지 않는다.
+6. Direct WU: 적출·운반·이식 authored WU 변경0.
+7. EWU·kg·가격: 작성값 변경0. 기존 장기800g→오염조직600g의 만료 산출은 typed Transform receipt에200g 손실 사유로 남기며 새 질량 정의는 만들지 않는다.
+8. 시간: 기존180초/일, 초기360초, 보존 소모율2/15 유지. 도착/이동/저장으로 part.freshnessSeconds를 초기화하지 않는다.
+9. 공간: 물리 스택 실제 위치와 기존 저장 destination 사용. 새 drop zone·보관 공간·순간이동 없음.
+10. 전력·용수·폐기물: 기존 시설 연료/보존 캐니스터 소비 유지. 만료는 기존 오염조직1개를 합법 출력 경계에서 반환한다.
+11. 위험: 배송 의도만으로 보존되는 우회, 예약 후 만료 장기 사용, delete 실패의 복제 및 output 실패의 소실을 막는다.
+12. 대안: 기존 IEnvironmentalFieldQuery 및 IPhysicalItemTransformService 재사용. 새 의료 저장소·냉각 시스템·일반 부패 프레임워크는 만들지 않는다.
+13. 지배 전략 방지: 운반 도중 destination을 유지해15일 보존을 받지 않는다. 기존 시설과 실제 안전 온도가 모두 필요하다.
+14. 순환 차익 방지: 원자 Transform 성공 후에만 part 제거. 보호 custody/예약/운반/출력 실패는 신선도0 상태로 보존하고 재시도하며 강제 lease 해제·임의 삭제 금지.
+15. 실행 경로: SurgicalPartRuntime.TickFreshness/IsInWorkingOrganStorage → 실제 환경 query·기존 canister outbox, 만료→기존 whole-stack Transform, 이식→기존 TryConsumeForInstallation.
+16. 저장 권위: existing surgery part freshness/worldStackId 및 physical item authority 유지. 새 저장 필드·버전 없음. 이미 커밋된 installation outbox 재생은 새로운 신선도 거절과 분리한다.
+17. 검증: 기존 focused 의료 검증에 도착 전/정상 냉장/고온, 예약 후 만료 사용 거절, transform 거절 보존/성공1회만 추가한다. 이미 통과한 전체 수술·신체·mass/restore 전수 검사는 반복하지 않는다.
+
+## WIM014 소유 재고의 만료 반출·수동 폐기 연결 (2026-09-08, 구현 전)
+
+1. 기록 ID: `balance:wim:014:owned-organ-expiry-and-discard`.
+2. 시대·역할: 기존 이식 장기의 저장·시설 버퍼 만료 처리와 명시적 수동 폐기.
+3. Before: 만료 Transform은 목적지 없는 Loose만 처리하며 일반 삭제 UI는 의료 소유 기록을 종결하지 않는다.
+4. After: 소유된 exact whole lot의 합법 반출을 선검증하고 동일 stack을 Loose로 반출한 뒤 기존 만료 Transform을 재시도한다. 수동 폐기는 의료 소유 확인 후 pending Sink→의료 종결→ACK로 처리한다.
+5. 물리 BOM: 입력 장기와 기존 오염조직 정의 유지; 새 용기·폐기 시설·가상 재고 없음.
+6. Direct WU: 기존 작업 수치 유지. 수동 폐기에 신규 WU나 보상을 발명하지 않는다.
+7. EWU·kg·가격: 작성값 변경0; 만료800g→조직600g+명시 손실200g 유지. 수동 폐기는 선택한 exact lot 전체의 명시적 의료 폐기 Sink다.
+8. 시간: 공용2일/보존15일 유지; 보관·반출·복원으로 신선도를 초기화하지 않는다.
+9. 공간: 기존 창고·시설의 합법 반출 셀만 사용. 셀/출력 공간 미확보 시 소유권·수량·위치를 보존하고 기다린다.
+10. 전력·용수·폐기물: 기존 조건 유지. 새 폐수/폐기물 산출을 추가하지 않는다.
+11. 위험: 의료 owner 고아, 예약 화물 강탈, 목적지 전체 방출, 실패 후 일반 삭제 fallthrough를 차단한다.
+12. 대안: 기존 relocation rollback, 물리 Transform 및 batch disposition을 재사용한다. 새 범용 폐기 registry/별도 저장 section 없음.
+13. 지배 전략 방지: reserved/carried/prepared custody는 첫 버전에서 거절하고 정상 소유자가 해제할 때까지 기다린다. 강제 lease 종료나 원격 순간이동 없음.
+14. 순환 차익 방지: exact item/instance/quantity/state/owner claim 선검증; 실패 시0변화, 성공한 receipt만 의료 종결에 반영하고 재시도는 중복 소비하지 않는다.
+15. 실행 경로: TickFreshness→Items exact owned-release→기존 whole-stack Transform; ItemPileInfoPanel→의료 typed discard. NotOwned만 기존 일반 삭제 경로를 사용한다.
+16. 저장 권위: 기존 surgery/physical aggregates와 기존 pending receipt가 소유한다. 폐기 중단 복원에 필수인 최소 current-format 상태만 기존 소유자에 추가할 수 있으며 과거 세이브 변환·이중 상태 저장소는 만들지 않는다.
+17. 검증: 기존 OrganPreservationRestoreJoinFixture에 stored/buffer 반출 성공·거절 보존과 수동 폐기 재시도/현재 저장 경계를 묶는다. 소스/컴파일/실행 증거 전에는 완료로 닫지 않는다. 상태: 밸런스 기준 배정, 작성 수치 변경 없음.
+
+2026-09-08 후속 증거(기존 기록 보존): 주 Unity current compile/runtime `348A5FDD…`, 기존 owned expiry/discard focused 보고서 `E17CEED89C87C7A81FFC8540EDD2E6FC11BB5143EB238DE692A736D7763FF575` 및 실제 물품 UI 보고서 `D64189CA701B2A354CA2FF5566D3C6F7B7C582C51456A1340088B0EAC656C5BF`를 root가 대조했다. public 생성 자연 심장1개에 실제 StackRow/버리기 pointer 이벤트를 실행하여 의료 기록·물리 스택·UI 행 제거와 성공문구를 확인했다. 소유 Stored/FacilityBuffer·예약·실패/중단 복원은 기존 focused 증거로 확인했다. 승인 WIM014 연결은 종료하며 kg/WU/가격/2일·15일 수치 변경0이다. 전체 경제 실전 보정 또는 다른 WIM/현재 Play 종료 보호 검증 완료를 주장하지 않는다.
+
+## WIM017 원정 경로의 비용 하한 일치 (2026-09-08, 구현 전)
+
+1. 기록 ID: `balance:wim:017:shared-traversal-cost-lower-bound`.
+2. 시대·역할: 기존 육각 월드의 원정 출발·귀환 경로 선택.
+3. Before: 실제 간선 비용은 최소0.1 및 기본 도로 배율0.65인데 A*의 남은 비용은 raw hex distance로 계산해 최소 비용 경로를 과대평가할 수 있다.
+4. After: 기존 지형·도로·입력 profile 비용을 단일 순수 계산으로 재사용하고 heuristic은 같은 비용 하한×hex distance로 제한한다.
+5. 물리 BOM: 보급·탄약·약품의 정의와 수량 변경0.
+6. Direct WU: authored 작업량 변경0.
+7. EWU·kg·가격: 작성값 변경0; 이번 경로 선택 교정만으로 이동 시간·원정 수익 재산정을 완료했다고 주장하지 않는다.
+8. 시간: 현재 이동 시계 변경0. 후속 활성 구간 시간 동결은 기존 offense.aggregate 단일 소유자가 별도로 통합한다.
+9. 공간: 기존 hex tile·도로·blocked와 이웃 순서 유지; 로컬 던전 문·물리 이동 경로를 교체하지 않는다.
+10. 전력·용수·폐기물: 소비 변경0.
+11. 위험: 저비용 도로 우회로보다 비싼 직선 경로를 먼저 종결하는 오류를 방지한다.
+12. 대안: 모든 경로를 별도 탐색기로 재작성하거나 매 탐색마다 전체 지도 최소값을 다시 수집하지 않는다. 기존 MinHeap과 비용 하한을 재사용한다.
+13. 지배 전략 방지: 도로/지형의 실제 기존 비용만 사용하며 추가 속도·무료 이동 보너스를 만들지 않는다.
+14. 순환 차익 방지: 간선 최소0.1 유지, 음수/무료 간선 도입0.
+15. 실행 경로: OffenseHexWorldSimulation.TryFindPath → 공용 순수 traversal-cost 계산 → 기존 경로 결과. 실제 시계의 후속 연결 여부를 분리해서 보고한다.
+16. 저장 권위: 이 국소 수정은 저장 필드·버전 변경0. 진행 중 구간·날씨 작성값은 미완료 범위를 보존한다.
+17. 검증: 기존 전략 verifier의 작은 cheap-road 우회 사례에서 기존 비용 합과 선택 경로를 대조하고 차단/도달 불가 계약을 보존한다. 전수 지도·seed·성능 프레임워크는 추가하지 않으며 주 Unity의 현재 배치 검증과 함께 실행한다.
+
+## WIM017 기존 경로 비용과 활성 구간 시계 연결 (2026-09-08, 구현 전)
+
+1. 기록 ID: `balance:wim:017:edge-cost-travel-clock`.
+2. 시대·역할: 기존 원정의 출발·귀환 이동 시간과 진행 중 구간의 저장 복원.
+3. Before: 경로 탐색에는 지형·도로·profile 비용이 있으나 실제 Tick은 기본2.5초×의료×이정표×시설만 사용하고 step 명령이 초과 시간을 지운다.
+4. After: 기존 간선 비용을 실제2.5초 기준에 연결하고 구간 진입 시 endpoint·총 소요시간·적용 보정을 확정한다. 정상 연속 이동의 초과 시간만 다음 구간으로 넘긴다.
+5. 물리 BOM: 보급·탄약·약품의 작성 수량 유지. 새 여행 비용이나 보상을 만들지 않는다.
+6. Direct WU: authored WU 변경0; 이동 elapsed는 별도 여행 시계이며 노동 승인량으로 대체하지 않는다.
+7. EWU·kg·가격: 작성값 변경0. 실제 지형/도로 시간 차이를 반영하는 것이며 원정 경제의 실전 보정 완료를 뜻하지 않는다.
+8. 시간: `2.5초 × 기존 지형/도로/weather/load 간선 비용 × 의료 × 이정표 × 시설`을 구간별 동결한다. 현재 실제 Default producer의 injury는1이고 live 의료 비용은 fieldMedical이 한 번만 제공한다. 미작성 날씨 수치는 추가하지 않는다.
+9. 공간: 기존 hex 경로·도로·차단 권위 유지. 로컬 던전 이동이나 강제 이동에 누적 Tick 시간을 전용하지 않는다.
+10. 전력·용수·폐기물: 작성 소비 변경0, 기존 시설 시간 보정의 범위를 유지한다.
+11. 위험: 프레임 크기/복원으로 이동이 빨라지거나, 사건·전투 정지 뒤 이전 시간이 이월되거나, 의료 보정을 두 번 적용하는 오류를 막는다.
+12. 대안: 기존 Travel state/Clone/PrepareRestore/aggregate validation과 공용 간선 비용 함수를 재사용한다. 새 세계 시계·여행 저장소 없음.
+13. 지배 전략 방지: 목적지 재설정/forced movement/이벤트 callback 뒤 상태를 재조회하며 이전 구간 시간을 새 명령에 넘기지 않는다.
+14. 순환 차익 방지: 기존 양의 간선 비용 하한 유지. 정상 이동 시간이 없으면 추가 이동하지 않고, 완료·삭제·pause·stranded·경로 변경 후 catch-up을 중단한다.
+15. 실행 경로: 기존 TrySetDestination→Tick→TryAdvanceOneStep→StepCompleted/DecisionRequired/SiteReached와 실제 출발·귀환 호출자를 유지한다.
+16. 저장 권위: 기존 offense travel state와 current-format codec만 사용한다. endpoint·진행·확정 시간/보정의 일치 및 유한 범위를 검증하고 구간을 복원 시 재시작하지 않는다. 공용 저장 구조 편집은 지정 단일 작성자에게 직렬 인계한다.
+17. 검증: 기존 대표 경로의 비용/시간, Tick 분할 대조, 강제·사건 정지와 중도 복원만 묶는다. 이전 broad Strategic 실행 거절을 우회하지 않으며 적법한 기존 실제 명령 범위에서 검증한다. 상태: 밸런스 기준 배정; 실행 검증 전이다.
+
+## WIM003 의복 완료 교대의 실제 승인 WU 연결 (2026-09-08, 구현 전)
+
+1. 기록 ID: `balance:wim:003:approved-apparel-shift-work`.
+2. 시대·역할: 기존 세탁·건조·수선 등 Operate 의복 주문의 노동 비용.
+3. Before: 일반 Operate 교대 성공 때 fallback이 주문의 남은 WU 전량을 ApplyWork에 넘겨 수행량과 무관하게 완료한다.
+4. After: 기존 executor가 누적한 유효 approvedProficiencyWork만 같은 완료 호출 경계로 전달한다. 주문 Completed 때만 완료 활동을 표시한다.
+5. 물리 BOM: 기존 비누·재료·의복 소유권과 소비 수량 유지.
+6. Direct WU: 주문 authored requiredWork 유지. 남은 작업 전량을 승인 WU로 가장하는 경로 제거; 받아들인 양은 기존 order remaining clamp를 따른다.
+7. EWU·kg·가격: 작성값 변경0. 실제 유지 노동 부담이 드러나며 미확정 세탁 부담 목표를 통과했다고 주장하지 않는다.
+8. 시간: 기존 Operate 교대/성공·중단 경계를 유지한다. 이번 수정으로 중단된 교대를 성공 처리하거나 미래 작업량을 선지급하지 않는다.
+9. 공간: 시설·창고·작업 접근 경로 변경0.
+10. 전력·용수·폐기물: 기존 의복 주문 소비/완료 권위 유지.
+11. 위험: 한 교대로 임의 장기 주문이 완료되는 우회와 미완료 주문의 완료 로그를 차단한다.
+12. 대안: 별도 per-tick 의복 실행기보다 기존 완료 context에 실제 작업량을 전달한다. 새 registry/저장 상태는 추가하지 않는다.
+13. 지배 전략 방지: 세탁/수선 주문의 실제 작성 비용을 지불하고 Craft 품질·속도 보너스를 재적용하지 않는다.
+14. 순환 차익 방지: 기존 완료/종결 주문의 재적용 거부와 물리 receipt 보존. 작업량0으로 무료 완료 금지.
+15. 실행 경로: WorkTaskExecutor → ModularFacilityRuntimeEffects → BuildingAbilityRuntimeDispatcher/Context → ResearchFacilityOperationFallbackHandler → ApparelWorkOrderRuntime.
+16. 저장 권위: 기존 의복 order.completedWork/state만 변경. executor 승인량은 현행 완료 시 전달하고 새 저장 DTO/과거 세이브 변환 없음.
+17. 검증: 정상 교대의 승인량 미만 미완료/잔량 완료/중복 완료 방지와 활동 기록을 기존 focused fixture로 확인. 취소를 성공 교대로 취급하지 않는 현재 경계 보존; 전신 오염·보호 수치 및 전체003 완료는 별도 미정이다.
+
+## WIM053 실제 원정 결산 연결 (2026-09-08, 구현 전)
+
+1. 기록 ID: `balance:wim:053:committed-expedition-settlement`.
+2. 시대·역할: 기존 모든 원정의 실제 소비·회수·치료·장비 손실을 플레이어에게 보여 주는 결산.
+3. Before: 결과/보상 지급 경로는 있으나 실제 비용 상세가 연결되지 않고 현재 result 저장은 grantedRewards를 보존하지 않는다.
+4. After: 성공 commit의 수량과 결과를 기존 active run에 기록하고 정리 전에 동결한다. 실제 귀환 종결은 같은 결과를 갱신하며 조회는 명령을 실행하지 않는다.
+5. 물리 BOM: 보급·탄약·약품·보상 종류/수량 변경0. 요청·실패·단순 하역 지시는 실제 소비나 회수로 세지 않는다.
+6. Direct WU: 제작·치료·원정 WU 변경0. 추가 가상 노동 비용 없음.
+7. EWU: 승인 V27 acquisition/recoverable 값과 기준 식별자를 결산에 동결. 수량과 평가 가능 여부를 분리하고 누락은 Unvalued; 시장가격 역산이나 기간 배율 재적용 금지.
+8. 시간: 출발·전투·귀환 일정 변경0. 도착 미종결은 정산 중이며 완료로 앞당겨 표시하지 않는다.
+9. 공간: 기존 공급/귀환/장비 하역 경로 유지. 새 창고·시설·면적 요구 없음.
+10. 전력·용수·폐기물: 변경0. 기존 실제 소비 receipt만 관찰한다.
+11. 위험: cleanup 전 기록 유실, 저장 후 보상 상세 유실, 귀환 요청을 실물 획득으로 오인, 조회 재지급을 막는다.
+12. 대안: 기존 짧은 결과 요약 유지와 상세 확장 비교. 새 전역 원장 대신 기존 원정 결과/저장 소유자를 확장한다.
+13. 지배 전략 방지: 보상·비용 자체 변경0. 표시 개선으로 새로운 획득 경로를 만들지 않는다.
+14. 순환 차익 방지: 실제 지급/생성 성공만 기록, 상세 조회·저장 복원·도착 결과 병합에서 보상 명령 재호출 금지.
+15. 실행 경로: 기존 공급/전투/의료 commit → active run → ReturnCoordinator 정리 전 동결 → Finalizer 확정 보상 → arrival 종결 → 기존 결과 UI.
+16. 저장 권위: 기존 offense.aggregate의 active/result DTO만 사용. immutable 복사/검증/복원 모두 같은 필드 보존; 별도 저장 section·과거 세이브 마이그레이션 없음.
+17. 자동 감사·실전 증거: 현재는 구현 전 계약. 대표 실제 귀환1건의 receipt·cleanup·결산·저장 왕복·재조회 무재지급과 변경된 실패 경계만 focused 검증한다. 기존045/047/P07 PASS는 반복하지 않는다. 작성 수치 변경0이며 전체 밸런스 실전 보정으로 보고하지 않는다.
+
+2026-09-10 검증 추기(위 구현 전 기록 보존): WIM-053 완료. 실제 야전 약품 소비/치료468a8f73 및 실제 귀환553998e5의 장비 유실·전투 포로 도착/탈출·확정 receipt·상세 UI·전체 저장 복원·재조회 무재지급을 확인했다. 현재 runtimeECD07CAF/Editor9064D95F와 생산4파일B4EA12B2/DE4C1CE8/37069014/7EAAA11D 해시가 일치한다. 미물질화 회수 장비는 기존 ExpeditionPacked를 유지하며 실제 spawn/link 성공만 Loose로 전환하고 실패는 exact 물리 흡수로 롤백한다. 실제 회수0인 원정을 nonzero whole-save 증거로 세지 않으며 해당 경계는 별도 public-domain fixture77330956의 Packed/Loose 왕복·실패 보존으로 검증했다. 기존 frozen EWU A→B639114FE와 가격 투영11079EDD를 유지했고 가격·BOM·WU·보상량·일정 작성값 변경0이다. 원문 증거와 테스트 준비 한계/오류는 Artifacts/QA/wim-implementation/wim-20260908-003-014-017-053-unity-verify.txt 및 실행 계획서053을 따른다. 이는 결산 연결과 소유권 결함 수정의 완료이며 전 게임 밸런스 실전 보정이나 미래 전 경우 증명은 아니다.
+
+## WIM018 작성 번식 계절·산물 수령 보존 (2026-09-08, 구현 전)
+
+1. 기록 ID: `balance:wim:018:breeding-season-product-commit`.
+2. 시대·역할: 현재 길들인 가축의 작성된 번식 계절과 이미 준비된 산물 수령.
+3. Before: BreedingSeason은 작성돼 있으나 TryBeginPregnancy에서 사용하지 않는다. CollectProduct/CollectManure는 물리 Spawn 성공 전에 ReadyCycles를 차감한다.
+4. After: 새 임신 시작에만 현재 달력 계절을 적용한다. 산물은 실제 요청량 생성 성공 뒤 해당 준비 주기를 차감하며 생성0 실패 때 완료 WU/준비 주기를 보존한다.
+5. 물리 BOM: 사료·관리·산물 수량/종류 변경0. 새 가짜 산물·폐기 소비 없음.
+6. Direct WU: 기존 길들이기·관리·채집 WU 유지. 완료 후 출력 대기는 같은 작업의 진행도를 보존한다.
+7. EWU·kg·가격: 작성값 변경0. 계절에 맞지 않는 새 임신은 지연되며 수령 실패로 산물이 없어지지 않는다.
+8. 시간: 현재 임신4일·분뇨2일과 종별 기존 산물 주기 유지. 이미 시작된 임신과 쌓인 ready 산물은 계절 변경으로 리셋하지 않는다.
+9. 공간: 기존 우리·수용량·합사·부모 자격 유지. 현재 Loose 출력 위치 유지, 창고/시설 버퍼의 전역 재설계 없음.
+10. 전력·용수·폐기물: 기존 관리 비용·분뇨 수량 유지. 미작성 기후 배율/온도 요구를 만들지 않는다.
+11. 위험: 비번식기 임신 시작과 출력 실패의 ready 주기 선차감 방지. 현재 WorldItemSpawner의 Loose 경로는 정상 반환 시0 또는 요청량 전부이며 가상의 부분 생성 fixture 때문에 새 WIP를 만들지 않는다.
+12. 대안: 작성 번식 계절에 기존 조건을 다시 확인한다. 현재 임신/출산 경로와 출산 성별 결정 정책은 보존한다.
+13. 지배 전략 방지: 계절 변화·저장/복원으로 임신/산물 진척을 새로 뽑거나 ready를 늘리지 않는다.
+14. 순환 방지: 실제 성공 수령에만1주기 차감, 실패 재시도에서 중복 출력 금지. 지원 계약을 위반한 부분 생성은 조용히 성공 처리하거나 전체 수량 재요청하지 않는다.
+15. 실행·저장 권위: AnimalHusbandryRuntime의 기존 상태와 명령, WildlifeSpeciesDefinition.BreedingSeason, IGameCalendar. economy.animal-husbandry 기존V2 상태 재사용, 새 부모/성별/WIP 저장 필드 없음.
+16. 집중 증거: 대표 봄종/겨울종 임신 시작 gate, 기존 임신/ready 계절 전환 보존, 실제 출력0 실패의 ready/WU 보존·한 번 재시도. 기존 빠른 검사 재사용, 전 종/다중 seed 반복 없음.
+17. 상태: 구현 전 기준 배정. 산물 계절/온도/기후의 미작성 효과는 결정 목록에 남겨 전체018 완료와 구분한다.
+
+## WIM043 범람 작업 지연의 실제 작업 의미 연결 (2026-09-08, 구현 전)
+
+1. 기록 ID: `balance:wim:043:flood-work-capability-matching`.
+2. 시대·역할: 기존 해빙수 범람의 agriculture/logistics 업무 지연.
+3. Before: flood는 작업 ID에서 farm/crop/agric/haul/logistic/carry 부분 문자열을 검색해 실제 work:sow/work:harvest를 놓친다.
+4. After: 기존 WorkTypeCatalog의 실제 capability를 통해 crop:sow/crop:harvest/item:haul/building:stock 업무를 판정한다. 표시명·부분 문자열과 무관하게 파종·수확·운반·보충에 적용한다.
+5. 물리 BOM: 변경0. 침수 피해 물품이나 가짜 복구 소비를 추가하지 않는다.
+6. Direct WU: 작성 작업량은 유지하고 기존 ContentWorkDelaySpeedAuthority의 실제 업무 속도 배율을 한 번 적용한다.
+7. EWU·kg·가격: 작성값 변경0. 사건 중 해당 농업/물류 작업의 실효 비용만 기존 지연 의미대로 달라진다.
+8. 시간: 기존 발생·만료·중첩 정책과 배율0.8/하한0.5 유지. 달력 작물 GrowthHours에 같은 지연을 다시 곱하지 않는다.
+9. 공간: 작성 효과는 WorkDelay다. 새 침수 셀·토양 파괴·노드 파괴·이동 차단을 합성하지 않는다.
+10. 전력·용수·폐기물: 변경0.
+11. 위험: 농업만 지연을 회피하던 누락을 해소하며 전체 동물 관리·치료·연구가 영향을 받지 않게 한다.
+12. 대안: 해당 지연 만료까지 기존 작업 속도로 계속 수행한다. 신규 대체 행동이나 재계획 루프 없음.
+13. 지배 전략 방지: 업무 표시명 변경으로 지연을 회피하거나 무관 업무가 느려지지 않는다.
+14. 순환 방지: Query만 교정하며 사건 재발행·보상·재료 소비·기간 갱신 없음.
+15. 실행·저장 권위: V20CampaignRuntime.GetWorkSpeedMultiplier→WorkTypeCatalog capability→CharacterStatsProjectionService 실제 업무 속도 소비. 기존 Society workDelays 저장/만료 유지, DTO·schema 변경 없음.
+16. 집중 증거: 실제 범람 효과의 파종/수확/물류 적용과 AnimalCare/Research 제외, 만료 후 원복. 기존 빠른 verifier와 다음 묶음 실제 농업 작업으로 확인하며 전수 업무 PlayMode 반복 없음.
+17. 상태: 구현 전 기준 배정. 이번 변경은 범람 업무 의미만 연결하며 WIM009/017의 다른 계절/원정 효과를 대신하지 않는다.
+
+2026-09-09 증거 추가: 실제 농업 검증 준비에서 초기 배치 성공 보고의 셀/시설 단위 혼동을 수정했다. `DungeonStoryGridBuildingController.CountGridOccupants`는 Before=점유된 셀 수, After=전체 레이어의 참조 기준 고유 occupant 수이며, 다칸 시설 중복은 제외한다. 기존 통로 위 FloorOverlay 추가도 성공으로 보고한다. 시설 정의·물리 BOM·Direct WU·EWU·kg·가격·공간 배치 정책·전력/용수/폐기물·저장 형식 변경은 모두0이며 물리 생성 경로 자체는 기존 명령을 유지한다. 해당 소스79A3430B의 주 Unity 컴파일 오류0과 실제 P23(19,0) 배치true/1, stable occupant는 보고서8C625660으로 확인했다. 이는 초기 배치 명령의 관측 오류 교정 증거이며, 실제 연구·파종·범람·만료 또는 WIM043 전체 완료 증거가 아니다. 이후 연구 전 empty-crop snapshot 요구를 실제 연구 후 조회로 옮긴 변경은 검증 입력에만 적용했다.
+
+## WIM043 검증 중 확인한 자동 작업 탐색 기아 방지 (2026-09-09, 구현 전)
+
+1. 기록 ID: `balance:wim:043:incremental-work-scan-fairness`.
+2. 시대·역할: 모든 시대의 기존 자동 작업 선택. 새 콘텐츠나 작업 우선순위 정책을 추가하지 않는다.
+3. Before: WorkTargetSelector의 미완료 증분 탐색이 global DynamicStateVersion 변경마다 동일 actor-hash 시작점으로 되감긴다. 합법적 상태 변경이 계속되면 목록 끝 후보를 평가하지 못할 수 있다.
+4. After: 후보 인덱스·grid·building·work-order 버전이 같고 인덱스 작성 중이 아니며 dynamic 버전만 바뀐 미완료 탐색은 이전 평가 수만큼 시작점을 진행한다. 오래된 Best/MostUrgent/Rejected는 재사용하지 않는다. 구조 변경·완료 캐시·빈 목록은 기존 초기화 계약을 유지한다.
+5. 물리 BOM: 변경0. 가짜 소비·시설·수리 작업 없음.
+6. Direct WU: 작성 작업량·작업 속도·프레임 예산 변경0. 원래 실행 가능한 후보가 영구 기아하지 않도록 평가 순서만 공정하게 진행한다.
+7. EWU·kg·가격: 작성값 변경0. 기존 허용 노동이 실제 실행될 수 있으므로 실효 생산성 영향은 focused 플레이 증거로 구분한다.
+8. 시간: 기존 slice 예산·최소 평가 수·완료 캐시 갱신 기간 보존. 게임 시간이나 범람 만료를 늘리지 않는다.
+9. 공간: 기존 footprint·접근·경로 판정 유지. 특정 밭 좌표·ID를 강제 선택하지 않는다.
+10. 전력·용수·폐기물: 변경0.
+11. 위험: dynamic 변경 후 낡은 허용/점수/거절 결과를 보존하면 잘못된 작업을 시작할 수 있으므로 결과는 폐기하고 탐색 위치만 유지한다. 구조 변경에는 이전 인덱스를 이어 쓰지 않는다.
+12. 대안: 파종 전용 강제 preferred action, 후보 수 축소, global dirty 무시, 예산 무제한 확대를 쓰지 않는다. 공용 자동 선택 계약을 보존한다.
+13. 지배 전략 방지: 현재 우선순위·노동 자격·수동 지정·예약·환경 조건 검사를 그대로 거친다.
+14. 순환 방지: 평가 순서만 바꾸며 생산·소비·보상·예약 commit을 추가하지 않는다.
+15. 실행·저장 권위: 기존 WorkTargetSelector의 actor별 파생 incrementalScans만 수정. save DTO/원본 상태/어셈블리 의존/자산 변경0; 탐색 커서는 저장 권위가 아니다.
+16. 집중 증거: root가 실제 advance/reset 코드와 일반 AIWork 호출을 대조한다. 기존 실제043의 generic31 후보 중 끝의 P23, 정상 dynamic 갱신, 파종/UI/만료 흐름을 affected regression으로 재사용한다. 구조·work-order·pending-index 변경의 reset 보존은 diff로 검토하며 추가 전수 AI suite를 새 완료선으로 만들지 않는다.
+17. 상태: 최소 수정 계약 확정·구현 대기. 기존04325EE 실제0진척, policy/environment/access 통과 및 두 pool 포함은 원인 후보를 좁힌 증거다. 당시 매 slice revision 변화까지 계측한 것은 아니며 수정 후 실행 PASS나 전체043 완료를 아직 주장하지 않는다.
+
+2026-09-09 후속 실행 증거: 위 `balance:wim:043:incremental-work-scan-fairness` 구현08EDE5DC를 root가 실제 diff로 검토했다. 원장 수치/배율/예산 변경0, 추가 콘텐츠 ID 분기0, 공용 후보 순서만 보존한다. 주 Unity 현재 runtimeDLL E5C5C565와 동일 외부 입력25EE5C45에서 seed5의 실제 AI work:sow/progress1/Growing 및 파종UI7%, 자연Day1 typed0.8→Day2 typed1 PASS(Editor.log277838). Console0/0, 원본 씬/사용자 저장 byte 불변, 기존 미저장 씬 상태 보존. 구조 변경 reset은 정적 검토이며 전수 AI·경제·canary 인증은 하지 않았다. 밸런스 분류는 이 대표 실행 경로의 실효 동작 검증이며 전수 다중seed 밸런스 완료로 확대하지 않는다. 통합 보고서 SHA256 `8CA853F9DC1F3D0AA6AD8350398F0B0A3FEBB8F8B0638F7C352623F0A320598F`.
+
+## WIM016 실제 농지 온도·주기분 급수 연결 (2026-09-08, 구현 전)
+
+1. 기록 ID: `balance:wim:016:plot-temperature-cycle-water`.
+2. 시대·역할: 기존 실내·야외 작물의 실제 환경 생육과 물 공급 상태 표시.
+3. Before: 실내는 실제 칸 온도를 보지 않고 성장하며 야외는 전역 외기온만 사용한다. 성장 중 파종 입력 목록 소거 뒤 UI가 공급 완료를 재료 없음으로 표현할 수 있다.
+4. After: 기존 작물 TemperatureRange와 유전체 추위/더위 내성을 실제 plot cell 온도에 한 번 적용한다. 기존 파종 receipt에서 주기분 물 공급 완료/수량을 투영한다.
+5. 물리 BOM: 기존 파종 입력·물 수량 유지. 추가 보충수나 가상 물품 없음.
+6. Direct WU: 파종·수확·운반 작성 WU 변경0. 달력 성장에 작업자 WU 배수를 곱하지 않는다.
+7. EWU·kg·가격: 작성값 변경0. 부적합 온도에서는 성장시간이 누적되지 않으므로 실효 처리량 영향은 후속 농업 검증에 명시한다.
+8. 시간: 기존 GrowthHours/DeltaTime 누적과 야외 날씨·야간·달력·유전체 배수를 각각 한 번 유지한다. 미초기화 환경 칸은 명시적 관측 불가 대기이며 전역 기온으로 숨기지 않는다.
+9. 공간: 기존 농지 좌표와 환경 field query 재사용. 새 토양장·수분장·광량장을 만들지 않는다.
+10. 전력·용수·폐기물: 기존 기후제어/작물 달력 가동 조건 유지. 파종 시 이미 차감한 주기분 물을 Tick/복원에서 재소비하지 않는다.
+11. 위험: 실내 온도 우회·야외 이중 기온/날씨 적용·복원 후 물 재소비·잘못된 재료 부족 안내 방지.
+12. 대안: 실제 기존 환경 설비로 온도를 회복하면 동일 주기에서 성장 재개. 임의 자동 보충·작물 삭제·진척 초기화 없음.
+13. 지배 전략 방지: 실내라는 이유로 온도 제한을 면제하지 않으며 새 광량/비옥도 임계치도 임의 적용하지 않는다.
+14. 순환 방지: UI 조회/환경 변화/저장 왕복으로 파종 receipt와 물 수량을 변경하지 않는다.
+15. 실행·저장 권위: CropPlotRuntime.TickState와 기존 CropGrowthCycleAuthority, 기존 IEnvironmentalFieldQuery. economy.crop-plots V11의 growthHours/materialsConsumed/receipt 및 environment.field만 사용하며 새 저장 필드 없음.
+16. 집중 증거: 대표 실내·야외 실제 온도 차단/재개, 배수 단일 적용, Tick 물 불변과 receipt 공급 표시. 저장은 기존 자료 재사용 및 변경 경계만 확인한다. 전수 작물 seed 반복 없음.
+17. 상태: 구현 전 기준 배정. 최소광량·비옥도 성장 기준·별도 보충수 정책은 사용자 결정 대기로 남겨 전체 WIM016을 이 부분 구현만으로 닫지 않는다.
+
+## WIM040 연계: 자동 관계 사건의 최소 참여자 (2026-09-08, 구현 전)
+
+1. 기록 ID: `balance:wim:040:automatic-relationship-participant-arity`.
+2. 시대·역할: 현재 일일 사회 사건의 실제 관계 효과 대상 연결, 계약 만료 일일 게시 차단 해소.
+3. Before: automatic producer는 항상1명을 고르지만 Relationship effect preflight는 서로 다른 실제2명을 요구해 같은 날 전체 candidate를 거절할 수 있다.
+4. After: 유효 Relationship 효과가 있는 자동 사건만 기존 자격/점유/weighted 순서로 서로 다른2명을 확보하고, 부족하면 해당 사건을 건너뛴다. 다른 사건의 기존1명 정책은 유지한다.
+5. 물리 BOM: 변경0.
+6. Direct WU: 변경0. 새 현장 작업을 만들지 않는다.
+7. EWU·kg·가격: 변경0. 관계 효과 작성량도 변경하지 않는다.
+8. 시간: 기존 일일 평가·정의/분류 cooldown·자동6개 상한 유지.
+9. 공간: 기존 활성 참가자 목록 사용. 가상 캐릭터/순간이동 없음.
+10. 전력·용수·폐기물: 변경0.
+11. 위험: 대상 부족 사건이 관계 효과 거절로 무관한 계약 만료/일일 결과 전체를 막는 것을 방지한다. preflight를 약화하지 않는다.
+12. 대안: 대상 부족일 때 해당 자동 사건만 미발생. 1명에게 관계 효과를 자기 자신과 적용하지 않는다.
+13. 지배 전략 방지: 기존 점유·자격·recurrence를 양쪽 대상 모두에 적용한다. 보상량/빈도 증가 규칙을 추가하지 않는다.
+14. 순환 방지: 미발생 사건은 점유/recurrence/효과를 게시하지 않으며 실제 완료 사건만 기존 commit 경로를 쓴다.
+15. 실행·저장 권위: 기존 V20CampaignRuntime.EvaluateSociety→기존 typed preflight→PublishContentResolution, 기존 Society 저장 유지. 새 상태/파일 형식 없음.
+16. 집중 증거: 1명은 skip,2명은 서로 다른 유효 대상, 기존 실제 일일 계약 만료가 이 오류로 막히지 않는지 다음 묶음에서 확인. 전수 사건 matrix 금지.
+17. 상태: source 분기와 실제 authored Relationship3개 확인. 기획상 가족/동료 등 원인별 상세 대상 정책은 WIM040 전체 작업에 남으며 이 최소 arity 수정으로 전체040을 닫지 않는다.
+
+## WIM050 확정 이정표·주요 선택의 런 결과 보존 (2026-09-08, 구현 전)
+
+1. 기록 ID: `balance:wim:050:committed-run-result-history`.
+2. 시대·역할: 현재 런의 실제 완료 이정표와 주요 확정 선택을 기존 종료 결과에서 확인한다.
+3. Before: 결과 snapshot에는 통계만 있고 완료 ID/구조화된 선택이 없다. 최근 사건256개나 세력 문자열 flags만으로 런 전체 선택을 정확히 복원할 수 없다.
+4. After: 기존 이정표 소유자가 확정 선택의 소유/정의/instance/choice/operation ID를 보존하고 런 종료 시 immutable 결과로 캡처한다.
+5. 물리 BOM: 변경0. 이력용 물품이나 시설을 만들지 않는다.
+6. Direct WU: 변경0. 기록과 UI 조회는 작업을 생성하지 않는다.
+7. Embedded WU·EWU·kg·가격: 변경0. 기존 보상 공식과 금액을 유지한다.
+8. 시간: 실제 효과 성공·도메인 게시 시점에만 확정한다. 후보 생성·알림 닫기·자동 평가를 선택으로 기록하지 않는다.
+9. 공간: 기존 결산 화면에 목록을 표시하며 월드/재고 전체를 결과에 복사하지 않는다.
+10. 전력·용수·폐기물: 기존 효과와 소비만 실행하며 이력 저장에 새 비용/면제를 추가하지 않는다.
+11. 위험: 실패한 선택의 오기록, 동일 operation 중복, 최근 목록 절단, 결과 재구성 시 누락, Ended 이후 capture 실패를 방지한다.
+12. 대안: 기존 완료 ID와 명시적 확정 선택만 보존한다. 자동 엔딩에 가상의 선택이나 표시용 사건을 합성하지 않는다.
+13. 지배 전략 방지: 결과 조회·저장 복원은 보상/효과를 재실행하거나 선택을 변경하지 않는다.
+14. 순환 방지: 동일 operation 재시도는 같은 확정 기록이며 다른 instance의 같은 선택은 각각 보존한다. 신규 보상 writer나 범용 event-store 없음.
+15. 실행·저장 권위: 기존 ContentResolution candidate→효과 commit→기존 milestone 상태 게시→Services adapter→Models/Meta immutable 결과→기존 메타 저장/복원/결산 UI. Models에서 Services를 참조하지 않는다. 현재 포맷만 지원한다.
+16. 집중 증거: 대표 실제 선택 성공/실패·이정표 캡처·이력 절단 이후 보존·WithLegacyCurrency 및 current-format 왕복·결과 재조회 무재지급. 변경 묶음당 주 Unity 컴파일 및 필요한 대표 경로만 확인한다.
+17. 상태: P12 기존 계약을 구현 전 기준서에 기록했다. 현050 구현/완료 증거는 없으며 현재046/048 Unity 통합이 끝나기 전 소스 편집을 시작하지 않는다.
+
+## WIM046 실행 결과 기반 수동 관찰 진단 (2026-09-08, 구현 전)
+
+1. 기록 ID: `balance:wim:046:passive-operation-diagnostics`.
+2. 시대·역할: 현재 작업·시설·물류가 멈춘 이유를 기존 운영/캐릭터 화면에서 설명한다.
+3. Before: UI가 haul availability를 조회하며 실제 경로 탐색을 요청하고, 최근 실패와 현재 차단·일반 tick과 재시도를 구분하기 어렵다.
+4. After: 실제 실행 소유자가 게시한 typed 관측과 기존 시설 상태만 읽는다. 미평가/만료는 미확인, 최근 이력은 이력으로 표시한다.
+5. 물리 BOM: 변경 없음. 진단을 위해 물품·시설을 만들지 않는다.
+6. Direct WU: 변경 없음. 조회가 작업·이동·재시도를 시작하지 않는다.
+7. EWU·kg·가격: 변경 없음. 원장이나 가격 재산정의 별도 근거가 아니다.
+8. 시간: 기존 scheduler/cooldown/deferred 실행기만 실제 대기 기한을 소유한다. 표시용 타이머를 게임플레이 권위로 만들지 않는다.
+9. 공간: 기존 대상 stable ID/경로 결과 사용. 화면을 열었다고 새 경로 예산을 소비하지 않는다.
+10. 전력·용수·폐기물: 기존 snapshot/실행 실패만 관찰한다. 조회 중 공급·소비·냉기 cooldown 평가를 실행하지 않는다.
+11. 위험: stale 실패가 현재 문제로 남거나 실패 teardown이 유효 재시도 이유를 조기 삭제할 위험을 구분한다.
+12. 대안: 미확인을 정직하게 표시한다. 추측한 시설 정상/비정상이나 문자열 파싱을 대안으로 쓰지 않는다.
+13. 지배 전략 방지: 화면 반복 조회로 작업/경로/예약/RNG 결과를 바꾸지 않는다.
+14. 순환 방지: 진단에서 원래 명령을 재실행하지 않는다. 추가 소비·보상·예약 없음.
+15. 실행·저장 권위: 실제 action/work handler→AIBrain ephemeral 관측 및 기존 시설 query→Operations/캐릭터 UI. save DTO/캐시를 새 gameplay 권위로 만들지 않고 복원 시 관측을 재수집한다.
+16. 집중 증거: 실제 차단·표시·정상화, 정상 판단과 retry 구분, 대상 전환/취소, 반복 조회 경로·예약·RNG 불변. 기존 verifier 하나와 배치 주 Unity 컴파일, 과도한 조합/seed 추가 없음.
+17. 상태:2026-09-09 현재 소스/컴파일 및 실제 대표 경로 확인. 보고CFD76452에서 실제 건설 이동→문 차단→NoPath/Access→운영/캐릭터 표시→문 허용→같은 주문 완성/관측 해제를 확인했다. 현재성 미확인 표기와 원래 권한 복구도 보존했다. 수치·BOM·게임 규칙 변경 없음; 진단 기능의 대표 실행 완료이며 전수 경제/다중 시드 밸런스 실전 보정을 의미하지 않는다.
+
+## WIM048 기존 방 지정 주민 대피 (2026-09-08, 구현 전)
+
+1. 기록 ID: `balance:wim:048:resident-room-evacuation`.
+2. 시대·역할: 기존 침입 대응에 일반 직원·비전투 미니언 대피를 연결한다. 경비·전투·구조 인력은 제외한다.
+3. Before: 사장 전용 대피는 있으나 일반 주민의 지정 방·대피 명령·안전 대기가 연결되지 않았다.
+4. After: 기존 방 목록에서 주민 대피 방 하나를 지정/해제하고 기존 방어 UI 명령 및 실제 침입 요청으로 대피한다. 사장 기존 정책은 유지한다.
+5. 물리 BOM: 새 시설·소모품·강제 전용 방 건설비 없음. 기존 방을 사용한다.
+6. Direct WU: 대피 이동·대기는 실제 업무 중단 시간이며 가짜 생산 WU를 만들지 않는다. 경비·구조 작업을 대피 노동으로 중복 계상하지 않는다.
+7. EWU·kg·가격: 변경 없음. 운반 중 화물은 기존 소유권·질량·예약 중단 경로를 유지한다.
+8. 시간: 실제 침입/사용자 요청부터 위협 종료까지. 응급 생존·의료 선점을 허용하며 종료 후 기존 재계획을 사용한다.
+9. 공간: 기존 방 셀과 실제 경로/점유를 사용한다. 중복 대기·문/egress/필수 접근칸 점유를 피하고 수용 부족은 표시한다. 새 공간 확장이나 순간이동은 없다.
+10. 전력·용수·폐기물: 기존 시설·생존 소비를 유지하며 대피 중 욕구나 오염 누적을 무효화하지 않는다.
+11. 위험·회복: 방 상실·no-path·Downed·역할 변경을 구분한다. 다른 응급 행동의 이동을 stale 대피 lease가 취소하지 않는다.
+12. 대안: 방 미지정/수용 부족/길 단절 시 원인과 미대피 대상을 표시한다. 별도 바닥 지정 UI나 임의 자동 방 선택을 만들지 않는다.
+13. 지배 전략 방지: 대피로 전투·구조 역할, 운반 비용, 생존 필요를 우회하지 않는다. 안전 방 자체가 피해 면역을 부여하지 않는다.
+14. 순환 방지: 반복 명령·위협 갱신·저장 복원에서 화물 복제/예약 누수/중복 participant·추가 이동 소유권을 만들지 않는다.
+15. 실행·저장 권위: 기존 방/방어 UI→침입 대피 소유자→actor external intent/경로 명령. 지정 방은 canonical 셀 구간으로 현재 방과 재검증한다. 침입 저장은 지정/participant만 소유하고 캐릭터·화물·lease 사본을 중복 저장하지 않는다.
+16. 집중 증거: 실제 지정/해제/대피 UI, 6인 역할 분리, 사장 유지, 운반·응급 선점, 권한문/길 단절, 방 topology 상실, 현재 형식 staged 저장 왕복, 종료 stale 취소0. source/컴파일/실행 증거 없이는 체크리스트를 닫지 않는다.
+17. 상태: 2026-09-09 WIM048 구현·필요 실행 연결 검증 완료. 현재 runtime E916A140/QA0AE1C637의 실제 6인 역할·방/대피 UI·Moving→Holding·정확한 화물 보존·제어된 위협 종료 후 재계획/Stored0→1 PASS를 root가 원문 SHA256 `03DF8C075B11D9B246E9561F395D5A78972AED68BA050FDE6EB45FF4ED096726`과 대조했다. 기존 현재 JSON 복원3342D271 및 응급/방 상실 복원F477A986 증거를 유지한다. 자연 전투 승리·전체 생존망 밸런스 실전 보정·미래 전수 조합 증거로 확대하지 않는다. 이번 기록 갱신은 작성 수치·생산 코드 변경이 없다.
+
+### WIM048 경보 대응 선발 조건 교정 (2026-09-09, 기존 기록 보충)
+
+기존17필드 계약을 유지한다. 실제 Red 침입에서 Guard Off인 일반 주민이 CharacterAlarmResponseRuntime에 의해 비상 경비로 선발되어 대피 대상에서 탈락했다(실행 보고서4DFE6CAA). 신규 선발·기존 responder 유지 모두 현재 허용 응급 작업의 기존 WorkPriorities.IsEnabled를 요구하고, 비활성화 시 기존 epoch 소유자의 해제로 정리한다. 대피 서비스에 잠금 우회나 별도 해제 권한을 주지 않는다. BOM·WU·EWU·가격·시설·저장 형식 변경0, 경보 대응 인력과 실제 업무 이탈만 의도된 우선순위에 맞춘다. 경비 활성 인원의 대응은 유지하며 모든 경비를 끈 결과를 무료 방어 또는 강제 차출로 보상하지 않는다. 집중 검증은 Off 선발 차단/기존 gate 해제/활성 경비 유지 및 실제 주민 Holding·현재 저장·위협 종료 연결이다. 현재 원인·수정 계약 확인 상태이며 실행 통과 또는 전체048 완료를 주장하지 않는다.
+
+## WIM048 검증에서 확인된 실제 신체 피해 재진입 손실 교정 (2026-09-09, 구현 전)
+
+1. 기록 ID: `balance:wim:048:typed-node-damage-reentry-order`.
+2. 시대·역할: 모든 기존 종족의 typed 신체 피해 명령과 의료/구조 기절 판정. 새 콘텐츠가 아니라 실제 손상 소실 결함이다.
+3. Before: TryDamageNodeWithCause가 typed node 손상 후 legacy surface를 동기화하기 전에 aggregate damage 부수효과를 발행한다. 부수효과의 performance→anatomy 조회 재진입이 정상 legacy 값으로 typed 손상을 덮는다.
+4. After 목표: 같은 메서드의 기존 SyncLegacySurfaceNode를 node 손상 직후, ApplyAggregateDamage 앞으로 이동한다. 후행 중복 호출은 제거한다. 별도 상태·캐시·이벤트 지연 프레임워크는 추가하지 않는다.
+5. 물리 BOM: 변경0.
+6. Direct WU: 변경0. 테스트는 피해 명령을 통한 실제 기절을 확인하며 기절 상태를 직접 주입하지 않는다.
+7. Embedded EWU·kg·가격·보상: 변경0.
+8. 시간: 기존 동기 피해→조회→기절 이벤트 경계를 보존한다. 임의 대기나 추가 cooldown 없음.
+9. 공간: 변경0. 기존 신체/의료/구조 대상과 경로 사용.
+10. 전력·용수·폐기물: 변경0.
+11. 위험·회복: 실제 신체 손상이 유지되어야 한다. HP 손실만 남고 부위가 원상 복구되는 현상을 허용하지 않는다. 생명 기관/사망 규칙은 변경하지 않는다.
+12. 대안: QA에서 직접 Downed를 지정하거나 피해 후 기다리는 우회는 원인을 고치지 못하므로 사용하지 않는다.
+13. 지배 전략 방지: 부위 손상 명령으로 HP만 감소시키고 이동 기능은 보존되는 비의도적 피해 무효화를 제거한다.
+14. 순환 방지: 첫 부위 손상이 두 번째 명령·public 재조회에서도 유지되어야 하며 피해를 중복 적용하지 않는다.
+15. 실행·저장 권위: CharacterBodyHealthRuntime→기존 anatomy/legacy 동기화→CharacterVitalsAuthority.Damage→성능 조회→기존 Downed/medical 이벤트. 기존 aggregate/저장 포맷을 유지한다.
+16. 자동 감사·실전 증거: 보고서367824B1와 raw A825CBEF에서 Orc 환자 양다리26+26 손상 명령 후 HP48/100, nodes26/26, PhysicalMobility1, bodyDowned=false/lifecycleActive 확인. 원본 SyncLegacy/NotifyDamage/EnsureAnatomy 재진입 순서를 root가 대조했다. 수정 후 기존048 실제 경로에서 각 손상 재조회·Downed·구조/대피 연결을 검증하며 별도 전체 의료 suite는 추가하지 않는다.
+17. 판정: 실제 P0 손상 소실이며 기존048 완료에 필요한 최소 수정이다. 생산 소스8244E3A3의 기존 동기화 호출 이동을 root가 검토했다. 주 Unity 현재 runtimeDLL E916A140 컴파일 뒤 기존048 QA EA9B8988에서 두 번의 public 피해/재조회가 누적 leg:left/right 손상0을 보존했고 실제 Downed(game0.775) 및 구조 명령 수락이 확인됐다. root가 Editor.log257378/257405/257418/257431, 해당 통합 보고서 및 source/DLL hash를 대조했다. 이 실제 손상 보존 하위 회귀는 통과했으나 구조 완료·대피 화물 복귀 또는 전체 의료/밸런스 완료는 아니다. 별도 전체 의료 fixture를 추가하지 않았으며 완료 WIM 수는 변경하지 않는다.
+
+## WIM037 기존 손님 요청 시설 ID 교정 (2026-09-09, 구현 전)
+
+1. 기록 ID: `balance:wim:037:existing-guest-facility-id-join`.
+2. 시대·역할: 기존 연구/의료/주거/추모 시설을 요구하는 손님 요청5종의 자격 연결.
+3. Before: 요청 의미 ID와 실제 BuildingSO의 numeric canonical ID가 달라 exact 시설 조회에서 연결되지 않는다.
+4. After: sealed-archive→building:8825, plague-screening→building:8874, disease-sample→building:8876, persecuted-family→building:8883, memorial-performance→building:8887. 기존 유일 작성 workstation 태그와 연구/시설 정의를 근거로 한다.
+5. 물리 BOM: 요청 입력 품목/수량·시설 설치 BOM 변경0.
+6. Direct WU: 작성값 변경0. 배송/현장 작업을 이 교정에서 추가하지 않는다.
+7. Embedded EWU·kg·가격·보상: 변경0.
+8. 시간: 기존 기한·연구 해금·운영 조건 유지.
+9. 공간: 해당 기존 시설이 실제 존재해야 한다. 새 방/자동 목적지/순간이동 없음.
+10. 전력·용수·폐기물: 기존 operational 판정 유지.
+11. 위험: 잘못된 ID로 영구 자격 미달되는 경로를 해소한다. 임의 유사 시설을 허용하지 않는다.
+12. 대안: 기존5개 GuestRequest.asset과 builder의5개 ID만 교정한다. runtime alias registry/BuildingSO ID 변경/추가 capability 교집합은 불필요하다.
+13. 지배 전략 방지: minimumCount1·operational·물품 요구를 그대로 보존한다. 다중 인스턴스 배송 목적지 결정은 별도 미정으로 남긴다.
+14. 순환 차익 방지: 요청 수락/소비/결과 commit은 변경하지 않는다. 이 수정으로 물리 배송·exact-once 결과가 구현됐다고 주장하지 않는다.
+15. 실행 경로: 기존 요청 정의→요구조건 평가/시설 snapshot→FacilityCapabilityQuery의 exact BuildingDefinitionId→기존 자격/실행 경계.
+16. 저장 권위: 기존 SO 불변 정의와 기존 runtime 상태 유지. 신규 필드·schema·구버전 세이브 변환 없음.
+17. 검증: 다섯 actual ID/tag/catalog join과 생성 원본 일치, 변경 scalar만5개/메타·GUID 보존, 현재 Unity 로드/자격 조회를 확인한다. 전체 Build100을 실행하지 않는다. 현재 root 원본 대조·구현 계약 배정이며 적용·실행은 대기다.
+
+## WIM037/039 손님 요청 실제 납품 (2026-09-11, 구현 전)
+
+### 선행 추가 기록: `balance:wim:venue-reuse-capacity` (2026-09-11, 기준 배정)
+
+1. 시대: 기존 손님13종/축제disk20종의 해금·일정·원본 유지. 현재 live V20축제16종에만 장소 authoring 적용하며 비-live V19구형4종은 재등록·삭제 없이 보존한다.
+2. 역할: 기존 공간을 실제 수용 가능 조건으로 재사용; 새 행사 전용 시설 없음.
+3. Before: 존재하지 않는 symbolic building 및 exact 첫 시설만으로 장소 판정.
+4. After: 기존 anchor/같은 방 필수 시설/실제 여유·접근/거리·물 공급 판정, 불가 시 이유·대기.
+5. 물리 BOM: 기존 요청/축제 입력 종류·수량 그대로; 시설 신설 BOM 없음.
+6. Direct WU: 새 행사·건설 WU 없음; 기존 배송/참석 노동은 각 실제 실행 흐름에서 부담.
+7. EWU/가격: 수치 불변. 장소 부족과 이동 비용의 최종6인 영향은 별도 검증 대기.
+8. 시간: 기존 기한/축제 날짜/참가 수 유지, 대기로 자동 연장 없음.
+9. 공간: 대관4/화합8(작성 식사 수), 경매3(세 세력), 피난민4(20개 비축 요청의 초기 수용 규모), 교역·장비 인도1의 장소 여유. 이는 가상 NPC/추가 물품 소비가 아닌 eligibility demand. 축제는 기존 최소 또는 실제 제출 참가 수로 계산.
+10. 전력·용수·폐기물: 실제 시설 operational·수질/1회 사용량을 읽으며 조회 중 소비/배송/오염 생성0. 건식 fallback을 깨끗한 목욕으로 인정하지 않음.
+11. 위험: 공간·예약·동선·깨끗한 물이 없으면 대기/사유; 기존 주민과 필수 업무 자리 침범 금지.
+12. 대안: 식당·공용실·창고·침실·지도탁자·정비·목욕 재사용; 특수 의료/연구/추모 등 기존 의미 보존.
+13. 지배 전략 방지: 시설 한 개 존재만으로 큰 행사 통과 불가, 이미 배정된 수요와 실제 점유·예약 공제.
+14. 순환 차익 방지: 장소 선택으로 소비/보상하지 않음; 기존 actual delivery/receipt/ACK 유지.
+15. 실행 경로: authored venue→shared query→guest/Festival command+UI→기존 물리 배송/참석 경계; 실제 참석은041 별도 OPEN.
+16. 저장: authored 조건은 SO, 선택된 guest anchor는 기존 Society 소유; 여유 capacity/profile은 파생 조회. 새 전역 공간/주민/보상 저장 권위 없음.
+17. 감사/증거: 현재 fresh070c05d1/4d77bf7f 인덱스와 직접 원본/독립 runtime query 조사. 새 authoring/compile/실제 자격 확인 미실행이므로 `밸런스 기준 배정`이며 완료 아님.
+
+2026-09-11 추가 실행 증거(기존 기준 기록 보존): 활성29개 장소 mapping4/4 및 narrow authoring 재적용 byte/Dirty0(`92A58A0E`), 실제 유체 상태의 순수 젖은 사용 preflight(`FCBB8E43`), 수평 방/공유 접근/문·계단·claim 경계(`12CD4463`) PASS. 탁자 capacity는 가구 개수가 아니라 이용 인원으로 작성해 만찬4/8 및 축제 기존 최소 참가 인원과 일치시켰다. 복도는 구조물이며 작업 접근칸을 만들지 않는다. 운영 설비는 접근칸을 전부 제외하지 않고 최소1개의 실제 접근을 남긴다. 실제 주 UI→여유 방 RF25 배정→직원 도면2개/1800g 운반→whole restore/보상1회 회귀(`706489E7`) PASS, 43.96739 game seconds/10.95402 wall seconds. 원본 수량·가격·WU·사용자 씬/세이브 변경0. 이는 장소/물류 집중 검증 단계이고 실제 축제 참석·6인 생존망·전수 밸런스 완료는 아니다. 상세 증거/해시는 실행 계획7.4.4 및 WIM037 체크와 `Artifacts/QA/wim-implementation/`에 기록한다.
+
+1. 기록 ID: `balance:wim:037:physical-guest-delivery`.
+2. 시대·역할: 기존 손님 요청 13종의 물품 납품 및 실제 시설 배정·진행 UI 연결.
+3. Before: fulfill 선택 시 전역 재고 직접 소비와 완료 보상, 실제 배송/소요 동선 없음.
+4. After: 수락→실제 적격 시설 input owner→별도 AI 배송→도착 물품 Transfer→기존 보상→ACK. 없는 장소는 대기/이유 표시.
+5. 물리 BOM: 기존 13종 품목·수량 및 consume 의미 유지. 제외한 monster-circus에 가짜 BOM 추가 없음.
+6. Direct WU: 새 제작·수술·연구 WU 없음. 기존 운반 AI의 실제 노동/이동이 추가로 필요하다.
+7. Embedded EWU·kg·가격·보상: 작성 수치 변경0. 동선 비용을 반영한 최종 6인 영향 확인은 대기이며 밸런스 완료 아님.
+8. 시간: 기존 deadlineDays 유지, 시설/물품 대기 때문에 기한을 자동 연장하지 않음.
+9. 공간: 기존 시설 실제 instance/access 및 exact input gram 용량 사용. 새 전용 시설/가상 창고 없음. 7.4.4 장소 재사용은 승인 범위 내 별도 authoring 잔여.
+10. 전력·용수·폐기물: 기존 operational 조건 유지, 새 utility 수치 없음.
+11. 위험: 운반/공간 부족과 경로 단절이 실제 완료 지연으로 드러남. 이미 인도된 물품의 보상은 만료로 취소하지 않고 동일 receipt로 재시도.
+12. 대안: 기존 겨울 세력 계약의 exact input owner/Transfer receipt/보상 ACK 패턴을 재사용. 현장 작업 데이터가 없는 요청을 이름만으로 장시간 작업으로 바꾸지 않음.
+13. 지배 전략 방지: 수락만으로 보상 불가, 배송 시작 뒤 더 가까운 시설로 무단 이동 불가, 실제 조건·용량·접근 확인.
+14. 순환 차익 방지: 도착 lot만 한 번 인도, 완료에서 전역 입력 이중 소비 금지, receipt 재시도/복원 중 중복 보상 금지.
+15. 실행 경로: GuestRequest SO→Society 수락 명령→delivery coordinator→기존 haul/input owner→물리 receipt→기존 effect commit→source-ID 알림 갱신.
+16. 저장 권위: Society의 진행/배정/receipt 원본 및 기존 physical/input-owner 권위. 수량 진행은 파생 조회. current-format join 실패 시 전체 원자 거부, 과거 migration 없음.
+17. 증거: 두 독립 원본 조사로 13개 물품 조건과 현재 클릭 소비 경로 및 겨울 계약 선례 확인. fresh content d394cc7e…/KB e258d4cc…, 신규 구현·Unity·실제 배송·복원 검증은 대기. 상태 `밸런스 기준 배정`.
+
+위 `balance:wim:037:physical-guest-delivery` 증거 추가(2026-09-11, 기존17필드 기록 보존): 활성13종 카탈로그 제외2/2 PASS6428A94A, 실제 손님 인도/whole restore/보상5A86100A, 실제 carried 취소/창고 회수B15C729C. 원본 BOM/보상/WU/가격 변경0; LiveFacility 중심/접근칸 및 physical carrier/haul intent 의미를 기존 권위와 일치시켰다. 별도 6인 동선·노동 비용 보정과 venue9는 미실행이므로 상태는 `밸런스 기준 배정`을 유지한다. 기능 focused PASS를 전역 밸런스 완료로 승격하지 않는다.
+
+## WIM010 사장 실제 특성 +1 (2026-09-07, 사용자 확정·구현 전)
+
+1. 기록 ID: `balance:wim:010:owner-extra-trait`.
+2. 시대·역할: 기존 시작 사장 메타 강화의 누락된 실제 효과를 연결한다.
+3. Before: 사장 특성 후보+1 작성값은 있으나 자동1~4개 추첨 소비자가 없고 실제 후보 선택 UI도 없다.
+4. After: 구매 사장만 기존 추첨 개수+1(현재2~5개), 직원·미구매 사장1~4개 유지. 사용자 답변으로 이전 후보 수/선택 해석을 대체한다.
+5. 물리 BOM: 신규 아이템·장비·생산비 없음. 기존 메타 구매 비용90/최대1레벨은 변경하지 않으며 구현 시 원본과 재대조한다.
+6. Direct WU: 직접 작업 비용 없음. 각 추가 특성 효과는 기존 실제 작업/욕구/전투 소비자에서만 적용한다.
+7. EWU·kg·가격: 아이템 중량·가격·레시피 변경 없음. 추가 특성 자체를 가짜 아이템/EWU 보상으로 만들지 않는다.
+8. 시간: 새 사장 후보 생성 시 보너스를 한 번 읽고 확정한다. 화면 갱신·저장 복원·게임 시작에서 재추첨하지 않는다.
+9. 공간: 사장 후보 수·직원 수·시설 공간은 증가하지 않는다.
+10. 전력·용수·폐기물: 직접 비용 없음. 특성별 기존 효과 외 기반 소비 변경 없음.
+11. 위험: 중복·상극·종족·자격 제약과 기존 가중치를 보존한다. 유효한 추가 특성이 없는 경우 무효/중복 특성으로 성공을 가장하지 않는다.
+12. 대안: 미구매 사장과 직원은 기존 자동 추첨. 새 특성 선택 UI나 자동 최고 조합 평가를 도입하지 않는다.
+13. 지배 전략 방지: 사장 전용 적용이며 전 직원+1·희귀도 상승·잠금 후보 누적을 금지한다.
+14. 순환 방지: 재표시·부분/전체 재추첨·후보 교체·저장 복원·시작 commit에 의한 중복 추가를 검사한다. 재추첨은 새 결과에 동일 보너스 한 번이다.
+15. 실행·저장 권위: 기존 메타 작성값→구매 권위 조회→준비 사장 identity 생성→기존 특성 목록/actor 생성/효과 소비/현재 형식 저장. 단일 추첨 결과를 재사용하며 별도 효과 상태를 만들지 않는다.
+16. 집중 증거: 보너스0/1과 직원 격리, 유효5특성 조합, 금지 조합 거절, 잠금/재표시 RNG 불변, 부분/전체 재추첨, UI5개 표시, 실제 시작·효과 소비·저장 왕복. 정상 시설 후보3+메타 보너스 경로 회귀.
+17. 상태: 사용자 설계 확정·밸런스 기준 배정. 아직 구현·컴파일·실행 증거가 없으며 WIM010을 닫지 않는다. 기존 ‘후보 인원+1’ 제안은 채택하지 않는다.
+
+## WIM047 실제 침입 경고 정보 (2026-09-07, 구현 전)
+
+1. 기록 ID: `balance:wim:047:committed-invasion-warning`.
+   - 2026-09-08 증거 추가: 주 Unity runtime041B1F0C/Editor446A2BCE 컴파일 후 실제 후보 확정→alert/live UI→전체 registry75개 복원→같은 경고 정보 PASS. 미선정/실제 표적 미상 유지, 없는 입구 생성 거부, raid/입구/적 성격/작전 목표·신뢰도 실제 권위 일치, query RNG 불변. `Artifacts/QA/wim-implementation/wim-047-committed-invasion-warning.txt` SHA256 `9CCFFAB7F9A3EE353D7907CD87EDBD62C3ACEE116B13055EE0C327092AE18299`, result=PASS. 사용자 profile/저장4개 불변, 복원 후 scenario baseline byte-exact 후 PlayMode 폐기. 강제 후보 fixture이므로 자연 침입 분포·기존 transient visitor 완전 복원 증거로 확대하지 않는다. 작성 수치 변경0, WIM047 완료.
+2. 시대·역할: 기존 침입 경고와 방어 화면에 이미 결정된 침입자 정보를 연결한다. 새 적·작전·정찰 능력을 추가하지 않는다.
+3. Before: 위협 snapshot에는 후보 정보가 없고 일반 후보 경고만 표시한다. 방어 화면의 미확정 목표는 사장/주요 시설이라는 일반 설명이며 실제 후보 목표와 혼동될 수 있다.
+4. After: 후보 전 정보는 미상. 생성 commit 이후 실제 입구·접근 방향·집결 시간·선택된 적 성격과 RaidId에 대응하는 작전 목표를 immutable 조회로 표시한다. 동적 구체 표적은 실제 확정되기 전 미상이다.
+5. 물리 BOM: 기존 침입·경보 시설 비용 유지. 추가 보급·정찰 토큰·가짜 아이템 없음.
+6. Direct WU: 경고 조회가 작업·운반을 생성하거나 완료하지 않는다. 기존 경비·방어 노동 유지.
+7. EWU·kg·가격: 기존 수치 변경 없음. 정보 표시를 기대 보상이나 확정 경제 이득으로 계상하지 않는다.
+8. 시간: 실제 보정 후 남은 rally 시간을 사용하고 후보 발생 지연과 구분한다. 집결 종료/진입 시도 예상이며 경로·문 대기를 포함한 확정 도착 시간이라고 쓰지 않는다.
+9. 공간: 실행기가 실제 선택한 입구/외부 위치를 사용한다. 표시를 위해 새 진입로·임의 좌표를 만들지 않는다.
+10. 전력·용수·폐기물: 기존 경보 시설의 능력·전력·내구/연료 조건 유지.
+11. 위험·회복: 후보 없음·생성 실패·아직 없는 구체 표적은 미상. 실패 후보를 성공 경고로 게시하거나 직전 작전 정보를 새 후보에 붙이지 않는다.
+12. 대안: 사전 경고는 불확실성을 남기고 실제 집결 경고는 확정 정보를 제공한다. 더 일찍 후보를 뽑거나 RNG를 소비해서 UI를 채우지 않는다.
+13. 지배 전략 방지: 화면 재개방/새로고침은 후보·위치·작전·확률을 재선택하지 않는다. 기존에 공개되는 집결 정보 범위만 투영한다.
+14. 순환 방지: 경고 조회가 침입·보상·사건·신호 뿔 소비를 다시 실행하지 않는다. 실패/취소 시 경고용 별도 상태가 살아남지 않는다.
+15. 실행·저장 권위: InvasionDirectorRuntime의 실제 spawn commit 및 InvasionIntruderRuntime/작전 권위→경고 immutable projection→기존 alert/DefenseFeatureQueryService. 저장 DTO를 새 gameplay query 입력으로 쓰지 않는다. 복원 후에는 실제 복원 실행기가 사용하는 입구·단계·집결 잔여/작전에서 재계산하며 과거 입구 보존용 새 저장 권위를 만들지 않는다.
+16. 집중 증거: 실제 ForceCandidateNow→director spawn→방어 UI, 후보 전/생성 실패 미상, 실제 선택값·RaidId 목표 일치, 구체 표적 미상, UI 재조회 RNG/상태 불변, 기존 저장 복원 후 실제 실행 정보와 일치. 다른 침입 이동/전투 결과 검증으로 확대 해석하지 않는다.
+17. 상태: 표시 의미 기준 배정. 소스 조사/최소 수정 범위만 확인했고 코드·문구 에셋·컴파일·실행 증거는 아직 없다. WIM048 대피와046 전역 진단은 별도 범위다.
+
+## WIM044 실제 은퇴 선택 (2026-09-07, 사용자 확정·구조 검토 전)
+
+1. 기록 ID: `balance:wim:044:retirement-choice-schedule`.
+2. 시대·역할: 기존 노년 사건의 실제 대상자와 현장 은퇴 시점을 연결한다. 새 은퇴 콘텐츠·등급·멘토 제도를 추가하지 않는다.
+3. Before: 첫 선택은 Mood+6, 두 번째는 동일 사건 scope의 WorkDelay-2다. 후자는 줄일 선행 지연이 없는 정상 경로에서 no-op이며 선택이 실제 Retire 명령을 호출하지 않는다.
+4. After: 사용자 승인대로 즉시 은퇴 또는 선택 시점부터 한 계절 근무 후 은퇴. 기존 무효 WorkDelay-2는 이 은퇴 일정으로 대체한다. 첫 선택의 기존 Mood+6은 별도 변경 승인 없이 유지한다.
+5. 물리 BOM: 기존 사건 선택 요구량 유지. 가짜 납품·보급·은퇴 토큰 없음.
+6. Direct WU: 별도 무료 작업이나 가속을 부여하지 않는다. 기존 작업 실행/은퇴 후 업무 자격이 실제 가용 노동을 결정한다.
+7. EWU·kg·가격: 아이템·가격·질량 수치 변경 없음. 추가 근무 기간의 노동 효과는 실제 참여 경로에서 발생하며 보상 EWU를 따로 생성하지 않는다.
+8. 시간: 기존 게임 달력의 한 계절(`GameCalendarRules.DaysPerSeason`, 현재30일)로 결정한다. 다음 계절 경계까지의 남은 일수를 한 계절로 간주하거나 재시도 시 기한을 연장하지 않는다.
+9. 공간: 기존 현장·멘토 시설과 자격 사용. 은퇴 선택만으로 새 시설·침상·교실 수용력을 만들지 않는다.
+10. 전력·용수·폐기물: 기존 노동·생활 비용 유지. 은퇴가 생존 소비를 없애지 않는다.
+11. 위험·회복: 잘못된 대상/기한/중복 상태는 기존 검증 경계에서 거부. 대상 사망·이미 은퇴·현장 부재 시의 수명 계약은 실제 career/character owner와 연결하고 가짜 성공·캐릭터 재생성 없음.
+12. 대안: 즉시 은퇴는 현장 노동을 먼저 종료하고 추가 근무는 한 계절 노동 후 같은 은퇴 정책을 적용한다. 멘토는 기존 자격·배정 조건을 통과해야 하며 자동 임명하지 않는다.
+13. 지배 전략 방지: 선택 재개방/중복 사건 처리로 계속 기한을 미루거나 은퇴 후 금지 업무를 수행하지 않는다. 기존 안전 업무 허용은 그대로다.
+14. 순환 방지: 재클릭·복원·재시도에서 선택 효과, 기한, 은퇴 명령을 중복 적용하지 않는다. 작업/예약의 기존 중단 계약을 보존한다.
+15. 실행·저장 권위: 기존 사건의 실제 대상/선택 command→기존 career 은퇴 authority→업무 자격/UI. 확정 일정은 해당 소유자에 저장하며 UI 타이머/캐시는 원본이 아니다. 구체적 필드·원자성은 구현 전 검토 대상이고 과거 저장 마이그레이션은 없다.
+16. 필요한 집중 증거: 실제 선택 UI와 대상, 즉시/한 계절 경과, 경과 직전 미은퇴, 저장 복원 기한 불변, 중복0, 대상 사망/이미 은퇴, 기존 현장 업무 차단·안전 업무/멘토 자격 보존.
+17. 상태: 밸런스 기준 배정. 사용자 의미 확정만 완료했으며 코드·에셋 적용·컴파일·실행 증거는 없다. WIM040/037의 사건 대상/확정 처리와 함께 최소 수정면을 결정한다.
+
+WIM044 후속 증거(2026-09-08): 실제 선택·30일 기한·멘토4h 업무 PASS(C9CDBC35). 사망 취소 저장에서 발견된 수명 결함은 CareerHouseholdDomain의 기존 사망 명령에서 직책/멘토 배정만 종료하고 경력 이력은 exact tombstone 참조로 보존하도록 교정했다(6E64526D/047D454C). 정상 은퇴자의 생존·멘토 자격·작업 상한과 BOM/WU/EWU/kg/가격은 불변이며 새 수치 배정 없음. 교정 후 컴파일/사망 저장 집중 검증 전이므로 전체044 완료나 밸런스 실전 보정이 아님.
+
+WIM044 최종 기능 증거(2026-09-08): 위 사망 저장 경계까지 실제 focused PASS, failures=0, 보고서 SHA256 `F6D0170D1A1546AD131F5265D7E7EEA7AB64E0758F05FCCBA28D3962B9039401`. root가 현재 컴파일56E39AF2/D423BE8D와 보고서를 대조했다. 선택·기한·대상 사망·업무·저장·안전한 종료 경로의 기능 검증 완료이며, 전 게임 밸런스 실전 보정을 새로 주장하는 증거는 아니다.
+
+## WIM001 조건 기반 자동 환복 (2026-09-07, 구현 전)
+
+1. 기록 ID: `balance:wim:001:apparel-selection-policy`.
+2. 시대·역할: 기존 의복·직원 관리 화면에 평상/작업/예비 선택을 연결한다. 사용자 확정은 조건 기반 자동 선택 + 물리 인스턴스 직접 지정 우선이다.
+3. Before: 일반 자동 선택/플레이어 정책 없음. 기존 저온 작업복 자동 장착과 의복 plan/commit/rollback, 물리 상태·가용 재고 조회는 존재한다.
+4. After: 플레이어 조건·직접 지정을 기존 캐릭터 의복 권위에 보존하고 실제 목적/재고/착용 변화에서 선택한다. 동일 목적·입력에서 반복 환복하지 않는다. 세탁·파손 등 불가 상태에서는 같은 조건의 가용 예비품을 선택한다.
+5. 물리 BOM: 실제 재고 의복만 사용한다. 신규 의복·예비품 복제·추상 재고 없음. 기존 착용/회수 목적지와 소유권 전이를 사용한다.
+6. Direct WU: 기존 환복 명령의 작업/접근 계약을 유지한다. 이번 연결만으로 새 환복·세탁·수선 WU를 만들지 않는다.
+7. EWU·kg·가격: 기존 물리 gram 단일 권위, 의복 재료·장비 성능·가격 유지. 자동 선택을 이유로 부담 질량을 제외하지 않는다.
+8. 시간: 목적 변경과 관련 revision에 반응한다. Tick마다 동일 후보를 반복 조회·교체하거나 매일 새 오염/세탁 주기를 만들지 않는다.
+9. 공간: 기존 재고/회수 보관 경로 사용. 추가 전용 옷장·예비복 고정 슬롯이나 시설 의무를 만들지 않는다.
+10. 전력·용수·폐기물: 기존 유지보수 비용 유지. WIM003 오염·수분·마모 속도와 자동 유지보수 처리량은 별도 승인·구현 대상이다.
+11. 위험·회복: 부적합 체형/크기/슬롯, 예약, 접근 불가, 빈 재고, stale plan 또는 실패 시 기존 의복과 물리 수량을 보존하고 이유를 노출한다.
+12. 대안: 직접 지정은 조건 기반 선택보다 우선한다. 지정품이 실제로 사용할 수 없을 때 예비품 선택이 지정을 삭제하지 않으며, 복귀/해제 조건을 UI에서 확인한다. 기존 특수 저온 환복과 경쟁해 반복 교체하지 않는다.
+13. 지배 전략 방지: 동일한 가용성·호환성·예약 검증을 수동/자동 모두 통과한다. 정책 변경으로 세탁/수선·해금·품질 조건을 우회하지 않는다.
+14. 순환 방지: 기존 물리 인스턴스/상태 유지. 환복으로 품질·내구·오염·수분을 재굴림하거나 회복시키지 않는다.
+15. 실행·저장 권위: 기존 직원 UI→typed 의복 정책 명령→CharacterApparelAggregate→availability 및 plan/commit→착용/회수. 정책은 기존 character-environment 저장 경계의 의복 소유자에 보존하며 UI/selector/cache는 별도 저장 권위가 아니다. 현재 형식 필수값 검증, 과거 세이브 마이그레이션 없음.
+16. 집중 증거: 실제 UI 입력/목적 전환/직접 지정 우선/예비 선택, 실패 보존, 동일 입력 반복 교체0, 정책+물리 착용 저장 왕복 및 잘못된 복원 거절. 온도 보호값·오염 속도·전체 의복 유지비 실측을 통과했다고 주장하지 않는다.
+17. 상태: 밸런스 기준 배정/구현 전. WIM001만 구현 허용하며 WIM002/003의 미승인 수치나 WIM004 신규 습도 규칙을 자동 포함하지 않는다.
+
+2026-09-08 후속 종료 증거(기존 작성 기록 보존): root가 실제 UI 보고서BBC82E5A와 같은 최신 묶음 `F9B160FD09E22946CDF66014BFE8FC9DA5B8B26C7A3F3EA99A29642C69E58DAF`를 검토했다. 평상/작업 전환·물리 직접 지정·불가 지정품 대신 동일 목적 예비복·대체품 없을 때 착용 보존·반복 교체0을 확인했다. 정상 정책/직접 지정/착용/물리 소유권과75개 저장 section의 exact 왕복, 잘못된 temporaryOverride 거절 및 전체 원본 보존도 확인했다. 정상 Tick의 같은 selector 소비와 source9136E1C8/workwear5BB2B38B를 대조해 WIM001 구현 연결을 종료한다. kg/WU/가격·추가 환경 보호·자연 오염/마모 수치 변경0이며 WIM002/003/004 및 현재 공유 Play의 최종 종료 보호 검증 완료는 별도다.
+
+## WIM028·036·054 기존 기록 검증 증거 추가 (2026-09-07)
+
+아래는 기존 17필드 기준 배정의 후속 실행 증거다. 원래의 구현 전 기록과 수치·BOM·대안·위험 계약은 보존하며, 그 기록의 당시 상태와 현재 기능 완료 상태를 구분한다. 기존 보고서의 현재 SHA-256을 대조했으며 이번 문서 갱신을 위해 검사를 재실행하지 않았다.
+
+| 기존 기록 ID | 실제 확인된 실행 범위 | 보고서·SHA-256 |
+|---|---|---|
+| `balance:wim:028:toxicity-antidote` | 과다복용 +30/100 상한·하루30 회복·작업/전투0.8, 실제 Treat 물리 소비1/취소0, pending 복원·ACK 재시도 중복0, 독성 UI | [보고서](../../Artifacts/QA/wim-implementation/wim-028-toxicity-antidote.txt), `767B510902DDF11953696FDE50EC6719AC4B0AC55EB222616D57D848F0621D09` |
+| `balance:wim:036:substance-specific-effects` | 실제 약물3종 소비, 피로 누적0.88/연구1.18/일반 작업1, 일반·비전 전투의 공통1.08 단일 적용, 통증 특성 억제/기한 종료, active v9 JSON·ACK·재시도 | [보고서](../../Artifacts/QA/wim-implementation/wim-036-substance-effects.txt), `4125406E2169353975DCE5204A9F5E3F6688C3AA1057AD627605EDCF26D53589` |
+| `balance:wim:054:captive-body-damage-risk` | 비치명 피해100→94 유지·저장 복원, 실제 EventSystem 사망 경고/실행10→0, 혈액 산출1회, 재시도/복원 중복0, whole-registry 원상 복원·필스 작업 대상 중복0 | [보고서](../../Artifacts/QA/wim-implementation/wim-054-captivity-body-damage.txt), `1E899DA5D7B9D72510D571081E1D330D4B50C71BE8CF4459E7BA96A7E32EBBBA` |
+
+세 보고서 모두 해당 집중 검사 실패0이며 WIM 기능 체크포인트는 완료다. 밸런스 상태는 **기준 배정 + 해당 집중 실행 검증**으로 한정한다. 5일 다중 seed 실전 보정·전수 경제 인증을 대신하지 않는다. 약물 보고서는 질병을 주입하지 않았고, 포로 보고서의 일반 치유94→98은 신체 명령 확인이지 별도의 의료 전체 흐름 검증이 아니다. 이 증거의 범위 밖 항목을 통과로 간주하지 않는다.
+
+## WIM030 수정딱정벌레 갑각 산출 (2026-09-07, 구현 전 기준 배정)
+
+### 후속 실제 출판 증거 (2026-09-07)
+
+- 후속 집중 실행 완료: caller-owned stream leaveOpen 교정 후 주 Unity `RunFromMenu` report-only PASS. 보고서 `Artifacts/QA/wim-implementation/wim-030-crystal-carapace.txt` SHA256 `E0DAC6385786BE7E619A734E2712AB05CA55D55458B8EFFE904F033ADABF7FD6`. 현재 메인 runtime DLL `19A4871EEAEFC940DCAD82332FB10C8BA4E9352FAF3A88ED5751474E047DC173`, Editor DLL `FF1459DB8E8CAA78709DA724C06F345104E729E002FDF5B7BCE2DD41BCEAD24B`를 root가 실제 hash로 확인했다. 재출판 없음, 기존 출판 asset/meta hash 유지. 사체 보존/출력1회/중복 소비 차단/현재 물리 저장 왕복과 기존 authoring 일치 검증을 닫는다. 이전 보고서 실패는 이 실행으로 해소됐으며 원래 기록은 이력으로 보존한다. WIM030 기능 완료, 밸런스 상태는 기준 배정+집중 실행 검증이며 자연 도축 AI·전체 저장·5일 경제 보정 또는 배치 전체 Console0/0을 주장하지 않는다.
+
+- 해당 검증 배치의 주 Unity DLL을 root가 대조했다: `Assembly-CSharp.dll` SHA256 `F5C1988ED65B37A32BDCA58E7958591E4257005A061B33323B7728BE478F8ABF`, Editor DLL `922191FA827E0F9E9BA5251A32102D81E717334C0C916DE3A8C5BDA0B66EE3FB`. Operator는 최신 source11:04:46Z 이후 DLL11:10:49Z/11:10:51Z와 성공 compile→reload→idle 로그를 확인했다. 이후 새 편집 배치의 컴파일 성공을 뜻하지 않는다.
+- 실제 첫 출판 및 세 타깃 `SaveAssetIfDirty`, 전용 두 번째 출판/no-op byte identity 확인. Root의 disk/YAML 대조: item `3AF6A9A3361D721DB7708321AF86D9B6432D63563F4F5A779E6CBE30A5EFBDBA`, item meta `FBEAD8D60A234DDC0A7023C392DA21E3C663CB7FE611AFC7428CCDFA7D1B1F19`, species `F4A09D90BB2B58472013D961087AEEBB1F83D81F2362829C8038FA5BB500C007`, catalog `B63588F3A2DC6FAE7B589622B3613A6B3D0A45BCD5F1B1133D37B881213B42B8`. 새 GUID `a75ce2b843671cd4490bbbcaeba4b4e8`, 기존 두 meta Git 변경0. 기존 species는 산출1개 추가뿐, catalog는 해당 GUID 추가뿐이다.
+- 실제 item은1,000g/표시가격5/maxStack40, 사체 유래 장식성 출력/제작 소비처 없음 설명과 기존 생산 feature를 갖는다. 공유 runtime 종-ID 분기나 새 획득 규칙을 추가하지 않았다.
+- 도축 focused `Verify()` 이후 보고서 쓰기에서 StreamWriter가 호출자 stream을 먼저 닫아 `ObjectDisposedException` 발생. 보고서 파일은 없으며 WIM030 전체 완료/실전 밸런스 완료는 주장하지 않는다. 다음 편집은 해당 verifier callback의 leave-open만 교정하고 기존 에셋을 다시 출판하지 않는다.
+
+1. 기록 ID: `balance:wim:030:crystal-beetle-carapace`.
+2. 시대·역할: 기존 수정딱정벌레 사체 처리의 설명/물리 산출 연결. 새로운 연구·장비·희귀 가공 용도는 추가하지 않는다.
+3. Before: `wild:carcass:crystal_beetle` 1개=4,000g, 표시 가격4; 해당 종 `butcherYields`가 비어 도축 불가. 갑각 아이템 없음.
+4. After 초기 작성 후보: `resource:crystal-beetle-carapace` 1개=벗겨낸 갑각 한 벌, 1,000g, 표시 가격5; 사체1개당 갑각1개. 수치 적용은 아래 기존 authoring/감사 경로 확인 뒤 수행한다.
+5. 물리 BOM·입출력: 사체4,000g→갑각1,000g. 잔여3,000g은 기존 `wildlife-carcass-butcher-loss`의 비회수 사체 처리 손실로 명시한다. 별도 식품·액체·폐기물 아이템을 임의 생성하지 않는다. 해당 손실 계약이 이 산출을 허용하지 않으면 우회하지 않고 적용 보류한다.
+6. Direct WU: 실제 D03 `BuildingButcherAbility.workSeconds=1`과 기존 작업 실행기를 유지한다. 새 레시피/작업 시간 권위를 만들지 않는다.
+7. EWU·가격: 신규 표시 가격5는 사체4와 기존 가죽0.9kg/가격2·송곳니0.15kg/가격3을 비교한 초기값이다. 현재 구매·판매 스프레드 적용 후 가격은 기존 감사로 산출하며 표시 가격을 실현 이익으로 간주하지 않는다. 임베디드 비용은 실제 사체 획득+도축+운반 경로에서 산출한다. 실전 수익성은 아직 미검증이다.
+8. 시간: 기존 사냥·사체 획득·신선도/도축 일정 유지. 생존 개체에서 주기적으로 갑각을 생산하는 축산 경로는 추가하지 않는다.
+9. 공간: 기존 D03 본체·접근칸과 물리 출력/보관 공간만 사용. 갑각1개는 현재 gram 용량에 1,000g을 차지한다.
+10. 전력·물·연료·정비: 기존 도축 능력의 작성값을 유지하며 신규 설비·소모품 없음.
+11. 위험·회복: 사체 소비와 갑각 생성은 기존 whole-stack transform의 원자적 receipt를 따른다. 출력 거절·재시도·저장 복원으로 사체/갑각 복제나 부분 삭제가 없어야 한다.
+12. 대안: 기존 사체 보관/식품 사용 및 다른 동물의 고기·가죽 산출을 보존한다. 갑각은 현 시점 별도 제작 소비처 없는 장식성 부산물임을 UI/원장에 명시하고 가치 없는 소비처를 만들지 않는다.
+13. 지배 전략 방지: 기존 사체를 실제 소비하며 생물 상태에서 무상 채취하지 않는다. 종 ID별 runtime 분기나 갑각 전용 보너스 없음. 신규 개체 생성·번식 수치 변경 없음.
+14. 순환 방지: 갑각→사체 역변환 없음. 기존 변환 손실과 구매/판매 감사 사용; 신규 의미 없는 SCC 예외나 하드코딩된 가격 우회 금지.
+15. 실행·저장 권위: WildlifeSpeciesSO/아이템 카탈로그 작성 데이터→기존 `WildlifeCarcassService.TryButcherNextCarcass`→물리 transform/receipt→기존 아이템/신선도 저장. 새 Aggregate/DTO/코어 capability는 만들지 않는다.
+16. 자동 감사·집중 증거: 신규 정의가 카탈로그·중량·가격/가치·출력 소비자 목록에 포함되는지 확인한다. 실제 도축 명령의 사체1→갑각1, 질량/명시 손실, 거절 보존, 반복 소비 불가, 현재 저장 왕복 및 두 번째 작성 diff0을 기존 검사에 연결한다. 예정 증거: `Artifacts/QA/wim-implementation/wim-030-crystal-carapace.txt`.
+17. 현재 상태: 밸런스 기준 배정/구현 전. 에셋 적용·컴파일·실행 검증 전이며 WIM030은 열어 둔다. 기존 authored 경로로 표현되지 않는 경우 새 코어/저장 설계를 자동 추가하지 않고 최소 누락을 보고한다.
+
+## WIM032/033 세력 계약 물리 납품 연결 (2026-09-07, 구현 전)
+
+1. 기록 ID: `balance:wim:032-033:physical-faction-delivery`.
+2. 시대·역할: 기존18개 authored 세력 계약과 기존 수락 자격/관리 인장. 지역 상점 supply 제안과 별도다.
+3. Before: 작성 계약 UI 진입이 없고 물자 완료가 전역 재고 직접 소비에 의존한다.
+4. After: 기존 세력 화면 수락→계약 소유 목적지 실제 배송→인도 receipt→기존 성공 효과. 거절은 사용자 승인한 무불이익 화면 닫기, 재수락 가능.
+5. 물리 BOM: 현 consume=true item 요구량 그대로. consume=false/연구/시설/관계 조건에 새 배송·소비를 만들지 않는다.
+6. Direct WU: 계약 작성값 유지. 기존 실제 운반 AI의 작업·이동 비용만 발생하고 가짜 배송 시간을 추가하지 않는다.
+7. EWU·가격: 기존 요구·성공/실패 효과 유지. 현재 campaign 관계/의무 계정에 regional gold 보상이나 신규 가격을 추가하지 않는다.
+8. 시간: 기존 deadlineDays 유지. 기한 전에 인도 commit된 receipt는 이후 보상/ack 재시도 대상이며 만료 벌점과 중복 처리하지 않는다.
+9. 공간: 기존 dungeon delivery dropoff의 exact FacilityBuffer/input-owner claim 사용. world-map 세력 좌표를 던전 좌표로 오인하지 않는다.
+10. 전력·용수·폐기물: 신규 공정 없음. 물량은 기존 gram admission·물리 소비/이전 규칙을 따른다.
+11. 위험: 도착 전에는 납품이 아니다. 경로 단절·부분 납품·운반 중단 시 물량/소유권 보존, 기한 만료는 현 실패 효과를 한 번 적용한다.
+12. 대안: 기존 일반 거래·지역 공급·동맹 명령 유지. 계약 자체 포기라는 신규 기능은 만들지 않는다.
+13. 지배 전략 방지: 재고 존재만으로 완료하거나 남의 목적지 물량을 세지 않는다. UI 수락/거절/재열기와 명령 재시도로 보상·인장이 중복되지 않는다.
+14. 순환/손실 방지: exact pending Transfer receipt 및 단계 재시도로 복제/이중 소비0. 부분 물량 회수는 기존 owner 위치 방출과 carried recovery, 몰수/원창고 순간이동 없음.
+15. 실행 경로: 기존 world-map 세력 UI→수락 dispatcher/resolution candidate→input-owner ensure→campaign publish→기존 delivery pump/physical transfer→receipt-gated campaign outcome→ack.
+16. 저장 권위: campaign aggregate가 descriptor/outbox 단계, physical item이 실제 lot/예약/화물을 소유한다. 파생 진행 수량은 저장하지 않는다. current-format faction payload와 physical candidate 양방향 join, 과거 migration 없음. owner ensure 후 수락 실패는 기존 retire로 보상하고 그 실패도 명시한다.
+17. 검증·상태: UI 수락/거절·실제 운반/인도·부족/단절·부분 만료·중단·pending/reward/ack 저장 및 재시도 집중 검증 전. **밸런스 기준 배정**이며 물류 연결 후 기존 기한의 실효 부담을 확인한다. 원본 패킷 `Artifacts/QA/wim-implementation/wim-032-033-source-packet.md`.
+
+WIM032/033 후속 기능 증거(2026-09-08): 기존18개 계약의 소스·수락/배송 권위 리뷰와 실제 계약 대표 실행을 완료했다. `wim-032-033-faction-contracts.txt` SHA256 `D0761939E5E54035C4569E6C1C4FE7015D5A1614A63A68CBFAE040563949E261`, failures=0. 실제 UI·관리 인장·물리 운반·부족/단절·부분 만료 회수·pending/reward/ACK 저장 및 중복0 PASS, root 원문/hash 대조 완료. 런타임 보상·기한·요구량은 그대로이며, 실패했던 테스트의 오래된 보상 기준값과 clamp 기대만 교정했다. 기능 연결 완료를 전체 계약의 장기 밸런스 실전 보정으로 확대 해석하지 않는다.
+
+## WIM036 약물 고유 효과 확정 기록 (2026-09-06, 구현 전)
+
+1. 기록 ID: `balance:wim:036:substance-specific-effects`.
+2. 시대·역할: 기존 활력 강장제·마나 각성제·몽엽 진통제와 약리학 연구 해금 유지. 이름에 해당하는 실제 효과를 연결한다.
+3. Before: 강장제는 모든 작업+12%, 각성제는 모든 작업+18%/전투+8%, 진통제는 모든 작업+5%/전투-3%만 있고 전용 피로·연구/비전·통증 연결이 없다.
+4. After—강장제: 사용자 승인150초 동안 피로 누적12% 감소. 기존 피로율 소비자에서 한 번 적용하고 broad 작업+12%는 제거한다. 즉시 수면 회복 없음.
+5. After—각성제: 사용자 승인180초 동안 연구+18%, 일반 전투+8%, 비전+8%. 일반 전투 강화도 유지하되 비전에서 동일 강화가 두 번 적용되지 않는다. broad 작업+18%는 연구 전용으로 전환한다.
+6. After—진통제: 사용자 승인240초 동안 지각 통증 조건을 억제한다. 통증 반응 특성도 억제 중에는 비활성이다. 기분+4/전투-3% 유지, broad 작업+5% 제거. HP·부위·부상·질병은 불변이다.
+7. 물리 BOM·소비: 기존 약물1개와 작성 레시피/BOM/포장재/질량을 유지한다. 소비 receipt가 확정되기 전에 효과를 주지 않는다.
+8. Direct WU: 기존 생산·복용·운반 작업량 유지. 효과 변경을 이유로 생산 WU를 임의 조정하지 않는다.
+9. EWU·가격: 현재 원가·가격 권위 유지. 효용이 달라지므로 이번 승인만으로 경제·실전 밸런스 완료를 선언하지 않는다.
+10. 시간: 기존150/180/240초 activeSeconds를 재사용한다. 별도 약효 타이머·중복 저장 상태를 추가하지 않고 종료 시 파생 효과가 사라진다.
+11. 공간·전력·용수·폐기물: 기존 생산/복용 시설과 물리 소비 계약 유지. 신규 시설·가상 자원 없음.
+12. 위험: 기존 기분·내성·중독·금단·과다복용 규칙 유지. 각성제의 위험이나 진통제의 전투 페널티를 묵시적으로 없애지 않는다.
+13. 대안: 강장제는 수면 대체나 즉시 회복이 아니며, 진통제는 실제 치료가 아니다. 통증 억제 종료 시 남아 있는 부상에 따른 통증 조건이 다시 나타난다.
+14. 지배 전략·차익 방지: 전용 효과와 구형 generic 효과의 중복 금지. 취소·재시도·저장 복원·UI 열기로 새 약효나 지속시간을 재발급하지 않는다. 별도 질병 대응은 유지한다.
+15. 실행 경로: authored feature→기존 물리 복용 완료→기존 active substance 상태→피로율/연구/전투·비전/통증 조건 소비자→현재 상태 표시. 콘텐츠 ID 분기로 효과를 하드코딩하지 않는다.
+16. 저장 권위: 기존 consumables 캐릭터·품목별 activeSeconds와 pending/completed operation. 표시·효과 projection은 재계산하며 현재 형식 검증을 보존한다. 과거 migration 없음.
+17. 검증·상태: 실제 소비자별 단일 적용, 일반 작업과 물리/비전 차이, 통증 억제와 부상 불변, 효과 종료/active 복원/receipt 재시도를 집중 검증한다. 현재 **밸런스 기준 배정**, 구현·컴파일·실전 보정 전이다.
+
+2026-09-07 WIM036 검증 추가: 앞의 구현 전 기록은 승인 효과 구현·메인 Unity 집중 검증 완료로 진행됐다. 실제3약물 소비, v9 JSON active 복원/ack 재시도/완료 재실행 불변, 피로0.88·연구1.18·일반작업1·일반/비전 전투1.08 단일 기여·추가 ArcanePower1, 통증 특성 억제·HP/부상 불변·기존 기간 만료 PASS. 승인된3개 SO 효과 필드만 적용하고 두 번째 publisher 변경0. 보고서 `Artifacts/QA/wim-implementation/wim-036-substance-effects.txt`, SHA256 `4125406E2169353975DCE5204A9F5E3F6688C3AA1057AD627605EDCF26D53589`. 질병 상태를 주입한 회귀·자연 복용 AI 전수·실전 경제 보정은 이 증거 범위가 아니다. 기존 BOM/kg/WU/가격 유지.
+
+## WIM042 시작 후보 생활·환경 정보 연결 (2026-09-06, 구현 전)
+
+1. 기록 ID: `balance:wim:042:prepared-candidate-living-information`.
+2. 시대·역할: 런 시작 전 기존 사장/직원/예비 후보 준비 화면의 정보 제공.
+3. Before: 실제 OwnerSelectionPanel에 초기 건강·식단·수면·기후 범위가 표시되지 않는다.
+4. After: 이미 준비된 후보의 초기 질환 이름/경도 단계, 식단, 작성된 초기 수면값, 종족 온도 범위를 표시한다. 선택 후보·특성 수는 바꾸지 않는다.
+5. 수치 원본: growth.startingProfile.initialAgeConditionIds, 기존 consumables의 초기 식단 정책(현재 Free), CharacterNeedDefinition.DefaultValue, 같은 후보 profile의 SpeciesThermalProfile. species diet 필드는 실제 식사 제한 소비처가 없으므로 제한으로 표시하지 않는다. 식단 정책의 자유는 문화 금기까지 없다는 뜻이 아니다. 수면의 현재 작성값100과 경도 질환의 부위별5% 손상은 표시 근거일 뿐 새 상수로 복제하거나 적용하지 않는다.
+6. 물리 BOM: 변경 없음. 준비 화면 조회는 아이템 소비/생성을 하지 않는다.
+7. Direct WU: 변경 없음. 준비 UI에 작업이나 가상 비용을 추가하지 않는다.
+8. EWU·가격: 변경 없음. 기존 후보/메타 구매 원가를 유지한다.
+9. 시간: 게임 시계·성장·수면 소모에 영향 없음. 화면 열기/탭 변경은 RNG를 진행시키지 않는다.
+10. 공간·전력·용수·폐기물: 변경 없음. UI 본문은 잘리지 않도록 기존 카드 안의 스크롤/표시 영역을 조정한다.
+11. 위험: 현재 환경·장비를 반영하지 않은 종족 범위를 실제 생존 안전도라고 표시하지 않는다. 임의 HP 합산·적합 점수·확정 안전 판정 없음.
+12. 대안: 기존 출신·특성·숙련·기술 설명을 보존한다. 자동 추첨 대신 수동 특성 선택을 추가하지 않는다.
+13. 지배 전략·악용 방지: 조회로 후보 재추첨, 초기 질환 제거, 잠근 후보 교체, 무료 회복, 보너스 누적이 발생하지 않는다.
+14. 실행 경로: 기존 준비 서비스의 읽기 전용 summary → 실제 OwnerSelectionPanel 정체성 화면. 필요 시 기존 대체 renderer도 같은 summary를 읽는다.
+15. 저장 권위: 기존 prepared growth/profile snapshot이 원본이다. 표시 전용 DTO를 저장하지 않으며 살아 있는 신체/욕구 aggregate를 UI 조회로 생성하지 않는다.
+16. 검증: 현재 후보/리롤 후 후보/예비 교체 표시, UI 반복 열기 RNG·identity 불변, 시작 적용 후 같은 질환·식단·초기 수면·종족 범위, 긴 설명 가독성, 메인 compile/focused UI 확인.
+17. 상태: 밸런스 영향 없음—기존 작성 수치와 생성 결과의 읽기 전용 표시 변경. 구현·집중 검증은 아직 미완료다.
+
+2026-09-07 검증 추가: 위 구현 전 기록의 WIM042 표시/조회 연결은 메인 Unity에서 완료했다. 준비 후보7개, 실제 EventSystem 카드 스크롤 끝 도달, RNG state/draw 불변, 리롤/예비 교체, production 시작 commit 후3명의 표시 원본 일치와 임시 시작 정리 PASS. 보고서 `Artifacts/QA/wim-042-prepared-candidate-living-information-playmode-report.txt`, SHA256 `DEFE98357906A578CFDE97AA259D04F7B4A692F824B4B570C0474D78D757749F`, failures0; 공유 컴파일 통과. 밸런스 수치는 변경하지 않았으며 자연 플레이 밸런스 인증이나 다른 WIM의 실패 해소 증거는 아니다.
+
+## WIM054 포로 신체 피해·사망 경고 확정 기록 (2026-09-06, 구현 전)
+
+1. 기록 ID: `balance:wim:054:captive-body-damage-risk`.
+2. 시대·역할: 기존 포로 상호작용의 실효 신체 비용 연결. 등장 시점·해금·대상 역할은 유지한다.
+3. Before: 별도 포로 건강0~100만 감소하고 다음 Tick에 실제 HP 비율로 덮어써져 피해가 소실된다.
+4. After: 사용자 승인 최대 HP 비율 피해, 사망 허용. 강압6%, 각인8%, 혈액 추출18%, 기억 추출10%, 강제 개조16%, 타락 의식10%. 기존0 delta에는 새 피해를 만들지 않는다.
+5. 신체 공식: `actualDamageHP = actualMaxHP × authoredDamagePercent / 100`. 공통 신체 명령을 사용하며 최소1 HP 생존 보정을 하지 않는다. 다른 부위/혈액손실 단위를 이 숫자로 임의 환산하지 않는다.
+6. 물리 BOM: 기존 상호작용의 재료·출력 수량·물리 처리 계약 유지. 사망/실패 이후 예약·결과·출력 중복을 허용하지 않는다.
+7. 직접 WU: 기존 상호작용 작업량/시간 유지. 피해를 없애기 위해 작업량·가격을 임의 보정하지 않는다.
+8. EWU·기회비용: 기존 원가 권위 유지. 이전에 사라지던 피해가 실제 치료/회복 비용과 사망 위험이 되므로 전체 포로 경제 실전 보정 완료는 별도다.
+9. 공간: 기존 포로 주거·노역·의료 시설과 접근 경로 유지.
+10. 전력·용수·폐기물: 기존 시설·수술·회복 계약 유지, 신규 가상 소비나 무료 회복 없음.
+11. 위험·비가역 비용: 피해 상호작용으로 포로가 죽을 수 있다. 기존 사망 lifecycle·소유권/예약 정리를 사용하고 다음 Tick/복원에서 되살리지 않는다.
+12. 대안: 피해0인 회유·격리·심문·교화 등 기존 대안은 그 비용/효과를 유지한다. 위험 경고가 동의 없는 자동 비치명 처리로 대체되면 안 된다.
+13. 지배 전략 방지: 혈액/기억 추출 등의 신체 비용이 실제 남으며, 재시도·저장 복원으로 피해를 취소하거나 출력을 복제하지 않는다. 명성/급식의 별도 건강+5를 무료 HP 회복으로 치환하지 않는다.
+14. 플레이어 관찰: 실행 전 피해율·현재 HP 기준 예상 피해·사망 위험, 치명적 상태의 명확한 경고를 기존 UI에 제공한다. 미리보기는 같은 정책의 읽기 전용 projection이며 RNG/명령 실행을 하지 않는다.
+15. 실행 경로: 기존 상호작용 완료→typed 피해 결과→공통 신체 명령. 건강 표시/노역40 문턱은 같은 실제 신체 비율과 Downed/Dead 자격을 읽는다.
+16. 저장 권위: 공통 신체/캐릭터 저장이 원본이다. 포로 건강 복제 쓰기/저장 권위를 제거하고 파생 표시를 재계산한다. 현재 포맷 변경만 지원하며 과거 migration은 제외한다.
+17. 검증·상태: 실제 명령·다음 Tick 유지·일반 의료 회복·사망/비사망·완료 재시도·저장 복원·UI 경고/무재실행을 집중 검증한다. 현재는 **밸런스 기준 배정**, 구현/실전 검증 전이다.
+
+2026-09-07 WIM054 검증 추가: 앞의 포로 피해 구현과 메인 Unity 집중 검증 완료. 실제 강압100→94와 다음 Tick/복원 유지, 공통 신체 회복94→98, EventSystem 치명 경고 및 혈액 추출 실행, 실제 사망·혈액1회·소유권 종료·terminal 재시도/복원 무복제 PASS. 복원 중 파생 청소 대상의 deferred Destroy 중복 등록 P0를 기존 동기 retirement로 수정했으며 실제 filth7→7/필수·활성 target1:1/registry ID 유일성/최종 baseline sections·filth 원복도 PASS. 보고서 `Artifacts/QA/wim-implementation/wim-054-captivity-body-damage.txt`, SHA256 `1E899DA5D7B9D72510D571081E1D330D4B50C71BE8CF4459E7BA96A7E32EBBBA`, failures0/capturedErrors0. 일반 회복은 신체 명령 증거이고 약품 workflow 전체 인증이나 포로 경제 실전 보정은 아니다. 사용자 기존 dirty scene/recovery는 보존했다.
+
+## WIM028 독성·해독 초기값 확정 기록 (2026-09-06, 구현 전)
+
+1. 기록 ID: `balance:wim:028:toxicity-antidote`.
+2. 시대·역할: 기존 물질 과다복용과 해독제 사용 시점 유지. 기존 해독30에 실제 지속 대상 상태를 연결한다.
+3. Before: 과다복용 여부/즉시 피해/기분 손실은 존재하지만 독성 부담은 없고, 해독30은 이 부담에 적용되지 않는다.
+4. After: 캐릭터당 독성0~100. 사용자 승인 초기값은 과다복용 확정1회+30, 자연 회복30/게임일, 해독제1회 현재 부담 이하 최대30 감소다.
+5. 증상 공식: 기존 물질 작업/전투 합성에서 각각 `0.20 × 독성/100`을 한 번 차감한다. 독성30의 추가 감소는6%,100에서는20%. 기존 합성 하한·상한과 다른 상태 효과는 보존한다.
+6. 물리 BOM: 기존 실제 해독제1개. 약품 정의의 `DetoxReduction`이 감소량의 작성 권위다. 약품 생산 BOM·포장재·질량·가격은 이 연결 변경으로 임의 변경하지 않는다.
+7. 직접 WU·시간: 기존 생활시설 Treat 작업량과 시설 서비스 시간을 사용한다. 무료 즉시 UI 회복이나 새 구조/운반 작업을 발명하지 않는다. 시간 회복은 실제 게임 하루 권위를 사용한다.
+8. Embedded EWU·투자 회수: 기존 약품 원가를 유지한다.1개는 과다복용1회의 잔여 부담 또는 최대1일 자연 회복 대기를 줄이며 새 회수 산출물은 없다. 경제·실전 보정 완료 주장은 하지 않는다.
+9. 공간: 기존 의료 생활시설과 실제 서비스 자격/점유를 사용하며 신규 필수 시설을 추가하지 않는다.
+10. 전력·용수·폐기물: 기존 시설·약품 소비 및 포장재 처리 계약을 유지한다. 독성 전용 경로는 임의의 생물 재료로 약품을 대체하지 않는다.
+11. 위험: 기존 과다복용 확률·즉시 피해·기분 손실을 유지한다. 추가 지속 피해·새 즉사 문턱·독성 전투 기능은 추가하지 않는다.
+12. 대안: 자연 회복을 기다리면 약품은 절약하지만 생산/전투 효율 저하가 지속된다. 기존 기생충 질병 치료는 별도 경로와 효과를 유지한다.
+13. 지배 전략 방지: 독성0에는 치료 후보를 만들지 않고 독성 치료로 무료 HP·질병 회복을 함께 주지 않는다. 기존 부상/질병 치료의 대가와 효과는 변경하지 않는다.
+14. 차익·재시도 방지: 실제 약품 receipt 후 효과를 exact-once로 적용한다. 작업 취소의 소비/효과0, commit 이후 복원/재시도의 중복 감소0. 과다복용 발생원도 기존 완료 operation fence 안에서 한 번 누적한다.
+15. 실행 경로: 기존 consumables 과다복용 완료→캐릭터당 부담→기존 최종 작업/전투 소비자 및 건강 화면. 해독은 기존 생활시설 Treat의 독성 후보→정확한 약품 선택/물리 소비→같은 부담 감소 경로로 연결한다.
+16. 저장 권위: 기존 consumables aggregate/저장 섹션에 캐릭터당 원본 부담과 필요한 pending operation을 보존한다. 품목별 `CharacterSubstanceState`에 부담을 복제하지 않고 UI/배율은 파생한다. 필요한 현재 포맷 개정만 하며 과거 세이브 migration은 제외한다.
+17. 검증·상태: 정상/중복 과다복용,100/0 경계, 실제 하루 회복, 독성만 있는 환자의 실제 Treat·약품 선택, 기존 질병/부상 경로 보존, 취소/receipt 재시도/저장, 최종 작업·전투·UI 단일 적용을 집중 검증한다. 현재는 **밸런스 기준 배정**이며 구현·컴파일·실전 검증 전이다.
+
+## WIM021/022 의료 효과 확정 기록 (2026-09-06, 구현 전)
+
+- 기록 ID: `balance:wim:021-022:transfusion-targeted-hemostasis`. 기존 응급 수혈·봉합, 기존 연구/시대/시설을 대상으로 한다.
+- Before→After: 수혈은 기존 체력14/감염2 회복에 사용자 승인 혈액손실25(0~100 지표)를 실제 현재 손실 이하로 추가 회복한다. 봉합은 기존 체력8/감염8 회복을 유지하고 선택한 부위 출혈률만0으로 만든다. 체력과 혈액손실의 단위를 섞지 않는다.
+- 물리 BOM: 수혈 기존 혈액팩1개, 봉합 기존 표준 약품1개 유지. 직접 WU: 수혈10, 봉합12 유지. 기존 내재 EWU·가격 산정 원본 및 수술 시간 계산 유지; 실효 치료 가치가 늘어 전체 의료 밸런스 검증 완료는 주장하지 않는다.
+- 공간/전력/용수/폐기물: 기존 수술 시설·병상·물류·포장재 처리 계약 유지, 추가 시설이나 가상 자원 없음.
+- 위험: 기존 성공/합병증/마취/감염 판정 유지. 수혈은 출혈 상처를 닫지 않고 봉합은 잃은 혈액을 회복하지 않는다. 상호 대체가 아닌 서로 다른 치료 역할이다.
+- 대안/지배 전략 방지: 기존 안정화·일반 치료를 보존하고 부위 지혈은 선택 부위만 적용한다. 이미 치료된 상태에서 추가 효과/혈액손실 음수/재시도 중복 효과를 만들지 않는다.
+- 종족/대상: 수혈은 현재 혈액손실 권위가 있는 캐릭터 중 호환 가능한 종족만 지원한다. 야생동물 수혈은 이번 범위에서 제외하도록 사용자가 확정했다. 봉합은 기존 캐릭터/야생동물의 실제 선택 부위 권위를 사용한다.
+- 실행: 기존 수술 주문→위험/완료 판정→typed effect handler→기존 body/anatomy command. 식별자별 코어 분기로 효과를 흉내 내지 않는다. 정확한 부위 지혈 명령만 기존 anatomy 경계에 추가한다.
+- 저장 권위: 기존 신체/해부 상태와 수술 주문의 resultRolled/완료 단계. 새 중복 신체·혈액 저장 authority 없음. 파생 UI는 같은 상태를 읽는다.
+- 검증: 실제 완료 효과, 무손실/비호환/없는 부위, 선택 외 부위와 기존 혈액손실 보존, 미완료 취소 무효과, 완료 후 저장 복원 무중복을 한 의료 배치로 확인한다. 수혈·봉합 작성 원본과 SO 동기화 및 주 Unity 컴파일을 통과하기 전 체크리스트는 열린 상태다.
+- 분류: 밸런스 기준 배정. 실전 보정·모든 수술 인증은 아직 아님.
+- WIM028 방향 승인: 사용자는 해독30의 적용 대상인0~100 독성 부담 및 누적·증상 규칙 설계를 승인했다. 구체적 누적/증상 수치는 별도 설계하며 기존 기생충 질병 대응을 대체하지 않는다.
+
 ## 신선 개밥 결과물 분리 기록 (2026-09-04)
 
 ```text
@@ -1271,6 +2167,219 @@ EWU와 목표 회수 기간: 숙련 15~20일, 기술자 60~80일, 전문가 180~
 결정론적 규칙과 저장 복원은 동일 시드·동일 입력에서 같은 결과를 내야 한다. 성능 프레임률이 밸런스 결과를 바꾸면 실패다.
 
 ## 8. 콘텐츠 추가·수정 필수 기록
+
+### WIM-051/052 엔드리스 실제 압력·수복 창 (2026-09-13, 구현 전 기준 배정)
+
+1. 기록 ID: `balance:wim:051-052:owned-pressure-recovery`.
+2. 시대·역할: 기존 엔드리스 해금 이후; 기후·세력·질병·물류·전투 중 1~2축을 강화하고 수복 시간을 보장한다. 해금/일반 이정표 목표 날짜는 변경하지 않는다.
+3. Before: 10일 평가마다 서로 다른 콘텐츠 ID 5개만 덮어쓰며 실제 modifier·종료·직접 대응·회복 저장/표시가 없다.
+4. After: authored 정책 하나에서 단일1축70%/서로 다른2축30%; 압력3일, 마지막 직접 대응 종료 후 회복 단일7일/복합8일. 기후 공급·물류 작업 효율·양의 세력 rapport는 단일0.90/복합0.94, 질병 exposure·전투 위협 상승은1.10/1.06으로 시작한다. 정의/실제 소비 연결이 없는 축은 성공한 위기로 게시하지 않는다.
+5. 물리 BOM: 추가 설치/연구/참가 BOM 없음. 이미 발생한 피해의 치료·수리·재비축은 기존 물리 입력을 소비하고 종료 때 반환하지 않는다.
+6. Direct WU: 기본 작업 WU·45 WU/성인·일을 변경하지 않는다. 물류 축은 해당 haul 소비 경계의 처리 효율에만 적용하고 모든 작업에 확대하지 않는다.
+7. EWU·kg·가격: 아이템 질량/가격 변경0. 12명×45×0.425×3일의 해당 노동이 전부 노출된 상한 비교는 단일68.85 EWU, 복합41.31 EWU/축이며 실제 물류 비중·감염/전투 비용을 대신하는 완료 증거가 아니다.
+8. 시간: 평가10일 유지. 압력3일 뒤 modifier 종료, 해당 위기의 진행 중 직접 대응은 AwaitingDirectResponse로 보존한다. 실제 종료일 이후7/8일 수복; 최소5일. 밀린 평가 몰아 실행/고의 미수복에 의한 무기한 연장 없음.
+9. 공간: 추가 시설 footprint0; 기존 병상·수리·저장·물류 여유를 사용한다. 실제 수복 가능량은 대표 회귀에서 확인한다.
+10. 전력·용수·폐기물: 기본 시설 수치 변경0. 기후 축의 실제 기존 공급 소비자 및 P06 출처 분리는 구현자가 연결한다. 전역 유지비를 재도입하지 않는다.
+11. 위험: 질병/전투/소모/관계 결과는 남긴다. 현재 위기의 임시 압력만 해제하며 다른 출처를 지우거나 HP·자원을 역산 복구하지 않는다. 진행 중 전투를 삭제하거나 싸우는 시간을 수복 기간으로 세지 않는다.
+12. 대안: 기존 계절 공급/작업0.8과 기간1~6일보다 완만한 초기 강도. 같은 강도의2축 또는 고정5일보다 복합 각 축을 약하게 하고 회복을 길게 둔다.
+13. 지배 전략 방지: Active/직접 대응/Recovery 중 추가 위기0, 일반 사건·생존·치료는 계속. 동일 날짜 평가·저장 복원으로 축/기간 재추첨0.
+14. 순환 차익 방지: 효과 source/instance와 결과 소유권 분리; 재호출/복원/알림 재개방으로 중복 적용·보상·피해 자동 복구 없음.
+15. 실행 경로: 기존 V20CampaignRuntime/RunMilestoneAggregateState → authored 축 policy → 기존 공급·물류·세력·질병·침입 소비자; day-start 및 실제 침입 종료 → 수명 전이 → 기존 source-stable EventAlert 표시. 새 범용 위기 관리자/프레임워크 없음.
+16. 저장 권위: 기존 run milestone aggregate/current schema에 instance·축·effectOwner·phase·기한·마지막 평가·직접 대응 owner를 저장한다. DTO는 live query가 아니며 current-format 누락/부정합은 원자 거절. 과거 세이브 마이그레이션 없음.
+17. 증거·상태: Sol의 현행 ComposeNextEndlessCrisis/DTO v6/소비자 조사 packet을 받아 최소 계약을 배정했다. 현재는 밸런스 기준 배정/구현 전이며, 실제 단일·복합 소비/종료/피해 보존/저장/수복 부담과 주 Unity 검증 전051/052 및 밸런스 완료 아님.
+
+### WIM-039 발생 위험 동결·선택 실패·커밋 결과 표시 (2026-09-11, 구현 전)
+
+1. 기록 ID: `balance:wim:039:occurrence-risk-and-committed-result`.
+2. 시대·역할: 전 시대의 기존 손님 요청13·생애 사건32·서비스 사고8, 사건 알림과 결과 확인.
+3. Before: 모든 사회 알림 High, 작성/발생 위험 권위 없음, dispatcher 실패 이유 유실, 종료 시 결과 없이 알림 제거. 기존 배송·대상·기한·물품 표시는 유지한다.
+4. After: 세 사회 정의 전용 riskTier/riskReason을 작성하고 발생 시 기존 society occurrence에 동결한다. 기존 None/Recoverable/Serious/Lethal 단계는 각각 명시된 불이익 없음/회복 가능한 자원·기분·관계·일시 비용/부상·질병·장기 손실/실제 사망 가능 결과로 구분한다. 발생 가능성이나 실제 사고 원인으로 오인하지 않도록 '예상 결과 위험'으로 표시하며 WIM040 원인/적격성은 별도 잔여다.
+5. 물리 BOM: 물품 종류·수량·인도 경로 변경0. 실제 receipt 전 완료 표시는 금지한다.
+6. Direct WU: 변경0. 표시 개선을 새 현장 작업 구현으로 세지 않는다.
+7. Embedded WU/EWU·kg·가격: 변경0. 작성된 효과 amount를 실제 net delta로 표시하지 않는다.
+8. 시간: 기한·발생 주기·작업/효과 수명 변경0. 실패 후 재시도 가능 상태와 pending 진행을 유지한다.
+9. 공간: 직전 장소/공유 접근/수용량 계약 그대로; 시설·배치 변경0.
+10. 전력·용수·폐기물: 변경0.
+11. 위험: enum/빈 근거 검증, 발생 뒤 SO 변경에도 기존 위험 불변, typed 실패 보존, 외부 commit/publish 전 거짓 완료 방지. 작성 결과 위험과 확인된 사고 원인을 혼합하지 않는다.
+12. 대안: 공용 V20 base/모든 선택에 필드를 퍼뜨리거나 범용 결과 영수증 프레임워크를 만들지 않고 사회 SO·기존 society state·알림 기록만 확장한다.
+13. 지배 전략 방지: 선택 조건·효과·대상·보상/실패 수치는 기존 권위 그대로; 알림 확인은 업무 성공이나 피해 복구가 아니다.
+14. 순환 차익 방지: 같은 resolution/source 재게시·복원·재클릭이 효과·보상·물품을 재실행하지 않는다. AcceptedPending은 결과가 아니다.
+15. 실행 경로: 사회 SO→CreateEvent→society state→기존 adapter/배송 coordinator→알림; 선택→기존 dispatcher/content commit/publish→terminal 선택/결과 기록·표시. 실패는 기존 DomainFailureLocalizer로 연결한다. 결과는 실제 완료한 선택·해결 상태·적용 효과 종류와 명시된 서술을 남기며, 실제 증거가 있는 수량만 수치 결과로 표시한다.
+16. 저장 권위: 기존 society current schema/active/recent-resolved와 알림 aggregate/snapshot. 공유 seasonal DTO에 사회 필수 필드를 무조건 강제하지 않는다. 과거 세이브 migration·새 교차 저장 authority 없음.
+17. 증거·상태: 현재 소스의 실패 out _/동일 High/terminal dismiss 및 net-delta receipt 부재를 확인했다. Sol 생산, Terra 작성 매핑·쉬운 검사, main 복잡 상태/실제 UI 검사 담당. 새 소스 컴파일·실행 전 하위 체크 OPEN; 전체039/040 또는 밸런스 완료 아님.
+
+실행 보충(2026-09-11): 주 Unity에서 authored53/5checks 및 두 narrow builder 각각2회 no-op PASS `A645D7AF`; actual CreateEvent→currentJSON frozen risk/invalid atomically rejected/seasonal separate `BC40029E`; 실제 알림 부족 자금/동일 선택 재시도/거래-60 한 번/실제 TMP read-only 결과/알림 save roundtrip/replay0/guest accepted-pending 무완료 PASS `F09074C6`. 정확한 전체 해시는 실행계획039와 QA 보고서에 있다. root가 첫 null-text fixture 실패와 두 번째 보유/필요 값 역전(원래 assertion PASS이나 리뷰 거부)을 보존하고, 두 생산 failure callsite와 표시 검사를 교정한 최종 증거만 승인했다. 현재 Runtime AEE4D268/Editor5F59CF44 compilePASS, 신규 Console0/0, 보호파일5 불변. 이 record의 작성값/연결 및 WIM039는 닫지만 WIM040 원인/현장 실행과 전역 밸런스·6인 검증은 별도 OPEN이다. 물량·WU·가격을 재조정한 배치가 아니다.
+
+### WIM-017/053 현재 연구 권위 참조 교정 (2026-09-09, 구현 전)
+
+1. 기록 ID: `balance:wim:017:current-research-access`.
+2. 시대·역할: 기존 야전 식량학 이후 원정 편성·출정.
+3. Before: OffenseApplication이 초기화 전 연구 상태를 보관해 실제 연구 완료 후에도 원정 잠금을 유지한다.
+4. After: 기존 IBlueprintResearchStateService에서 명령·조회 시점의 현재 상태를 읽는다. 연구 완료 조건 자체는 유지한다.
+5. 물리 BOM: 변경0.
+6. Direct WU: 연구·원정 작업량 변경0.
+7. Embedded WU/EWU·kg·가격: 변경0.
+8. 시간: 연구·여행·사건 시간 변경0; 거짓 진행 차단만 해소한다.
+9. 공간: 시설·던전·운반 capacity 변경0.
+10. 전력·용수·폐기물: 변경0.
+11. 위험: 초기 참조와 현재 aggregate 권위의 불일치. 누락 서비스를 기본 상태로 대체하지 않는다.
+12. 대안: DI 재주입·상태 복사·해금 우회 대신 등록된 현재 상태 서비스 재사용.
+13. 지배 전략 방지: 미완료 연구의 출정 차단 유지, 신규 조건/보너스 없음.
+14. 순환 차익 방지: 읽기만 변경하며 물품·보상·연구 완료를 생성하지 않는다.
+15. 실행 경로: 현재 연구 aggregate→기존 StateService→OffenseApplication Capture/Open/Start→실제 원정 UI/명령.
+16. 저장 권위: 기존 연구 aggregate/save 유지. 서비스 참조는 저장하지 않으며 현재 복원 상태를 재조회한다.
+17. 증거·상태: C9FE134F 보고서의 공개 GetState=true/IOffenseQuery=false와 소스 초기화 경계 확인. Terra 최소 수정 및 주 Unity 컴파일·기존039 실제 경로 검증 대기. 수치 변경 없음, 진행 연결 검증 전; 전체 밸런스 완료 아님.
+
+### WIM-039 기존 source-ID 알림 내용 갱신 (2026-09-09)
+
+1. 기록 ID: `balance:wim:039:source-alert-content-refresh`.
+2. 시대: 전 시대, 기존 사회 사건 알림.
+3. 역할: 같은 source의 최신 본문·선택을 기존 알림/열린 상세창에 전달한다.
+4. Before: merge 시 버튼만 갱신해 최초 본문·선택이 남는다.
+5. After: 동일 source의 Detail/Choices 갱신, 현재 기록 ID로 선택 재결합. 닫힌 상세창은 재개방하지 않는다.
+6. 물리 BOM: 변경0, 물자 배송을 이 패치에서 추가하지 않는다.
+7. Direct WU: 변경0.
+8. Embedded WU/EWU·가격: 변경0.
+9. 시간: 사건 기한·진행·효과 수명 변경0.
+10. 공간·전력·용수·폐기물: 변경0.
+11. 위험: 오래된 선택 실행 방지. Importance·Category와 작성 위험도는 변경하지 않는다.
+12. 대안: 별도 알림/상태를 추가하지 않고 기존 aggregate record와 producer를 유지한다.
+13. 지배 전략 방지: 선택 자격·효과·보상 판정 권위 유지. UI에서 완료 판정을 만들지 않는다.
+14. 순환 차익 방지: source 재게시로 Count·보상·물품·operation을 증가시키지 않는다. 기존 source-less Increment는 보존한다.
+15. 실행 경로: PublishActionableAlerts→EventAlertRequestedEvent→OnTriggerEvent→기존 record/선택/상세 presenter→기존 action dispatcher.
+16. 저장 권위: 기존 EventAlert aggregate/DeepClone/snapshot/save. 새 DTO/schema 없음. 빈/다른 source의 갱신은 변경 전 거부한다.
+17. 증거/상태: 밸런스 영향 없음(위8절 연결·악용 기준 확인; 수치/진행 변화0). 소스 원인·수정 계약 확인, 구현/컴파일/기존 focused 및 실제 UI 검증 대기. pending 배송 성공 시 비닫힘 기능은 아직 별도 P07 미구현이며 이 수정으로 완료 주장하지 않는다.
+
+#### WIM039 기존 사건 사실 표시 보충 (2026-09-09, 구현 전)
+
+위 기록의 정보 연결 범위에 한정한다. 현재 active 사건의 저장된 participantCharacterIds를 기존 실제 이름 조회로 표시하고, 빈 대상은 만들지 않는다. 기존 기한·은퇴 결과 설명·action/source ID·위험 등급은 유지한다. 손님 서비스의 작성 물품은 이행 선택의 요구이며, 일반 선택별 작성 물품은 consume에 따라 소비/보유 필요를 구분한다. 배송 완료·목적지·현장 WU·미작성 위험 수치를 추정하지 않는다. BOM·WU·EWU·가격·조건·소비 시점·저장 형식 변화0이며 기존 adapter→알림 상세 query만 수정한다. 기존 fixture에서0/1/2대상·물품 요구·action/deadline 보존과 실제 상세 표시를 확인한다. 이 표시는 물리 배송 구현 증거가 아니며 미정 배송/현장 범위는 계속 보류한다.
+
+### WIM-045/012 문 개폐·이동·환경 계약 (2026-09-06, 구현 전)
+
+#### 2026-09-07 보충 이동 Pending 계약 교정 — 구현 승인, 실행 검증 전
+
+- 기존045 이동·중단 기록의 추가 교정이다. `WorkTaskExecutor`의 실제 Restock pickup 구간은 Normal exact-path 조회의 `null`을 즉시 NoPath로 해석하지만, `GridPathSearchBroker.RequestMovePathTo` 계약은 Pending/Reachable/Unreachable을 구분한다. 현재 원본 두 호출을 직접 확인했다.
+- 기존 broker의 typed 결과를 기다리며 작업 run/actor/대상 유효성·취소를 기존 권위로 확인한다. Pending만으로 예약·작업 소유권을 해제하거나 픽업 성공을 기록하지 않는다. terminal Unreachable·실제 이동 실패·취소는 기존 typed 실패/lease 정리로 종료하고, 실제 pickup 위치 도달 전 소비/적재를 시작하지 않는다. 신규 pathfinder/cache/save authority나 강제 경로·순간이동·무조건 재시도는 추가하지 않는다.
+- 수치·BOM·WU·EWU·가격·용량·시설/계단 배치·저장 형식은 그대로다. 영향은 정상 보충 작업의 거짓 NoPath 제거와 이동 실패 시 화물 보존이며 처리량 실측은 아직 하지 않았다. 비용·공간·대안·반복 악용 조건은 위045 원기록을 유지한다. 집중 검증은 Pending→Reachable 실제 보충, terminal NoPath, 취소/중단 시 픽업0·예약 누수0 및 기존 실패 복구를 포함한다. 상태: 밸런스 수치 변경 없음, 실행 검증 전.
+
+- 범위/시대/역할: 기존 Door/InteriorDoor 공통 capability, 출입 권한 정책·시설 BOM·WU·EWU·면적·연구·가격 유지. 열린 문을 별도 시설/콘텐츠로 만들지 않는다.
+- Before/After: 권한만 검사하는 상시 통과 및 고정 환경 교환 → 실제 닫힘/열림 상태, 권한 있는 다음 칸 진입 명령으로 열림, 통과 후 점유가 없으면 닫힘. 플레이어의 열림 유지 선택은 기존 시설 UI에 제공한다.
+- 권위/저장: 문 인스턴스의 `door.operation` IBuildingStateModule만 open/hold-open을 소유. 현재 형식 v1의 필수 enum 상태(1=닫힘,2=열림,3=열림 유지)를 저장하며 0/누락/알 수 없는 상태는 거부. 상태 revision·진행 중 passage 참조·환경 배열은 파생값으로 저장하지 않는다. 기존 전체 시설 candidate 복원 원자성을 재사용하며 과거 저장 마이그레이션 없음.
+- 명령/조회: 경로 탐색 CanTraverse는 권한 조회로 유지(권한자는 닫힌 문을 열 수 있으므로 후보 경로에 포함). 실제 Character/Wildlife 이동 시작만 열기 명령을 실행한다. 같은 명령은 권한·활성·동일 Grid를 재검사한다. UI는 열림 유지/자동 닫힘을 선택하며 진행 중 문 칸/진입·이탈 이동자가 있으면 열린 채 닫힘 대기한다.
+- 안전/중단: 문이 점유자를 이동·삭제하거나 강제로 닫지 않는다. 캐릭터·Downed·야생동물의 실제 점유와 현재 이동 구간 참조로 안전 여부를 확인한다. 이동 취소/disable에서 파생 passage를 해제하고 현재 위치 점유를 다시 읽는다. 저장 복원 후 실제 점유와 재개된 이동으로 재계산한다. 권한 변경의 기존 정책은 유지하며 개폐만으로 권한을 우회하지 않는다.
+- 환경/방: 구조적 RoomDetector 경계는 항상 문을 유지한다. 문 자체 operation revision은 환경의 닫힌 문 mask만 갱신하고 방 배정을 재생성하지 않는다. 닫힌 문 양끝 간 온도·공기 이웃 교환은 차단, 열린 문은 기존 DoorCellExchange0.55를 사용한다. 기존 실내/실외 자연 교환과 빛 전파는 보존한다. 이 변경은 기존 고정 교환의 무상 열/공기 누출을 바로잡는 것으로 신규 설비 수치가 아니다.
+- 대안/비용/위험: 열림 유지는 이동 편의와 온도·공기 격리 포기의 교환이다. 자동 닫힘은 공간 격리를 회복하지만 별도 임의 WU/지연을 부과하지 않는다. 저장·UI 재개방으로 물리 자원/품질 재굴림 없음. 구조·운반·대피도 공통 이동 명령을 사용하고 별도 순간이동 우회는 추가하지 않는다.
+- 검증: 동일 권한 조회는 상태 불변, 실제 주민/포로/손님 권한·자동 통과·점유 닫힘 대기·취소·수동 유지, 현재 module 왕복/잘못된 payload 원자 거부, 실제 UI 및 대표 이동 경로, 동일 문 개폐 시 온도·공기 차이/방 구조 revision 불변. 코드·compile·focused 증거 후 각 체크포인트를 닫는다. 장기 대규모 군중 인증은 주장하지 않는다.
+- 상태: 밸런스 기준 배정, 045/012 미완료. 기존 에셋 수정이나 Inspector 수동 연결 없음.
+
+#### WIM-012 검증 및 WIM-045 부분 이행 (2026-09-06)
+
+- WIM-012 닫음: `wim-045-012-door-contracts.txt` 실제 환경 adapter에서 같은 초기장/동일 문을 닫힘·열림으로 비교했다. 온도20/32.375°C, 공기100/78; 다시 닫힌 module 복원 시 동일 결과. 구조 revision과 광량 불변. 기존 문 열림의0.55와 닫힘의0 이웃 교환 차이이며 별도 시설 수치·BOM·WU·가격 변경은 없다.
+- 실제 producer는 DoorOperationStateModule이며 공용 환경 mask/온도·공기 계산이 소비하고 기존 환경 Query로 관찰한다. operation은 기존 시설 module로 저장, revision/mask/passage는 재계산한다. 신규 콘텐츠 ID 분기0, 이 환경 연결의 고아0. 개폐는 RoomDetector 구조/방 배정을 쓰지 않는다.
+- `wim-045-012-main-doors.txt`: 실제 InteriorDoor UI 열림 유지/자동 닫힘, 캐릭터 접근→문 칸→퇴장, 들어오는/나가는 passage와 점유 중 닫힘 대기, 취소 위치 불변·passage 해제·재개, module JSON/잘못된 복원 원자 거부 PASS. 전체 fixture baseline 복원 PASS(기존 meta 경과시간 float<0.00001초 예외만), 원본 씬 diff0, Console0/0.
+- WIM-045는 부분 이행: 실제 동물 이동 및 raw 월드 이동의 던전 입구/퇴장/침입 연결을 아직 증명하지 않았으므로 열린 상태다. 정책 자체는 기존 직원/손님/포로/동물 그룹·개별 우선순위 집중 검사 PASS(`wim-045-door-policy.txt`), 이는 각 유형의 실물 통과를 전부 검증했다는 뜻은 아니다.
+- 밸런스 기준 배정과 해당 조건 집중 실행 검증까지 확보했다. 장기 정착지 온도/운반 처리량의 실전 보정은 미실행이며 완료로 주장하지 않는다.
+
+#### WIM-045 남은 소비자 검증 완료 (2026-09-08, 증거 추가)
+
+- 기존 문 개폐·점유·입퇴장·침입·동물·귀환 current-save 증거를 보존하고, 남은 실제 Launch/보급 경로만 검증했다. `Artifacts/QA/wim-implementation/wim-045-door-consumers-remaining.txt` SHA256 `F76E139AC9F269D11F36566540B294AA0775C13ADF3E7B8CC053DBF4352681F9`, result=PASS.
+- 실제 Launch→보급1개 물리 운반→MissingPath에서 동일 출발 요청/물리 package 유지→길 복구→외부 도착→1개 exact-once 소비 PASS. 집결 marker만 임시 이동한 검사이며 정상 생산 배치나 문 권위를 변경하지 않았다. 정상 보충 source4→0/shop0→4/총수량4→4, carry·Loose·lease·operation0 PASS. 보충 후 DirectCommand 복귀는 실제 경로이나 문 재횡단은 아니다(`doorCrossed=False`).
+- 단일 주 Unity Refresh 컴파일 성공 및 현재 DLL 확인: runtime `041B1F0C77E0392BCC89A44ABD5F20775336A0E38AFFE4C433D2B8F37EFCB686`, Editor `446A2BCE09DD05580B58B8BD2A162B07F4F43202A377FB864D40D3DCB04B5CB2`. cleanup은 기존 메타 경과시간 float 재투영<0.00001초 외 일치. WIM045를 종료하되 전체 원정 보상·자연 시나리오 전수 또는 밸런스 실전 보정을 주장하지 않는다. 이번 증거 추가의 BOM/WU/EWU/가격 변경0.
+
+#### WIM-045 동물 실제 이동 검증 추가 (2026-09-06)
+
+- 위 미검증 항목 중 동물 이동을 닫음: `wim-045-012-main-doors.txt`의 `wildlife-real-step-deny-open-incoming-occupied-exit-close-held-deny=PASS`. 실제 authored shadow_wolf와 메인 Grid/path broker/출입 권한 adapter에서 TrySetPath 및 Actor.Tick 실행으로 권한 거부 위치 불변, 조회 개폐 불변, 진입·정지 점유·이탈 보호와 자동 닫힘, 열림 유지 중에도 권한 거부를 확인했다.
+- 동물 생성과 Tick 호출은 명시적 fixture다. 자연 생성/행동 선택 검증으로 확대 해석하지 않는다. 임시 동물은 정상 PrepareForDespawn으로 Grid/registry에서 제거했고 기존 전체 checkpoint 복원과 Console0/0 통과. 시설·종족 수치와 저장 형식 변경 없음(밸런스 영향 없음).
+- WIM-045 전체는 raw 월드 이동의 입장·퇴장·침입 호출자와 실패 생명주기 연결이 남아 열려 있다. 전체 구현10/47, 연구0/1, 위키3/13 유지.
+
+#### WIM-045 raw 이동 소비자 연결 계약 (2026-09-06)
+
+- 귀환 위치 저장의 정확한 범위: 기존 CharacterWorldSaveService.CaptureActor는 gridX/gridY, ApplyActorState는 Grid.GetWorldPos를 사용한다. 따라서 현재 저장 칸·귀환 단계·lifecycle를 보존하며, 소수점 이동 보간 offset은 기존 형식처럼 저장하지 않는다. 원정만 별도 worldPosition 필드를 만들어 캐릭터 위치 권위를 복제하지 않는다. 첫 focused fixture의 소수점 exact 비교 실패는 이 기존 규약과 불일치했으므로 canonical saved cell 기준으로 교정했다. 실시간 취소/소유권 이전 중에는 실제 위치를 변경하지 않는 exact 계약을 유지한다.
+
+- 귀환 저장/재개 변경군 계약: OffenseExpeditionRun이 returnPending/success/message 및 대원 stable ID별 Pending/ToDoor/ToInterior/Arrived/RequiresRescue/Dead 단계의 단일 권위다. 원정은 최종 결산까지 active 목록에 남고 기존 offense.aggregate로 저장한다. coroutine/실행 중 플래그/재시도 시계/경고 중복 억제는 파생값으로 저장하지 않는다. 복원 candidate는 현재 actor 위치/lifecycle를 유지하고 귀환자를 다시 BeginExpedition하거나 외부 시작점으로 재배치하지 않는다. 현재 aggregate/expedition/journey 버전을 개정하고 잘못된 단계·중복/누락 대원은 publication 전에 거부한다. 시작 거부/다른 lifecycle 이전은 같은 진행 단계로 명시 대기하며 ReturningExpedition 소유권이 돌아온 뒤 재개한다. 최종 단계의 대원은 복원 후 재이동/재등록하지 않고, 대기 barrier만 미완료 대원에서 재구성한다. 수치·BOM·보상량·에셋 연결 변경 없음. 현재 위치 복원·출력/보상 중복 방지·대원 단계 join·실패 원자성을 묶음 focused로 검증한다. 기존 원정 UI는 귀환 대기/사유를 같은 run에서 표시한다.
+
+- 묶음 수명 교정 계약: 귀환 서비스 결과는 실제 도착/입구 구조 인계/확인된 사망을 구분한다. 사망은 CharacterActor.IsDead의 despawn 합성값이 아닌 실제 Stats.IsDead로 판정하며, 이동 중 사망은 기존 장비 사망 처리와 arrival 대기 인원만 한 번 정리한다. 성공 경험치·멤버 생존 snapshot·보급품 생존자 판정은 모든 귀환이 끝난 시점에 계산한다. 원정 전투 성공 자체는 기존 결과를 유지하며 새 보상 정책을 만들지 않는다. 시작 거부는 정상 도착/즉시 Active로 위장하지 않고 원정 경고와 미해결 대기를 유지한다. 통상 이동 실패는 현재 구간을 보존하고 같은 구간에서 재시도하며, lifecycle 이전은 강제로 되돌리지 않는다. 출발도 개별 이동 취소에 요청이 사라지지 않게 같은 수명/구간 재시도와 중복 출발 거부를 적용한다. Grid 경로가 없는 것을 raw 직선 이동으로 대체하지 않는다. 기존 정의·BOM·WU·가격·보상량·저장 schema는 변경하지 않으며 전체 귀환 저장 재개는 별도 미완료다. 주요 검증은 실제 귀환 사망 결과/대기 인원, 생존 snapshot/경험치 지연, 출발 중복/취소/도착, no-path 위치 보존을 같은 변경군으로 실행한다.
+
+- 귀환 중 개별 이동 취소의 복구: CancelActiveMovement는 이동 시도만 취소하며 이미 접수된 원정 귀환 요청을 취소하는 API가 아니다. ExteriorActivityRuntime가 ReturningExpedition 상태의 동일 요청/동일 목적 구간을 유지해 1게임초 뒤 현재 위치에서 재시도한다. 초기 외부 좌표 배치/EndExpedition/arrival 등록을 반복하지 않는다. 실패 이유와 재시도는 기존 Brain phase에 노출한다. lifecycle가 다른 소유자로 넘어가거나 actor가 사라짐/사망한 경우 재시도하지 않으며, 그 종료 처리와 전체 복원 재개는 별도 미완료 항목이다. 정상 도착만 기존 성공 콜백을 1회 호출한다. 재료·수치·가격·저장 형식 변경 없음.
+
+- 원정 귀환 요청 수명 보완: 기존 ExteriorActivityRuntime가 같은 캐릭터의 실행 중 귀환 coroutine을 한 번만 소유한다. 중복 TryBeginReturn은 시작 전 거부하고 기존 요청/콜백/위치를 유지한다. false 반환은 콜백을 호출하지 않아 상위 arrival barrier의 중복 해제를 막는다. 실행 중 actor 집합은 파생값으로 저장하지 않고 coroutine 종료·dispose·월드 복원 최종 commit에서 정리한다. 후보 준비/검증/rollback은 기존 실행을 취소하지 않는다. 문 거부는 기존 Returning 상태 대기, 성공은 실제 도착 후 1회 콜백이다. 일반 취소/실패의 원정 소유권 재개 연결은 별도 미완료 검증으로 남기며 성공으로 위장하지 않는다. 수치·BOM·가격·EWU·저장 schema 변경 없음.
+
+- 기존 월드 이동 보간의 실제 위치 commit 직전에 출발점→새 위치가 교차하는 모든 문을 검사한다. 최종점뿐 아니라 frame stride로 건너뛴 중간 문도 포함한다. 경로 조회로 미리 열지 않으며 출발 칸에서 밖으로 나가는 이동은 기존 Grid 이동처럼 출발 문 권한으로 가두지 않는다. 원본 Grid의 x 반전·y 높이/0행 경계를 그대로 따른다.
+- 거부 시 그 프레임의 위치를 commit하지 않고 DoorDenied를 반환한다. 이동 취소/disable은 마지막 commit 위치를 유지한다. 일반 보충 작업은 기존 실패/lease 해제로 돌아가고 물리 픽업을 성공 처리하지 않는다.
+- 입장/원정 출입의 문 권한 거부는 기존 Entering/Departing/Returning 수명 상태를 유지한 채 같은 문 통과를 대기·재시도한다. 새 우회 이동이나 순간이동, 완료 콜백은 없다. 실패 이유는 AbilityMove 진단에 노출하며 취소/사망/disable로 중단한다. 일반 퇴장 실패는 기존 NoPath 종료로 돌아가며 spawner 반환을 하지 않는다.
+- 침입 진입 실패는 내부 침입 성공 이벤트를 발행하지 않고 기존 RunInside의 경로 탐색/ExecuteBreach 규칙으로 처리한다. 새 공격 정책을 만들지 않는다. 출력/재고/BOM/WU/가격과 저장 schema 변경 없음. 실행 경로 focused 증거 전까지045를 닫지 않는다.
+
+#### WIM-045 raw/입장 실행 증거 (2026-09-06)
+
+- 귀환 저장/재개 추가 증거: `Artifacts/QA/wim-implementation/wim-045-return-restore.txt` 최종 PASS. 실제 Retreat→active run 유지→문 거부→lifecycle 이전/시작 거절→재개→전체 registry 저장 복원→같은 저장 칸/ToDoor/Returning→실제 입구 도착→finalizer1회. 잘못된 단계0은 publication 전에 거부하며 현재 actor 위치/단계 불변을 별도 assertion으로 확인했다. 주 Unity 컴파일·Console0/0·checkpoint 정리 PASS. 기존 current-format gridX/gridY 위치 의미와 meta 경과시간0.00001초 미만 재투영 예외를 유지한다. 이번 마감 수정은 비교 시점이 오래된 fixture와 복원 뒤 파괴된 Unity 참조를 persistent ID로 다시 찾는 fixture 정리이며 추가 밸런스 영향 없음. 빈 보급 실패 원정이므로 성공 보상 경제·전체 원정 Launch·모든 귀환 단계 조합의 증거로 확대하지 않는다. 이후의 과거 미완료 기록은 해당 시점의 이력이며 이 증거 범위만 대체한다.
+
+- 묶음 출발/사망 증거: `wim-045-012-main-doors.txt`에서 실제 출발 서비스의 중복 거부·문 거부·개별 이동 취소 후 유지·권한 복구·외부 도착 완료1회, 실제 귀환 coordinator/서비스/대기 인원의 사망 terminal1회·대기0·현재 위치 불변·경험치0·최종 생존false·생존자없음 판정 PASS. 메인 컴파일과 Console0/0, 전체 checkpoint 정리 PASS(기존 meta 경과시간 float 예외만), 원본 GameplayScene diff0. Finalizer/경제 ReleaseResources는 기록 adapter로 합성 입력을 확인한 것이며 실제 보상/소비 실행 증거는 아니다. 출발 실물 보급 소비, 사망 이외 lifecycle 이전, 시작 거부 후 재개와 전체 저장 재개는 여전히 미완료다. 밸런스 기준 배정 및 해당 집중 검증이며 전체 밸런스 완료 아님.
+
+- 귀환 개별 이동 취소·대기 인원 추가 증거: 메인 실제 OffenseExpeditionReturnPort→ExteriorActivityRuntime→OffenseReturnArrivalRuntime에서 대기 인원1, 문 거부→CancelActiveMovement 후 위치/인원1 유지, 동일 구간 재시도, 중복/null 요청 거절 후인원1, 실제 입구 도착 후인원0 PASS. 콜백은 도착 때1회. 미봉인 authored target SpecialWildlife 보상 대기 fixture는 materializedIds0으로 유지했고 전투 보상 생성/소비는 하지 않았다. 전체 checkpoint 복원/Console0/0. 재시도는 기존 Returning 요청이 개별 이동 실패를 재실행하는 것이며 새 목적지나 초기 외부 좌표로 이동시키는 fallback이 아니다. 사망/소유권 이전/Cancelled 외 실패/전체 복원 재개는 미검증으로 유지한다.
+
+- 귀환 서비스 추가 증거: 메인 `wim-045-012-main-doors.txt` terminal PASS, Console0/0. 실제 등록 서비스·원정 lifecycle·Grid 이동으로 거부 중Returning/완료0, 해제 후입구cell17/Active/완료1, 중복 요청 위치/콜백 불변, 거부false 콜백0, 후보 준비/폐기 후 요청 유지, 완료 뒤 두 번째 귀환을 검증했다. 실제서비스 producer1/live Offense consumer1, 파생 running actor 집합은 저장하지 않으며 최종 복원 commit/dispose에 정리한다. 월드 checkpoint 정리 PASS(기존 meta float 예외만), 원본 씬 변경 없음. 보상 barrier 및 일반 취소/실패의 원정 재개까지 검증했다는 뜻은 아니며 해당 항목은 계속 열려 있다.
+
+- 퇴장 추가 증거: `wim-045-012-main-doors.txt` terminal PASS, 메인 Console0/0. 실제 off-duty worker의 StartExitDungeon과 실제 spawner(waypoint만 runtime fixture)에서 deny→handoff0, allow→실제cell11 도착/handoff1, 재계획 wake-up 유지/명시적 취소 위치 불변을 확인했다. AIAction 없는 production macro 진입도 사용하는 퇴장 coroutine 보호를 추가했으며 권한 override는 없음. fixture 앞선 입장이 Active 전환으로 AI pause를 해제하므로 테스트에서 staging 후 다시 pause하여 다른 작업 간섭을 제거했다. 손님 population pool release 전체 검증은 주장하지 않는다. 기존 baseline 복원 PASS, meta 경과 float<0.00001s 예외 유지. 045는 침입/원정/보충 처리 검증이 남아 열림.
+
+- 퇴장 소유권 보완 계약: 실제 CharacterAiMacroDecisionRunner도 AIAction 없이 StartExitDungeon을 호출한다. 일반 RequestImmediateReplan 알림은 이 진행 중 퇴장을 파괴하지 않도록 기존 이동 coroutine 수명에 묶인 파생 보호 상태를 사용한다. 명시적 CancelActiveMovement/disable/사망은 취소 가능하며 문 권한 override는 추가하지 않는다. 보호 상태는 저장하지 않고 종료/실패/취소 시 해제한다. BOM·WU·가격·수치 변경 없음; 아래 집중 검증 전 완료 아님.
+
+- 위 계약의 raw 이동 및 입장 경로 PASS: 동일 메인 InteriorDoor에서 목적지가 아닌 중간 문을 빠른 최종 이동으로 건너는 거부를 검증했다. 위치 exact 불변, 실제 이동 시 열림/점유/이탈 닫힘, StartEnterDungeon의 거부 상태 유지·취소 시 도착 미발행·권한 복구 후 실제 도착을 확인했다. 기존 캐릭터/동물/문 UI 회귀와 전체 checkpoint 정리 PASS, Console0/0.
+- `CharacterWorldPositionMovement`는 보간/시간/재시도 실행만 소유하며 AbilityMove의 기존 명령/취소/lifecycle가 권위다. 미사용 Move2PosByTime와 값이 배정되지 않던 enterDungeonRoutine을 제거했다. 시설/원료/종족 수치·가격·BOM·WU·저장 형식 변경은 없다.
+- `wim-045-012-main-doors.txt`의 raw-scope대로 퇴장·침입·원정 실패 소비자 검증은 아직 미실행이다. 소스 연결만으로 WIM-045를 닫지 않는다. 현재 밸런스 기준과 해당 이동 집중 검증을 유지하고 전수 실전 보정은 주장하지 않는다.
+
+### WIM-011 조명 가동 조건 계약 (2026-09-06, 구현 전)
+
+- 범위/시대: 기존 BuildingLightingAbility 전체. intensity/radius, BOM/WU/EWU/설치 면적·연구·가격은 유지한다. 광원 종류를 콘텐츠 ID로 분기하지 않는다.
+- Before/After: 전기·연료 공급과 무관한 환경 광량/Light2D → 실제 활성 시설의 전력·연료 조건을 공통 판정하고 환경과 시각 광원에 같은 결과를 적용한다. 중단/복구는 기존 환경 tick에서 갱신한다.
+- 정의/권위: 기존 BuildingPowerConsumerAbility가 있는 조명은 IPowerInfrastructureQuery 공급, BuildingFuelConsumerAbility가 있는 조명은 SurvivalFoodRuntime의 기존 일일 공동 연료 공급을 따른다. 두 조건이 있으면 모두 요구한다. 둘 다 없는 자체 발광은 기존 정의대로 동작한다. 새 조명 연료 재고·시설별 연소 타이머·임의 기본 연료는 추가하지 않는다.
+- 연료 계약: 물리 stored Fuel이 있거나 현재 일일 기간의 실제 소비 기록(lastConsumedFuel>0)이 있고 공급 부족(lastMissingFuel)이 해소되어야 한다. 수동 Refuel이 실제 연료를 소비하면 기존 기간 소비 기록에도 반영하여 마지막 연료를 보충하자마자 불이 꺼지는 모순을 막는다. 다음 일일 소비가 실패하면 기존 기록으로 공급 중단. stock/lastConsumed/lastMissing은 기존 생존 저장 권위이며 Query는 이를 읽기만 한다.
+- 실행/의존: 기존 EnvironmentalFieldRuntimeApplicationAdapter가 광원 조건을 판정한다. 같은 bool이 ApplyLightSource와 RoomClippedLight2D의 시각 활성화를 소비한다. Light2D/캐시는 별도 게임 상태·저장 권위가 아니고 복원 후 재계산한다. 편집기 authoring 미리보기는 유지하며 런타임은 첫 조건 평가 전 꺼 둔다.
+- 실패: 파괴·비활성·분리 복원 후보는 발광하지 않는다. 전력 또는 연료 부족 시 조명 기여가 중단되며 UI/환경 조회에서 관찰된다. 누락 서비스는 기존 필수 DI 정책을 따른다.
+- 비용/위험/대안: 기존 하루 연료1(한파/사건 배율 포함) 및 보충당 authored 수량 그대로. 신규 열/공기/조리 효과·작업비 없음. 전기식 정전과 연료식 부족이라는 비용 차이를 유지하고, 무연료 무한 조명만 차단한다. 수리·연료 보충·전력 복구로 회복한다. 화면만 켜지고 작업환경은 어두운 이중 판정을 금지한다.
+- 저장/검증: 기존 생존 소비 기록과 기존 전력/환경 저장만 사용. 현재 일일 공급·수동 보충·고갈·현재 형식 복원, 실제 전기 아크등 정전/재연결 광량과 Light2D 동시 변화, 무동력 광원, 비활성 시설, 기존 열/공기 회귀를 집중 검증한다. 증거 Artifacts/QA/wim-implementation/wim-011-*. 전 콘텐츠 확장 성능·장기 식민지 인증은 별도이며 본 작업으로 주장하지 않는다.
+- 현재 상태: 밸런스 기준 배정, WIM-011 열림. 실행 증거 후에만 닫는다.
+
+#### WIM-011 검증 기록 (2026-09-06, 위 구현 전 상태 갱신)
+
+- WIM-011 기능 체크포인트 닫음. 작성 광원5종을 실제 SO capability로 열거(전기 I15, 연료 E01/E02/E03/E07); 공용 환경 판정1개가 실제 광량과 시각 광원2개 소비처에 연결된다. 신규 콘텐츠 ID 분기0, 미등록 신규 capability0, 해당 연결의 고아0. 메인 실행 대표2종과 자체 발광 canary를 구분한다.
+- `wim-011-main-lighting.txt`: 메인 EventSystem I15 전력 차단/재연결 시 광량100→85.873→100 및 Light2D 동시 변화. E01 물리 Fuel1개 실제 소비 후 재고0에서도 지불된 기간 보존, 광량67.03→75. 생존 JSON 복원·빈 보충 재시도 불변·다음 무연료 일일 정산 후 소등 PASS. 재고 고갈은 명시적 fault checkpoint이며 자연 AI 보충 실행 증거로 대체하지 않는다.
+- `wim-011-light-contracts.txt`: 실제 환경 adapter의 전기/연료 공급 전환·자체 발광·비활성/재활성·환경 저장 왕복, 기존 열원/전력 공기원 회귀 PASS. 기존 광량 확산/감쇠 유지, 환경 tick1초 내 기여 갱신. 확률·시도 재굴림·별도 연료 소비 없음.
+- 메인 Unity 컴파일 및 Console0/0, 원본 GameplayScene 디스크 diff0, 전체 fixture checkpoint 복원 통과(기존 meta 경과시간 float 재투영 <0.00001초 예외만 유지). 수치/BOM/WU/EWU/가격 변경0. 밸런스 기준 배정에서 공급 조건 집중 실행 검증까지 확보했으며 장기 식민지 밸런스 실전 보정은 주장하지 않는다.
+
+### WIM-013 전력 연결·경로 처리량 계약 (2026-09-06, 구현 전)
+
+- 범위/시대: 기존 산업 전력 콘텐츠 전체. SO의 발전량·BOM·건설 WU·면적·가격·연료 수치와 연구 해금은 변경하지 않는다.
+- Before/After: 물리 연결 성분 내 발전량 일괄 배분 → 연결 허용 상태와 경로의 공용 노드 처리량을 지키는 우선순위 공급. 시설별 공급 분율·차단 상태를 기존 전력 UI에 표시한다.
+- 작성 의미: `BuildingUtilityConnectionAbility.normallyOpen=true`는 기존 전선·배관·생산시설 builder가 공통 작성하는 통로 개방(연결 허용)이다. 전기 접점 NO의 무통전 단절로 재해석하지 않는다. 실행 중 전력 연결 변경은 물/하수에 전파하지 않는다.
+- 권위: 기존 SO/카탈로그는 기본 연결과 maxThroughput, ElectricalNetworkAggregateState는 현재 연결·축전·연료·차단기 상태를 소유한다. 기존 IPowerInfrastructureCommand/Query와 메인 시설 UI를 연결한다. 파생 활성 성분·유량·스냅샷은 저장하지 않는다.
+- 저장: 현재 power schema에 명시적 연결 상태(1=연결, 2=차단)를 저장한다. 0/누락/알 수 없는 상태는 복원 전에 거부한다. 과거 세이브 마이그레이션 없음. 기존 candidate-grid 복원과 연료 outbox 권위를 유지한다.
+- 식별/의존: 시설 persistent ID와 기존 물리 topology만 사용한다. 같은 셀/상하좌우 이웃 규칙을 재사용하며 전력 활성 성분만 별도 파생한다. 전력 상태를 공용 유체 topology의 쓰기 권위로 만들지 않는다.
+- 처리량: 노드 split 잔여 그래프로 maxThroughput을 해당 노드를 공유하는 모든 경로에 합산 적용한다. 병렬 경로는 합산 가능하며 단일 병목을 여러 소비자가 중복 사용할 수 없다. 우선순위 후 persistent ID 순서, 이전 소비자 공급 유지, 불충족 최소 공급 시 해당 시도만 rollback한다.
+- 보존/악용: 발전을 축전 방전보다 우선 사용한다. 실제 전달된 방전만 저장량에서 차감하고 실제 도달한 잉여 발전만 효율을 적용해 충전한다. 같은 tick 같은 축전기의 충방전 동시 실행, 차단된 발전기 연료 소비, 공급 거절 후 배터리 소모를 금지한다.
+- 비용/대안: 신규 물리 입력·출력·회수량·WU·EWU 없음. 기존 단일 굵은 연결과 병렬 경로의 시설 비용/공간 차이는 유지한다. 처리량 무시라는 무상 지배 전략만 제거한다. 연결 차단으로 기존 작업·의료 전력이 중단될 위험은 UI에서 관찰하고 재연결로 회복한다.
+- 검증: 직렬/병렬/공유 병목, 경로 재배치, 우선순위, 최소 공급 rollback, 축전 보존 집중 검사와 실제 메인 Unity 연결 UI·전력 소비·현재 형식 저장 왕복을 요구한다. 기존 무전원 과열 방지와 연료 운반 복원은 유지한다. 증거는 Artifacts/QA/wim-implementation/wim-013-*에 기록한다.
+- 확장: 기존 capability 매개변수 적용이며 콘텐츠별 ID 분기 없음. 대규모 성능/미래 canary 전수 인증은 이 기능의 실행 증거와 구분한다.
+- 상태: 밸런스 기준 배정. 컴파일/집중 검사만으로 전 식민지 노동 비중·밸런스 실전 보정을 주장하지 않는다. WIM-013 체크리스트는 전체 연결 증거 전까지 열어 둔다.
+
+### WIM-008 필터·예비창고 실행 계약 (2026-09-06)
+
+WIM-013 후속 검증 기록: 위 구현 전 계약의 node-capacity/연결 상태/현재 저장4/실제 UI 경로를 구현했다. `wim-013-flow-contracts.txt`의8계산·DTO 그룹과 `wim-013-main-power.txt`의 메인 소비시설/유틸리티 연결기 차단·재연결·직렬화·실패 원자성 PASS, 실제 연료350g 운반 복원과32/10 공급 유지, Console0/0. I03 발전기/I07 펌프에는 연결기 capability가 없으므로 해당 시설에 임의 스위치를 추가하지 않았다. 본체와 별도 U04/작성된 생산시설 연결기를 사용한다. WIM 기능 집중 검증 완료이며 사회 노동 비중·100×100무할당·장기 실전 보정 완료로 확대 해석하지 않는다. 에셋 수치와 원본 씬은 변경하지 않았다.
+
+- 기록 ID: `balance:wim:008:conveyor-filter-reserve`; 기존 산업 컨베이어/overflow 시설, 기존 연구 시점·콘텐츠 종류 유지.
+- 정의·권위·명령: 기존 BuildingConveyor 능력과 item/material catalog; ConveyorAggregateState의 노드 필터/예비창고만 가변 권위. SetAdvancedFilter/SetOverflowPolicy가 전체 입력 검증 후 변경한다. UI는 같은 query/command 사용, 목록 펼침·페이지는 저장하지 않는다.
+- Before→After: 품목·분류·장비 재료 필터/예비창고의 미연결 목록 → 실제 산업 UI 선택·저장·경로 판정. 품목과 분류는 OR, 그 결과와 장비 재료/품질/신선도는 AND라는 기존 판정을 안내한다. 재료 필터는 combat equipment instance.materialId이며 일반 원료는 품목/분류에서 고른다.
+- 물리 BOM·입력·출력: 작성값 변경0. 선택·필터 변경은 화물을 생성/소비/이전하지 않는다. 실제 배송은 기존 exact gram warehouse/FacilityBuffer transaction만 사용한다.
+- 직접 WU·내재EWU·가격·목표회수기간: 변경0. 필터가 막으면 기존 운반 지연을 부담하며 무료 회수·생산 보상을 추가하지 않는다.
+- 공간·전력·용수·연료·정비: 작성값 변경0. 예비창고 실패 시 벨트 점유를 유지하여 공간 부족을 바닥 무한 저장으로 숨기지 않는다.
+- 위험·실패·회복: 알 수 없는/비정규 ID와 범위를 변경 전 거부. 예비창고 없음/철거/입고 거절이면 OverflowBlocked와 동일 owned payload 유지. 정상 용량 회복 후 기존 retry로 배송. 명시적 LooseOnly 또는 개별 승인 ManualApproval만 기존 바닥 배출을 허용한다.
+- 대안·플레이어 결정: 선택 창고 대기와 호환 창고 검색, 명시적 바닥 배출/개별 승인을 구분한다. enum의 기존 정수값은 유지하되 ThenLoose라는 구형 심볼은 자동 바닥 배출의 허가로 사용하지 않는다.
+- 사회·비가역 비용·시스템결합: 새로운 사회 사건/흔적 없음(N/A). 기존 물류 상태·정지 이유가 관찰 증거이며 운반 혼잡의 대가를 유지한다.
+- 악용 방지: 필터/목적지 변경으로 진행 중 StackId/PayloadId/DestinationId/수량을 재작성하지 않는다. 창고 필터·질량 입고 우회, 실패 후 아이템 삭제/복제 없음.
+- 저장: 기존 conveyor node/filter/payload DTO와 정수 policy 권위 유지. 저장 전후 정렬·동일 필터/예비창고·물리 소유권 확인; stale warehouse reference는 제거하지 않고 대기/표시한다. 과거 세이브 마이그레이션 없음.
+- 확장: 기존 capability 안의 카탈로그 자동 열거, 콘텐츠 ID 분기0. 새 콘텐츠/빈 registry/별도 mass query 없음.
+- 감사·검증: WIM008 focused 및 main EventSystem 선택→기존 실행, 필터 거부 원자성, 저장 왕복, 진행 중 필터 변경, 예비 입고 실패/회복·정확한 lot 보존. 증거 `Artifacts/QA/wim-implementation/wim-008-conveyor-filter-reserve.txt` 예정.
+- 현재 밸런스 상태: 기준 배정·구현 중. 작성 수치 불변이며 실제 연결 검증 전 완료 아님.
+- 실행 검증 추가(2026-09-06): WIM008 메인 UI3종 필터/예비창고·직렬화·잘못된 ID 원자 거절, 실제 장비 품목/분류/재료 판정과 운반 중 필터 변경 보존/배송, 실물 재고로 만재된 창고 거절·동일 lot 복구 PASS. Console0/0, 원본 씬 저장 없음. `wim-008-conveyor-filter-reserve.txt`. 현재 운영 기능 집중 검증 완료이며 전체 경제 실전 보정·자연 발생 교착 전수 인증은 아니다. 기존 작성 BOM/WU/EWU/가격/공간 수치 변경0.
 
 새 콘텐츠 또는 수치 변경은 구현 전에 다음 기록을 만든다.
 
@@ -6366,3 +7475,1147 @@ EWU와 목표 회수 기간: EWU·가격·농업 ROI 변경 0. live 명령·물�
 - 자동 감사: packaging review는 `52 reviewed / 51 integral / 1 detachable / unresolved 0 / execution orphan 0`, output-line current authority는 `357/357 / duplicate 0 / secondApplyChanges 0`, physical-stock gate는 production count-only member callsite `0`과 21개 positive gram authority를 요구한다.
 - 결정론: packaging·output-line 산출물은 동일 입력 두 번 실행 시 byte와 mtime이 변하지 않아야 한다. current output semantic hash는 `35694582a7501d9b11e35f94ff976e5c29945e3b4ba5c050117b68b96fb5d6b6`이다.
 - 현재 판정: `밸런스 영향 없음 / 구조 교정 검증 완료`. 메인 Unity 컴파일, explicit semantic, packaging review, canonical output current-authority, physical stock·warehouse admission focused gate와 Console Warning/Error `0/0`을 최종 근거로 사용한다.
+
+## WIM-005 질병 직접 작업·이동 부담 연결 (2026-09-06)
+
+- 정의 ID·종류: `balance:wim:005:disease-performance`; 현재 질병 카탈로그 전부의 공통 소비 경로 수정. 신규 질병 없음.
+- 시대·역할: 기존 등장 조건 유지. 증상 중 실제 작업과 이동이 느려지고 회복 후 원래 능력을 되찾는다.
+- Before → After: 주입됐으나 미사용인 `IDiseaseSymptomEffectQuery` → `CharacterStatsProjectionService`의 작업/이동 context에서 각 해당 multiplier 한 번 적용. 기존 `PopulationHealthRuntime` 증상 배율·활성 기간·최소 배율0.2를 재사용한다.
+- 콘텐츠·실행 권위: DiseaseDefinitionSO → PopulationHealthRuntime active disease → 기존 symptom query → CharacterStats → 실제 작업 속도·이동 속도. 신체 기능과 기분은 기존 독립 경로를 유지한다.
+- 입력·BOM·출력: 약품·음식·물·부산물 정의와 수량 변경0. 신규 소비나 출력 없음.
+- Direct WU·EWU·기간: 작업의 요구 WU와 아이템 EWU 작성값은 유지. 질병 중 실효 수행 시간이 기존 증상 배율만큼 늘어남; 이를 보상하려고 요구 WU를 자동 감산하지 않는다.
+- 공간·전력·물·연료·정비: 작성값 변경0. 이동 지연에 따른 운반 처리량 영향은 대표 생존망 통합에서 기록한다.
+- 위험·회복: 증상 전/회복 시 배율1, 여러 질병은 기존 합성 규칙. 신체 손상·기분 비용을 두 번째 직접 증상 배율로 해석하지 않는다.
+- 사회·비가역 비용: 신규 관계·사망 효과 없음. 기존 의료와 휴식의 필요성이 실제 생산 비용에 반영된다.
+- 대안·지배 전략: 무료 질병 상태 방치의 이점을 제거. 약품·격리·예방의 기존 비용과 효과 유지. 배율1 이하라 새 무한 생산·판매 차익 없음.
+- 저장 권위: 기존 PopulationHealthWorldSaveData만 저장. 파생 속도·context를 별도 저장하지 않는다. 복원 시 원래 증상 상태에서 재계산.
+- 검증: 모든 작성 질병의 단독 활성, 비대상 주민, 잠복/회복 경계, 복합 증상, 저장 왕복, 실제 CharacterStats 작업·이동 소비 및 기존 신체/기분 상태 불변.
+- 실행 증거: `Artifacts/QA/wim-implementation/wim-005-disease-performance.txt`, 연결 manifest. 메인 Unity 컴파일·PlayMode PASS: 질병16종의 활성/잠복/회복/저장 왕복, 복합 work/move0.2, 최종 능력치 단일 적용, 신체 권위 불변, 원상복원. 최종 Console Error/Warning 0/0.
+- 현재 판정: 해당 연결의 집중 검증 완료. 대표6인 처리량 통합 검증은 남아 있으므로 전체 밸런스 완료로 판정하지 않는다.
+
+## WIM-035 주민 식사 품질 정책 UI (2026-09-06)
+
+- ID·시대·역할: `balance:wim:035:meal-quality-policy`; 모든 기존 주민의 식사 품질 상한 선택 경로.
+- Before → After: 런타임·저장에만 존재하는 주민별 CharacterMealQualityLimit → 건강 화면 버튼에서 선택 가능. Inherit 기본값은 Fine을 유지한다. 호화식 허용은 플레이어의 명시적 Lavish 선택으로만 열린다.
+- 물리 BOM·입출력·Direct WU·EWU: 기존 음식22종의 레시피·중량·가격·영양·기분 수치 변경0. 허용된 식사도 기존 물리 소비 영수증으로 정확히1개 처리한다.
+- 시간·공간·전력·용수·폐기물: 작성값 변경0. 호화식 선택에 따라 실제 소비 구성은 달라질 수 있으며 생산 증가나 저장 우회는 없다.
+- 위험·대안·지배 전략: 품질 상한을 높여도 식단·문화 금기·오염·신선도 검사를 우회하지 않는다. 최고급 강제 선호 없이 기존 선택 점수를 유지한다. Emergency 후보 규칙 변경0.
+- 실행 경로: CharacterSummary 건강 버튼 → 기존 consumables command adapter → CharacterConsumablesRuntime.SetMealQualityLimit → 시설/현장 후보와 commit 정책 검사.
+- 집중 테스트 발견·수정: 기존 후보 필터와 달리 직접 현장 섭취/시설 시작/시설 완료는 품질 상한을 재검사하지 않았다. 동일 품질 predicate를 공유해 정책 변경 뒤 금지된 식사 소비를 차단하고 진행 중 lease를 해제한다. 비상 식단·오염 예외는 유지하고, 기존 비상 후보에도 적용되던 품질 상한만 소비 경계에 일치시킨다.
+- 저장 권위: 기존 consumables v8 mealQualityPolicies. 신규 저장 필드·기본 정책 없음.
+- 검증 계획: UI 선택과 표시, 기본Fine/상향Lavish/하향 차단, 두 호화식의 실제 소비1개와 중복0, 저장 왕복 및 기존 식단·비상 규칙 유지. 집중 검증 전 체크포인트는 열어 둔다.
+- 실행 증거: 메인 Unity 컴파일, 호화식2종 시설/현장 exact1 소비·ack 복원·상한 변경/부패 취소 PASS (`wim-035-meal-consumption.txt`); 메인 GameplayScene EventSystem pointer click에서6정책값·현지화 표시·식단 불변 PASS (`wim-035-ui-playmode.txt`). 신규 물리 콘텐츠0·저장 필드0. 한국어/영어 현지화7키씩 추가, 기존 키 변경0. 전체 생존망 밸런스 완료를 의미하지 않는다.
+
+## WIM-020 전투 장비의 단일 물리 중량 소비 (2026-09-06)
+
+- ID·시대·역할: `balance:wim:020:equipment-physical-mass`; 기존 모든 전투 장비와 장착 모듈·장전 탄약. 신규 콘텐츠 없음.
+- Before → After: 착용 통계의 `definition.Weight × material.WeightMultiplier × evolution(combat.weight)` → 물리 아이템과 같은 정수 gram 본체+장착 모듈+실제 장전 탄약. kg는 최종 UI/기존 부담 공식 입력에서만 투영한다.
+- 구조 권위: 기존 아이템 카탈로그의 단위 gram, ItemInstanceRepository의 장비·모듈·탄약 상태. 기존 물리 subject adapter와 CombatEquipmentStatProjector가 같은 합산 함수를 사용한다. 저장 DTO를 gameplay 질량 query 입력으로 추가하지 않는다.
+- 명령·조회·식별자: 기존 장착/해제/모듈/재장전 명령 유지; stat/loadout query는 기존 stable equipment ID→physical item ID를 사용. 질량 조회는 상태를 변경하지 않는다.
+- BOM·입출력·WU·EWU·가격: 작성값 변경0. 물리 출입고 질량은 유지하며 별도로 계산하던 착용 부담만 일치시킨다. 모듈과 탄약의 실제 질량을 누락하지 않는다.
+- 시간·공간·전력·용수·폐기물: 시설 작성값 변경0. 기존 장비 부담의 이동/작업 속도 공식과25kg 운반 한도 유지. 달라지는 부담은 현재 physical kg에 따른 결과다.
+- 품질·재료·진화: 품질/내구/충전/진화와 재료가 동일 물리 아이템 중량을 암묵적으로 재작성하지 않는다. 피해·방어·내구·가치 배율은 유지한다. 새 경량 소재 물리 정의 도입은 별도 콘텐츠 작업이다.
+- 위험·대안·악용: 미등록 장비/모듈, 중복 장착과 음수 탄약은 fail-loud. 장착하면 무게가 달라지는 우회와 탄약 무료 무게를 제거한다. 물리 자원 생성·삭제 없음.
+- 저장·복원: 기존 equipment/physical component authority 유지, 파생 질량 저장 안 함. 복원 후 동일 상태로 재계산; 새 schema 없음. 멜빵은 기존 EquippedApparelPhysicalMassQuery→carry 경로에만1회 계상.
+- 실행·관찰: 물리 subject/warehouse gram admission과 전투 stat→loadout→CharacterStats 이동/작업 부담 및 CharacterSummary kg 표시를 대조한다. 전체 가방 질량에 combat 부담을 두 번째 더하지 않는다.
+- 검증: 실제 카탈로그 전수 기본 질량, 모듈/탄약 합성·소모, material/quality/durability 변화 시 질량 불변, 물리 encode/decode 저장 왕복, 실제 scope loadout query와 기존 멜빵 회귀. 실패 시 새 체크리스트를 닫지 않는다.
+- 상태·증거: 메인 Unity 컴파일·GameplayScene 집중 검증 PASS. `Artifacts/QA/wim-implementation/wim-020-equipment-mass.txt`: 장비61종 canonical base/preview, 실제 장착/해제 부담 query, 모듈·탄약 증감, 물리 component 저장 왕복, 잘못된 상태 거부, 창고 exact gram admission, 멜빵1회 계상·운반 한도. Console0/0. 현재 기능 집중 검증 완료이며 전체 밸런스 실전 보정/미래 전수 확장 인증은 아님.
+
+## WIM-006 자동 생산 제작 품질 상한 (2026-09-06)
+
+- ID·시대·역할: `balance:wim:006:automatic-craft-quality`; 기존27 자동화 시설의 작성 상한을 실제 제작 등급 출력에 연결한다. 신규 시설/레시피/자동 무기 제작 기능 없음.
+- 사용자 결정:0.75는 제작 점수75점 상한. 수술 부품의 workerQuality 성능 배율은 독립적으로 유지한다.
+- Before→After: 미소비 automaticQualityCap → facility handle에서 점수 상한 캡처, 기존 총 작업량과 수동 workerContributions의 차이로 자동 기여를 판정, 품질을 만드는 출력 capability만 상한을 투영한다. 수동/전동 보조만 수행한 작업은 제한하지 않는다.
+- 혼합 작업: 자동 기여가 남은 작업은 마지막 작업자와 무관하게 시설 상한을 적용한다. 마지막1틱 수동 마무리로 자동 상한을 제거하지 않는다. 이미 누적·저장되는 수동 기여 집계를 재사용하고 별도 자동 노동 저장 원장을 만들지 않는다.
+- 권위·의존: BuildingAutomationAbility → ProductionFacilityHandle → ProductionBillRuntime → ProductionOutputExecutionService → bridge의 품질 capability → 기존 apparel handler. 공용 Economy는 Unity 시설 구현을 직접 읽지 않는다. 수술/일반 무등급 출력은 제작 점수 capability를 구현하지 않는다.
+- 입력·출력·BOM·WU·EWU·시간·공간·전력·용수·정비: 작성값 변경0. 자동화의 기존 노동 절약에 품질 대가를 연결한다. 품질을 보상하기 위한 생산량/가격 자동 상향 없음.
+- 품질 단위: 기존 score→tier 경계를 재사용한다. 점수 없이 시설 보정→등급으로 발행되는 작업복은 해당 점수의 최대 등급으로 제한하며, 새 품질 난수를 만들지 않는다.75점은 Excellent 상한이며 Masterwork/Legendary 자동 보장 불가.
+- 저장·실패·재시도: 최종 qualityModifier를 기존 resolvedOutputs에 동결한 뒤 output-space 대기/commit/ack. 재시도·복원에서 시설 모드나 cap을 다시 읽어 확정 품질을 바꾸지 않는다. 비정규 cap/기여 상태와 미등록 출력 capability는 실패.
+- 대안·위험·악용: 최고 등급은 수동 제작의 기존 투자/확률 경로 유지. surgical 성능을 제작 등급으로 바꾸지 않고 품질 cap 때문에 재료·결과가 재굴림되지 않는다. 콘텐츠ID별 코어 분기 없음.
+- 목표 품질 연결 조사: 일반 ProductionBill에는 목표등급 필드가 없고 목표 반복 주문은 별도 건설/의복/전투 제작 실행기 소유다. 자동 경로와 실제 공유하는지 전수 caller 확인 후 연결 증거를 남긴다. 없는 자동 제작 경로를 테스트용으로 추가하거나 도달불가 검증을 실행했다고 보고하지 않는다.
+- 검증: 자동/수동/혼합·저장 기여 재구성,50~90점 경계, 작업복 물리 출력/복원, 수술 workerQuality 불변, 출력 대기 재시도 불변, 실제 자동시설 실행·카탈로그 범위. `wim-006-automatic-quality.txt`에 증거 기록 전 체크포인트 열림.
+- 현재 상태: 밸런스 기준 배정·구현 중. 자동 품질 제한 외 경제 재산정/전체 실전 밸런스 완료 아님.
+
+## WIM-056 목표 품질 반복 안내 (2026-09-06)
+
+### WIM-006 추가 승인: 일반 생산 품질 조건
+
+- 기록 ID: `balance:wim:006:shared-production-quality-target`; 사용자 승인: 자동에도 품질 조건 제공.
+- Before→After: 일반 생산 목표 품질 없음 → 기존 bill의 선택적 최소 제작 등급, 수동/보조/자동 공통 조건. 신규 자동 장비 제작 콘텐츠는 추가하지 않는다.
+- 역할·시대·대안: 기존 품질 출력 시설/레시피에 적용. 자동 상한 또는 현재 지원 조건이 부족하면 대기하고 시설 지원 개선/수동 모드 선택을 안내한다. 상한을 목표 품질 보장으로 오인하지 않는다.
+- 물리 BOM·직접/내재 WU·시간·공간·전력·용수·위험: 작성값 변경0. 도달 불가 시작 전 재료·유틸리티 소비0, 진행 중 조건 변화는 WIP 보존. 무등급 부산물은 등급 판정에서 제외하며 물리 출력 경로 유지.
+- 실행 권위: bill command→ProductionBillRecord→handler 품질 query→시작/작업 gate→기존 publication. UI는 같은 snapshot 사용. 현재3개 작업복 경로는 결정론적 품질, 새 RNG/재굴림 없음.
+- 저장 권위: 기존 production codec와 current-format version. 목표 변경은 미시작 cycle만 허용, frozen output 재판정 금지. 비정상 등급은 restore candidate 검증에서 실패.
+- 악용·대안: 자동 상한 초과 품질을 마지막 수동1틱으로 우회하지 못함. 실패품 삭제·무료 재시도·가격 상향 없음. 향후 확률 품질은 현재 확정 등급 capability로 위장하지 않는다.
+- 검증: 미설정/아래/같음/초과, 실제 support와cap 각 제한, 자동/수동/혼합·모드 전환, 시작 전 물리 수량 불변, WIP 보존, 저장/복원·UI 명령. 실제 증거 전 구현 중.
+
+### WIM-056 기존 제작 품질 안내 계약
+
+### WIM-006 자연 실행에서 확인한 자동 주문 재료 도착 정지
+
+- 기록: `balance:wim:006:late-input-replenishment`; 기존 자동 생산 주문, 전 시대 해당 시설.
+- Before→After: Ready/InProgress만 선택해 주문 이후 도착한 재료의 운반 재요청 없음 → WaitingForMaterials도 기존 BeginWork 검증을 통해 재확인. 실패한 주문은 다음 후보로 넘어가고 성공한 첫 주문 하나만 작업한다.
+- 직접/내재WU·물리BOM·시간·공간·전력·용수·가격: 작성값 변경0, 기존 요청과 gram admission 권위 재사용. 중복 물량/무료 소비/전력 강제 가동 없음. 정상 가용 재료가 있음에도 영구 정지하는 P0 수정.
+- 대안·위험: 준비된 뒤쪽 주문을 막지 않고 한 tick에 여러 cycle 입력을 소비하지 않는다. 품질 도달 불가/중지/다른 작업자 예약은 후보에서 제외한다. 별도 큐·폴링 서비스·저장 필드 없음.
+- 실행/저장: AutomationRuntime.TickFacility→기존 ProductionBillSceneFacade.BeginWork→단일 input logistics/physical WIP. 기존 요청/주문/운반/전력 저장 권위 유지.
+- 실측 근거: 메인 자연 run에서 전력true, game clock139초까지work0/WaitingForMaterials, 실제 cloth/leather Loose 잔류. source trace에서 AddBill 당시 단발 요청 후 automatic runner가 재료 대기 주문을 다시 조회하지 않음을 확인. 수정 후 동일 late-stock 자연 run의 실제 물리 결과로 검증한다.
+
+- 기록 ID: `balance:wim:056:quality-attempt-estimate`; 기존 건설·의복·장비의 목표 품질 주문에 확률과 반복 비용을 표시하는 관찰 연결이다. 일반 자동 주문 품질 조건은 이후 사용자 승인으로 위 `shared-production-quality-target` 계약에 포함했다. 기존 확률식과 결정론적 일반 생산 등급을 혼동하지 않는다.
+- 검증 추가(2026-09-06): 실제 의복·단검·조리손질대 건설 주문의 Query→기존 UI, 건설 안내 높이/잘림, 미리보기 판정/재고 불변 및 의복 대표 도메인 직렬화 복원 PASS. 임시 예약 해제/NeedsRevalidation은 기존 복원 의미로 구분한다. 실제 작업자 미정과 신화 영감 없는 작업자의 도달 불가를 구분했다. 메인 Console0/0. 이는 정보 표시 검증이며 전체 월드 복원·현재 혼합 작업 결과 예측·새 밸런스 실측 완료를 뜻하지 않는다. 증거 `Artifacts/QA/wim-implementation/wim-056-live-apparel-estimate.txt`.
+- Before→After: 목표/반복 제한만 표시 → 현재 조건의 성공확률 p, 고정 조건의 첫 성공 기대 시도1/p, 제한 내 성공확률과 최대 제작 투입을 구분한다. p=0·작업자 미정·특수 품질 규칙은 서로 다른 상태로 표시한다. p=0을0회로 표시하지 않는다.
+- 계산 권위: 실제 ICraftQualityResolver 구현이 제공하는 분포 Query. 현재3개의 정수[-10,10] 합 분포를 기존 Resolve에 대입하며 Roll/저장된 숨은 판정/전역 RNG를 읽거나 진행시키지 않는다. 이는 고정 조건의 분포 추정이며 특정 주문의 미래 판정 예언이 아니다.
+- 상태·저장: read-only 입력/결과, 새 save 필드 없음. 현재 주문/시설/적격 작업자에서 재계산한다. 작업자·시설·재료가 바뀌면 수치도 달라지며 확정 일수로 표현하지 않는다.
+- BOM·WU·EWU·가격·처리량·시간·공간·전력·용수·위험: 작성값 및 실행 계산 변경0. 최대 비용은 반복 제한×해당 작업의 기존 원가에서 투영하고 제작 투입과 해체·회수·운반의 포함 범위를 명시한다. 회수품을 미리 차감해 최대 비용을 축소하지 않는다.
+- 대안·악용: 불가능하거나 지나치게 낮은 성공률을 플레이어가 사전에 인지한다.1/p>20 경고. UI 재열기/반복 조회로 RNG·현재 출력·자원이 변하지 않아야 한다.
+- 검증: 확률 분포를 실제 Resolve 열거와 대조, p=0/1 및20회 경계, 제한 내 성공확률, 실제 도메인 Query→표시와 RNG/저장 불변. 각 도메인 연결 전에는 전체 WIM-056을 닫지 않는다.
+- 분류: 밸런스 영향 없음(정보 제공, 원가·품질 실행 권위 유지). 기존 미래 확장 canary 전수 인증은 주장하지 않는다.
+
+### WIM007/008 컨베이어 설정 연결 계약 (2026-09-06, 구현 전)
+
+- 연계 전력 P0 `balance:wim:013:unpowered-overheat`: 발전량0을0.01로 바꾸어 demand/0.01로 과열시키던 동작을 수정한다. 공급원(발전+실제 배터리 방전)이 없으면 과열 비율0으로 냉각하고 신규 고장을 누적하지 않는다. 공급원이 있을 때 기존 과부하/차단기 규칙은 유지한다. BOM/WU/EWU/설치·수리 비용/공간/작성 발전량 변경0, 새 손상 또는 저장 권위 없음. 대표 무연료 시작→연료 도착→정상 발전을 확인하며 스위치/구간별 maxThroughput WIM013 전체 완료는 아님.
+
+- 연계 P0 `balance:wim:007:power-fuel-restore-grid`: 전력 복원 staging에서 후보 건물을 이전 live Grid와 비교하여 연료 목적지 claim/profile이 사라지고 carried haul 복원이 실패한다. 기존 `IRestoreWorldCandidateQuery`의 후보 Grid와 후보 건물을 함께 사용하고, 평상시는 기존 live Grid만 사용한다. 후보 누락은 typed/fail-loud로 거절하며 live 대체 없음. BOM/WU/EWU/가격/시간/공간/전력 수치 변경0; 기존 연료 buffer·단일 저장 transaction·예약 소유권 유지. 검증은 실제 연료 pickup→current-format 전체 checkpoint 복원→같은 carried operation/gram→연료 입고·전력 공급. 별도 저장 스키마·생산량 보상·자원 생성 없음. 검증 전 P0 열린 상태.
+
+- 기록 ID `balance:wim:007:conveyor-destination-selection`; 산업/자동화 시대의 기존 포트·컨베이어를 대상으로 한다. 역할은 물리 운반이며 새 콘텐츠를 추가하지 않는다.
+- Before→After: 임의 문자열 목적지/설정 UI 누락 → 기존 목적지 claim과 gram profile에 연결된 선택 목록·검증 명령. 화물의 destination은 로드 시 동결한 기존 payload 권위에 남으며 포트 설정 변경으로 바꾸지 않는다.
+- BOM/Direct WU/Embedded WU·EWU/가격/제작시간: 작성 수치 변경0. 실제 배송 성공률·정지 이유의 연결 개선이며 물류 실측 완료 주장은 보류한다.
+- 공간: 출력 포트 실제 drop cell과 destination claim 좌표를 일치시킨다. 멀리 있는 시설로 순간이동하지 않는다. 전력·용수·폐기물: 기존 권위 유지.
+- 위험: 철거·잘못된 ID·경로 단절·출력 포트 변경 시 화물 보존 및 typed 정지. 잘못된 목적지를 일반 바닥 배출로 대신하지 않는다. 기존 명시적 overflow 정책은 WIM008에서 별도 점검한다.
+- 대안: 기존 AI 운반 유지. 지배 전략 방지: 포트 설정은 gram 입고·실제 수용량·품목 필터·전력 검증을 우회하지 않는다. 순환 차익 방지: 로드/전송/하역은 기존 exact transit 계약으로 수량·개별 상태 보존, 새 spawn/sink 없음.
+- 실행 경로: IndustrialFeatureSurfacePresenter 선택→IConveyorInfrastructureCommand→ConveyorRuntime→기존 topology/claim/capacity→ConveyorItemGateway→ItemTransferService exact admission. 정의별 ID 분기0.
+- 저장 권위: 기존 ConveyorAggregateState/node/payload와 기존 저장 DTO. 선택 목록은 파생 조회이며 저장하지 않는다. 별도 목적지 registry·kg 잔량 authority를 만들지 않는다.
+- 자동 감사·검증: canonical/unknown destination 거절·명령 실패 원자성, 실제 UI 선택·배송, 진행 중 설정 변경·목적지 소실 시 물리 보존, 저장 복원 및 Console. 검증 전 WIM007/008 체크리스트는 미완료 유지.
+
+## WIM 통합 중 정상 기능 부족의 운반·기분 소비 경계 교정 (2026-09-08)
+
+### 연계 기록: 사건 인물 초기화·활성 소유권 저장 (2026-09-08, 구현 계약)
+
+1. 기록 ID: `balance:wim:integration:incident-actor-proficiency-ownership`.
+2. 시대·역할: 기존 외부 사건이 실제로 생성·소유한 캐릭터. 일반 방문객 전체는 제외한다.
+3. Before: Customer형 사건 인물은 필수 숙련 초기화를 건너뛰어 운반 조회가 예외를 낸다. 활성 사건 저장의 actorIds와 character-world 저장 대상도 불일치한다.
+4. After: canonical ID를 inactive 조립/DI 전에 확정하고, 기존 typed life/narrative 초기화 후 게시한다. 현재 활성 사건 actorIds의 실제 소유권으로 저장 대상을 연결하고 복원 후보의 양방향 join을 검증한다. ID 접두사로 역할을 추정하지 않는다.
+5. 물리 BOM: 변경0. 사건 보상·화물·아이템 생성 규칙을 변경하지 않는다.
+6. Direct WU: 변경0. 실제 운반 성능은 기존 필수 숙련/신체 Query를 사용한다.
+7. Embedded WU/EWU·kg·가격: 변경0. 새 XP·숙련 배율·운반 한도를 작성하지 않는다.
+8. 시간: 기존 life 등록의 초기 연령/생일 생성 규칙을 재사용한다. 임의 나이/숙련 기본값을 Query에서 주입하지 않는다.
+9. 공간: 기존 사건 위치·이동·출입 규칙 유지. 일반 Customer의 저장 범위를 확대하지 않는다.
+10. 전력·용수·폐기물: 변경0.
+11. 위험: 실제 활성 소유권과 live/staged actor ID의 불일치를 fail-loud한다. spawn 실패·종료 경계 및 기존 life 정리를 함께 확인한다.
+12. 대안: 조회 오류 catch/default XP, Customer→NPC 전환, ID 문자열 기반 영속 역할 부여를 사용하지 않는다.
+13. 지배 전략 방지: 사건의 확률·비용·보상·참여 조건은 그대로이며 누락된 초기화/저장 연결만 교정한다.
+14. 순환 차익 방지: 새로운 생산·회수·판매 경로 없음. 복원이 사건 인물/보상을 추가 생성하지 않아야 한다.
+15. 실행 경로: ExteriorIncidentActorService→기존 inactive composition/typed life+narrative 등록→Publish→실제 carry/AI Query. 활성 exterior state→character-world capture 및 기존 staged restore join.
+16. 저장 권위: 기존 incident state.actorIds가 소유권 권위다. CharacterWorldSaveService는 이를 lazy query로 읽으며 새 범용 registry/DTO/version/과거 마이그레이션을 만들지 않는다. 종료된 actor/life는 기존 종료·capture 정리, narrative는 기존 독립 historical record 계약을 유지한다.
+17. 증거/상태: `A24C2822`의 실제 오류 및 CharacterLifePublicationService/CharacterWorldPersistenceRules/기존 save section·Exterior restore 원본으로 원인/계약 확인. Sol 구현과 기존 focused Informant 생성→실제 carry→active current-save→terminal current-save 검증 대기. 전체 WIM/밸런스 완료 증거는 아니다.
+
+### 운반·기분 소비 경계 원기록
+
+1. 기록 ID: `balance:wim:integration:unavailable-capacity-consumers`.
+2. 시대·역할: 전 시대 캐릭터의 기존 운반·이동 및 부정적 기분 부수 효과.
+3. Before: required-capacity 불능 snapshot의 Value0을 운반 수식에 전달해 예외가 발생하고, 기분 정책도 정상 문턱 미달을 예외로 변환한다. 이동 wrapper는0을0.1로 올린다.
+4. After: 기존 V26-151/152의 명시적 기능 불가와 injury-mood-side-effect 계약을 소비자가 보존한다. 운반의 정상 불능은0kg, 새 pickup0; 빈 화물은 부담 배율1, 양의 화물은0이다. 독립 이동0을 보존한다. 기분 문턱 미달은 원인이 관찰되는 미적용이다.
+5. 물리 BOM: 변경0. 화물 삭제·회수·순간이동 없음.
+6. Direct WU: 작성량 변경0. 정상 실행 불가를 무료 작업·추가 이동으로 보상하지 않는다.
+7. Embedded WU/EWU·kg·가격: 작성값 변경0.25kg nominal과 기존 정상 운반 곡선 유지.
+8. 시간: 기분의 적용 가능한 지속시간 공식 유지.0을 양의 최솟값으로 대체하지 않는다.
+9. 공간: 기존 경로·목적지·화물 소유권 유지.
+10. 전력·용수·폐기물: 변경0.
+11. 위험: 손상된 snapshot·다른 failure·NaN/Infinity/음수는 정상 기능 부족으로 숨기지 않고 계속 실패한다.
+12. 대안: 생산자마다 catch를 추가하거나 능력 문턱·최솟값을 완화하지 않고 기존 소비 경계만 수정한다.
+13. 지배 전략 방지: 필수 기능10% 문턱과 모든 콘텐츠 수치 유지. 이미 적용된 기분·피해를 취소하거나 무료 회복하지 않는다.
+14. 순환 차익 방지: 새 Source/Transfer/Transform/Sink 및 재고·보상 변경0.
+15. 실행 경로: CharacterPerformanceQuery→CharacterCarryInventory→CharacterActorRuntimeFacade→CharacterMovementKinematics→기존 InvalidSpeed 종료; 기존 mood 호출자→CharacterMoodPolicyService의 공통 duration 처리.
+16. 저장 권위: 기존 신체·기분·아이템 권위 유지. 거절 진단은 파생 최근 관측이며 저장·복원 DTO 추가0.
+17. 증거/상태: 기존 carry focused4사례와 좁은 Negative Mood Capacity Audit, 이어서 실제 침입·일반 주민 대피를 주 Unity에서 검증한다. 소스 리뷰 완료, 실행 결과 대기. 전체 밸런스 실전 보정 완료를 뜻하지 않는다.
+
+- 2026-09-08 증거 추가: 위 소비 경계 교정의 현재 주 Unity 컴파일(runtime `C9BC9EDC`, Editor `8DE54CC5`), carry focused4/4 및 좁은 mood audit PASS. 통합 보고서 `Artifacts/QA/wim-implementation/wim-20260908-003-014-017-053-unity-verify.txt` SHA256 `9C61FED24BF3E94FD6BCFA5C450FB9BB9F746AC45342B5F9C6C0A9011A28441B`. 운반 결과는 `Artifacts/QA/v27-physical-mass-carry-capacity.txt` SHA256 `0A091347671529A9FD2107B8D00F82A266F7E331E9120DB79038BDF53AF17D2F`. 정상 불능0kg/새 pickup0/양의 화물 이동0/빈 화물 독립 이동, 정상 곡선·멜빵1150g 단일 계상, 잘못된 값 거절을 확인했다. mood는 local snapshot 기반9% 미적용·10%/회복 적용 소비 경계 증거이며 실제 해부 손상 실측이 아니다. 해당 fixture 잔재0, Console errors0. 자연 일반 주민 대피 및 이번 보호 Play 최종 종료는 미완료이므로 WIM048·밸런스 실전 보정 완료로 확대하지 않는다.
+
+### WIM041 기존 축제 시설 참조 교정 (2026-09-09)
+
+1. 기록 ID: `balance:wim:041:existing-festival-facility-id-join`.
+2. 시대·역할: 기존 연구 해금 시설을 요구하는 문화 축제 6개. 신규 콘텐츠가 아니다.
+3. Before: memorial-room/rune-tuning-room/weather-observation-tower/apprentice-workbench/cave-growing-rack 문자열이 현재 numeric canonical 시설 ID와 일치하지 않는다.
+4. After: 각각 building:8887/9826/8851/8861/8803으로 연결. 추모실을 공유하는 두 축제를 포함해 자산 6개와 builder 6값만 교정한다.
+5. 물리 BOM: 기존 축제 물품 종류·수량·시설 설치 재료 불변.
+6. Direct WU: 변경0. 미정 참석 작업량을 추가하지 않는다.
+7. Embedded WU/EWU·kg·가격: 변경0. 새 소비·보상·요율 없음.
+8. 시간: 작성 계절·날짜·행사 기간 불변.
+9. 공간: 시설 본체·정원·방/holding-cell 규칙 불변. 참가자 최소 수와 시설 capacity의 의미를 합치지 않는다.
+10. 전력·용수·폐기물: 기존 시설 권위 불변. 상수 탱크9817 후보는 이 교정에서 제외한다.
+11. 위험: 실제 시설 식별 요구는 유지하며 시설이 없으면 기존 자격 실패. 빈 ID·광범위 alias·일반 시설 fallback 금지.
+12. 대안: 새 건물 생성/런타임 ID alias 대신 기존 의미 태그로 확인한 작성 참조만 교정.
+13. 지배 전략 방지: 문화·최소 참가자·날짜·비용·결과 조건을 낮추지 않는다.
+14. 순환 차익 방지: 새 생산/회수/가격/반복 보상 경로 없음. 기존 즉시 축제 해결의 미완료 문제를 이 수정으로 완료 처리하지 않는다.
+15. 실행 경로: FestivalSO와 V20SocietyWorldContentAssetBuilder→기존 카탈로그→FuneralFestivalRuntime의 exact DefinitionId 비교. 실제 참석/배송은 별도 WIM041 잔여다.
+16. 저장 권위: 기존 festival ID 및 Society 상태 유지. DTO·version·과거 세이브 마이그레이션 변경0.
+17. 증거/상태: root가 기존 builder/BuildingSO/FacilitySpecs/Industrial builder 및 runtime 비교 원본을 대조. ParameterContent 참조 교정이며 runtime 콘텐츠 분기 추가0. 소스 적용·Unity 실로드는 다음 배치 대기, canary/실전 밸런스 완료 주장은 하지 않는다.
+
+### WIM048 복원 세계 참조·이동 재개 순서 교정 (2026-09-09, 구현 전)
+
+1. 기록 ID: `balance:wim:048:restored-world-publication-lifecycle`.
+2. 시대·역할: 기존 사장·비전투 주민의 대피 저장 복원, 전 시대.
+3. Before: staged 신규 캐릭터와 이전 live grid/owner를 섞어 검증하며 actor 활성화 전 coroutine을 시작한다.
+4. After: 준비 단계는 같은 candidate world의 grid/actor/owner만 결합하고, 모든 participant의 게시가 끝난 기존 restore-completed hook에서 재검증·이동을 재개한다.
+5. 물리 BOM: 변경0; 기존 시설·화물·재료 소유권 유지.
+6. Direct WU: 변경0; 복원은 작업 완료·기여를 만들지 않는다.
+7. Embedded WU/EWU·kg·가격: 변경0.
+8. 시간: 이동속도·대피/위협 기간 불변; 임의 지연·강제 tick·순간이동 없음.
+9. 공간: 저장된 같은 안전 구역·목표 칸과 실제 복원 topology를 사용한다. 새 구역 생성·가용성 완화 없음.
+10. 전력·용수·폐기물: 변경0.
+11. 위험: 이전 grid 제거로 인한 가짜 LostByTopology와 비활성 actor 이동 시작 방지. 진짜 누락/부적합 후보는 fail-loud.
+12. 대안: 강제 SetActive/다음 프레임 타이머/새 registry 대신 기존 candidate index와 전체복원 완료 hook 재사용.
+13. 지배 전략 방지: Guard/구조 담당자 제외와 위협·도달 자격 유지. 복원으로 면제/무적/위협 연장 없음.
+14. 순환 차익 방지: rollback/재호출로 추가 이동 lease·작업/물품/보상 발생 금지.
+15. 실행 경로: invasion restore prepare/publish/complete→기존 DungeonGameSaveService.TryRestore의 completed hook→기존 owner/resident 이동·Tick·UI.
+16. 저장 권위: 기존 invasion snapshot과 world participant 유지. 캐시·pending 재개 플래그는 파생 수명, 새 DTO/과거 migration 없음.
+17. 증거/상태: root 원본 리뷰와 DE06D415 실패 증거 기반 계약. 구현·현재 compile·깨끗한 실제 game-save-service 메모리 왕복은 대기. Bare section RestoreAll을 전체 완료-hook 실행 증거로 사용하지 않는다. 수치 변경 없음, 실전 밸런스 보정 완료 아님.
+
+### WIM016 작물 복원 후 조회 참조 재결합 (2026-09-09, 구현 전)
+
+1. 기록 ID: `balance:wim:016:restored-plot-projection-join`.
+2. 시대·역할: 기존 작물의 저장 복원 직후 UI/AI 조회.
+3. Before: 새 CropPlotState의 비저장 Building/Ability가 재결합되기 전 Plots가 재료 요구를 계산해 실패한다.
+4. After: 현재 같은 stable plot ID의 실제 시설·작성 ability를 기존 경계에서 재결합한 뒤 snapshot을 계산한다. staged publication과 기존 retirement 부작용 검토 후 위치를 확정한다.
+5. 물리 BOM: 파종 seed/water/fertilizer 종류·수량 불변.
+6. Direct WU: 파종/수확 승인 WU 불변.
+7. Embedded WU/EWU·kg·가격: 변경0.
+8. 시간: 성장시간·시계·생산주기 변경0.
+9. 공간: plot 위치·시설 footprint·출력 버퍼 capacity 변경0.
+10. 전력·용수·폐기물: 기존 주기 입력·receipt 보존; 재연결 시 재소비 금지.
+11. 위험: staged old/incomplete buildingWorld를 읽어 복원 재료를 잘못 retire하지 않아야 한다. 누락 ability를 기본값으로 채우지 않는다.
+12. 대안: fixture에 능력을 주입하거나 null fallback을 만들지 않고 기존 runtime 재연결 경계를 사용한다.
+13. 지배 전략 방지: 복원으로 성장/작업 가속·시설 조건 우회 없음.
+14. 순환 차익 방지: pending/frozen 입력·출력 receipt 보존, 재판정·중복 생성·추가 소비 없음.
+15. 실행 경로: CropPlot persistence Restore→같은 live/candidate 권위의 참조 결합→Plots/RefreshSnapshots→기존 UI/AI.
+16. 저장 권위: 기존 CropPlotAggregateState/현재 save 유지. Building/Ability는 파생 참조이며 저장하지 않는다.
+17. 증거/상태: 실패 보고서8B7F3BE3/crop34D27BB5와 root Restore/Plots/SynchronizePlots 리뷰. 구현·기존 crop verifier1회 회귀는 대기, 새 framework/광량/토양/수치 정책 없음. 수치 변경 없음, 전체016/실전 밸런스 완료 아님.
+
+2026-09-09 검증 추기(기존048/016/053 기록 연결): 현재 compile C5E27301/BCA80F6A PASS, crop2E2BC454 valid=true 및 capacityWait/frozenRestore/replayDelta0/receipt/terminalRestore/ackRetention PASS, outputF5D3F2AA current digest PASS. BBD89816 통합 보고서와 root hash 대조로053 strict EWU projection11079EDD(415items), ledgerCFB57976/manifest7EE28E2D 게시까지 통과했다. 승인2131개 중26개는 전후값/의존성/이유/baseline/실제 적용값 동일성(EAB567FF)을 확인해 sourceDigest/key만 재결합했으며 expired0, 원본EB3AD262 snapshot 보존, 현재881361D5. 게임 수치·BOM·WU·kg·가격·보상·공간 변경0, 사용자 씬/저장 불변.048의 현재 실행 및053의 실제 원정 결산은 별도 대기이며 전체 밸런스 실전 보정 완료로 간주하지 않는다.
+
+### WIM023 장착 강화 부품5종 초기 효과 배정 (2026-09-10, 문서만)
+
+2026-09-12 실행 경계 보완 기록 `balance:wim:023:pending-replacement-effect-projection`:
+
+1. 시대: 기존 수술/부품 해금 유지.
+2. 역할: 현재 장착 부품 효과의 재시도 중 읽기 보존.
+3. Before: BodyCommitted의 미확정 incoming 또는 forward 참조가 빠진 old 때문에 능력치 조회가 예외를 발생시킴.
+4. After: 유일한 활성 교체 주문의 exact join만 허용, 미확정 incoming/회수 대기 old 효과0, 확정 incoming 효과1회.
+5. 물리 BOM: 변경0, 기존 incoming 소비·old 물리 회수 거래 재사용.
+6. Direct WU: 변경0, 재시도로 수술 작업을 다시 청구하지 않음.
+7. Embedded WU/EWU: 작성값 변경0, 가격 재배정 없음.
+8. 시간: 기존 commit-forward 대기/재시도 유지, 새 쿨다운 없음.
+9. 공간: 기존 수술 버퍼/회수 공간 유지.
+10. 전력·물·폐기물: 작성/소비 규칙 변경0.
+11. 위험: 모호하거나 잘못된 소유권은 여전히 fail-loud; 정상 중간 상태만 식별.
+12. 대안: generic 예외 무시·가짜 중립 부품·새 저장 상태를 만들지 않음.
+13. 지배 전략 방지: 미확정 새 부품과 회수 중 이전 부품에 동시 보너스를 주지 않음.
+14. 순환 차익 방지: 같은 교체의 재시도/복원으로 부품 소비·회수·기여를 중복하지 않음.
+15. 실행: 기존 SurgeryAggregateStateStore.ActiveOrders/신체 forward/part runtime→공용 effect source→기존 능력치 소비자. 신규 콘텐츠 ID 분기0.
+16. 저장: 기존 surgery/body/physical 원본 유지; 파생 효과 저장0; 신규 schema0.
+17. 증거: `wim-023-pending-effect-projection.txt`의 실제 거래 실패2종·current JSON authored preflight·재시도·invalid12 PASS 및 최신 compile/main DI/Console0/0. anatomy/effect clone과 성공 coordinator 표식은 통제된 fixture이며 실제 환자 전체 UI/AI·최대HP 무회복 검증은 남음. 수치 추가 없는 결함 교정이며 밸런스 완료를 의미하지 않음.
+
+1. 기록 ID: `balance:wim:023:installed-enhancement-initial-values`. 사용자가 효과/수치의 개연성 있는 초기 배정을 위임했다. 상세 적용 계약은 `wim-implementation-plan.md` WIM-023의 표를 따른다.
+2. 시대·역할: 기존 종족별 강화 시술에 대응하는 선택적 장착 부품. 시대/연구 단계는 실제 호환 부품·제작 경로와 함께 작성할 잔여 항목이며 시작 주민의 필수 성능으로 가정하지 않는다.
+3. Before: 강화5종은 장착 부품에 효과를 귀속시키는 원칙까지만 승인돼 있었고 효과 종류/수치가 미배정이었다. 라이브에서 동일 강화값이 이미 적용된다는 뜻이 아니다.
+4. After 목표: `beastkin-sprint-joint` 이동×1.08, `demon-heat-sac` 열 노출 누적×0.80, `orc-combat-heart` 최대HP×1.10, `kobold-tail-balance` 회피+0.03(3%p), `human-neural-assist` 직접 작업×1.05. ID는 대응 procedure suffix이며 신규 part ID가 아니다. 정상 작동·기준 품질1.0의 구성 합계다.
+5. 물리 BOM·입출력: 실제 호환 부품을 확보·소비해 장착하고 기존 장착 부품은 승인된 물리 회수 계약을 따른다. 부품/생산식 BOM·질량은 미작성이고 이번에 변경하지 않는다. 기본 보철 전체에 강화값을 덧붙이지 않는다.
+6. Direct WU: 기존 수술/제작 WU를 이번에 변경하지 않는다. 새 부품 생산비/WU는 작성 시 기존 동시대 대안과 비교한다. 신경 보조기의5%는 실제 직접 작업 구간이지 하루 모든 시간을5% 늘리는 효과가 아니다.
+7. Embedded WU/EWU·회수 기간: 아직 미산정. 이번 효과값만으로 가격/수익률/경제 검증 완료를 주장하지 않는다.
+8. 시간: 장착 중 지속 효과, 별도 쿨다운/시간제 버프 추가 없음. 수술·회복 시간은 기존 경로 유지. 작업+5% 단독 적용 시 같은 직접 작업 소요시간은1/1.05(약4.76% 감소), 하루 유효 생산량은 동선/휴식에 따라 별도다.
+9. 공간: 기존 수술 시설·회복 자리·물리 부품 보관/운반 경로 재사용. 신규 부품의 보관 gram은 실제 정의 작성 후 반영한다.
+10. 전력·용수·폐기물: 기존 제작/수술 공정 입력 유지, 효과 대가라는 이유로 신규 추상 유지비를 만들지 않는다. 신규 생산식의 실제 필요 자원은 작성 잔여다.
+11. 위험: 기존 수술 실패·감염·거부반응·회복 위험을 면제하지 않는다. 최대HP 효과를 현재HP 회복/부상 삭제로 중복 처리하지 않고, 열 노출 감소를 화염 피해 저항이나 기존 열 부담 치료로 해석하지 않는다.
+12. 대안/근거: 기준서4.12의 범용5~10%·조건부15~25%를 초기 비교 밴드로 사용했다. 이동8%·작업5%는 상시 이점이므로 낮게, 열 노출20%는 더울 때만 이득이라 높게 배정. 최대HP10%는 공격력/재생 없는 방어 보조, 회피3%p는 기존 회피 상한 아래의 소폭 방어 보조다. 일반 보철/의복/시설 대응과 달리 수술과 신체 슬롯을 사용하며, 기본 생존을 위해 강제하지 않는다. 정밀한 동시대 비용 대비 성능 비교는 아직 미실행이다.
+13. 지배 전략 방지: 종족/해부 슬롯 호환 유지, 좌우에 효과를 중복 복제하지 않음. 독립 장비/특성과의 합산은 기존 공용 규칙/상한 사용. 공격속도·운반량·품질·출력량까지 암묵 강화하지 않는다.
+14. 순환 차익 방지: 실제 현재 장착분만 기여. 제거/교체 시 이전 기여 해제, 회수/재장착·저장/복원·수술 반복으로 강화/품질/회복을 누적하지 않는다. 품질/신체 기능 배율은 기존 경로에서 한 번 적용하며 새로운 품질 공식은 이번에 정하지 않는다.
+15. 실행 연결/결합: 목표는 실제 부품 생산→물리 재고→예약/배송→설치/교체→신체 장착 참조→공용 능력치→이동·환경·체력·전투·작업 소비 및 UI. 기존 신체·의료·경제 결합을 재사용하고5종별 코어 분기/별도 강화 실행기를 만들지 않는다. 현재 연결 검증은 미실행이다.
+16. 저장/자동 감사: 기존 실제 부품 인스턴스·현재 신체 장착 참조가 원본이며 파생 강화 합계를 별도 저장하지 않는다. 신규 정의가 생길 때 카탈로그/효과 소비 manifest에 등록하고 대표 장착·제거·회수·저장 경계와 부작용 없는 실제 소비를 확인할 예정이다. 새 감사 프레임워크/전수 조합 검증은 추가하지 않는다.
+17. 증거/상태: **밸런스 기준 배정(효과 초기값만)**. 코드·에셋·기존 완료 체크 변경0, Unity 실행0. 초기 수치 선정이며 공식/실전 검증 증거는 아니다.
+
+조사 메모: knowledge query `effect:move-speed` / area `content`는 fresh, 생성 행0건(부재 증거로 사용하지 않음). content digest `59a291bfb242e59597785fe26aaba0c59c70d36dafc1914f6c6d0153d5f84341`, system digest `949c4b98e59059d8c0a1528eb0dccf072be814a93b24584768cde5856d63b552`. 원본 직접 확인: `Assets/Resources/SO/V26/Effects/Definitions/effect_character_move-speed_multiply.asset`의 실제 target/operation, `Assets/Scripts/Models/Environment/Core/ThermalProtectionProfile.cs` 및 `Assets/Scripts/Services/Infrastructure/Environment/CharacterThermalGameplayEffectProjection.cs`의 열 노출 배율 경로, `Assets/Scripts/Services/Effects/Runtime/CharacterDerivedStatsSnapshot.cs`의 공용 장비 효과 수집, `Assets/Resources/SO/Items/Definitions/surgery_prosthetic_heart.asset`의 기존 물리 부품 정의. 이 확인은 신규5종의 실제 장착 효과 연결을 증명하지 않으며, 신규 부품·슬롯·품질 투영·전체 소비자 연결은 구현 단계에 남아 있다.
+
+좌우 장착 구성 배분 교정(2026-09-12, `installed-enhancement-initial-values`의 기존17필드 보충): 승인된 질주 관절 완성 구성+8%가 현재 두 슬롯 각각×1.08로 투영되어×1.1664가 되는 차이를 수정한다. 작성 부품 값×1.08은 유지하고 실제 anatomy profile과 기존 호환 판정이 정하는 전체 호환 슬롯 수N(수인 다리2)에 고정 배분한다. 현재 설치 개수로 나누지 않으므로 제거 후 남은 부품의 효과가 커지지 않는다. 기존 strength=condition×설치효율을 한 번 적용한 뒤 Multiply는 `Pow(1+(value-1)*strength,1/N)`, AddFlat/AddPercent는 `value*strength/N`로 나눈다. N=1인 나머지4종 효과와 기존 단일 슬롯 semantics는 유지한다. 정상 좌우 합계1.08, 양쪽 strength0.5 합계1.04, 한쪽만 정상일 때1.03923048, 한쪽 정상/한쪽0.5의 합계1.05981130이 독립 검증 기대값이다. 호환 그룹은 이미 작성된 pairedGroupId 한 곳을 쓰며 신규 enum/부품-ID 분기/저장 필드/현재 설치수 기반 재배분을 추가하지 않는다. BOM·제작34WU·수술34WU·각1800g·가격·연구·물류·공간·위험·회수 계약은 기존 기록대로다. 이동 중/회수 후 부품은 기여0, 삭제/재장착·저장으로 배분을 중복하지 않는다. root 실제 작성5효과 projection 및 대표 구성/품질/상태/제거/조회 비변경 집중 검사를 진행하며, 현재는 수정 계약 확정이지 컴파일/실전 PASS가 아니다.
+
+### WIM023 종족 수술 24종 효과 분류와 장착 의미 (2026-09-12 소스 구현)
+
+1. 기록 ID: `balance:wim:023:species-procedure-installation-semantics`.
+2. 시대·역할: 기존 종족별 수술 24종의 실제 치료/교체/보철/보강 역할을 확정한다. 연구·시설·종족 제한은 기존 정의를 유지하며 일반 치료를 장착 수술로 승격하지 않는다.
+3. Before: 24종 전부가 `HealSurgicalNodeEffect`였고 종족 보강 12종은 이름과 무관하게 `SpeciesAugmentation` kind였다. 따라서 재건·이식·보철·강화가 물리 부품을 요구하지 않았고 완료 후 신체 장착 상태도 바꾸지 않았다.
+4. After: 일반 치료 9종(`slime-replenishment`, `slime-membrane-suture`, `slime-core-stabilization`, `myconid-hypha-binding`, `myconid-spore-cleaning`, `harpy-air-sac-suture`, `harpy-wing-fixation`, `vampire-blood-sac`, `demon-mana-core-suture`), 교체 4종(`myconid-core-graft`, `harpy-tail-graft`, `vampire-night-eye`, `kobold-precision-hand`), 보철 5종(`slime-pseudopod-reshape`, `myconid-regrowth`, `harpy-feather-regrowth`, `beastkin-tail-reconstruction`, `human-precision-prosthetic`), 보강 6종(`orc-skeletal-reinforcement`, `orc-combat-heart`, `beastkin-sprint-joint`, `demon-heat-sac`, `kobold-tail-balance`, `human-neural-assist`). 뒤 15종만 `InstallSurgicalPartEffect`를 갖는다.
+5. 물리 BOM·입출력: 기존 수술 재료 수량은 변경하지 않는다. 장착 15종은 아래 `species-installed-part-production` 기록의 exact 물리 부품 1개를 기존 예약/설치 outbox로 소비하고, 이미 장착된 부품 교체 시 기존 `replacement-part-physical-recovery` 계약으로 제거 부품 exact 1개를 회수한다. 부품 제작 BOM은 수술 BOM과 별도로 M06에서 한 번만 소비한다.
+6. Direct WU: 24종의 기존 수술 `requiredWork=34`와 기존 M06 팔/다리/눈 recipe WU를 유지한다. 장착 효과를 이유로 숨은 추가 작업이나 즉시 장착을 만들지 않는다.
+7. Embedded WU/EWU·회수 기간: 기존 팔/다리/눈 제작식과 신규 부품 제작식의 직접·내재 작업 경계는 아래 `species-installed-part-production` 기록을 따른다. 이 기록은 수술 재료와 부품 재료를 합쳐 재소비하지 않는다.
+8. 시간: 기존 수술 단계·회복·재시도 시간을 유지한다. 장착 효과는 현재 장착 중에만 계산하며 영구 버프/별도 지속시간/쿨다운을 저장하지 않는다.
+9. 공간: 기존 수술 재료 목적지와 부품 생산 output buffer를 재사용한다. 교체는 제거 부품 출력 공간을 신체 변경 전에 예약하고 공간이 없으면 기존 상태로 대기한다.
+10. 전력·용수·폐기물: 기존 시설/recipe/수술 소비만 유지하며 신규 추상 유지비·폐기물·전력·용수를 만들지 않는다. 전용 recipe 작성 전에는 비용이 있다고 가정하지 않는다.
+11. 위험·회복: 기존 감염·출혈·실패·거부반응과 부품 품질/신체 condition을 유지한다. 장착 효과 세기는 현재 node condition×설치 효율에서 파생하고 제거·결손·거부반응 시 감소/해제한다.
+12. 대안/근거: kind 기반 요구는 이름만 보강인 치료까지 부품을 강제하므로 폐기하고 실제 `InstallSurgicalPartEffect` 존재를 장착 자격의 권위로 사용한다. 재건 4종도 사용자 결정에 따라 생물학적 재생과 분리하지 않고 실제 인공부품 장착으로 통일한다.
+13. 지배 전략 방지: 절차가 요구한 kind·고정 slot·작성된 exact item ID가 다르면 예약 전과 완료 직전에 거부한다. 부품 고유 효과는 절차 완료 보상이 아니라 물리 item 정의 한 곳에만 작성하며 일반 치료에는 설치 효과가 없다.
+14. 순환 차익/재시도: 새 부품·제거 부품·신체 node의 소유권을 기존 outbox/ACK/receipt/save 경계에서 한 번만 이동한다. 재시도·복원·교체 반복으로 부품/효과/품질/내구를 복제하거나 제거 부품을 삭제하지 않는다.
+15. 실행 연결/결합: procedure asset→효과 기반 planning→종족/실제 profile/slot/exact part 검증→M06 recipe/physical output→기존 reservation→기존 설치/교체 commit→`installedPartId`와 `SurgicalPartInstance.installedSubjectId` 결합→item 정의의 장착 효과→공용 이동·열·최대HP·회피·직접 작업 소비. 15종 모두 아래 13개 exact 부품 생산 경로에 연결한다.
+16. 저장/자동 감사: 새 파생 효과 합계는 저장하지 않는다. 기존 수술 V13 부품 인스턴스와 신체 node가 원본이며 현재 결합이 일치하는 부품만 projection한다. `requiredItemDefinitionId`는 procedure definition이고 과거 save migration은 추가하지 않는다. 대표 분류/오분류/slot/part/교체 exact 회수/장착·제거 projection 검증은 기존 focused scenario에 추가할 잔여다.
+17. 증거/상태: 소스와 24개 procedure asset 분류, 15개 exact 요구 ID, 조류 `balance-tail` 슬롯, 현재 장착분의 이동×1.08/열 노출×0.80/최대HP×1.10/회피+0.03/직접 작업×1.05 단일 정의와 실제 소비 경로를 작성했다. Unity/CLI 검증은 지시상 실행하지 않았고 신규 SO 생성은 아래 지정 editor entrypoint 실행 전이므로 **READY(생성·컴파일·집중 검증 대기)**이며 WIM-023 전체 PASS는 아니다.
+
+### WIM023 종족 장착 부품 생산·획득 경로 (2026-09-12 소스 구현)
+
+1. 기록 ID: `balance:wim:023:species-installed-part-production`.
+2. 시대·역할: `research:medical:prosthetics` 및 각 종족 의료 연구 이후 M06 보철조립대에서 생산해 종족 장착 수술 15종에 공급하는 실물 완제품. 시작 생존 필수품이나 자연 재생 보상으로 취급하지 않는다.
+3. Before: 15개 설치 절차 중 팔·다리로 끝까지 생산 가능한 3개만 있었고, 나머지는 exact 부품 정의/제작식 또는 조류 꼬리 슬롯이 없어 예약부터 실제 장착까지 도달할 수 없었다. 강화5종 중 열·회피는 장착 정의와 소비 지점도 없었다.
+4. After: 15개 절차가 exact 완제품 13종(`pseudopods`, `hypha-core`, `arm:left`, `wing:left`, 일반 `balance-tail`, `torso`, 오크 전투심장 variant, `night-eye:left`, 수인 질주관절 variant, 데몬 열낭 variant, `hand:left`, 코볼트 평형꼬리 variant, 인간 신경보조 variant) 중 하나를 요구한다. 재건2종은 효과 없는 일반 꼬리 보철을 공유하지만 강화5종은 `/variant/<part-id>` exact 실물로 분리해 일반 보철에 강화값이 새지 않는다. 생산 component/save에는 기존처럼 실제 slot node와 exact item ID를 보존한다. 조류 해부에 제거 가능한 `balance-tail`(HP18, mobility weight0.2) 슬롯을 작성한다.
+5. 물리 BOM·입출력: 신규 M06 제작식12개는 (a) 위족/날개/손=steel2+lumber1+cloth1, (b) 일반·코볼트 강화 평형 꼬리=steel2+lumber1+leather1, (c) 보강 몸통=steel3+lumber1+cloth1, (d) 전투 심장=steel2+mana-crystal1+advanced-medicine1, (e) 균핵=steel1+lumber1+advanced-medicine1, (f) 야간안/열낭/신경 보조=steel1+mana-crystal1+advanced-medicine1, (g) 수인 질주 관절=steel3+lumber1+leather1이며 각각 exact 완제품1개(1.8kg, stack1)를 낸다. 기존 팔·다리·인공안구 3식은 보존하며 수술 BOM을 제작 입력으로 다시 소비하지 않는다.
+6. Direct WU: 신규12식은 동시대 M06 `Precision` 3입력종 기준34 WU(기준28+입력종당2)로 산정한다. 기존 승인값 팔32/다리32/인공안구36 WU와 각 종족 수술34 WU는 유지한다. passive processing 시간이나 숨은 설치 WU는 추가하지 않는다.
+7. Embedded WU/EWU·kg·가격: 각 신규 부품 EWU는 `34 + 현재 BOM 각 입력의 기존 EWU`로 자동 감사하며 별도 수술34 WU는 실제 장착 주문에서만 한 번 더 든다. 신규 정의 가격은 기존 보철 완제품180~381 밴드 안에서 균핵180/야간안220/일반 평형꼬리·전투심장·열낭240/날개·손·신경보조260/코볼트 평형꼬리300/몸통320/수인 질주관절381로 배정하고, 기존 팔260/위족180 및 비강화 일반 부품은 재가격하지 않는다. 실전 회수기간은 Unity 생산량 검증 전 확정하지 않는다.
+8. 시간: 제작식은 기존 work-only M06 큐와 작업속도를 사용한다. 장착 후 효과는 현재 설치 동안만 지속하고 제거 즉시 해제하며 별도 쿨다운·영구 버프 시간을 만들지 않는다.
+9. 공간: 기존 M06 physical output buffer cycle capacity4, overflow dump 금지, 수술 시설의 기존 material destination을 유지한다. 공간 부족이면 기존 생산/수술 대기 계약을 쓰며 바닥 즉시 생성이나 가상 재고로 우회하지 않는다.
+10. 전력·용수·폐기물: 기존 M06 운용 권위를 유지하고 신규 추상 전력·용수 입력은 없다. 모든 신규 제작식은 공정 절삭/피팅 손실 descriptor를 가져 입력 질량이 출력1.8kg보다 큰 차이를 설명하며, 누락 질량을 부산물 보상으로 생성하지 않는다.
+11. 위험·회복: 잘못된 종족/해부 profile/slot/kind/item ID를 예약 전과 완료 직전에 거부한다. 수술 감염·출혈·실패·거부반응, 부품 품질·설치효율·node condition은 기존 수치와 회복 경로를 유지한다.
+12. 대안/근거: 절차마다 recipe를 중복 작성하거나 수술 재료를 곧바로 부품으로 해석하지 않고, 동일 physical definition을 공유 가능한 슬롯은 한 M06 producer로 연결한다. 새 범용 제작/장착 프레임워크 대신 기존 finished-good item feature, production recipe, surgical part capability를 재사용한다.
+13. 지배 전략 방지: 강화5종 값은 대응 물리 정의 한 곳에만 있고 현재 장착 상태×node condition×설치 효율로 투영된다. 일반 치료9종과 효과 없는 보철에는 강화값을 암묵 부여하지 않으며 이동·작업·최대HP는5~10%, 조건부 열은20%, 회피는+3%p의 승인 밴드를 넘지 않는다.
+14. 순환 차익 방지: 생산 output은 기존 고유 physical item receipt를 사용하고 수술은 선택한 exact instance 하나만 소비한다. 교체는 제거한 exact instance 하나를 기존 outbox/ACK로 반환하며 save/retry/재장착으로 수량·효과·품질·내구를 재굴림하거나 복제하지 않는다.
+15. 실행 연결/결합: M06 bill→기존 재료 예약/실제 작업→typed surgical-part output→물리 보관/운반→procedure exact selection→slot/kind/species 검증→설치/교체 commit→현재 anatomy node/part ownership join→공용 projector→이동·열 노출·최대HP·전투 회피·직접 작업 소비/UI.
+16. 저장/자동 감사: 기존 recipe/item SO, production receipt/outbox/current save, surgery V13 part instance와 anatomy `installedPartId`가 권위다. 파생 효과 합계·회피 보너스는 저장하지 않는다. builder는 24=치료9+교체4+보철5+보강6, 설치15, exact finished-good producer1개씩, M06 recipe15개를 fail-loud 검증한다. 과거 save migration은 추가하지 않는다.
+17. 증거/상태: production builder, variant-aware 기존 surgical output semantics, mass-loss reviewed catalog, 15 procedure asset ID, avian slot source/asset, 장착 효과 projector와 최대HP/열/이동/작업/회피 소비 코드를 작성했다. 신규11 item SO·신규12 recipe SO·회피 effect SO는 `DungeonStory/Content/WIM/Apply WIM-023 Procedure Semantics` 실행으로 생성해야 한다. 지시상 Unity/CLI/MCP/KB/Git 및 테스트는 실행하지 않았으므로 상태는 **READY(주 Unity 생성·컴파일·집중 검증 전)**이고 밸런스/실전 PASS가 아니다.
+
+구현 교정(2026-09-12, 위 `species-installed-part-production`의 기존17필드 보충): 신규12식의 빈 proficiency primary가 실제 M06 출력 최대질량 증명을 거절했다. 기존 팔/다리 제작식과 동일하게 primary=`proficiency:crafting`, secondary 없음, weight1, PrimaryOnly, recommended=`Technician`(2), minimum risk=`Apprentice`(0)를 작성한다. 기존3식은 변경하지 않으며 BOM·WU·kg·출력·가격·효과·공간·물리 소비와 저장 형식은 위 기록대로 유지한다. 숙련 속도/품질/위험은 이미 존재하는 공용 프로필 소비 경로를 그대로 쓰고 새 배율을 추가하지 않는다. 작성기와 validator에서12식의 exact profile을 요구하며 런타임 semantic guard를 완화하지 않는다. main 실제 생성/의수·신경보조 부품 생산 재검증은 이번 교정 직후 진행하며, 현재 문서만으로 제작·장착·밸런스 완료를 주장하지 않는다.
+
+후속 실행 증거(2026-09-12): 위12식 프로필의 main 작성/validator2회 PASS, second-run7171 asset/meta aggregate 동일. 실제 공개 생산 명령으로 의수와 인간 신경보조 각1개/1800g, 입력 소비·고유 소유권 join·전용 출력 버퍼·재실행 무복제·총3600g/용량7200g/예약0을 확인했다. 정확한 소스/보고서 해시와 초기실패·정정은 `Artifacts/QA/wim-implementation/wim-20260912-producer-and-candidate-integration.txt`에 보존한다. 신규 부품 전체 자연 운반/장착/실전 효과·6인 균형은 별도 잔여이므로 전체 밸런스 완료는 아니다.
+
+최대HP 작성 단위 교정(2026-09-12, 위 `species-installed-part-production`의 기존17필드 보충): 실제 오크 전투심장 생산·운반·장착에서 부품 품질0.7×슬롯 condition0.35로 승인 강화가 ×1.0245임을 확인했지만, `character.maximum-health` 효과 정의의 `maximumResult=10`이 배율이 아닌 최종 절대 HP를 제한하여 기본100→10으로 잘렸다. 작성기와 대응 SO의 최종 결과 상한만 유한 `float.MaxValue`로 바꾸며 기존 +10% binding, 품질·상태 감쇠, 공용 projector, 현재HP 보존/무회복 권위는 변경하지 않는다. 새 절대HP 제한이나 보너스를 도입하지 않는다. BOM·WU·kg·가격·시간·공간·위험·대안·회수·저장 계약은 기존17필드 그대로다. 검증 기대값은 기본100×1.10=110, 실제 감쇠 부품의 최대102.45/현재100(무료 회복 없음)이며 main 컴파일·실제 임상 경로 결과를 확인하기 전 PASS로 처리하지 않는다.
+
+후속 임상 증거(2026-09-12, 동일 기록): 실제 작성 오크 사장과 제작된 강화 심장으로 UI 주문→자연 물리 운반→환자 이동/입실→의사34WU→장착/회복/종료를 통과했다. 실제 품질0.7·condition0.35에서 최대102.45/현재100(무료 회복0), 설치 실물 복제0, 잔여 물1/500g exact 해제/ACK 및 목적지 잔여0을 확인했다. Carried.Position을 현재 위치로 오해한 종료 검사 한 줄을 제거했으며 현재 위치 드롭·소유권·qty/grams/replay 및 drop failure 보존을 별도 집중 회귀로 통과했다. 원문/해시는 `wim-20260912-clinical-integration.json`, 최종 clinicalF48B85F2에 있다. 실제68.08969wall/125.2363game은 통제된 준비/고정 성공 RNG의 대표 실행이며 전 종족 위험·자연 생산량·6인 실전 밸런스 인증은 아니다. 작성값의+10% 목표 외 신규 비용/수치 변경은 없다.
+
+### WIM041 축제 개인 혜택의 실제 참여 시간 비례 (2026-09-10, 문서만)
+
+1. 기록 ID: `balance:wim:041:attendance-proportional-personal-benefit`.
+2. 시대·역할: 기존 축제의 개인 참석 혜택. 참가 문화/자격·행사 종류·연구 조건 유지.
+3. Before: 실제 유효 참가자에게만 개인 효과를 주기로 했으나 지각·중도 이탈·최소 참석 기준은 미정이었다.
+4. After: 사용자 승인에 따라 참여 시간 비례. 초기 최소 기준은 본 행사 예정 시간25%, 충족 시 해당 행사 결과가 허용하는 개인 수치형 혜택×참여율.50% 참석→50%,100% 참석→100%.25% 미만/no-show는 유효 참석 및 개인 혜택0.
+5. 물리 BOM: 기존 행사 물품/실제 소비 계약 유지. 개인 참여율로 이미 소비한 물품을 환불하거나 아이템 보상을 분할 생성하지 않는다.
+6. Direct WU: 참가 동안 일반 생산을 쉬는 비용 반영, 필수/응급 업무 우선 유지. 준비 WU는 아직 별도 작성 대상이다.
+7. EWU: 개인 참여/생산 공백 영향은 구현 후 기존 행사 비용과 대조할 잔여이며 수익률 검증은 미실행.
+8. 시간: 개최 시 예정 본 행사 시간T 확정, 실제 유효 누적t만 집계. 준비·이동·통과·대기·다른 업무 제외. 이탈 중 정지/재참석 시 누적 재개, 조기 종료 시 T 축소 금지. 효과 크기만 비례하고 기본 지속시간은 유지.
+9. 공간: 기존 승인 정원/실제 행사 공간 내 적격 참가만 인정. 전원 초대/방 안에 잠깐 존재를 참석으로 대체하지 않는다.
+10. 전력·용수·폐기물: 이번 정책으로 새 시설/유틸리티/추상 비용을 추가하지 않는다.
+11. 위험·회복: 응급 이탈을 벌하지 않고 누적 참여 보존. 취소/실패는 기존 결과 조건 유지, 무조건 성공 보상 지급 금지.
+12. 대안: 전 시간 참석만 인정하면 구조/의료 업무에 과도한 불이익, 종료 시 위치만 인정하면 순간 입장 악용.25%는 단순 통과 제외를 위한 초기 기준이며 실전 인증값은 아니다.
+13. 지배 전략 방지: 반복 입퇴장으로 시간/보상 복제 금지. 개인 비율을 전역/세력 보상에 곱하거나 참가자별 복제하지 않음. 기존 전체 성공/부분/실패 조건은 유효 참석자 수로 판단.
+14. 순환 차익 방지: 동일 행사·참가자별 결과 지급 한 번. 비수치 효과·해금·실패 비용은 기존 명시 조건 유지, 소수점 보상으로 변환하지 않는다.
+15. 실행 경로: 기존 축제 참가 선택→실제 도착/참여→긴급 이탈/복귀→행사 결과→개인 비례 효과→결과 UI. 기능 연결은 남아 있다.
+16. 저장 권위: 기존 행사 권위에 누적 시간/확정 기간/지급 상태 연결, UI는 조회만. 게임 시계 사용, 저장/복원으로 누적 초기화·이중 지급 금지. 별도 출석 관리 시스템을 만들지 않는다.
+17. 증거/상태: 사용자 정책 승인 및 위임한 초기25% 배정. 계획서 WIM-041 본문/결정표 갱신, **밸런스 기준 배정**. 실제 코드/에셋 변경·Unity 검증 없음. 대표 전체/절반/최소 경계·미달/응급 복귀/조기 종료·저장 경계는 구현 후 기존 집중 검증에 포함하며 전체041 완료로 세지 않는다.
+
+### WIM004 종족 환경 적응의 경미한 불편 효과 (2026-09-10, 문서만)
+
+1. 기록 ID: `balance:wim:004:minor-environment-discomfort`. 상세 계약/읽기 전용 근거는 계획서 WIM-004.
+2. 시대·역할: 기존 종족 설정에 명시된 습도/건조/밝기 적응, 배치/환경 개선의 작은 운영 차이. 신규 연구/종족 없음.
+3. Before: 미소비 필드의 실제 효과/수치 미정. 현재 종족별 입력 차이 및 습도 공급 연결 완료를 가정하지 않는다.
+4. After 목표: 부적합 정도에 따라 기분0~−3점, 직접 작업속도0~−5%. 이는 해당 신규 기여 전체의 상한이며 환경 개선 시 감소/해제한다. 기존 모든 불이익을 통합 제한하는 상한은 아니다.
+5. 물리 BOM: 신규 아이템/소비 없음. 별도 습도 제어 시설을 암묵 추가하지 않는다.
+6. Direct WU: 기존 레시피 작업량은 유지, 실제 작업속도에만 최대5% 감소. 직접 작업 소요시간 최대1/0.95(약5.26% 증가), 하루 총 생산 손실과 동일시하지 않는다.
+7. EWU: 작성 레시피/가격 불변, 유효 노동 영향은 실제 연결 후 기존 생존/물류 경로에서 확인할 잔여.
+8. 시간: 기존 게임 시계/노출 경로 재사용. 신규 장기 손상/회복 타이머 없음. 기존 VisualStrain 등의 누적 부담을 환경 개선 시 무조건 초기화하지 않는다.
+9. 공간: 실제 위치의 환경 조회와 기존 개선 수단을 사용. 입력/개선 수단이 없으면 미연결로 명시하며 새 방 시뮬레이터를 이번 승인으로 확장하지 않는다.
+10. 전력·용수·폐기물: 기존 설비 계약 유지, 이번 효과 때문에 갈증/식량/유틸리티 소비를 추가하지 않는다.
+11. 위험: 이 기능으로 HP 피해·새 질병·영구 장애를 만들지 않음. 기존 온도/유해 공기 피해는 보존.
+12. 대안/근거: 온도·유해 공기와 구별되는 경미한 생활 불편으로 한정. 기준서5.1의 종족별 운영 차이는 주되 생존/진행을 봉쇄하지 않는 초기값이며, 종족별 생존율 검증은 아직 아니다.
+13. 지배 전략 방지: 적정 환경은 추가 불이익0, 별도 무제한 생산 보너스 없음. 종족 설정과 관계없는 전원 취약성 추가 금지.
+14. 중복/악용 방지: 습도와 건조를 별도 두 원인으로 중복 부과하지 않으며 빛 포함 신규 기여 합산 상한 유지. 기존 동일 원인의 VisualStrain 효과를 재적용하지 않는다.
+15. 실행 경로: 실제 환경 입력→작성 종족 적응→공용 기분/작업 계산→실제 소비/UI. 습도 생산/대응 수단과 종족별 범위·곡선은 조사/작성 잔여다.
+16. 저장 권위: 기존 종족 정의/환경/노출 상태에서 재계산, UI/저장 DTO를 두 번째 효과 권위로 만들지 않는다. 없는 입력을 preferredHumidity로 대체하지 않는다.
+17. 증거/상태: 사용자 영향 범위 승인·담당자 초기 상한 배정, **밸런스 기준 배정**. 계획서의 fresh query/원본 조사 메모 참조. 코드/에셋 변경·Unity 검증0. 대상/비대상·환경 개선·중복/상한·필요 저장 경계의 집중 검증은 구현 후 수행한다.
+
+#### WIM004 후속 승인: 습도·건조는 설정 전용으로 축소 (2026-09-10)
+
+- 이 후속 승인은 바로 위 `balance:wim:004:minor-environment-discomfort`의 습도·건조 실행/작성/조사 대기를 대체한다. **습도·건조 적응은 생태 설명만 유지하며 기분/작업/피해/소비 효과를 부여하지 않는다.** 앞선 원기록은 결정 이력으로 보존한다.
+- 방별 습도·확산·환기/급수 연동·가습/제습·가짜 대체 입력과 관련 실행 검증은 현재 범위 및 완료 조건에서 제외한다. 성능 비용을 측정해 제거했다는 주장이 아니라 사용자가 승인한 기능 범위 축소다.
+- 남는 것은 기존 광량을 재사용하는 종족별 밝기 적응이다. 위 초기 상한 기분−3/직접 작업속도−5%는 밝기의 신규 기여에만 적용하고 기존 VisualStrain과 중복 부과하지 않는다. 종족별 밝기 범위·곡선과 실제 연결은 남아 있다.
+- 기존 온도·유해 공기·갈증·물 소비, 별도 승인된 작물 급수/토양 수분 및 의복 젖음/건조는 유지한다. 신규 BOM·WU·유틸리티·저장 형식 변경은 이번 문서 수정에 없다.
+- 실제 기능 안내에서 습도 적응 약속을 설정 묘사로 구분한다. 남은 밝기 연결과 필요한 집중 검증만 WIM-004 완료 조건으로 삼으며 습도 생산자 누락을 이 항목의 blocker로 세지 않는다.
+- 상태: **밸런스 기준 배정/문서상 범위 확정**. 계획서 본문·결정표 갱신, 코드/에셋 변경 및 Unity 실행0. 전체 WIM-004 완료 아님.
+
+### WIM009 전력 불안·배관 동결의 일시 공급 저하 (2026-09-10 설계, 2026-09-12 구현·검증)
+
+1. 기록 ID: `balance:wim:009:temporary-power-and-water-capacity`. 대응 정의 `seasonal:summer-heat-grid`, `seasonal:winter-frozen-pipes`.
+2. 시대·역할: 기존 여름/겨울 사건의 시설 운영 부담. 새 시설/연구/고장 시스템은 추가하지 않는다.
+3. Before: 두 작성 Threat의 amount는4, durationDays는5/4이나 실제 공급 효과 단위/소비 연결은 미확정. 사건 자체 기간은 각각2~5일/2~4일이다.
+4. After 목표: 영향 전력망의 가용 공급 용량×0.80, 실제 동결 노출 급수 설비의 공급/통과 용량×0.80. 태그 문자열 저장만으로 완료하지 않고 기존 공급 계산에 연결한다.
+5. 물리 BOM: 신규 BOM/수리 자재 없음. 물 재고/운반 중 물량/저장 잔량을20% 제거하지 않으며 아이템 물 사용은 별도 기존 계약 유지.
+6. Direct WU: 새 정비 작업/WU 없음. 실제 전력/급수 부족으로 기존 작업이 대기할 수 있으나 같은 이유로 WorkDelay를 추가 중복 부과하지 않는다.
+7. EWU/근거: 정상 공급 용량을 여유 있게 설계하면 흡수 가능한 초기20% 저하로 배정. 예시로 같은 수요에서 정상 이용률70%인 단일 공급원은70/80=87.5%가 되며, 이는 실제 전체 망/6인 생존망 통과 증거가 아니다. 가격/보상은 이번에 변경하지 않는다.
+8. 시간: 기존 사건 기간 전력2~5게임일/동결2~4게임일 유지. 이미 확정된 사건 인스턴스 종료일을 따르고 effect.durationDays를 별도 만료 권위로 쓰지 않는다. 저장/복원으로 기간 재추첨/재시작 금지.
+9. 공간/온도: 급수 설비의 실제 위치 온도0℃ 이하에서 동결,2℃ 이상 회복 또는 사건 종료 시 해제.0~2℃ 구간은 이전 판정 유지, 최초 진입 시 정상. 따뜻한 설비를 계절만으로 동결시키지 않는다. 실제 병목으로 따뜻한 소비처가 물 부족을 겪는 것은 가능하다.
+10. 전력·용수·폐기물: 기존 유효 용량/배분 경로에 반영, authored 원본 용량을 직접 깎지 않는다. 기존 실제 가동/연료/소비 계약 유지, 가상의20% 추가 재료 소모나 물 손실 없음.
+11. 위험·회복: 이 사건이 시설을 무작위 파괴하거나 직접 환자 피해를 주지 않는다. 사건/동결 원인 해소 시 해당 공급 기여만 복구. 공급 부족으로 이미 발생한 실제 작업 지연/소비 결과를 되돌리는 것은 아니다.
+12. 대안: 새 고장·수리/배관 결빙 물리 대신 기존 전력·유체·온도·부족 대응을 재사용. 실제 개선 수단과 용량 매핑은 구현 조사에 남긴다.
+13. 지배 전략 방지: 같은 사건·대상에는 한 번 적용, 이미 감소한 유량에 배관 수만큼0.8을 반복 곱하지 않는다. 실제 다른 출처의 효과/영구 ending을 일괄 제거하지 않는다.
+14. 순환/재시도: 날짜 갱신·복원으로 modifier 누적 없음, duration/온도 해제로 authored 공급원/재고를 새로 생성하지 않는다.
+15. 실행 경로: 활성 사건→선언적 효과/대상→기존 전력·유체 가용 용량과 온도 조회→실제 공급/작업 소비→원인/남은 기간/동결 상태 UI. amount4에서 명시20% 매개변수로의 작성 정리는 구현 잔여다.
+16. 저장 권위: 기존 active seasonal instance/deadline 및 필요한 현재형식 동결 판정 보존. derived 공급량은 재계산하고 UI/asset을 가변 상태 권위로 만들지 않는다. 구현 시 현재 소유권 경계 대조 필요.
+17. 검증/상태: **밸런스 기준 배정**. 정상/사건/종료, 차가운/따뜻한 설비,0/2℃ 경계, 실제 공급·병목 UI·필요 저장/중복 검사는 구현 후 기존 집중 검사에서 확인한다. 코드/에셋 수정·Unity 실행0, 전체009 완료 아님.
+
+읽기 전용 근거: `power-grid`/content query fresh, `events-campaign/seasonal-world-event.csv:18` 후보 후 `Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-heat-grid.asset`와 `seasonal_winter-frozen-pipes.asset`를 직접 열어 기존 기간/amount/효과를 확인했다. content digest `59a291bfb242e59597785fe26aaba0c59c70d36dafc1914f6c6d0153d5f84341`, system digest `949c4b98e59059d8c0a1528eb0dccf072be814a93b24584768cde5856d63b552`. 실제 전력/유체 적용 지점과 온도 공급 매핑은 이번에 검증하지 않았다. 폭염 설명의 기존 ‘수요 압박’을 이 승인된 ‘가용 공급 저하’로 실제 효과와 일치시키는 설명 교정도 작성 단계에 포함한다.
+
+2026-09-12 소스 구현 추가: 두 작성 정의에 generic 전력 가용 공급/배관 유량 multiplier와 동결·회복 온도를 쓰고 기존 Threat start effect를 제거했다. 활성 occurrence/deadline에서 만든 불변 기여 투영만 전력/유체 runtime이 소비하며, 전력은 발전·방전 source offer를 각각 한 번만 0.80로 줄이고 유체는 실제 셀 온도의 0/2℃ hysteresis를 node별 현재 V7에 보존한다. 수동 우물/정수 작업의 전역 ColdSnap 차단은 제거했다. 소스·작성/UI/저장 경계는 구현되었으나 Unity 컴파일·실제 정상/사건/만료·0/2℃·복원 집중 검증은 대기이며 체크포인트 PASS가 아니다.
+
+2026-09-12 현재 소스 검증 추가: Unity 6000.3.8f1 fresh compile과 정적 작성/투영 검사에서 실제 계절 정의28개 중 heat-grid/frozen-pipes 각1개, 나머지26개 중립, 배율0.80, 온도 경계0/2℃, H03/H04/L03 수동 물 능력 및 날씨 인자 없는 `CanDrawWater(BuildableObject)` 계약을 확인했다. 실제 주 PlayMode에서 발전기·배터리 단독·혼합 공급의 단일0.80 적용, 저장량/용량 불변, 펌프 정상 대비 동결 유량0.755, 0℃ latch·1℃ 회복 대기·2℃ 해제, occurrence/latch current whole-save 복원, 전력/시설 UI 원인 표시, 사건 만료 정리를 확인했다. 전체 저장은 완료 hook을 포함하는 `IDungeonGameSaveService` 공개 경로로 재현했고 종료 복구 및 실제 persistence4파일은 보존됐다. Console Warning/Error0/0. 증거 `wim-009-temporary-supply-rules.txt` SHA256 `69AD1747689553F4565A72727C3C41205351001EB8B71136411EAB34F44DF6D7`, `wim-009-temporary-supply-live.txt` SHA256 `A586A04F186C9A44BA28265E50D92BA141F9D004117CCB5F0B4A1B532AD6055C`. 이 공급 하위 체크포인트만 **구현·집중 검증 PASS**이며 자연 사건 선택·AI 대응·transfer/processor 실제 처리량·망 전체 용량·6인 생존망·전체 WIM009는 여전히 미완료다. 위17번의 ‘대기’ 문장은 소스 구현 당시 이력이며 이 검증으로 해소됐다.
+
+### WIM009 해충 피해·이른 서리의 작물 경계 (2026-09-10, 문서만)
+
+2026-09-12 해충 구현 경계(서리는 별도 잔여): 기존 daily content transaction 확정 뒤 `V20ContentEffectsResolvedEvent`의 started/committed 통지와 현재 seasonal occurrence를 대조한다. preview 단계의 `EvaluateSeasonal`에서 작물 상태를 쓰거나 active 여부를 매 tick 확인해 나중에 심은 작물을 새로 공격하지 않는다. 사건 정의에 주산물 손실의 선언적 정수 비율을 작성(현재100/1000)하고 기존 Threat amount5를 손실률로 재해석하지 않는다. 해당 asset/builder의 창고 피해로 읽히는 설명도 현재 재배분 피해로 맞춘다. 기존 Crop aggregate가 처리한 시작 occurrence ID와 해당 재배분의 피해 출처/비율을 저장한다. 빈 농지가 포함된 시작 통지도 처리 사실을 남겨 재통지·복원 후 새 파종에 전파하지 않는다. 실제 재배 시작 이후·미확정 출력만 대상으로 하며 겹침은 합산 대신 최대 기여 하나로 제한한다. 수확 freeze는 기존 판정의 주산물Y/손실/final과 출처를 함께 동결하고 fingerprint·restore 검증에 포함한다. 종자·부산물·질량 최대 증명·물류 capacity 권위는 바꾸지 않는다. 종료는 새 피해를 멈추되 기존 주기 피해는 보존하며, 실제 수확 완료/작물 제거만 그 주기 피해를 해제한다. 새 전역 해충 시뮬레이터, 사건 ID별 core 분기, 과거 save migration은 없다. 현재 작물 저장 형식은 새 필수 상태를 명시한 버전으로 올리며 잘못된 수치·중복/불일치 출처는 live 게시 전 거부한다.
+
+집중 검증 범위: root가 실제 content transaction→같은 postcommit 발행→등록 crop consumer→수확 work/물리 출력/실제 presenter를 확인한다. 준비 연구·시설·성장 시간은 통제된 checkpoint로 표시한다. 시작 전/후 파종, 중복 통지, expiry 뒤 피해 유지, 정상 current whole-save와 invalid payload 원자 거절, frozen crop-output restore/retry/이미 확정된 산출물 제외를 한 묶음으로 검사한다. 20→18/4→4와 invalid ratio 같은 순수 경계만 Terra에게 위임할 수 있다. 기존 급수·겨울 연료·다른 WIM 검사를 다시 실행하지 않으며 이 묶음을 자연 재배/6인 밸런스 또는 전체009 완료로 표현하지 않는다.
+
+1. 기록 ID: `balance:wim:009:crop-pests-and-frost`. 정의 `seasonal:summer-vermin-bloom`, `seasonal:autumn-early-frost`.
+2. 시대·역할: 기존 여름/가을 사건. 농업의 비축/온도 대응 부담, 신규 해충 개체/방제 시스템 없음.
+3. Before: 해충 Threat amount5/기간5, 서리 amount4/기간4의 실제 의미가 미정이었다. 전체 사건 기간은3~5일/2~4일.
+4. After: 해충은 사건 시작 시 영향 범위의 진행 중 재배분 주산물 수확량 최대10% 감소. 서리는 실제 농지 온도와 기존 작물 성장 규칙만 사용하며 추가 고정 감속 배율 없음.
+5. 물리 BOM: 기존 파종/급수/수확 입력 유지. 실제 산출 확정 전 수량에만 반영하며 창고·운반 식량 및 이미 확정된 출력은 삭제/변조하지 않는다.
+6. Direct WU: 기존 파종/수확 WU 유지, 새 방제 WU 없음. 서리 원인과 WorkDelay를 이중 적용하지 않는다.
+7. EWU/손실: 기존 조건/수확 판정 이후 전체 배치 주산물Y에서 floor(Y×0.10)만 감소.20→18,4→4로 소량 생산의 최소1개 강제 손실을 피한다. 스택 분할 전 한 번 계산, 가격/품질/종자/별도 부산물에 손실 복제 없음. 수익률은 미검증.
+8. 시간: 해충3~5일/서리2~4일의 기존 사건 기간 유지. 해충 피해는 해당 재배분 수확/실제 제거까지 남고 다음 재배에는 자동 이월하지 않는다. 일별/복원별 재부과 금지.
+9. 공간: 실제 영향 농지와 온도를 사용, 난방으로 적정 온도가 유지되는 농지는 서리 추가 불이익 없음. 날짜/사건 이름만으로 가상 저온을 만들지 않는다.
+10. 전력·용수·폐기물: 기존 난방/관개 비용 유지. 손실 주산물을 먼저 생성한 뒤 삭제하거나 임의 폐기물을 추가하지 않는다.
+11. 위험: 사건 자체로 작물을 즉시 전멸시키지 않는다. 기존 독립 극한 온도 규칙을 삭제하는 결정도 아니다. 저장 식량/원정 보급 손실은 이번 범위 밖이다.
+12. 대안/근거: 한 번의 작은 수확 손실과 기존 저온 성장 대응을 사용해 개체 시뮬레이션/새 관리 노동을 피한다.10%는 비축으로 완충할 초기 목표이며 생존망 PASS를 뜻하지 않는다.
+13. 지배 전략 방지: 같은 재배분의 해충 기여 상한10%, 반복/겹친 사건으로 초과 누적 금지. 실제 제거 후 재파종은 기존 자원·작업·성장 초기화 비용을 지불한다.
+14. 재굴림/복제 방지: 수확 판정/출력 확정은 기존 경로에서 한 번, 저장 복원/취소/재결합으로 피해나 품질을 재판정하지 않는다. 현재 재배분 식별과 피해 출처를 보존한다.
+15. 실행 경로: 사건→현재 재배분 피해 기록→실제 수확 산출→물리 출력/UI. 서리→가을 day-start의 실제 `weather:cold-snap` 자격→기존 농지 셀 온도→작물 성장/UI. 서리 occurrence는 온도를 합성하거나 작물 수치를 직접 변경하지 않는다.
+16. 저장 권위: 기존 작물 주기·사건 권위에 피해 수명을 연결하고 새 전역 해충 시뮬레이터를 만들지 않는다. 피해 없는 새 재배와 기존 재배 복원을 구분한다.
+17. 증거/상태: 해충과 이른 서리 모두 공식·집중 통합 검증까지 완료했다. 자연 날씨 선택·실제 난방 처리량·농업 AI·6인 생산/소비 및 전체 WIM-009는 별도 잔여다.
+
+읽기 전용 근거: `crop-pests`/content query fresh, `events-campaign/seasonal-world-event.csv:21` 후 `Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_summer-vermin-bloom.asset`와 `seasonal_autumn-early-frost.asset` 원본에서 기간/효과/설명을 확인했다. `CropDefinitionSO.cs`의 기본 yield4/작물별 TemperatureRange, `CropEcologyRuntime.cs`의 기존 lethalTemperature 경계와 `V20SocietyWorldContentAssetBuilder.cs`의 서리 작성 행을 확인했다. 실제 효과 연결 증거는 아니다. content digest `59a291bfb242e59597785fe26aaba0c59c70d36dafc1914f6c6d0153d5f84341`, system digest `949c4b98e59059d8c0a1528eb0dccf072be814a93b24584768cde5856d63b552`. 창고 식량/원정 보급 피해로 읽히는 기존 설명은 승인 범위와 일치시키는 작성 정정 대상으로 남긴다.
+
+2026-09-12 해충 하위 구현/검증 추가: 위 17필드의 당시 코드0/미검증 이력은 해충 부분에 한해 갱신한다. 실제 작성 API는 정수 percent10/100(`cropPrimaryBatchLossPercent=10`)이며 구형 Threat5 출판은 제거했다. committed seasonal start→현재 Growing/ReadyToHarvest/미확정 Harvesting→crop-owned 피해/handled IDs→한 번의 freeze→실물 출력/농지 UI, current V13 전체 JSON restore와 대표 잘못된 payload의 live 무변경 거절 PASS. 현재 유일한10% 기여는 반복·겹침으로 더해지지 않는다. 만료한 start 재전송은 active occurrence가 없으므로 실패하고 새 주기에 적용되지 않는다. 정상 undamaged frozen provenance는 empty/0이다. 입력/WU/가격/종자/품질은 바꾸지 않았다.
+
+증거: `Artifacts/QA/wim-implementation/wim-009-crop-pests-rules.txt` SHA256 `7AFF85E94B8AF06F52A280CC16EB56EF6C51B0D0FEEA725CA1449D7F51715774`(16경계/실제28사건), `wim-009-crop-pests-live.txt` `EAD1D2FE9B708465E12B2D9A172B184F8ACF48589C928DECDE998EA180CC6735`. 실제 수확은 twilight-grain6→6/손실0·종자2로 작은 배치의 반올림 보존 증거다. 20→18은 독립 계산 테스트이며 비영 물리 손실/자연 재배/6인 순생산 실측으로 확대하지 않는다. 주 Unity 컴파일 PASS, 새 Console76→85 Warning/Error0/0, scene/autosave/profile/settings/migration hash 유지. 첫 시도는 파티 UI가 끝난 프레임의 잔여 DeltaTime 때문에 전체 crop JSON이 변한 root 준비 오류이며 한 프레임 정지 정착+delta0 사전 조건으로 교정했다. 생산 코드는 이 실패 때문에 변경하지 않았다. 상태는 해충 **공식·집중 통합 검증**, 전체 생존 밸런스와 실제 저온/난방/회복의 이른 서리는 잔여다.
+
+2026-09-12 이른 서리 하위 구현/검증 추가: 계절 정의의 generic `requiredWeatherFrontId`와 일일 context exact gate를 추가하고 실제 `IClimateQuery.WeatherFrontId`를 main day-start에서 캡처한다. 알려지지 않은 작성 weather ID는 catalog가 거절한다. 실제 early-frost asset/builder는 agriculture+environment, `weather:cold-snap`, startEffects0이며 다른27개 사건의 요구값은 비어 있다. 작물 snapshot/presenter는 성장 권위와 동일한 환경 셀 및 `CropGrowthCycleAuthority.EvaluateTemperature` 결과를 읽는다. 파종 전에는 저장 상태를 만들지 않는 neutral phenotype으로 작성 범위만 투영하고, 실제 재배 단계에 ecology owner가 없으면 fail-loud한다.
+
+증거: `wim-009-early-frost-rules.txt` SHA256 `B4A621B0E47BAFD86ADEDADED62AB30D4A9384D64C9C8B4C11C3B1E002E52103`, `wim-009-early-frost-live.txt` `05897DAA4E3518EA2DD61A0050A13009E984F4348AA84263B5BB41E10EBB695C`. 실제 main day61 clear-front 미발생/day62 cold-snap 한 occurrence, 실제 P23 야외 −20°C 정지·P24 실내20°C 성장과 presenter, 야외20°C 회복 재개, current whole-world JSON 복원, 기한 다음 날 occurrence만 제거/작물 무변형 PASS. 현재 Runtime `B507A1C9D53DC3DCB24D87426C1CE964A6081DA5A1E3C85277CD45DD6C9E08EE`, Editor `2AD824B037395D24AE8E33BE666A8994080E5E8210DBCA3B92C121AE956CC93F`, Content `0E34C3DABF3B5C26D5C617EE7461209D399E426E29A5128406C8E669FB0D5154`; Console116→140 새 Warning/Error0/0. scene/settings/profile/autosave/migration 보호5파일은 기존 SHA256과 일치한다. 자연 날씨 추첨·난방 설비 성능·농업 AI·6인 생존망 증거로 확대하지 않는다.
+
+### WIM009 포식자·굶주린 무리의 실제 외부 출현 (2026-09-10, 문서만)
+
+
+1. 기록 ID: `balance:wim:009:physical-predator-arrivals`. 정의 `seasonal:autumn-predator-descent`, `seasonal:winter-hungry-pack`.
+2. 시대·역할: 기존 계절의 야생동물 위험/수렵 기회. 새 종/전용 습격 AI/플레이어 전력 비례 적 강화 없음.
+3. Before: Threat predators amount5/hungry-pack amount6의 실제 의미·소비 연결 미정. 사건 기간은 둘 다3~5일.
+4. After 초기 목표: 포식자 하산2마리, 굶주린 무리3마리. 실제 지역/서식/계절 적격 기존 종을 합법 외부 진입 위치에 한 번 등장시킨다. 실제 종 후보/전투력 대조는 남아 있다.
+5. 물리 BOM: 생성된 실제 동물→기존 전투/사체/포획/도축 결과만 인정. 별도 추상 피해·무료 아이템 보상 없음.
+6. Direct WU: 방어/수렵/도축/의료는 기존 실제 작업 비용. 사건 별도 수리·사냥 완료 보상 작업 없음.
+7. EWU: 실제 종/사체 산출·전투 피해/치료 비용과 대조할 잔여.2/3마리는 작은 무리의 초기 배정이지 경제/승률 검증값은 아니다.
+8. 시간: 기존3~5일 유지, 기간 동안 매일 재생성하지 않는다. 사건 종료 후 미생성 물량은 출판하지 않는다.
+9. 공간: 기존 외부 공간/경로/종별 출입 제한 준수. 내부 순간 생성·위치 임의 대체 금지. 외부 위치가 없으면 이유가 있는 발생 불가/대기다.
+10. 전력·용수·폐기물: 사건용 추상 소비 추가 없음. 실제 동물/사육/전투의 기존 물리 계약 유지.
+11. 위험/회복: 외부에서 접근과 대응을 관찰할 수 있어야 한다. 기존 먹이 탐색·포식·전투/수렵 재사용, 숨은 공격력 보정·사망/포획 후 보충 없음.
+12. 대안: 보이지 않는 체력/가축 손실 대신 실제 개체를 방어·수렵할 기회 제공. 새로운 군집 전술/침공 시스템은 만들지 않는다.
+13. 지배 전략 방지: 사건 인스턴스당 한 무리, 종/수량/위치 확정 후 재시도·복원 재굴림/증원 금지. 기존 출입 불가 종을 몰래 침입 가능으로 바꾸지 않는다.
+14. 종료/보존: 사건 만료와 개체 수명 분리. 살아 있는 개체·전투·포획/사체 결과를 삭제/회수하지 않고 기존 정상 행동/퇴장에 맡긴다. 부분 생성 기록으로 중복 개체 출판을 막는다.
+15. 실행 경로: 사건→기존 적격 종/외부 생성→실제 개체 이동/포식·전투/수렵→물리 결과/UI. 귀환 전용 TrySpawnArrival의 하차장/원정 의미를 그대로 사건에 쓰지 않고 공통 생성 경계를 연결한다.
+16. 저장 권위: 기존 사건/야생동물 권위에 확정 출현 계획과 생성된 개체 참조를 연결. 파생 UI를 소유권으로 만들지 않는다. 기존 개체 저장/퇴장 규칙 보존.
+17. 증거/상태: 사용자 방향 승인·초기2/3마리 배정, **밸런스 기준 배정**. 코드/에셋/Unity 실행0. 실제 외부 출현·접근/전투·만료 후 보존·부분 생성/저장 중복0의 집중 검증은 구현 후 수행한다.
+
+읽기 전용 근거: `hungry-pack`/content query fresh, `events-campaign/seasonal-world-event.csv:27` 후 두 SeasonalEvents asset과 `Ecology/Wildlife/wildlife_cave_hound.asset` 원본을 확인했다. 동굴사냥개는 현재 canEnterDungeon0/retaliationDamage0/preySpeciesIds를 작성하므로 존재/포식 설명만으로 내부 습격이나 전투 균형을 증명하지 않는다. 다른 포식 종의 해당 필드, `WildlifeRuntime.TrySpawnArrival`, `WildlifeWorldRuntime` 출입 판정, `WildlifeBehaviorRuntime` 포식 표적/이동 및 `WildlifeHuntRuntime` 반격 소비 심볼을 확인했다. 실제 사건→행동 연결은 미검증이다. content digest `59a291bfb242e59597785fe26aaba0c59c70d36dafc1914f6c6d0153d5f84341`, system digest `949c4b98e59059d8c0a1528eb0dccf072be814a93b24584768cde5856d63b552`.
+
+### WIM009 비적대 동물 무리·이동철의 방문 기회 (2026-09-10, 문서만)
+
+1. 기록 ID: `balance:wim:009:nonhostile-seasonal-visitors`. 정의 `seasonal:spring-migrant-herd`, `seasonal:autumn-migration-window`.
+2. 시대·역할: 기존 봄/가을 사건을 사냥·포획 또는 방치할 수 있는 외곽 방문 기회로 연결. 일반 계절 이동 유지.
+3. Before: herd Threat amount3/기간4, migration-window flag amount1/기간3의 실제 효과 미정.
+4. After 목표: 이동 초식군3마리, 짧은 이동창2마리. 실제 지역/서식/계절에 적합한 기존 비적대 종 한 무리만 출현.
+5. 물리 BOM: 실제 사냥/포획/도축 결과만 획득, 추가 사건 아이템/골드 보상 없음.
+6. Direct WU: 기존 사냥·포획·운반·사육 작업 그대로. 자동 보상이나 별도 이동철 작업 없음.
+7. EWU: 유입되는 실제 동물/산물 가치는 후보 종과 함께 대조할 잔여.3/2마리는 초기 규모이지 경제 검증값은 아니다.
+8. 시간: 기존 이동 초식군2~4일/짧은 이동창2~3일 유지. 사건별 한 번 생성, 일별/플래그 존재 기반 반복 생성 없음.
+9. 공간: 공통 실제 외부 출현 계약과 종별 출입/경로 제한 준수. 내부 생성·유효 외부 위치 없는 임의 대체 금지.
+10. 전력·용수·폐기물: 기존 동물 생태/포획 후 사육 비용 유지, 사건용 신규 유틸리티/설비 없음.
+11. 위험: 먼저 습격하는 사건으로 만들지 않되 기존 도주/반격/먹이 행동은 유지. 포획 성공/무피해 사냥을 보장하지 않는다.
+12. 대안: 기존 생물을 직접 활용하는 기회로 한정. 별도 포식자 증원·고정 밭 피해·원정 속도/보상 보너스를 붙이지 않고 기존 설명도 실제 범위와 일치시킨다.
+13. 지배 전략 방지: 실제 생성 수량을 한 번 확정/기록, herdSize 이중 곱셈·사망/포획 뒤 보충·일반 계절 생성과 같은 공급 중복 금지.
+14. 수명/재시도: 사건 만료 시 생체/포획 결과를 삭제하지 않고 기존 행동/퇴장 유지. 부분 생성/저장 재개 때 기존 개체 중복0, 만료 후 잔여 출현 없음.
+15. 실행 경로: 활성 사건→기존 후보/외부 위치→실제 개체→사냥/포획 또는 일반 이동/퇴장→물리 결과/UI. 앞선 포식자 사건의 공통 생성 연결을 재사용하고 별도 이주 AI를 만들지 않는다.
+16. 저장 권위: 기존 사건/야생동물 권위에서 확정 출현과 개체 수명 관리. migration-window 문자열만 영구 생성 권위로 삼지 않는다.
+17. 증거/상태: 사용자 방향 승인·초기3/2마리 배정, **밸런스 기준 배정**. 코드/에셋/Unity 실행0. 종 적격성·실제 수렵/포획·방치/퇴장·정해진 수량/중복 방지의 필요한 집중 검증은 구현 후 수행한다.
+
+읽기 전용 근거: `migration-window`/content query fresh, `events-campaign/seasonal-world-event.csv:5`가 직접 후보이며 row2는 대체 후보 설명의 검색 일치일 뿐 근거로 사용하지 않았다. `Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_spring-migrant-herd.asset`와 `seasonal_autumn-migration-window.asset`에서 기간/설명/효과를 직접 확인했다. `Ecology/Wildlife/wildlife_deep_goat.asset`, `wildlife_spore_elk.asset`, `wildlife_frost_ram.asset`의 식성·성향·활동 계절·출입/기본 herdSize를 대조했으며 종 후보와 비적대 실행의 최종 검증은 남아 있다. content digest `59a291bfb242e59597785fe26aaba0c59c70d36dafc1914f6c6d0153d5f84341`, system digest `949c4b98e59059d8c0a1528eb0dccf072be814a93b24584768cde5856d63b552`.
+
+### 공용 환경 화재 및 사일리지 발열 연결 (2026-09-10, 문서만)
+
+- 기록 ID: `balance:wim:fire:environmental-fire-system`. 별도 신규 승인 범위 `FIRE-01`, 기존 사건 `seasonal:autumn-spoiled-silage`/WIM-009와 연결. WIM47건 분모 변경 없음.
+- 콘텐츠 종류/위치: 공용 환경 위험·진화 작업과 계절 사건 연결. 실행 설계/체크는 `wim-implementation-plan.md` P06 보충 절, 사건 원본은 `Assets/Resources/SO/V20/World/SeasonalEvents/seasonal_autumn-spoiled-silage.asset`. 새 화재 정의·카탈로그·실행기는 아직 미구현이다.
+- 시대/연구: 기본 환경 화재 및 직원 대응에 신규 연구·전용 소방 건물을 필수로 요구하지 않는 최소안. 자동 소방 설비·장비 신규 추가는 이번 범위 밖이다.
+- Before → After 목표: 현재는 `silage-fire` pressure 문자열, 전투 대상 Burn, Fire 위험 enum/테스트 신호만 확인됨 → 실제 위치에 발화·인접 확산·피해·직원 진화·경보/대피·현재 저장이 연결된 공용 화재.
+- 플레이 결정/결합: 실제 사료 보관 위치·가연 대상 인접 배치·진화 인력/접근·수복 비용에 대응한다. 사건 제목이나 추상 피해가 아니라 실제 재고/공간→화재→업무/피해→수리·치료·재비축의 연결을 목표로 한다. 결합 등급의 완료 판정은 실행 증거 전 미확정이다.
+- 발생 생산자/원인: 첫 생산자는 사일리지 발열 사건. 실제 적격 사료가 있는 위치 한 곳에 사건당 한 번 초기 발화하고 그 이후는 공용 확산. 기존 기간1~3일 유지, amount4를 불4개/피해4로 해석하지 않는다. 대상 부재 시 사건 적격성에서 제외하며 허구 사료/대체 발화 대상을 만들지 않는다.
+- 실제 명령/해결 기록: 발화 출처·대상·실행 결과, 실제 피해/손실 및 진화 결과를 각 기존 도메인 명령과 연결. 사건 완료 플래그나 경보만으로 실제 소화를 인정하지 않는다.
+- 영속 흔적/소비자: 실제 부상·시설 내구/파괴·탄 물품은 사건 종료 이후에도 남고 기존 치료·수리·생산·운반으로 회복한다. 사건 종료와 불의 종료를 분리한다.
+- 물리 BOM/입력/출력: 신규 시설 BOM 없음. 실제 타는 물품만 명시적 화재 손실로 처리하고 시설 파괴·예약/화물/WIP 소유권은 기존 경로와 정합하게 연결한다. 재/부산물 신규 아이템은 요구하지 않는다. 물 사용 소화는 사용자 결정 후 기존 물 자원의 실제 소비로 연결하며 가상 물/빈 용기를 새로 가정하지 않는다.
+- Direct WU: 실제 접근·진화 노동이며 초기 진화/물 소화 방식 확정 뒤 강도별 작업량을 작성한다. 아직 소화 WU 수치나 실측은 없다.
+- EWU/회수: 피해 자원 가치와 진화·수복 비용을 기존 EWU/물리 소비에서 계산할 잔여. 화재 생성·진화에 별도 반복 보상을 주지 않으며 이번 문서에서 가격/EWU를 변경하지 않는다.
+- 시간: 불은 소화 또는 실제 연료 소진으로 종료, 사건 기간 만료로 자동 소화하지 않는다. 확산/피해/작업 간격은 기존 게임 시간 기준으로 작성할 잔여이며 프레임별 무한 가속을 허용하지 않는다.
+- 공간/전력/물/연료/정비: 실제 인접·벽·문·층과 안전한 소화 접근 위치를 사용. 신규 전력망/산소/습도/연기 유체 시뮬레이션 없음. 소화 물량과 가연 프로필은 작성 잔여, 정상6인 배치의 물 비축·예비 노동·수복 부담과 대조한다.
+- 위험/실패/회복: 접근/인력/물 부족을 표시하고 불 속 강제 진입·무한 재계획을 피한다. 실제 경보/대피를 연결하며 만료 시 재고·시설·HP를 원복하지 않는다. 기존 전투 연소와 같은 출처의 이중 피해 금지.
+- 사회/비가역 비용: 이번 범위는 실제 부상·물자/시설 손실과 대응 노동. 새 트라우마·영구 사회 벌점·질식 질병은 추가하지 않는다.
+- 대안/범위: 소화 방식은 작은 불을 느리고 위험하게 초기 진화하고 큰 불은 실제 물을 쓰는 안을 제안한 상태이며 사용자 미확정이다. 자동 스프링클러·폭발·방화·모든 화염 무기의 환경 발화는 별도 후속 승인 없이 추가하지 않는다.
+- 지배 전략/악용: 같은 대상 중복 발화/피해/소비 방지, 재시도/복원 재발화 금지, 실제 연료 소진 후 동일 대상 무한 연소 금지, 소화 보상 반복 획득 없음.
+- 저장 권위: 사건은 발화 명령 출처/처리 기록, 공용 화재 런타임은 활성 불/진행/확산 난수/대상 참조를 소유. 신체·재고·시설의 기존 권위를 중복 저장하지 않는다. 경보/위험 표시는 파생 재구축하고 과거 세이브 마이그레이션은 제외한다.
+- 감사/전수 목록: FIRE-01A~D 미완료로 별도 추적. 구현 시 가연 프로필 누락/오접속과 피해·소화 실제 소비자를 영향 범위에서 확인한다. 아직 새 자동 감사나 전수 런타임 연결이 생성됐다고 보고하지 않는다.
+- 검증/증거: 사료 발화→가연/비가연 경계→실제 직원 진화·손실·피해 보존, 접근/물 부족·중단 및 활성 화재 저장/중복 방지의 집중 검증을 구현 후 한 묶음으로 수행. 현재는 읽기 전용 소스 대조만 했으며 Unity 실행/수치 적용/밸런스 검증 없음.
+- 현재 상태: **기능 추가 승인·설계 기록**, 상세 수치 미작성/소화 방식 결정 대기. 코드·에셋 변경0, 구현 체크0/4. 실제 완료/밸런스 완료로 세지 않는다.
+
+읽기 전용 근거: 위 사건 asset과 `V20CampaignRuntime.ApplyInternalEffects`, `DefenseBurnEffectSO`/`DefenseFacilitySystem`, `CharacterBodyHealthRuntime`, `ChildSafetyTraversalContracts`/`ChildSafetyTraversalRuntime`, `SettlementThreatEventAdapter`, `EmergencyLaborDebugScenarios`를 대조했다. 기존 Burn/Fire 이름의 존재만으로 환경 화재 구현을 추정하지 않았다. 화재 발생자·확산·소방 실행 경로는 현재 소스 조사에서 확인하지 못했으며, 추가 승인 뒤 실제 구현해야 한다.
+
+### 화재 소화 방식 확정 및 다중 발화 경로 (2026-09-10, 문서만)
+
+기록 ID: `balance:wim:fire:ignition-paths-and-suppression`. 위 화재 기록의 후속 개정으로, 이전의 ‘소화 방식 미확정’과 ‘사일리지 외 발화 미승인’은 이 결정으로 대체한다. 기존 기록은 당시 이력으로 보존한다.
+
+1. 정의/종류/위치: 공용 FIRE-01 및 기존 전력·열원·공정 사고·화염 효과·사료 사건 연결. 실행 범위/출처 계약은 `wim-implementation-plan.md` P06 보충 절이며 신규 에셋/실행 코드는 아직 없다.
+2. 시대/역할: 초기부터 화재 대응과 예방이 가능한 환경 위험. 전용 소방 건물·신규 연구를 필수로 추가하지 않는다.
+3. Before → After: 소화 제안/사료 발화 단일 범위 → 작은 일반 화재 장비 없는 초기 진화, 큰 일반 화재 실제 물 소화 확정 및5개 원인 경로. 발화 계수나 실측값은 미작성이다.
+4. 플레이 결정/결합: 부하 완화·전원 차단, 가동 열원과 가연물 배치, 위험 작업 관리, 작성 화염 효과의 주변 위험, 사료 보관 및 실제 대응 노동. 원인→현장 발화→공용 화재→소방/대피→수복으로 연결하고 제목/태그만으로 피해를 주지 않는다.
+5. 생산자/실제 원인: 전기 과열/고장, 실제 가동 열원/노출 불씨, 화재 결과를 명시한 작업 사고, 환경 발화를 작성한 실제 공격/함정 적중, 사일리지 사건. 각 생산자의 실제 대상/위험 근거가 없으면 발화하지 않는다. 일반 Burn과 환경 발화는 다른 계약이다.
+6. 물리 BOM/입력/출력: 물은 실제 위치·소유권·공급 가능량에서 성공한 소화 기여만큼 소비. 초기 진화는 아이템 비용 대신 노동/노출 비용. 추가 양동이·소화제·재 부산물·가상 물 재고 없음. 기존 연료 소비와 화재 손실을 중복 계상하지 않는다.
+7. Direct WU/EWU: 초기/물 소화의 작업량·운반과 실제 재고/시설 피해·수복 비용을 계산할 잔여. 이번 문서에서 게임 수치/가격은 변경하지 않으며 화재/진화 자체의 반복 보상 없음.
+8. 시간: 지속 위험은 고정 game-time 판정 창·필요 누적/재점화 유예 사용. 프레임·직원 수·메뉴/저장 재개에 따라 추첨하지 않는다. 판정 간격/확률·소화 강도 경계는 초기 작성 잔여다.
+9. 공간: 실제 발화 대상·인접 가연물·경계를 사용. 같은 전력망의 동일 과부하를 노드 수만큼 독립 발화시키지 않는다. 실제 적중 위치 없는 추상 원정 결과를 던전 화재로 투영하지 않는다.
+10. 전력/용수/연료/정비: 기존 Heat/Fault·차단기·연결 해제와 실제 연료/물 공급 재사용. 통전 중 대상은 직접 초기 진화/물 소화 금지, 실제 격리 후 남은 일반 가연물에 소화 허용. 차단 자체로 불/피해를 지우지 않으며 저장 전원/연결 확인 없이 IsPowered=false만으로 안전을 선언하지 않는다.
+11. 위험/실패/회복: 위험 근거·예방 수단·대응 유예를 표시. 단순 정전이나 정상 안전 가동을 무작위 발화로 처벌하지 않는다. 소화 직전 강도/통전/물량 재검증, 취소·중복 작업에서 원격 소화/중복 소비·환급 없음. 실제 피해는 기존 치료·수리·재비축으로 회복.
+12. 대안/사회 비용: 관리/차단/가연물 분리 또는 진화 인력·물을 투입하는 선택. 추가 영구 사회 벌점 없음. 번개·고의 방화·폭발/압력·기름 화재 전용 규칙·자동 소방 설비는 별도 후속 범위이며 이번5경로에 자동 추가하지 않는다.
+13. 악용 방지: 같은 사고/작업/적중의 중복 통지는 같은 발화 처리. 정상적으로 발생한 별도 새 원인은 구분. 지속 위험의 판정 상태/출판 기록을 보존하여 저장·취소 재추첨과 같은 프레임 재점화 반복 금지.
+14. 명령/관찰/흔적: 원인 생산자→공용 발화 명령→발화/기존 연소/대상 부적격 결과. 경보/표시는 실제 화재에서 파생. 실제 손실·부상과 원인/위치·진화 결과를 남기고 사건 만료가 이를 원복하지 않는다.
+15. 저장 권위: 전력 고장·열/연료·작업/적중/사건은 각 기존 소유자, 화재 진행은 공용 화재 소유자. 필요한 원인 판정/실행 기록만 추가 연결하고 전체 전력/물/신체 상태를 복제하지 않는다. 과거 세이브 마이그레이션 제외.
+16. 자동 감사/검증: 실제5개 생산자와 적격 작성 목록·공용 소비자를 영향 범위에서 대조. 대표 발생/비발생, 전기 차단 전후, 무전원 비발화, 실제 진화, 저장·중복 경계를 기존 집중 시나리오에 묶는다. 원인별 대규모 전체 재검증이나 전수 조합 증명은 추가하지 않는다.
+17. 상태/근거: **밸런스 기준 배정 전의 기능·소화 정책 확정**, 상세 수치 작성/구현/Unity 검증 잔여. 실제 코드/에셋 변경0, FIRE-01 체크0/4, WIM30/47 유지. `power`/code와 `fire`/content query는 fresh이고 확인한 생성 행·직접 원본·두 source digest는 실행 계획 P06의 2026-09-10 읽기 전용 추가 근거에 기록했다. 전력에는 Heat/Fault/차단/연결 상태가 있지만 발화 연결은 없으며, 화염 함정의 전투 amount2/duration5를 환경 발화율로 재해석하지 않는다.
+
+### FIRE-01 최소 수직 절편 수치 배정 (2026-09-13, 구현)
+
+1. 정의/종류/위치: `balance:wim:fire:minimum-vertical-slice-v1`. 공용 `EnvironmentalFireRuntime`과 실제 I16 전기 제련 도가니 전력 노드를 연결한다. 이 절편의 작성 대상은 `BuildingEnvironmentalFireAbility`가 있는 실제 건물뿐이며 허구 대상 ID를 만들지 않는다.
+2. 시대/역할: 신규 연구·전용 소방 시설 없이 기존 전력 차단, 직원 접근, 실제 깨끗한 물 비축으로 대응하는 초기~중기 환경 위험이다. 자동 소방·연기·습도·정비 전역 시뮬레이션은 제외한다.
+3. Before → After: 저장되지 않는 고장 수치와 미연결 Fire enum → 30게임초 고정 창에서 실제 통전망 Heat/Fault를 한 번 판정하고, 공용 화재·구조 피해·Fire 위험 오버레이·정확한 물 Sink/ACK·현재 형식 저장으로 이어지는 절편.
+4. 플레이 결정/결합: I16의7/s 수요와16/s 연결 한도에서 공급 부족 과부하를 낮추거나 연결/차단기로 격리하고, 13WU 초기 진화 또는 실제 깨끗한 물을 준비해 대응한다. 통전 중에는 두 소화 방식을 모두 거부한다. 기존 `ThreatMitigation` 작업 안에서 화재 urgency는100으로 두어 같은 시설의 기존 긴급 완화88보다 먼저 선택하되 수술·의료·전투 보호 규칙은 기존 Red 경보 권위가 유지한다.
+5. 생산자/원인: 같은 실제 전력망에서 `Heat>=90` 및 `Fault>=5`, 가동 연결, 비차단, 수요>공급, 공급>0일 때만 30게임초 경계마다 정렬된 적격 노드 하나에 망/창 stable-hash 표본으로15%를1회 판정한다. 성공 초기 강도0.25이며 같은 망/창 cause ID와 같은 표본으로 재시도·복원 재추첨/중복을 막는다.
+6. 물리 BOM/입출력: 물 진화는 `resource:clean-water`이면서 오염도 `<=0.01/100`인 실제 스택만 화재 전용 facility-buffer 목적지로 운반하고, 그 예약 lease의 정확한 정수 수량만 기존 physical Sink pending receipt로 소비해 공용 화재 상태 반영 뒤 ACK한다. 최대 강도0.8은2개, 강도0.5 이하는1개가 완전 진화 가능한 `0.5 intensity/unit`; 가상 물·환급·부산물은 없다.
+7. Direct WU/EWU: 장비 없는 초기 진화 효율은 `0.02 intensity/WU`이고 시작 강도0.25 완전 진화는12.5WU를 올림한13WU다. 실제 작업 시작 강도를 재검증해 필요 WU를 올림하므로 임계 강도0.35에서는18WU다. 물 투입은 실제 운반 노동 뒤2.5WU, 직접 대응 열기 노출은 `4 exposure/WU*작업 시작 강도*보호 배율`이다. 초기13WU·강도0.25는 기본 보호에서13노출, 임계18WU·강도0.35는25.2노출로 기존 burden 경계25를 넘겨 느리고 위험하지만 즉시 치명적이지 않다. 이는 I16 1회 운전10WU보다 느리고 시설 전체 수리74WU보다 작으며, 물 운반/예약 노동과 손실 EWU는 기존 물리·작업 권위가 계산한다.
+8. 시간: 공용 진행 tick5게임초. I16 화재는 연료1.0, tick당 `0.1*intensity` 연료 소모, tick당0.05 성장, 최대0.8로 무대응 시 약17tick=85게임초(0.47게임일) 지속한다. 프레임/직원 수/메뉴 열람은 판정 수를 늘리지 않는다.
+9. 공간: 현재 실제 건물의 저장된 anchor 위치를 Fire 셀로 투영한다. 확산은 같은 층의 실제 footprint 좌우 인접 셀에 직접 닿은, Spread 적격 프로필 건물만 대상으로 하므로 벽/문 셀을 건너뛰거나 전역 스캔하지 않는다.
+10. 전력/용수/연료/기반비용: I16 수요7/s·연결16/s, 기존 Heat 증가18계수·Fault 증가0.02계수·Heat75 고장 시작·차단기 상태를 그대로 읽는다. 별도 전력/물 저장소를 복제하지 않으며 실제 연결 해제 또는 실제 망 차단만 전기 격리로 인정한다.
+11. 위험/피해/회복: 피해는 `12 structural damage/tick*intensity`, 총 연료 완전 연소 시 약120 구조 피해다. I16 내구148은 기존 수리74WU×2HP/WU에서 유도해 단일 완전 연소는 약81% 손상, 재발화/기존 손상은 파괴 가능하며 기존 수리/파괴 회복을 사용한다.
+12. 확산/대안/사회비용: 강도0.55부터 인접 적격 대상마다 tick당10% 확산 판정, 전달 강도 배율0.5다. 이 최소 절편에서는 I16만 작성하므로 배치 분리가 실질 대안이다. 새 사회 벌점·질식·영구 디버프는 없다.
+13. 악용 방지: 같은 전력망은 같은 창에 노드 수와 무관하게 stable-hash 판정1회만 갖는다. 원인 fingerprint는 창/망/고정 임계값/15%/표본으로 안정화하고, 공용 cause 기록·damage step operation ID·suppression operation ID·물 receipt가 재추첨과 중복 발화/피해/소비를 차단한다.
+14. 명령/관찰/흔적: `IPowerInfrastructureQuery.Networks`→전기 생산자→`IEnvironmentalFireCommand.TryIgnite`→공용 tick→기존 구조 내구 피해. 활성 셀은 `WorldHazardFlags.Fire` overlay와 Red settlement incident, 기존 `ThreatMitigation` 작업 표식으로 파생한다. 기존 alarm response→작업 선택/경로/접근→WU/열기 노출→초기 진화 또는 화재 목적지 exact clean-water 운반/예약→`TryApplySuppression`→Sink/ACK로 이어지며 원인/producer/evidence/총 피해·노동·물은 fire snapshot/history에 남긴다. 알림은 최초·강도0.35 초과·작성된 확산 임계0.55 도달·진화 완료 전이에만 낸다.
+15. 저장/소유권: current-format fire save v1이 활성 불, 고정 tick accumulator, 원인 처리, suppression phase/receipt/ACK를 소유한다. 전력/건물/물리 품목 뒤 staged restore하고 미ACK 물 receipt를 양방향 대조한다. 과거 형식 migration은 없다.
+16. 실패/검증/감사: 비통전·정상 부하·Heat/Fault 미달·비적격 목표·차단 전 소화·실제 건물 접근 셀/경로 없음·오염 물·원격/타 목적지 물·물 종류/수량 불일치·ACK 보류·저장 중복을 fail-loud 또는 typed failure로 유지한다. 경로 전 실패는 품목을 잡지 않고, 취소/사망은 미커밋 exact lease를 해제하며 기존 haul carry recovery를 사용한다. 진화 후 재시도는 물을 이중 소비하지 않는다. 순수 컴파일/집중 fixture와 이후 Unity 대표 발생/비발생·복원 검증 대상이다.
+17. 상태/근거: **승인 범위 수치 배정 및 구현 착수**. 값은 기존 180초/게임일, I16 7/s·16/s·운전10WU·수리74WU, 구조 수리2HP/WU, 기존 긴급 완화 urgency88, 환경 노출 경계25/50/75, 물리 스택 오염 비교 허용치0.01, 전력 Heat/Fault 식과 실제 clean-water ID를 직접 대조해 보수적으로 정했다. 전용 장비/연구/전역 정비·습도·과거 저장 이관은 추가하지 않는다.
+18. 2026-09-13 실제 점화 blocker 보정: L01 대형보관선반(id1050)은 FeedSelfHeating을 포함한 기존 `acceptedSources:50`의 유일한 실제 창고(2×1, lumber4+iron2, 건설199WU/수리16WU, 저장60/25kg)였으나 구조 내구 작성 부재로 target adapter의 `CanBurn=false`였다. 기존 구조 수리율2HP/WU를 재사용해 maxHP32(기존 수리16WU와 일치), 목재+철 선반의 비방벽 강도8(I16 석재+철 도가니12보다 낮음), breachable을 추가한다. 화재 profile·BOM·WU·EWU·시간·공간·전력/물·저장·원인/소화/확산 계약과 결정론 규칙은 변경0이며, 실제 사료→L01→기존 fire→구조 피해/저장 경로의 authored target 적격성만 회복한다. 기존 수리/파괴가 손실·회복을 소유하고 새 보상·순환·연구/시설 대안은 없으며, source YAML/bit flag/ability-runtime 정적 검토만 수행했으므로 Unity 실제 점화·피해·저장 검증 전 상태는 **READY**다.
+19. 2026-09-13 반응창 교차검토 보정: 18번의 L01 32HP/2HP-WU 배정은 이 행으로 대체한다. 공용 Step은 5게임초마다 **현재** 강도로 피해 후 0.05를 성장시키므로 초기0.25는 t=5에3(=12×0.25) 피해 뒤0.30이 된다. `damagePerTick:12`·화재 profile은 그대로 두고 maxHP112, repair7HP/WU로 재배정한다. 누적 피해는 t=65 85.2, t=70 94.8, t=75 104.4, t=80 114여서 L01은 t=80에 파괴된다. 관측 17WU≈69.5초(≈4.09초/WU)보다 10.5초, 인접 2초 접근+15WU≈61.3초보다 16.7초의 여유가 있어 초기0.25/첫 tick 뒤0.30의 실제 초기 진화13~15WU를 완료할 최소 창을 보장한다. 기존 수리16WU는 16×7=112HP로 완전 수리와 일치하며, 목재+철 선반은 I16의148HP 석재+철 도가니보다 낮고 초기 화재 연료가 다 타기 전 파괴되므로 무적화하지 않는다. BOM·건설/수리 WU·저장·화재 원인/피해/소화·시간/공간·전력/물·저장 권위·보상/순환 규칙 변경0이고 기존 수리/파괴 경로만 사용한다. source 산식/YAML 정적 검토만 수행했으므로 Unity 실제 접근·진화·저장 검증 전 상태는 **READY**다.
+20. 2026-09-13 최종 수직 절편 검증/수치 정정: L01 작성 권위의 실제 `growthPerTick`은 전역 예시값0.05가 아니라 `0.001/tick`이며, 5게임초 tick 기준 강도 성장률은0.0002/초다. 초기 강도0.25, 초기 진화 상한0.35, `0.02 intensity/WU`, L01 maxHP112·repair7HP/WU와 기존 BOM(lumber4+iron2)·건설199WU·수리16WU·저장60/25kg는 유지한다. 실제 Play에서 직원 AI가 사일리지1개를 Loose→Carried→Stored로 옮기고, 사건이 그 exact lot의 수량·질량을 Sink/ACK한 뒤 구조와 같은 셀 인체에 각각 기존 피해 권위로 반영했다. 작은 불은 실제 ThreatMitigation 작업으로 물 없이 진화했고, 별도 강도0.4 큰불은 `resource:clean-water`1개를 전용 목적지로 요청해 Loose→Carried→FacilityBuffer 뒤 한 번만 Sink하고 종료했다. 비상 게이트는 현재 활성 화재 물 claim의 exact 목적지만 예외적으로 운반 시작을 허용하며 다른 일반 화물을 열지 않고, 대피는 일반 주민만 방으로 이동시킨 뒤 화재 종료와 함께 해제한다. 새 시설·장비·BOM·질량·가격·EWU·보상·저장 필드는 추가하지 않았다. `fire-01-environmental-fire-focused.txt` SHA256 `07899B41980309C944B278F9BD32D162501A5EB3A0E21437AC54B4482EC03552`와 `fire-01-seasonal-response-live.txt` SHA256 `150E7ED3B764403E3D6C1EF4949AD2BE17BB30E4E452CDCF888FEB2D50CA5A75`, 주 Unity 최신 소스 컴파일 오류0으로 FIRE-01A~D 최소 기능을 닫는다. 이는 자연 발생률·6인 장기 소방 부담·모든 생산자 자연 발생 빈도의 실전 밸런스 완료 증거가 아니며 해당 값은 후속 실측에서 보정한다.
+
+### 둥지철을 해빙 표류 화물 회수 사건으로 교체 (2026-09-10, 문서만)
+
+1. 기록/정의: `balance:wim:009:spring-drift-cargo`. 새 정의 예정 `seasonal:spring-drift-cargo`, 기존 `seasonal:spring-nesting-season`/`nests`를 대체. 실행 계약은 WIM 계획 P06/WIM-009.
+2. 종류/시대/역할: 봄 계절 사건. 초기에도 기존 물리 운반으로 참여할 수 있는 소규모 물자 회수 기회이며 신규 연구·시설을 필수로 추가하지 않는다.
+3. Before: 둥지철 설명과 Threat nests amount2, 사건3~5일. 실제 둥지/효과 연결 미정.
+4. After 목표: 던전 외곽에 기존 목재·천·보존식품 등의 실물 화물 출현. 무엇부터 얼마나 회수할지 선택. 동물 둥지·번식·시설 생산량 감소는 제외한다.
+5. 생산자/원인/결합: 봄 사건의 실제 합법 외곽 위치→한 번 확정한 화물 생성→기존 운반/창고 입고→확보 또는 미회수 유실. 기존 해빙수 사건의 추가 피해/지형 변화는 복제하지 않는다.
+6. 물리 BOM/산출: 기존 카탈로그의 실제 아이템/수량으로 생성, 별도 상자 품목이나 추상 화물 재고 없음. 품목 ID·수량·합계kg는 작성 잔여. 실제 회수 물품 외 추가 골드/완료 보상 없음.
+7. Direct WU: 실제 픽업·이동·운반·입고 노동. 기존 운반량/속도를 사용하고 새 회수 미니게임이나 가짜 비용 없음.
+8. EWU: 공급 화물의 가치와 회수 노동/시간을 기존 원장에서 대조할 잔여. 희귀 자원 무료 대량 공급·매일 보충·기존 사건 보상 이중 지급 금지.
+9. 시간: 기존 기간3~5게임일을 초기 회수 기한으로 배정. 기한은 사건 시작 시 확정해 저장하고 재시작/복원으로 연장하거나 물량을 재굴리지 않는다.
+10. 공간/기반 비용: 실제 접근 가능한 외곽 위치와 저장 gram 여력 필요. 운반 중/입고한 물건에 정상 질량·저장 규칙 적용. 신규 전력/용수/연료/홍수 물리/부력/지형 확장 없음.
+11. 위험/실패/회복: 기한 후 미회수 외곽 물량만 출처가 명확한 월드 이탈/손실로 처리. 실제 픽업한 수량은 이후 기절/취소 드롭도 기존 회수 경로로 보존. 운반 예약만으로 영구 확보되지 않으며 만료와 픽업은 중복 커밋하지 않는다.
+12. 사회/대안/주의력: 새 사회 벌점·소유자 반환 퀘스트 없음. 전량/일부 회수 또는 방치 가능. 생산·생존 업무와 운반 인력 배분을 선택하고 노티스에서 위치·물량/중량·남은 시간을 확인한다.
+13. 악용 방지: 부분 픽업·분할/병합 시 확보 상태가 물량 경계를 넘어 전파되지 않음. 회수 후 재드롭/저장 재개로 새 보상/새 화물 생성 없음. 만료 시 같은 좌표의 일반 물건이나 확보 화물까지 일괄 삭제하지 않는다.
+14. 명령/흔적: 기존 물리 생성·이전·입고와 명시적 유실 처분 사용. 생성/확보/유실 수량을 남기고 실제 창고/운반 재고가 결과다. 승인 자체나 운반 지시 발행만으로 완료/보상 처리하지 않는다.
+15. 저장/소유권: 기존 사건은 확정 화물 계획·기한·생성 기록, 물리 lot/출처는 실제 수량·소유/확보 경계를 관리. 파생 UI를 별도 재고로 저장하지 않는다. 과거 세이브 마이그레이션 제외.
+16. 작성/감사/검증: 기존 builder·에셋·카탈로그·설명/참조에서 둥지철을 새 정의로 교체할 잔여. 실제 출현→운반→입고, 부분 픽업/만료, 확보 후 중단, 현재 저장 재개 중복0의 focused 검증을 기존 검사에 묶는다. 승인된 사건 교체를 둥지 시스템 완료로 계수하지 않는다.
+17. 상태/근거: **밸런스 기준 배정**은 기능 방향·초기3~5일에 한정하며 품목/수량/kg/EWU·실전 보정은 미완료. 코드/에셋/Unity 실행0, WIM30/47 유지. 기존 `seasonal_spring-nesting-season.asset`와 `V20SocietyWorldContentAssetBuilder`의 봄7개 사건 원본을 확인했고, 동물 방문·종자상과 다른 회수 기회로 사용자 승인했다. 앞선 `seasonal:spring-nesting-season`/content query는 fresh, 생성 행 `events-campaign/seasonal-world-event.csv:11`, content digest `59a291bfb242e59597785fe26aaba0c59c70d36dafc1914f6c6d0153d5f84341`, system digest `949c4b98e59059d8c0a1528eb0dccf072be814a93b24584768cde5856d63b552`. 이번 승인 기록을 위해 인덱스/원본/Unity를 재생성·실행하지 않았다.
+18. 2026-09-13 구현 갱신: 실제 작성은 목재6개, 단위1.2kg/합계7.2kg, 기존 원가5/합계30, 기한3~5일이다. 합법 외곽 셀과 원본 physical stack을 동결하고 기존 Loose 운반·입고를 사용하며, 만료는 출처 위치의 미확보 원본 lot만 typed Sink한다. 픽업·운반·recovery drop·입고 화물은 사건 만료로 삭제하지 않는다. save v4가 계획/원본 ID/확보·만료량/처분 receipt·ACK를 소유한다. 최신 컴파일 오류0 및 `Wim009SeasonalDriftCargoDebugScenarios.Run()` 계약 PASS, production SHA256 `FCE3733F7929CB29810149A3BA1142AF0D3EBE04AAEBAE2BC4DD76E6E781746A`. 자연 계절 발생·실제 AI 회수 Play와 전체 WIM-009는 아직 완료 증거가 아니다.
+
+### 마나 번개·심층의 메아리 방향 확정 (2026-09-10, 2026-09-13 구현 갱신)
+
+1. 기록/정의: `balance:wim:009:mana-lightning-and-deep-echo`. `seasonal:summer-mana-lightning`은 `mana-surge` 추상 효과를 제거한 시설 위험+결정 원정, `seasonal:winter-deep-echo`는 `truth-guardian` 추상 효과와 희귀 동물 문구를 제거한 선택형 특별 원정이다. 실행 권위는 WIM 계획 P06/WIM-009이며 기존 P11 원정/FIRE-01 공개 명령을 재사용한다.
+2. 종류/시대/역할: 여름1~3일의 전기 제련 설비 관리와 중반 결정 수급 기회, 겨울1~2일의 후반 진실 수호자 원정 제안이다. 각각 인간 침입 분기 격파1/4 이상에서만 발생 자격을 얻으며 자동 침입·강제 출발은 없다.
+3. Before: 두 사건 모두 `Threat amount5`였고 실제 소비자·대상·결과가 없었다. 마나 장치 이름/과충전 설명과 수호자 이동·희귀 동물 흔적 문구만 있었으며 즉시 성공 또는 실물 산출 권위는 없었다.
+4. After: 마나 번개는 authored building definition ID `9825`만 대상으로 실제 활성 사용(`CurrentUserCount>0`)·통전·비차단·수요/공급·Heat80/Fault4를 모두 만족할 때만 30초 창당 추가 전기 발화 기회8%, 초기 강도0.2를 FIRE-01에 제출한다. 별도로 `ritual_site`, 거리3~5, 위험45/권장전투력42/인원2/캠페인2/`encounter:09`의 결정 원정을 제안한다. 심층의 메아리는 `archive`, 거리6~8, 위험96/권장전투력84/인원4/캠페인6/`encounter:31`을 제안하며 봉인수호자·무효감시자만 사용하고 희귀 동물/강제 침입은 없다.
+5. 발생 생산자/결합: 동결된 활성 계절 occurrence→(마나만) 실제 전력 network snapshot과 live building ID/사용자 수→occurrence/network/window 결정론 표본→공용 `IEnvironmentalFireCommand.TryIgnite(ElectricalFault)` 순이다. 원정은 occurrence→`seasonal-expedition:{occurrenceId}` 실제 Revealed world site 1개→플레이어 선택/실제 출발 커밋→Engaged와 만료 해제→동결 target/조우→실제 전투·귀환→성공에만 실물 sink 순이며 별도 추상 보상은 없다.
+6. 물리 BOM/입출력: 신규 출발 보급·연료·품목 없음, 기존 원정 보급/장비/소모품과 귀환 화물 권위를 그대로 사용한다. 마나 번개 authored 산출은 `resource:mana-crystal` 3개(0.35kg×3=1.05kg, 가격172×3=516), 심층은 `record:arcane-index` 1개(1.3kg,49)+마나 결정2개(0.7kg,344)=2.0kg/393이다. 각 확정 조우의 기존 `offense:unappraised-loot` 1개(0.05kg/19)는 조우 전리품으로 별도 표시되며 결정/색인과 중복 생성하지 않는다.
+7. Direct WU: 새 정액 WU나 마나 충전 작업은 없다. 시설은 계속 가동해 기존 제련 노동/산출을 유지하면서 위험을 받거나 정지·차단해 그 생산 기회 비용을 부담한다. 원정은 기존 실제 집결·보급 운반·이동·전투·귀환과 부상/수복 노동을 사용하며 authored target duration은 마나110초, 심층180초다.
+8. EWU: 현행 v27 acquisition EWU로 마나 결정은 513,300 milli-EWU/개이므로 마나 특별 산출 1,539,900 milli-EWU, 심층 특별 산출은 색인144,634+결정1,026,600=1,171,234 milli-EWU다. 각 조우 전리품55,007 milli-EWU는 별도 기존 보상이며 카드 열람·제안 만료·패배에 지급하지 않는다. 전투/부상/보급의 실제 비용이 보상 접근 비용이고 표시 수치만으로 성공을 만들지 않는다.
+9. 시간: 마나 번개 기간1~3일, 심층 제안 창1~2일을 유지한다. world site 만료일은 occurrence deadline+1로 저장해 포함 마지막 날에도 출발할 수 있고, 실제 출발이 커밋되면 `expiresDay=int.MaxValue`가 되어 제안 종료 뒤에도 확정 조우/보상으로 완료 가능하다. 무시에는 비용이 없고 미출발 제안만 만료한다.
+10. 공간/전력/물/연료: 마나 설비는 definition ID9825, 실제 live/active building, 활성 사용자, 연결 enabled, node/network breaker 비차단, `Powered`, 실제 수요>0·공급률>0·가용 source>0의 전력 권위를 모두 요구한다. 한 network/window에서 stable building ID 정렬의 첫 적격 설비 하나만 판정하며 이름 매칭은 없다. 정지/사용 종료 또는 전원 차단으로 예방하고 발화 뒤 물·노동·공간·연료/피해는 FIRE-01에 맡긴다. 원정 site는 기존 지도에서 차단되지 않고 비점유인 authored 거리 셀 하나를 occurrence hash로 결정한다.
+11. 위험/실패/회복: 마나 기여는 조건이 계속 참일 때 network당 30초마다8%이며 게임 하루180초 기준6회, 최소 하루 누적 발화 제출 가능성은 `1-0.92^6≈39.36%`다. 창 번호는 occurrence 시작일의 시작 시각을 0으로 삼고 0번 창은 제외하므로 생성 프레임에는 추첨하지 않으며 첫 추첨은 온전한30초 뒤에만 가능하다. 공용 FIRE가 대상·cause를 검증한다. 사건 종료는 추가 기여만 중단하고 기존 Heat/Fault/불/손상을 원복하지 않는다. 원정 패배/후퇴는 기존 실패·부상·귀환을 유지하고 특별 보상0이며 성공 플래그를 조작하지 않는다.
+12. 대안/사회 비용: 마나 설비는 정지·전원 차단·정비 후 운전 또는 위험 감수, 두 원정은 출발 또는 무비용 무시가 가능하다. 새 사회 벌점·야생동물 추적·보스 AI·침입은 없고 기존 조우/원정 실패 규칙만 쓴다.
+13. 지배 전략/악용: 위험 cause는 occurrence/network/occurrence-relative 30초 window로 고정되고 한 network/window 한 대상만 제출되어 노드 수만큼 즉시 연쇄 발화하지 않는다. 저장 복귀에도 같은 창 번호와 FIRE cause receipt를 사용해 재추첨·중복을 차단한다. 특별 site/target/조우/실물 보상은 occurrence-bound로 한 번 동결되며 이미 Engaged/Resolved인 site는 재출발하지 않고 활성 run↔site join을 검증한다. 제안 재열람·저장 재개·여러 파티로 보상 재굴림/중복 지급하지 않는다.
+14. 실행/관찰/흔적: 마나 위험 evidence는 building definition ID, 실제 Heat/Fault, 확률/표본과 occurrence를 FIRE 명령에 남긴다. 특별 site 상세은 출발 전에 실제 지역/거리, 출발 deadline, 위험도, 권장 전투력, 필요 인원, 확정 조우, 성공 귀환 실물 보상 종류·수량, 별도 조우 전리품, 무비용 무시를 표시하고 일반 유료 intel을 요구하지 않는다. 실제 조우/개별 적·결과·실물 reward receipt·부상/귀환이 기존 원정 기록에 남는다.
+15. 저장 권위: current-format만 지원한다. seasonal save v5가 occurrence별 authored 위험/원정 프로필을 동결하고, offense world save v10이 occurrence-bound site/offer와 상태를, expedition/run journey save v5가 동결 target/조우/보상과 진행을, offense aggregate envelope v6가 이들을 함께 preflight/publish한다. Revealed seasonal site는 foundation 현재일이 deadline 이하이고 정확한 활성 occurrence·site ID·offer·createdDay·`expiresDay=deadline+1`에 결합돼야 하며, 출발 커밋 직전에도 현재일을 재검증한다. 출발은 실제 departure 승인 뒤 site를 Engaged로 바꾸고 즉시 active run을 삽입하며 capture가 occurrence/encounter/reward run↔site join을 검증한다. 전체 restore는 모든 section preflight 뒤 publish하므로 current-format join은 원자적이며 과거 형식 migration은 없다.
+16. 작성/감사/검증: 두 authored asset/builder·동결 계약·전력/FIRE adapter·world projection/상세 UI·출발/조우/실물 보상/결과·save join을 작성했다. focused `Wim009ArcaneSeasonalDebugScenarios`는 생성 즉시/30초 미만 추첨0과 첫 완전 창1회·복귀 중복0, stale/tampered Revealed restore 거절과 deadline 다음 날 launch 거절, 1~3/1~2일, ID9825+활성 사용/전력/Heat/Fault+공용 ElectricalFault, `encounter:09/31`, 물리 sink1회, deep-echo wildlife0, JSON 동결 round-trip, schema5/10/5/6를 검사한다. FIRE-owned 파일·WIM plan/progress·Unity/KB/generator는 변경/실행하지 않는다.
+17. 상태/근거: **작성 구현 완료, Unity 실행 검증 보류**. 2026-09-13 소스 감사에서 두 asset의 start/daily/end 추상 효과0, encounter09/31의 기존 전리품 각1과 enemy 편성, 아이템 kg/가격/EWU, adapter의 ID/실상태 조건과 공용 FIRE 호출, UI의 실제 사전 표시/무비용 무시, 성공 전용 보상 및 current-format save join을 확인했다. 환경에 .NET SDK가 없어 독립 컴파일을 실행하지 못했고 지시상 Unity를 실행하지 않았으므로 PlayMode/실전 수치 보정과 전체 WIM-009 완료 증거로 세지 않는다.
+
+### 축제 개최 선택·준비 마감·현장 안전 중단 (2026-09-10, 문서만)
+
+1. 기록/정의: `balance:wim:041:opt-in-preparation-and-safety-stop`. 기존 축제 공통 운영 정책, 실행 계획 P08/WIM-041. 새 축제/시설 정의를 추가하지 않는다.
+2. 시대/역할: 현재 문화·개최 날짜·시설/참가 조건 유지. 플레이어가 실제 물자·인력·공간을 보고 개최하거나 건너뛴다.
+3. Before → After: 개최 선택/준비 마감/현장 중단 정책 미확정 → 플레이어 선택 후 준비, 마감 미충족 시 이번 개최 취소, 현장 직접 위험이면 중단·대피 확정.
+4. 생산자/시작: 기존 달력/알림이 준비 기회를 안내하되 개최 선택만이 실제 준비/배송 작업을 시작한다. 날짜 도래나 UI 열람만으로 자동 소비·참석·성공을 만들지 않는다.
+5. 플레이 결정/결합: 개최/건너뛰기→실제 준비/물류/공간→참석과 필수 업무 유지→위험에 따른 이탈/중단→실제 결과. 기존25% 최소 참석·참여율 개인 혜택 및 전역 결과 조건 유지.
+6. 물리 BOM: 기존 축제 물품/수량 유지. 건너뛰면 무소비, 준비 취소 시 미사용 물품은 현재 소유/위치에서 보존·정상 회수. 이미 실제 소비한 물품은 환급하지 않는다.
+7. Direct WU: 실제 준비·배송·참가의 노동/생산 기회 비용. 준비 WU·시간은 위임된 수치 작성 잔여이며 이미 수행한 준비 노동을 취소로 되돌리지 않는다.
+8. EWU/가치: 기존 행사 보상/재료 가치와 실제 준비/참가 부담을 대조할 잔여. 취소/실패를 정상 성공으로 바꾸거나 별도 보상을 만들지 않는다.
+9. 시간: 준비 안내→확정 개최 마감→본 행사 예정 시간T. 마감 미충족이면 취소, 무기한 대기/다음 날 무통지 개최 없음. 정확한 안내/마감/행사 시간은 기존 하루 길이·인력을 기준으로 작성한다.
+10. 공간/유틸리티: 일반 축제 기존 공용 공간, 특수 축제 적격 시설 유지. 실제 정원/출입 경로 사용. 새 행사 건물·전용 대피 AI·독립 물/전력 소비 권위 없음.
+11. 위험/대응: 다른 곳 사고는 필요한 담당자만 이탈. 행사 장소의 실제 화재·적 접근/전투·안전한 출입 불가는 전체 중단/기존 방 기반 대피. 원격 경보나 잠깐의 예약 대기만으로 전체 취소하지 않는다.
+12. 사회/실패 비용: 건너뛰기에 새 불참 벌점 없음. 준비 미완료 취소와 시작 후 실패/중단을 구분하고 시작 후 기존 결과 규칙은 유지. 이미 쓴 물품/노동은 남는다.
+13. 악용 방지: 같은 회차 재클릭·저장 재개로 준비/보상/환급 중복0. 중단해도 분모T를 줄이지 않으며 위험 해소만으로 같은 행사를 자동 재시작하지 않는다.
+14. 결과/흔적: 실제 누적 참석·소비·취소/중단 사유를 보존. 해당 결과가 허용하는 개인 혜택에만 참여율 적용. 원격 긴급업무 이탈 인원은 그 시간 동안 참가로 세지 않는다.
+15. 저장/명령: 기존 행사 권위가 회차별 선택·기한·진행·결과를 관리하고 물류·소비·대피는 기존 도메인 명령과 참조로 연결. UI 별도 개최 권위/복제 재고나 과거 세이브 마이그레이션 없음.
+16. 감사/집중 검증: 개최/건너뛰기, 준비 완료/기한 취소, 미사용 보존/소비 유지, 원격 이탈/현장 중단 및 필요한 저장·중복 경계를 기존041 검사에 통합. 이전 시설 join 검사는 영향이 없으면 재실행하지 않는다.
+17. 상태/증거: **정책 확정, 상세 수치 미작성**. 계획/기준서만 수정하며 코드·에셋·Unity 실행0, WIM30/47 및041 OPEN 유지. 앞선 실제 축제 작성 목록과 현재041 계약을 대조해 사용자 승인을 기록했다. 신규 소스 조사/인덱스 재생성/컴파일·PlayMode는 수행하지 않았다.
+
+### 의료 생활서비스 배송·폐기 시설 제거 승인 (2026-09-10, 문서만)
+
+1. 기록 ID: `balance:wim:062:medical-service-physical-delivery` / `balance:wim:063:retired-facility-removal`.
+2. 시대·역할: 현행 의료 생활서비스 및 현재 새 게임/상점의 시설 공급. 기존47건 밖 추가 승인2건으로 관리한다.
+3. Before: 일반 치료는 SurvivalFoodStockRuntime에서 창고 약품/기존 대체재를 즉시 Sink한다. 해독도 CharacterConsumablesApplicationAdapters의 Stored 약품 pending Sink이며 운반이 아니다. deprecated 시설은 카탈로그·상점·초기 모듈 변환 참조에 남아 있다.
+4. After: 일반 치료·해독 모두 기존 배송→시설 물리 버퍼→소비/효과 계약. 구형 시설은 현재 참조를 active 모듈 정의로 전환한 뒤 원본 및 전용 코드 제거. 방향 승인이지 구현 완료가 아니다.
+5. 물리 BOM: 치료 적격 재료·수량·포장재 계약 보존. 물품을 임의 생성/환급하지 않는다. 현행 모듈 시설의 기존 BOM을 사용하고 삭제를 대체 시설 신규 제작으로 확대하지 않는다.
+6. Direct WU: 기존 치료 작업량 유지, 실제 배송 노동이 추가 반영돼야 한다. 구형 초기 배치 전환을 추가 건설 노동 부과로 바꾸지 않는다.
+7. Embedded WU/EWU·가격: 이번 문서 수정에서 수치 변경0. 실제 배송 동선·대기·buffer 기회 비용은 구현 focused 실행에서 확인할 잔여. 치료/시설 밸런스 완료 선언 금지.
+8. 시간: 치료 도착 전 대기, 도착 후 기존 치료 시간. 창고 보유만으로 치료 완료·요금 완료 없음. 삭제/신규 게임 공급을 별도 대기 시간으로 바꾸지 않는다.
+9. 공간: 의료 시설별 기존 FacilityBuffer destination과 exact gram admission 사용. 현재 초기 배치·입구·계단/접근을 active 시설 전환 때 보존/검증한다.
+10. 전력·용수·폐기물: 기존 치료·시설 계약 유지. 포장재 반환/폐기 영수증을 배송 전환에서 우회하지 않는다.
+11. 위험: 약품 도착 전 효과 적용, 취소/파괴 시 운반 화물 삭제·복제·순간이동, 구형 GUID/ID 끊김 및 사용자 미커밋 씬 덮어쓰기.
+12. 대안: 원격 소비를 위키로 정당화하거나 새 물류를 만드는 대신 기존 배송 capability 재사용. 폐기 시설을 숨기기만 하는 대안 대신 참조 정리 후 제거를 사용자 승인.
+13. 지배 전략 방지: 병원까지 약품을 운반하지 않는 무료 동선 우회 제거. 현재 정상 미해금 시설·공유 프리팹/재질은 삭제하지 않고 새 콘텐츠를 임의 보충하지 않는다.
+14. 순환 차익 방지: 예약/배송 재시도·저장 재개에서 물품/치료 효과/요금 중복0. 삭제된 시설 kit의 재생성·암묵적 대체나 ID 재사용으로 가치 복제 금지.
+15. 실행 경로:062 서비스 후보/작업→기존 공급 주문/AI→시설 버퍼→소비/효과/UI.063 카탈로그·상점/해금/kit·현재 초기 배치·builder 참조 전환→확정 폐기 asset/meta/전용 코드 제거.
+16. 저장 권위: 기존 의료/서비스 operation과 세계 아이템/물류의 단일 소유권을 연결. 파생 재고 복사본·과거 세이브 마이그레이션 없음. 실패 시 사용자 기존 변경을 보존한다.
+17. 증거·상태: 현재 C# 직접 확인과 사용자 승인, 상세는 WIM 계획7.1/7.2 및 서비스 시설 대조2026-09-10 보충. **기획 승인·실행 검증 전**; 코드/에셋 변경·삭제·Unity 실행0. 다른 도메인 원격 소비는 조사 결과로 분리하고 전체 수정 승인을 가정하지 않는다.
+
+### 전역 유지비 제거·계절 소비·설정 전용화·행사 장소 최종 판정 (2026-09-10, 문서만)
+
+1. 기록 ID: `balance:wim:global-upkeep-removal-and-final-design-decisions`.
+2. 시대·역할: 전 시대 운영 비용, 계절 사건, 코볼트 종족 설정, 손님 요청/축제 장소.
+3. Before: 전역 일일 연료 차감과 시설 보충이 공존. 마르는 수원/연료 쟁탈은 물6/숯8 ItemConsume. 코볼트는 부품을 인접 Loose로 옮기고 금지 표시. 일부 요청/축제의 시설군 의미 미확정.
+4. After: 전역 유지비는 자원 종류 불문 제거; 실제 사용/가동 비용은 현장 소비. 마르는 수원은 실제 공급 감소, 연료 쟁탈은 수락한 납품. 코볼트 숨기기는 설정만. 장소9군은 계획7.4의 기존 시설/공간 대응 사용.
+5. 물리 BOM: 실제 생산·수리·음식·약품 등의 BOM 유지. 사건의 원격 물/숯 삭제 제거. 기존 행사/요청 물량은 현행 정의와 대조해 필요한 실제 소비·납품으로 작성한다.
+6. Direct WU: 실제 사용/가동·배송·행사 작업만 부담. 제거한 유지비를 근거 없는 추가 노동으로 보상하지 않으며 코볼트 숨기기 운반 AI는 만들지 않는다.
+7. Embedded WU/EWU·가격: 코드/수치 적용0. 전역 유지비 제거로 달라지는 운영 부담은 실제 비용과 비교할 잔여. 임금·구매·계약의 명시적 거래를 유지비로 오인해 삭제하지 않는다.
+8. 시간: 계절 사건의 현행 기간을 출발점으로 공급 감소/납품 기한을 연결. 날짜 경과만으로 유지비 차감 없음. 실제 연료 소비·사건 압력의 지속 시간은 개별 권위 사용.
+9. 공간: 기존 식당·거래 카운터·공용실·빈 침대·장비 보관/정비·전술지도탁자·깨끗한 목욕 시설을 재사용. 적격성/정원/접근 검증 및 진행 중 배정 유지. 새 전용 건물 없음.
+10. 전력·용수·폐기물: 실제 시설 가동 소비는 유지. 마르는 수원은 생산/공급을 감소시키되 저장된 물 보존. 맑은 합류제는 목욕 시설/행사 공간이며 식수 저장조에 입욕하지 않는다.
+11. 위험: 구형 연료 상태를 그대로 읽어 영구 부족/정상 처리, 사건 종료 시 실제 사용량 환급, 거래 대금 오삭제, 설정 전용 코볼트의 가짜 실물 성공 알림, 장소 이름만으로 잘못된 배정.
+12. 대안: 전역 비용을 다른 비용에 숨기기·새 전용 시설·코볼트 수색/은닉 AI 대신 실제 비용/기존 장소 재사용 및 설정 전용화를 사용자 승인.
+13. 지배 전략 방지: 시설 설치/정비/실제 연료·물·투입 비용은 유지한다. 납품 미완료/거절로 보상 없음. 전역 유지비가 사라졌다는 이유로 무연료 가동을 허용하지 않는다.
+14. 순환 차익 방지: 실제 소비/배송/보상은 기존 operation으로 중복 방지. 사건 종료는 해당 감소 효과만 제거하며 재고 환급/재굴림 없음. 코볼트로 물품을 새로 만들거나 금지 상태를 생성하지 않는다.
+15. 실행 경로: 전역 정산 제거→해당 실제 시설 상태/비용·부족 안내; 계절 producer→공급 modifier/기존 납품 요청; 종족 설명만 유지; 요청/행사 정의→적격 인스턴스 배정→물류/참석/결과.
+16. 저장 권위: 기존 시설·아이템·사건/납품·참가 상태 사용. 새 전역 유지비 상태·은닉 화물·장소 UI 권위/과거 세이브 마이그레이션 없음. 연구는 프로젝트당1명 유지하며 저장 상한 변경 없음.
+17. 증거·상태: 사용자의1~4 명시적 답변과 직전 원본 조사에 따른 **기획 판정 완료·구현/밸런스 검증 전**. 계획7.4가 최신 계약. 현재 취합한 방향 질문은 해소됐으나 수치·코드 확인·실행 증거는 미완료다. 이번 문서 수정으로 기존 완료 수를 늘리지 않는다.
+
+### WIM-004 밝기 적응 작성·연결 배치 (2026-09-10, 기준 배정)
+
+1. 기록 ID: `balance:wim:004:authored-light-adaptation`; 앞선 습도 제외 승인과 소폭 불편 상한을 구체화한다.
+2. 시대·역할: 시작부터 등장 가능한 뱀파이어/균사인의 명시된 어둠 선호. 다른 종족에 새 취약성을 부여하지 않는다.
+3. Before: 모든 기본 light40–100/sensitivity1은 미소비. 기존 정밀 작업 저조도 VisualStrain만 동작했다.
+4. After: 명시적 enabled 작성값, 뱀파이어0–35/균사인0–55/민감도1. 적정 범위 밖 거리÷40를0..1로 제한한 불편도, 기분−3×불편도/직접 작업속도1−0.05×불편도. disabled는 기존 규칙 그대로다.
+5. 물리 BOM: 종족 적응 자체의 BOM 없음. 개선에 쓰는 기존 광원·배치의 BOM은 변경하지 않는다.
+6. Direct WU: 새 유지 작업0. 기존 일반·정밀 작업의 환경 속도 조회에서만 신규 기여를 적용하며 별도 비용을 중복 차감하지 않는다.
+7. Embedded WU/EWU·가격: 신규 아이템/레시피/가격0. 영향은 해당 종족의 부적합 광량에서 최대5% 직접 작업 속도 감소다.
+8. 시간: 기존 환경1초 tick과 순수 조회를 사용. 기존 누적 VisualStrain은 지우지 않고 기존 회복 규칙으로 회복한다.
+9. 공간: 현행 광원 위치/방과 actor cell 사용. 새 격자·시설·습도 공간 모델 없음.
+10. 전력·용수·폐기물: 추가 소비0; 기존 광원 가동 비용·전력 조건 그대로다.
+11. 위험: 두 환경 adapter 불일치, 광량 불편의 이중 작업 벌칙, 누적 strain 즉시 초기화, 회복 후 남는 기분 요인, 파생 상태 저장 중복을 방지한다.
+12. 대안: 어둡게 유지하거나 위치/조명을 조절한다. disabled 종족은 기존 저조도 정밀 작업 규칙을 유지한다.
+13. 지배 전략 방지: 적정 광량에서 보너스는0, 부적합 광량의 신규 기여만 상한을 가진다. 전투·회피·피해·질병 효과는 추가하지 않는다.
+14. 순환 차익 방지: 재고/보상 변환 없음. 조회/화면 재개방/저장 복원으로 효과 중첩·새 보상을 만들지 않는다.
+15. 실행 경로: species 작성값→순수 광량 규칙→live exposure 및 work preflight→일반/정밀 작업 속도·기분→실제 캐릭터 상태 UI. 신규 종족 ID별 runtime 분기 없음.
+16. 저장 권위: 기존 노출/기분 권위 보존. 즉시 밝기 적응 snapshot은 작성 종족과 현재 cell로 재계산하며 새 저장 DTO를 만들지 않는다. 기존 exposure 복원 및 UI 재조회 검증.
+17. 증거·상태: 기존 원문 Vampire/Myconid 설정과 계획004 위임 수치에 따른 **밸런스 기준 배정**. 코드/현재 소스 컴파일/실행/다중 seed 실전 인증은 아직 완료 아님. 기존 VisualStrain과 신규 광량 작업 불이익은 곱으로 중복하지 않고, 물리적 온도/공기 기여는 보존한다.
+
+2026-09-10 검증 추가: 같은 배치의 authored 경계 검사와 실제 live/predictive adapter·기분 단일 요인·작업 배율·현재 형식 exposure 복원·상태 presenter 검사가 주 Unity에서 PASS, Console0/0. `wim-004-light-adaptation-runtime.txt` SHA256 `2DDBA1461BFCF07DDC7251A0F0C88F8043839D9FAD604FC000939E921C33D561`. 통제된 field/clock/actor 검증이며 자연 AI·전체 월드 복원·다중 seed 실전 보정 증거로 확대하지 않는다.
+
+### WIM-018 실제 사육 온도와 산물 진행 (2026-09-10, 기준 배정)
+
+1. 기록 ID: `balance:wim:018:livestock-product-thermal-response`.
+2. 시대·역할: 기존 사육 동물13종의 산물 환경 조건. 새 종/시설/기후 모델은 만들지 않는다.
+3. Before: 산물 진행은 기존 사료·시설·동거 조건만 읽으며 사육 칸 온도는 미소비다. 기존 정상 산물 주기/수량과 번식 계절 증거를 보존한다.
+4. After: 실제 Penned 위치의 기존 환경 온도T와 작성 적정 범위[min,max]를 읽는다. `d=max(min-T,0,T-max)`, 산물 속도 `max(0.25,1-0.05*d)`. 적정1배, 범위 밖10°C에서0.5배,15°C 이상0.25배. 실제 온도가 같은 경우 계절은 추가 배율을 주지 않는다.
+5. 작성 범위: ember_lizard20–35°C, frost_ram−10–10°C. cave_hound/crystal_beetle/deep_goat/silk_spider/spore_elk/tunnel_mole/cave_rat/moss_boar/rune_deer/shadow_hare/shadow_wolf는5–30°C. 기존 열 배관/서리 서식 설정에 한해서만 특화한다. 신규 유산·사망·산물 삭제 없음.
+6. 물리 BOM·Direct WU: 입력/수확/운반 WU와 BOM 변경0. 생산 진행에만 배율을 적용하고 별도 노동 비용을 차감하지 않는다.
+7. Embedded WU/EWU·가격: 수량·unit mass·가격·기존 명목 주기 변경0. 부적합 온도의 단위시간 산출 저하는 이번 실행 영향으로 기록하며 경제 실전 검증은 별도다.
+8. 시간: 기존 축산 tick의 산물 진행에만 적용. 임신 진행·분뇨 시계·이미 준비된 산물은 보존한다. deep_goat 양모2/4일, silk_spider 비단2/3일, frost_ram 양모3/5일의 기존 정상 기준을 유지한다.
+9. 공간: 실제 사육 칸/기존 냉난방. 새 방별 습도나 가상 기후 입력, 추가 필수 시설 없음. 온도 조회 불가면 산물 진행을 보존하고 이유를 표시하며 정상1배로 대체하지 않는다.
+10. 전력·용수·폐기물: 기존 냉난방 가동 비용만 사용한다. 새 전역 유지비·물·분뇨 효과0.
+11. 위험: 실제 온도와 계절의 이중 감산, 전체 진행 delta에 곱해 임신/분뇨까지 변경, 저장 재개 후 진행 초기화, ready 산물 재계산을 금지한다.
+12. 대안: 적정 온도를 유지하거나 느린 산물 생산을 수용한다. 서리숫양20°C는0.5배이며 기존 냉방 범위에서 정상화할 수 있다.
+13. 지배 전략 방지: 최대1배로 과냉/과열 보너스 없음. 적정 온도 내 계절만 바뀌면 산물 속도 동일.
+14. 순환 차익 방지: 이미 준비된 산물·수량을 늘리지 않으며 온도 변경/복원으로 주기나 회수 WU를 초기화하지 않는다.
+15. 실행 경로: WildlifeSpeciesSO→immutable husbandry profile→Penned penPosition의 IEnvironmentalFieldQuery→AdvanceProducts→기존 ready/회수와 사육 패널. 종 ID별 런타임 분기 없음.
+16. 저장 권위: 기존V2 product progress/ready 및 사육 위치를 유지한다. 파생 온도 배율은 저장하지 않으며 기존 pregnancy/manure/health 권위에 새 쓰기 경로를 추가하지 않는다.
+17. 자동 감사·실전 증거: 현재는 승인 방향에 따른 초기 수치 배정. 실제 온도 경계·복구·중간 저장·ready/임신/분뇨 불변·패널 연결은 구현 후 필요한 집중 검사로 확인한다. 기존 번식 계절/출력 commit PASS는 영향이 없으면 반복하지 않는다. 밸런스 완료 또는 실전 보정 완료가 아니다.
+
+2026-09-10 검증 추가: authored13종과 독립 경계값, 실제 축산 Tick/현재 형식 복원/실제 패널의 심층염소·서리숫양 대표 온도 전이가 주 Unity에서 PASS. 같은 온도의 계절 차이0, 산물에만 배율 적용, 임신/분뇨/기존 ready 보존, 조회 무변경·온도 누락 보류/복구를 확인했다. `wim-018-product-thermal-runtime.txt` SHA256 `0ED673FF69840BF342A4F2B4CF191A9B57DE71ABEB96CABBD2514E9E1979541B`, current compile/Console0/0. 범위는 통제된 사육/field/clock이며 자연 포획·AI/전체 월드 복원/6인 생산성·경제 실전 보정은 별도다. 온도 작성은 finite/순서만 검증하며 냉난방 시설의 조절 한계를 종족 정의의 하드 제한으로 만들지 않는다.
+
+### balance:wim:002:apparel-material-thermal-composition — 2026-09-10 초기 배정
+
+1. 시대: 기존 의복/원단 해금 단계 유지.
+2. 역할: 보온·통기를 실제 추위/더위 완화에 연결. 공기 오염·방수와 구별.
+3. Before: material projector의 열 보호 live 소비0, 고정 workwear만 적용.
+4. After: 착용 원단 W/H 합계를 각각0..1로 제한하고 한 벌 전체 최대2°C 범위 확대 및15% 노출 완화. 고정 보호는 한 번 가산/곱셈.
+5. 물리 BOM: 변경 없음, 기존 착용 exact instance만 인정.
+6. Direct WU: 변경 없음.
+7. Embedded WU/EWU: 이번 연결에서 재가격/생산비 변경 없음.
+8. 시간: 기존 환경 tick/작업 예상 조회 사용, 추가 고빈도 시뮬레이션 없음.
+9. 공간: 기존 의복/보관/환복 사용, 추가 시설 없음.
+10. 전력·용수·폐기물: 신규 전역 유지비 없음; 기존 세탁·건조·수선 비용 보존.
+11. 위험: 고정 보호 중복·의복 수별 상한 중복·조회 중 상태 변경·내구도 이중 감산 금지.
+12. 대안: 온도 조절 또는 기존 고정 보호 작업복, 소재는 소폭 보완 수단.
+13. 지배 전략 방지: 전체 상한2°C/15%, 단순 겹쳐 입기로 무한 효과 불가. 방수와 마모는 별도 의복별 권위.
+14. 순환 차익 방지: 환복/조회로 상태·수량·내구 복구 없음.
+15. 실행 경로: 실제 착용→물리 Apparel 상태→projector→공유 보호 resolver→live/predictive 환경 소비.
+16. 저장 권위: 기존 physical Apparel component/착용 소유권. 파생 보호값 저장하지 않음.
+17. 자동 감사·실전 증거: 아직 수치 배정. root의 실제 resolver/live-predictive·중복·상태 변화 집중 검사 후 증거 추가. 방수/마모003 연결과 최종 영향 검증 전002/전체 밸런스 완료 아님.
+
+2026-09-10 검증 추가: shared actual resolver의 단일 보호 합성/전신 상한·현재 instance 상태·query purity·예상 fit 거절/복구 및 잘못된 물리 owner 거절 PASS. 별도 같은 주 Unity Play에서 authored 원단/projector의 Normal+Ready/band1+Wet→thermal policy 수치 연결 PASS. 보고서 `wim-002-material-protection-focused.txt` SHA256 `646AC7067C2169D06C58B536E68B85A19E57CBD8B6759CC9EC0654422A193FC7`, runtime06:50:43UTC/Editor06:53:50UTC compile, Console0/0 및 사용자5파일 보존. 테스트의 ownership/projection 일부는 통제된 입력이며 자연 환복/6인 노동·경제 실전 보정이 아니다. 방수·마모 연결은003과 함께 남아 있다.
+
+### balance:wim:003:physical-apparel-condition-and-service-thresholds — 2026-09-10 초기 배정
+
+1. 시대: 기존 의복/세탁/건조/수선 해금 유지.
+2. 역할: 실제 착용·청결·작업·비와 원단이 상태/환복에 영향을 준다.
+3. Before: 착용 상태 누적0, 어떤 오염도 자동 후보 거절; material 방수/내구/건조율 live 미연결.
+4. After: 현재 유지60/60/40, 예비 후보20/20/70의 오염/수분/내구 문턱 분리. 자세한 초기 속도/레이어/노출 공식은 실행 계획 WIM003 바로 아래 배정이 단일 수치 기록이며 중복 표를 만들지 않는다.
+5. 물리 BOM: 기존 의복과 세탁/수선 입력 그대로, 가상 예비복 없음.
+6. Direct WU: powered세탁4/손세탁12/건조24/수선8·18 보존. 신규 전역 유지비 없음.
+7. Embedded WU/EWU: 이번 상태 연결에서 가격/제작 BOM/WU 변경 없음, 최종 유지관리 노동 확인 전 실전 보정 완료 아님.
+8. 시간: 기존 환경1초 tick, 일당 속도는 기존 하루초 권위로 환산. 날짜 기반 자동 교체 금지.
+9. 공간: 기존 시설/옷장/예비복. 위 layer의 실제 점유점을 차폐로 사용하고 장신구가 전신 우의를 대체하지 않음.
+10. 전력·용수·폐기물: 기존 서비스 소비만 사용. 젖음은 운반 kg를 변경하지 않음.
+11. 위험: 작은 오염마다 환복, 내구 이중 감산, 쓰기 일부 실패, 저장 후 상태 초기화, body와외부 오염 상쇄를 금지.
+12. 대안: 청결 유지·방수/내구 원단·예비복과 기존 수동 세탁/건조/수선. 보관품에는 착용 환경 누적 없음.
+13. 지배 전략 방지: 수분/오염과 마모 회복 경로 분리, 목욕으로 옷을 정화하지 않음. 수분이 빠져도 의복 질량 이득 없음.
+14. 순환 차익 방지: 상태 업데이트는 exact instance component만, 수량/소유권 변경0. 환복/조회/복원이 상태를 회복시키지 않음.
+15. 실행 경로: 환경Step→현재 기후 kind/실제grid/작업/위생→착용 물리상태/원단→상태 commit→기존 환복/서비스 소비.
+16. 저장 권위: 기존 Items Apparel component/기존 의복 소유권/기존 environment accumulator. 새 상태 저장소·save 형식 없음.
+17. 자동 감사·실전 증거: 2026-09-10 순수 표20건과 실제 물리/의복 권위의 상태 누적·덮임/비·청결·rollback·현재 저장·자동 환복·실제 세탁/건조/수선 명령을 집중 검증했다. 원장 증거/해시는 실행 계획003 및 connectivity-manifest의 해당 배치 참조. 기후/시간/시설 준비는 통제했고 자연 AI 장기 운전은 미실행이다. 기능002/003 종료, 밸런스 기준 배정 및 focused 공식 검증 단계이며6인 유지관리/최종 통합·실전 보정은 별도다.
+
+### WIM016 수동 급수 수직 슬라이스 기준 배정 (2026-09-10)
+
+1. 기록 ID: `balance:wim:016:physical-water-refill`.
+2. 시대·역할: 기존 P23/P24 재배의 초기 급수·재배 중 직원 보충. 광량·태양등·자동 관개는 후속 승인 범위이며 이 슬라이스 통과만으로016을 닫지 않는다.
+3. Before: `ceil(DailyWater × GrowthHours/24 × WaterMultiplier × consumptionMultiplier)`를 파종 때 선납. 비/폭풍0.5도 그 시점에 동결되고 재배 중 수분 상태가 없다.
+4. After: 초기 물1개, 용량2개 상당. 재배 중 시간별 실제 수위 차감, 물1개가 시설에 도착하고 직원 급수 작업에서 commit된 뒤에만 보충. 요청 자체로 충전하지 않는다.
+5. 물리 BOM: 씨앗·물의 기존 정의/단위 유지. 반복 보충도 기존 물1개, 새 아이템·가상 재고 없음. 입력 원장·WIP·ACK를 재사용한다.
+6. Direct WU: 기존 재배/돌봄 작업의 실제 직원 실행을 연결하며 신규 WU를 추측하지 않는다. 현행 작업 계약이 급수를 표현하지 못하면 구현자가 정확한 수정면·수치를 반환한 뒤 배정한다.
+7. Embedded WU/EWU: 선납에서 실제 반복 물류/직원 노동으로 바뀐다. 최종6인 농업 비용/가격 영향은 실측 잔여이며 아직 밸런스 완료가 아니다.
+8. 시간: 시간당 차감 `DailyWater × WaterMultiplier /24`; 현재 비/폭풍이면 기존0.5를 차감률에 한 번 적용. 기본 하루 수요 대비 현재 수위의 비율을0~1로 제한해 성장 배율로 사용한다. 물0이면 정지, 기본 수요0인 정의는 물 없이 배율1이다.
+9. 공간: 기존 plot·FacilityBuffer·운반 접근칸 사용. 물 용량2는 재배 수위 단위이며 창고 gram capacity의 대체 권위가 아니다.
+10. 전력·용수·폐기물: 수동 급수에 새 전력 비용 없음. 물은 도착분만 물리 소비, 관개 설치만으로 무료 충전 금지. 기존 온도·유전체·날씨의 비광량 효과 보존.
+11. 위험: 초기 물 중복 소비, 요청/복원으로 무료 충전, ACK 실패 재시도 시 이중 보충, 수위0에서도 성장, 날씨/야간 이중 보정.
+12. 대안: 전 주기 선납이나 무조건 정기 급수 대신 현재 수분 부족을 기준으로 실제 보충. 물류 자동화는 별도 기존 관개 capability 연결로 담당한다.
+13. 지배 전략 방지: 요청 취소·작업자 교체·저장 재개로 물/수위가 늘지 않는다. 초기 물1은 필요량 전부 면제가 아니며 이후 작물별 차감률을 계속 지불한다.
+14. 순환 차익 방지: 보충 operation/phase와 실제 소비 receipt가 exact-once를 보장. 완료되지 않은 배송은 수위 증가0.
+15. 실행 경로: CropPlot 후보/작업→기존 물류 요청/실물 haul→plot FacilityBuffer→직원 작업→WIP commit/ACK→수위·성장·UI.
+16. 저장 권위: 기존 crop plot aggregate에 수위/용량/refill phase, 기존 `economy.crop-plots` current-format 계약 개정. 새 save section·과거 형식 migration·복원 fallback 없음.
+17. 검증: 현재 소스 계약 조사 완료, 구현·main compile·실제 급수·낮은 수위/정지/회복·대표 중간 저장/ACK 경계는 미실행. 상태는 **밸런스 기준 배정**이다.
+
+2026-09-10 같은 기록의 작성값/검증 보충(앞의 배정 시점 기록은 보존): P23/P24의 기존 `operateWorkRequired=10`을 보충1회 Direct WU로 사용하며 임의 새 작성값을 만들지 않았다. 초기 물1/용량2·시간 차감/수분 성장률·입력 WIP 소유권을 구현했다. 최신 main compile/Console0/0, 수분12표/복원 가드17표 및 실제 item gateway 통제 서비스의 배송·partial5/10WU 무회복/무소비→runtime DTO 재개→완료1소비/1회복/ACK·중복 거절을 통과했다. 증거 `Artifacts/QA/wim-implementation/wim-016-water-refill-focused.txt`. 가드 검사는 합성 candidate, 왕복은 runtime DTO이며 actual save-section/whole-world staging 증거가 아니다. 자연 시간 감소·직원 AI·관개/빛·6인 노동/가격 실측은 남아 있다. 기능 일부 검증이며 **밸런스 기준 배정** 상태를 유지한다.
+
+### WIM016 수동 급수 반복 노동 재배정 (2026-09-12)
+
+1. 기록 ID: `balance:wim:016:manual-refill-recurring-rebalance`.
+2. 시대·역할: P23 야외 경작지와 P24 실내 재배조의 직원 수동 보충 급수. 작물 자동 휴경·재고 연동을 새로 만들지 않고 현재 농지의 연속 파종·성장·수확 운영을 기준으로 한다.
+3. Before: 두 시설이 공통 `BuildingWorkAmountAbility.operateWorkRequired=10 WU`를 그대로 사용했다. 기존 6인 원장의 반복 노동 `85.568 WU/일`은 이 신규 보충 작업을 제외했으므로, 황혼곡 3 plot의 물 `1.05/일`을 더하면 실제 후보는 `96.068 WU/일`, 유효 노동270 대비 `35.6%`다.
+4. After: P23/P24의 보충 급수만 `1 WU/물 1단위`로 분리한다. 시설 공통 기본값과 다른 시설의 운영 WU는 변경하지 않는다. 6인 수동 급수는 장기 평균 `1.05 WU/일`, 총 반복 노동 `86.618 WU/일`, 유효 노동270 대비 올림 `32.1%`다.
+5. 물리 BOM·입력·출력: 보충1회마다 exact `resource:clean-water` 1개를 기존 FacilityBuffer로 운반·소비해 수분을 정확히1만 올린다. 초기 물1·수분 용량2·작물 종자/수확량·물병 tare 계약은 변경하지 않는다.
+6. Direct WU: 보충1회 `10→1 WU`. 황혼곡 `dailyWater=0.35`, P23 배율1에서 plot당 평균 `0.35 WU/일`, 3 plot은 `1.05 WU/일`이다. 파종3·수확6·곡죽28/6개·정수10/8개는 유지한다.
+7. Embedded WU/EWU: 물1의 생산·포장·운반 EWU는 그대로 지불하고 직원이 물을 붓는 직접 노동만 교정한다. 입력 Ceil·산출 Floor·SCC 규칙은 불변이며 최종 가격/EWU 재생성 전에는 전체 경제 완료로 승격하지 않는다.
+8. 시간·생산량: 현재 농지는 저장 목표에 따른 자동 휴지 권위가 없으므로 3 plot 상시 가동을 계산한다. 6인 음식은 demand300/gross target375/net target330에 대해 gross420/net399 nutrition/일을 유지한다. 현재 곡죽의 `cleanWaterPerCycle=3.4`를 사용해 음용6.924+작물1.05+조리6.073=`14.047 물/일`이며, 구 기준의 조리물0.25·총8.421을 혼용하지 않는다.
+9. 공간·저장: P23 3개, 기존 실제 footprint/접근칸, 7일 원곡60·즉시 식사12·깨끗한 물99와 저장77,700g을 유지한다. WU 감소를 이유로 plot·저장·통로·30% headroom 비용을 면제하지 않는다.
+10. 전력·용수·폐기물: 수동 급수는 전력0이며 깨끗한 물은 실제 물리 debit이다. RF02/I08 자동 관개는 같은 수분 수요를 유한망에서 공급해 직접 급수 WU만0으로 만들고 물 소비·망 투자·고갈은 유지한다. 곡죽의 현재 공정수·폐수 계약은 변경하지 않는다.
+11. 위험·실패·회복: 배송만으로 수분 증가0, 작업 완료 전 물 소비0, 취소·복원·ACK 재시도로 중복 debit/credit0을 유지한다. 자동 관개와 수동 owner의 동시 공급, 물 부족 중 숨은 성장, 수동1 WU를 무료 즉시 충전으로 처리하는 구현은 실패다.
+12. 기존 대안과의 장단점: `10 WU` 유지는 물 붓기 한 번이 파종+수확9보다 비싸고 새 노동을 포함하면 정상 생존 반복 노동35% 상한을 넘는다. 농지 재파종을 MaintainStock에 연결하는 안은 새 UI·저장·휴경 정책이 필요해 현재 범위를 넓히므로 채택하지 않는다. 출력·영양·수확량을 올려 비용을 숨기는 안도 제외한다.
+13. 지배 전략 방지: 자동 관개는 물을 무료 생성하지 않고 수동 직접 WU만 절약한다. 수동 급수1 WU는 물 생산·운반·작업 전환을 제거하지 않으며 정상 공급에서 관개가 무의미해지지 않도록 유한망·다수 plot의 물류 편익을 유지한다.
+14. 순환 차익 방지: 급수는 물리 물을 수분 상태로 이전하는 Sink/Transfer 경계이며 역변환·물 회수 출력이 없다. operation/commit/ACK exact-once와 질량 원장의 용기 반환 계약은 기존 권위를 따른다.
+15. 실행 경로: `CropPlotRuntime` 부족 판정→기존 물류 요청→carried custody→plot FacilityBuffer→Treat 작업1 WU→입력 commit→수분+1 publication→ACK. 자동 관개 성공 시 수동 owner를 만들지 않는다.
+16. 저장 권위: 기존 `economy.crop-plots` current-format의 수위·refill phase·operation/receipt가 권위다. WU는 P23/P24 BuildingSO의 immutable 작성값을 읽으며 신규 save field·과거 세이브 migration은 없다.
+17. 자동 감사·검증 목표: 정적 단계 예상 `(인원: recurring mWU/share‰/growth‰)`는 `1:17844/397/353`, `3:46704/346/404`, `6:86618/321/429`, `12:173236/321/429`, `18:259854/321/429`, `24:339644/315/435`다. 1명은 기존처럼 반복 노동35% 초과 Warning이나 성장35%·비상10%를 만족하고 나머지는 정상 상한을 만족한다. P23/P24 exact1, 수동 actual delivery/work/commit/restore, 자동 유한 공급, 현재3.4 조리수, fresh 6인 원장과 source digest를 통과하기 전에는 이 Target을 구현/검증 완료로 표시하지 않는다.
+
+### WIM016 작물 광량·주야 통합 기준 배정 (2026-09-10)
+
+직전 `balance:wim:016:manual-refill-recurring-rebalance`의17번 검증 후속(2026-09-12): 현재 P23 실제1WU 수동 급수·부분 작업 whole JSON 실패 원자성/정상 재개·최종1회 물 소비/회복·성장 재개가 `wim-016-manual-refill-live.txt` SHA256 `31AD26280B7E21A163248599D19F05F9DF2741EEC9873B3E4516D591AB5BFA62`로 통과했다. 현재 source digest `2c817991e2ca8ff193c115224ee92f9b5077e9056014d2be49bbe449ae4fd8dd`의6인 정적 원장도 반복86.618WU/32.1%·총물14.047/일·7일 재고77.7kg를 확인했다. 기존10WU/조리수0.25 계산을 최신값으로 혼용하지 않는다. 실제 자연6인 전주기/면적·물류·최종 EWU/가격 발행은 이 집중 증거 범위가 아니며 전체 밸런스 완료로 승격하지 않는다.
+
+1. 기록 ID: `balance:wim:016:crop-light`.
+2. 시대·역할: 기존12작물의 실제 환경광 요구. 새 작물/수확물 없음, 기존 초반 동굴버섯 실내 경로 보존.
+3. Before: 환경광 야외70/실내20 고정, 작물 야간만 별도0.55. 광량과 실제 성장의 연결 없음.
+4. After: 환경장 야외 Morning/Noon/Evening70, Night30, 실내20. 기존 확산·벽·광원·공급 판정을 보존하고 작물 별도 야간0.55는 제거한다. 빛은0~100 게임 지표이며 lux가 아니다. 날씨를 새 광량 배수로 다시 적용하지 않는다.
+5. 물리 BOM: 작물·씨앗·비료·물 BOM 변경 없음.12개 SO에 광량 profile을 명시 작성; core는 ID/이름이 아닌 profile만 소비한다.
+6. Direct WU: 파종/수확/수동 급수 WU 변경 없음. 광량 조회·UI 때문에 가상 작업비를 추가하지 않는다.
+7. Embedded WU/EWU: 조명 공급비와 감속에 따른 재배 점유 비용은 최종6인 회귀/원장에 반영할 잔여. 현 단계 정확 EWU는 미산정이며 완료로 주장하지 않는다.
+8. 시간: 빛 의존 작물의 배율은 `clamp((actual-stop)/(sufficient-stop),0,1)`. 충분값 이상의 성장 가속0. high(5/50)=ember-root,twilight-grain,ember-cotton; medium(5/40)=bloodleaf,frost-flax,mire-reed,spore-hemp; shade(0/25)=night-grape,moonflower,shade-fiber,dreamleaf. cave-mushroom만 명시적 빛 비의존(profile0/0), 배율1. 이름 기반 runtime 추론 금지; 이 분류는 이번 authoring 결정이다.
+9. 공간: plot 중심의 기존 EnvironmentalCellSnapshot 사용. 주변 가상 광량/추가 plot 저장 상태 없음. 실내 기본20에서 high1/3·medium3/7·shade0.8, 버섯1이므로 조명 없는 모든 초반 재배가 일괄 정지하지 않는다.
+10. 전력·용수·폐기물: 기존 조명 공급을 사용. 작물 자체 추가 전력/물/폐기물 없음. Night30의 high5/9는 기존0.55와 근접하지만 중·음지 작물은 작성 차이가 생긴다.
+11. 위험: 야간 이중 감속, 충분광 과잉 가속, 정지 중 UI 캐시 미갱신, 날씨 중복. 실제 environment Version으로 UI를 갱신한다.
+12. 대안: 기본 생활 조명·야외 자연광·동굴버섯·신규 전용등의 비용/면적 선택. 음지 작물의 수확물/종자/연구 차이는 그대로 유지한다.
+13. 지배 전략 방지: 빛 비의존은 실제 균류1종에만 작성. 밝기만 올려 기존 생산량·품질 보너스를 받지 않는다.
+14. 순환 차익 방지: 광량은 파생 성장 조건이며 아이템 생성/소비 receipt 경로 변경 없음. save/load가 성장 시간이나 수확 결과를 재굴리지 않는다.
+15. 실행 경로: calendar→기존 environment scalar context→확산/광원→plot 중심 조회→성장/상태→실제 crop panel. 새로운 환경 의존 어셈블리 역참조 없음.
+16. 저장 권위: 기존 environment v2 칸 상태/기존 crop 진행. crop 광량 profile은 SO, 현재/충분광/배율은 파생값으로 저장하지 않는다. source digest/최대 성장률 계산에서 제거한 야간 권위를 함께 정리한다.
+17. 검증: profile 경계·일/밤·정전/회복·실제 칸→성장/UI, 수동 물리 급수 회귀 영향과6인 재배 면적 확인 예정. **밸런스 기준 배정**, 실제 소스/에셋 적용·Unity 검증 전.
+
+### WIM016 태양등·인공태양 기준 배정 (2026-09-10)
+
+| 필수 기록 | 태양등 | 인공태양 |
+|---|---|---|
+| 1. 기록 ID | `balance:wim:016:sun-lamp` | `balance:wim:016:artificial-sun` |
+| 2. 시대·역할 | 기존 electric-lighting 연구, 단일 재배 구역 | 기존 mana-power 연구, 큰 재배 구역; 추가 핵융합/새 연료 없음 |
+| 3. Before | 미존재; 비교 I15 강도1.2/반경5.5, 전력1.5/s·1칸·531WU | 미존재; 비교 태양등 여러 개 |
+| 4. After | I19/9828 후보(전수 중복 거절), intensity1/radius9 | I20/9829 후보(전수 중복 거절), intensity1/radius17 |
+| 5. 물리 BOM | stone-block4, iron-ingot4, cloth2, insulated-wiring4 | stone-block8, steel-ingot6, cloth2, insulated-wiring8, rune-conductor2, mana-alloy1 |
+| 6. Direct WU | 건설720, 수리216, 청소28, 별도 operate 없음 | 건설1800, 수리540, 청소28, 별도 operate 없음 |
+| 7. Embedded EWU | BOM/전력 원장 계산 잔여; 수치 추측 금지 | 동일. 총비용은 소형보다 크며 공간 효율과 교환 |
+| 8. 시간 | 45유효WU 작업자1명 기준16일,6명 전담 시2.667일(실제 동선 미포함) | 같은 기준40일/6.667일 |
+| 9. 공간 | 본체1×1. 충분광50의 직접 도달 맨해튼 거리5, 장애 없는2D 최대61칸 | 본체3×1. 충분광50 직접 거리9, 장애 없는2D 최대181칸 |
+| 10. 전력·용수·폐기물 | Power4/s Essential, utility throughput4, 물/폐기물0 | Power12/s Essential, utility throughput12, 물/폐기물0 |
+| 11. 위험 | 정전·벽/LOS·본체와 통로로 유효 재배칸 감소. 도달 반경9를 정상 성장 반경으로 오기하지 않음 | 동일; 반경17 전체를 정상 재배 면적으로 오기하지 않음 |
+| 12. 대안 | I15(직접 충분광50 거리3)보다 넓고 총 설치/전력 부담 큼 | 작은 농장은 태양등이 저렴하고1칸만 필요; 큰 농장은 배치 분산 감소 |
+| 13. 지배 전략 방지 | 100 cap 이전 intensity만 늘리는 가짜 강화 금지. 기존5등 보존 | 총 전력3배/건설2.5배/본체3배, 직접 충분광2D 약2.97배; 소형을 모든 면으로 지배하지 않음 |
+| 14. 순환 차익 방지 | 철거 기존 회수율0.5, 건설/해체 공용 물리 경로·자동 감사 대상 등록 | 동일. 신규 수확 bonus/무한 출력 없음 |
+| 15. 실행 경로 | 기존 Lighting+PowerConsumer+Utility→실제 칸광/plot/UI; 연구 unlock/판매·키트 카탈로그까지 연결 | 동일. ID별 runtime 분기·새 lamp manager 없음 |
+| 16. 저장 권위 | 기존 건물/배치/전력/환경장. 신규 per-instance 광량/save 없음 | 동일 |
+| 17. 검증·상태 | targeted 작성(기존 에셋 일괄 재생성 금지)→기존등 불변/등록/해금/본체/전력/칸광/작물/UI 검사 예정. **밸런스 기준 배정** | 동일. 충분광 면적은 직접 광원 공식의 기하 상한이며 확산/벽/실배치 실측과 구분 |
+
+### WIM016 기존 배관을 이용한 관개 연결 기준 배정 (2026-09-10)
+
+조명 기록 보충: 설치 키트는 기존 시설 키트 작성 계약(1키트/stack1,8kg)을 재사용한다. 현 builder의 폭 기반 초기 구매 기초값은 I19=95/I20=165이며 이는 EWU 기반 최종 가격 검증값이 아니다. 신규 두 키트도 최종 EWU/가격 재생성·구매/철거 비교 목록에 포함하며, 이 초기값이나 authoring 성공만으로 설치비/밸런스 검증을 닫지 않는다. I20은 `component:insulated-wiring`8의 공급 연구 가지도 필요하고, 연구 해금 자체가 자재를 무료 제공하지 않는다.
+
+1. 기록 ID: `balance:wim:016:finite-network-irrigation`.
+2. 시대·역할: 기존 irrigation 연구/RF02에 관개 capability 추가, 직원 급수 노동 자동화. 신규 수원/저장소 시스템 아님.
+3. Before: RF02는 manual1/auto0 물 생산 작업대이며 배관 node·농지 coverage 없음. I07은 전력 조건 생산량을 기존 network 저장에 넣고 I08은 저장120을 갖는다.
+4. After: RF02에 CleanWater utility throughput1/s 및 관개 반경4(맨해튼, 막힌 경로 제외), 공급1회1 water unit. 실제 연결 network 저장이1 이상이고 작동/해금된 경우에만 차감하고 같은 plot CurrentWater에1을 게시한다.
+5. 물리 BOM: 기존 RF02 설치 BOM·WU 보존. 입력은 실제 유한 network 저장1이며 물리 물↔배관 기존 I10 bridge는 보존. 이미 생성된 저장 물을 무료로 복사하지 않는다.
+6. Direct WU: 자동 보충은 직원10WU를 대체(0직접WU), 공급량은 수동과 동일. 초기 파종 물1은 기존 물리 공급 경로 유지.
+7. Embedded WU/EWU: 전력/수원 생산·배관·시설/물류 비용은 실제 기존 공급 경로에 귀속. RF02 설치만으로 공짜 물 생성하는 관개 경로 금지; 기존 물 생산 레시피 전체 재설계는 범위 밖.
+8. 시간: 기존 crop 갱신에서 부족 판단, 공급은1초당 최대1회/RF02로 제한. 무한 반복 루프로 만수 처리하지 않는다.
+9. 공간: 반경4, 농지까지 실제 막힘 없는 연결을 확인. 기존 fixed footprint/경로 권위 사용, 주변 plot을 stable ID 순으로 처리해 다중 공급자 중복 금지.
+10. 전력·용수·폐기물: 중력식 RF02 자체 새 전력0, 공급 upstream의 기존 전력/연료 조건 유지. 공급 실패 시 network/plot 모두 불변.
+11. 위험: 수동 in-flight/committed WIP와 자동 중복, 저장0인데 수분 증가, 차감 성공 후 예외로 물 삭제. `WaterRefill.phase != None`이면 자동 공급 금지; 사전 검증 후 동기 consume→실패 불가능한 단일 crop publish, 그 사이 callback/save 없음.
+12. 대안: 연결·저장·coverage 부족 시 기존 명시적 직원 물리 급수 경로. UI에 관개 가능/수원 부족/범위 또는 연결 부족 이유를 표시하며 조용한 무료 충전 없음.
+13. 지배 전략 방지: 동일한 기본 물 수요/현재 잔여 용량, 파종/수확 WU 변화 없음. 다수 관개 장치가 같은 부족량을 두 번 채우지 않는다.
+14. 순환 차익 방지: 관개는 기존 유체를 식물 소비로 이전하는 일방향 sink; plot 수분을 물리 물로 되파는 경로 없음. 로드에서 자동 만수하지 않는다.
+15. 실행 경로: RF02의 선언 capability→실제 등록 시설/운영·배관 Query→기존 finite fluid transaction→CropPlotRuntime 단일 수분 권위→snapshot/UI. RF02 ID 분기는 gameplay core에 추가하지 않는다.
+16. 저장 권위: 기존 fluid v6/network 물과 기존 crop v12 수분. 공급은 동기 원자 경계여서 별도 영속 관개 receipt 없음. 수동 refill 소유권/저장 가드는 유지. 재진입/사후 실패 없는 계약이 구현상 불가능하면 구현자는 쓰기 전에 반환한다.
+17. 검증: 연결/수원1→차감1·수분1, 저장0/차단/수동 owner 존재→변화0, 다중 공급·복원·중단/회복·실제 AI/UI 및6인 노동 비교 예정. **밸런스 기준 배정**이며 미검증.
+
+### 전역 유지비 제거와 시설별 실제 가동 연료 (2026-09-11, 구현 전 기준 배정)
+
+1. 기록 ID: `balance:wim:facility-local-operating-fuel`.
+2. 시대·역할: 기존 D01/D02/E01/E02/E03/E07의 연료식 난방·조명. 계획7.4.1 실행 슬라이스.
+3. Before: `DailyFuelDemand=1`을 일일 전역 차감(한파 +1, 위협 배율 뒤 Ceil); 수동 Refuel도 같은 전역 `lastConsumedFuel/lastMissingFuel`을 변경해 다른 시설까지 가동. 저장고에 연료가 있다는 이유로 공급된 것으로 보는 전역 조회가 존재.
+4. After: 전역 일일 차감·전역 서비스 상태·전역 부족 경고를 제거. 시설별 실제 연료 공급과 잔여 가동초만 권위로 사용한다. 날짜 경계만으로 충전분을 소멸시키는 `lastFueledDay` 방식은 채택하지 않는다. 멈춤/비활성/가동 불가 상태에서 잔여초 감소0.
+5. 물리 BOM: 기존 `fuelPerRefuel=1` 보존. 해당 시설에 실제 도착한 물리 연료만 기존 물류/FacilityBuffer 소비로 보충하며 원격 창고 직접 차감 금지. 중복 보충·부족/취소에서 삭제·복제 없음. 기존 건설 BOM은 변경하지 않음.
+6. Direct WU: 기존 Refuel authored 작업량 및 실제 배송 WU 유지. 제거한 유지비를 다른 작업량·생산 투입에 보상 가산하지 않음.
+7. Embedded WU/EWU·가격: 아이템 EWU·가격 변경 없음. 전역1/일과 시설별 실제 가동량은 다른 비용 구조이므로 단순 비용 감소로 주장하지 않음. 예를 들어 연료식6시설이 모두 하루 상시 가동하면 각각1회분을 필요로 하는 초기 기준이며, 최종6인 생존망 운영 부담에서 확인/보정할 잔여.
+8. 시간: 초기 보충1회분은 기존 하루 길이와 같은180 game-seconds의 **실제 가동 시간**. 날짜·프레임 수·현실 wall-time은 연료 차감 기준이 아님. 공급 없는 시설은 가동 효과0, 공급 직후 해당 시설만 복구. 지속시간은 기존 연료 capability에 작성하고 상태 writer는 한 곳만 둔다.
+9. 공간: 기존 시설·배송 접근칸·시설 입력 버퍼 사용. 신규 전용 연료 창고·전역 registry·운반 AI 없음.
+10. 전력·용수·폐기물: 전기 조명, 비연료 난방/단열, 발전기 FuelSeconds, M08 저장 연료, 조리/생산/수리의 실물 소비는 보존. 환경 효과 소비자가 없는7개 generic fuel attachment는 실제 독립 소비 경로를 보존한 뒤 제거해 이중 차감을 막는다.
+11. 위험: 전역 bool 제거 후 모든 광원 영구 ON/OFF, 가동 상태와 연료 조회의 순환 의존, 부분 입고를 완충전으로 인정, 보충 성공 후 저장 실패, 비활성 시설 연료 소실. 가동 가능성(연료 유무 제외) 판정과 연료 잔량 판정을 분리한다.
+12. 대안: 기존 실제 시설 연료 보충/물류. 날짜별 자동 차감·수동 마지막 충전일 만료·무료 기본 연료는 대안으로 사용하지 않음. 부족은 해당 시설 상태로 관찰 가능하게 한다.
+13. 지배 전략 방지: 실제 비용 없는 상시 난방/조명 금지. 임금·유료 시설 계약은 상대방과 대가가 있는 거래이므로 유지하고 UI의 모호한 유지비 명칭만 시설 계약비로 교정한다.
+14. 순환 차익 방지: 동일 물리 연료 lot 소비와 시설 충전은 기존 정확한 commit 경계 사용. 미도착/중복/취소/실패 시 충전0; 반복 조회/저장 복원으로 연료를 재충전하지 않는다.
+15. 실행 경로: 운영일 전역 차감 제거→시설별 Refuel 물리 배송/작업→시설 상태→실제 가동 game-time 소모→빛/난방/관련 위험 투영. 기존 generic 무소비 attachment와 builder/SO도 일치시킨다.
+16. 저장 권위: 기존 building-state의 `FacilityRuntimeState` 잔여 가동초와 기존 물리 item/buffer/intent 권위. 현재 형식 validate/capture/restore에 연결하고 불법 수치·불일치에 원자 실패. 과거 세이브 마이그레이션 없음. 기존 전역 연료 저장 필드는 신규 경로에서 사용하지 않으며 슬라이스 종료 시 제거한다.
+17. 증거·상태: 원본/호출 조사 완료, root 계약 확정. 운영일 수량 불변·두 시설 중 한 곳만 충전·정지/가동/날짜 경계·현장 소비·저장 복원 및 대표 실제 소비 보존은 새 focused 증거가 필요. 기존 전역 Refuel PASS로 대체하지 않음. **기준 배정/구현 전, 밸런스 완료 아님**.
+
+### 자동 심문 결과·도감·노티스 결속 (2026-09-11, 구현 전 기준 배정)
+
+1. 기록 ID: `balance:wim:interrogation-information-notice`.
+2. 시대·역할: WIM-055 기존 포로 자동 관리 작업의 정보 획득. 새 심문 미니게임·고문 행동·대화 UI 없음.
+3. Before: 18WU/General1 뒤 의지·공포·신뢰·원한을 변경하고 문장만 표시. 실제 정보 소유자/완료 시도 ID/결과 노티스 연결 없음.
+4. After: 실제 포로 출신 provenance로 확인 가능한 **출신 부대의 전열/전술 진술 한 주제**를 도감에 기록하고 대상·내용·미확인 상태를 노티스로 표시한다. 원본 출신 archetype/faction 및 작성된 tactical profile이 없거나 같은 사실을 이미 기록했다면 추가 정보 없음. 존재하지 않는 정보를 추첨하거나 invent하지 않는다.
+5. 물리 BOM: 기존 General1의 실제 시설 배송·소비 경로 유지. 지식에 대응하는 가짜 물리 아이템 생성0, 결과 재전달 시 추가 소비0.
+6. Direct WU: 기존18 보존. 직원의 기존 Warden 작업 완료가 발행 원인이며 UI 수락만으로 정보가 생기지 않는다.
+7. Embedded WU/EWU·가격: 아이템·계약·연료 가격과 EWU 변경0. 유료 정찰/정밀 정보 해금 명령을 무료 호출하지 않는다.
+8. 시간: 기존 작업 시간/선점 유지. 한 시도의 결과는 완료 경계에서 한 번 고정하고 재시도·복원 때 재결정하지 않는다.
+9. 공간: 기존 포로 거주/관리 시설·물리 입력 버퍼·접근 경로 유지, 전용 신규 시설 없음.
+10. 전력·용수·폐기물: 신규 소비0. 기존 시설 조건을 우회하지 않는다.
+11. 위험: 이벤트 subscriber 예외 뒤 상태 delta 재적용, notice 유실, 동일 material destination을 완료 ID로 오용, 복원 중 재추첨. 포로별 증가 시도 번호와 완료 결과의 영속 상태로 분리하며 source-id 알림과 도감 사실 중복 방지를 함께 사용한다.
+12. 대안: 출신 미확인/내용 없음/이미 아는 사실이면 비용과 기존 상태 효과는 유지하고 '심문 종료 — 추가 정보 없음'을 표시. 모든 진술은 미확인, 공포75는 주의 설명일 뿐 진실/거짓 판정 아님.
+13. 지배 전략 방지: 포로 자신의 실제 출신 범위 한 주제만 허용. 다른 포로의 같은 사실도 내용 기준으로 중복 지급하지 않으며 이름만 바꿔 새 정보로 세지 않는다. 전 지역/적 구성/유료 지도를 반복 심문으로 무료 해금하지 않는다.
+14. 순환 차익 방지: 한 시도의 비용·상태 효과·결과 고정은 한 번, 이미 고정된 결과의 기록/알림 전달만 재시도. 새 시도는 새로운 ID이며 이전 시도 재전달과 구분한다.
+15. 실행 경로: 기존 자동 Warden 완료→심문 결과 고정→기존 Codex 정보 소유자→기존 EventAlert의 sourceId 기반 노티스. 도감에는 stable 내용, 알림에는 실제 대상 이름을 표시한다. 기존 handler/capability 경계 사용, 별도 범용 이벤트 원장 구축 없음.
+16. 저장 권위: 기존 Captivity current-format의 포로별 시도/terminal 상태, 기존 codex.entries, operation.event-alerts를 사용. material destination은 시도 ID가 아니다. terminal 전달 실패 시 기록을 보존하고 기존 tick/recovery에서 재시도하며 상태 효과를 다시 실행하지 않는다. 현재 형식 검증/원자 복원, 과거 migration 없음. clear/사망 등 lifecycle이 완료된 결과를 조용히 버리지 않게 한다.
+17. 증거·상태: 원본 조사 및 root 최소 계약 확정, 구현/컴파일/실행 미완료. 정상 자동 완료→도감/노티스, 정보 없음, 비용/상태 단일 적용, notice 실패 후 재시도·현재 형식 왕복을 root focused 검증으로 확인한다. **기준 배정이며 밸런스 완료 아님**.
+
+### 2026-09-11 집중 실행 증거 추가 — 기존 기록의 검증 상태만 보충
+
+- `balance:wim:facility-local-operating-fuel`: 주 Unity 최신 컴파일 및 물리 배송·중복 요청 방지·도착분 단일 소비·ACK 재시도·제거 보류·현재 physical/building 상태 왕복 PASS. 실제 환경 field/Light2D의 가동 시간 소비·정지/비활성 보존·고갈도 PASS. 상세 범위·보고서·SHA-256은 [구현 계획 7.4.1](wim-implementation-plan.md#741-전역-유지비-전면-제거)에 단일 기록한다. 자연 보충 AI·전체 월드 저장·6인 부담 검증은 남아 있으므로 밸런스 완료가 아니다.
+- WIM016 관개 연결: 등록된 실제 배관망과 main game clock에서 물1→0, 작물 수분 공급1 및 일시정지 조회 불변 PASS. `wim-016-finite-network-runtime.txt`의 SHA-256 `16CE604DBB34E39A4FAFDDC3770266BEF61B58FFBCB8F36B3E40A657F6E0D38B`. 통제된 건조 초기 상태의 실행 증거이며 자연 운반·전체 재배 주기·6인 생존망을 대신하지 않는다.
+
+### 마르는 수원의 실제 공급 감소 (2026-09-11, 구현 기준 배정)
+
+1. 기록 ID: `balance:wim:summer-dry-well-source-regeneration`.
+2. 시대·역할: WIM009/계획7.4.2의 기존 여름 사건, 자연 수원 공급 압력. 겨울 납품 요청은 별도 잔여.
+3. Before: `seasonal:summer-dry-well` 시작 시 저장 물6개 원격 소비; 사건 기간3~5일.
+4. After: 시작 원격 소비0, 활성 기간 자연 수원 재생률0.95배. 기간은3~5일 그대로. 다른 계절 사건은 기본1배를 명시한다.
+5. 물리 BOM: 추가 입력0. 이미 저장된 물·탱크 물·현재 수원 잔량을 즉시 삭제하지 않는다.
+6. Direct WU: 기존 채수·운반·생존 작업량 유지; 가뭄 전용 작업/시뮬레이터 없음.
+7. EWU·가격: 단위 가격/레시피 EWU 변경0. 현재 자연 재생 합0.215/초×180초/일×5%=1.935/일 공급 감소; 포화되지 않은3일간5.805로 기존6에 근접,5일간9.675. 포화 구간의 실제 감소는 이보다 작다.
+8. 시간: 기존 사건 occurrence 시작/종료와 실제 game-clock delta만 사용. 종료 시 영향 해제, 물 환급0. 일시정지/단순 조회는 공급 변화0.
+9. 공간: 기존 자연 수원/접근칸 유지. 신규 우물·탱크·복구 시설 없음.
+10. 전력·용수·폐기물: 자연 수원 재생만 대상. 다른 물 생산 레시피·관개 탱크·시설 물 소비는 직접 변경하지 않는다.
+11. 위험: 저장 base 재생률 덮어쓰기, 복원 후 중복 적용, 프레임별 조회 allocation, 임의 캐시 stale. 기존 사건 상태에서 읽기 전용으로 파생하며 base 저장값은 보존한다.
+12. 대안: 기존 저장 비축/다른 실제 생산 경로 이용. 종료 환급이나 무료 생성으로 보충하지 않는다.
+13. 지배 전략 방지: 저장고 물을 보호하면서 실제 공급만 줄인다. 이벤트 수락/조회 반복으로 원격 비용을 더 빼거나 물을 얻을 수 없다.
+14. 중복·순환 방지: 여러 활성 감소가 있을 때 가장 낮은 multiplier 하나를 사용(곱 누적 없음). 종료한 사건만 후보에서 빠지며 남은 사건 효과는 유지. 유한한(0,1] authored 값만 허용.
+15. 실행 경로: 기존 Seasonal SO 작성값→기존 seasonal query의 무할당 multiplier 조회→WorldWaterRuntime.Tick의 base regeneration×multiplier×delta. gameplay의 특정 사건 ID 분기는 사용하지 않는다.
+16. 저장 권위: 기존 seasonal active occurrence 및 world-water base/remaining만 사용. 새 저장 section·중복 runtime multiplier·과거 migration 없음.
+17. 검증: 최신 주 Unity compile, 실제 사건 시작의 원격 소비0, current occurrence 상태/복원·종료의 자기효과 해제, 자연 수원 Tick/일시정지·물 재고 불변을 root focused 경계로 확인 예정. 수치는 보수적 초기 배정이며6인 운영 영향 확인 전 밸런스 완료 아님.
+
+### 겨울 연료 쟁탈의 실제 납품 요청 (2026-09-11, 구현 기준 배정)
+
+1. 기록 ID: `balance:wim:winter-fuel-demand-physical-delivery`.
+2. 시대·역할: WIM009/계획7.4.2의 승인된 겨울 사건. 기존 세력 물자 계약·알림·배송을 재사용한다.
+3. Before: 겨울 사건2–4일, 시작 시 숯8개 원격 차감. 수락/운반/납품 의미 없음.
+4. After: 사건 시작은 요청만 제시. 수락한 해당 occurrence의 숯8개만 실제 배송·납품하며 미수락/닫기는 차감·벌점0이다.
+5. 물리 BOM: `material:charcoal`8개 유지. 기존 세력 delivery destination/FacilityBuffer·exact lot/receipt로 처리하며 가상 납품·창고 원격 삭제 금지.
+6. Direct WU: 기존 운반 작업량 유지. 생산자가 직접 납품하거나 새 거래 전용 노동을 추가하지 않는다.
+7. EWU·보상: 아이템 kg·가격·레시피 EWU 변경0. 기존 Supply 계약6종의 공통 성공값 rapport+8/obligation+1을 재사용하며 수락 후 기한 실패는 기존 grievance+7이다. 원정/전역 생산성 보너스 추가 없음.
+8. 시간: 요청의 현재 occurrence 절대 종료일(기존2–4일)을 납품 기한으로 유지한다. 늦게 수락해도 일반 Supply20일로 기한을 연장하지 않는다. 종료된 요청의 오래된 알림으로 수락 불가.
+9. 공간: 기존 합법 세력 납품 위치·입력 owner·capacity를 사용. 전용 건물·우회 바닥 적치 추가 없음.
+10. 전력·용수·폐기물: 변경0. 남은/운반 중 숯은 기존 실패·취소 회수 계약으로 보존하고 환급 복제하지 않는다.
+11. 위험: 사건과 수락의 연결 누락, 다음 해 요청을 일회성 완료 ID가 막음, 오래된 delivery receipt 재사용, 같은 사건 반복 수락/보상, pending cleanup 중 소유권 변경.
+12. 대안: 무료 거절/닫기 또는 남은 기한 내 수락·물리 납품. 미수락을 실패 계약으로 만들지 않는다.
+13. 지배 전략 방지: 기존 세력별 동시 계약1개·pending transfer/cleanup 차단 유지. 이벤트 미수락만으로 자원과 우호도를 잃지 않지만 수락한 의무는 기존 계약 실패 규칙을 따른다.
+14. 중복 방지: authored 계약과 occurrence ID·context faction·절대 기한을 결속한다. 동일 occurrence는 한 번만 수락/종료하며 다음 occurrence 재개방은 이전 owner/화물/receipt 정리 완료 후에만 가능하다. operation/commit identity도 occurrence별 분리한다.
+15. 실행 경로: Seasonal 작성 연결→기존 EventAlert 수락 action→기존 FactionContract 물리 입력/자동 배송→receipt→기존 보상/ACK. 고정 faction 계약 소유권을 보존하는 세력별6개 작성 데이터 사용 가능; 일반 계약 노출에서는 활성 사건/context faction 조건을 적용한다.
+16. 저장 권위: 기존 seasonal occurrence·faction campaign·event alerts·physical receipt의 current format을 확장한다. 새 저장 section/글로벌 거래 원장/과거 migration 금지. restore join 및 종료 후 재수락의 provenance 보존.
+17. 검증: root가 최소 연결을 원본에서 확인, 구현/컴파일/실행 전. 실제 알림 수락/미수락·기한, 물리 납품/단일 보상, current restore와 오래된 action/다음 occurrence 경계를 기존 focused로 확인한다. 기존 일반 계약 PASS는 영향이 있을 때만 재실행하며 밸런스 완료로 보고하지 않는다.
+
+### 2026-09-11 WIM-055·겨울 납품 실행 증거 후속
+
+- `balance:wim:interrogation-information-notice`의17번 후속: 주 Unity 실제 컴파일/Play focused PASS. 첫 심문은 실제 물리 배송/소비·Warden AI18WU·도감/노티스·노티스 클릭과 whole-world 복원 후 단일 재전달을 확인했다. 통제된 건강/출신/공포 및 기존 typed next-work preference를 사용했다. 두 번째 같은 사실은 실제 배송 후 공개 작업 완료 명령으로 추가 정보 없음/새 시도/중복 완료 거절을 검증했으며 두 번째 자연 AI 반복·일반 우선순위 경쟁·자연 전투·6인 생존망은 미실행이다. `wim-055-interrogation-information.txt` SHA256 `B235C62B8209DBCADF22205249C54DB502F87F21F49B6ED17BBA54480F19B35D`. 수치 변경0, 기존17필드 계약 보존, WIM-055 체크 종료이며 전체 밸런스 완료 아님.
+- `balance:wim:winter-fuel-demand-physical-delivery`의17번 후속: 주 Unity `RunWimWinterContractFocused` PASS. 일반18/계절6·숯8·원격 차감0, occurrence/faction/deadline 및 receipt 분리, stale/중복 수락·구 영수증 거절, staged seasonal/faction 복원과 단일 +8/+1·기한 초과+7 확인. 통제된 receipt를 쓰는 production campaign 격리 검사다. 실제 UI/물리 배송/whole-world restore coordinator는 잔여이며 부모 체크 OPEN. `wim-009-winter-contract-focused.txt` SHA256 `F1442943644D112B6A0C87845C082137D16AD1A35BF110222A238313F84260D1`.
+
+### 2026-09-11 겨울 납품 실제 UI·AI·whole-world 증거 종료
+
+- `balance:wim:winter-fuel-demand-physical-delivery`의17번 추가 후속: `WimWinterContractLiveRunner.StartFocused` 최신 주 Unity 컴파일/Play PASS. 실제 seasonal daily bus/노티스 클릭과 무료 닫기, 인장 실제 AI 배송 후 수락, 숯8개(3,600g) 실제 운반/소비·보상 전 receipt, incoming occurrence 누락 whole-world 거절/무변경과 유효 pending 복원, 우호도+8/의무+1 한 번/ACK, terminal whole-world 재복원 무복제 확인. 납품 구간27.597게임초/7.878실제초이며 처리량 밸런스 측정값으로 사용하지 않는다.
+- 통제 준비: day91 및 다른 사건 자격, 기존 authored R07/물리 재고/건강한 직원과 기존 typed 다음 운반 우선 설정. 날짜 점프가 정상6차 보스를 함께 호출하므로 임시 Play의 run-flow 이벤트 구독/threat producer를 격리했다. seasonal 구독·물리/저장 참여자·검증기는 그대로이며 fake receipt, 반복 회복, 저장 section 제외는 사용하지 않았다. 자연 겨울 진입·일반 AI 우선순위/성능·복합 방어·6인 생존망은 미실행이다.
+- 보고서 `Artifacts/QA/wim-implementation/wim-009-winter-contract-live.txt`, SHA256 `7DE12EDE8FD47F69C06C03160706D616D3D584B15CC405B94AF32752AFC67BF1`. Console Warning/Error0/0, 보호한5개 원본 파일 불변. 계획7.4.2 겨울 하위 체크 종료; WIM009 전체/밸런스 완료 아님. 이번 교정은 테스트 준비·관측만 변경했고 기존1–16필드의 kg/WU/EWU/BOM/보상/기한과 생산 코드는 변경0이다.
+
+## WIM019 기존 환경 신호의 bounded 이동 선호 (2026-09-11, 구현 전)
+
+1. 기록 ID: `balance:wim:019:bounded-ecology-preferences`.
+2. 시대·역할: 기존18종의 야생 서식/생존 이동. 길들인 동물 작업/전투 역할은 별도029다.
+3. Before: migrationPatternId는 복사만 됨. 일반 먹이/물/사체 검색은 전역, prey는12셀. 온도 이동 선호 없음.
+4. After: 기존 선택기에 명시적 capability profile 연결. 일반/설정 감지12, 물10/잔량비율0.25/Foul/점수8, 온도8/20~35°C 또는−10~10°C/점수7, 사체12/비금지 실제수량≥1/점수9. 감지 Manhattan1~32 허용, 점수−거리×0.35, 동점 x/y순. 온도 밖은 유인 후보 제외. 계획019의 우선순위·원점/접근범위·territory·명시적 신호없음 정책을 적용한다.
+5. 물리 BOM: 변경0. 실제 물/사체 조회만 사용하고 새 재고·가상 먹이를 만들지 않는다.
+6. Direct WU: 변경0. 야생 이동 시간/포획 접근성의 간접 영향은 실제 경로로 확인한다.
+7. Embedded EWU·kg·가격: 작성값 변경0. 산물/먹이/종족 생산량과 기존 질량·가격은 보존한다.
+8. 시간: 기존 AI cadence·이동속도·RNG stream·계절 퇴장 유지. 온도 감지를 매 프레임 전체 맵 계산으로 만들지 않는다.
+9. 공간: 감지와 영역 반경을 구분. 신규 선호 목적지는 현재 영역/합법 셀만, 실내 출입·문·경로 broker 권한 유지. 패치 원점과 접근칸 모두 감지 이내.
+10. 전력·용수·폐기물: 기존 환경장·세계 물 조회만. 조회는 물/연료를 소비하지 않으며 마나 빛/누출/토질/포자/덕트 시뮬레이션 추가0.
+11. 위험: 원거리 전지적 인식, 영역 왕복 진동, 유인 때문에 도주/허기를 무시함, 설정 전용을 기능으로 오인함을 차단한다.
+12. 대안: 기존 ecosystem+world port+path broker 재사용. 다형적 신호 전략은 온도/물/사체/명시적 일반·설정 구분만 지원하고 콘텐츠 ID별 코어 분기는 금지한다.
+13. 지배 전략 방지: 열/물/사체는 생존보다 낮은 선호다. 유효 신호가 없으면 공개 이유와 기존 서식 행동; 위협·극한 욕구는 기존 우선순위. 먹이/물/사체 긴급검색도 감지 밖 정보를 사용하지 않는다.
+14. 순환 차익 방지: 선택은 읽기 전용이고 소비/보상/스폰을 만들지 않는다. 기존 실제 포식·음용/사체 소비만 수량을 변경한다.
+15. 실행 경로: SpeciesSO→immutable SpeciesDefinition→WildlifeEcosystemRuntime→WildlifeBehaviorRuntime→WildlifeActor의 기존 path broker. 환경의 application adapter만 기존 IEnvironmentalFieldQuery를 참조한다.
+16. 저장 권위: 기존 animal/ecology/environment state 유지, profile은 SO 권위, 감지 후보·목표·가중치의 복제 저장 없음. 복원 이후 현재 원본에서 재계산하며 과거 저장 변환 없음.
+17. 자동 감사·실전 증거:18종/builder 선언 일치·unknown profile 거부, 대표 신호/범위/기존 우선순위 focused, 주 Unity 실제 AI 이동과 필요한 복원 재계산을 검증한 뒤 체크한다. 현재는 기준 배정/구현 전이며 신규 core capability와 ParameterContent 작성의 확장 폐쇄·전수 seed/6인 실전 보정 완료를 주장하지 않는다.
+
+### 2026-09-11 WIM019 실행 증거 후속
+
+- `balance:wim:019:bounded-ecology-preferences`17번 후속: 실제18종 profile/validation 및 builder13 spec 일치,16 focused(범위/우선순위/물리 사체/현재 ecology 복원 재계산), 주 Unity 실제 환경 port와 AI 사체 유인 이동 PASS. reports `wim-019-migration-focused.txt` SHA256 `4BFEBAA2DEAE04FA87DE72A67EC83479AE1909ED7E13508977BBFE106FCD77E4`, `wim-019-migration-live.txt` SHA256 `0E4E84DF359EC0AE568B4A6032485C4E07B46F653CCFECBF02F6680C9A194A2C`. 54→58 실제 이동, sated 사체1→1, 온도20°C 권위 일치. 통제 가을/실물·동물 spawn·직원 AI 정지/실제 주인 UI를 사용했으며 직접 경로 명령·warp·수량 조작 없음. 최초 test host/준비 반경 실패는 테스트만 교정했다.
+- 신규 작성1–16 계약대로 일반8/설정6/물1/온도2/사체1; 신규 저장 section0, 기존 kg/BOM/WU/EWU/속도 변경0. Console1696→1757 Warning/Error0/0, 보호5파일 불변, 주 Unity stopped/ready04:36:02Z. WIM019 종료지만 광역 Build/no-op·whole-world restore·모든 종 자연 이동/seed·6인 실전 보정·미래 capability 확장 폐쇄는 이 증거로 주장하지 않는다. 과거5→18 광역 builder는 미실행이며 현재 profile spec과 실제 결과 필드의 일치만 검증했다.
+
+### 2026-09-11 WIM016 실제 직원 급수·current world 증거 후속
+
+- `balance:wim:016:physical-water-refill`17번 후속: 실제 주 Unity 물1→시간 감소/성장, 통제 dry에서 실제시간 성장정지, 직원의4칸 이상 떨어진 물1 pickup/carry/exact destination/FacilityBuffer 도착(42.16511게임초), 별도 실제 Treat10WU 경로를 통과했다. 실제0.01785951/10WU의 전체 월드 JSON 왕복과 음수 incoming 수분 원자 거절/실물·작물 불변, 잔여 작업/물1소비·수분+1·ACK1, terminal 왕복 무재소비 및 성장 재개를 확인했다. 보고서 `Artifacts/QA/wim-implementation/wim-016-manual-refill-live.txt` SHA256 `95DFBCDFB96E6CA612318842ED2C0B0C7199F9C557495E537F0A4AD1DB8664D2`. 이번에는 테스트와 증거만 추가했고 기존 kg/BOM/WU/EWU/가격/생산 코드 변경0이다. 연구·배치·파종·환경·dry·건강/우선순위는 통제 준비이며 자연 재배전주기/6인 밸런스가 아니다. 주 Unity Console1785→1834 Warning/Error0/0, 보호5파일 불변. 수분/직원 하위2건 종료, InputCommitted/OutcomePublished actual save-section 창·신규등 실제건설/공급·6인 노동/저장/면적/음식망은 남으므로016 전체 미완료.
+- `balance:wim:016:finite-network-irrigation` 과거 실제 관개 실행 증거의 현재 경로 hash는 `0BF28FC609B2542D535A75678003E4BE0BDB87EF1D4DDC28281AD8B6C4FF0C32`이다. 오래된 planning NOT_RUN으로 같은 검사를 중복 실행해 wall0.407→0.412 기록만 바뀌었으며 원래16CE604D는 당시 이력으로 보존한다. 재확인을 새 진행이나 새 체크로 세지 않는다.
+
+### 2026-09-11 WIM029 주인 동행 역할 최초 기준 배정
+
+`balance:wim:029:owner-companion-role` — 구현 전 기준 배정. 아래 값은 실전 보정 완료값이 아니다.
+
+2026-09-11 교전/돌봄 검증 후속: actual combat D52F9E5A는 자연 진입/주인 경비/동료 실제피해1.656·적에 의한 동료 사망HP10→0·역할 해제를 관찰했다(무증거 lead-loss 문구는 제외). Care3DE5ABF7는 production2CDF8928/fixture7616FBC6에서 비치명 HP10→9·Captured/owner tick 보존과 실제 갈증 귀환22,1→18,1·원격 회복 없음을 확인했다. RuntimeEC143036/EditorACF36983 컴파일, Console2251 W/E0/0·보호5파일 불변. 아래 HP/공격/속도/BOM/WU/kg/가격/저장 수치 변경0. 동물 운반과 전투 효율/생존 비용 실전 보정은 미완료이며 이 표본을 전투 밸런스 완료로 확대하지 않는다.
+
+2026-09-11 비치명 피격 수명 경계(구현 전): 실제 상호 교전 D52F9E5A에서 동료의 공격/적의 치명 피격은 관찰했으나 비치명 피격은 별도다. 현재 WildlifeActor.ApplyDamage가 생존 포획 동물도 Fleeing/Retaliating으로 바꾸면 role tick이 이를 소실로 판정한다. 정상 포획 소유권은 피해 자체만으로 해제하지 않고, HP·신체 피해·공포·위협 갱신은 유지하며 공식 탈출/해제/사망 경로만 custody를 전환하도록 최소 교정한다. 아래17필드의 수치·BOM·WU·kg·가격·저장 형식 변경0. 원래 야생 동물의 도주/반격은 유지한다. root의 통제된 비치명 피해→동행 유지 및 실제 돌봄 귀환 경계로 별도 확인하며 상호 교전 보고서만으로 이 경계를 닫지 않는다.
+
+2026-09-11 검증 후속05AFEC6C: 주 Unity 실제 EventSystem 주인 지정/변경/해제, 자율 추종18,1→22,1(주인24,1), 실제 우리18,1 귀환 및 current full registry owner/cooldown/envelope 왕복 PASS. 잘못된 주인은 정확한 ineligible-owner 사유로 거부하고 live Circus·HP·좌표·역할 보존을 확인했다. Role07C0A7AF/Restore21C6B413/중요 fixture1AA0FF67, Console0/0 및 보호 파일5개 불변. 수정은 승인 실내 동행/포획 복원 연결이며 HP/공격/속도/BOM/kg/WU/가격 작성 변경0. 전투 제어권 pause 연결은 컴파일/소스 리뷰 상태이며 실제 상호 교전·돌봄·수명/동물 운반·6인 실전 밸런스는 남아 있다. 자연 포획/번식/건설을 검증한 것으로 세지 않는다.
+
+2026-09-11 actual follow42C1AA1B: 정상 실내 동료 이동18,1→22,1(주인24,1)을 확인했지만 동일 위치 current whole restore가 wildlife.population candidate 검증에서 거부됐다. 후속 교정은 저장된 정상 Captured 상태/실제 custody join에 맞는 위치 검증에 한정한다. 야생 출입·blocked/중복/고아 위치 검증을 전역 해제하거나 잘못된 저장을 필터링하지 않는다. 수치·BOM·WU·kg·가격·시설·저장 형식은 변경0; 기존 저장 상태의 실행 일관성 교정이며 실제 restore 재검증 전이다.
+
+2026-09-11 방어 제어권 연결 교정(구현 전): 방어 runtime은 실제 경비를 배정할 때 일반 AI를 의도적으로 정지시키고 방어 이동/교전을 소유한다. 이를 플레이어의 일반 AI 정지와 동일하게 처리하면 동료 실행기가 경비의 추종/교전을 모두 중단한다. 현재 활성 교전의 실제 경비 제어권이 확인될 때만 해당 내부 정지와 승인 동료 행동을 양립시키며 일반 정지·사망·Downed·부적격 주인의 기존 동작은 유지한다. 기존 위17필드의 수치/BOM/WU/시간·공간/경제/저장 형식은 변경0이고 신규 전투 능력이나 범용 정지 우회 API는 추가하지 않는다. 실제 경비 동행 전투 검증 전에는 이 연결을 PASS로 보고하지 않는다.
+
+2026-09-11 실제 UI 이후 실내 추종 결함 교정: 최초 witness261EA2B8에서 주인 배정은 성공했으나 cave_hound의 야생 CanEnterDungeon=false를 동행 후보에도 적용하여 실제 실내 후보가 모두 제거됐다. 현재 role/생존 Captured/주인 자격 확인 뒤에는 기존 managed-captive path·문·walkable·점유 권위로 추종/근접 후보를 검증한다. 야생 생태 출입 플래그와 에셋, 공격/HP/속도/사료/WU/kg/가격/저장 형식은 변경0이다. 새 비용·권한 우회·fallback이 아니라 위 기록의 승인 동행 실행 연결 교정이다. 실제 추종/저장 재검증 전이며 기존 데이터24 PASS는 유지한다. 검증 준비도 실제 usable pen room 소속 birth cell을 사용하도록 강화하고 방 밖 동물을 유효한 복원 fixture로 취급하지 않는다.
+
+1. 시대: 현행 길들임·우리·종 접근 시점 유지. 연구 순서/해금 비용 추가 없음.
+2. 역할: 동굴사냥개의 직원 주인 지정·근거리 동행·같은 적 교전. 운반은 다음 슬라이스, 추적/정찰/원정 제외.
+3. Before: 역할 없음, 추적 설명만 존재. HP10/이동1/retaliationDamage0/사료1·물1(게임일), 주인 관계·역할 공격·cooldown 없음.
+4. After: 역할 기본 공격6/근접1셀/공격 간격2게임초, close2셀/resume>3셀, 주인 기준 교전6셀, 판단0.5게임초, 주인당1마리. 기존 HP/이동/사육 수치 유지. 공격6은 역할 전용이며 일반 야생 retaliation0을 묵시 변경하지 않는다.
+5. 물리 BOM: 새 장비/소환/무료 동물 없음. 기존 포획·길들임·우리·실제 사료/식수 공급 재사용. 동행 중 원격 급식 금지.
+6. Direct WU: 신규 직원 인솔 WU 없음. 기존 길들임·사료/물 운반·관리 노동과 급식 필요 시 실제 우리 귀환 시간을 반영. 전역 유지비 추가 없음.
+7. Embedded WU/EWU: 기존 종·우리·사료·물 비용 권위 유지, 동행 때문에 면제하지 않는다. 명중·방어 전 초기 상한3기본피해/게임초는 실제 전투 효율/EWU가 아니다.
+8. 시간: 판단0.5/공격2게임초, 기존 실제 이동. 역할 변경·저장 복원으로 쿨다운을 초기화해 무상 연타하지 않는다. 순간이동/실제 시간 기반 이동 금지.
+9. 공간: 기존 우리·접근칸 유지. 동행은 실제 path/점유 권위를 따르고 close2/resume3 히스테리시스로 왕복을 줄인다. 장애물 무시·우리 면적 환급 없음.
+10. 전력·용수·폐기물: 새 전력 비용 없음. 기존 사료1/물1·배설·오염·관리 유지. 실제 우리 도착 전 급식 소비/욕구 회복 금지.
+11. 위험: 기존 HP10의 생존성은 아직 미보정. 포식자 affiliation 위장, 잘못된 적 공격, 고아 관계, 쿨다운 재굴림, 원격 급식, 무한 추격 차단.
+12. 대안: 직원 단독 전투 대비 저체력 근거리 보조와 사육/보급/복귀 부담. 전투 직원 대체나 모든 길들인 종의 무료 전투 능력으로 만들지 않는다.
+13. 지배 전략 방지: 주인당1·교전6셀·실물 보급/귀환·저체력·show/transport/haul 배타. 은신 적 탐지·추적·원정 동반 추가 없음.
+14. 순환 차익 방지: 역할 변경은 동물/아이템/보상 생성 없음. 공격·영속 cooldown 승인 경계 유지. 방생/탈출/사망/저장 시 고아·중복 관계·무상 회복 방지.
+15. 실행 경로: SpeciesSO/profile→immutable definition→capture role command/주인 UI→독립 executor→기존 typed path와 실제 combat/body-health. 적대성은 주인 관계 투영.
+16. 저장 권위: CapturedWildlifeState의 단일 버전형 capability envelope, Circus current4→5. owner ID/cooldown 저장, path/후보/UI 재계산. current-format 엄격 원자 restore, 과거 migration 없음. 새 역할로 상위 DTO 필드 증식 금지.
+17. 자동 감사·실전 증거: profile/codec 오류·중복/쿨다운, 실제 주인 지정→동행→공격/피격 및 대표 돌봄·해제·저장, Unity compile/Console/보호 파일을 확인한다. 현재 NOT_RUN/기준 배정이며6인 실전 밸런스·미래 전수 확장 폐쇄 완료가 아니다. 승인된 capability 확대를 명시 등록하고 콘텐츠 ID 분기 없이 unknown은 실패한다.
+
+### 2026-09-11 WIM029 독립 운반 동물 최초 기준 배정
+
+`balance:wim:029:independent-animal-haul` — 승인된 독립 실물 운반의 최초 작성값이다. 실제 처리량·경제 보정 완료값이 아니며 기존 동료 전투 수직 슬라이스 후 진행한다.
+
+1. 시대: 기존 심층염소/서리숫양 포획·길들임·우리 해금 유지; 새 연구·아이템·시설 없음.
+2. 역할: 직원 인솔 없이 동물이 직접 한 물리 lot의 예약/픽업/이동/입고를 수행한다. 직원 능력치 보너스·무료 순간이동으로 대체하지 않는다.
+3. Before: 두 종 독립 운반 profile/실행 없음. HP10, 기본 이동1, bodySize1, 사료1/일·물1/일이며 모두 보존한다.
+4. After: 심층염소 MaxCargoMassGrams=18000/LoadedMoveSpeedMultiplier=0.8; 서리숫양=24000/0.75. 공통 DecisionIntervalSeconds=0.5게임초, 픽업/입고는 실제 동일 칸 또는 인접1칸에서 검증한다. 화물이 없으면 기본 이동1, 있을 때만 배율을 정확히 한 번 적용한다.
+5. 물리 BOM: 기존 동물·우리·실제 사료/식수. 운반 도구나 동물을 새로 생성하지 않는다. 화물량은 실제 lot/instance mass query로 계산한다.
+6. Direct WU: 신규 직원 인솔 작업0; 기존 급식·급수·관리·복귀 시간과 직원의 물류 경쟁을 면제하지 않는다. 게임시간 경로 이동만 사용한다.
+7. Embedded WU/EWU: 기존 아이템·우리·사료/물 EWU 변경 없음. 운반 효율은 실제 이동/수용량이 연결된 뒤 재측정하며 숫자 작성만으로 생산량 증가를 원장에 반영하지 않는다.
+8. 시간: 두 종 모두0.5초 결정 주기. 기본속도 대비 적재 시20%/25% 감소다. 이는 사람의 보통8~14kg 묶음을 수용하면서 과도한 속도 우위를 주지 않는 초기값이며, 18/24kg는 일반 직원 실효 최대 약29kg보다 낮다. 실측 처리량 보장은 아니다.
+9. 공간: 기존 우리·운영 접근칸·실제 통로 및 창고 gram 한도를 사용한다. 운반 역할이 우리/저장 면적을 환급하지 않는다.
+10. 전력·용수·폐기물: 기존 종의 사료1/물1·배설·청소·시설 공급 유지. 전역 유지비나 역할만의 새 추상 자원 없음.
+11. 위험: 낮은 HP와 길 차단·수용량 소진·피해·돌봄·역할 중단을 실제 비용으로 유지한다. carrying 화물의 삭제/복제/원격 반환·사망 후 소유권 고아를 금지한다.
+12. 대안: 직원의 유연한 운반/기존 컨베이어와 경쟁한다. 염소는 상대적으로 빠르고 작은 묶음, 숫양은 느리지만 큰 묶음을 맡는다. 종 ID별 런타임 분기 없이 작성 profile을 사용한다.
+13. 지배 전략 방지: 지원 종만 profile 존재. 역할은 기존 단일 capability slot을 사용하고 전투 동행과 동시 수행하지 않는다. 새 직원 인솔/짐수레/원정 동반은 추가하지 않는다.
+14. 순환 차익 방지: exact quantity reservation/physical transit/inbound admission을 재사용한다. 예약 미픽업 해제와 실물 회수를 분리하고 회수 실패 시 소유권을 보존한다. 기존 가격·질량·생산량 변경 없음.
+15. 실행 경로: SpeciesSO의 explicit hasHaulRoleProfile→immutable definition→역할 명령/UI→동물 실행기→기존 mass/reservation/transfer/warehouse 또는 FacilityBuffer admission. UI와 역할 실행은 다음 연결 배치, profile만으로 성공 처리하지 않는다.
+16. 저장 권위: 가변 역할/작업 의도는 기존 Circus capability envelope, 실물은 기존 item 권위. 생산 handler/현재형식 custody join/회수 실패 계약을 확정한 뒤 연결하며 별도 generic 프레임워크나 과거 migration 없음. 이 데이터 슬라이스는 저장 구조를 변경하지 않는다.
+17. 자동 감사·실전 증거: 정확한2종 profile/다른 종 no-profile·불법값·snapshot 격리 단순 검사, 실제 직원 없는 픽업/운반/입고와 대표 중단/저장/수량 보존을 검증한다. 데이터·컴파일만으로029 또는 동물 물류 밸런스를 완료 처리하지 않는다.
+
+2026-09-11 연결 검증 추가: 작성값 변경 없이 profile11/11(`BB2ADADF`) 및 actual-haul `E075BE0E0D8D4DB1E0FF358E96067D5043AC7A2A36D13DEB57058C7F53E6192F` PASS. 실제 UI/자율12kg 픽업·창고10개 입고·loaded-clear·사망 현재 셀10개 회수·총30개 보존·운반/회수 후 전체 복원·원격 배송/이중 소유/미할당operation 거절을 관측했다. runtime `EA3E7888`, Editor `3A3FBB96`, root fixture `46AAC51F`; Console2448 W/E0/0와 씬/사용자 저장 등5파일 불변. 동물 운반 구간6.163262게임초는 시나리오 관측이며 일일 처리량·가격/EWU 재보정·6인 공간/생존망 완료 증거가 아니다. 일시적인 예약 재구성은 durable custody와 구분했고, 정상 저장 서비스의 완료 callback까지 수행했다. 시설 출력 운반·강제 drop-commit 실패·적재 속도 실측을 추가로 증명했다고 주장하지 않는다.
+
+### WIM023 Human base-customer 실제 공급 보강 (2026-09-13)
+
+1. 기록 ID: `balance:wim:023:human-base-customer-supply`. 기존 Human 전용 신경 보조 시술의 실제 대상 공급을 보강하며 강화값·시술 정책을 새로 승인하는 기록이 아니다.
+2. 시대·역할: 기존 보철 연구/M06/수술 시대를 유지한다. Human은 기존 일반 방문객으로 출현하고 기존 모집 전환 뒤 직원·NPC 수술 대상이 될 수 있다. 신규 세력·계약·주인 후보·Adventurer 재지정은 추가하지 않는다.
+3. Before: `anatomy:human`, Human 제한 `procedure:human-neural-assist`, 부품/제작식/장착 소비자는 있었지만 루트 도메인 카탈로그에 `SpeciesTag=Human`인 `CharacterSO`가 0개라 자연 플레이의 실제 `CharacterActor` 대상이 없었다.
+4. After·작성 ID: `Species_Human`은 numeric ID11/typed species ID `Human`, `Customer_Human`은 numeric ID9010/`character-archetype:9010`/`visual-variant:9010`이다. 기존 selectable base-customer 규칙을 재사용하되 role은 Regular이고 Human owner archetype은 0개다.
+5. 물리 BOM: 신규 BOM·무료 부품·시작 장비0. 신경 보조기는 기존 exact physical item `surgery:prosthetic:brain/variant/human-neural-assist`, 기존 M06 recipe와 수술 표준 약품1개를 그대로 사용한다.
+6. Direct WU: Human 공급 자체의 신규 WU0. 실제 소비는 기존 신경 보조기 제작34 WU와 시술34 WU 및 기존 운반/시설 작업이며 이 기록에서 변경하지 않는다.
+7. Embedded WU·kg·가격: 신규 종족/방문객 정의에는 내재 작업·질량·가격0. 기존 신경 보조기1.8kg/stack1, M06 재료·가격·EWU 권위를 유지하고 새 공급을 이유로 재가격하지 않는다.
+8. 시간: 방문 빈도1~3, 이동 speedType4, respawnSpeedType13은 기존 generic staff/base-customer 작성 범위에서 보수적으로 재사용한다. 생애3/13/18/55년, 미치료 기대수명87.2년, 임신 attempt1+40+출산1+회복20일과 성공0.35/적정10~32°C는 기존 Adventurer 인간형 baseline을 그대로 쓴다.
+9. 공간·시설: 신규 시설/footprint0. 기존 방문객 path/access/점유, 기존 수술 시설과 M06를 사용한다. Human 장례는 실제 RF87이 제공하는 기존 `facility:funeral:adventurer-burial` capability를 재사용한다.
+10. 전력·용수·폐기물: 변경0. 기존 M06·수술실의 실제 전력/용수/재료/회수·폐기 계약을 유지하며 Human 공급만으로 추상 자원을 생성하지 않는다.
+11. 위험·회복: 생리/욕구/작업 capacity14종은 전부1.00, 온도15~27/0~40/-10~48°C·공기70·빛40~100의 기존 중립 인간형 범위다. lore-only 적응 피로는 Rest|Administration 완화 역할만 선언하고 새 사고 handler나 수치 피해를 만들지 않는다. 실제 수술 위험·환경 대기·응급 원인·부품 회수 계약은 기존 WIM023 권위를 유지한다.
+12. 대안·근거: transient 테스트 actor는 플레이 콘텐츠가 아니므로 배제하고 Adventurer retarget은 명시 금지다. NpcOnly Human은 새 faction/contract가 필요하므로 배제하고, 이미 실제 producer가 있는 base-customer→regular-customer→recruitment 경로를 최소 재사용한다.
+13. 지배 전략 방지: Human 종족 보너스/약점/선호 작업0, owner 후보0, 신규 초기 부품0이다. 기존 물리 제작·운반·수술을 완료해 장착한 동안만 승인된 작업속도×1.05가 적용되고 제거 즉시 해제된다.
+14. 순환 차익·실패 소유권: 방문/모집은 아이템을 생성하지 않는다. 시술 예약·취소·실패·교체·제거·저장 재시도의 exact instance 소비/회수/outbox ACK와 무복제는 기존 수술/물리 원장이 소유하며 이번 콘텐츠 보강은 별도 저장 상태나 보상 경로를 추가하지 않는다.
+15. 실행 경로: 루트 `GameDomainContentCatalog.asset`→`IRunCharacterCatalog.Characters`→`CharacterSpawner.EnsureRuntimeState`→`TrySpawnCharacter`→`CharacterPopulationService.AcquireVisitor`→실제 Human `CharacterActor`→기존 regular-customer 모집/정착→`SurgeryOrderPlanningService`의 species `human`+family `humanoid`+node `brain` 자격→기존 exact part 운반/34 WU 수술→장착 부품 effect→공용 projector→실제 WU work-speed 소비자다.
+16. 저장 권위·자동 감사: species/customer/life/reproduction/funeral SO와 루트 도메인 카탈로그가 작성 권위다. 현재 캐릭터/생애/수술/물리 current-format 저장을 그대로 쓰며 파생 Human 자격이나 효과를 복제 저장하지 않고 과거 save migration은0이다. focused 검사는 ID·단일 등록·중립 capacity14·lifecycle/anatomy·owner0·무계약 모집 가능·runtime profile·신경 보조 exact part/34 WU를 fail-loud 검증한다.
+17. 증거·상태: source/YAML/GUID/카탈로그 정적 검사를 수행하고 root focused Unity 진입점은 `DungeonStory/WIM-023/Run Authored Human Supply`다. 지시상 Unity는 실행하지 않았으므로 상태는 **READY(주 Unity compile·실제 방문/모집/수술 집중 검증 전)**이며 자연 방문 빈도·6인 노동/의료 경제·전체 WIM023 밸런스 완료를 주장하지 않는다.
+
+### WIM017 날씨 원정 배율·전용 결정 카드 등록 (2026-09-12)
+
+1. 기록 ID: `balance:wim:017:weather-travel-and-decision-cards`. 기존 날씨 정의 `weather:clear`, `weather:rain`, `weather:fog`, `weather:heatwave`, `weather:cold-snap`, `weather:storm`와 전용 카드 `travel_rain_drift_cargo`, `travel_fog_guide`, `travel_heatwave_shade_shelter`, `travel_cold_snap_frost_camp`, `travel_storm_exposed_hideout`.
+2. 시대·역할: 기존 원정 출발·귀환 경로에서 구간 진입 때 확정한 날씨로 이동 시간을 보정하고, 기존 Travel 단계의 2지선다 후보에 날씨별 기회·위험을 추가한다. Clear에는 전용 카드를 추가하지 않고 기존 `travel_black_rain`은 폭풍 태그를 유지한다.
+3. Before: 6개 날씨 자산에는 이동 배율이 작성되어 있었고 49개 기존 카드와 검은 비 1개만 도메인 카탈로그/서술 카탈로그에 연결되어 있었다. 새 5개 카드 자산은 작성돼도 이 두 입력에 없어서 실제 후보·서술 조회에 도달할 수 없었다.
+4. After 목표: 이동 배율은 Clear=1.00, Rain=1.10, Fog=1.15, Heatwave=1.10, ColdSnap=1.15, Storm=1.25를 기존 `WeatherFrontDefinitionSO` 값 그대로 사용한다. 새 5개 카드는 각각 정확히 rain/fog/heatwave/cold-snap/storm 태그가 있을 때만 후보가 된다.
+5. 물리 BOM/입출력: 새 아이템·시설·레시피 없음. 비의 수색은 기존 식량 보급 +2, 한파 대비는 기존 마나등 보급 -1, 폭풍 수색은 기존 General 전리품 +6만 사용한다. 안개 선택은 현장 자금 -100, 나머지는 기존 원정 상태 효과이며 별도 보상 재고를 만들지 않는다.
+6. Direct WU: 신규 작업량0. 카드 선택은 기존 결정 효과로만 처리하며 비/안개 우회/폭풍 수색의 대기 1.5시간, 폭염 휴식의 2시간은 원정 경과시간이지 시설 노동 승인량이 아니다.
+7. 내재 작업량/EWU·kg·가격: 기존 보급·전리품·자금의 물리/경제 권위를 재사용한다. 식량 +2와 General +6의 EWU·kg·가격 및 준비 선택의 실제 기대비용은 이번 등록만으로 재보정·실전 검증하지 않는다.
+8. 시간: 날씨 배율은 구간 진입 때 동결한 기존 이동 시간에 한 번만 적용한다. 카드의 1.5/2시간 효과는 해당 선택의 별도 시간이며 같은 지연을 날씨 배율 또는 다음 구간에 중복 적용하지 않는다.
+9. 공간: 실제 원정 경로·위치·단계와 현재 선택 UI를 유지한다. 카드 제목만으로 물가·야영지·은닉처 좌표, 즉시 이동 또는 별도 출현 공간을 합성하지 않는다.
+10. 전력·용수·연료·폐기물: 신규 소비0. 한파의 마나등 1개만 기존 원정 보급에서 차감하며, 다른 날씨 카드가 전력·물·연료·폐기물을 추상 비용으로 만들지 않는다.
+11. 위험·실패·회복: 비 수색은 노출 +8, 안개 직접 탐색은 1.5시간·노출 +8, 폭염 강행은 스트레스 +7·노출 +8, 한파 절약은 스트레스 +7·노출 +15, 폭풍 수색은 비치명 최대 체력비 0.09 부상 위험을 기존 효과로 적용한다. 비해당 태그·부족한 보급/자금·기존 효과 실패는 기존 선택 거절/결과 경계를 따른다.
+12. 대안·기회비용: 각 카드의 반대 선택은 각각 지나가기, 직접 탐색, 강행, 추위 감수, 안전 우선으로 기존 2지선다를 제공한다. 모든 악천후에 무료 우위 보상·강제 피해·새 전용 능력치를 추가하지 않는다.
+13. 지배 전략·악용 방지: 전용 카드는 조건 충족 시 후보일 뿐 매 판정 강제 발생이 아니며 Clear에 무료 대응 카드를 만들지 않는다. 기존 결정 instance/sequence와 선택 결과를 재사용하여 UI 재개방·저장 복원·왕복으로 카드·보상·부상을 재굴리지 않는다.
+14. 순환 차익 방지: 보급/전리품/정찰/자금/노출/스트레스/부상 효과는 선택 결과 한 번에만 기존 원정 권위로 commit한다. 카드 열람·후보 재평가·서술 조회가 보급이나 전리품을 지급하지 않으며, 이동 날씨 배율과 카드 대기시간은 서로 대체 보상으로 반복하지 않는다.
+15. 실행 경로: 불변 WeatherFrontDefinitionSO→GameDomainContentCatalogSO→Climate/원정의 현재 또는 구간 확정 날씨 태그→`OffenseTravelAndDecisionRuntime.TryCreateDecision`/`HasRequiredWorldTags`→기존 카드 선택·효과 실행→기존 원정 상태·UI/서술 query. 이번은 authoring 등록이며 주 Unity 실제 태그 생산·선택·효과·UI 실행 증거는 아직 없다.
+16. 저장 권위: 날씨 정의와 카드는 불변 SO가 소유하고, 진행 중 구간 날씨와 게시된 결정/결과는 기존 offense travel/aggregate current-format 상태가 소유한다. 서술 카탈로그는 파생 읽기 모델이며 별도 원정·보상·날씨 저장소와 과거 마이그레이션은 추가하지 않는다.
+17. 자동 감사·결정론적 검증/상태: source seed는 총54카드·weather-qualified 6개(기존 검은 비 1 + 신규 5), 카탈로그는 기존49→54 카드 참조, 서술 항목은 카드49→54·선택98→108이 목표다. `WeatherFrontDefinition` 테스트 fixture의 중립 배율은 명시 1.0으로 보정한다. 정적 참조/ID/태그·count 검사는 이 편집 창에서 수행하고, Unity 컴파일·콘텐츠 audit·결정론적 후보/저장/실제 UI 경로 검증은 주 Unity 검증 창에 남긴다. 상태: **밸런스 기준 배정**, 밸런스 완료 아님.
+
+### WIM023 최대HP·실제 응급 원인 권위 교정 (2026-09-12)
+
+1. 기록 ID: `balance:wim:023:vitals-emergency-authority`. 기존 장착 강화 초기값/일반·응급 환경 정책의 실행 교정이며 새 강화 수치 승인이 아니다.
+2. 시대: 기존 시술/부품의 연구 시대 유지.
+3. 역할: 장착 효과의 파생 최대HP를 현재 신체 권위에 반영하고 실제 응급 주문과 자동 주문 허용을 구분한다.
+4. Before: 최대HP 재설정의 HP 비율 보존이 상한 상승을 무상 회복으로 바꿀 수 있고, 일반 NPC의 자동 응급 기본값/시술 이름이 환경 대기를 우회할 수 있었다.
+5. After: 파생 최대HP 변경은 절대 현재HP 유지·하향 clamp·최소maximum1·0HP 보존. 응급 원인을 생성 시 고정해 유효 주문 긴급도·환경·저장·안내가 공유한다. 기존 level-up Configure 정책은 그대로다.
+6. 물리 BOM: 기존 시술/부품/배송 재료 그대로, 신규 자원·시설·부품0.
+7. 직접 WU: 기존 시술 단계/작업량 그대로, 추가 반복 노동0.
+8. 내재 WU/EWU·가격: 변화0. 이번에 전수 경제 계산을 다시 수행하지 않는다.
+9. 시간: 기존 정상 환경 안정화5초 유지. 자동 응급 선정의 출혈0.08/감염35/위급 감염80 또는 신체 비율0.01 기준 유지.
+10. 공간: 기존 의료시설·접근·배송·환자 배치 유지, 추가 footprint0.
+11. 전력·용수·폐기물: 기존 소비/정비 그대로. 지원되지 않는 장착 부품 독립 절단은 재료/유체 소모 전에 거절한다.
+12. 위험: 실제 응급도 기존 환경 위험을 유지하고 원인을 표시한다. 일반/보철은 안전 우선 대기. 의료진·시설·재료·환자 자격 면제0.
+13. 대안·지배 전략: 기존 정상 생체 부위 절단과 부품 교체/회수를 유지한다. 자동 허용 설정·NPC/포로 신분·이름만으로 응급 이득을 얻지 않는다.
+14. 반복·차익 방지: HP 상한을 반복 전환해도 현재HP가 회복되지 않는다. BodyCommitted 미확정 부품의 효과0으로 상한이 내려간 경우 확정 뒤 HP를 되돌려 주지 않는다. 독립 장착 부품 제거의 소유권 누수는 typed 거절로 막고 새 분리/회수 기능을 추가했다고 주장하지 않는다.
+15. 실행 경로: 기존 Stats projection→vitals adapter→body command; 설치·교체 확정/기존 bounded 신체 tick. 기존 TrySchedule→typed cause→환경/우선순위/단계 안내. 수치 상수와 효과의 별도 복제 권위0.
+16. 저장 권위: 신체 aggregate는 기존 max/current/injury 필드. 주문의 `emergencyCause`는 기존 SurgeryOrder/current clone/validation/CreateState가 소유한다. 잘못된 명시 profile은 종족 fallback으로 숨기지 않는다. 과거 세이브 마이그레이션0.
+17. 증거/한계: `Artifacts/QA/wim-implementation/wim-023-vitals-emergency-current-source.txt`의 최신 compile·주 Play·두 집중 계약·영향받은 기존 교체 재시도 PASS. 초기 테스트 접근 오류13건은 보존하고 수정 후 Console0/0, 보호 파일6개 불변. 통제된 권위/환경/queued JSON 검증이며 실제 주문 성공·자연 UI/AI 수술·장착 강화품 whole-save·생산 에셋 발행/최종 밸런스는 아직 잔여다.
+
+### WIM-041 축제 실제 준비·참석 실행 (2026-09-13, 구현 기준 배정)
+
+1. 기록 ID: `balance:wim:041:real-festival-execution-addendum`. 기존 `balance:wim:041:existing-festival-facility-id-join`, `balance:wim:041:attendance-proportional-personal-benefit`, `balance:wim:041:opt-in-preparation-and-safety-stop`를 구체화하며 대체하지 않는다.
+2. 시대·역할: 기존 16개 축제와 각 축제의 기존 venue binding·BOM·최소 참가 인원을 사용한다. 새 축제·시설·연구·전용 행사장은 추가하지 않는다.
+3. Before/After: 개최 선택 즉시 재고를 원격 차감하고 결과를 적용하던 경로를, 공지 시점의 명시적 개최/미개최 선택→실물 운반→현장 준비→정시 시작→실제 이동·참석→결과로 변경한다. 미개최는 비용0이며 같은 회차 자동 시작이 없다.
+4. 작성값: 개최/마감은 해당 축제일18:00. 총 물리 BOM 수량을 Q라 할 때 준비량 `max(1, ceil(Q/4)) WU`, 준비 공지는 `max(1, ceil(준비WU/4))일` 전이다. 최소 참가자를 N이라 할 때 고정 행사시간 T는 `clamp(ceil(N/4), 2, 5)` 게임시간이다. 빈 실행값에 대한 기존 콘텐츠 기반 최소 일관 배정이며 새 사용자 선택이 아니다.
+5. 물리 BOM: 각 축제의 기존 requiredItems 전량을 실제 FacilityBuffer 목적지로 운반해 시작 경계에서 exact sink receipt로 한 번 소비한다. 미도착·미픽업·운반 중·취소된 물자는 input-owner 종료 시 기존 물리 보존/회수 계약을 따른다. 이미 소비된 물자는 환급하지 않는다.
+6. Direct WU: 위 식으로 산출한 준비 WU를 실제 배정 장소 접근 칸에서 기존 Perform 작업 속도로 누적한다. 준비 WU는 취소·중단 시 환급하지 않으며 UI/조회만으로 증가하지 않는다.
+7. Embedded WU/EWU·가격: 기존 물자의 질량·가격·생산 EWU 및 실제 운반 노동을 유지한다. 축제 실행은 새 물자 가격·무료 재고·원격 소비 대안을 만들지 않는다.
+8. 시간: T는 행사 시작 때 저장된 고정값이며 참가자별 실제 행사 칸 체류시간 t만 누적한다. 준비 이동·대기열·필수 업무·원격 사고 대응 시간은 t에 포함하지 않는다. `r=clamp01(t/T)`, r<0.25는 유효 참석/개인 혜택0이다.
+9. 공간: 기존 venue query가 반환한 실제 facility/access/event cells와 정원을 저장한다. 정원 이하의 문화·신분 적격 참가자에게 event cell을 하나씩 배정하고 실제 path 이동 및 배정 칸 도착만 참석으로 센다. 기존 16 venue binding과 공간 focused PASS는 변경하지 않는다.
+10. 전력·용수·폐기물: 축제 정의의 기존 BOM·장소 운영 조건 외 신규 전력·용수·연료·폐기물 수치는0이다. 장소가 운영/접근/수용 불가가 되면 준비 완료로 간주하지 않는다.
+11. 위험·중단: 행사 칸에 화재·전투·Forbidden 위험이 생기거나 장소/경로 권위가 무효면 전원을 해제하고 전체 행사를 그 시점 결과로 중단한다. 원격 사고·응급/경비/구조/치료/수술/위협대응은 해당 담당자만 저우선순위 축제 intent에서 이탈하며, 사고 종료 뒤 남은 T에 재합류할 수 있다.
+12. 마감·대안: 마감까지 장소·전량 물자·준비 WU 중 하나라도 미충족이면 그 회차를 취소한다. 몰래 연기하거나 같은 회차를 자동 재시작하지 않는다. 다음 연도 occurrence는 별도 선택이다.
+13. 결과·지배 전략 방지: 유효 참석자 수로 기존 Success/Partial/Failure 등급을 한 번 정한다. 개인 mood·grief 같은 수치형 효과만 각 참가자 r에 비례하고 효과 지속시간은 고정한다. faction rapport·참석 기록 같은 전역/비수치 효과는 등급당 한 번만 적용하며 r로 쪼개지 않는다. 25% 미만 잠깐 들르기로 개인 혜택을 얻지 못한다.
+14. 순환 차익 방지: occurrence/action/물자 operation은 연도별 stable ID로 단일화하고 중복 개최·중복 receipt·중복 효과를 거절한다. 취소/중단/저장 복원은 소비·WU·t를 되감거나 같은 회차 보상을 다시 실행하지 않는다.
+15. 실행 경로: 공지 alert의 개최/미개최 action→기존 `Festival.Schedule`→기존 입력 owner/실물 배송→기존 work amount와 clock→기존 venue/path/hazard query→참가자별 t/T→기존 psychosocial/faction/event 결과. 새 범용 프로젝트/참석 프레임워크는 만들지 않는다.
+16. 저장 권위: `festival.execution` current v1이 선택, 연도 occurrence, 준비/마감, venue/capacity/cells, 물자 owner/receipt, 참가자별 t/T, 중단/취소/등급/결과·cleanup을 소유한다. 기존 physical items 및 input-owner projection과 exact restore join하며 현재 형식만 엄격 원자 복원하고 과거 migration은 추가하지 않는다.
+17. 자동 감사·결정론적 검증/상태: 산식·25% 경계·ID/receipt/save validator는 결정론적이다. 2026-09-13 최신 주 Unity 컴파일 오류0에서 개최→물리 input owner→18:00 미준비 취소/재고 보존, 무비용 미개최, 24.9%/25%/100% 경계와 success/partial/failure, 행사장 직접 화재 중단/terminal 중복0, current-format staged restore rollback/물리 orphan receipt 거절을 통과했다. 보고서 `Artifacts/QA/wim-implementation/wim-041-festival-execution-live.txt` SHA256 `5630461AEBE8E08AEEB646C9BB93A9EEBB0B34007C237BAFD95F0784A031335D`. 기존 venue16/16·공간 PASS는 보존한다. 통제된 실행 aggregate 검사라 자연 달력 공지→실제 AI 이동·필수업무 이탈/복귀는 잔여이며 전체 WIM-041은 OPEN, 밸런스 완료 아님.
+
+### WIM-040 실제 사건 원인·물리 대응 최종 종료 (2026-09-13)
+
+1. 기록 ID: `balance:wim:040:authentic-incidents-and-physical-response-closure`.
+2. 시대·역할: 모든 시대의 기존 손님 사건·생애 사건·작업 사고가 현재 월드의 실제 원인과 대상에서만 시작되고, 물리 대응이 필요한 선택은 기존 식사·의료·이동 도메인의 완료 영수증을 기다리게 한다.
+3. Before: 빈 원인의 사건/생애 정의가 일일 후보가 될 수 있었고, `replace`·`emergency-care`·`transfer`가 실제 배송·의료·이동 없이 효과를 적용할 수 있었다. 응답·replacement·medical·movement 저장의 parent operation 교차 검증과 terminal owner 해제가 불완전했다.
+4. After: 실제 식사/오염 callback, exact post-Sink shoplifting lot, 실제 신체 피해, 확정 사회 충돌, 실제 작업 위험만 사건을 생산한다. retirement-request 1개만 `DailyCadence`, 나머지31개는 `ExternalObservedOnly`다. EnvoyConflict/Sabotage는 실제 생산자 전까지 설정 전용이다. 물리 대응은 pending operation과 exact terminal receipt를 사건이 소유하며 실패·취소·대상 사망에서는 효과 없이 해제한다.
+5. 작성값: 작업 사고의 기존 승인 기준은 `0.001/WU`, 수면 피로 배율1~2, 시설 무결성 배율1~2, 실제 신체 피해2다. 식사 사건의 실제 물리 소비는 1개, ForbiddenMeal 보상 선택은 돈−60 정확히1회다. 이 기록에서 다른 사건 확률·피해·보상 수치를 추가하지 않는다.
+6. 물리 BOM: 기존 식사·약품·시설 BOM 그대로. 신규 품목·무료 재료·가상 물자0. 실제 완료 식사는 exact stack 수량1을 소비한다.
+7. 직접 WU: 기존 식사 배송·의료 안정화/운반·시설 이동과 작업 실행 WU를 재사용한다. 사건 알림 확인 자체가 작업을 완료하지 않는다. 신규 반복 WU0.
+8. 내재 WU/EWU·가격: kg·BOM·WU·EWU·가격·음식/물 산출량 변화0. 이번 종료에서 경제 원장을 재산정하지 않는다.
+9. 시간: 기존 event/day/cooldown과 의료·이동 작업 시간을 사용한다. generic 일일 평가는 명시적 DailyCadence만 고려하며 빈 원인을 주기 채우기로 발생시키지 않는다.
+10. 공간: 실제 발생 시설과 frozen response destination을 사용한다. live 증거의 M11 배치는 통제 준비이며 신규 시설 면적·건설 밸런스 승인이 아니다.
+11. 전력·용수·폐기물: 기존 시설·의료·식사 계약 그대로이며 새 소비량0. 오염 식사의 기존 물리 소비 외 별도 폐기물을 생성하지 않는다.
+12. 위험: 사고는 exact 작업자·작업·시설의 실제 노출에만 적용하고 피로/시설 상태 악화가 위험을 높인다. 무관한 주민을 무작위 피해 대상으로 사용하지 않는다. Downed이면서 생존한 Customer만 실제 구조 대상이다.
+13. 대안·지배 전략: 실제 생산자가 없는 사건은 설정만 유지하며 보상/불이익을 만들지 않는다. 대응 선택은 기존 도메인 자격·경로·시설·재료를 우회하지 않고, 실패/취소로 효과나 환급을 중복 획득할 수 없다.
+14. 반복·차익 방지: source operation, incident instance, response operation과 terminal receipt는 exact-once다. replay·mismatch·foreign parent·orphan owner는 상태·물품·돈을 바꾸지 않고 거절한다. 보상−60과 도착 효과는 각각 한 번만 적용된다.
+15. 실행 경로: 실제 physical meal/Sink·신체/사회/work receipt→Society incident aggregate→notice/choice→기존 meal replacement 또는 emergency medical/transfer operation→실제 staff `AIRescue` 안정화·운반→frozen M11 도착 receipt→효과 게시·owner 해제.
+16. 저장 권위: Society incident가 frozen cause/target/facility와 response parent operation을 소유한다. replacement/medical/movement 및 CharacterWorld/character-consumables current-format 저장은 양방향 operation/target join을 검증하고 orphan·foreign·mismatch를 원자 거부한다. 과거 세이브 마이그레이션0.
+17. 자동 감사·결정론적 검증/상태: 최신 current-source Unity compile errors0. focused 원인/저장 SHA256 `79B3EA4CEB7B407DEE24EBCBE6D9CCBE3CE0D9FB4206A53AE3EB63588FB9A4DC`, 응답 수명/재실행 SHA256 `10654780FF83FECF3CE13F275C6478BA543CE1F5386A7CB96F3D302CA7512896`, 실제 Customer 식사·오염·whole restore·staff AIRescue SHA256 `2E17E732D2FEE0060DEB4B136AF56BE10772BB7F6937070D347B002B2584A28A` PASS. 대표6인 정적 생존망 SHA256 `B0E0FE3DA86397B458CDEF257A55FC23CF06C86EF1C41634234C67B4D738CCCD` PASS를 영향 없음 근거로 보존한다. 이는 WIM-040 구현 종료이며 별도 전역 밸런스 완료 선언은 아니다.
+
+### WIM-040 생애 사건 발생 범위 확정 (2026-09-14, 구현·검증 완료)
+
+1. 기록 ID: `balance:wim:040:life-event-catalog-scope`.
+2. 시대·역할: 전 시대 생애 사건의 발생 후보 경계를 현재 실제 원인 생산자에 맞춘다. 설정·후속 콘텐츠 정의는 전역 32개 생애 사건 definition 카탈로그에 보존한다.
+3. Before/After: 원인이 없는 26개 정의가 `ExternalObservedOnly`라는 기술적 필터만으로 남아 공개 서술에서 현재 발생 가능처럼 보였다. After는 기존 daily/observed 필터를 새 프레임워크 없이 그대로 사용하고, 해당 26개가 원인 시스템 구현 전 활성 발생 후보가 아님을 작성·공개 위키에서 명시한다.
+4. 범위: `newborn-welcome`, `family-room`, `first-forbidden-door`, `foundling-question`, `dangerous-friendship`, `childhood-bully`, `stolen-design`, `mentor-favor`, `masterpiece-commission`, `guardian-oath`, `inherited-debt`, `cultural-petition`, `position-rivalry`, `captains-test`, `disputed-thesis`, `clinic-shortage`, `lineage-relic`, `killer-sighted`, `first-lost-tooth`, `shared-lullaby`, `first-safe-task`, `tool-inheritance`, `household-meal`, `shift-saved`, `retiree-story`, `elder-birthday` 26개다. `retirement-request`의 `DailyCadence`, 실제 원인 5개(`grave-visit`, `story-compressed`, `quiet-promotion`, `apprentice-mistake`, `last-lesson`) 및 실제 작업 사고는 유지한다.
+5. 서술 권위: `apprentice-mistake`는 실제 도제가 제작 손실을 냈다는 범위로, `last-lesson`은 은퇴를 앞둔 스승이 PPE를 착용하고 마지막 실습을 했다는 범위로 한정한다. 희귀 중간재·보고 망설임·별도 쇠약 상태를 새 권위로 만들지 않는다.
+6. 물리 BOM·직접/내재 WU·EWU·kg·가격·시간·공간·전력·용수·연료·폐기물: 변경 0. 발생 제외와 설명 교정은 재고·작업·효과·쿨다운·생산량을 변경하지 않는다.
+7. 위험·대안·순환: 원인이 없는 정의가 일일 후보나 임의 대체 원인으로 보상·불이익을 만들지 않는다. 실제 영수증·source operation·OncePerCharacter·저장 복원 exact-once 계약은 유지하며, 비활성화가 기존 효과의 환급·재굴림·보상 농장을 만들지 않는다.
+8. 실행·저장: 기존 `DailyCadence`/`ExternalObservedOnly` 필터와 실제 관측 영수증→Society occurrence→저장/복원 경로를 그대로 사용한다. 새 save schema, 콘텐츠 ID 분기, fallback 또는 별도 상태 권위는 추가하지 않는다.
+9. 자동 감사·상태: 공식 Unity CLI current-source compile 오류0, `V20NarrativeContentAssetBuilder.Build` 작성 적용, 32개 정의/`DailyCadence`1/나머지31 `ExternalObservedOnly`와 실제 원인 receipt focused PASS를 확인했다. 공개 위키 모델은 entity2922/validation errors0이며 지정 26개에만 `비고: 현재 비활성화 — 원인 시스템 구현 후 활성화 예정`을 생성했다. manifest SHA256 `70500C3FA01BBD20FBFDFBA5C6DC6F5D665026AAD750A7C9473799EFA6635D2F`. **밸런스 영향 없음 / WIM-040 범위 완료**다. SSR 출력과 맞지 않는 기존 Pagefind 정리는 별도 문서 도구 후속이며 사건 데이터·위키 모델 완료선을 재개방하지 않는다.
+
+### V25 후천 특성 발현·망각의 인장 최초 기준 배정 (2026-09-14, SOURCE_EDIT)
+
+1. 기록 ID: `balance:v25:acquired-traits-and-memory-erasure-seal`.
+2. 시대·역할: 기존 캐릭터의 타고난 특성과 별개로, 플레이 중 확정된 경험으로 발현하는 최대 3개의 후천 특성을 추가한다. `item:memory-erasure-seal`은 지역 보스 최초 처치 보상으로만 얻는 물리 인장이며, 제작·상점·자동 구매에는 포함하지 않는다.
+3. Before/After: Before에는 경험 기반 후천 특성의 작성 정의와 인장 아이템이 없다. After는 동일 경험군의 성장도 문턱에서 발현 후보를 구성할 수 있는 불변 설정 1개와 모듈 8개를 정의하고, 효과는 기존 공용 파생 능력치·조건 정의를 재사용한다. 타고난 특성의 교체·강화 또는 별도 진화 트리는 만들지 않는다.
+4. 작성값: `maximumActiveTraits=3`; 문턱은 `3/Common/예산3`, `8/Advanced/예산5`, `20/Rare/예산7`이다. 각 모듈 비용은 2이므로 각 문턱에서 선택 가능한 모듈 수는 최대 1/2/3이다. 모듈은 battle-temper 전투력×1.04, steady-hands 제작 품질+2, scar-memory 부정 기분 지속×0.96, night-vigil 야간 작업×1.04·낮 작업×0.99, work-rhythm 작업×1.03, social-bridge 관계 회복×1.08, survival-instinct 위험 작업 사고×0.94, ritual-attunement 연구×1.04다. 충돌은 `risk-posture`의 battle-temper/survival-instinct 및 `work-cycle`의 night-vigil/work-rhythm뿐이다.
+5. 물리 BOM·입출력: 인장 1개는 `item:memory-erasure-seal`, General, 100g, stack 75, 가격 0의 물리 아이템이다. 지역 보스별 최초 처치 완료 보상으로만 정확히 1개가 생성되도록 후속 보상 권위가 연결하며, 레시피·시설 생산·상점 재고·외부 조달 입력은 0이다.
+6. Direct WU: 후천 특성 발현·선택·인장 확인은 작업량을 생성하거나 환급하지 않는다. 지역 보스 처치는 기존 전투·이동·준비 노동을 그대로 사용하며, 인장 획득을 위해 별도 반복 노동을 추가하지 않는다.
+7. 내재 WU/EWU·kg·가격: 인장의 100g은 운반·저장 질량으로만 작동한다. 가격 0, 생산 레시피 0, Market feature 0이므로 구매→판매, 제작→해체, EWU→화폐 전환 경로가 없다. 효과 수치는 초기 기능값이며 생산성·전투·연구 경제의 실측 보정값이 아니다.
+8. 시간: 성장도는 확정된 경험군 누적 결과에서만 문턱을 연다. 시작·진행·취소·재시도는 성장도를 올리지 않으며, UI 재개방·저장 복원·인장 사용으로 문턱이나 보상 시점을 재굴림하지 않는다.
+9. 공간: 인장은 기존 물리 보관·운반·캐릭터 인벤토리 및 대상 선택 흐름을 사용한다. 새 시설·방·보스 전용 저장소·공간 면적은 0이며, 인장을 사용하려면 실제 소유·선택 경로를 통과해야 한다.
+10. 전력·용수·연료·폐기물: 새 소비·배출·정비는 0이다. 인장 제거는 기존 정확한 물리 소비 영수증으로 한 번 처리되며, 소비 시 복제된 잔재·무상 반납품을 만들지 않는다.
+11. 위험·실패·회복: 서로 충돌하는 두 모듈은 같은 조합에 선택할 수 없고, 예산 초과·중복 모듈·잘못된 문턱·누락 효과/조건/카탈로그는 fail-closed한다. 인장 대상·소유·확인·소비 중 어느 하나가 무효이면 특성 상태와 물리 인장을 부분 변경하지 않는다.
+12. 대안·기회비용: 발현은 3/8/20의 희소한 경험 문턱을 쓰며, 같은 경험군의 반복은 1/3/8/20/50에서만 성장한다. 따라서 전문성은 허용하되 단일 작업의 대상 ID 교체 파밍으로 다수 특성을 즉시 얻는 우위는 만들지 않는다. 인장을 사용하지 않으면 기존 후천 특성은 유지한다.
+13. 지배 전략 방지: 최대 3개·예산 3/5/7·비용 2 및 두 충돌군으로 전투·위험 태세, 야간·범용 작업 속도를 동시에 겹쳐 지배적인 조합으로 만들지 않는다. 기본 특성과 후천 특성은 같은 효과를 별도 권위로 이중 적용하지 않고, 공용 효과 투영기에서 후천 특성 출처를 한 번만 읽는다.
+14. 순환 차익·결정론: 지역 보스/지역별 첫 완료 식별자와 인장 소비 영수증은 exact-once여야 한다. 보상 조회·확인창 취소·UI 재개방·저장/복원·특성 제거가 인장, 성장도, 문턱, 조합 후보 또는 보상 물품을 중복 생성·환급·재굴림하지 않는다.
+15. 실행 경로: 불변 `CharacterAcquiredTraitSettingsSO`/`CharacterAcquiredTraitModuleSO`→`GameDomainContentCatalogSO`→기존 경험 장부의 후천 특성 성장도→발현 요청/결정론적 조합 검증→기존 LLM 서사 표면과 후천 특성 aggregate→공용 gameplay-effect projector→전투·제작·작업·관계·연구·사고 소비자다. 인장은 기존 지역 보스 최초 보상→물리 아이템 생성·보관→캐릭터/특성 선택 및 확인→정확한 소비→후천 특성 제거 경로를 사용한다.
+16. 저장 권위: 불변 설정·모듈·인장 정의는 SO/카탈로그가 소유한다. 경험군 누적, 열린 문턱, 활성/삭제된 후천 특성, 대기 요청 및 인장 소비 영수증은 기존 캐릭터 진행·물리 아이템의 current-format 권위가 소유하며, 파생 효과·UI 모델·후보 조합은 저장하지 않는다. 과거 형식 migration은 이 기준 배정에서 추가하지 않는다.
+17. 자동 감사·상태: 전용 authoring validator는 설정/모듈 ID 누락·중복, 3/8/20 문턱·희귀도·예산, 비용 2, 효과값·조건·충돌군, 재사용 효과의 `AcquiredTrait` source mask, 도메인/아이템/루트 카탈로그 membership, 인장의 General/100g/stack/가격 및 레시피·상점·조달 문자열 참조 노출을 fail-closed 검사한다. 이 기록의 상태는 **밸런스 기준 배정**이다. SOURCE_EDIT만 완료했으며, Unity 컴파일·builder 실행·지역 보스 실제 최초 보상·인장 UI/저장·실전 경제/전투 보정은 후속 검증 전이다.

@@ -26,13 +26,10 @@ public static class P1DefenseFacilityAssetBuilder
                 [32] = TacticalSpriteFolder + "/defense_fire_vent.png",
                 [33] = TacticalSpriteFolder + "/defense_lightning_pillar.png",
                 [34] = TacticalSpriteFolder + "/defense_ice_vent.png",
-                [35] = TacticalSpriteFolder + "/defense_guard_room.png",
                 [52] = TacticalSpriteFolder + "/defense_venom_spike.png",
                 [53] = TacticalSpriteFolder + "/defense_alarm_coil.png",
-                [54] = TacticalSpriteFolder + "/defense_barracks.png",
                 [57] = TacticalSpriteFolder + "/defense_corrosion_freezer.png",
                 [58] = TacticalSpriteFolder + "/defense_storm_fire.png",
-                [59] = TacticalSpriteFolder + "/defense_war_barracks.png",
                 [1800] = TacticalSpriteFolder + "/defense_corridor_detector.png",
                 [1801] = TacticalSpriteFolder + "/defense_control_desk.png",
                 [1802] = TacticalSpriteFolder + "/defense_supply_depot.png",
@@ -146,6 +143,26 @@ public static class P1DefenseFacilityAssetBuilder
         DefenseEffectSO[] effectAssets = DefenseEffectAssetBuilder.EnsureEffects(
             $"{EffectFolder}/{spec.assetName}",
             spec.effectSpecs);
+        float environmentalIgnitionIntensity = spec.effectSpecs
+            .Where(value => value.EffectType == typeof(DefenseBurnEffectSO))
+            .Select(value => value.EnvironmentalIgnitionIntensity)
+            .DefaultIfEmpty(0f)
+            .Max();
+        if (environmentalIgnitionIntensity > 0f)
+        {
+            BuildingEnvironmentalFireAbility environmentalFire =
+                building.GetAbility<BuildingEnvironmentalFireAbility>();
+            if (environmentalFire == null)
+            {
+                environmentalFire = new BuildingEnvironmentalFireAbility();
+                building.AbilityModules.Add(environmentalFire);
+            }
+            environmentalFire.acceptedSources =
+                DungeonStory.Environment.EnvironmentalFireIgnitionSources
+                    .AuthoredFlameImpact
+                | DungeonStory.Environment.EnvironmentalFireIgnitionSources
+                    .Spread;
+        }
         building.Defense = new DefenseFacilityData
         {
             enabled = true,
@@ -756,7 +773,12 @@ public static class P1DefenseFacilityAssetBuilder
                 new[]
                 {
                     Effect<DefenseDamageEffectSO>(18f, 0f, 1, "피해"),
-                    Effect<DefenseBurnEffectSO>(2f, 5f, 1, "연소")
+                    Effect<DefenseBurnEffectSO>(
+                        2f,
+                        5f,
+                        1,
+                        "연소",
+                        environmentalIgnitionIntensity: 0.25f)
                 }),
             new DefenseAssetSpec(
                 "P1_LightningPillar",
@@ -800,24 +822,6 @@ public static class P1DefenseFacilityAssetBuilder
                     Effect<DefenseDamageEffectSO>(5f, 0f, 1, "피해"),
                     Effect<DefenseSlowEffectSO>(0.7f, 4f, 1, "감속")
                 }),
-            new DefenseAssetSpec(
-                "P1_GuardRoom",
-                35,
-                "1성 경비실",
-                "Assets/Images/Placeholders/Defense/defense_guard_room.png",
-                3,
-                GridLayer.Building,
-                180,
-                6,
-                DefenseAttackConcept.Guard,
-                DefenseTriggerTiming.OnEnter | DefenseTriggerTiming.GuardResponse,
-                DefenseTargetRule.GuardTarget,
-                2f,
-                0f,
-                FacilityWorkType.Repair | FacilityWorkType.Guard,
-                1,
-                new[] { Effect<DefenseGuardAttackEffectSO>(10f, 0f, 1, "경비 교전") })
-            ,
             new DefenseAssetSpec(
                 "DefenseCorridorDetector",
                 1800,
@@ -935,10 +939,20 @@ public static class P1DefenseFacilityAssetBuilder
         .ToArray();
     }
 
-    private static DefenseEffectAssetSpec Effect<TEffect>(float amount, float duration, int stacks, string logTag)
+    private static DefenseEffectAssetSpec Effect<TEffect>(
+        float amount,
+        float duration,
+        int stacks,
+        string logTag,
+        float environmentalIgnitionIntensity = 0f)
         where TEffect : DefenseEffectSO
     {
-        return DefenseEffectAssetSpec.Create<TEffect>(amount, duration, stacks, logTag);
+        return DefenseEffectAssetSpec.Create<TEffect>(
+            amount,
+            duration,
+            stacks,
+            logTag,
+            environmentalIgnitionIntensity);
     }
 
     private static void EnsureSpriteImport(

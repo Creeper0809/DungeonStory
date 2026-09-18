@@ -25,7 +25,7 @@ public sealed class OffenseExpeditionRestoreCandidate
 [Serializable]
 public sealed class DungeonOffenseSaveData
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 5;
 
     public int version = CurrentVersion;
     public DungeonOffenseRewardSaveData rewards = new DungeonOffenseRewardSaveData();
@@ -57,7 +57,7 @@ public sealed class DungeonOffenseStockRewardSaveData
 [Serializable]
 public sealed class DungeonOffenseExpeditionRunSaveData
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 5;
 
     public int journeyVersion;
     public string expeditionId = string.Empty;
@@ -91,6 +91,27 @@ public sealed class DungeonOffenseExpeditionRunSaveData
     public OffenseTargetDefinition worldTarget;
     public int fieldFunds;
     public bool fieldFundsReturned;
+    public bool returnPending;
+    public bool returnSuccess;
+    public string returnMessage = string.Empty;
+    public List<DungeonOffenseReturnProgressSaveData> returnProgress = new();
+    public List<DungeonOffenseSupplySaveData> consumedSupplies = new();
+    public List<DungeonOffenseTreatmentReceiptSaveData> treatmentReceipts = new();
+    public List<DungeonOffenseEquipmentBaselineSaveData> equipmentBaselines = new();
+    public List<DungeonOffenseAmmunitionConsumptionSaveData>
+        ammunitionConsumptions = new();
+    public bool returnResourcesCommitted;
+    public string returnResourceFailure = string.Empty;
+    public List<DungeonOffenseItemReceiptSaveData> returnItemReceipts = new();
+    public List<DungeonOffenseCurrencyReceiptSaveData>
+        returnCurrencyReceipts = new();
+}
+
+[Serializable]
+public sealed class DungeonOffenseReturnProgressSaveData
+{
+    public string characterId = string.Empty;
+    public ExpeditionReturnStage stage;
 }
 
 [Serializable]
@@ -123,6 +144,98 @@ public sealed class DungeonOffenseExpeditionResultSaveData
     public List<DungeonOffenseExpeditionMemberResultSaveData> members =
         new List<DungeonOffenseExpeditionMemberResultSaveData>();
     public List<string> rewardSummaries = new List<string>();
+    public List<DungeonOffenseRewardGrantSaveData> grantedRewards = new();
+    public List<DungeonOffenseItemReceiptSaveData> itemReceipts = new();
+    public List<DungeonOffenseTreatmentReceiptSaveData> treatmentReceipts = new();
+    public List<DungeonOffenseArrivalReceiptSaveData> arrivalReceipts = new();
+    public List<DungeonOffenseCurrencyReceiptSaveData> currencyReceipts = new();
+}
+
+[Serializable]
+public sealed class DungeonOffenseEquipmentBaselineSaveData
+{
+    public string instanceId = string.Empty;
+    public string definitionId = string.Empty;
+    public float durabilityRatio;
+}
+
+[Serializable]
+public sealed class DungeonOffenseAmmunitionConsumptionSaveData
+{
+    public string instanceId = string.Empty;
+    public string itemId = string.Empty;
+    public int quantity;
+}
+
+[Serializable]
+public sealed class DungeonOffenseTreatmentReceiptSaveData
+{
+    public OffenseExpeditionTreatmentKind kind;
+    public string characterId = string.Empty;
+    public string anatomyNodeId = string.Empty;
+    public float healedAmount;
+}
+
+[Serializable]
+public sealed class DungeonOffenseItemValuationSaveData
+{
+    public string itemId = string.Empty;
+    public int quantity;
+    public OffenseSettlementValuationState state;
+    public long acquisitionMilliEwuPerUnit;
+    public long recoverableMilliEwuPerUnit;
+    public string basisId = string.Empty;
+    public string selectedSourceId = string.Empty;
+}
+
+[Serializable]
+public sealed class DungeonOffenseItemReceiptSaveData
+{
+    public OffenseExpeditionItemReceiptKind kind;
+    public string itemId = string.Empty;
+    public int quantity;
+    public string instanceId = string.Empty;
+    public float durabilityLoss;
+    public DungeonOffenseItemValuationSaveData valuation = new();
+}
+
+[Serializable]
+public sealed class DungeonOffenseArrivalReceiptSaveData
+{
+    public string arrivalId = string.Empty;
+    public string kind = string.Empty;
+    public int requestedAmount;
+    public int materializedAmount;
+    public int securedAmount;
+    public int escapedAmount;
+    public OffenseExpeditionArrivalResolution resolution;
+}
+
+[Serializable]
+public sealed class DungeonOffenseRewardGrantSaveData
+{
+    public OffenseRewardCategory category;
+    public string label = string.Empty;
+    public int requestedAmount;
+    public int grantedAmount;
+    public bool success;
+    public string detail = string.Empty;
+    public List<DungeonOffenseRewardPhysicalItemSaveData> physicalItems = new();
+}
+
+[Serializable]
+public sealed class DungeonOffenseRewardPhysicalItemSaveData
+{
+    public string itemId = string.Empty;
+    public int quantity;
+}
+
+[Serializable]
+public sealed class DungeonOffenseCurrencyReceiptSaveData
+{
+    public string currencyId = string.Empty;
+    public int amount;
+    public string operationId = string.Empty;
 }
 
 [Serializable]
@@ -281,7 +394,7 @@ public sealed class OffenseSaveService : IOffenseSaveService
             {
                 if (characterSaveService.TryGetRestoredActor(persistentId, out CharacterActor actor))
                 {
-                    if (departureCompleted)
+                    if (departureCompleted && !savedRun.returnPending)
                     {
                         actor.BeginExpedition();
                     }
@@ -300,7 +413,7 @@ public sealed class OffenseSaveService : IOffenseSaveService
                         persistentId,
                         out CharacterActor actor))
                 {
-                    if (departureCompleted)
+                    if (departureCompleted && !savedRun.returnPending)
                     {
                         actor.BeginExpedition();
                     }
@@ -352,6 +465,8 @@ public sealed class OffenseSaveService : IOffenseSaveService
                 new OffenseSupplyLoadout(restoredSupplies),
                 preparation);
             restoredRun.MergeProtectedRescueMembers(protectedRescueMembers);
+            restoredRun.RestorePhysicalReturn(savedRun.returnPending, savedRun.returnSuccess, savedRun.returnMessage,
+                savedRun.returnProgress.Select(value => new ExpeditionReturnProgress(value.characterId, value.stage)));
 
             string currentNodeId = savedRun.currentNodeId;
             OffenseExpeditionPhase phase = savedRun.phase;
@@ -367,9 +482,33 @@ public sealed class OffenseSaveService : IOffenseSaveService
                 carriedStock);
             restoredRun.RestoreRecoveredEquipment(
                 savedRun.recoveredEquipmentInstanceIds);
+            restoredRun.RestoreSettlementReceipts(
+                savedRun.consumedSupplies.ToDictionary(
+                    value => value.type,
+                    value => value.amount),
+                savedRun.treatmentReceipts.Select(RestoreTreatmentReceipt),
+                savedRun.equipmentBaselines.Select(value =>
+                    new OffenseExpeditionEquipmentBaseline(
+                        value.instanceId,
+                        value.definitionId,
+                        value.durabilityRatio)),
+                savedRun.ammunitionConsumptions.Select(value =>
+                    new OffenseExpeditionAmmunitionConsumption(
+                        value.instanceId,
+                        value.itemId,
+                        value.quantity)));
             restoredRun.RestoreFieldFunds(
                 savedRun.fieldFunds,
                 savedRun.fieldFundsReturned);
+            restoredRun.RestoreReturnResourceSettlement(
+                savedRun.returnResourcesCommitted,
+                savedRun.returnResourceFailure,
+                savedRun.returnItemReceipts.Select(RestoreItemReceipt),
+                savedRun.returnCurrencyReceipts.Select(value =>
+                    new OffenseExpeditionCurrencyReceipt(
+                        value.currencyId,
+                        value.amount,
+                        value.operationId)));
             if (isStrategic)
             {
                 restoredRun.RestoreStrategicJourneyState(
@@ -490,6 +629,8 @@ public sealed class OffenseSaveService : IOffenseSaveService
 
     private DungeonOffenseExpeditionRunSaveData CaptureExpedition(OffenseExpeditionRun expedition)
     {
+        if (expedition.ReturnFinalizing && !expedition.ReturnFinalized)
+            throw new InvalidOperationException("Cannot save an expedition whose return finalization failed partway.");
         return new DungeonOffenseExpeditionRunSaveData
         {
             journeyVersion = DungeonOffenseExpeditionRunSaveData.CurrentVersion,
@@ -563,7 +704,56 @@ public sealed class OffenseSaveService : IOffenseSaveService
                 ? expedition.Target.CreateRuntimeCopy()
                 : null,
             fieldFunds = expedition.FieldFunds,
-            fieldFundsReturned = expedition.FieldFundsReturned
+            fieldFundsReturned = expedition.FieldFundsReturned,
+            returnPending = expedition.ReturnPending,
+            returnSuccess = expedition.ReturnSuccess,
+            returnMessage = expedition.ReturnMessage,
+            returnProgress = expedition.ReturnProgress.OrderBy(value => value.CharacterId, StringComparer.Ordinal)
+                .Select(value => new DungeonOffenseReturnProgressSaveData { characterId = value.CharacterId, stage = value.Stage }).ToList(),
+            consumedSupplies = expedition.ConsumedSupplies
+                .OrderBy(pair => pair.Key)
+                .Select(pair => new DungeonOffenseSupplySaveData
+                {
+                    type = pair.Key,
+                    amount = pair.Value
+                })
+                .ToList(),
+            treatmentReceipts = expedition.TreatmentReceipts
+                .Select(CaptureTreatmentReceipt)
+                .ToList(),
+            equipmentBaselines = expedition.EquipmentBaselines
+                .OrderBy(value => value.InstanceId, StringComparer.Ordinal)
+                .Select(value => new DungeonOffenseEquipmentBaselineSaveData
+                {
+                    instanceId = value.InstanceId,
+                    definitionId = value.DefinitionId,
+                    durabilityRatio = value.DurabilityRatio
+                })
+                .ToList(),
+            ammunitionConsumptions = expedition.AmmunitionConsumptions
+                .OrderBy(value => value.InstanceId, StringComparer.Ordinal)
+                .ThenBy(value => value.ItemId, StringComparer.Ordinal)
+                .Select(value =>
+                    new DungeonOffenseAmmunitionConsumptionSaveData
+                    {
+                        instanceId = value.InstanceId,
+                        itemId = value.ItemId,
+                        quantity = value.Quantity
+                    })
+                .ToList(),
+            returnResourcesCommitted = expedition.ReturnResourcesCommitted,
+            returnResourceFailure = expedition.ReturnResourceFailure,
+            returnItemReceipts = expedition.ReturnItemReceipts
+                .Select(CaptureItemReceipt)
+                .ToList(),
+            returnCurrencyReceipts = expedition.ReturnCurrencyReceipts
+                .Select(value => new DungeonOffenseCurrencyReceiptSaveData
+                {
+                    currencyId = value.currencyId,
+                    amount = value.amount,
+                    operationId = value.operationId
+                })
+                .ToList()
         };
     }
 
@@ -590,7 +780,45 @@ public sealed class OffenseSaveService : IOffenseSaveService
                     damageTaken = member.damageTaken
                 })
                 .ToList(),
-            rewardSummaries = result.rewardSummaries.ToList()
+            rewardSummaries = result.rewardSummaries.ToList(),
+            grantedRewards = result.grantedRewards.Select(value =>
+                new DungeonOffenseRewardGrantSaveData
+                {
+                    category = value.category,
+                    label = value.label,
+                    requestedAmount = value.requestedAmount,
+                    grantedAmount = value.grantedAmount,
+                    success = value.success,
+                    detail = value.detail,
+                    physicalItems = value.physicalItems.Select(item =>
+                        new DungeonOffenseRewardPhysicalItemSaveData
+                        {
+                            itemId = item.itemId,
+                            quantity = item.quantity
+                        }).ToList()
+                }).ToList(),
+            itemReceipts = result.itemReceipts.Select(CaptureItemReceipt).ToList(),
+            treatmentReceipts = result.treatmentReceipts
+                .Select(CaptureTreatmentReceipt)
+                .ToList(),
+            arrivalReceipts = result.arrivalReceipts.Select(value =>
+                new DungeonOffenseArrivalReceiptSaveData
+                {
+                    arrivalId = value.arrivalId,
+                    kind = value.kind,
+                    requestedAmount = value.requestedAmount,
+                    materializedAmount = value.materializedAmount,
+                    securedAmount = value.securedAmount,
+                    escapedAmount = value.escapedAmount,
+                    resolution = value.resolution
+                }).ToList(),
+            currencyReceipts = result.currencyReceipts.Select(value =>
+                new DungeonOffenseCurrencyReceiptSaveData
+                {
+                    currencyId = value.currencyId,
+                    amount = value.amount,
+                    operationId = value.operationId
+                }).ToList()
         };
     }
 
@@ -613,6 +841,99 @@ public sealed class OffenseSaveService : IOffenseSaveService
                     member.survived,
                     member.damageTaken))
                 .ToList(),
-            source.rewardSummaries);
+            source.rewardSummaries,
+            source.grantedRewards.Select(value => new OffenseRewardGrantResult(
+                value.category,
+                value.label,
+                value.requestedAmount,
+                value.grantedAmount,
+                value.success,
+                value.detail,
+                value.physicalItems.Select(item =>
+                    new OffenseRewardPhysicalItemGrant(
+                        item.itemId,
+                        item.quantity)).ToList())).ToList(),
+            source.itemReceipts.Select(RestoreItemReceipt).ToList(),
+            source.treatmentReceipts.Select(RestoreTreatmentReceipt).ToList(),
+            source.arrivalReceipts.Select(value => new OffenseExpeditionArrivalReceipt(
+                value.arrivalId,
+                value.kind,
+                value.requestedAmount,
+                value.materializedAmount,
+                value.securedAmount,
+                value.escapedAmount,
+                value.resolution)).ToList(),
+            source.currencyReceipts.Select(value =>
+                new OffenseExpeditionCurrencyReceipt(
+                    value.currencyId,
+                    value.amount,
+                    value.operationId)).ToList());
+    }
+
+    private static DungeonOffenseTreatmentReceiptSaveData CaptureTreatmentReceipt(
+        OffenseExpeditionTreatmentReceipt value) => new()
+    {
+        kind = value.kind,
+        characterId = value.characterId,
+        anatomyNodeId = value.anatomyNodeId,
+        healedAmount = value.healedAmount
+    };
+
+    private static OffenseExpeditionTreatmentReceipt RestoreTreatmentReceipt(
+        DungeonOffenseTreatmentReceiptSaveData value) => new(
+        value.kind,
+        value.characterId,
+        value.anatomyNodeId,
+        value.healedAmount);
+
+    private static DungeonOffenseItemReceiptSaveData CaptureItemReceipt(
+        OffenseExpeditionItemReceipt value)
+    {
+        if (value?.valuation == null)
+        {
+            throw new InvalidOperationException(
+                "Cannot capture an expedition item receipt without its valuation status.");
+        }
+
+        return new DungeonOffenseItemReceiptSaveData
+        {
+            kind = value.kind,
+            itemId = value.itemId,
+            quantity = value.quantity,
+            instanceId = value.instanceId,
+            durabilityLoss = value.durabilityLoss,
+            valuation = new DungeonOffenseItemValuationSaveData
+            {
+                itemId = value.valuation.itemId,
+                quantity = value.valuation.quantity,
+                state = value.valuation.state,
+                acquisitionMilliEwuPerUnit =
+                    value.valuation.acquisitionMilliEwuPerUnit,
+                recoverableMilliEwuPerUnit =
+                    value.valuation.recoverableMilliEwuPerUnit,
+                basisId = value.valuation.basisId,
+                selectedSourceId = value.valuation.selectedSourceId
+            }
+        };
+    }
+
+    private static OffenseExpeditionItemReceipt RestoreItemReceipt(
+        DungeonOffenseItemReceiptSaveData value)
+    {
+        DungeonOffenseItemValuationSaveData valuation = value.valuation;
+        return new OffenseExpeditionItemReceipt(
+            value.kind,
+            value.itemId,
+            value.quantity,
+            value.instanceId,
+            value.durabilityLoss,
+            new OffenseItemValuationSnapshot(
+                valuation.itemId,
+                valuation.quantity,
+                valuation.state,
+                valuation.acquisitionMilliEwuPerUnit,
+                valuation.recoverableMilliEwuPerUnit,
+                valuation.basisId,
+                valuation.selectedSourceId));
     }
 }

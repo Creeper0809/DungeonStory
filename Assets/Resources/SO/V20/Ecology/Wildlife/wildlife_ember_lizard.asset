@@ -43,6 +43,8 @@ MonoBehaviour:
   laysEggs: 0
   bodySize: 1
   manureIntervalDays: 2
+  productComfortMinimumTemperatureC: 20
+  productComfortMaximumTemperatureC: 35
   husbandryProducts: []
   authoringRevision: 1
   preySpeciesIds:
@@ -53,6 +55,14 @@ MonoBehaviour:
   nestTag: nest:warm-pipe
   breedingSeason: 1
   migrationPatternId: migration:heat-source
+  migrationProfile:
+    capability: 4
+    detectionRadiusCells: 8
+    signalScore: 7
+    minimumWaterRemainingRatio: 0
+    minimumCarcassQuantity: 0
+    minimumTemperatureC: 20
+    maximumTemperatureC: 35
   diseaseVectorIds:
   - disease:ember-fever
   activeSeasons: 0100000002000000

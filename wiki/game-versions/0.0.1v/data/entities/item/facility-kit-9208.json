@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "비전 연구의 마지막 단계에서 마나를 끌어올리는 승천탑의 설치 부품이며, 베르사디온에서도 이 부품의 치수를 알아본다.",
+  "in_game_description": "비전 연구의 마지막 단계에서 마나를 끌어올리는 승천탑의 설치 부품이다. 베르사디온의 계약술사들은 비전 승천탑에 공급한 마나와 실패했을 때의 배상 조건을 함께 봉인한다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

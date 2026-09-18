@@ -16,6 +16,9 @@ public sealed class CharacterEnvironmentUnityAdapter :
     private static readonly ProfilerMarker TickMarker =
         new ProfilerMarker("Environment.CharacterExposure.Tick");
     private const float TickInterval = 1f;
+    private const string LightAdaptationMoodFactorId =
+        "environment:light-adaptation";
+    private const float EnvironmentMoodFactorDurationSeconds = 15f;
 
     private readonly IEnvironmentalFieldQuery field;
     private readonly ICharacterWorldQuery characters;
@@ -24,11 +27,13 @@ public sealed class CharacterEnvironmentUnityAdapter :
     private readonly ICharacterEnvironmentProtectionResolver protection;
     private readonly IEnvironmentalWorkwearPersistence workwear;
     private readonly ICharacterApparelPersistence apparel;
+    private readonly ICharacterApparelCommand apparelCommands;
     private readonly IApparelWorkOrderPersistence apparelWorkOrders;
     private readonly ICharacterBodyHealthCommand bodyHealthCommands;
     private readonly IGameClock clock;
     private readonly CharacterEnvironmentAggregateStateStore stateStore;
     private readonly ICharacterPerformanceQuery performance;
+    private readonly ApparelConditionRuntime apparelConditions;
 
     private Dictionary<CharacterId, CharacterEnvironmentExposure> states =>
         stateStore.Current.Exposures;
@@ -43,11 +48,13 @@ public sealed class CharacterEnvironmentUnityAdapter :
         ICharacterEnvironmentProtectionResolver protection,
         IEnvironmentalWorkwearPersistence workwear,
         ICharacterApparelPersistence apparel,
+        ICharacterApparelCommand apparelCommands,
         IApparelWorkOrderPersistence apparelWorkOrders,
         ICharacterBodyHealthCommand bodyHealthCommands,
         IGameClock clock,
         CharacterEnvironmentAggregateStateStore stateStore,
-        ICharacterPerformanceQuery performance)
+        ICharacterPerformanceQuery performance,
+        ApparelConditionRuntime apparelConditions)
     {
         this.field = field ?? throw new ArgumentNullException(nameof(field));
         this.characters = characters
@@ -62,6 +69,8 @@ public sealed class CharacterEnvironmentUnityAdapter :
             ?? throw new ArgumentNullException(nameof(workwear));
         this.apparel = apparel
             ?? throw new ArgumentNullException(nameof(apparel));
+        this.apparelCommands = apparelCommands
+            ?? throw new ArgumentNullException(nameof(apparelCommands));
         this.apparelWorkOrders = apparelWorkOrders
             ?? throw new ArgumentNullException(nameof(apparelWorkOrders));
         this.bodyHealthCommands = bodyHealthCommands
@@ -71,6 +80,8 @@ public sealed class CharacterEnvironmentUnityAdapter :
             ?? throw new ArgumentNullException(nameof(stateStore));
         this.performance = performance
             ?? throw new ArgumentNullException(nameof(performance));
+        this.apparelConditions = apparelConditions
+            ?? throw new ArgumentNullException(nameof(apparelConditions));
     }
 
     public void Tick()
@@ -81,6 +92,10 @@ public sealed class CharacterEnvironmentUnityAdapter :
         }
 
         stateStore.Current.Accumulator += Mathf.Max(0f, clock.DeltaTime);
+        // The aggregate compares the actual item/apparel revisions and an
+        // ordered candidate fingerprint before it evaluates a change. This
+        // polling edge therefore cannot repeat the same-purpose change per tick.
+        apparelCommands.RefreshAutomaticSelections();
         while (stateStore.Current.Accumulator >= TickInterval)
         {
             stateStore.Current.Accumulator -= TickInterval;
@@ -98,6 +113,25 @@ public sealed class CharacterEnvironmentUnityAdapter :
             : null;
     }
 
+    public bool TryGetLightAdaptation(
+        CharacterId characterId,
+        out CharacterLightAdaptationSnapshot snapshot)
+    {
+        snapshot = default;
+        CharacterActor actor = FindCharacter(characterId);
+        if (actor == null
+            || !field.TryGetCell(
+                actor.GetNowXY(),
+                out EnvironmentalCellSnapshot environment))
+        {
+            return false;
+        }
+
+        snapshot = ToLightAdaptationSnapshot(
+            ResolveLightAdaptation(actor, environment.LightLevel));
+        return true;
+    }
+
     public EnvironmentalExposureBand GetPhysiologicalBand(
         CharacterId characterId)
     {
@@ -113,22 +147,51 @@ public sealed class CharacterEnvironmentUnityAdapter :
 
     public float GetWorkSpeedMultiplier(CharacterId characterId)
     {
-        return DungeonStory.Environment.EnvironmentWorkRules
+        float physiological = DungeonStory.Environment.EnvironmentWorkRules
             .ResolveLegacyWorkSpeed(
                 (DungeonStory.Environment.ExposureBand)GetPhysiologicalBand(
                     characterId),
                 DungeonStory.Environment.EnvironmentalWorkKind.General);
+        float light = TryGetLightAdaptation(
+                characterId,
+                out CharacterLightAdaptationSnapshot adaptation)
+            ? adaptation.WorkSpeedMultiplier
+            : 1f;
+        return DungeonStory.Environment.CharacterEnvironmentRules
+            .ResolveLightAdaptedWorkSpeed(
+                physiological,
+                physiological,
+                light,
+                precision: false);
     }
 
     public float GetPrecisionWorkSpeedMultiplier(CharacterId characterId)
     {
-        EnvironmentalExposureBand band = (EnvironmentalExposureBand)Mathf.Max(
-            (int)GetPhysiologicalBand(characterId),
-            (int)GetVisualBand(characterId));
-        return DungeonStory.Environment.EnvironmentWorkRules
+        EnvironmentalExposureBand physiologicalBand =
+            GetPhysiologicalBand(characterId);
+        EnvironmentalExposureBand combinedBand =
+            (EnvironmentalExposureBand)Mathf.Max(
+                (int)physiologicalBand,
+                (int)GetVisualBand(characterId));
+        float physiological = DungeonStory.Environment.EnvironmentWorkRules
             .ResolveLegacyWorkSpeed(
-                (DungeonStory.Environment.ExposureBand)band,
+                (DungeonStory.Environment.ExposureBand)physiologicalBand,
                 DungeonStory.Environment.EnvironmentalWorkKind.Precision);
+        float combined = DungeonStory.Environment.EnvironmentWorkRules
+            .ResolveLegacyWorkSpeed(
+                (DungeonStory.Environment.ExposureBand)combinedBand,
+                DungeonStory.Environment.EnvironmentalWorkKind.Precision);
+        float light = TryGetLightAdaptation(
+                characterId,
+                out CharacterLightAdaptationSnapshot adaptation)
+            ? adaptation.WorkSpeedMultiplier
+            : 1f;
+        return DungeonStory.Environment.CharacterEnvironmentRules
+            .ResolveLightAdaptedWorkSpeed(
+                physiological,
+                combined,
+                light,
+                precision: true);
     }
 
     public float GetMoveSpeedMultiplier(CharacterId characterId)
@@ -182,6 +245,44 @@ public sealed class CharacterEnvironmentUnityAdapter :
         return true;
     }
 
+    public bool AddHeatExposure(CharacterId characterId, float amount)
+    {
+        if (!characterId.IsValid
+            || float.IsNaN(amount)
+            || float.IsInfinity(amount)
+            || amount <= 0f)
+            return false;
+        CharacterActor actor = (characters.Characters
+                ?? Array.Empty<CharacterActor>())
+            .FirstOrDefault(candidate => candidate != null
+                && string.Equals(
+                    candidate.Identity?.PersistentId,
+                    characterId.Value,
+                    StringComparison.Ordinal));
+        if (actor == null)
+            return false;
+
+        ThermalProtectionProfile resolved = protection.Resolve(actor);
+        float multiplier = resolved != null
+            ? Mathf.Clamp(resolved.heatExposureMultiplier, 0.05f, 2f)
+            : 1f;
+        CharacterEnvironmentExposure state = GetOrCreate(characterId);
+        state.heatExposure = Mathf.Clamp(
+            state.heatExposure + amount * multiplier,
+            0f,
+            100f);
+        float physiologicalExposure = Mathf.Max(
+            state.coldExposure,
+            state.heatExposure,
+            state.airborneExposure);
+        state.physiologicalBand = (EnvironmentalExposureBand)
+            DungeonStory.Environment.EnvironmentalThresholdRules.ResolveBand(
+                physiologicalExposure,
+                (DungeonStory.Environment.ExposureBand)
+                    state.physiologicalBand);
+        return true;
+    }
+
     public void SetWorkContext(
         CharacterId characterId,
         EnvironmentalWorkKind workKind)
@@ -192,11 +293,19 @@ public sealed class CharacterEnvironmentUnityAdapter :
         }
 
         workContexts[characterId] = workKind;
+        apparelCommands.TrySetSelectionPurpose(
+            characterId,
+            ApparelSelectionPurpose.Work,
+            out _);
     }
 
     public void ClearWorkContext(CharacterId characterId)
     {
         workContexts.Remove(characterId);
+        apparelCommands.TrySetSelectionPurpose(
+            characterId,
+            ApparelSelectionPurpose.Daily,
+            out _);
     }
 
     public DungeonCharacterEnvironmentSaveData Capture()
@@ -216,8 +325,18 @@ public sealed class CharacterEnvironmentUnityAdapter :
                 .OrderBy(state => state.characterId, StringComparer.Ordinal)
                 .Select(Clone)
                 .ToArray(),
-            equippedWorkwear = workwear.CaptureEquipped().ToArray(),
-            equippedApparel = apparel.CaptureApparel().ToArray(),
+            equippedWorkwear = workwear.CaptureEquipped()
+                .Where(value => persistentCharacterIds.Contains(
+                    new CharacterId(value.characterId)))
+                .ToArray(),
+            equippedApparel = apparel.CaptureApparel()
+                .Where(value => persistentCharacterIds.Contains(
+                    new CharacterId(value.characterId)))
+                .ToArray(),
+            apparelPolicies = apparel.CaptureApparelPolicies()
+                .Where(value => persistentCharacterIds.Contains(
+                    new CharacterId(value.characterId)))
+                .ToArray(),
             apparelWorkOrders = apparelWorkOrders.CaptureOrders(),
             apparelWorkOrderTerminalStates =
                 apparelWorkOrders.CaptureTerminalStates()
@@ -282,7 +401,14 @@ public sealed class CharacterEnvironmentUnityAdapter :
                 + string.Join(" | ", report.Errors));
         }
         CharacterApparelRestoreCandidate preparedApparel =
-            apparel.PrepareRestoreApparel(source.equippedApparel, report);
+            apparel.PrepareRestoreApparel(
+                source.equippedApparel,
+                source.apparelPolicies,
+                report);
+        workwear.ValidatePreparedProjection(
+            preparedWorkwear,
+            preparedApparel,
+            report);
         if (!report.Success)
         {
             throw new InvalidOperationException(
@@ -359,6 +485,15 @@ public sealed class CharacterEnvironmentUnityAdapter :
 
     private void Step(float deltaTime)
     {
+        if (!apparelConditions.TryAdvance(
+                deltaTime,
+                workContexts,
+                out DomainFailure apparelFailure))
+        {
+            throw new InvalidOperationException(
+                $"Apparel condition step failed: {apparelFailure}");
+        }
+
         HashSet<CharacterId> activeIds = new();
         IReadOnlyList<CharacterActor> actors =
             characters.Characters ?? Array.Empty<CharacterActor>();
@@ -397,6 +532,10 @@ public sealed class CharacterEnvironmentUnityAdapter :
                     .GetRequiredThermalProfile(
                         speciesId)
                     .Apply(resolvedProtection);
+            DungeonStory.Environment.LightAdaptationProjection
+                lightAdaptation = ResolveLightAdaptation(
+                    actor,
+                    environment.LightLevel);
             CalculateTemperatureRates(
                 environment.TemperatureC,
                 thermal,
@@ -414,6 +553,7 @@ public sealed class CharacterEnvironmentUnityAdapter :
                     or EnvironmentalWorkKind.Surgery
                     or EnvironmentalWorkKind.EmergencySurgery;
             float visualRate = precisionContext
+                && !lightAdaptation.Enabled
                 ? CalculateVisualStrainRate(environment.LightLevel)
                 : 0f;
             DungeonStory.Environment.CharacterExposureStepResult step =
@@ -434,7 +574,8 @@ public sealed class CharacterEnvironmentUnityAdapter :
                             && environment.TemperatureC <= thermal.ComfortMaximum,
                         environment.AirQuality
                             >= EnvironmentalThresholdRules.NormalAirQuality,
-                        !precisionContext
+                        lightAdaptation.Enabled
+                            || !precisionContext
                             || environment.LightLevel
                                 >= EnvironmentalThresholdRules.PrecisionMinimumLight,
                         deltaTime));
@@ -445,6 +586,7 @@ public sealed class CharacterEnvironmentUnityAdapter :
             state.physiologicalBand =
                 (EnvironmentalExposureBand)step.PhysiologicalBand;
             state.visualBand = (EnvironmentalExposureBand)step.VisualBand;
+            ApplyLightAdaptationMood(actor, lightAdaptation);
             ApplyBandEffects(
                 actor,
                 state,
@@ -571,6 +713,97 @@ public sealed class CharacterEnvironmentUnityAdapter :
         }
 
         return state;
+    }
+
+    private CharacterActor FindCharacter(CharacterId characterId)
+    {
+        if (!characterId.IsValid)
+        {
+            return null;
+        }
+
+        IReadOnlyList<CharacterActor> actors =
+            characters.Characters ?? Array.Empty<CharacterActor>();
+        for (int index = 0; index < actors.Count; index++)
+        {
+            CharacterActor actor = actors[index];
+            if (actor != null
+                && string.Equals(
+                    actor.Identity?.PersistentId,
+                    characterId.Value,
+                    StringComparison.Ordinal))
+            {
+                return actor;
+            }
+        }
+        return null;
+    }
+
+    private DungeonStory.Environment.LightAdaptationProjection
+        ResolveLightAdaptation(CharacterActor actor, float actualLight)
+    {
+        SpeciesLightAdaptationProfile profile = speciesEnvironment
+            .GetRequiredLightAdaptationProfile(
+                new CharacterSpeciesId(actor?.SpeciesTag));
+        return DungeonStory.Environment.CharacterEnvironmentRules
+            .ResolveLightAdaptation(
+                profile.Enabled,
+                actualLight,
+                profile.ComfortableMinimum,
+                profile.ComfortableMaximum,
+                profile.Sensitivity);
+    }
+
+    private static CharacterLightAdaptationSnapshot ToLightAdaptationSnapshot(
+        DungeonStory.Environment.LightAdaptationProjection projection)
+    {
+        return new CharacterLightAdaptationSnapshot(
+            projection.Enabled,
+            projection.ActualLight,
+            projection.ComfortableMinimum,
+            projection.ComfortableMaximum,
+            projection.Sensitivity,
+            projection.Discomfort,
+            projection.MoodContribution,
+            projection.WorkSpeedContribution);
+    }
+
+    private static void ApplyLightAdaptationMood(
+        CharacterActor actor,
+        DungeonStory.Environment.LightAdaptationProjection adaptation)
+    {
+        if (actor?.Stats == null)
+        {
+            return;
+        }
+        if (!adaptation.Enabled
+            || Mathf.Approximately(adaptation.MoodContribution, 0f))
+        {
+            actor.Stats.RemoveMoodFactor(LightAdaptationMoodFactorId);
+            return;
+        }
+
+        CharacterMoodFactorSnapshot current = actor.Mood.Factors
+            .FirstOrDefault(factor => factor != null
+                && string.Equals(
+                    factor.Id,
+                    LightAdaptationMoodFactorId,
+                    StringComparison.Ordinal));
+        if (current != null
+            && Mathf.Approximately(
+                current.Value,
+                adaptation.MoodContribution)
+            && current.RemainingSeconds > TickInterval * 2f)
+        {
+            return;
+        }
+
+        actor.ApplyMoodFactor(
+            LightAdaptationMoodFactorId,
+            "밝기 적응 불편",
+            adaptation.MoodContribution,
+            EnvironmentMoodFactorDurationSeconds,
+            1);
     }
 
     internal static float CalculateAirExposureRate(float airQuality)

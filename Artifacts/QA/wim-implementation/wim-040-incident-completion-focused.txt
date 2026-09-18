@@ -1,0 +1,12 @@
+result=PASS
+PASS consumed contaminated meal creates only Contamination with exact meal operation evidence and survives current JSON
+PASS committed cross-culture visitor-facility receipt creates CulturalInsult with exact replay and current JSON
+PASS replace/emergency-care accept pending, preserve owner/receipt through current JSON, and publish authored effects only after receipt
+PASS failed/cancelled responses release active owners, preserve an effect-free terminal history, and replay only the exact terminal payload
+PASS transfer accepts pending, freezes its exact isolation destination, survives current JSON and publishes only after arrival receipt
+PASS only the authored retirement request participates in generic daily life-event cadence; the other 31 definitions remain externally observed
+PASS funeral and lineage-compression receipts create their typed life-event payload, replay exactly after current Society restore, reject conflict/tamper/orphan state and remain durable beyond the ordinary resolved-history cap
+PASS actual production completion publishes an exact actor-bound declared-loss source, while non-actor compatibility publication does not invent one
+PASS apprentice-mistake and last-lesson pending occurrences retain exact source/participant joins and replay no state after current Society restore
+PASS KinshipHouseholdRuntime archives an actual cold tombstone once, commits the story-compressed receipt and WorldFlag, and publishes one resolved alert/effect event
+scope=isolated production catalog/campaign receipt owner, actual production-loss source publication and actual lineage archive producer; last-lesson CareerApplicationAdapter tick and funeral transaction require separate live witnesses

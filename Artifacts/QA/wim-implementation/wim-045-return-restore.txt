@@ -1,0 +1,10 @@
+return-restore-position=before:(-10.80, 0.00, 0.00);savedCell:(11, 0);after:(-10.50, 0.00, 0.00);stage:ToDoor;lifecycle:ReturningExpedition
+actual-retreat-keeps-run-until-return-finalization=PASS
+lifecycle-transfer-start-rejection-retains-position-stage-resumes=PASS
+current-format-invalid-stage-atomic-rejection=PASS
+whole-registry-return-checkpoint-current-position-resume-finalizer-once=PASS
+position-contract=existing-character-world-gridX/gridY;subcell-offset-not-persisted;no-expedition-specific-position-authority
+scope=real-retreat-return-save-registry-finalizer;initial-party-run-and-waypoints-fixtures;empty-supply-failed-expedition-no-success-reward
+mode=doors-only-no-power-fixture
+cleanup=exact-except-meta-elapsed-float-rounding-under-0.00001s
+result=PASS

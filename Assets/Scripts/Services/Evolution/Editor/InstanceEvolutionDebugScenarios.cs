@@ -22,6 +22,7 @@ public static class InstanceEvolutionDebugScenarios
         Run("Ten thousand generations compact deterministically", VerifyLongRunCompaction, errors);
         Run("Facility candidates are deterministic", VerifyFacilityCandidateDeterminism, errors);
         Run("Room conditions only gate benefits", VerifyRoomActivationContract, errors);
+        Run("Burden stats are runtime-reachable and directionally harmful", VerifyBurdenCatalogContract, errors);
         Run("Catalyst economy and potency scaling stay explicit", VerifyCatalystRules, errors);
         Run("Catalyst SO projection separates progression and potency", VerifyCatalystContentProjection, errors);
         Run("Narrative responses cannot alter locked facts", VerifyNarrativeLock, errors);
@@ -41,6 +42,18 @@ public static class InstanceEvolutionDebugScenarios
             Debug.Log("InstanceEvolutionDebugScenarios passed.");
         }
 
+        return true;
+    }
+
+    public static bool RunNarrativeContinuityScenario()
+    {
+        VerifyNarrativeLock();
+        return true;
+    }
+
+    public static bool RunBurdenCatalogScenario()
+    {
+        VerifyBurdenCatalogContract();
         return true;
     }
 
@@ -414,6 +427,34 @@ public static class InstanceEvolutionDebugScenarios
             "equipment:test",
             new[] { "boss", "combat" },
             "evidence:boss");
+        ledger.compactedSegments.Add(new CompactedHistorySegment
+        {
+            level = 0,
+            firstGeneration = 0,
+            lastGeneration = 1,
+            eventCount = 2,
+            totalMagnitude = 14f,
+            historyHash = "sha256:prior-generation-continuity-fixture",
+            participantIds = new List<string> { "owner:prior" },
+            sourceTags = new List<string> { "inheritance" },
+            keyEvents = new List<UsageLedgerEvent>
+            {
+                new UsageLedgerEvent
+                {
+                    evidenceId = "evidence:prior-owner",
+                    eventId = "equipment.inherited",
+                    actorId = "owner:prior",
+                    targetId = "equipment:test",
+                    amount = 1f,
+                    historicalEvidenceKind = HistoricalEvidenceKind.HeirInherited,
+                    outcomeId = "inherited",
+                    generation = 1,
+                    repeatCount = 1,
+                    sequence = 1,
+                    sourceTags = new List<string> { "inheritance" }
+                }
+            }
+        });
         EvolutionNode hiddenNode = new EvolutionNode
         {
             nodeId = "history:test",
@@ -432,6 +473,131 @@ public static class InstanceEvolutionDebugScenarios
                 ledger,
                 effectBudget: 0);
         Require(!hiddenNode.playerVisible, "pending history became player-visible");
+        Require(request.frozenHistoryCaptured
+                && request.frozenCurrentEvents.Count == 1
+                && request.frozenPriorGenerationSegments.Count == 1
+                && string.IsNullOrEmpty(request.publicContextSemanticHash),
+            "Evolution request did not freeze history independently from its unresolved public context.");
+        RequireThrowsContaining(
+            () => EvolutionNarrativePromptFormatter.BuildPromptEnvelope(
+                LocalLlmRequestProfiles.EvolutionHistory.Id,
+                request,
+                "계승 장비",
+                new Dictionary<string, string>
+                {
+                    ["owner:test"] = "현재 소유자"
+                }),
+            "no resolved public identity",
+            "Unresolved locked equipment participant was not rejected.");
+        NarrativePublicPromptEnvelope frozenEnvelope =
+            EvolutionNarrativePromptFormatter.BuildPromptEnvelope(
+                LocalLlmRequestProfiles.EvolutionHistory.Id,
+                request,
+                "계승 장비",
+                new Dictionary<string, string>
+                {
+                    ["owner:test"] = "현재 소유자",
+                    ["owner:prior"] = "이전 소유자"
+                });
+        Require(frozenEnvelope.Material.Events.Count >= 3
+                && frozenEnvelope.Material.PriorHistoryFactIds.Count >= 2
+                && frozenEnvelope.Prompt.Contains("combat.boss-defeated", StringComparison.Ordinal)
+                && frozenEnvelope.Prompt.Contains("equipment.inherited", StringComparison.Ordinal)
+                && frozenEnvelope.Prompt.Contains("현재 소유자", StringComparison.Ordinal)
+                && frozenEnvelope.Prompt.Contains("이전 소유자", StringComparison.Ordinal),
+            "Evolution prompt omitted current events, verified participants, or prior-generation history.");
+
+        string frozenPrompt = frozenEnvelope.Prompt;
+        string frozenHash = frozenEnvelope.PublicContextSemanticHash;
+        Require(EvolutionNarrativePublicContextBinding.TryBind(
+                    request.publicContextSemanticHash,
+                    frozenHash,
+                    out string boundHash,
+                    out string initialBindFailure)
+                && string.Equals(boundHash, frozenHash, StringComparison.Ordinal)
+                && string.IsNullOrEmpty(initialBindFailure),
+            "Resolved public context did not bind before submission: " + initialBindFailure);
+        request.publicContextSemanticHash = boundHash;
+        Require(EvolutionNarrativePublicContextBinding.TryBind(
+                    request.publicContextSemanticHash,
+                    frozenHash,
+                    out string reboundHash,
+                    out string repeatBindFailure)
+                && string.Equals(reboundHash, frozenHash, StringComparison.Ordinal)
+                && string.IsNullOrEmpty(repeatBindFailure),
+            "Identical public context did not preserve its binding: " + repeatBindFailure);
+        NarrativePublicPromptEnvelope renamedParticipantEnvelope =
+            EvolutionNarrativePromptFormatter.BuildPromptEnvelope(
+                LocalLlmRequestProfiles.EvolutionHistory.Id,
+                request,
+                "계승 장비",
+                new Dictionary<string, string>
+                {
+                    ["owner:test"] = "이름이 바뀐 소유자",
+                    ["owner:prior"] = "이전 소유자"
+                });
+        Require(!EvolutionNarrativePublicContextBinding.TryBind(
+                    request.publicContextSemanticHash,
+                    renamedParticipantEnvelope.PublicContextSemanticHash,
+                    out _,
+                    out string changedBindFailure)
+                && changedBindFailure.Contains("changed after binding", StringComparison.Ordinal),
+            "Changed public context was accepted under an already-bound request.");
+
+        EvolutionNarrativeRequestSnapshot duplicateEvidence = request.Clone();
+        duplicateEvidence.frozenPriorGenerationSegments[0].keyEvents[0].evidenceId =
+            duplicateEvidence.frozenCurrentEvents[0].evidenceId;
+        RequireThrowsContaining(
+            () => EvolutionNarrativePromptFormatter.BuildPromptEnvelope(
+                LocalLlmRequestProfiles.EvolutionHistory.Id,
+                duplicateEvidence,
+                "계승 장비",
+                new Dictionary<string, string>
+                {
+                    ["owner:test"] = "현재 소유자",
+                    ["owner:prior"] = "이전 소유자"
+                }),
+            "Duplicate equipment public event evidence",
+            "Duplicate equipment evidence was not rejected.");
+
+        EvolutionNarrativeRequestSnapshot unreadableEvidence = request.Clone();
+        unreadableEvidence.evidenceIds = new List<string> { "evidence:not-public" };
+        RequireThrowsContaining(
+            () => EvolutionNarrativePromptFormatter.BuildPromptEnvelope(
+                LocalLlmRequestProfiles.EvolutionHistory.Id,
+                unreadableEvidence,
+                "계승 장비",
+                new Dictionary<string, string>
+                {
+                    ["owner:test"] = "현재 소유자",
+                    ["owner:prior"] = "이전 소유자"
+                }),
+            "not readable in the public context",
+            "Locked evidence without a readable event was not rejected.");
+        compactor.Record(
+            ledger,
+            "combat.after-request",
+            99f,
+            "owner:other",
+            "equipment:test",
+            new[] { "mutation" },
+            "evidence:after-request");
+        NarrativePublicPromptEnvelope rebuiltFromFrozenRequest =
+            EvolutionNarrativePromptFormatter.BuildPromptEnvelope(
+                LocalLlmRequestProfiles.EvolutionHistory.Id,
+                request.Clone(),
+                "계승 장비",
+                new Dictionary<string, string>
+                {
+                    ["owner:test"] = "현재 소유자",
+                    ["owner:prior"] = "이전 소유자"
+                });
+        Require(string.Equals(rebuiltFromFrozenRequest.Prompt, frozenPrompt, StringComparison.Ordinal)
+                && string.Equals(
+                    rebuiltFromFrozenRequest.PublicContextSemanticHash,
+                    frozenHash,
+                    StringComparison.Ordinal),
+            "Mutating the source ledger changed an already frozen evolution request.");
 
         EvolutionHistoryNarrativeResponseDto valid = new EvolutionHistoryNarrativeResponseDto
         {
@@ -577,6 +743,94 @@ public static class InstanceEvolutionDebugScenarios
         {
             throw new InvalidOperationException(message);
         }
+    }
+
+    private static void VerifyBurdenCatalogContract()
+    {
+        EvolutionModuleRegistry registry = new EvolutionModuleRegistry();
+        foreach (EvolutionModuleDefinition module in registry.All)
+        {
+            NarrativeBurdenStatScope scope = module.ModuleId.StartsWith("equipment:", StringComparison.Ordinal)
+                ? NarrativeBurdenStatScope.Equipment
+                : NarrativeBurdenStatScope.Facility;
+            foreach (EvolutionEffectModifier burden in module.Burdens)
+            {
+                Require(NarrativeBurdenStatCatalog.IsHarmful(
+                        burden.statId, scope, burden.additive, burden.multiplier,
+                        out string reason),
+                    module.ModuleId + ": " + reason);
+            }
+        }
+
+        Require(registry.All.Count(value => value.ModuleId.StartsWith(
+                    "equipment:drawback", StringComparison.Ordinal)) >= 7,
+            "equipment drawback catalog did not cover the supported stat surface");
+        Require(registry.All.Count(value => value.ModuleId.StartsWith(
+                    "facility:drawback", StringComparison.Ordinal)) >= 6,
+            "facility drawback catalog did not cover the supported stat surface");
+        Require(AcquiredTraitBurdenTargetCatalog.All.Count >= 20,
+            "acquired-trait drawback target catalog is unexpectedly narrow");
+
+        bool inertRejected = false;
+        try
+        {
+            _ = new EvolutionModuleDefinition(
+                "equipment:test-inert", "test", "test",
+                Array.Empty<EvolutionEffectModifier>(),
+                new[] { new EvolutionEffectModifier { statId = "combat.weight", additive = 0.1f } },
+                burdenKind: EvolutionModuleBurdenKind.OptionalDrawback,
+                maximumDrawbackSeverity: 1,
+                negativeEvidenceMarkers: new[] { "damage" });
+        }
+        catch (ArgumentException) { inertRejected = true; }
+        Require(inertRejected, "an equipment burden with no runtime consumer was accepted");
+
+        bool beneficialRejected = false;
+        try
+        {
+            _ = new EvolutionModuleDefinition(
+                "equipment:test-benefit", "test", "test",
+                Array.Empty<EvolutionEffectModifier>(),
+                new[] { new EvolutionEffectModifier { statId = "combat.damage", multiplier = 1.02f } },
+                burdenKind: EvolutionModuleBurdenKind.OptionalDrawback,
+                maximumDrawbackSeverity: 1,
+                negativeEvidenceMarkers: new[] { "damage" });
+        }
+        catch (ArgumentException) { beneficialRejected = true; }
+        Require(beneficialRejected, "a beneficial stat direction was accepted as a burden");
+
+        GameplayEffectDefinitionSO fatigue = AssetDatabase.LoadAssetAtPath<GameplayEffectDefinitionSO>(
+            "Assets/Resources/SO/V26/Effects/Definitions/effect_character_fatigue-rate_multiply.asset");
+        GameplayEffectDefinitionSO recovery = AssetDatabase.LoadAssetAtPath<GameplayEffectDefinitionSO>(
+            "Assets/Resources/SO/V26/Effects/Definitions/effect_character_recovery-speed_multiply.asset");
+        Require(fatigue != null && AcquiredTraitBurdenTargetCatalog.IsHarmful(
+                fatigue, 1.08f, out _),
+            "fatigue increase was not recognized as an acquired-trait burden");
+        Require(recovery != null && AcquiredTraitBurdenTargetCatalog.IsHarmful(
+                recovery, 0.94f, out _),
+            "recovery decrease was not recognized as an acquired-trait burden");
+        Require(!AcquiredTraitBurdenTargetCatalog.IsHarmful(fatigue, 0.92f, out _),
+            "fatigue reduction was accepted as an acquired-trait burden");
+    }
+
+    private static void RequireThrowsContaining(
+        Action action,
+        string expectedMessage,
+        string failureMessage)
+    {
+        try
+        {
+            action();
+        }
+        catch (InvalidOperationException exception)
+        {
+            Require(
+                exception.Message.Contains(expectedMessage, StringComparison.Ordinal),
+                failureMessage + " Actual: " + exception.Message);
+            return;
+        }
+
+        throw new InvalidOperationException(failureMessage);
     }
 
     private sealed class FacilityFixture : IDisposable

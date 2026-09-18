@@ -1,6 +1,70 @@
 using UnityEngine;
 using UnityEngine.Scripting.APIUpdating;
 
+public enum CropLightProfile
+{
+    Unspecified = 0,
+    LightIndependent = 1,
+    Shade = 2,
+    Medium = 3,
+    High = 4
+}
+
+public readonly struct CropLightRequirement
+{
+    public CropLightRequirement(
+        CropLightProfile profile,
+        float stopLight,
+        float sufficientLight)
+    {
+        if (profile == CropLightProfile.Unspecified
+            || !System.Enum.IsDefined(typeof(CropLightProfile), profile))
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(profile));
+        }
+        if (!float.IsFinite(stopLight)
+            || !float.IsFinite(sufficientLight)
+            || stopLight < 0f
+            || sufficientLight < stopLight
+            || sufficientLight > 100f
+            || (profile == CropLightProfile.LightIndependent)
+                != (stopLight == 0f && sufficientLight == 0f))
+        {
+            throw new System.ArgumentOutOfRangeException(
+                nameof(sufficientLight),
+                "Crop light thresholds must be finite, ordered, and match the named profile.");
+        }
+
+        Profile = profile;
+        StopLight = stopLight;
+        SufficientLight = sufficientLight;
+    }
+
+    public CropLightProfile Profile { get; }
+    public float StopLight { get; }
+    public float SufficientLight { get; }
+    public bool IsLightIndependent =>
+        Profile == CropLightProfile.LightIndependent;
+}
+
+public static class CropLightProfileRules
+{
+    public static CropLightRequirement Resolve(CropLightProfile profile) =>
+        profile switch
+        {
+            CropLightProfile.LightIndependent =>
+                new CropLightRequirement(profile, 0f, 0f),
+            CropLightProfile.Shade =>
+                new CropLightRequirement(profile, 0f, 25f),
+            CropLightProfile.Medium =>
+                new CropLightRequirement(profile, 5f, 40f),
+            CropLightProfile.High =>
+                new CropLightRequirement(profile, 5f, 50f),
+            _ => throw new System.InvalidOperationException(
+                $"Crop light profile '{profile}' is not authored.")
+        };
+}
+
 [CreateAssetMenu(menuName = "DungeonStory/Economy/Crop Definition", order = 2)]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class CropDefinitionSO : DataScriptableObject
@@ -22,6 +86,8 @@ public sealed class CropDefinitionSO : DataScriptableObject
     [Min(1), SerializeField] private int yield = 4;
     [SerializeField] private bool indoorAllowed = true;
     [SerializeField] private Vector2 temperatureRange = new Vector2(5f, 30f);
+    [SerializeField] private CropLightProfile lightProfile =
+        CropLightProfile.Unspecified;
 
     public string CropId => cropId?.Trim() ?? string.Empty;
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? CropId : displayName.Trim();
@@ -40,6 +106,9 @@ public sealed class CropDefinitionSO : DataScriptableObject
     public Vector2 TemperatureRange => new Vector2(
         Mathf.Min(temperatureRange.x, temperatureRange.y),
         Mathf.Max(temperatureRange.x, temperatureRange.y));
+    public CropLightProfile LightProfile => lightProfile;
+    public CropLightRequirement LightRequirement =>
+        CropLightProfileRules.Resolve(lightProfile);
 
 #if UNITY_EDITOR
     public void Configure(
@@ -66,6 +135,15 @@ public sealed class CropDefinitionSO : DataScriptableObject
         yield = Mathf.Max(1, harvestYield);
         indoorAllowed = allowIndoor;
         temperatureRange = temperatures;
+        // Editor-created verification crops use the ordinary high-light profile
+        // unless their author explicitly selects another named profile below.
+        lightProfile = CropLightProfile.High;
+    }
+
+    public void ConfigureLightProfile(CropLightProfile profile)
+    {
+        _ = CropLightProfileRules.Resolve(profile);
+        lightProfile = profile;
     }
 
     public void ConfigureEcology(

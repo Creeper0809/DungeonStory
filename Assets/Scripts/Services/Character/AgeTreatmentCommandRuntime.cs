@@ -49,7 +49,6 @@ public sealed class AgeTreatmentCommandRuntime : IAgeTreatmentCommand
     private readonly ICharacterWorldQuery characters;
     private readonly ICharacterLifeQuery life;
     private readonly ICharacterLifeDefinitionCatalog lifeDefinitions;
-    private readonly IBuildingWorldQuery buildings;
     private readonly IGameCalendar calendar;
 
     public AgeTreatmentCommandRuntime(
@@ -57,7 +56,6 @@ public sealed class AgeTreatmentCommandRuntime : IAgeTreatmentCommand
         ICharacterWorldQuery characters,
         ICharacterLifeQuery life,
         ICharacterLifeDefinitionCatalog lifeDefinitions,
-        IBuildingWorldQuery buildings,
         IGameCalendar calendar)
     {
         this.surgery = surgery ?? throw new ArgumentNullException(nameof(surgery));
@@ -65,7 +63,6 @@ public sealed class AgeTreatmentCommandRuntime : IAgeTreatmentCommand
         this.life = life ?? throw new ArgumentNullException(nameof(life));
         this.lifeDefinitions = lifeDefinitions
             ?? throw new ArgumentNullException(nameof(lifeDefinitions));
-        this.buildings = buildings ?? throw new ArgumentNullException(nameof(buildings));
         this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
     }
 
@@ -97,22 +94,7 @@ public sealed class AgeTreatmentCommandRuntime : IAgeTreatmentCommand
             return false;
         }
 
-        TreatmentContract contract = Resolve(request.Treatment);
-        BuildableObject facility = buildings.Buildings.FirstOrDefault(candidate =>
-            candidate != null
-            && !candidate.isDestroy
-            && string.Equals(
-                candidate.PersistentInstanceId.Value,
-                request.FacilityInstanceId,
-                StringComparison.Ordinal));
-        if (facility == null || facility.BuildingData?.id != contract.BuildingId)
-        {
-            failure = new DomainFailure(
-                FailureCode.SurgeryFacilityUnavailable,
-                request.FacilityInstanceId,
-                $"building:{contract.BuildingId}");
-            return false;
-        }
+        string procedureId = ResolveProcedureId(request.Treatment);
 
         if (request.Treatment == AgeTreatmentKind.BloodRejuvenation
             && !CanReceiveBloodRejuvenation(record, out failure))
@@ -126,7 +108,7 @@ public sealed class AgeTreatmentCommandRuntime : IAgeTreatmentCommand
         subject.willing = true;
         return surgery.TrySchedule(
             subject,
-            contract.ProcedureId,
+            procedureId,
             targetNodeId: string.Empty,
             selectedPartInstanceId: string.Empty,
             request.PreferredDoctorId,
@@ -168,31 +150,19 @@ public sealed class AgeTreatmentCommandRuntime : IAgeTreatmentCommand
         return true;
     }
 
-    private static TreatmentContract Resolve(AgeTreatmentKind treatment) =>
+    private static string ResolveProcedureId(AgeTreatmentKind treatment) =>
         treatment switch
         {
             AgeTreatmentKind.OrganRegeneration =>
-                new TreatmentContract("procedure:organ-regeneration", 8868),
+                "procedure:organ-regeneration",
             AgeTreatmentKind.BloodRejuvenation =>
-                new TreatmentContract("procedure:blood-rejuvenation", 8869),
+                "procedure:blood-rejuvenation",
             AgeTreatmentKind.RuneHibernation =>
-                new TreatmentContract("procedure:rune-hibernation", 8870),
+                "procedure:rune-hibernation",
             AgeTreatmentKind.WholeBodyRegeneration =>
-                new TreatmentContract("procedure:whole-body-regeneration", 8871),
+                "procedure:whole-body-regeneration",
             AgeTreatmentKind.TemporalStasis =>
-                new TreatmentContract("procedure:temporal-stasis", 8872),
+                "procedure:temporal-stasis",
             _ => throw new ArgumentOutOfRangeException(nameof(treatment))
         };
-
-    private readonly struct TreatmentContract
-    {
-        internal TreatmentContract(string procedureId, int buildingId)
-        {
-            ProcedureId = procedureId;
-            BuildingId = buildingId;
-        }
-
-        internal string ProcedureId { get; }
-        internal int BuildingId { get; }
-    }
 }

@@ -1,0 +1,1917 @@
+# R01 one-worker actual research RunCommand
+
+status=READY_NOT_EXECUTED
+scope=One independent subcheckpoint only: the existing exact 17-WU root `research:commerce:logistics` when it is independently Available, one actual UI-selected worker, and normal AI work through completion or a bounded honest timeout. This is not the five-project WIM017/053 chain and not a multi-worker R01 result.
+protectedPrelude=Artifacts/QA/wim-implementation/wim-048-protected-setup-runcommand.txt SHA-256 1FED4823BEAB3DC6A5AA6789BE7D0B5469EAC6489194026073B97F6CEB5CE1AF (Stage A/B before this command).
+mutationPolicy=Only actual Research/Staff pointer clicks and public priority commands (all other current research-capable actors Research-Off; selected actor every non-Research catalog work type Off), the bounded pre-enqueue normal scheduler interval needed to finish the already-triggered facility index, normal time-scale-1 AI work, and (only if the public safe clean-water stock is below the current three-person one-day reserve) the exact public delivery-dropoff SpawnItemAt of the missing `resource:clean-water` units are allowed. Never call Complete, ApplyResearchWork, ApplyApprovedResearchWork, ApplyApprovedWork, AdvanceIndex, a forced unlock, a builder, a direct tick, a save/slot API, an AI/need/duty setter, a reservation/haul/drink command, cargo deletion, or any private production member.
+
+## Exact reflected type ownership
+
+- `DungeonRuntimeLifetimeScope`, `BlueprintResearchRuntime`, `ResearchTreeWindow`, `CharacterActor`, `CharacterWorkRoleUtility`, `AbilityWork`, `AIBrain`, `CharacterStats`, `WorkDutyStartDiagnostics`, `ResearchProgressEvent`, and `ISettlementLaborAccountingService`: `Assembly-CSharp`.
+- `DungeonStory.Foundation.IGameEventBus` and `DungeonStory.Foundation.IGameClock`: `DungeonStory.Foundation`.
+- `ResearchProjectSO` and `ResearchFacilityCapabilityId`: `DungeonStory.Research` (global namespace types in that asmdef).
+- `WorkTypeId`, `BuiltInWorkTypeIds`, `WorkPriorityLevel`, `WorkTypeCatalog`, `WorkTypeDefinition`, and `FacilityWorkTypeMap`: `DungeonStory.Work` (global namespace types in that asmdef).
+- `FacilityWorkType` and `StockCategory`: `DungeonStory.Buildings`; `Grid`, `GridTraversalContext`, `GridPathSearchPriority`, `DoorAccessOverrideKind`, `GridMovementIntent`, and `ChildSafetyAuthorizationToken`: `DungeonStory.Grid` (all global namespace types in their owning asmdefs).
+- `ICharacterAiWorldRegistry`, `IFacilityCandidateCache`, `IWorkPolicyRegistry`, `IWorldItemStackRuntime`, `IWorldDropZoneQuery`, `WorldItemStackSnapshot`, `WorldItemStockCandidate`, and `BuildableObject`: `Assembly-CSharp`; `WorldItemStackState`: `DungeonStory.Items`.
+- `UITabButtonBinding` and `TabId`: `DungeonStory.Presentation` (global namespace types in that asmdef). The Staff top tab is selected only by its public binding `Id == TabId.Staff`, never by a label-derived GameObject name.
+- `TMPro.TMP_Text`: `Unity.TextMeshPro`. UI input itself uses public `UnityEngine.UI.Button` and `UnityEngine.EventSystems.ExecuteEvents`.
+- VContainer is never referenced as a compile-time type. Resolution uses the loaded scope's public `Container` property and public `Resolve(Type, object)` bridge only.
+
+## Public-only command input
+
+```csharp
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+
+internal sealed class CommandScript : IRunCommand
+{
+    private const string ExpectedProjectId = "research:commerce:logistics";
+    private const float ExpectedRequiredWork = 17f;
+    private const float MaximumWallSeconds = 210f;
+    private const float MaximumGameSeconds = 180f;
+    private const float IndexWarmupMaximumWallSeconds = 30f;
+    private const float IndexWarmupMaximumGameSeconds = 5f;
+    private const string CleanWaterItemId = "resource:clean-water";
+    private const int CurrentThreePersonOneDayWaterUnits = 3;
+
+    private IDisposable progressSubscription;
+    private bool playModeCallbackInstalled;
+    private string expectedActorId = string.Empty;
+    private string expectedProjectId = string.Empty;
+    private string expectedProjectReadiness =
+        "runtime=unresolved;expected=" + ExpectedProjectId;
+    private int matchingEventCount;
+    private float approvedWorkSum;
+    private float progressDeltaSum;
+    private int lastAbsoluteDay = -1;
+    private bool unexpectedContributor;
+    private readonly List<string> researchProgressEventRecords = new();
+    private string actionAtProgress = string.Empty;
+    private readonly List<string> passiveWorkerSnapshots = new();
+    private string lastPassiveWorkerSnapshot = string.Empty;
+
+    private object runtime;
+    private object project;
+    private object projectId;
+    private object worker;
+    private object workerWork;
+    private object clock;
+    private object labor;
+    private float requiredWork;
+    private int maximumResearchers;
+    private int basicCapacity;
+    private float progressBefore;
+    private float progressAfter;
+    private long laborBefore;
+    private long laborAfter;
+    private long laborRevisionBefore;
+    private long laborRevisionAfter;
+    private float gameTimeBefore;
+    private float gameTimeAfter;
+    private int frameBefore;
+    private int frameAfter;
+    private string priorityBefore = string.Empty;
+    private string priorityAfter = string.Empty;
+    private int priorityClicks;
+    private string operatePriorityBefore = string.Empty;
+    private string operatePriorityAfter = string.Empty;
+    private int operatePriorityClicks;
+    private readonly List<string> otherResearchPriorityTransitions = new();
+    private int otherResearchPriorityClicks;
+    private int enabledResearchWorkersAfterPriorityUi;
+    private readonly List<string> selectedNonResearchPriorityTransitions = new();
+    private int selectedNonResearchPriorityClicks;
+    private string researchPriorityActorCoverage = string.Empty;
+    private string researchIndexWarmup = string.Empty;
+    private string researchFacilityPreflight = string.Empty;
+    private string hydrationAvailability = string.Empty;
+    private string estimateLine = string.Empty;
+    private string capacityLine = string.Empty;
+    private bool completionUiDisabled;
+    private string completionNodeState = string.Empty;
+    private string completionUiReadbackPath = string.Empty;
+
+    private static Type T(string fullName, string assemblyName)
+    {
+        Type type = Type.GetType(fullName + ", " + assemblyName);
+        return type ?? throw new InvalidOperationException(
+            "Missing exact public type: " + fullName + ", " + assemblyName);
+    }
+
+    private static object P(object value, string name)
+    {
+        var property = value?.GetType().GetProperty(name);
+        if (property == null || property.GetMethod == null
+            || !property.GetMethod.IsPublic)
+        {
+            throw new InvalidOperationException("Missing public property: " + name);
+        }
+        return property.GetValue(value);
+    }
+
+    private static object PublicStaticField(Type type, string name)
+    {
+        var field = type.GetField(name);
+        if (field == null || !field.IsPublic || !field.IsStatic)
+        {
+            throw new InvalidOperationException(
+                "Missing public static field: " + type.FullName + "." + name);
+        }
+        return field.GetValue(null);
+    }
+
+    private static object InvokePublicNoArgument(object value, string name)
+    {
+        var method = value?.GetType().GetMethod(name, Type.EmptyTypes);
+        if (method == null || !method.IsPublic)
+        {
+            throw new InvalidOperationException(
+                "Missing public no-argument method: " + name);
+        }
+        return method.Invoke(value, null);
+    }
+
+    private static object InvokePublic(object value, string name, object[] arguments)
+    {
+        var candidates = value?.GetType().GetMethods()
+            .Where(method => method.IsPublic && !method.IsStatic
+                && string.Equals(method.Name, name, StringComparison.Ordinal))
+            .Where(method => method.GetParameters().Length == arguments.Length)
+            .ToArray() ?? Array.Empty<System.Reflection.MethodInfo>();
+        if (candidates.Length != 1)
+        {
+            throw new InvalidOperationException(
+                "Expected one public " + name + " overload; count="
+                + candidates.Length + ".");
+        }
+        return candidates[0].Invoke(value, arguments);
+    }
+
+    private static MonoBehaviour FindRuntimeScopeHost()
+    {
+        Type scopeType = T("DungeonRuntimeLifetimeScope", "Assembly-CSharp");
+        return Resources.FindObjectsOfTypeAll(scopeType)
+            .Cast<UnityEngine.Object>()
+            .OfType<MonoBehaviour>()
+            .Single(value => value.gameObject.scene.isLoaded);
+    }
+
+    private static object Resolve(string fullName, string assemblyName)
+    {
+        object container = P(FindRuntimeScopeHost(), "Container");
+        var resolve = container.GetType().GetMethod(
+            "Resolve", new[] { typeof(Type), typeof(object) });
+        if (resolve == null || !resolve.IsPublic)
+        {
+            throw new InvalidOperationException(
+                "Public Resolve(Type, object) is unavailable.");
+        }
+        return resolve.Invoke(container, new object[]
+        {
+            T(fullName, assemblyName),
+            null
+        });
+    }
+
+    private static object FindLoadedComponent(string fullName, string assemblyName)
+    {
+        Type type = T(fullName, assemblyName);
+        object[] matches = Resources.FindObjectsOfTypeAll(type)
+            .Cast<UnityEngine.Object>()
+            .OfType<Component>()
+            .Where(value => value.gameObject.scene.isLoaded
+                && value.gameObject.activeInHierarchy)
+            .Cast<object>()
+            .ToArray();
+        if (matches.Length != 1)
+        {
+            throw new InvalidOperationException(
+                "Expected one active loaded " + fullName + "; count=" + matches.Length);
+        }
+        return matches[0];
+    }
+
+    private static Button FindActiveButton(string name)
+    {
+        Button[] matches = Resources.FindObjectsOfTypeAll<Button>()
+            .Where(value => value != null
+                && value.gameObject.scene.isLoaded
+                && value.gameObject.activeInHierarchy
+                && string.Equals(value.name, name, StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length != 1)
+        {
+            throw new InvalidOperationException(
+                "Expected one active UI button " + name + "; count=" + matches.Length);
+        }
+        return matches[0];
+    }
+
+    private static Button FindActiveTopTabButton(string tabIdName)
+    {
+        Type bindingType = T(
+            "UITabButtonBinding", "DungeonStory.Presentation");
+        Type tabIdType = T("TabId", "DungeonStory.Presentation");
+        object expectedTabId = Enum.Parse(tabIdType, tabIdName, false);
+        Button[] matches = Resources.FindObjectsOfTypeAll(bindingType)
+            .Cast<UnityEngine.Object>()
+            .OfType<Component>()
+            .Where(value => value.gameObject.scene.isLoaded
+                && value.gameObject.activeInHierarchy
+                && Equals(P(value, "Id"), expectedTabId))
+            .Select(value => value.GetComponent<Button>())
+            .Where(value => value != null && value.gameObject.activeInHierarchy)
+            .ToArray();
+        if (matches.Length != 1)
+        {
+            throw new InvalidOperationException(
+                "Expected one active top-tab binding " + tabIdName
+                + "; count=" + matches.Length);
+        }
+        return matches[0];
+    }
+
+    private static void Click(Button button)
+    {
+        if (button == null || !button.IsInteractable()
+            || EventSystem.current == null)
+        {
+            throw new InvalidOperationException(
+                "Actual UI target is unavailable or not interactable.");
+        }
+        PointerEventData pointer = new PointerEventData(EventSystem.current);
+        ExecuteEvents.Execute(
+            button.gameObject, pointer, ExecuteEvents.pointerEnterHandler);
+        ExecuteEvents.Execute(
+            button.gameObject, pointer, ExecuteEvents.pointerDownHandler);
+        ExecuteEvents.Execute(
+            button.gameObject, pointer, ExecuteEvents.pointerUpHandler);
+        ExecuteEvents.Execute(
+            button.gameObject, pointer, ExecuteEvents.pointerClickHandler);
+    }
+
+    private static string ButtonLabel(Button button)
+    {
+        Type textType = T("TMPro.TMP_Text", "Unity.TextMeshPro");
+        Component text = button.GetComponentsInChildren(textType, true)
+            .Cast<Component>()
+            .FirstOrDefault();
+        return text == null ? string.Empty : Convert.ToString(P(text, "text"));
+    }
+
+    private static string FormatStatSnapshot(object stats)
+    {
+        if (stats == null)
+        {
+            return "<no-stats>";
+        }
+        IEnumerable values = P(stats, "StatSnapshot") as IEnumerable;
+        if (values == null)
+        {
+            return "<no-stat-snapshot>";
+        }
+        return string.Join(",", values.Cast<object>()
+            .Select(value => Convert.ToString(P(value, "Key"))
+                + "=" + Convert.ToString(P(value, "Value")))
+            .OrderBy(value => value, StringComparer.Ordinal));
+    }
+
+    private void CapturePassiveWorkerSnapshot(string point, bool force)
+    {
+        if (worker == null || workerWork == null || clock == null)
+        {
+            return;
+        }
+        object start = InvokePublicNoArgument(
+            workerWork, "CaptureWorkStartDiagnostics");
+        object brain = P(worker, "Brain");
+        object rejected = P(workerWork, "LastRejectedWorkCandidate");
+        string action = brain == null
+            ? "<no-brain>"
+            : Convert.ToString(P(brain, "CurrentActionDebugLabel"))
+                + "/" + Convert.ToString(P(brain, "CurrentActionPhase"))
+                + "/" + Convert.ToString(P(brain, "CurrentActionPhaseDetail"))
+                + "/" + Convert.ToString(P(brain, "CurrentDestinationDebugLabel"));
+        string actionFailure = brain == null
+            ? "<no-brain>"
+            : Convert.ToString(P(P(brain, "LastActionFailure"), "Kind"))
+                + ":" + Convert.ToString(P(P(brain, "LastActionFailure"), "Reason"));
+        string rejectedCandidate = IdValue(P(rejected, "WorkTypeId"))
+            + ":" + Convert.ToString(P(rejected, "FailureKind"))
+            + ":" + Convert.ToString(P(rejected, "FailureReason"));
+        string state = "worker=" + expectedActorId
+            + ";canRunAi=" + Convert.ToString(P(worker, "CanRunAi"))
+            + ";duty=" + Convert.ToString(P(workerWork, "CurrentDutyState"))
+            + ";offDuty=" + Convert.ToString(P(workerWork, "IsOffDuty"))
+            + ";assigned=" + IdValue(P(workerWork, "AssignedWorkTypeId"))
+            + ";runningWork=" + (brain != null
+                && Convert.ToBoolean(P(brain, "HasRunningWorkAction")))
+            + ";startGate=" + Convert.ToString(P(start, "CanStartByDutyGate"))
+            + ";routineNeed=" + Convert.ToString(P(start, "RoutineNeedBlocked"))
+            + ";discontent=" + Convert.ToString(P(start, "DiscontentBlocked"))
+            + ";offDutyCondition="
+                + Convert.ToString(P(start, "ConditionWouldTakeOffDuty"))
+            + ";restProtection="
+                + Convert.ToString(P(start, "RestProtectionBlocked"))
+            + ";expedition=" + Convert.ToString(P(start, "ExpeditionBlocked"))
+            + ";action=" + action
+            + ";actionFailure=" + actionFailure
+            + ";rejected=" + rejectedCandidate;
+        if (!force && string.Equals(
+                state, lastPassiveWorkerSnapshot, StringComparison.Ordinal))
+        {
+            return;
+        }
+        lastPassiveWorkerSnapshot = state;
+        passiveWorkerSnapshots.Add(point
+            + "@" + Convert.ToString(P(clock, "Time"))
+            + ";" + state
+            + ";needs=" + FormatStatSnapshot(P(worker, "Stats")));
+    }
+
+    private static string IdValue(object id)
+    {
+        if (id == null)
+        {
+            return string.Empty;
+        }
+        var value = id.GetType().GetProperty("Value");
+        return value != null && value.GetMethod != null && value.GetMethod.IsPublic
+            ? Convert.ToString(value.GetValue(id))
+            : Convert.ToString(id);
+    }
+
+    private static string ActorId(object actor)
+    {
+        object identity = P(actor, "Identity");
+        return identity == null
+            ? string.Empty
+            : Convert.ToString(P(identity, "PersistentId"));
+    }
+
+    private static string ProjectIdOf(object candidate) =>
+        IdValue(P(candidate, "ProjectId"));
+
+    private static string NodeState(object researchRuntime, object candidate)
+    {
+        Type projectType = T("ResearchProjectSO", "DungeonStory.Research");
+        var method = researchRuntime.GetType().GetMethod(
+            "GetNodeState", new[] { projectType, typeof(string).MakeByRefType() });
+        if (method == null || !method.IsPublic)
+        {
+            throw new InvalidOperationException("Public GetNodeState is unavailable.");
+        }
+        object[] arguments = { candidate, null };
+        object state = method.Invoke(researchRuntime, arguments);
+        return Convert.ToString(state);
+    }
+
+    private static object FindExpectedProject(object researchRuntime)
+    {
+        IEnumerable projects = (IEnumerable)P(
+            P(researchRuntime, "ProjectCatalog"), "Projects");
+        object[] matches = projects.Cast<object>()
+            .Where(value => value != null)
+            .Where(value => string.Equals(
+                ProjectIdOf(value), ExpectedProjectId,
+                StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length != 1)
+        {
+            throw new InvalidOperationException(
+                "Expected research project catalog match count: "
+                + ExpectedProjectId + "/" + matches.Length);
+        }
+        return matches[0];
+    }
+
+    private static object ProjectsState(object researchRuntime) =>
+        P(P(researchRuntime, "State"), "Projects");
+
+    private static bool PublicProjectBool(
+        object projectsState,
+        string methodName,
+        object id)
+    {
+        var method = projectsState.GetType().GetMethod(
+            methodName, new[] { id.GetType() });
+        if (method == null || !method.IsPublic)
+        {
+            throw new InvalidOperationException(
+                "Missing public project-state method: " + methodName);
+        }
+        return (bool)method.Invoke(projectsState, new[] { id });
+    }
+
+    private static object ProjectProgress(object projectsState, object id)
+    {
+        var method = projectsState.GetType().GetMethod(
+            "GetProgress", new[] { id.GetType() });
+        if (method == null || !method.IsPublic)
+        {
+            throw new InvalidOperationException("Public GetProgress is unavailable.");
+        }
+        return method.Invoke(projectsState, new[] { id });
+    }
+
+    private static string[] QueueIds(object projectsState) =>
+        ((IEnumerable)P(projectsState, "Queue"))
+        .Cast<object>()
+        .Select(value => IdValue(P(value, "ProjectId")))
+        .ToArray();
+
+    private static bool TryGetPublicWork(object actor, out object work)
+    {
+        Type actorType = T("CharacterActor", "Assembly-CSharp");
+        Type workType = T("AbilityWork", "Assembly-CSharp");
+        var method = T("CharacterWorkRoleUtility", "Assembly-CSharp")
+            .GetMethod("TryGetWork", new[]
+            {
+                actorType,
+                workType.MakeByRefType()
+            });
+        if (method == null || !method.IsPublic || !method.IsStatic)
+        {
+            throw new InvalidOperationException(
+                "Public CharacterWorkRoleUtility.TryGetWork is unavailable.");
+        }
+        object[] arguments = { actor, null };
+        bool succeeded = (bool)method.Invoke(null, arguments);
+        work = arguments[1];
+        return succeeded && work != null;
+    }
+
+    private static object ResearchWorkTypeId() => PublicStaticField(
+        T("BuiltInWorkTypeIds", "DungeonStory.Work"), "Research");
+
+    private static object OperateWorkTypeId() => PublicStaticField(
+        T("BuiltInWorkTypeIds", "DungeonStory.Work"), "Operate");
+
+    private static bool ResearchEnabled(object work)
+    {
+        object priorities = P(work, "WorkPriorities");
+        object researchId = ResearchWorkTypeId();
+        var method = priorities.GetType().GetMethod(
+            "IsEnabled", new[] { T("WorkTypeId", "DungeonStory.Work") });
+        if (method == null || !method.IsPublic)
+        {
+            throw new InvalidOperationException("Public IsEnabled is unavailable.");
+        }
+        return (bool)method.Invoke(priorities, new[] { researchId });
+    }
+
+    private static string ResearchPriority(object work)
+    {
+        return WorkPriority(work, ResearchWorkTypeId());
+    }
+
+    private static string OperatePriority(object work)
+    {
+        return WorkPriority(work, OperateWorkTypeId());
+    }
+
+    private static string WorkPriority(object work, object workTypeId)
+    {
+        object priorities = P(work, "WorkPriorities");
+        var method = priorities.GetType().GetMethod(
+            "GetPriority", new[] { T("WorkTypeId", "DungeonStory.Work") });
+        if (method == null || !method.IsPublic)
+        {
+            throw new InvalidOperationException("Public GetPriority is unavailable.");
+        }
+        return Convert.ToString(method.Invoke(priorities, new[] { workTypeId }));
+    }
+
+    private static IEnumerable<object> AllStaffPriorityWorkDefinitions()
+    {
+        Type catalog = T("WorkTypeCatalog", "DungeonStory.Work");
+        var all = catalog.GetProperty("All");
+        if (all == null || all.GetMethod == null || !all.GetMethod.IsPublic
+            || !all.GetMethod.IsStatic)
+        {
+            throw new InvalidOperationException(
+                "Public WorkTypeCatalog.All is unavailable for the Staff priority UI.");
+        }
+
+        return ((IEnumerable)all.GetValue(null)).Cast<object>().ToArray();
+    }
+
+    private static string LegacyTypeNameForWorkDefinition(object definition)
+    {
+        object workTypeId = P(definition, "WorkTypeId");
+        Type mapType = T("FacilityWorkTypeMap", "DungeonStory.Work");
+        Type workTypeIdType = T("WorkTypeId", "DungeonStory.Work");
+        var getRequired = mapType.GetMethod(
+            "GetRequired", new[] { workTypeIdType });
+        if (getRequired == null || !getRequired.IsPublic || !getRequired.IsStatic)
+        {
+            throw new InvalidOperationException(
+                "Public FacilityWorkTypeMap.GetRequired(WorkTypeId) is unavailable.");
+        }
+
+        return Convert.ToString(getRequired.Invoke(null, new[] { workTypeId }));
+    }
+
+    private IEnumerator DisableSelectedNonResearchPriorities()
+    {
+        string researchId = IdValue(ResearchWorkTypeId());
+        string operateId = IdValue(OperateWorkTypeId());
+        foreach (object definition in AllStaffPriorityWorkDefinitions())
+        {
+            object workTypeId = P(definition, "WorkTypeId");
+            string workTypeText = IdValue(workTypeId);
+            if (string.Equals(workTypeText, researchId, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            string before = WorkPriority(workerWork, workTypeId);
+            string after = before;
+            int clicks = 0;
+            string cellName = "Cell_" + ((UnityEngine.Object)worker).GetInstanceID()
+                + "_" + LegacyTypeNameForWorkDefinition(definition);
+            while (!string.Equals(after, "Off", StringComparison.Ordinal)
+                && clicks < 4)
+            {
+                Click(FindActiveButton(cellName));
+                clicks++;
+                selectedNonResearchPriorityClicks++;
+                yield return null;
+                Canvas.ForceUpdateCanvases();
+                after = WorkPriority(workerWork, workTypeId);
+            }
+
+            selectedNonResearchPriorityTransitions.Add(workTypeText + ":"
+                + before + "->" + after + "/clicks=" + clicks);
+            if (!string.Equals(after, "Off", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "Selected worker non-Research priority did not reach Off through "
+                    + "the actual Staff UI: " + workTypeText + ".");
+            }
+
+            if (string.Equals(workTypeText, operateId, StringComparison.Ordinal))
+            {
+                operatePriorityBefore = before;
+                operatePriorityAfter = after;
+                operatePriorityClicks = clicks;
+            }
+        }
+
+        if (!string.Equals(
+                ResearchPriority(workerWork), "Priority1", StringComparison.Ordinal)
+            || !ResearchEnabled(workerWork))
+        {
+            throw new InvalidOperationException(
+                "Selected worker lost Research Priority1 while disabling non-Research UI cells.");
+        }
+    }
+
+    private static object CharacterTraversalContext(object actor)
+    {
+        object typedId = P(P(actor, "Identity"), "TypedPersistentId");
+        Type contextType = T("GridTraversalContext", "DungeonStory.Grid");
+        var factory = contextType.GetMethods().Single(method => method.IsPublic
+            && method.IsStatic
+            && string.Equals(method.Name, "ForCharacter", StringComparison.Ordinal)
+            && method.GetParameters().Length == 8);
+        return factory.Invoke(null, new object[]
+        {
+            typedId,
+            Enum.Parse(T("DoorAccessOverrideKind", "DungeonStory.Grid"), "None"),
+            Enum.Parse(T("GridMovementIntent", "DungeonStory.Grid"), "General"),
+            Activator.CreateInstance(T(
+                "ChildSafetyAuthorizationToken", "DungeonStory.Grid")),
+            0, 0, 0, 0
+        });
+    }
+
+    private static string RequestActorReachability(
+        object actor,
+        object grid,
+        Vector2Int destination)
+    {
+        object broker = P(actor, "PathSearchBroker");
+        if (broker == null)
+        {
+            throw new InvalidOperationException(
+                "Selected worker has no public PathSearchBroker.");
+        }
+        object[] arguments =
+        {
+            grid,
+            (Vector2Int)InvokePublicNoArgument(actor, "GetNowXY"),
+            destination,
+            null,
+            Enum.Parse(T(
+                "GridPathSearchPriority", "DungeonStory.Grid"), "Urgent"),
+            CharacterTraversalContext(actor)
+        };
+        object status = InvokePublic(broker, "RequestMovePathTo", arguments);
+        return Convert.ToString(status);
+    }
+
+    private static Button RequireActiveResearchPriorityCell(Component actor)
+    {
+        string actorId = ActorId(actor);
+        string cellName = "Cell_" + actor.GetInstanceID() + "_Research";
+        try
+        {
+            return FindActiveButton(cellName);
+        }
+        catch (Exception exception)
+        {
+            throw new InvalidOperationException(
+                "R01 PREPARATION_BLOCKER_RESEARCH_PRIORITY_UI_ROW_MISSING; actor="
+                + actorId + ";isOwner=" + Convert.ToString(P(actor, "IsOwner"))
+                + ";cell=" + cellName + ".",
+                exception);
+        }
+    }
+
+    private static Component[] ActiveResearchPriorityUiActors(
+        out string coverage)
+    {
+        Type actorType = T("CharacterActor", "Assembly-CSharp");
+        Component[] loaded = Resources.FindObjectsOfTypeAll(actorType)
+            .Cast<UnityEngine.Object>()
+            .OfType<Component>()
+            .Where(value => value.gameObject.scene.isLoaded
+                && value.gameObject.activeInHierarchy)
+            .OrderBy(ActorId, StringComparer.Ordinal)
+            .ToArray();
+        Component owner = loaded.SingleOrDefault(value => (bool)P(value, "IsOwner"));
+        if (owner == null)
+        {
+            throw new InvalidOperationException(
+                "R01 PREPARATION_BLOCKER_ACTIVE_OWNER_MISSING_FROM_RESEARCH_PRIORITY_UI.");
+        }
+
+        var eligible = new List<Component>();
+        var states = new List<string>();
+        foreach (Component actor in loaded)
+        {
+            string actorId = ActorId(actor);
+            bool ownerActor = (bool)P(actor, "IsOwner");
+            bool dead = (bool)P(actor, "IsDead");
+            object work = null;
+            bool hasWork = !dead && TryGetPublicWork(actor, out work);
+            if (!hasWork)
+            {
+                states.Add(actorId + ";owner=" + ownerActor + ";dead=" + dead
+                    + ";workRole=false;researchCapable=false");
+                continue;
+            }
+
+            Button cell = RequireActiveResearchPriorityCell(actor);
+            if (ownerActor && ResearchEnabled(work) && !cell.IsInteractable())
+            {
+                throw new InvalidOperationException(
+                    "R01 PREPARATION_BLOCKER_OWNER_RESEARCH_PRIORITY_UI_NOT_INTERACTABLE; "
+                    + "actor=" + actorId + ";cell=" + cell.name + ".");
+            }
+
+            eligible.Add(actor);
+            states.Add(actorId + ";owner=" + ownerActor + ";dead=false"
+                + ";workRole=true;research=" + ResearchPriority(work)
+                + ";cell=" + cell.name);
+        }
+
+        if (eligible.Count == 0)
+        {
+            throw new InvalidOperationException(
+                "R01 PREPARATION_BLOCKER_RESEARCH_PRIORITY_UI_HAS_NO_ACTIVE_WORKERS.");
+        }
+
+        coverage = string.Join("|", states);
+        return eligible.OrderBy(ActorId, StringComparer.Ordinal).ToArray();
+    }
+
+    private IEnumerator WarmResearchFacilityCandidateIndex()
+    {
+        object world = Resolve("ICharacterAiWorldRegistry", "Assembly-CSharp");
+        Type gridType = T("Grid", "DungeonStory.Grid");
+        var tryGetGrid = world.GetType().GetMethod(
+            "TryGetGrid", new[] { gridType.MakeByRefType() });
+        if (tryGetGrid == null || !tryGetGrid.IsPublic)
+        {
+            throw new InvalidOperationException(
+                "Public ICharacterAiWorldRegistry.TryGetGrid is unavailable for index warmup.");
+        }
+
+        object[] gridArguments = { null };
+        if (!(bool)tryGetGrid.Invoke(world, gridArguments) || gridArguments[0] == null)
+        {
+            throw new InvalidOperationException(
+                "R01 PREPARATION_BLOCKER_LIVE_GRID_MISSING_FOR_RESEARCH_INDEX_WARMUP.");
+        }
+
+        object cache = Resolve("IFacilityCandidateCache", "Assembly-CSharp");
+        Type facilityWorkType = T("FacilityWorkType", "DungeonStory.Buildings");
+        var getWorkCandidates = cache.GetType().GetMethod(
+            "GetWorkCandidates", new[] { gridType, facilityWorkType });
+        if (getWorkCandidates == null || !getWorkCandidates.IsPublic)
+        {
+            throw new InvalidOperationException(
+                "Public IFacilityCandidateCache.GetWorkCandidates is unavailable for index warmup.");
+        }
+
+        object research = Enum.Parse(facilityWorkType, "Research");
+        int queryCount = 0;
+        getWorkCandidates.Invoke(cache, new[] { gridArguments[0], research });
+        queryCount++;
+        bool pendingBefore = (bool)P(cache, "HasPendingIndexBuild");
+        int versionBefore = Convert.ToInt32(P(cache, "CandidateIndexVersion"));
+        if (!pendingBefore)
+        {
+            researchIndexWarmup = "pendingBefore=false;queries=" + queryCount
+                + ";indexVersion=" + versionBefore + ";normalSchedulerFrames=0";
+            yield break;
+        }
+
+        object warmupClock = Resolve(
+            "DungeonStory.Foundation.IGameClock",
+            "DungeonStory.Foundation");
+        float gameStart = Convert.ToSingle(P(warmupClock, "Time"));
+        float wallStart = Time.realtimeSinceStartup;
+        int schedulerFrames = 0;
+        researchIndexWarmup = "pendingBefore=true;queries=" + queryCount
+            + ";indexVersionBefore=" + versionBefore + ";state=warming";
+        try
+        {
+            Time.timeScale = 1f;
+            yield return null;
+            schedulerFrames++;
+            if ((bool)P(warmupClock, "IsPaused"))
+            {
+                throw new InvalidOperationException(
+                    "R01 PREPARATION_BLOCKER_RESEARCH_INDEX_SCHEDULER_PAUSED.");
+            }
+
+            while ((bool)P(cache, "HasPendingIndexBuild"))
+            {
+                float elapsedGame = Convert.ToSingle(P(warmupClock, "Time"))
+                    - gameStart;
+                float elapsedWall = Time.realtimeSinceStartup - wallStart;
+                if (elapsedGame >= IndexWarmupMaximumGameSeconds
+                    || elapsedWall >= IndexWarmupMaximumWallSeconds)
+                {
+                    throw new InvalidOperationException(
+                        "R01 PREPARATION_BLOCKER_RESEARCH_INDEX_WARMUP_TIMEOUT; "
+                        + "game=" + elapsedGame + ";wall=" + elapsedWall
+                        + ";indexVersion=" + Convert.ToString(
+                            P(cache, "CandidateIndexVersion")));
+                }
+
+                // This public query triggers the known-grid index but does not advance it.
+                getWorkCandidates.Invoke(cache, new[] { gridArguments[0], research });
+                queryCount++;
+                yield return null;
+                schedulerFrames++;
+            }
+        }
+        finally
+        {
+            Time.timeScale = 0f;
+        }
+
+        // Do not retain a list captured before the scheduler completed the index.
+        getWorkCandidates.Invoke(cache, new[] { gridArguments[0], research });
+        queryCount++;
+        if ((bool)P(cache, "HasPendingIndexBuild"))
+        {
+            throw new InvalidOperationException(
+                "R01 PREPARATION_BLOCKER_RESEARCH_INDEX_STILL_PENDING_AFTER_WARMUP.");
+        }
+
+        researchIndexWarmup = "pendingBefore=true;queries=" + queryCount
+            + ";normalSchedulerFrames=" + schedulerFrames
+            + ";game=" + gameStart + "->"
+            + Convert.ToSingle(P(warmupClock, "Time"))
+            + ";wall=" + (Time.realtimeSinceStartup - wallStart)
+            + ";indexVersion=" + Convert.ToString(
+                P(cache, "CandidateIndexVersion"))
+            + ";paused=" + Mathf.Approximately(Time.timeScale, 0f);
+    }
+
+    private static object FindPriorityWorker(
+        IEnumerable<Component> researchPriorityActors,
+        out object work)
+    {
+        foreach (Component actor in researchPriorityActors
+                     .Where(value => !(bool)P(value, "IsOwner")))
+        {
+            if (!TryGetPublicWork(actor, out object candidateWork))
+            {
+                continue;
+            }
+            string cellName = "Cell_" + actor.GetInstanceID() + "_Research";
+            Button cell = Resources.FindObjectsOfTypeAll<Button>()
+                .SingleOrDefault(value => value != null
+                    && value.gameObject.scene.isLoaded
+                    && value.gameObject.activeInHierarchy
+                    && string.Equals(value.name, cellName, StringComparison.Ordinal));
+            if (cell != null)
+            {
+                work = candidateWork;
+                return actor;
+            }
+        }
+        work = null;
+        throw new InvalidOperationException(
+            "No active living staff actor has a visible Research priority cell.");
+    }
+
+    private IEnumerator RequireReachableResearchFacility(float wallDeadline)
+    {
+        if (!(bool)P(runtime, "HasActiveResearch"))
+        {
+            throw new InvalidOperationException(
+                "R01 PREPARATION_BLOCKER_ACTIVE_RESEARCH_MISSING after actual queue readback.");
+        }
+
+        object world = Resolve("ICharacterAiWorldRegistry", "Assembly-CSharp");
+        Type gridType = T("Grid", "DungeonStory.Grid");
+        var tryGetGrid = world.GetType().GetMethod(
+            "TryGetGrid", new[] { gridType.MakeByRefType() });
+        if (tryGetGrid == null || !tryGetGrid.IsPublic)
+        {
+            throw new InvalidOperationException(
+                "Public ICharacterAiWorldRegistry.TryGetGrid is unavailable.");
+        }
+        object[] gridArguments = { null };
+        if (!(bool)tryGetGrid.Invoke(world, gridArguments) || gridArguments[0] == null)
+        {
+            throw new InvalidOperationException(
+                "R01 PREPARATION_BLOCKER_LIVE_GRID_MISSING.");
+        }
+
+        object cache = Resolve("IFacilityCandidateCache", "Assembly-CSharp");
+        Type facilityWorkType = T("FacilityWorkType", "DungeonStory.Buildings");
+        var getWorkCandidates = cache.GetType().GetMethod(
+            "GetWorkCandidates", new[] { gridType, facilityWorkType });
+        if (getWorkCandidates == null || !getWorkCandidates.IsPublic)
+        {
+            throw new InvalidOperationException(
+                "Public IFacilityCandidateCache.GetWorkCandidates is unavailable.");
+        }
+        object indexed = getWorkCandidates.Invoke(cache, new[]
+        {
+            gridArguments[0],
+            Enum.Parse(facilityWorkType, "Research")
+        });
+        if ((bool)P(cache, "HasPendingIndexBuild"))
+        {
+            throw new InvalidOperationException(
+                "R01 PREPARATION_BLOCKER_RESEARCH_INDEX_PENDING; indexVersion="
+                + Convert.ToString(P(cache, "CandidateIndexVersion")));
+        }
+
+        object policy = Resolve("IWorkPolicyRegistry", "Assembly-CSharp");
+        Type workTypeId = T("WorkTypeId", "DungeonStory.Work");
+        Type actorType = T("CharacterActor", "Assembly-CSharp");
+        Type buildingType = T("BuildableObject", "Assembly-CSharp");
+        var isAvailable = policy.GetType().GetMethod("IsAvailable", new[]
+        {
+            workTypeId,
+            actorType,
+            buildingType,
+            typeof(string).MakeByRefType()
+        });
+        if (isAvailable == null || !isAvailable.IsPublic)
+        {
+            throw new InvalidOperationException(
+                "Public IWorkPolicyRegistry.IsAvailable is unavailable.");
+        }
+
+        var supportsWork = buildingType.GetMethod(
+            "SupportsWork", new[] { workTypeId });
+        var access = buildingType.GetMethod("TryGetNearestWorkAccessGridPosition", new[]
+        {
+            gridType,
+            typeof(Vector2Int),
+            typeof(Vector2Int).MakeByRefType()
+        });
+        if (supportsWork == null || !supportsWork.IsPublic
+            || access == null || !access.IsPublic)
+        {
+            throw new InvalidOperationException(
+                "Public research facility capability/access query is unavailable.");
+        }
+
+        List<string> rejected = new();
+        foreach (object facility in ((IEnumerable)indexed).Cast<object>()
+                     .Where(value => value is Component component
+                         && component.gameObject.scene.isLoaded
+                         && component.gameObject.activeInHierarchy)
+                     .OrderBy(value => ((UnityEngine.Object)value).GetInstanceID()))
+        {
+            string facilityLabel = ((Component)facility).name + "#"
+                + ((UnityEngine.Object)facility).GetInstanceID();
+            bool indexedSupportsResearch = (bool)supportsWork.Invoke(
+                facility, new[] { ResearchWorkTypeId() });
+            if (!indexedSupportsResearch)
+            {
+                rejected.Add(facilityLabel + ":indexed-without-support");
+                continue;
+            }
+
+            object[] availabilityArguments =
+            {
+                ResearchWorkTypeId(), worker, facility, null
+            };
+            bool workforceAvailable = (bool)isAvailable.Invoke(
+                policy, availabilityArguments);
+            if (!workforceAvailable)
+            {
+                rejected.Add(facilityLabel + ":workforce="
+                    + Convert.ToString(availabilityArguments[3]));
+                continue;
+            }
+
+            object[] accessArguments =
+            {
+                gridArguments[0],
+                (Vector2Int)InvokePublicNoArgument(worker, "GetNowXY"),
+                default(Vector2Int)
+            };
+            if (!(bool)access.Invoke(facility, accessArguments))
+            {
+                rejected.Add(facilityLabel + ":no-work-access");
+                continue;
+            }
+
+            string pathStatus = RequestActorReachability(
+                worker,
+                gridArguments[0],
+                (Vector2Int)accessArguments[2]);
+            while (string.Equals(pathStatus, "Pending", StringComparison.Ordinal))
+            {
+                if (Time.realtimeSinceStartup >= wallDeadline)
+                {
+                    throw new InvalidOperationException(
+                        "R01 PREPARATION_BLOCKER_RESEARCH_PATH_PENDING; facility="
+                        + facilityLabel + ".");
+                }
+                yield return null;
+                pathStatus = RequestActorReachability(
+                    worker,
+                    gridArguments[0],
+                    (Vector2Int)accessArguments[2]);
+            }
+            if (!string.Equals(pathStatus, "Reachable", StringComparison.Ordinal))
+            {
+                rejected.Add(facilityLabel + ":path=" + pathStatus);
+                continue;
+            }
+
+            researchFacilityPreflight = "activeProject=" + expectedProjectId
+                + ";indexVersion=" + Convert.ToString(P(
+                    cache, "CandidateIndexVersion"))
+                + ";facility=" + facilityLabel
+                + ";indexedSupportsResearch=true;workforce=true;path="
+                + pathStatus;
+            yield break;
+        }
+
+        researchFacilityPreflight = "activeProject=" + expectedProjectId
+            + ";indexVersion=" + Convert.ToString(P(
+                cache, "CandidateIndexVersion"))
+            + ";rejected=" + (rejected.Count == 0
+                ? "<no-indexed-research-facility>"
+                : string.Join("|", rejected));
+        throw new InvalidOperationException(
+            "R01 PREPARATION_BLOCKER_REACHABLE_RESEARCH_FACILITY_MISSING; "
+            + researchFacilityPreflight);
+    }
+
+    private void RequireHydrationAvailability()
+    {
+        object items = Resolve("IWorldItemStackRuntime", "Assembly-CSharp");
+        int before = GetAvailableSafeCleanWater(items, out string beforeDetail);
+        int missing = Mathf.Max(0, CurrentThreePersonOneDayWaterUnits - before);
+        int spawned = missing > 0
+            ? SpawnMissingCleanWaterAtDeliveryDropoff(items, missing)
+            : 0;
+        int after = GetAvailableSafeCleanWater(items, out string afterDetail);
+        hydrationAvailability = "safeCleanWaterBefore=" + before
+            + ";required=" + CurrentThreePersonOneDayWaterUnits
+            + ";spawnedAtDeliveryDropoff=" + spawned
+            + ";safeCleanWaterAfter=" + after
+            + ";before=" + beforeDetail
+            + ";after=" + afterDetail;
+        if (after < CurrentThreePersonOneDayWaterUnits)
+        {
+            throw new InvalidOperationException(
+                "R01 PREPARATION_BLOCKER_SAFE_CLEAN_WATER_UNAVAILABLE; "
+                + hydrationAvailability);
+        }
+    }
+
+    private static int GetAvailableSafeCleanWater(
+        object items,
+        out string detail)
+    {
+        Type stockCategory = T("StockCategory", "DungeonStory.Buildings");
+        Type candidateType = T("WorldItemStockCandidate", "Assembly-CSharp");
+        Type candidateListType = typeof(List<>).MakeGenericType(candidateType);
+        var copyCandidates = items.GetType().GetMethod(
+            "CopyAvailableStockCandidates",
+            new[] { stockCategory, candidateListType });
+        if (copyCandidates == null || !copyCandidates.IsPublic)
+        {
+            throw new InvalidOperationException(
+                "Public IWorldItemStackRuntime.CopyAvailableStockCandidates is unavailable.");
+        }
+
+        object candidates = Activator.CreateInstance(candidateListType);
+        copyCandidates.Invoke(items, new[]
+        {
+            Enum.Parse(stockCategory, "Water"),
+            candidates
+        });
+        var stacksById = ((IEnumerable)InvokePublicNoArgument(items, "GetAllStacks"))
+            .Cast<object>()
+            .Where(value => value != null)
+            .ToDictionary(
+                value => Convert.ToString(P(value, "StackId")),
+                StringComparer.Ordinal);
+        int available = 0;
+        var accepted = new List<string>();
+        foreach (object candidate in (IEnumerable)candidates)
+        {
+            if (!(bool)P(candidate, "IsValid"))
+            {
+                continue;
+            }
+
+            string stackId = Convert.ToString(P(candidate, "StackId"));
+            if (!stacksById.TryGetValue(stackId, out object stack)
+                || !string.Equals(
+                    Convert.ToString(P(stack, "ItemId")),
+                    CleanWaterItemId,
+                    StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            int stackAvailable = Convert.ToInt32(P(stack, "AvailableQuantity"));
+            if (stackAvailable <= 0)
+            {
+                continue;
+            }
+
+            available += stackAvailable;
+            accepted.Add(stackId + "@" + Convert.ToString(P(candidate, "Position"))
+                + ":" + Convert.ToString(P(candidate, "State"))
+                + ":available=" + stackAvailable);
+        }
+
+        detail = accepted.Count == 0
+            ? "<no-safe-resource:clean-water-candidate>"
+            : string.Join("|", accepted);
+        return available;
+    }
+
+    private static int SpawnMissingCleanWaterAtDeliveryDropoff(
+        object items,
+        int missing)
+    {
+        object dropZones = Resolve("IWorldDropZoneQuery", "Assembly-CSharp");
+        var getDropoff = dropZones.GetType().GetMethod(
+            "TryGetDeliveryDropoff",
+            new[] { typeof(Vector2Int).MakeByRefType() });
+        if (getDropoff == null || !getDropoff.IsPublic)
+        {
+            throw new InvalidOperationException(
+                "Public IWorldDropZoneQuery.TryGetDeliveryDropoff is unavailable.");
+        }
+
+        object[] dropoffArguments = { default(Vector2Int) };
+        if (!(bool)getDropoff.Invoke(dropZones, dropoffArguments))
+        {
+            throw new InvalidOperationException(
+                "R01 PREPARATION_BLOCKER_DELIVERY_DROPOFF_MISSING; "
+                + "clean-water physical setup was not attempted.");
+        }
+
+        Type itemState = T("WorldItemStackState", "DungeonStory.Items");
+        var spawn = items.GetType().GetMethod("SpawnItemAt", new[]
+        {
+            typeof(string),
+            typeof(int),
+            typeof(Vector2Int),
+            itemState,
+            typeof(string),
+            typeof(int).MakeByRefType()
+        });
+        if (spawn == null || !spawn.IsPublic)
+        {
+            throw new InvalidOperationException(
+                "Public IWorldItemStackRuntime.SpawnItemAt is unavailable.");
+        }
+
+        object[] spawnArguments =
+        {
+            CleanWaterItemId,
+            missing,
+            (Vector2Int)dropoffArguments[0],
+            Enum.Parse(itemState, "Loose"),
+            string.Empty,
+            0
+        };
+        bool accepted = (bool)spawn.Invoke(items, spawnArguments);
+        int spawned = Convert.ToInt32(spawnArguments[5]);
+        if (!accepted || spawned != missing)
+        {
+            throw new InvalidOperationException(
+                "R01 PREPARATION_BLOCKER_PHYSICAL_CLEAN_WATER_SPAWN_REJECTED; "
+                + "requested=" + missing + ";spawned=" + spawned
+                + ";dropoff=" + Convert.ToString(dropoffArguments[0]));
+        }
+
+        return spawned;
+    }
+
+    private static string ExtractDetailLine(object researchWindow, string token)
+    {
+        Component window = researchWindow as Component;
+        Type textType = T("TMPro.TMP_Text", "Unity.TextMeshPro");
+        string[] lines = window.GetComponentsInChildren(textType, true)
+            .Cast<Component>()
+            .Select(value => Convert.ToString(P(value, "text")))
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .SelectMany(value => value.Split('\n'))
+            .Where(value => value.Contains(token, StringComparison.Ordinal))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        if (lines.Length != 1)
+        {
+            throw new InvalidOperationException(
+                "Expected one Research UI detail line for " + token
+                + "; count=" + lines.Length);
+        }
+        return lines[0].Trim();
+    }
+
+    private void SubscribeResearchProgress()
+    {
+        object eventBus = Resolve(
+            "DungeonStory.Foundation.IGameEventBus",
+            "DungeonStory.Foundation");
+        Type eventType = T("ResearchProgressEvent", "Assembly-CSharp");
+        var subscribe = eventBus.GetType().GetMethods()
+            .Single(value => value.Name == "Subscribe"
+                && value.IsPublic
+                && value.IsGenericMethodDefinition
+                && value.GetParameters().Length == 1);
+        var callbackMethod = GetType().GetMethod("OnResearchProgress");
+        if (callbackMethod == null || !callbackMethod.IsPublic
+            || !callbackMethod.IsGenericMethodDefinition)
+        {
+            throw new InvalidOperationException(
+                "Public verifier callback method is unavailable.");
+        }
+        var closedCallback = callbackMethod.MakeGenericMethod(eventType);
+        Type actionType = typeof(Action<>).MakeGenericType(eventType);
+        Delegate callback = Delegate.CreateDelegate(
+            actionType, this, closedCallback);
+        progressSubscription = (IDisposable)subscribe
+            .MakeGenericMethod(eventType)
+            .Invoke(eventBus, new object[] { callback });
+        if (progressSubscription == null)
+        {
+            throw new InvalidOperationException(
+                "ResearchProgressEvent subscription was not created.");
+        }
+    }
+
+    public void OnResearchProgress<TEvent>(TEvent value)
+    {
+        object gameEvent = value;
+        string eventProjectId = Convert.ToString(P(gameEvent, "ProjectId"));
+        string eventActorId = IdValue(P(gameEvent, "Researcher"));
+        float approved = Convert.ToSingle(P(gameEvent, "ApprovedWork"));
+        float delta = Convert.ToSingle(P(gameEvent, "ProgressDelta"));
+        int day = Convert.ToInt32(P(gameEvent, "AbsoluteDay"));
+        researchProgressEventRecords.Add("actor=" + eventActorId
+            + ";project=" + eventProjectId
+            + ";approved=" + approved
+            + ";delta=" + delta
+            + ";day=" + day);
+        if (!string.Equals(
+                eventProjectId, expectedProjectId, StringComparison.Ordinal)
+            || approved <= 0f || delta <= 0f)
+        {
+            return;
+        }
+        if (!string.Equals(eventActorId, expectedActorId, StringComparison.Ordinal))
+        {
+            unexpectedContributor = true;
+            return;
+        }
+        matchingEventCount++;
+        approvedWorkSum += approved;
+        progressDeltaSum += delta;
+        lastAbsoluteDay = day;
+    }
+
+    private static object CaptureLabor(object laborService)
+    {
+        var capture = laborService.GetType().GetMethod("Capture", Type.EmptyTypes);
+        if (capture == null || !capture.IsPublic)
+        {
+            throw new InvalidOperationException(
+                "Public settlement labor Capture is unavailable.");
+        }
+        return capture.Invoke(laborService, null);
+    }
+
+    private void InstallPlayExitCleanup()
+    {
+        if (playModeCallbackInstalled)
+        {
+            return;
+        }
+        EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        playModeCallbackInstalled = true;
+    }
+
+    private void CleanupCallbacks()
+    {
+        Exception cleanupFailure = null;
+        try
+        {
+            if (Application.isPlaying)
+            {
+                Time.timeScale = 0f;
+            }
+            EditorApplication.isPaused = true;
+        }
+        catch (Exception exception)
+        {
+            cleanupFailure = exception;
+        }
+        try
+        {
+            progressSubscription?.Dispose();
+        }
+        catch (Exception exception)
+        {
+            cleanupFailure ??= exception;
+        }
+        finally
+        {
+            progressSubscription = null;
+        }
+        try
+        {
+            if (playModeCallbackInstalled)
+            {
+                EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+            }
+        }
+        catch (Exception exception)
+        {
+            cleanupFailure ??= exception;
+        }
+        finally
+        {
+            playModeCallbackInstalled = false;
+        }
+        if (cleanupFailure != null)
+        {
+            throw new InvalidOperationException(
+                "R01 callback cleanup failed after attempting pause/dispose/unsubscribe.",
+                cleanupFailure);
+        }
+    }
+
+    private void OnPlayModeStateChanged(PlayModeStateChange state)
+    {
+        if (state != PlayModeStateChange.ExitingPlayMode
+            && state != PlayModeStateChange.EnteredEditMode)
+        {
+            return;
+        }
+        bool hadCallbacks = playModeCallbackInstalled
+            || progressSubscription != null;
+        CleanupCallbacks();
+        if (hadCallbacks)
+        {
+            Debug.Log("R01 ONE_WORKER PLAY_EXIT_CLEANUP");
+        }
+    }
+
+    public void Execute(ExecutionResult result)
+    {
+        if (!EditorApplication.isPlaying || !Application.isPlaying
+            || !EditorApplication.isPaused
+            || !Mathf.Approximately(Time.timeScale, 0f))
+        {
+            throw new InvalidOperationException(
+                "R01 one-worker command requires the paused protected Play prelude.");
+        }
+        InstallPlayExitCleanup();
+        try
+        {
+            // Frames must run for public UI/path requests, but game time remains paused
+            // until the bounded normal-AI interval below explicitly starts it.
+            EditorApplication.isPaused = false;
+            FindRuntimeScopeHost().StartCoroutine(RunSafely());
+        }
+        catch
+        {
+            CleanupCallbacks();
+            throw;
+        }
+        result.Log("R01 ONE_WORKER installed;gamePaused={0};editorPaused={1};speed=normal-1",
+            Mathf.Approximately(Time.timeScale, 0f), EditorApplication.isPaused);
+    }
+
+    private IEnumerator RunSafely()
+    {
+        IEnumerator run = Run();
+        try
+        {
+            while (true)
+            {
+                object next = null;
+                Exception runFailure = null;
+                bool completed = false;
+                try
+                {
+                    if (!run.MoveNext())
+                    {
+                        completed = true;
+                    }
+                    else
+                    {
+                        next = run.Current;
+                    }
+                }
+                catch (Exception exception)
+                {
+                    runFailure = exception;
+                }
+                if (runFailure != null)
+                {
+                    Debug.LogError(
+                        "R01 ONE_WORKER FAILED;detail="
+                        + runFailure.GetType().Name + ": "
+                        + runFailure.Message);
+                    yield break;
+                }
+                if (completed)
+                {
+                    yield break;
+                }
+                yield return next;
+            }
+        }
+        finally
+        {
+            (run as IDisposable)?.Dispose();
+        }
+    }
+
+    private IEnumerator Run()
+    {
+        bool passed = false;
+        bool incomplete = false;
+        string outcome = "FAILED before public readiness gates";
+        try
+        {
+            runtime = FindLoadedComponent(
+                "BlueprintResearchRuntime", "Assembly-CSharp");
+            expectedProjectReadiness = "runtime=loaded;catalog=loaded;expected="
+                + ExpectedProjectId;
+            project = FindExpectedProject(runtime);
+            projectId = P(project, "ProjectId");
+            expectedProjectId = ProjectIdOf(project);
+            requiredWork = Convert.ToSingle(P(project, "RequiredWork"));
+            maximumResearchers = Convert.ToInt32(P(project, "MaximumResearchers"));
+            string expectedNodeState = NodeState(runtime, project);
+            string[] prerequisiteIds = ((IEnumerable)P(project, "Prerequisites"))
+                .Cast<object>()
+                .Where(value => value != null)
+                .Select(ProjectIdOf)
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToArray();
+            expectedProjectReadiness = "id=" + expectedProjectId
+                + ";state=" + expectedNodeState
+                + ";required=" + requiredWork
+                + ";maxResearchers=" + maximumResearchers
+                + ";prerequisites="
+                + (prerequisiteIds.Length == 0
+                    ? "<none>"
+                    : string.Join(",", prerequisiteIds));
+            if (!string.Equals(
+                    expectedNodeState, "Available", StringComparison.Ordinal)
+                || !string.Equals(
+                    expectedProjectId, ExpectedProjectId, StringComparison.Ordinal)
+                || !Mathf.Approximately(requiredWork, ExpectedRequiredWork)
+                || maximumResearchers != 1
+                || prerequisiteIds.Length != 0)
+            {
+                throw new InvalidOperationException(
+                    "Expected research project readiness mismatch: "
+                    + expectedProjectReadiness);
+            }
+
+            object capacity = P(runtime, "ResearchFacilityCapacity");
+            Type capabilityType = T(
+                "ResearchFacilityCapabilityId", "DungeonStory.Research");
+            object basic = Enum.Parse(capabilityType, "Basic");
+            var getAvailable = capacity.GetType().GetMethod(
+                "GetAvailable", new[] { capabilityType });
+            if (getAvailable == null || !getAvailable.IsPublic)
+            {
+                throw new InvalidOperationException(
+                    "Public research facility capacity query is unavailable.");
+            }
+            basicCapacity = Convert.ToInt32(
+                getAvailable.Invoke(capacity, new[] { basic }));
+            var meetsRequirements = capacity.GetType().GetMethods()
+                .Single(value => value.Name == "MeetsRequirements"
+                    && value.IsPublic
+                    && value.GetParameters().Length == 2
+                    && value.GetParameters()[0].ParameterType
+                        == T("ResearchProjectSO", "DungeonStory.Research")
+                    && value.GetParameters()[1].ParameterType
+                        == typeof(string).MakeByRefType());
+            object[] capacityArguments = { project, null };
+            bool facilitiesReady = (bool)meetsRequirements.Invoke(
+                capacity, capacityArguments);
+            expectedProjectReadiness += ";basicCapacity=" + basicCapacity
+                + ";facilitiesReady=" + facilitiesReady
+                + ";facilityBlocker=" + Convert.ToString(capacityArguments[1]);
+            if (basicCapacity != 1 || !facilitiesReady)
+            {
+                throw new InvalidOperationException(
+                    "Research facility readiness mismatch: Basic="
+                    + basicCapacity + ";blocker="
+                    + Convert.ToString(capacityArguments[1]));
+            }
+
+            object projectsState = ProjectsState(runtime);
+            bool expectedCompleted = PublicProjectBool(
+                projectsState, "IsCompleted", projectId);
+            bool expectedQueued = PublicProjectBool(
+                projectsState, "ContainsInQueue", projectId);
+            string[] queueIds = QueueIds(projectsState);
+            string activeProjectBeforeWarmup = IdValue(P(
+                projectsState, "ActiveProjectId"));
+            expectedProjectReadiness += ";completed=" + expectedCompleted
+                + ";expectedQueued=" + expectedQueued
+                + ";queueCount=" + queueIds.Length
+                + ";activeBeforeWarmup=" + activeProjectBeforeWarmup;
+            if (expectedCompleted || expectedQueued || queueIds.Length != 0
+                || !string.IsNullOrWhiteSpace(activeProjectBeforeWarmup))
+            {
+                throw new InvalidOperationException(
+                    "Fresh one-root queue/active-project precondition is not empty.");
+            }
+
+            outcome = "FAILED at actual Staff Research priority UI";
+            Click(FindActiveTopTabButton("Staff"));
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+            Click(FindActiveButton("P1Action_StaffModePriorities"));
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+            Component[] researchPriorityActors = ActiveResearchPriorityUiActors(
+                out researchPriorityActorCoverage);
+            worker = FindPriorityWorker(researchPriorityActors, out workerWork);
+            expectedActorId = ActorId(worker);
+            if (string.IsNullOrWhiteSpace(expectedActorId))
+            {
+                throw new InvalidOperationException(
+                    "Selected actual worker has no persistent ID.");
+            }
+            priorityBefore = ResearchPriority(workerWork);
+            priorityAfter = priorityBefore;
+            string cellName = "Cell_"
+                + ((UnityEngine.Object)worker).GetInstanceID()
+                + "_Research";
+            while (!string.Equals(
+                    priorityAfter, "Priority1", StringComparison.Ordinal)
+                && priorityClicks < 4)
+            {
+                Click(FindActiveButton(cellName));
+                priorityClicks++;
+                yield return null;
+                Canvas.ForceUpdateCanvases();
+                priorityAfter = ResearchPriority(workerWork);
+            }
+            if (!string.Equals(
+                    priorityAfter, "Priority1", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "Research priority did not reach Priority1 in four UI clicks.");
+            }
+            foreach (Component candidate in researchPriorityActors)
+            {
+                object candidateWork = null;
+                if (ReferenceEquals(candidate, worker)
+                    || !TryGetPublicWork(candidate, out candidateWork)
+                    || !ResearchEnabled(candidateWork))
+                {
+                    continue;
+                }
+                string candidateId = ActorId(candidate);
+                if (string.IsNullOrWhiteSpace(candidateId))
+                {
+                    throw new InvalidOperationException(
+                        "An eligible Research worker has no persistent ID.");
+                }
+                string candidateBefore = ResearchPriority(candidateWork);
+                string candidateAfter = candidateBefore;
+                int candidateClicks = 0;
+                string candidateCell = "Cell_"
+                    + candidate.GetInstanceID() + "_Research";
+                while (ResearchEnabled(candidateWork) && candidateClicks < 4)
+                {
+                    Click(FindActiveButton(candidateCell));
+                    candidateClicks++;
+                    otherResearchPriorityClicks++;
+                    yield return null;
+                    Canvas.ForceUpdateCanvases();
+                    candidateAfter = ResearchPriority(candidateWork);
+                }
+                otherResearchPriorityTransitions.Add(
+                    candidateId + ":" + candidateBefore + "->"
+                    + candidateAfter + "/clicks=" + candidateClicks);
+                if (ResearchEnabled(candidateWork))
+                {
+                    throw new InvalidOperationException(
+                        "Research priority did not reach Off through the actual "
+                        + "Staff UI for " + candidateId + ".");
+                }
+            }
+            List<string> enabledResearchWorkerIds = new();
+            foreach (Component candidate in researchPriorityActors)
+            {
+                if (TryGetPublicWork(candidate, out object candidateWork)
+                    && ResearchEnabled(candidateWork))
+                {
+                    enabledResearchWorkerIds.Add(ActorId(candidate));
+                }
+            }
+            enabledResearchWorkersAfterPriorityUi =
+                enabledResearchWorkerIds.Count;
+            if (enabledResearchWorkersAfterPriorityUi != 1
+                || !string.Equals(
+                    enabledResearchWorkerIds[0], expectedActorId,
+                    StringComparison.Ordinal)
+                || !ResearchEnabled(workerWork))
+            {
+                throw new InvalidOperationException(
+                    "Actual Staff priority UI did not leave exactly the selected "
+                    + "Research worker eligible across every current UI row: "
+                    + string.Join(",", enabledResearchWorkerIds));
+            }
+
+            IEnumerator selectedWorkIsolation =
+                DisableSelectedNonResearchPriorities();
+            while (selectedWorkIsolation.MoveNext())
+            {
+                yield return selectedWorkIsolation.Current;
+            }
+            Click(FindActiveTopTabButton("Staff"));
+            yield return null;
+
+            outcome = "FAILED during bounded pre-enqueue research index warmup";
+            IEnumerator indexWarmup = WarmResearchFacilityCandidateIndex();
+            while (indexWarmup.MoveNext())
+            {
+                yield return indexWarmup.Current;
+            }
+
+            outcome = "FAILED at actual Research UI selection";
+            Click(FindActiveButton("TopTabButton_Research_연구"));
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+            object researchWindow = FindLoadedComponent(
+                "ResearchTreeWindow", "Assembly-CSharp");
+            Click(FindActiveButton("Node_" + expectedProjectId));
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+            Button projectAction = FindActiveButton("ProjectAction");
+            string actionLabel = ButtonLabel(projectAction);
+            if (!projectAction.IsInteractable()
+                || !string.Equals(actionLabel, "연구 예약", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "Available root ProjectAction mismatch: "
+                    + actionLabel + "/" + projectAction.IsInteractable());
+            }
+            estimateLine = ExtractDetailLine(
+                researchWindow, "준비 기준 추정");
+            capacityLine = ExtractDetailLine(researchWindow, "수용력");
+            if (!estimateLine.Contains("성인 1명", StringComparison.Ordinal)
+                || !estimateLine.Contains("게임일", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "Research UI one-adult estimate is missing.");
+            }
+            progressBefore = Convert.ToSingle(P(
+                ProjectProgress(projectsState, projectId), "Progress"));
+            if (progressBefore > 0.001f)
+            {
+                throw new InvalidOperationException(
+                    "Fresh Available root already has progress: " + progressBefore);
+            }
+
+            outcome = "FAILED at actual ProjectAction enqueue";
+            Click(projectAction);
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+            string[] queued = QueueIds(projectsState);
+            string activeProjectId = IdValue(P(projectsState, "ActiveProjectId"));
+            if (queued.Length != 1
+                || !string.Equals(
+                    queued[0], expectedProjectId, StringComparison.Ordinal)
+                || !string.Equals(
+                    activeProjectId, expectedProjectId, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "Actual enqueue readback mismatch: queue="
+                    + string.Join(",", queued) + ";active=" + activeProjectId);
+            }
+
+            outcome = "FAILED while installing public observation";
+            float wallDeadline = Time.realtimeSinceStartup + MaximumWallSeconds;
+            IEnumerator facilityPreflight = RequireReachableResearchFacility(
+                wallDeadline);
+            while (facilityPreflight.MoveNext())
+            {
+                yield return facilityPreflight.Current;
+            }
+            RequireHydrationAvailability();
+            clock = Resolve(
+                "DungeonStory.Foundation.IGameClock",
+                "DungeonStory.Foundation");
+            labor = Resolve(
+                "ISettlementLaborAccountingService", "Assembly-CSharp");
+            SubscribeResearchProgress();
+            object laborSnapshotBefore = CaptureLabor(labor);
+            laborBefore = Convert.ToInt64(P(
+                laborSnapshotBefore, "ActualLaborMilliWu"));
+            laborRevisionBefore = Convert.ToInt64(P(
+                laborSnapshotBefore, "Revision"));
+            gameTimeBefore = Convert.ToSingle(P(clock, "Time"));
+            frameBefore = Convert.ToInt32(P(clock, "FrameCount"));
+            CapturePassiveWorkerSnapshot("initial", force: true);
+
+            outcome = "INCOMPLETE bounded normal-AI interval";
+            Time.timeScale = 1f;
+            yield return null;
+            if ((bool)P(clock, "IsPaused"))
+            {
+                throw new InvalidOperationException(
+                    "Foundation game clock did not enter normal time-scale-1 play.");
+            }
+            while (!PublicProjectBool(
+                projectsState, "IsCompleted", projectId))
+            {
+                yield return null;
+                CapturePassiveWorkerSnapshot("change", force: false);
+                if (matchingEventCount > 0
+                    && string.IsNullOrWhiteSpace(actionAtProgress))
+                {
+                    object brain = P(worker, "Brain");
+                    actionAtProgress = brain == null
+                        ? "<no-brain>"
+                        : Convert.ToString(P(brain, "CurrentActionDebugLabel"))
+                            + "/" + Convert.ToString(P(brain, "CurrentActionPhase"));
+                }
+                float currentGameTime = Convert.ToSingle(P(clock, "Time"));
+                if (Time.realtimeSinceStartup >= wallDeadline
+                    || currentGameTime - gameTimeBefore >= MaximumGameSeconds)
+                {
+                    incomplete = true;
+                    yield break;
+                }
+            }
+
+            Time.timeScale = 0f;
+            progressAfter = Convert.ToSingle(P(
+                ProjectProgress(projectsState, projectId), "Progress"));
+            object laborSnapshotAfter = CaptureLabor(labor);
+            laborAfter = Convert.ToInt64(P(
+                laborSnapshotAfter, "ActualLaborMilliWu"));
+            laborRevisionAfter = Convert.ToInt64(P(
+                laborSnapshotAfter, "Revision"));
+            gameTimeAfter = Convert.ToSingle(P(clock, "Time"));
+            frameAfter = Convert.ToInt32(P(clock, "FrameCount"));
+            if (matchingEventCount <= 0
+                || approvedWorkSum <= 0f
+                || progressDeltaSum <= 0f
+                || unexpectedContributor
+                || progressAfter + 0.001f < requiredWork
+                || gameTimeAfter <= gameTimeBefore
+                || frameAfter <= frameBefore)
+            {
+                throw new InvalidOperationException(
+                    "Completed project lacks matching event/project/clock authority.");
+            }
+
+            outcome = "FAILED at completed Research UI readback";
+            object completedResearchWindow = Resources.FindObjectsOfTypeAll(
+                    T("ResearchTreeWindow", "Assembly-CSharp"))
+                .Cast<UnityEngine.Object>()
+                .OfType<Component>()
+                .Where(value => value.gameObject.scene.isLoaded
+                    && value.gameObject.activeInHierarchy)
+                .Cast<object>()
+                .SingleOrDefault();
+            Button completedNode = Resources.FindObjectsOfTypeAll<Button>()
+                .Where(value => value != null
+                    && value.gameObject.scene.isLoaded
+                    && value.gameObject.activeInHierarchy
+                    && string.Equals(
+                        value.name,
+                        "Node_" + expectedProjectId,
+                        StringComparison.Ordinal))
+                .SingleOrDefault();
+            completionUiReadbackPath = "panel="
+                + (completedResearchWindow == null ? "missing" : "active")
+                + ";node=" + (completedNode == null ? "missing" : "active");
+            if (completedResearchWindow == null || completedNode == null)
+            {
+                completionUiReadbackPath += ";opened=required";
+                Click(FindActiveButton("TopTabButton_Research_연구"));
+                yield return null;
+                Canvas.ForceUpdateCanvases();
+                completedResearchWindow = FindLoadedComponent(
+                    "ResearchTreeWindow", "Assembly-CSharp");
+                completedNode = FindActiveButton("Node_" + expectedProjectId);
+            }
+            else
+            {
+                completionUiReadbackPath += ";opened=reused";
+            }
+            Click(completedNode);
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+            Button completedAction = FindActiveButton("ProjectAction");
+            completionUiDisabled = !completedAction.IsInteractable();
+            completionNodeState = NodeState(runtime, project);
+            if (!completionUiDisabled
+                || !string.Equals(
+                    completionNodeState, "Completed", StringComparison.Ordinal)
+                || PublicProjectBool(
+                    projectsState, "ContainsInQueue", projectId))
+            {
+                throw new InvalidOperationException(
+                    "Completed Research UI/public-state readback mismatch.");
+            }
+            Click(FindActiveButton("TopTabButton_Research_연구"));
+            Time.timeScale = 0f;
+            passed = true;
+            outcome = "completed through actual UI queue and normal one-worker AI";
+        }
+        finally
+        {
+            Exception cleanupFailure = null;
+            try
+            {
+                CleanupCallbacks();
+            }
+            catch (Exception exception)
+            {
+                cleanupFailure = exception;
+            }
+            Exception readbackFailure = null;
+            try
+            {
+                if (clock != null)
+                {
+                    gameTimeAfter = Convert.ToSingle(P(clock, "Time"));
+                    frameAfter = Convert.ToInt32(P(clock, "FrameCount"));
+                }
+                if (labor != null)
+                {
+                    object finalLabor = CaptureLabor(labor);
+                    laborAfter = Convert.ToInt64(P(
+                        finalLabor, "ActualLaborMilliWu"));
+                    laborRevisionAfter = Convert.ToInt64(P(
+                        finalLabor, "Revision"));
+                }
+                if (runtime != null && projectId != null)
+                {
+                    progressAfter = Convert.ToSingle(P(
+                        ProjectProgress(ProjectsState(runtime), projectId),
+                        "Progress"));
+                }
+                CapturePassiveWorkerSnapshot("terminal", force: true);
+            }
+            catch (Exception exception)
+            {
+                readbackFailure = exception;
+            }
+            if (cleanupFailure != null || readbackFailure != null)
+            {
+                passed = false;
+                incomplete = false;
+                Exception failure = cleanupFailure ?? readbackFailure;
+                outcome = "FAILED during final cleanup/readback: "
+                    + failure.GetType().Name + ": " + failure.Message;
+            }
+            string message = "R01 ONE_WORKER "
+                + (passed ? "PASS" : incomplete ? "INCOMPLETE" : "FAILED")
+                + ";project=" + expectedProjectId
+                + ";required=" + requiredWork
+                + ";maxResearchers=" + maximumResearchers
+                + ";basicCapacity=" + basicCapacity
+                + ";expectedProjectReadiness=" + expectedProjectReadiness
+                + ";worker=" + expectedActorId
+                + ";priority=" + priorityBefore + "->" + priorityAfter
+                + ";priorityClicks=" + priorityClicks
+                + ";operatePriority=" + operatePriorityBefore + "->"
+                + operatePriorityAfter
+                + ";operatePriorityClicks=" + operatePriorityClicks
+                + ";otherResearchPriorityUi="
+                + (otherResearchPriorityTransitions.Count == 0
+                    ? "<none>"
+                    : string.Join(",", otherResearchPriorityTransitions))
+                + ";otherResearchPriorityClicks=" + otherResearchPriorityClicks
+                + ";enabledResearchWorkersAfterPriorityUi="
+                + enabledResearchWorkersAfterPriorityUi
+                + ";researchPriorityActorCoverage=" + researchPriorityActorCoverage
+                + ";selectedNonResearchPriorityUi="
+                + (selectedNonResearchPriorityTransitions.Count == 0
+                    ? "<none>"
+                    : string.Join(",", selectedNonResearchPriorityTransitions))
+                + ";selectedNonResearchPriorityClicks="
+                + selectedNonResearchPriorityClicks
+                + ";progress=" + progressBefore + "->" + progressAfter
+                + ";events=" + matchingEventCount
+                + ";researchProgressEventRecords="
+                + (researchProgressEventRecords.Count == 0
+                    ? "<none>"
+                    : string.Join("|", researchProgressEventRecords))
+                + ";approved=" + approvedWorkSum
+                + ";delta=" + progressDeltaSum
+                + ";day=" + lastAbsoluteDay
+                + ";unexpectedContributor=" + unexpectedContributor
+                + ";laborDiagnostic=" + laborBefore + "->" + laborAfter
+                + ";laborRevisionDiagnostic=" + laborRevisionBefore + "->"
+                + laborRevisionAfter
+                + ";clock=" + gameTimeBefore + "->" + gameTimeAfter
+                + ";frames=" + frameBefore + "->" + frameAfter
+                + ";action=" + actionAtProgress
+                + ";passiveWorkerSnapshots="
+                + (passiveWorkerSnapshots.Count == 0
+                    ? "<none>"
+                    : string.Join("|", passiveWorkerSnapshots))
+                + ";estimate=" + estimateLine
+                + ";capacityUi=" + capacityLine
+                + ";completionUiDisabled=" + completionUiDisabled
+                + ";completionState=" + completionNodeState
+                + ";completionUiReadback=" + completionUiReadbackPath
+                + ";researchIndexWarmup=" + researchIndexWarmup
+                + ";researchFacilityPreflight=" + researchFacilityPreflight
+                + ";hydrationAvailability=" + hydrationAvailability
+                + ";paused="
+                + (Application.isPlaying
+                    && Mathf.Approximately(Time.timeScale, 0f))
+                + ";detail=" + outcome;
+            if (passed)
+            {
+                Debug.Log(message);
+            }
+            else if (incomplete)
+            {
+                Debug.LogWarning(message);
+            }
+            else
+            {
+                Debug.LogError(message);
+            }
+        }
+    }
+}
+```
+
+## Stop / evidence contract
+
+- Run only after the accepted protected prelude has disposed persistence, reconciled TierZero, created the actual party through Owner/Confirm UI, and left time paused. The public catalog must contain exact `research:commerce:logistics`; its own public node state must be Available, its prerequisite list empty, RequiredWork 17, MaximumResearchers 1, Basic capacity exactly 1, facility requirements met, and both the project queue and ActiveProjectId empty. Catalog enumeration order and any other Available root are diagnostic only, never selection authority.
+- Before the root is queued or the scheduler warmup begins, the command opens the actual Staff priority panel through public `UITabButtonBinding.Id == TabId.Staff` -> `P1Action_StaffModePriorities`. Its production model includes every valid, living actor with an `AbilityWork` role, including an owner (`StaffWorkforceRuntimeQueryService.FindActiveWorkers` has no owner exclusion); this command requires each current research-capable actor's exact live `Cell_{instanceId}_Research` row. A work-capable owner without that row, or an enabled owner row that is not interactable, is a named preparation blocker rather than a game/UI change.
+- The selected non-owner remains the benchmark worker and is set to Research Priority1 through its live cell. Every other enabled Research row, including the owner when capable, is clicked to Off, and the count must then be exactly that selected actor across all current rows. The selected actor then has every non-Research `WorkTaskCatalog.All` work type mapped through `FacilityWorkTypeMap.GetRequired` and clicked through its own live Staff cell until Off; ordinary deprivation/self-care commands are never disabled, set, or invoked. This is a dedicated one-worker research benchmark, not a daily-life production-rate measurement, and all row/priority transitions are reported.
+- Only after that isolation, the command triggers the known grid through public `IFacilityCandidateCache.GetWorkCandidates(grid, FacilityWorkType.Research)` and reads public `HasPendingIndexBuild`. Only when pending, it permits the normal scheduler to run at time-scale 1 for at most 5 game seconds or 30 wall seconds, then pauses in `finally`; it never calls `AdvanceIndex`, Tick, a work selector, or any force-progress API. A final public `GetWorkCandidates` call is deliberately reacquired after the scheduler completes, so no pre-warmup list is retained. This bounded preparation is reported separately as `researchIndexWarmup` and happens before the 210-wall/180-game observation budget.
+- The command then clicks `TopTabButton_Research_연구` -> `Node_research:commerce:logistics` -> interactable `ProjectAction` labelled `연구 예약`, captures the visible one-adult/game-day estimate and facility line, and verifies the actual queue/active-project readback.
+- Still at time-scale 0, the command requires the exact queued project to be active, the current indexed `FacilityWorkType.Research` list to be fully built, an indexed facility whose public `SupportsWork(Research)` is true, public `IWorkPolicyRegistry.IsAvailable(Research, selectedActor, facility, out reason)` workforce acceptance, and the selected actor's public `PathSearchBroker.RequestMovePathTo` result to its public nearest work-access tile. It waits only for this public asynchronous request within the same 210-wall-second budget; no candidate selector, planner, work start, or private path API is called. Missing index/facility/workforce/access/path returns its named `R01 PREPARATION_BLOCKER_*` rather than a blind normal-AI run.
+- The hydration preflight mirrors the public inputs to the actual drink planner without calling that planner: `IWorldItemStackRuntime.CopyAvailableStockCandidates(StockCategory.Water, List<WorldItemStockCandidate>)` plus `GetAllStacks()` must identify an unreserved, non-forbidden consumable candidate whose exact item ID is `resource:clean-water` and whose public `AvailableQuantity` is positive. It requires three units, the current three-person one-day stock forecast (`SurvivalFoodRuntime.ConsumeDailyWater`: one water unit per consumer); the actual safe-drink item path reserves and consumes one unit only after its own actor-specific reachable-approach check. If the physical reserve is short, the command uses only public `IWorldDropZoneQuery.TryGetDeliveryDropoff(out Vector2Int)` and `IWorldItemStackRuntime.SpawnItemAt("resource:clean-water", missing, dropoff, WorldItemStackState.Loose, string.Empty, out spawned)`, requiring `spawned == missing`. It leaves that legal loose stock unreserved: no planner, reservation, haul, drink, need, teleport, category substitution, or capacity bypass is called, so normal AI remains the sole haul/drink consumer. A missing delivery dropoff, rejected exact spawn, or post-spawn unsafe candidate is a named `R01 PREPARATION_BLOCKER_*`, not an irrigation-research requirement.
+- PASS requires normal time-scale-1 Foundation clock/frame advance, a positive `ResearchProgressEvent` for the same actor/project, positive ApprovedWork and ProgressDelta, public project completion/progress, removal from queue, and disabled Completed-state ProjectAction on the actual UI. For the final readback it first inspects the active exact `ResearchTreeWindow` and `Node_{projectId}`; it reopens the Research tab only when either is absent, then reads the actual node/action. Every observed progress event records its actor ID, project ID, ApprovedWork, ProgressDelta, and day before the matching-authority filter; an unexpected contributor is never attributed by assumption. Capacity 1 plus the sole enabled worker and same positive event actor is the one-worker authority; workforce count alone is never accepted. `ActualLaborMilliWu` and its revision are global settlement diagnostics only, never actor raw-WU or PASS authority.
+- The command requires an initially Editor-paused, time-scale-0 protected Play and releases only the Editor pause before its coroutine can yield. Except for the separately bounded pre-enqueue index warmup, it keeps time-scale 0 until the normal-AI interval. The same cleanup restores time-scale 0 and Editor pause before it disposes the event subscription/removes the callback. The shared 210-wall-second or 180-game-second measurement budget returns `R01 ONE_WORKER INCOMPLETE`, pauses, disposes the event subscription, removes the Editor callback, and preserves all observed values without retry. It is not a research-throughput assertion or a PASS threshold. Before time resumes and on each public duty/action/rejection state change plus terminal cleanup, it reads only `CanRunAi`, `AbilityWork` duty/assigned type and `CaptureWorkStartDiagnostics()`, `AIBrain` action/phase/failure, the already-recorded rejected candidate, and `CharacterStats.StatSnapshot`; it never invokes candidate selection, planning, work start, or a need/duty setter. Any other violated public/UI authority returns FAILED and the same cleanup runs. Play exit also removes callbacks.
+- This packet neither prepares nor executes sanitation/support/preservation/field-rations, does not prove WIM017/053 or three-person R01, and does not alter research assets, caps, unlocks, facilities, saves, slots, source, or KB.
+
+execution=NOT_RUN_PENDING_ROOT_REVIEW

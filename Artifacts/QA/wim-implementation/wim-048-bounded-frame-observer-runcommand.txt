@@ -1,0 +1,394 @@
+# WIM-048 bounded public frame observer RunCommand
+
+status=READY_NOT_EXECUTED
+prerequisite=Run exactly once in the same protected Play, immediately after preserved v2 Command B PASS while Time.timeScale is 0. Do not rerun the prelude, Command A/B, or the whole focused verifier.
+scope=This input only installs a public EditorApplication.update observer, advances normal gameplay at speed 1 until the first real Holding frame, and immediately pauses/unsubscribes itself. It performs no save/slot/scene/source mutation, state injection, teleport, threat resolution, private access, or fixture setup.
+
+```csharp
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+using UnityEditor;
+
+internal class CommandScript : IRunCommand
+{
+    const float MaximumGameSeconds = 30f;
+    const double MaximumWallSeconds = 45d;
+
+    object evacuation;
+    object clock;
+    object director;
+    string actorId;
+    string expectedTarget;
+    string expectedZone;
+    float startGameTime;
+    int startFrame;
+    int lastFrame;
+    int sampleCount;
+    int frameGapCount;
+    int largestFrameGap;
+    double startWallTime;
+    bool installed;
+    string firstObservedFrame = string.Empty;
+    string firstHolding = string.Empty;
+    string lastTransitionKey = string.Empty;
+    readonly List<string> transitions = new List<string>();
+
+    static Type T(string name, string assemblyName = "Assembly-CSharp")
+    {
+        Type type = Type.GetType(name + ", " + assemblyName);
+        return type ?? throw new InvalidOperationException(
+            "Missing public type: " + name + ", " + assemblyName);
+    }
+
+    static object P(object value, string name)
+    {
+        if (value == null)
+            throw new InvalidOperationException("Public property owner is null: " + name);
+        var property = value.GetType().GetProperty(name);
+        if (property == null || property.GetMethod == null || !property.GetMethod.IsPublic)
+            throw new InvalidOperationException("Missing public property: " + name);
+        return property.GetValue(value);
+    }
+
+    static object Resolve(
+        string typeName,
+        string assemblyName = "Assembly-CSharp")
+    {
+        Type scopeType = T("DungeonRuntimeLifetimeScope");
+        Component scope = Resources.FindObjectsOfTypeAll(scopeType)
+            .Cast<UnityEngine.Object>()
+            .OfType<Component>()
+            .Single(value => value.gameObject.scene.isLoaded);
+        object container = P(scope, "Container");
+        var resolve = container.GetType().GetMethod(
+            "Resolve",
+            new[] { typeof(Type), typeof(object) });
+        if (resolve == null || !resolve.IsPublic)
+            throw new InvalidOperationException(
+                "Public Resolve(Type, object) is unavailable.");
+        return resolve.Invoke(
+            container,
+            new object[] { T(typeName, assemblyName), null });
+    }
+
+    static List<object> Participants(object service)
+    {
+        return ((IEnumerable)P(service, "ResidentEvacuationParticipants"))
+            .Cast<object>()
+            .ToList();
+    }
+
+    static string ParticipantId(object participant) =>
+        Convert.ToString(P(participant, "CharacterId"));
+
+    static object FindActiveActor(string stableId)
+    {
+        object[] matches = Resources.FindObjectsOfTypeAll(T("CharacterActor"))
+            .Cast<UnityEngine.Object>()
+            .OfType<Component>()
+            .Where(value => value.gameObject.scene.isLoaded
+                && value.gameObject.activeInHierarchy)
+            .Where(value =>
+            {
+                object identity = P(value, "Identity");
+                return identity != null
+                    && string.Equals(
+                        Convert.ToString(P(identity, "PersistentId")),
+                        stableId,
+                        StringComparison.Ordinal);
+            })
+            .Cast<object>()
+            .ToArray();
+        if (matches.Length != 1)
+            throw new InvalidOperationException(
+                "Expected exactly one active actor for " + stableId
+                + "; count=" + matches.Length);
+        return matches[0];
+    }
+
+    static object FindLoadedDirector()
+    {
+        return Resources.FindObjectsOfTypeAll(T("InvasionDirectorRuntime"))
+            .Cast<UnityEngine.Object>()
+            .OfType<Component>()
+            .Single(value => value.gameObject.scene.isLoaded
+                && value.gameObject.activeInHierarchy);
+    }
+
+    static string DescribeIntruders(object source, out int count)
+    {
+        List<object> intruders = ((IEnumerable)P(source, "ActiveIntruders"))
+            .Cast<object>()
+            .OrderBy(value => Convert.ToString(P(value, "RuntimeId")),
+                StringComparer.Ordinal)
+            .ToList();
+        count = intruders.Count;
+        return count == 0
+            ? "<none>"
+            : string.Join(",", intruders.Select(value =>
+                Convert.ToString(P(value, "RuntimeId")) + ":"
+                + Convert.ToString(P(value, "State"))));
+    }
+
+    public void Execute(ExecutionResult result)
+    {
+        if (!EditorApplication.isPlaying || !Application.isPlaying)
+            throw new InvalidOperationException(
+                "Observer requires the existing protected Play session.");
+        if (!Mathf.Approximately(Time.timeScale, 0f))
+            throw new InvalidOperationException(
+                "Observer must be installed immediately after paused Command B.");
+
+        evacuation = Resolve("IInvasionOwnerEvacuationService");
+        clock = Resolve(
+            "DungeonStory.Foundation.IGameClock",
+            "DungeonStory.Foundation");
+        director = FindLoadedDirector();
+        if (!(bool)P(clock, "IsPaused"))
+            throw new InvalidOperationException("Public game clock is not paused.");
+
+        List<object> targeted = Participants(evacuation)
+            .Where(value => (bool)P(value, "HasTarget"))
+            .ToList();
+        if (targeted.Count != 1)
+            throw new InvalidOperationException(
+                "Expected one targeted restored participant; count=" + targeted.Count);
+
+        object initial = targeted[0];
+        actorId = ParticipantId(initial);
+        expectedTarget = Convert.ToString(P(initial, "Target"));
+        expectedZone = Convert.ToString(P(evacuation, "ResidentZoneStatus"));
+        FindActiveActor(actorId);
+        DescribeIntruders(director, out int initialIntruders);
+        if (string.IsNullOrWhiteSpace(actorId)
+            || string.IsNullOrWhiteSpace(expectedTarget)
+            || initialIntruders <= 0)
+            throw new InvalidOperationException(
+                "Observer initial join lacks actor, target, or active intruder.");
+
+        startGameTime = Convert.ToSingle(P(clock, "Time"));
+        startFrame = Convert.ToInt32(P(clock, "FrameCount"));
+        lastFrame = startFrame;
+        startWallTime = EditorApplication.timeSinceStartup;
+        installed = true;
+        EditorApplication.update += OnEditorUpdate;
+        EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        Time.timeScale = 1f;
+
+        result.Log(
+            "WIM048 FRAME_OBSERVER_INSTALLED actor={0};zone={1};target={2};startGame={3:R};startFrame={4};speed={5}",
+            actorId, expectedZone, expectedTarget, startGameTime, startFrame,
+            Time.timeScale);
+    }
+
+    void OnEditorUpdate()
+    {
+        if (!installed)
+            return;
+        if (EditorApplication.timeSinceStartup - startWallTime
+            >= MaximumWallSeconds)
+        {
+            Finish("INCOMPLETE_WALL_TIMEOUT", false,
+                "No terminal observation within the bounded wall interval.");
+            return;
+        }
+
+        try
+        {
+            if (!EditorApplication.isPlaying || !Application.isPlaying)
+            {
+                Unsubscribe();
+                return;
+            }
+            if ((bool)P(clock, "IsPaused"))
+            {
+                Finish("INCOMPLETE_UNEXPECTED_PAUSE", false,
+                    "Game clock paused before observer completion.");
+                return;
+            }
+
+            int frame = Convert.ToInt32(P(clock, "FrameCount"));
+            if (frame == lastFrame)
+                return;
+            if (frame < lastFrame)
+            {
+                Finish("FAILED_FRAME_REGRESSION", true,
+                    "Public frame sequence regressed " + lastFrame + "->" + frame + ".");
+                return;
+            }
+            int frameGap = frame - lastFrame - 1;
+            if (frameGap > 0)
+            {
+                frameGapCount += frameGap;
+                largestFrameGap = Math.Max(largestFrameGap, frameGap);
+            }
+            lastFrame = frame;
+            sampleCount++;
+
+            FindActiveActor(actorId);
+            List<object> participants = Participants(evacuation);
+            object[] actorParticipants = participants
+                .Where(value => string.Equals(
+                    ParticipantId(value), actorId, StringComparison.Ordinal))
+                .ToArray();
+            if (actorParticipants.Length > 1)
+                throw new InvalidOperationException(
+                    "Duplicate participant ID in public evacuation view: " + actorId);
+
+            object participant = actorParticipants.SingleOrDefault();
+            string zone = Convert.ToString(P(evacuation, "ResidentZoneStatus"));
+            string status = participant == null
+                ? "<absent>"
+                : Convert.ToString(P(participant, "Status"));
+            bool hasTarget = participant != null && (bool)P(participant, "HasTarget");
+            string target = participant == null
+                ? expectedTarget
+                : Convert.ToString(P(participant, "Target"));
+            string intruders = DescribeIntruders(director, out int intruderCount);
+            float gameTime = Convert.ToSingle(P(clock, "Time"));
+            string sample = string.Format(
+                "frame={0};game={1:R};actor={2};zone={3};status={4};hasTarget={5};target={6};participants={7};intruders={8}",
+                frame, gameTime, actorId, zone, status, hasTarget, target,
+                participants.Count, intruders);
+
+            if (sampleCount == 1)
+            {
+                if (participant == null || !hasTarget
+                    || !string.Equals(target, expectedTarget, StringComparison.Ordinal)
+                    || !string.Equals(zone, expectedZone, StringComparison.Ordinal)
+                    || intruderCount <= 0)
+                    throw new InvalidOperationException(
+                        "First observed advancing game-clock frame did not preserve the Command B join: "
+                        + sample);
+                firstObservedFrame = sample;
+            }
+            else if (participant != null
+                && (!hasTarget
+                    || !string.Equals(target, expectedTarget,
+                        StringComparison.Ordinal)))
+            {
+                throw new InvalidOperationException(
+                    "Active participant lost its exact target: " + sample);
+            }
+
+            if (string.Equals(status, "Holding", StringComparison.Ordinal)
+                && string.IsNullOrEmpty(firstHolding))
+            {
+                firstHolding = sample;
+                transitions.Add(sample);
+                Finish("PASS", false,
+                    "First-frame join and the first real Holding frame were observed; normal gameplay was paused immediately.");
+                return;
+            }
+
+            string transitionKey = zone + "|" + status + "|"
+                + participants.Count + "|" + intruders;
+            if (!string.Equals(
+                    transitionKey, lastTransitionKey, StringComparison.Ordinal))
+            {
+                lastTransitionKey = transitionKey;
+                transitions.Add(sample);
+            }
+
+            if (participants.Count == 0 && intruderCount == 0)
+            {
+                Finish("INCOMPLETE_TERMINAL_BEFORE_HOLDING", false,
+                    "The already-covered participant+intruder release boundary occurred before a sampled Holding frame.");
+                return;
+            }
+
+            if (gameTime - startGameTime >= MaximumGameSeconds)
+                Finish("INCOMPLETE_GAME_TIMEOUT", false,
+                    "No participant+intruder terminal within 30 game seconds.");
+        }
+        catch (Exception exception)
+        {
+            Finish("FAILED_PUBLIC_READBACK", true,
+                exception.GetType().Name + ": " + exception.Message);
+        }
+    }
+
+    void OnPlayModeStateChanged(PlayModeStateChange state)
+    {
+        if (state != PlayModeStateChange.ExitingPlayMode
+            && state != PlayModeStateChange.EnteredEditMode)
+            return;
+        bool wasInstalled = installed;
+        Unsubscribe();
+        if (wasInstalled)
+            Debug.Log(
+                "WIM048 FRAME_OBSERVER_PLAY_EXIT_CLEANUP actor=" + actorId
+                + ";samples=" + sampleCount);
+    }
+
+    void Finish(string outcome, bool error, string detail)
+    {
+        if (!installed)
+            return;
+        try
+        {
+            if (Application.isPlaying)
+                Time.timeScale = 0f;
+        }
+        finally
+        {
+            Unsubscribe();
+        }
+
+        float endGameTime = 0f;
+        int endFrame = 0;
+        try
+        {
+            if (clock != null)
+            {
+                endGameTime = Convert.ToSingle(P(clock, "Time"));
+                endFrame = Convert.ToInt32(P(clock, "FrameCount"));
+            }
+        }
+        catch (Exception readbackFailure)
+        {
+            error = true;
+            detail += " Final clock readback failed after pause/unsubscribe: "
+                + readbackFailure.GetType().Name + ": "
+                + readbackFailure.Message;
+        }
+        string message = string.Format(
+            "WIM048 FRAME_OBSERVER_{0} actor={1};zone={2};target={3};samples={4};game={5:R}->{6:R};frames={7}->{8};frameGaps={9};largestGap={10};firstObserved=[{11}];holding=[{12}];transitions=[{13}];paused={14};detail={15}",
+            outcome, actorId, expectedZone, expectedTarget, sampleCount,
+            startGameTime, endGameTime, startFrame, endFrame,
+            frameGapCount, largestFrameGap,
+            Empty(firstObservedFrame), Empty(firstHolding),
+            string.Join(" || ", transitions),
+            Application.isPlaying && Mathf.Approximately(Time.timeScale, 0f),
+            detail);
+        if (error)
+            Debug.LogError(message);
+        else if (!string.Equals(outcome, "PASS", StringComparison.Ordinal))
+            Debug.LogWarning(message);
+        else
+            Debug.Log(message);
+    }
+
+    static string Empty(string value) =>
+        string.IsNullOrEmpty(value) ? "<not-observed>" : value;
+
+    void Unsubscribe()
+    {
+        EditorApplication.update -= OnEditorUpdate;
+        EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+        installed = false;
+    }
+}
+```
+
+## Execution/readback contract
+
+- The public signatures were checked against current source: `IInvasionOwnerEvacuationService.ResidentZoneStatus` and `ResidentEvacuationParticipants`; `ResidentEvacuationParticipantView.CharacterId/Status/HasTarget/Target`; `InvasionDirectorRuntime.ActiveIntruders`; `InvasionIntruderRuntime.RuntimeId/State`; and `DungeonStory.Foundation.IGameClock.Time/FrameCount/IsPaused`. The clock resolves from its owning `DungeonStory.Foundation` assembly; gameplay types resolve from `Assembly-CSharp`.
+- After `FRAME_OBSERVER_INSTALLED`, do not issue another gameplay/query command. Wait only for one terminal Console marker. `FRAME_OBSERVER_PASS` requires an exact first-observed advancing game-clock-frame actor/zone/target join and a real public `Holding` sample; it does not claim that Editor update is the exact next player frame. Frame gaps are diagnostic counts, not automatic failure. The Holding sample immediately pauses gameplay and removes both callbacks.
+- Any `INCOMPLETE_*` marker is preserved observation, not PASS and not synthesized Holding. Any `FAILED_*` marker is a verifier/readback failure. All terminal paths set speed 0 and remove both callbacks; exiting Play also removes both callbacks.
+- Maximum duration is 30 public game-clock seconds or 45 Editor wall seconds. Release before Holding is recorded as `INCOMPLETE_TERMINAL_BEFORE_HOLDING` and stops immediately; the already-PASSed full-save/threat-release boundary is not re-certified. The interval uses normal speed 1 only and calls no tick, diagnostics rebase, damage/defeat/retreat command, or direct state/event API.
+
+execution=NOT_RUN

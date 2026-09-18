@@ -22,6 +22,8 @@ public sealed class FluidNodeState
     public WaterContainerTransferMode TransferMode;
     public float TransferWork;
     public InfrastructureStatus TransferStatus;
+    public bool FrozenPipeLatched;
+    public string FrozenPipeOccurrenceInstanceId = string.Empty;
 }
 
 public sealed class ContainerWaterFeedState

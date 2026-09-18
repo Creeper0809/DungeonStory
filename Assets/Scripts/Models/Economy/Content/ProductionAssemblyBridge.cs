@@ -251,7 +251,8 @@ public sealed class ProductionFacilityHandle
         int outputBufferCycleCapacity,
         ProductionFacilityProcessFluidCapacityProfile processFluidProfile = null,
         ProductionFacilityWorkstationLaneCapacityProfile
-            workstationLaneProfile = null)
+            workstationLaneProfile = null,
+        float automaticQualityScoreCeiling = 100f)
     {
         RuntimeObject = runtimeObject
             ?? throw new ArgumentNullException(nameof(runtimeObject));
@@ -278,6 +279,11 @@ public sealed class ProductionFacilityHandle
             ?? ProductionFacilityProcessFluidCapacityProfile.Empty;
         WorkstationLaneProfile = workstationLaneProfile
             ?? ProductionFacilityWorkstationLaneCapacityProfile.Empty;
+        if (float.IsNaN(automaticQualityScoreCeiling)
+            || float.IsInfinity(automaticQualityScoreCeiling)
+            || automaticQualityScoreCeiling < 50f || automaticQualityScoreCeiling > 100f)
+            throw new ArgumentOutOfRangeException(nameof(automaticQualityScoreCeiling));
+        AutomaticQualityScoreCeiling = automaticQualityScoreCeiling;
     }
 
     public object RuntimeObject { get; }
@@ -290,6 +296,7 @@ public sealed class ProductionFacilityHandle
     public string DefinitionId { get; }
     public string WorkstationTag { get; }
     public int OutputBufferCycleCapacity { get; }
+    public float AutomaticQualityScoreCeiling { get; }
     public ProductionFacilityProcessFluidCapacityProfile ProcessFluidProfile { get; }
     public ProductionFacilityWorkstationLaneCapacityProfile
         WorkstationLaneProfile { get; }
@@ -581,6 +588,11 @@ public interface IProductionBillDetachedFacilityPersistence :
 
 public interface IProductionAssemblyBridge : IProductionFacilityHandleQuery
 {
+    float ApplyCraftQualityCeiling(
+        ProductionOutputCapabilityDescriptor capability,
+        float qualityModifier,
+        float maximumScore);
+
     int BuildingVersion => 0;
     IReadOnlyList<ProductionFacilityHandle> Facilities { get; }
     IReadOnlyList<ProductionOutputCapabilityContractSnapshot>
@@ -842,6 +854,7 @@ public interface IProductionBillCoreQuery
 
 public interface IProductionBillCoreOrderCommand
 {
+    ProductionBillCommandResult SetMinimumCraftQuality(ProductionBillId billId, int minimumTier);
     ProductionBillCommandResult AddBill(
         ProductionFacilityHandle facility,
         string recipeId,

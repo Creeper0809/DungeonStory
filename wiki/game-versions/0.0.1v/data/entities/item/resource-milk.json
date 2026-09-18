@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "치즈, 채식식과 약품의 원료이다. 밀로세아 가도의 우유통은 햇빛을 가리는 젖은 천으로 감싸며, 검문소에서는 뚜껑보다 온도를 먼저 확인한다.",
+  "in_game_description": "치즈, 채식식과 약품의 원료이다. 밀로세아 가도를 지난 우유 묶음에는 마지막 검문소의 색실이 하나씩 더해진다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

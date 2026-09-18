@@ -1,0 +1,9 @@
+scope=protected-play;controlled-field-and-clock;real-live-and-predictive-adapters
+authored-vampire-myconid-live-query-mood-work=PASS
+repeated-tick-single-mood-factor-and-comfort-removal=PASS
+no-new-low-light-visual-strain-live-and-prediction=PASS
+current-format-exposure-roundtrip-retains-legacy-strain-and-recovers-gradually=PASS
+light-query-read-only-and-no-movement-accuracy-penalty=PASS
+actual-status-presenter-refresh-without-carry-capability=PASS
+not-covered=natural-ai;whole-world-save-restore;natural-player-click
+result=PASS

@@ -7,11 +7,13 @@ public sealed class CombatAffiliationService : ICombatAffiliationService
     private readonly InvasionDirectorRuntime invasionDirector;
     private readonly IStaffDiscontentRuntimeService discontentRuntime;
     private readonly ICharacterDeprivationQuery deprivationRuntime;
+    private readonly IWildlifeCompanionAffiliationQuery companionAffiliation;
 
     public CombatAffiliationService(
         InvasionSceneRuntimeReferences invasionRuntimes,
         IStaffDiscontentRuntimeService discontentRuntime,
-        ICharacterDeprivationQuery deprivationRuntime)
+        ICharacterDeprivationQuery deprivationRuntime,
+        IWildlifeCompanionAffiliationQuery companionAffiliation)
     {
         invasionDirector = (invasionRuntimes
                 ?? throw new ArgumentNullException(nameof(invasionRuntimes)))
@@ -22,6 +24,8 @@ public sealed class CombatAffiliationService : ICombatAffiliationService
             ?? throw new ArgumentNullException(nameof(discontentRuntime));
         this.deprivationRuntime = deprivationRuntime
             ?? throw new ArgumentNullException(nameof(deprivationRuntime));
+        this.companionAffiliation = companionAffiliation
+            ?? throw new ArgumentNullException(nameof(companionAffiliation));
     }
 
     public CombatRelationship GetRelationship(
@@ -43,8 +47,20 @@ public sealed class CombatAffiliationService : ICombatAffiliationService
             return GetWildlifeRelationship(source, target);
         }
 
-        bool sourceIntruder = IsInvasionIntruder(source.Character);
-        bool targetIntruder = IsInvasionIntruder(target.Character);
+        return GetCharacterRelationship(source.Character, target.Character);
+    }
+
+    private CombatRelationship GetCharacterRelationship(
+        CharacterActor source,
+        CharacterActor target)
+    {
+        if (source == target && source != null)
+        {
+            return CombatRelationship.Ally;
+        }
+
+        bool sourceIntruder = IsInvasionIntruder(source);
+        bool targetIntruder = IsInvasionIntruder(target);
         if (sourceIntruder || targetIntruder)
         {
             return sourceIntruder == targetIntruder
@@ -52,8 +68,8 @@ public sealed class CombatAffiliationService : ICombatAffiliationService
                 : CombatRelationship.Hostile;
         }
 
-        bool sourceViolent = IsViolentHumanoid(source.Character);
-        bool targetViolent = IsViolentHumanoid(target.Character);
+        bool sourceViolent = IsViolentHumanoid(source);
+        bool targetViolent = IsViolentHumanoid(target);
         if (sourceViolent || targetViolent)
         {
             return sourceViolent == targetViolent
@@ -61,8 +77,8 @@ public sealed class CombatAffiliationService : ICombatAffiliationService
                 : CombatRelationship.Hostile;
         }
 
-        bool sourceCustomer = source.Character?.Identity?.Data?.characterType == CharacterType.Customer;
-        bool targetCustomer = target.Character?.Identity?.Data?.characterType == CharacterType.Customer;
+        bool sourceCustomer = source?.Identity?.Data?.characterType == CharacterType.Customer;
+        bool targetCustomer = target?.Identity?.Data?.characterType == CharacterType.Customer;
         if (sourceCustomer || targetCustomer)
         {
             return sourceCustomer == targetCustomer
@@ -86,6 +102,41 @@ public sealed class CombatAffiliationService : ICombatAffiliationService
     {
         WildlifeActor sourceWildlife = source.Wildlife;
         WildlifeActor targetWildlife = target.Wildlife;
+        CharacterActor sourceOwner = null;
+        CharacterActor targetOwner = null;
+        bool sourceCompanion = sourceWildlife != null
+            && companionAffiliation.TryGetCompanionOwner(
+                sourceWildlife,
+                out sourceOwner);
+        bool targetCompanion = targetWildlife != null
+            && companionAffiliation.TryGetCompanionOwner(
+                targetWildlife,
+                out targetOwner);
+        if (sourceCompanion && target.Character != null)
+        {
+            return GetCharacterRelationship(sourceOwner, target.Character);
+        }
+        if (source.Character != null && targetCompanion)
+        {
+            return GetCharacterRelationship(source.Character, targetOwner);
+        }
+        if (sourceCompanion && targetCompanion)
+        {
+            return GetCharacterRelationship(sourceOwner, targetOwner);
+        }
+        if (sourceCompanion && targetWildlife != null)
+        {
+            return targetWildlife.HuntDesignated
+                ? CombatRelationship.Hostile
+                : CombatRelationship.Neutral;
+        }
+        if (sourceWildlife != null && targetCompanion)
+        {
+            return sourceWildlife.State is WildlifeState.Retaliating
+                or WildlifeState.PredatorStalking
+                    ? CombatRelationship.Hostile
+                    : CombatRelationship.Neutral;
+        }
         if (targetWildlife != null && source.Character != null)
         {
             return targetWildlife.HuntDesignated

@@ -62,7 +62,8 @@ public interface IEquipmentEvolutionRuntime : IEquipmentEvolutionPersistence
         IEnumerable<string> sourceTags = null,
         HistoricalEvidenceKind historicalEvidenceKind = HistoricalEvidenceKind.None,
         string outcomeId = "",
-        int repeatCount = 1);
+        int repeatCount = 1,
+        GameplayNarrativeEventContext narrativeContext = null);
     bool TryRecordUsage(
         string equipmentInstanceId,
         string eventId,
@@ -73,7 +74,26 @@ public interface IEquipmentEvolutionRuntime : IEquipmentEvolutionPersistence
         IEnumerable<string> sourceTags = null,
         HistoricalEvidenceKind historicalEvidenceKind = HistoricalEvidenceKind.None,
         string outcomeId = "",
-        int repeatCount = 1);
+        int repeatCount = 1,
+        GameplayNarrativeEventContext narrativeContext = null);
+    bool TryCommitPresentation(
+        string equipmentInstanceId,
+        string presentationId,
+        string displayName,
+        string narrativeFlavor,
+        out string failureReason);
+    bool TryCommitModuleSelection(
+        string equipmentInstanceId,
+        EquipmentEvolutionModuleSelectionResponseDto response,
+        out string failureReason);
+    bool TryRegisterPresentationFailure(
+        string equipmentInstanceId,
+        string presentationId,
+        string reason,
+        out bool awaitingNarrativeRetry);
+    bool TryResumePresentation(
+        string equipmentInstanceId,
+        string presentationId);
     EquipmentReforgePreview GetPreview(string equipmentInstanceId);
     bool TryGetActiveReforge(
         BuildableObject craftingFacility,

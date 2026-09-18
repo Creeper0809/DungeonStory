@@ -176,6 +176,7 @@ public sealed class ExteriorIncidentActorService : IExteriorIncidentActorService
     private readonly ICharacterSpawnObjectFactory objectFactory;
     private readonly IInvasionIntruderDataProvider characterDataProvider;
     private readonly ICharacterAiWorldRegistry worldRegistry;
+    private readonly ICharacterLifePublicationService lifePublication;
     private readonly ICharacterBodyHealthQuery bodyHealthQuery;
     private readonly ICharacterBodyHealthCommand bodyHealthCommands;
     private readonly ICharacterMedicalCommand medicalCommands;
@@ -186,6 +187,7 @@ public sealed class ExteriorIncidentActorService : IExteriorIncidentActorService
         ICharacterSpawnObjectFactory objectFactory,
         IInvasionIntruderDataProvider characterDataProvider,
         ICharacterAiWorldRegistry worldRegistry,
+        ICharacterLifePublicationService lifePublication,
         ICharacterBodyHealthQuery bodyHealthQuery,
         ICharacterBodyHealthCommand bodyHealthCommands,
         ICharacterMedicalCommand medicalCommands)
@@ -196,6 +198,8 @@ public sealed class ExteriorIncidentActorService : IExteriorIncidentActorService
         this.characterDataProvider = characterDataProvider
             ?? throw new ArgumentNullException(nameof(characterDataProvider));
         this.worldRegistry = worldRegistry ?? throw new ArgumentNullException(nameof(worldRegistry));
+        this.lifePublication = lifePublication
+            ?? throw new ArgumentNullException(nameof(lifePublication));
         this.bodyHealthQuery = bodyHealthQuery
             ?? throw new ArgumentNullException(nameof(bodyHealthQuery));
         this.bodyHealthCommands = bodyHealthCommands
@@ -214,7 +218,12 @@ public sealed class ExteriorIncidentActorService : IExteriorIncidentActorService
     {
         actor = null;
         failureReason = string.Empty;
-        if (string.IsNullOrWhiteSpace(actorId)
+        CharacterId canonicalActorId = new(actorId);
+        if (!canonicalActorId.IsValid
+            || !string.Equals(
+                actorId,
+                canonicalActorId.Value,
+                StringComparison.Ordinal)
             || !gridProvider.TryGetGrid(out Grid grid)
             || grid == null
             || !spawnerProvider.TryGetSpawner(out CharacterSpawner spawner)
@@ -233,7 +242,10 @@ public sealed class ExteriorIncidentActorService : IExteriorIncidentActorService
         }
 
         GameObject instance = objectFactory.CreateInactive(
-            spawner.characterPrefab);
+            spawner.characterPrefab,
+            candidate => PrepareIncidentComposition(
+                candidate,
+                canonicalActorId));
         actor = instance.GetComponent<CharacterActor>();
         if (actor == null)
         {
@@ -245,6 +257,15 @@ public sealed class ExteriorIncidentActorService : IExteriorIncidentActorService
         instance.name = GetDisplayName(kind);
         instance.transform.position = grid.GetWorldPos(position);
         actor.Initialize(data);
+        CharacterId composedActorId = CharacterPersistentIdentity.Require(actor);
+        if (!composedActorId.Equals(canonicalActorId))
+        {
+            objectFactory.Destroy(instance);
+            actor = null;
+            throw new InvalidOperationException(
+                $"Incident CharacterId '{composedActorId.Value}' changed during composition; "
+                + $"expected '{canonicalActorId.Value}'.");
+        }
         CharacterType type = kind == ExteriorIncidentKind.Thief
             ? CharacterType.Customer
             : kind == ExteriorIncidentKind.InjuredReturnee
@@ -252,7 +273,6 @@ public sealed class ExteriorIncidentActorService : IExteriorIncidentActorService
                 : CharacterType.Customer;
         actor.characterType = type;
         actor.Identity?.SetCharacterType(type);
-        actor.Identity?.SetPersistentId(actorId);
         if (downed)
         {
             ApplyInjuredState(actor);
@@ -260,9 +280,31 @@ public sealed class ExteriorIncidentActorService : IExteriorIncidentActorService
             medicalCommands.NotifyCharacterDowned(actor);
         }
 
+        lifePublication.EnsureRegistered(
+            composedActorId,
+            new CharacterSpeciesId(actor.SpeciesTag));
         objectFactory.Publish(instance);
 
         return true;
+    }
+
+    private static void PrepareIncidentComposition(
+        GameObject instance,
+        CharacterId canonicalActorId)
+    {
+        if (instance == null)
+        {
+            throw new ArgumentNullException(nameof(instance));
+        }
+
+        CharacterIdentity identity = instance.GetComponent<CharacterIdentity>();
+        if (identity == null)
+        {
+            throw new InvalidOperationException(
+                "An incident character candidate has no CharacterIdentity before composition.");
+        }
+
+        identity.SetPersistentId(canonicalActorId);
     }
 
     public bool TryFind(string actorId, out CharacterActor actor)

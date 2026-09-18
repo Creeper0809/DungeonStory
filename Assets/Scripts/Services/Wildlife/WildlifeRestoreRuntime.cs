@@ -302,7 +302,11 @@ internal sealed class WildlifeRestoreCoordinator
         {
             if (oldActor != null)
             {
-                Attempt(() => oldActor.gameObject.SetActive(false));
+                Attempt(() =>
+                {
+                    oldActor.PrepareForDespawn();
+                    oldActor.gameObject.SetActive(false);
+                });
             }
         }
 
@@ -371,10 +375,12 @@ internal sealed class WildlifeRestoreCoordinator
         }
 
         Vector2Int position = new Vector2Int(saveData.gridX, saveData.gridY);
+        bool canOccupyRestoredInterior = species.CanEnterDungeon
+            || saveData.state == WildlifeState.Captured;
         if (!WildlifeWorldRuntime.CanSpawnAt(
                 restoreGrid,
                 position,
-                species.CanEnterDungeon))
+                canOccupyRestoredInterior))
         {
             report.AddError(
                 $"Wildlife '{saveData.wildlifeId}' has an invalid or occupied restored position {position}.");

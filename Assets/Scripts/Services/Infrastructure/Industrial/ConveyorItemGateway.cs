@@ -9,12 +9,16 @@ internal sealed class ConveyorItemGateway
     private readonly IDungeonItemCatalogProvider catalog;
     private readonly IWarehouseWorldQuery warehouses;
     private readonly IGridSystemProvider gridSystem;
+    private readonly IFacilityBufferDestinationClaimQuery destinationClaims;
+    private readonly IFacilityBufferMassCapacityQuery destinationCapacities;
 
     public ConveyorItemGateway(
         IItemTransferService transfers,
         IDungeonItemCatalogProvider catalog,
         IWarehouseWorldQuery warehouses,
-        IGridSystemProvider gridSystem)
+        IGridSystemProvider gridSystem,
+        IFacilityBufferDestinationClaimQuery destinationClaims,
+        IFacilityBufferMassCapacityQuery destinationCapacities)
     {
         this.transfers = transfers
             ?? throw new ArgumentNullException(nameof(transfers));
@@ -24,7 +28,36 @@ internal sealed class ConveyorItemGateway
             ?? throw new ArgumentNullException(nameof(warehouses));
         this.gridSystem = gridSystem
             ?? throw new ArgumentNullException(nameof(gridSystem));
+        this.destinationClaims = destinationClaims ?? throw new ArgumentNullException(nameof(destinationClaims));
+        this.destinationCapacities = destinationCapacities ?? throw new ArgumentNullException(nameof(destinationCapacities));
     }
+
+    public IReadOnlyList<ConveyorDestinationChoice> CaptureDestinationsAt(Vector2Int position) =>
+        destinationClaims.CaptureClaims().Where(claim => claim.DropPosition == position)
+            .Where(claim => IsDestinationAvailable(claim.DestinationId, position))
+            .OrderBy(claim => claim.DestinationId, StringComparer.Ordinal)
+            .Select(claim =>
+            {
+                destinationCapacities.TryGetCapacity(claim.DestinationId, position, out var capacity);
+                return new ConveyorDestinationChoice(claim.DestinationId, claim.OwnerFacilityId,
+                    position, capacity.Profile.MaxMassGrams);
+            }).ToArray();
+
+    public bool IsDestinationAvailable(string destinationId, Vector2Int position) =>
+        !string.IsNullOrEmpty(destinationId)
+        && destinationClaims.TryGetClaim(destinationId, position, out var claim)
+        && destinationCapacities.TryGetCapacity(destinationId, position, out var capacity)
+        && capacity.Profile != null && capacity.Profile.MaxMassGrams > 0
+        && string.Equals(claim.OwnerDomain, capacity.Profile.OwnerDomain, StringComparison.Ordinal)
+        && string.Equals(claim.OwnerOperationId, capacity.Profile.OwnerOperationId, StringComparison.Ordinal)
+        && string.Equals(claim.OwnerFacilityId, capacity.Profile.OwnerFacilityId, StringComparison.Ordinal);
+
+    public IReadOnlyList<ConveyorWarehouseChoice> CaptureReserveWarehouses() => warehouses.Warehouses
+        .Where(candidate => candidate != null && candidate.HasWarehouseInventory
+            && candidate.Inventory != null && candidate.Inventory.HasMassCapacityAuthority)
+        .OrderBy(ResolveWarehouseId, StringComparer.Ordinal)
+        .Select(candidate => new ConveyorWarehouseChoice(ResolveWarehouseId(candidate),
+            candidate.PersistentInstanceId.Value, candidate.Inventory.MaxMassGrams)).ToArray();
 
     public bool TryInspect(
         ItemStackId stackId,

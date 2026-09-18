@@ -1,0 +1,192 @@
+{
+  "caseCount": 16,
+  "catalogHash": "sha256:1df2c5a3c57634039c3ff1d9bd77692329205f0c463a1341c5112def43e2c14c",
+  "consumerSources": {
+    "apply_ai_editorial_decisions.py": "sha256:aecba54258866e3b315c424feec635dcdf1b9353646bcee5b0daa8a491aeeebf",
+    "apply_human_review.py": "sha256:c6c32814dc21af28ae09daae4b1105f2f0ca146f77e070ac2ccccd919dec6308",
+    "build_dataset.py": "sha256:e5d65bd879cc13ab3989f408cf5c3f36619d528e16639bbf027467f1e81b3043",
+    "build_incremental_reservoir.py": "sha256:e1050c857b4716545da14ee691e84df5a99aed69eb1f45aeca410a376a19b429",
+    "build_mechanic_pilot.py": "sha256:fb5cad6e1db77ecbe8501a3fe2b5c0f8b536ebac78b9dc2afe8dbe4439efe49e",
+    "build_naming_reference.py": "sha256:1df3068b3f6f8ba35d14503f05ba0dbabf2ddc1dc8434d61cc71bcda074fe033",
+    "build_scenario_pilot.py": "sha256:be3cb380db81c7ea683de1ad9ab24ec549e4124a14f6594ed09995b1b6887b21",
+    "compare_builds.py": "sha256:ff24b5f1685925e6a7596732d732981afce46397740fde4551154a71f02a0eee",
+    "controlled_bridge.py": "sha256:3c18daa91a538fc68dd05a20d9afc18250a03bcda58ea505cc94cd340485b05d",
+    "controlled_equipment.py": "sha256:cdfb230867890e4b3475cf941650b349bc158bdc07e7fa1ac221c3f34fa15c31",
+    "controlled_scenarios.py": "sha256:a108091f673e5998ccfc9654273dd7e798301e8cb4ae6f21581308926107dbdf",
+    "evaluate_release.py": "sha256:9ba1e0fdeda6be1fada9c16dd29666c98f9bec7a21a781ce6f7e30991abb0d39",
+    "export_mechanic_catalog.py": "sha256:6b1ee3dbfb562b754f69e3f88d67f209472dee0cebceac7f5c85f2e2e47f3eb0",
+    "family_partition.py": "sha256:2ff3c8b6c4214ee5c16661840874009fdcd8dd4e20e61841ee77b82f5d377a12",
+    "import_unity_export.py": "sha256:ffaf000d7eb91ab79cdfc4570bf667b079693b3fada3811be8ea8011c9c60c55",
+    "mechanic_catalog.py": "sha256:95f11a82521954bdf29c86ddea1512978652b3e895c60da3cef64d0a78dfa837",
+    "mechanic_profiles.py": "sha256:66d354f391b84f7c42733d5381824abe125617616e4c303dbfb46409bdcc789b",
+    "mount_base_model.py": "sha256:487fbde549023eefb4a00bbda7c0578a0c38b19474aa28c8def8a2a255705ac0",
+    "naming_policy.py": "sha256:97543cac67724dd0c6635e22e6a25c89fdd0afe8a1792fd38ef560c8dc0dc496",
+    "narrative_continuity.py": "sha256:92c82ad8a95226b8399611276c317a29705909501f99b99a22ff1e9524f54ec6",
+    "package_release.py": "sha256:31da65c07d568b1ec6695c3cb2e2d5fc7cc700240ea5eff4e83e87d2c259c0c0",
+    "prepare_unseen_naming_eval.py": "sha256:96d15158cec52039060f5c84e59c866a9271eec1d4f071884f06e25ddb79f8ed",
+    "response_protocol.py": "sha256:9848188353901bb0625c494749af95f29d07a19ee298acf14e2c04ab4d8bd45e",
+    "run_sft_quality_smoke.py": "sha256:bf33618c3d9f9bb434cea2660a976e8660b5540d1930da0fbbd5765e00db5a56",
+    "run_unseen_local_diagnostic.py": "sha256:4d12557f8eccf001204265ea04a3da77baec1c7141234438bce802aed738319d",
+    "scenario_adapter.py": "sha256:8aa5acc56a27371c2f0ab7b7ec411639b6ab185d9e731d991d3902c5a94dd5f7",
+    "sft_tokenization.py": "sha256:269d6b482e1ff54b2575110f8d22819b01b47c855ae2a905435f9e2ee6bfdf15",
+    "skill_semantics.py": "sha256:8abae3b7ca6bd8533eb93f8d4a7a9f38b111aa1d96e094ca5f3d35ee5b8c6338",
+    "staged_response.py": "sha256:ac37d4dc4817c50c48d6e5bc187dd28d38127481b341ac42b6c79a2506056ffd",
+    "test_build_dataset.py": "sha256:5637f6742538968860daee72ce7b1a5dd724c7a97c07fc785495283f99fdf6f9",
+    "test_controlled_bridge.py": "sha256:674a224238e7eb33ed411899586487522a8376cc9eeca90cd3d5818834db830a",
+    "test_controlled_equipment.py": "sha256:1502ad2ab7b5dd5100ccdfab01667951641b8e8cab6b9f4a90e075492d25ee4d",
+    "test_controlled_scenarios.py": "sha256:631ac31be51379c2295ae6ba2fb2e7e681dbed4e320195498ecff8527a4afea0",
+    "test_family_partition.py": "sha256:f2782dfdfde3c69ad1026df07f50c67bf40b49875897b1050350dac1303cbdd0",
+    "test_incremental_reservoir.py": "sha256:8c0c802c8f6a09d641f61efd5cbd2f2995aca0e84651f67af3192ed51241d501",
+    "test_local_unseen_diagnostic.py": "sha256:4e0291a9cf5b1b34bef3348b1afd1287bc843f919e9c4cc8fc3f3cafca373f29",
+    "test_management_repair.py": "sha256:b97a7cc462fd421645d07fc393d87ae0436cab95a802f1bd2722c3696b15efec",
+    "test_mechanic_contracts.py": "sha256:b207b195d5a0a91ac99341598ed8ff268f650dc1b6cb99828a8dfd17c4f19ade",
+    "test_naming_reference.py": "sha256:1d89335e5534b8810aa3bd091f2b140cf135a4d0204d5a1c7227192e7cde721e",
+    "test_narrative_continuity.py": "sha256:cef40ab2656472bae0e0233e4d7e79784f3751f11ecaaf0be72a80fcbd5c2c2f",
+    "test_response_protocol.py": "sha256:f9c3e358c1838544a7d3ad193a84da66689f0eeb9b16a30091f24e28e0dee687",
+    "test_scenario_adapter.py": "sha256:82aae997d6b069b0ee497d2b0a1b8518d240242474abc719ece9004d6791d39f",
+    "test_scenario_v15.py": "sha256:0c2cd3a5cd11b81996409d1c71912846f4123e3012dd0a4c62e44e1b1959d509",
+    "test_sft_tokenization.py": "sha256:9c546db7b3ca05b6838e5bc8fc15aed55054d112cd180d249641e362b87ef645",
+    "test_skill_semantics.py": "sha256:f643e96e3e36e29332b450ffde58187a2b4bde991e83f02f8e6fa8b1510fa528",
+    "test_staged_response.py": "sha256:efe481c400d71795540cb890232046200cb47854296625bf4d34bc9944713e7d",
+    "test_unity_mechanics.py": "sha256:4d30f0e7c4e3b1dd9984bb2863906495cc22cb08bdd3f047a46e24d3484fae72",
+    "test_unseen_naming_eval.py": "sha256:d69d0ddc847232cca26aa92251eeee65bb061f97d4edeb06f63fe0a607a6c225",
+    "train_sft.py": "sha256:7424a5b847139ff556c1bf7b47066f0154b5f90c7f60058b839c80a3f9b2d5d2",
+    "unity_mechanics.py": "sha256:c8e7ccac2acf5a9afab486458a57e7aba0f2858e7fe1a155d1603e18c48edb86",
+    "verify_dataset.py": "sha256:3126bbc6b55456e7d658e81b3b38203afabca44c001ab5098d45061be334e3d8",
+    "verify_scenario_pilot.py": "sha256:c47d57e706b6508f0d1be64f8c03b41bff51387e2e28f627366a1bb2c7fefbbe",
+    "verify_unity_parity.py": "sha256:f0d42640d5c6c0127af575d5f6d6ca488f90c09dbbd925021fa27bef34cc0e26"
+  },
+  "humanApprovalClaimed": false,
+  "inputDigest": "sha256:36231ec549f97b53c3d0a33cd31386d818efaa79e8e36bd00d3ffb264c00c185",
+  "outcomes": [
+    {
+      "actualAccepted": false,
+      "caseId": "acquired-trait-reject-combination-identity",
+      "error": "AcquiredTrait illegal identity/budget/conflict/domain",
+      "expectedAccepted": false,
+      "matched": true,
+      "profileId": "AcquiredTrait"
+    },
+    {
+      "actualAccepted": false,
+      "caseId": "acquired-trait-reject-conflict",
+      "error": "AcquiredTrait illegal identity/budget/conflict/domain",
+      "expectedAccepted": false,
+      "matched": true,
+      "profileId": "AcquiredTrait"
+    },
+    {
+      "actualAccepted": false,
+      "caseId": "acquired-trait-reject-extra-response-key",
+      "error": "AcquiredTrait response keys differ: expected=['combinationId', 'description', 'displayName', 'evidenceFactIds', 'narrativeReason'], actual=['combinationId', 'description', 'displayName', 'evidenceFactIds', 'mechanicalValue', 'narrativeReason']",
+      "expectedAccepted": false,
+      "matched": true,
+      "profileId": "AcquiredTrait"
+    },
+    {
+      "actualAccepted": false,
+      "caseId": "acquired-trait-reject-gate-budget",
+      "error": "AcquiredTrait illegal identity/budget/conflict/domain",
+      "expectedAccepted": false,
+      "matched": true,
+      "profileId": "AcquiredTrait"
+    },
+    {
+      "actualAccepted": false,
+      "caseId": "acquired-trait-reject-missing-response-key",
+      "error": "AcquiredTrait response keys differ: expected=['combinationId', 'description', 'displayName', 'evidenceFactIds', 'narrativeReason'], actual=['combinationId', 'description', 'displayName', 'narrativeReason']",
+      "expectedAccepted": false,
+      "matched": true,
+      "profileId": "AcquiredTrait"
+    },
+    {
+      "actualAccepted": true,
+      "caseId": "acquired-trait-valid-request-and-response",
+      "error": "",
+      "expectedAccepted": true,
+      "matched": true,
+      "profileId": "AcquiredTrait"
+    },
+    {
+      "actualAccepted": false,
+      "caseId": "character-skill-reject-combination-identity",
+      "error": "CharacterSkill selected an illegal rule/combination",
+      "expectedAccepted": false,
+      "matched": true,
+      "profileId": "CharacterSkill"
+    },
+    {
+      "actualAccepted": true,
+      "caseId": "character-skill-valid-response",
+      "error": "",
+      "expectedAccepted": true,
+      "matched": true,
+      "profileId": "CharacterSkill"
+    },
+    {
+      "actualAccepted": false,
+      "caseId": "equipment-choice-reject-out-of-range-index",
+      "error": "EquipmentChoice selectedIndex is out of range",
+      "expectedAccepted": false,
+      "matched": true,
+      "profileId": "EquipmentChoice"
+    },
+    {
+      "actualAccepted": true,
+      "caseId": "equipment-choice-valid-index-zero",
+      "error": "",
+      "expectedAccepted": true,
+      "matched": true,
+      "profileId": "EquipmentChoice"
+    },
+    {
+      "actualAccepted": false,
+      "caseId": "evolution-history-reject-changed-effect-budget",
+      "error": "EvolutionHistory changed locked field effectBudget",
+      "expectedAccepted": false,
+      "matched": true,
+      "profileId": "EvolutionHistory"
+    },
+    {
+      "actualAccepted": true,
+      "caseId": "evolution-history-valid-exact-echo",
+      "error": "",
+      "expectedAccepted": true,
+      "matched": true,
+      "profileId": "EvolutionHistory"
+    },
+    {
+      "actualAccepted": false,
+      "caseId": "facility-evolution-reject-forged-proposal-id",
+      "error": "FacilityEvolution selected a proposal outside the candidate pool",
+      "expectedAccepted": false,
+      "matched": true,
+      "profileId": "FacilityEvolution"
+    },
+    {
+      "actualAccepted": true,
+      "caseId": "facility-evolution-valid-response",
+      "error": "",
+      "expectedAccepted": true,
+      "matched": true,
+      "profileId": "FacilityEvolution"
+    },
+    {
+      "actualAccepted": false,
+      "caseId": "persona-reject-extra-mechanical-key",
+      "error": "Persona response keys differ: expected=['flavorText', 'personaName'], actual=['flavorText', 'personaName', 'selfCareMultiplier']",
+      "expectedAccepted": false,
+      "matched": true,
+      "profileId": "Persona"
+    },
+    {
+      "actualAccepted": true,
+      "caseId": "persona-valid-exact-response",
+      "error": "",
+      "expectedAccepted": true,
+      "matched": true,
+      "profileId": "Persona"
+    }
+  ],
+  "passed": true
+}

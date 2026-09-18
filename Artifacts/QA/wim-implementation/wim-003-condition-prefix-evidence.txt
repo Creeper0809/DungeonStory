@@ -1,0 +1,16 @@
+WIM003 partial execution evidence, 2026-09-10
+Runtime source compiled 08:26:51 UTC; Editor source compiled 08:36:14 UTC.
+Root fixture SHA256=52B5E5FC6D2E2794558C560F10F72D74F0698552A59B6686BDB4BEF69E3785CA
+Scope=protected main F Play; actual StartParty UI three actors; manual starter equip; authored QA outer garments; controlled weather/time/grid; real physical/apparel authorities.
+Evidence=Unity_RunCommand invoked RunProtectedPlay and reached VerifyAutomaticSelection at source line165, failing only its missing-spare setup assertion at line224.
+All preceding synchronous assertions completed successfully:
+body-hygiene/contact/work/rain/material-drying/wear=PASS
+layer-coverage/entrance-shelter/stored-state-invariance=PASS
+second-component-write-rejection/rollback/retry-exact-once=PASS
+quantity/unit-weight/custody-identity-invariance=PASS
+current-physical-capture/JSON/restore=PASS
+Finally cleanup physical/apparel/policy completed without replacing the original missing-spare exception.
+Overall RunProtectedPlay=FAILED; automatic/service checks NOT_COMPLETE.
+Cause of selection setup failure=three real actors legitimately consume the two supplied Daily garments; one spare is not sufficient for this global automatic-selection fixture.
+Next=correct only QA supplied count and run selection/service segment; preserve these condition assertions unchanged, no whole-suite replay.
+Not evidence for natural weather waiting, AI laundry, whole-world save restore, or six-adult economy.

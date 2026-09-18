@@ -432,6 +432,9 @@ internal static class CharacterAiEditorTestDependencies
                 NeutralProficiencies,
                 GameCalendar,
                 combatEquipmentRuntime: null);
+            abilityWork.ConstructWorkAccidentOutcomeTransaction(
+                BodyHealth.Value,
+                EditorNoOpEnvironmentOutcomeCommitter.Instance);
         }
 
         actorObject.GetComponent<AbilityShopping>()?.ConstructAbilityShopping(
@@ -929,6 +932,28 @@ internal static class CharacterAiEditorTestDependencies
             debugRules: DisabledDungeonDebugRuleQuery.Instance);
     }
 
+    internal static void InjectFeedbackCameraForDiagnostics(
+        CharacterAiScheduler scheduler,
+        IMainCameraProvider cameraProvider)
+    {
+        if (scheduler == null)
+            throw new ArgumentNullException(nameof(scheduler));
+        if (cameraProvider == null)
+            throw new ArgumentNullException(nameof(cameraProvider));
+        scheduler.Construct(
+            WorldRegistry,
+            cameraProvider,
+            BehaviorTreeConfigurator,
+            PathSearchBroker,
+            GameClock,
+            FrameWorkBudget,
+            PerformanceRecorder,
+            UiClock,
+            FacilityCandidates,
+            playerStaffCommands: null,
+            debugRules: DisabledDungeonDebugRuleQuery.Instance);
+    }
+
     internal static void ResetPerformanceRecorder(
         bool detailedCollectionEnabled = true,
         bool slowTraceEnabled = false)
@@ -1365,7 +1390,17 @@ internal static class CharacterAiEditorTestDependencies
 
     private sealed class OptionalMainCameraProvider : IMainCameraProvider
     {
-        public Camera Camera => UnityEngine.Object.FindFirstObjectByType<Camera>(FindObjectsInactive.Include);
+        public Camera Camera => TryGetCamera(out Camera camera)
+            ? camera
+            : throw new InvalidOperationException(
+                $"{nameof(IMainCameraProvider)} requires a registered {nameof(Camera)}.");
+
+        public bool TryGetCamera(out Camera camera)
+        {
+            camera = UnityEngine.Object.FindFirstObjectByType<Camera>(
+                FindObjectsInactive.Include);
+            return camera != null;
+        }
     }
 
     private sealed class NoopCharacterFeedbackBubbleFactory : ICharacterFeedbackBubbleFactory
@@ -2001,6 +2036,14 @@ internal static class CharacterAiEditorTestDependencies
             bool forced) => Safe;
 
         public WorkEnvironmentAssessment AssessStart(
+            CharacterActor actor,
+            Vector2Int destination,
+            IReadOnlyList<GridMoveStep> route,
+            float expectedSeconds,
+            EnvironmentalWorkKind workKind,
+            bool forced) => Safe;
+
+        public WorkEnvironmentAssessment PrepareActiveWork(
             CharacterActor actor,
             Vector2Int destination,
             IReadOnlyList<GridMoveStep> route,

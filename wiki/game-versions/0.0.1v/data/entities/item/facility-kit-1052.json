@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "통더미에 재고를 모아 두고 반출 순서를 관리하도록 만든 설치 부품이며, 크릭 제7굴에서도 이 부품의 치수를 알아본다.",
+  "in_game_description": "통더미에 재고를 모아 두고 반출 순서를 관리하도록 만든 설치 부품이다. 크릭 제7굴식 통더미의 선반 칸은 씨족마다 톱니 모양이 달라 빌린 공구가 돌아갈 자리를 손으로도 찾는다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

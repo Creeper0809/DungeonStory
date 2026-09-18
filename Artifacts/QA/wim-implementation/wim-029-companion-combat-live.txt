@@ -1,0 +1,14 @@
+prepared=authored pen building:665ebad571804e96b275dc0ee1f23037; pet=wild:9; penCell=(18, 1); hp=10; actual owner alternatives=3; hunger=0.2387451; thirst=0.2259266
+PASS ownerUI=character:staff:1:01
+invasionPrepared enemy=character:invasion:4e22aff2b9ab45af99ea048be3d02794; enemyHP=104.2; petHP=10; ownerGuardPriority=1; otherStaffGuard=Off
+PASS actualGuardDispatch id=defense-engagement:1; ownerAiPaused=True; enemyCell=(25, 1); pet=wild:9; petCell=(15, 0); petHP=10; hunger=0.325673; thirst=0.344465; intent=동행 이동 · 주인 추종; owner=character:staff:1:01; ownerCell=(13, 0); gameTime=26.78101
+combatSample state=Dispatching; exchanges=0; enemyCell=(25, 1); enemyHP=104.2; companionHits=0; nextAttack=2.702566; pet=wild:9; petCell=(15, 0); petHP=10; hunger=0.325673; thirst=0.344465; intent=동행 이동 · 주인 추종; owner=character:staff:1:01; ownerCell=(13, 0); gameTime=26.78101
+combatSample state=Dispatching; exchanges=0; enemyCell=(24, 1); enemyHP=104.2; companionHits=0; nextAttack=2.702566; pet=wild:9; petCell=(15, 0); petHP=10; hunger=0.3430869; thirst=0.3682116; intent=동행 경로 대기 · 교전 위치; owner=character:staff:1:01; ownerCell=(19, 0); gameTime=32.00518
+combatSample state=Engaged; exchanges=0; enemyCell=(19, 1); enemyHP=104.2; companionHits=0; nextAttack=2.702566; pet=wild:9; petCell=(18, 1); petHP=10; hunger=0.3597633; thirst=0.3909522; intent=동행 이동 · 교전 위치; owner=character:staff:1:01; ownerCell=(18, 1); gameTime=37.0081
+combatSample state=Engaged; exchanges=6; enemyCell=(19, 1); enemyHP=95.49483; companionHits=0; nextAttack=43.26026; pet=wild:9; petCell=(18, 1); petHP=10; hunger=0.3770785; thirst=0.4145637; intent=동행 이동 · 교전 위치; owner=character:staff:1:01; ownerCell=(18, 1); gameTime=42.20265
+PASS reciprocalCombat companionHits=1; appliedDamage=1.656; petHP=10->0; enemyHP=104.2->93.83759; elapsedGame=18.69952; elapsedWall=19.14451
+PASS companionDeath roleReleased/deadTargetRejected; no fabricated lead-guard loss
+pet=wild:9; petCell=(18, 1); petHP=0; hunger=0.3875021; thirst=0.4287777; intent=동행 이동 · 교전 위치; owner=character:staff:1:01; ownerCell=(18, 1); gameTime=45.48053
+result=PASS
+scope=controlled authored pen/domestic birth and public invasion spawn; actual EventSystem owner assignment, natural entry/defense and companion ticks. No synthetic attack results or HP scaling; terminal companion damage is an explicitly controlled lifecycle intervention. Not animal haul, encounter balance or six-adult certification.
+cleanup=paused disposable main Play, operator stops; disk persistence disabled before owner UI; original environment restored

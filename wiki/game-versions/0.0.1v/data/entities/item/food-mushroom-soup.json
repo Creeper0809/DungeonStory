@@ -10,12 +10,12 @@
     },
     {
       "label": "기준 가격",
-      "value": "8"
+      "value": "9"
     }
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "동굴버섯을 푹 끓여 진한 향과 단백질을 국물에 우려낸 비건식이다. 므네실라의 동굴버섯국은 균사가 국물 위로 다시 떠오르기 직전에 불을 내려 향을 지킨다.",
+  "in_game_description": "동굴버섯을 푹 끓여 진한 향과 단백질을 국물에 우려낸 비건식이다. 므네실라에서는 동굴버섯국을 끓인 물까지 공동 정원으로 돌아가 다음 포자철의 거름이 된다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

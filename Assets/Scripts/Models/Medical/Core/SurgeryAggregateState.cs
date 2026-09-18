@@ -170,6 +170,7 @@ public static class SurgeryStateCloner
         {
             orderId = source.orderId ?? string.Empty,
             procedureId = source.procedureId ?? string.Empty,
+            emergencyCause = source.emergencyCause,
             subject = source.subject?.Clone() ?? new SurgicalSubjectRef(),
             targetNodeId = source.targetNodeId ?? string.Empty,
             selectedPartInstanceId = source.selectedPartInstanceId ?? string.Empty,
@@ -216,6 +217,41 @@ public static class SurgeryStateCloner
             anesthesiaConsumed = source.anesthesiaConsumed,
             incisionOpen = source.incisionOpen,
             resultRolled = source.resultRolled,
+            resultSucceeded = source.resultSucceeded,
+            outcomeConsequencesApplied = source.outcomeConsequencesApplied,
+            outcomeConsequenceStep = source.outcomeConsequenceStep,
+            resultOutcomeId = source.resultOutcomeId ?? string.Empty,
+            resolvedEffectCount = source.resolvedEffectCount,
+            replacementPhase = source.replacementPhase,
+            replacementOperationId = source.replacementOperationId
+                ?? string.Empty,
+            replacementExpectedOldPartId =
+                source.replacementExpectedOldPartId ?? string.Empty,
+            replacementIncomingPartId = source.replacementIncomingPartId
+                ?? string.Empty,
+            replacementAdmissionTokenId = source.replacementAdmissionTokenId
+                ?? string.Empty,
+            replacementPublicationOperationId =
+                source.replacementPublicationOperationId ?? string.Empty,
+            replacementReservationAttempt =
+                source.replacementReservationAttempt,
+            replacementBatchCommitId = source.replacementBatchCommitId
+                ?? string.Empty,
+            replacementOutcomeFingerprint =
+                source.replacementOutcomeFingerprint ?? string.Empty,
+            replacementPlannedOutputFingerprint =
+                source.replacementPlannedOutputFingerprint ?? string.Empty,
+            replacementOutputX = source.replacementOutputX,
+            replacementOutputY = source.replacementOutputY,
+            replacementOutputStackId = source.replacementOutputStackId
+                ?? string.Empty,
+            replacementOutputItemInstanceId =
+                source.replacementOutputItemInstanceId ?? string.Empty,
+            replacementOutputMassGrams = source.replacementOutputMassGrams,
+            replacementDetachedCurrentHealth =
+                source.replacementDetachedCurrentHealth,
+            replacementDetachedMaxHealth =
+                source.replacementDetachedMaxHealth,
             patientAdmitted = source.patientAdmitted,
             admissionMoveRequested = source.admissionMoveRequested,
             subjectAiWasPaused = source.subjectAiWasPaused,
@@ -258,6 +294,9 @@ public static class SurgeryStateCloner
         return new SurgicalPartInstance
         {
             partInstanceId = source.partInstanceId ?? string.Empty,
+            itemDefinitionId = source.itemDefinitionId ?? string.Empty,
+            physicalItemInstanceId = source.physicalItemInstanceId
+                ?? string.Empty,
             kind = source.kind,
             nodeId = source.nodeId ?? string.Empty,
             displayName = source.displayName ?? string.Empty,
@@ -279,6 +318,11 @@ public static class SurgeryStateCloner
             preservationSourceStackId = source.preservationSourceStackId ?? string.Empty,
             preservationInputMassGrams = source.preservationInputMassGrams,
             preservationOutcomePublished = source.preservationOutcomePublished,
+            discardOperationId = source.discardOperationId ?? string.Empty,
+            discardCommitId = source.discardCommitId ?? string.Empty,
+            discardSourceStackId = source.discardSourceStackId ?? string.Empty,
+            discardInputMassGrams = source.discardInputMassGrams,
+            discardOutcomePublished = source.discardOutcomePublished,
             installed = source.installed,
             installedSubjectId = source.installedSubjectId ?? string.Empty,
             sourceProductionCommitId = source.sourceProductionCommitId
@@ -289,7 +333,12 @@ public static class SurgeryStateCloner
             installationCommitId = source.installationCommitId ?? string.Empty,
             installationSourceStackId = source.installationSourceStackId
                 ?? string.Empty,
-            installationSubjectId = source.installationSubjectId ?? string.Empty
+            installationSubjectId = source.installationSubjectId ?? string.Empty,
+            detachedDurabilityCurrent = source.detachedDurabilityCurrent,
+            detachedDurabilityMaximum = source.detachedDurabilityMaximum,
+            recoveryOperationId = source.recoveryOperationId ?? string.Empty,
+            recoveryOrderId = source.recoveryOrderId ?? string.Empty,
+            recoveryCommitId = source.recoveryCommitId ?? string.Empty
         };
     }
 

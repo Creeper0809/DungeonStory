@@ -1,0 +1,15 @@
+wim047-persistence-isolation=PASS;autosave=True;metaProfile=True;realFiles=4;terminalDisposition=PlayModeDiscard
+wim047-restorable-scenario-baseline=PASS;visitingProfiles=0->0;allowedChange=characters.world:isVisiting:true-to-false+settlementStanding:Visitor-to-PreparedCandidate-only;metaClockRoundingUnder=0.00001s;originalTransientVisitorStateRestored=False;terminalDisposition=PlayModeDiscard
+wim047-missing-entry=PASS;spawned=False;actor=False;active=0;committedDetail=False;failure=missing-invasion-entry
+wim047-preselection=PASS;active=0;queryUnknown=True;renderUnknown=True;queryRandomUnchanged=True
+wim047-candidate=PASS;forced=True;active=1;lastFailure=;projection=True
+wim047-committed-selection=PASS;raid=human-operation:1;runtimeRaid=human-operation:1;archetype=enemy:inquisition-rune-sniper;individual=enemy:inquisition-rune-sniper;nature=추적자;pattern=추적자;entry=(17, 0);expectedEntry=(17, 0);state=Rallying;rally=11.763;targetUnknown=True;operationMatch=True;objective=captives-or-curse;confidence=0.71
+wim047-alert=PASS;captured=4;exact=True;detail=입구 (17, 0) / 접근 방향 동쪽 집결 종료/진입 시도 예상 12초 / 적 성격 추적자 작전 CaptiveRescue / 목표 captives-or-curse / 정보 신뢰도 71% / 실제 표적 미상
+wim047-live=PASS;query=True;render=True;queryRandomUnchanged=True;state=Rallying;phase=집결 종료/진입 시도 예상 12초;warning=침입 정보 / 입구 (17, 0) / 접근 동쪽 집결 종료/진입 시도 예상 12초 / 적 성격 추적자 작전 포로 구출 / 작전 목표 captives-or-curse / 실제 표적 미상
+wim047-whole-registry-restore=PASS;sections=75;success=True;errors=
+wim047-restored-selection=PASS;active=1;intruder=True;projection=True;same=True;operation=human-operation:1;objective=captives-or-curse;targetUnknown=True
+wim047-restored=PASS;query=True;render=True;queryRandomUnchanged=True;state=Rallying;phase=집결 종료/진입 시도 예상 12초;warning=침입 정보 / 입구 (17, 0) / 접근 동쪽 집결 종료/진입 시도 예상 12초 / 적 성격 추적자 작전 포로 구출 / 작전 목표 captives-or-curse / 실제 표적 미상
+mode=committed-invasion-warning-only
+wim047-real-persistence=PASS;unchanged=4/4
+cleanup=post-restore-scenario-baseline-byte-exact;original-transient-visitors=playmode-discard
+result=PASS

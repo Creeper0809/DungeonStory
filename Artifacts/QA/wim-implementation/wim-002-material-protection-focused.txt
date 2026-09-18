@@ -1,0 +1,7 @@
+scope=protected-main-play;real-resolver;controlled-ownership-and-projection-inputs
+live-composition-registration=PASS
+fixed-only/single-material/outfit-cap/fixed-once=PASS
+read-only-repeat/current-physical-state/unequipped-no-stale-effect=PASS
+expected-fit-rejection-and-recovery/no-owner-mismatch-fallback=PASS
+not-covered=natural-equip;real-material-projector-numerics;waterproof-and-wear;whole-world-restore
+result=PASS

@@ -279,7 +279,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
     private static bool VerifyOffPriorityExcludesUrgentAutomaticWork()
     {
         using PriorityScenarioWorld world = new PriorityScenarioWorld();
-        BuildableObject damaged = world.Place("P1_RestRoom", new Vector2Int(2, 0));
+        BuildableObject damaged = world.Place("R01_간이침대", new Vector2Int(2, 0));
         damaged.SetDamaged(true);
         CharacterActor owner = world.CreateOwner("Owner_Slime", Vector2Int.zero);
         AbilityWork work = owner.GetAbility<AbilityWork>();
@@ -295,7 +295,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
     private static bool VerifyDirectCommandBypassesOffThroughAssignment()
     {
         using PriorityScenarioWorld world = new PriorityScenarioWorld();
-        BuildableObject damaged = world.Place("P1_RestRoom", new Vector2Int(2, 0));
+        BuildableObject damaged = world.Place("R01_간이침대", new Vector2Int(2, 0));
         damaged.SetDamaged(true);
         CharacterActor owner = world.CreateOwner("Owner_Slime", Vector2Int.zero);
         AbilityWork work = owner.GetAbility<AbilityWork>();
@@ -313,7 +313,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
     private static bool VerifyRequestedWorkTypeDoesNotSubstitute()
     {
         using PriorityScenarioWorld world = new PriorityScenarioWorld();
-        BuildableObject restRoom = world.Place("P1_RestRoom", new Vector2Int(2, 0));
+        BuildableObject restRoom = world.Place("R01_간이침대", new Vector2Int(2, 0));
         CharacterActor owner = world.CreateOwner("Owner_Slime", Vector2Int.zero);
         AbilityWork work = owner.GetAbility<AbilityWork>();
         SetOnly(work, BuiltInWorkTypeIds.Operate, BuiltInWorkTypeIds.Repair);
@@ -328,8 +328,8 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
     private static bool VerifyInvalidPriorityTargetClearsAndResumesAutomaticWork()
     {
         using PriorityScenarioWorld world = new PriorityScenarioWorld();
-        BuildableObject priorityTarget = world.Place("P1_RestRoom", new Vector2Int(2, 0));
-        BuildableObject alternateTarget = world.Place("P1_RestRoom", new Vector2Int(7, 0));
+        BuildableObject priorityTarget = world.Place("R01_간이침대", new Vector2Int(2, 0));
+        BuildableObject alternateTarget = world.Place("R01_간이침대", new Vector2Int(7, 0));
         priorityTarget.SetDamaged(true);
         alternateTarget.SetDamaged(true);
 
@@ -352,8 +352,8 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
     private static bool VerifyNearestEquivalentWorkTargetWins()
     {
         using PriorityScenarioWorld world = new PriorityScenarioWorld();
-        BuildableObject near = world.Place("P1_RestRoom", new Vector2Int(2, 0));
-        BuildableObject far = world.Place("P1_RestRoom", new Vector2Int(9, 0));
+        BuildableObject near = world.Place("R01_간이침대", new Vector2Int(2, 0));
+        BuildableObject far = world.Place("R01_간이침대", new Vector2Int(9, 0));
         near.SetDamaged(true);
         far.SetDamaged(true);
 
@@ -370,9 +370,9 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
     private static bool VerifyPriorityLevelBeatsLowerUrgentWork()
     {
         using PriorityScenarioWorld world = new PriorityScenarioWorld();
-        BuildableObject damagedRepair = world.Place("P1_RestRoom", new Vector2Int(2, 0));
-        BuildableObject restockShop = world.Place("P1_LowFoodShop", new Vector2Int(9, 0));
-        BuildableObject warehouse = world.Place("P1_Warehouse", new Vector2Int(14, 0));
+        BuildableObject damagedRepair = world.Place("R01_간이침대", new Vector2Int(2, 0));
+        BuildableObject restockShop = world.Place("S01_판매카운터", new Vector2Int(9, 0));
+        BuildableObject warehouse = world.Place("L01_대형보관선반", new Vector2Int(14, 0));
         damagedRepair.SetDamaged(true);
         ClearShopStock(restockShop);
         ((Facility)warehouse).Inventory.SeedPhysicalStockForTest(
@@ -470,7 +470,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
     private static bool VerifyOccupiedWorkTargetFailureClassification()
     {
         using PriorityScenarioWorld world = new PriorityScenarioWorld();
-        BuildableObject shop = world.Place("P1_LowFoodShop", new Vector2Int(2, 0));
+        BuildableObject shop = world.Place("S01_판매카운터", new Vector2Int(2, 0));
         CharacterActor first = world.CreateOwner("Owner_Slime", Vector2Int.zero);
         CharacterActor second = world.CreateOwner("Owner_Slime", new Vector2Int(5, 0));
         if (shop is not IWorkableFacility workable)
@@ -495,7 +495,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
     private static bool VerifyWorkAndWaitScoresPreferRealWork()
     {
         using PriorityScenarioWorld world = new PriorityScenarioWorld();
-        BuildableObject shop = world.Place("P1_LowFoodShop", new Vector2Int(2, 0));
+        BuildableObject shop = world.Place("S01_판매카운터", new Vector2Int(2, 0));
         CharacterActor owner = world.CreateOwner("Owner_Slime", Vector2Int.zero);
         AIWork workAction = ScriptableObject.CreateInstance<AIWork>();
         AIWait waitAction = ScriptableObject.CreateInstance<AIWait>();
@@ -553,7 +553,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
     {
         using PriorityScenarioWorld world = new PriorityScenarioWorld();
         CharacterActor character = world.CreateOwner("Owner_Slime", Vector2Int.zero);
-        BuildableObject destination = world.Place("P1_RestRoom", new Vector2Int(4, 0));
+        BuildableObject destination = world.Place("R01_간이침대", new Vector2Int(4, 0));
         TestActionSet actionSet = CreateAction(
             "Destroyed destination action",
             1f,
@@ -931,7 +931,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
     {
         using PriorityScenarioWorld world = new PriorityScenarioWorld();
         CharacterActor actor = world.CreateOwner("Owner_Slime", Vector2Int.zero);
-        Facility facility = world.Place("P1_RestRoom", new Vector2Int(4, 0)) as Facility;
+        Facility facility = world.Place("R01_간이침대", new Vector2Int(4, 0)) as Facility;
         TestActionSet actionSet = CreateAction(
             "In-flight destroyed facility",
             1f,
@@ -1000,7 +1000,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
     {
         using PriorityScenarioWorld world = new PriorityScenarioWorld();
         CharacterActor actor = world.CreateOwner("Owner_Slime", Vector2Int.zero);
-        Facility facility = world.Place("P1_RestRoom", new Vector2Int(4, 0)) as Facility;
+        Facility facility = world.Place("R01_간이침대", new Vector2Int(4, 0)) as Facility;
         TestActionSet obsoleteActionSet = CreateAction(
             "Obsolete facility interaction",
             1f,
@@ -1273,7 +1273,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
     {
         using PriorityScenarioWorld world = new PriorityScenarioWorld();
         BuildableObject priorityTarget = world.Place(
-            "P1_RestRoom",
+            "R01_간이침대",
             new Vector2Int(2, 0));
         priorityTarget.SetDamaged(true);
 
@@ -1303,7 +1303,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
     {
         using PriorityScenarioWorld world = new PriorityScenarioWorld();
         BuildableObject priorityTarget = world.Place(
-            "P1_RestRoom",
+            "R01_간이침대",
             new Vector2Int(2, 0));
         priorityTarget.SetDamaged(true);
 
@@ -1555,7 +1555,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
         public BuildableObject Place(string assetName, Vector2Int position)
         {
             BuildingSO buildingData = AssetDatabase.LoadAssetAtPath<BuildingSO>(
-                $"Assets/Resources/SO/Building/P1/{assetName}.asset");
+                $"Assets/Resources/SO/Building/Modular/{assetName}.asset");
             if (buildingData == null)
             {
                 throw new InvalidOperationException($"{assetName} asset not found.");

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
@@ -26,7 +28,11 @@ public static class GameplayFlowDiagnosticsDebugScenarios
             VerifyInProgressOrder();
             VerifyReservedLooseStackIsInTransit();
             VerifyDeferredPathIsNotBlocked();
+            VerifyUnobservedHaulIsUnconfirmed();
             VerifyGenuinelyBlockedLooseStack();
+            VerifyObservedBlockProjectionAndNormalization();
+            VerifyNormalScheduleIsNotRetry();
+            VerifyPassiveQuerySource();
             if (logSuccess)
             {
                 Debug.Log("[GameplayFlowDiagnostics] PASS");
@@ -149,14 +155,224 @@ public static class GameplayFlowDiagnosticsDebugScenarios
 
     private static void VerifyGenuinelyBlockedLooseStack()
     {
+        GameplayFlowWorkerSnapshot worker = CreateWorker(
+            haul: true,
+            construct: true);
+        worker.CurrentOperationBlock = CreateOperationBlock(
+            BuiltInWorkTypeIds.Haul,
+            CharacterOperationBlockAxis.Access,
+            AIActionFailureKind.NoPath,
+            DomainFailure.None,
+            retryKind: CharacterAiRetryKind.FailureCooldown);
+        GameplayFlowDiagnosticItem diagnostic = BuildLooseFlow(
+            CreateGeneralStack(WorldItemStackState.Loose, string.Empty).Single(),
+            worker,
+            CreateWarehouse(canAcceptLooseStack: true)).Items
+            .First(item => item.Title.Contains("바닥 물류"));
+        Require(
+            diagnostic.Severity == GameplayFlowDiagnosticSeverity.Critical
+            && diagnostic.Detail.Contains("실제 운반 시도 차단")
+            && diagnostic.Detail.Contains("NoPath"),
+            "genuinely unreachable loose stack did not expose the blocked route");
+    }
+
+    private static void VerifyUnobservedHaulIsUnconfirmed()
+    {
         GameplayFlowDiagnosticItem diagnostic = BuildLooseFlow(
             CreateGeneralStack(WorldItemStackState.Loose, string.Empty).Single(),
             CreateWorker(haul: true, construct: true),
             CreateWarehouse(canAcceptLooseStack: true)).Items.Single();
         Require(
-            diagnostic.Severity == GameplayFlowDiagnosticSeverity.Critical
-            && diagnostic.Detail.Contains("이동 경로가 막혔"),
-            "genuinely unreachable loose stack did not expose the blocked route");
+            diagnostic.Severity == GameplayFlowDiagnosticSeverity.Warning
+            && diagnostic.Title.Contains("경로 미확인")
+            && diagnostic.Detail.Contains("실제 운반 시도"),
+            "missing haul observation was presented as a confirmed block");
+    }
+
+    private static void VerifyObservedBlockProjectionAndNormalization()
+    {
+        GameObject brainRoot = new GameObject("WIM046_Brain");
+        GameObject targetRoot = new GameObject("WIM046_Target");
+        AIWork actionSet = ScriptableObject.CreateInstance<AIWork>();
+        try
+        {
+            AIBrain brain = brainRoot.AddComponent<AIBrain>();
+            BuildableObject target = targetRoot.AddComponent<BuildableObject>();
+            SetPrivateField(target, "persistentInstanceId", "building:test");
+            SetPrivateField(actionSet, "workType", FacilityWorkType.Operate);
+            actionSet.actionName = "테스트 운용";
+            brain.bestAction = new AIAction(
+                actionSet,
+                AIActionPlan.AtDestination(target));
+            SetPrivateField(brain, "currentActionEpoch", 7L);
+            SetPrivateField(brain, "actionEpochLive", true);
+            InvokePrivate(
+                brain,
+                "RecordCurrentOperationBlock",
+                actionSet,
+                AIActionFailure.Create(
+                    AIActionFailureKind.ResourceUnavailable,
+                    "typed-test-failure",
+                    target),
+                new DomainFailure(FailureCode.AutomationUnpowered),
+                CharacterOperationBlockAxis.Power,
+                CharacterAiRetryKind.FailureCooldown,
+                false,
+                true);
+
+            GameplayFlowWorkerSnapshot worker = CreateWorker(
+                haul: false,
+                construct: true);
+            worker.CurrentOperationBlock = brain.CaptureCurrentOperationBlock();
+            worker.DecisionSchedule = new CharacterAiDecisionScheduleObservation(
+                isScheduled: true,
+                dueTime: 14f,
+                observedAt: 13.5f,
+                retryKind: CharacterAiRetryKind.FailureCooldown);
+
+            CharacterAiRuntimeGateSnapshot queryStart =
+                brain.CaptureRuntimeDiagnostics().Gate;
+            GameplayFlowDiagnosticsSnapshot blocked =
+                GameplayFlowDiagnosticsBuilder.Build(
+                    Array.Empty<WorkOrderSaveData>(),
+                    Array.Empty<WorldItemStackSnapshot>(),
+                    new[] { worker });
+            GameplayFlowDiagnosticsBuilder.Build(
+                Array.Empty<WorkOrderSaveData>(),
+                Array.Empty<WorldItemStackSnapshot>(),
+                new[] { worker });
+            CharacterAiRuntimeGateSnapshot queryEnd =
+                brain.CaptureRuntimeDiagnostics().Gate;
+            GameplayFlowDiagnosticItem item = blocked.Items.Single(
+                value => value.IsCurrentOperationBlock);
+            Require(
+                item.BlockAxis == CharacterOperationBlockAxis.Power
+                && item.DomainFailureCode == FailureCode.AutomationUnpowered
+                && item.TargetStableId == "building:test"
+                && item.Detail.Contains("실패 쿨다운")
+                && item.Detail.Contains("0.5초 후"),
+                "typed execution block was not projected to the flow surface");
+            Require(
+                queryEnd.PathRequests == queryStart.PathRequests
+                && queryEnd.PathResults == queryStart.PathResults
+                && queryEnd.ReservationAcquires == queryStart.ReservationAcquires
+                && queryEnd.ReservationReleases == queryStart.ReservationReleases
+                && queryEnd.RetrySchedules == queryStart.RetrySchedules
+                && queryEnd.RetryAttempts == queryStart.RetryAttempts,
+                "repeated flow projection mutated AI path/reservation/retry state");
+
+            brain.InvalidateQueuedActionForNextDecision();
+            Require(
+                brain.CaptureCurrentOperationBlock().HasCurrentBlock,
+                "queue-only invalidation cleared the active failure observation");
+
+            brain.ClearSelectedActionForIdle("test-normalized");
+            worker.CurrentOperationBlock = brain.CaptureCurrentOperationBlock();
+            GameplayFlowDiagnosticsSnapshot normalized =
+                GameplayFlowDiagnosticsBuilder.Build(
+                    Array.Empty<WorkOrderSaveData>(),
+                    Array.Empty<WorldItemStackSnapshot>(),
+                    new[] { worker });
+            Require(
+                normalized.Items.All(value => !value.IsCurrentOperationBlock),
+                "normalized current block remained on the flow surface");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(brainRoot);
+            UnityEngine.Object.DestroyImmediate(targetRoot);
+            UnityEngine.Object.DestroyImmediate(actionSet);
+        }
+    }
+
+    private static void VerifyNormalScheduleIsNotRetry()
+    {
+        CharacterAiDecisionScheduleObservation normal =
+            new CharacterAiDecisionScheduleObservation(
+                isScheduled: true,
+                dueTime: 22f,
+                observedAt: 20f,
+                retryKind: CharacterAiRetryKind.None);
+        CharacterAiDecisionScheduleObservation retry =
+            new CharacterAiDecisionScheduleObservation(
+                isScheduled: true,
+                dueTime: 20.25f,
+                observedAt: 20f,
+                retryKind: CharacterAiRetryKind.PathSearch);
+        Require(
+            normal.IsScheduled && !normal.IsRetry
+            && retry.IsRetry
+            && retry.RetryKind == CharacterAiRetryKind.PathSearch,
+            "normal cadence and failure/pending retry were conflated");
+    }
+
+    private static void VerifyPassiveQuerySource()
+    {
+        string sourcePath = Path.Combine(
+            Application.dataPath,
+            "Scripts/Services/Operation/GameplayFlowDiagnostics.cs");
+        string source = File.ReadAllText(sourcePath);
+        Require(
+            !source.Contains(".HasAvailableHaulJob(", StringComparison.Ordinal)
+            && !source.Contains(".AssessStart(", StringComparison.Ordinal)
+            && !source.Contains(".CanConsume(", StringComparison.Ordinal)
+            && !source.Contains(".NextRandom", StringComparison.Ordinal)
+            && source.Contains(
+                ".CaptureCurrentOperationBlock()",
+                StringComparison.Ordinal),
+            "flow query contains an active gameplay probe instead of snapshot reads");
+    }
+
+    private static CharacterOperationBlockSnapshot CreateOperationBlock(
+        WorkTypeId workTypeId,
+        CharacterOperationBlockAxis axis,
+        AIActionFailureKind failureKind,
+        DomainFailure domainFailure,
+        CharacterAiRetryKind retryKind)
+    {
+        return new CharacterOperationBlockSnapshot(
+            workTypeId.Value,
+            workTypeId.Value,
+            "building:test",
+            "테스트 시설",
+            actionEpoch: 7L,
+            failure: AIActionFailure.Create(failureKind, "typed-test-failure"),
+            domainFailure: domainFailure,
+            axis: axis,
+            retryKind: retryKind,
+            isCurrent: true,
+            hasKnownExpiry: retryKind == CharacterAiRetryKind.FailureCooldown,
+            expiresAt: 14f);
+    }
+
+    private static void SetPrivateField(
+        object target,
+        string fieldName,
+        object value)
+    {
+        FieldInfo field = target.GetType().GetField(
+            fieldName,
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        if (field == null)
+        {
+            throw new MissingFieldException(target.GetType().FullName, fieldName);
+        }
+        field.SetValue(target, value);
+    }
+
+    private static void InvokePrivate(
+        object target,
+        string methodName,
+        params object[] arguments)
+    {
+        MethodInfo method = target.GetType().GetMethod(
+            methodName,
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        if (method == null)
+        {
+            throw new MissingMethodException(target.GetType().FullName, methodName);
+        }
+        method.Invoke(target, arguments);
     }
 
     private static GameplayFlowDiagnosticsSnapshot Build(

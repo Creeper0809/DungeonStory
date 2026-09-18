@@ -50,7 +50,7 @@ public static class MetaProgressionRestoreBuilder
             || source.latestResult == null)
         {
             throw new InvalidOperationException(
-                "Meta progression V1 payload is missing a required object or collection.");
+                "Meta progression current payload is missing a required object or collection.");
         }
         if (source.lifetimeEarnedCurrency < 0
             || source.spentCurrency < 0
@@ -170,6 +170,12 @@ public static class MetaProgressionRestoreBuilder
         DungeonRunResultSaveData source,
         int lifetimeEarnedCurrency)
     {
+        if (source.completedMilestoneIds == null
+            || source.committedChoices == null)
+        {
+            throw new InvalidOperationException(
+                "Meta run result is missing required committed-history collections.");
+        }
         RequireCanonicalTextOrEmpty(source.ownerName, "run-result owner name");
         RequireCanonicalTextOrEmpty(source.endReason, "run-result end reason");
         if (!IsFiniteNonNegative(source.survivalSeconds)
@@ -194,6 +200,55 @@ public static class MetaProgressionRestoreBuilder
             throw new InvalidOperationException(
                 "Meta run result contains an invalid enum, reference, or numeric range.");
         }
+
+        HashSet<string> milestoneIds = new(StringComparer.Ordinal);
+        foreach (string id in source.completedMilestoneIds)
+        {
+            RequireCanonicalId(id, "completed milestone");
+            if (!milestoneIds.Add(id))
+            {
+                throw new InvalidOperationException(
+                    $"Duplicate completed milestone id '{id}'.");
+            }
+        }
+
+        List<CommittedRunChoiceSnapshot> committedChoices = new();
+        HashSet<string> operations = new(StringComparer.Ordinal);
+        HashSet<string> decisions = new(StringComparer.Ordinal);
+        long expectedOrdinal = 0;
+        foreach (DungeonCommittedRunChoiceSaveData choice in source.committedChoices)
+        {
+            expectedOrdinal++;
+            if (choice == null
+                || !Enum.IsDefined(typeof(CommittedRunChoiceKind), choice.kind)
+                || choice.kind == CommittedRunChoiceKind.None)
+            {
+                throw new InvalidOperationException(
+                    "Meta run result contains a null or invalid committed choice.");
+            }
+            RequireCanonicalId(choice.ownerId, "committed-choice owner");
+            RequireCanonicalId(choice.definitionId, "committed-choice definition");
+            RequireCanonicalId(choice.instanceId, "committed-choice instance");
+            RequireCanonicalId(choice.choiceId, "committed-choice choice");
+            RequireCanonicalId(choice.operationId, "committed-choice operation");
+            string decisionKey =
+                $"{(int)choice.kind}:{choice.ownerId}:{choice.instanceId}";
+            if (choice.ordinal != expectedOrdinal
+                || !operations.Add(choice.operationId)
+                || !decisions.Add(decisionKey))
+            {
+                throw new InvalidOperationException(
+                    "Meta run result committed-choice order or identity is invalid.");
+            }
+            committedChoices.Add(new CommittedRunChoiceSnapshot(
+                choice.kind,
+                choice.ownerId,
+                choice.definitionId,
+                choice.instanceId,
+                choice.choiceId,
+                choice.operationId,
+                choice.ordinal));
+        }
         return new RunResultSnapshot(
             source.ownerName,
             source.endReason,
@@ -210,7 +265,9 @@ public static class MetaProgressionRestoreBuilder
             source.legacyCurrency,
             source.outcome,
             source.difficulty,
-            source.survivalPressure);
+            source.survivalPressure,
+            source.completedMilestoneIds,
+            committedChoices);
     }
 
     private static bool IsFiniteNonNegative(float value) =>

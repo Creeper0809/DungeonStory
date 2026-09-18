@@ -1,0 +1,3 @@
+PASS
+item=food:lavish-meat; qualityPolicy=True; facility=pending/restore-exact; field=pending/restore-exact; spoiled=abort; leaseReleased=True
+item=food:lavish-vegan; qualityPolicy=True; facility=pending/restore-exact; field=pending/restore-exact; spoiled=abort; leaseReleased=True

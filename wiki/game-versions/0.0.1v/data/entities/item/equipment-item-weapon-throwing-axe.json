@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "회전하며 날이 먼저 닿도록 무게를 맞춘 짧은 투척도끼다. 특히 아일라세라제 투척도끼에는 횡풍 쪽으로 한 치 비껴 잡는 손자국이 닳아 있다.",
+  "in_game_description": "회전하며 날이 먼저 닿도록 무게를 맞춘 짧은 투척도끼다. 아일라세라제 투척도끼에는 횡풍 쪽으로 한 치 비껴 잡는 손자국이 닳아 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

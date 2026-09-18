@@ -52,6 +52,14 @@ MonoBehaviour:
   nestTag: nest:high-bone-pile
   breedingSeason: 2
   migrationPatternId: migration:battlefield-scent
+  migrationProfile:
+    capability: 5
+    detectionRadiusCells: 12
+    signalScore: 9
+    minimumWaterRemainingRatio: 0
+    minimumCarcassQuantity: 1
+    minimumTemperatureC: 0
+    maximumTemperatureC: 0
   diseaseVectorIds:
   - disease:gut-rot
   activeSeasons: 0200000003000000

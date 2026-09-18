@@ -12,6 +12,15 @@
       "target_spoiler_tier": "none",
       "target_title": "기계 부품",
       "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-8861",
+      "target_spoiler_tier": "none",
+      "target_title": "도제 작업대",
+      "type": "requires"
     }
   ],
   "schema_version": 1,

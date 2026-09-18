@@ -1,0 +1,20 @@
+{
+  "catalogDirectory": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Artifacts\\Exports\\NarrativeMechanicCatalog\\20260915-v26-controlled-bridge-r3",
+  "controlledDirectory": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Artifacts\\Exports\\NarrativeControlledInputs\\20260915-v26-controlled-bridge-r3",
+  "controlledManifestSha256": "sha256:093c50311e6e603d0a00221e1d68eeeb153522e790d5210d8f50ec7955e2fa69",
+  "humanApprovalClaimed": false,
+  "result": {
+    "acceptedCount": 9,
+    "manifestPath": "F:/01_Programming/01_Project/02_Unity/DungeonStory/Artifacts/Exports/NarrativeControlledInputs/20260915-v26-controlled-bridge-r3/manifest.json",
+    "outputDirectory": "F:/01_Programming/01_Project/02_Unity/DungeonStory/Artifacts/Exports/NarrativeControlledInputs/20260915-v26-controlled-bridge-r3",
+    "rejectedCount": 0,
+    "schemaVersion": 1
+  },
+  "sourceHashes": {
+    "Assets/Scripts/Services/Character/AI/Editor/NarrativeControlledEquipmentCapture.cs": "sha256:ae7d7582bcd4b4e406da46c48710f07d937aa8bcfd88dac54899d5c400b5f9e7",
+    "Assets/Scripts/Services/Character/AI/Editor/NarrativeControlledFacilityCapture.cs": "sha256:7da84fdaa36cfc86223c84ff0ff64a65852391fb7c0548efa9759023fa67b585",
+    "Assets/Scripts/Services/Character/AI/Editor/NarrativeControlledInputExporter.cs": "sha256:e992141a53f2d88f1485b9945e3ffc9ebbcb015fc3092c1d2bf077d4bce09520",
+    "Assets/Scripts/Services/Character/AI/Editor/NarrativeControlledSkillCapture.cs": "sha256:04dd239d63056e68c751a5eb8643bb52b53644efe1256750cc84204b7eb91a81"
+  },
+  "trainingEligible": false
+}

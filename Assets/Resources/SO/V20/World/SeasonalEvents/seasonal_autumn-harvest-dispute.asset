@@ -21,6 +21,7 @@ MonoBehaviour:
   season: 2
   minimumDurationDays: 2
   maximumDurationDays: 3
+  worldWaterRegenerationMultiplier: 1
   affectedDomainIds:
   - faction
   - agriculture

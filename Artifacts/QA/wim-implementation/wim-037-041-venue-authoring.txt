@@ -1,0 +1,11 @@
+GUEST_CATALOG_13_HAS_EXACT_AUTHORED_VENUES=PASS
+FESTIVAL_CATALOG_16_HAS_EXACT_AUTHORED_VENUES=PASS
+LEGACY_FESTIVAL_DISK4_IS_NOT_PUBLISHED=PASS
+BUILDER_MANIFESTS_MATCH_PUBLISHED_VENUES=PASS
+wim-037-041-venue-authoring; RESULT=PASS; passed=4; failed=0; rows=4
+execution=main F Unity stopped; Wim037041VenueAuthoringDebugScenarios.RunAll returned success/diagnostics0
+runtime=136E25EA48EBA4AAF8BA6269AFDB123B785D9A5AEB408E994D745F9EF73D2DBC
+editor=42E61152E4428CB17C89F8A451BD9C7CD84C7068847834CAAF6AFC546833BC96
+no-op=both narrow Apply methods executed; inspectedAssets30; changedBytesOrDirty0; no full content rebuild
+counts=live guests13/festivals16; inspected folders include one excluded guest asset; legacy non-live festivals4 separately checked
+scope=authored mapping and no-op byte/Dirty identity; not festival participation, natural venue execution or six-adult balance

@@ -29,6 +29,9 @@ internal static class SurvivalFoodStatePersistence
 
         state.health ??= new List<SurvivalHealthSaveData>();
         state.mealLedger ??= new List<CharacterMealLedgerSaveData>();
+        state.activeTreatmentPlans ??=
+            new List<SurvivalTreatmentPlanSaveData>();
+        state.completedTreatmentOperationIds ??= new List<string>();
     }
 
     public static DungeonSurvivalSaveData Restore(DungeonSurvivalSaveData saveData)
@@ -56,8 +59,6 @@ internal static class SurvivalFoodStatePersistence
             lastMissingWater = state.lastMissingWater,
             consecutiveFoodShortageDays = state.consecutiveFoodShortageDays,
             consecutiveWaterShortageDays = state.consecutiveWaterShortageDays,
-            lastConsumedFuel = state.lastConsumedFuel,
-            lastMissingFuel = state.lastMissingFuel,
             sanitationRisk = state.sanitationRisk,
             diseaseRisk = state.diseaseRisk,
             exteriorNightDanger = state.exteriorNightDanger,
@@ -70,6 +71,14 @@ internal static class SurvivalFoodStatePersistence
                 .Select(CloneMeal)
                 .OrderBy(entry => entry.day)
                 .ThenBy(entry => GetRequiredMealSequence(entry))
+                .ToList(),
+            activeTreatmentPlans = state.activeTreatmentPlans
+                .Select(CloneTreatmentPlan)
+                .OrderBy(entry => entry.operationId, StringComparer.Ordinal)
+                .ToList(),
+            completedTreatmentOperationIds = state
+                .completedTreatmentOperationIds
+                .OrderBy(value => value, StringComparer.Ordinal)
                 .ToList()
         };
     }
@@ -98,7 +107,10 @@ internal static class SurvivalFoodStatePersistence
                 $"Survival resources payload V{payload.version} is unsupported; "
                 + $"expected V{DungeonSurvivalSaveData.CurrentVersion}.");
         }
-        if (payload.health == null || payload.mealLedger == null)
+        if (payload.health == null
+            || payload.mealLedger == null
+            || payload.activeTreatmentPlans == null
+            || payload.completedTreatmentOperationIds == null)
         {
             report.AddError(
                 "Survival resources payload has a null required collection.");
@@ -108,6 +120,7 @@ internal static class SurvivalFoodStatePersistence
         ValidateSummary(payload, report);
         ValidateHealth(payload.health, report);
         ValidateMeals(payload, report, itemCatalog);
+        ValidateTreatmentPlans(payload, report, itemCatalog);
     }
 
     public static long GetMealSequence(DungeonSurvivalSaveData payload)
@@ -147,6 +160,37 @@ internal static class SurvivalFoodStatePersistence
         };
     }
 
+    public static SurvivalTreatmentPlanSaveData CloneTreatmentPlan(
+        SurvivalTreatmentPlanSaveData entry)
+    {
+        if (entry == null)
+        {
+            throw new ArgumentNullException(nameof(entry));
+        }
+        return new SurvivalTreatmentPlanSaveData
+        {
+            operationId = entry.operationId,
+            patientId = entry.patientId,
+            facilityInstanceId = entry.facilityInstanceId,
+            serviceSessionId = entry.serviceSessionId,
+            itemDefinitionId = entry.itemDefinitionId,
+            sourceStackId = entry.sourceStackId,
+            destinationId = entry.destinationId,
+            usedBloodSubstitute = entry.usedBloodSubstitute,
+            phase = entry.phase,
+            physicalCommitOperationId = entry.physicalCommitOperationId,
+            physicalCommitReasonCode = entry.physicalCommitReasonCode,
+            physicalCommitId = entry.physicalCommitId,
+            physicalCommitSourceStackIds = (entry.physicalCommitSourceStackIds
+                    ?? new List<string>())
+                .ToList(),
+            physicalCommitQuantity = entry.physicalCommitQuantity,
+            physicalCommitInputMassGrams = entry.physicalCommitInputMassGrams,
+            physicalCommitPositionX = entry.physicalCommitPositionX,
+            physicalCommitPositionY = entry.physicalCommitPositionY
+        };
+    }
+
     public static CharacterActor FindActor(
         IEnumerable<CharacterActor> actors,
         string persistentId)
@@ -165,7 +209,10 @@ internal static class SurvivalFoodStatePersistence
 
     private static DungeonSurvivalSaveData Clone(DungeonSurvivalSaveData state)
     {
-        if (state.health == null || state.mealLedger == null)
+        if (state.health == null
+            || state.mealLedger == null
+            || state.activeTreatmentPlans == null
+            || state.completedTreatmentOperationIds == null)
         {
             throw new InvalidOperationException(
                 "Survival resources cannot clone a payload with null collections.");
@@ -183,13 +230,16 @@ internal static class SurvivalFoodStatePersistence
             lastMissingWater = state.lastMissingWater,
             consecutiveFoodShortageDays = state.consecutiveFoodShortageDays,
             consecutiveWaterShortageDays = state.consecutiveWaterShortageDays,
-            lastConsumedFuel = state.lastConsumedFuel,
-            lastMissingFuel = state.lastMissingFuel,
             sanitationRisk = state.sanitationRisk,
             diseaseRisk = state.diseaseRisk,
             exteriorNightDanger = state.exteriorNightDanger,
             health = state.health.Select(CloneHealth).ToList(),
-            mealLedger = state.mealLedger.Select(CloneMeal).ToList()
+            mealLedger = state.mealLedger.Select(CloneMeal).ToList(),
+            activeTreatmentPlans = state.activeTreatmentPlans
+                .Select(CloneTreatmentPlan)
+                .ToList(),
+            completedTreatmentOperationIds = state
+                .completedTreatmentOperationIds.ToList()
         };
     }
 
@@ -205,9 +255,7 @@ internal static class SurvivalFoodStatePersistence
             || payload.lastConsumedWater < 0
             || payload.lastMissingWater < 0
             || payload.consecutiveFoodShortageDays < 0
-            || payload.consecutiveWaterShortageDays < 0
-            || payload.lastConsumedFuel < 0
-            || payload.lastMissingFuel < 0)
+            || payload.consecutiveWaterShortageDays < 0)
         {
             report.AddError("Survival resources payload has invalid negative or future day/count state.");
         }
@@ -360,6 +408,127 @@ internal static class SurvivalFoodStatePersistence
                 sequence.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 StringComparison.Ordinal);
     }
+
+    private static void ValidateTreatmentPlans(
+        DungeonSurvivalSaveData payload,
+        DungeonGameRestoreReport report,
+        IItemDefinitionCatalog itemCatalog)
+    {
+        if (payload.activeTreatmentPlans.Count > 64
+            || payload.completedTreatmentOperationIds.Count > 512)
+        {
+            report.AddError(
+                "Survival treatment operation authority exceeds its bound.");
+        }
+
+        HashSet<string> active = new(StringComparer.Ordinal);
+        string previousOperationId = null;
+        foreach (SurvivalTreatmentPlanSaveData plan in
+                 payload.activeTreatmentPlans)
+        {
+            string operationId = plan?.operationId ?? string.Empty;
+            CharacterId patientId = new(plan?.patientId ?? string.Empty);
+            BuildingInstanceId facilityId = new(
+                plan?.facilityInstanceId ?? string.Empty);
+            ItemDefinitionId itemId = new(
+                plan?.itemDefinitionId ?? string.Empty);
+            ItemStackId sourceStackId = new(
+                plan?.sourceStackId ?? string.Empty);
+            bool primaryValid = plan != null
+                && new ConsumableOperationId(operationId).IsValid
+                && patientId.IsValid
+                && facilityId.IsValid
+                && itemId.IsValid
+                && sourceStackId.IsValid
+                && active.Add(operationId)
+                && (previousOperationId == null
+                    || string.CompareOrdinal(previousOperationId, operationId) < 0)
+                && Enum.IsDefined(typeof(SurvivalTreatmentPlanPhase), plan.phase)
+                && IsCanonicalOptional(plan.serviceSessionId)
+                && itemCatalog.TryGet(itemId, out ItemDefinitionSO definition)
+                && definition != null
+                && (definition.StockCategory is StockCategory.Medicine
+                    or StockCategory.Biological)
+                && plan.usedBloodSubstitute
+                    == (definition.StockCategory == StockCategory.Biological)
+                && string.Equals(
+                    plan.destinationId,
+                    CharacterConsumablesInputDestinationIdentity.Build(
+                        CharacterConsumablesInputKind.MedicalTreatment,
+                        facilityId,
+                        new ConsumableItemDefinitionId(itemId.Value)),
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    plan.physicalCommitOperationId,
+                    SurvivalFoodRuntime.CreateTreatmentPhysicalOperationId(
+                        operationId),
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    plan.physicalCommitReasonCode,
+                    SurvivalFoodRuntime.TreatmentPhysicalSinkReason,
+                    StringComparison.Ordinal);
+            if (!primaryValid)
+            {
+                report.AddError(
+                    "Survival treatment plans contain a null, non-canonical, duplicate, unordered, or incompatible owner row.");
+                continue;
+            }
+            previousOperationId = operationId;
+
+            bool commitPublished = plan.phase >=
+                SurvivalTreatmentPlanPhase.ItemCommitted;
+            List<string> sourceIds = plan.physicalCommitSourceStackIds;
+            bool commitFieldsValid = commitPublished
+                ? sourceIds != null
+                    && sourceIds.Count > 0
+                    && sourceIds.All(value => new ItemStackId(value).IsValid)
+                    && sourceIds.SequenceEqual(
+                        sourceIds.OrderBy(value => value, StringComparer.Ordinal),
+                        StringComparer.Ordinal)
+                    && sourceIds.Distinct(StringComparer.Ordinal).Count()
+                        == sourceIds.Count
+                    && sourceIds.Contains(plan.sourceStackId, StringComparer.Ordinal)
+                    && plan.physicalCommitQuantity == 1
+                    && plan.physicalCommitInputMassGrams > 0L
+                    && IsCanonicalRequired(plan.physicalCommitId)
+                : sourceIds != null
+                    && sourceIds.Count == 0
+                    && string.IsNullOrEmpty(plan.physicalCommitId)
+                    && plan.physicalCommitQuantity == 0
+                    && plan.physicalCommitInputMassGrams == 0L;
+            if (!commitFieldsValid)
+            {
+                report.AddError(
+                    $"Survival treatment plan '{operationId}' has inconsistent physical commit state.");
+            }
+        }
+
+        string previousCompleted = null;
+        HashSet<string> completed = new(StringComparer.Ordinal);
+        foreach (string operationId in payload.completedTreatmentOperationIds)
+        {
+            if (!new ConsumableOperationId(operationId).IsValid
+                || !IsCanonicalRequired(operationId)
+                || !completed.Add(operationId)
+                || active.Contains(operationId)
+                || previousCompleted != null
+                    && string.CompareOrdinal(previousCompleted, operationId) >= 0)
+            {
+                report.AddError(
+                    "Survival completed treatment operations contain a non-canonical, duplicate, active, or unordered ID.");
+                continue;
+            }
+            previousCompleted = operationId;
+        }
+    }
+
+    private static bool IsCanonicalRequired(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
+
+    private static bool IsCanonicalOptional(string value) =>
+        value != null
+        && (value.Length == 0 || IsCanonicalRequired(value));
 
     private static long GetRequiredMealSequence(CharacterMealLedgerSaveData meal)
     {

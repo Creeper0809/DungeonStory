@@ -1,0 +1,17 @@
+WIM063 retired facility supply guards — focused PASS
+Main F Unity, 2026-09-10; frozen source batch
+Runtime DLL UTC=09:27:53; Editor DLL UTC=09:27:55
+Unity idle snapshot=275236.648; Console at compile gate=0 errors/0 warnings
+Entry=FacilityShopDebugScenarios.RunRetirementSupplyFocused()
+Result=true; execution log=WIM063 retired supply + affected asset-preservation PASS
+Executed cases=retired/null/active-but-locked daily/basic offer and public purchase guard; affected purchase preserves authored asset
+Authority=BuildingSO.IsDeprecatedCompatibilityAsset, no content ID/name allowlist
+Retired direct offer is invalid and purchase rejects it before money changes.
+Active-but-locked definitions are not classified retired; existing unlock policy remains.
+Static review=GameContentCatalogAssetBuilder.EnsurePhysicalOfferDefinitions skips retired Building definitions.
+NOT_RUN=kit/catalog generator execution; actual asset/meta deletion; initial-scene reference transition; missing-reference/new-game deletion acceptance.
+No scene/asset deletion or save changes made for this supply subcheckpoint.
+FacilityShopSystem.cs SHA256=0CD9CE4FB05FDCC36C409102DF46BAD2B9F0407FA487D70F33E777ACB8379475
+GameContentCatalogAssetBuilder.cs SHA256=E5ACAE5518ADD5B26165E73FEA71C2ECF25A8E8EF59D8E8836D89166EF4D0255
+FacilityShopDebugScenarios.cs SHA256=9558C5C2C4476292BEE4C23D79F1B060A8E2101C604D2876622F1C0E40B8E8B8
+Scope=WIM063 partial, not full removal or overall WIM completion.

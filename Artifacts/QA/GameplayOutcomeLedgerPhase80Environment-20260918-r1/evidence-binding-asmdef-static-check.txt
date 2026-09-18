@@ -1,0 +1,20 @@
+check=evolution-persisted-evidence-binding-asmdef-boundary
+date=2026-09-18
+result=PASS
+compiler=C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/DotNetSdkRoslyn/csc.dll
+runtime=C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/NetCoreRuntime/dotnet.exe
+response=Library/Bee/artifacts/1900b0aE.dag/DungeonStory.Evolution.rsp
+extra-source=Assets/Scripts/Models/Evolution/Core/GameplayOutcomeEvidenceBindingSnapshot.cs
+command-shape=dotnet csc.dll @DungeonStory.Evolution.rsp /out:Temp/DungeonStory.Evolution.staticcheck.dll /refout:Temp/DungeonStory.Evolution.staticcheck.ref.dll <extra-source>
+diagnostics=none
+
+source-sha256:
+CDD9D24B0B10C00CD89563BEEF8D2A60ECA7AACBF7990359AD92BE01DFDCBB03  Assets/Scripts/Models/Evolution/Core/GameplayOutcomeEvidenceBindingSnapshot.cs
+ED3B3BE6092366B6A06DDA41917728BB136B9FC4E093653320613D051871D349  Assets/Scripts/Models/Evolution/Equipment/EquipmentEvolutionModels.cs
+3EC19F51652B6CCB80EC1DE96C64D6F55DB4F5A5CDB14EA4BA3E3A5CDEA19A03  Assets/Scripts/Models/Evolution/Core/EvolutionHistoryModels.cs
+
+boundary-proof:
+- DungeonStory.Evolution owns the primitive-only persisted binding DTO.
+- The DTO contains no GameplayOutcomes or presentation runtime type reference.
+- The default presentation layer validates and converts the primitive status code to GameplayOutcomeStatus.
+- Clone preserves raw corrupt values; authoritative restore/use validation rejects invalid status, negative revision/count, non-finite salience, invalid identity, duplicate descriptor IDs, and incomplete shape.

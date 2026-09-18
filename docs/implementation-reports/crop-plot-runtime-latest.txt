@@ -1,15 +1,18 @@
 # Crop Plot Runtime Verification
-utc=2026-09-04T15:52:10.6044465Z
+utc=2026-09-08T18:58:53.4253598Z
 playMode=True
-PASS CROP_OUTPUT_FACILITY_BUFFER_WAIT_RESTORE_RETRY_EXACT_ONCE plot=building:096abdbeaf0f46e986cdf63b471fdd59;harvest=0->6;capacityWait=true;frozenRestore=true;replayDelta=0;executionReceipt=true;physicalBatchJoin=true;terminalRestore=true;ackRetention=true
-plot=building:096abdbeaf0f46e986cdf63b471fdd59
+PASS CROP_ACTUAL_CELL_TEMPERATURE_GATE range=2..33;unobserved=waiting;outdoorFactorsOnce=true;indoorFactorsOnce=true
+PASS CROP_OUTPUT_FACILITY_BUFFER_WAIT_RESTORE_RETRY_EXACT_ONCE plot=building:fc840c385d5c4b70abf3ffb09ad86124;harvest=0->6;capacityWait=true;frozenRestore=true;replayDelta=0;executionReceipt=true;physicalBatchJoin=true;terminalRestore=true;ackRetention=true
+plot=building:fc840c385d5c4b70abf3ffb09ad86124
 crop=crop:twilight-grain
 materials=resource:clean-waterx1,seed-lot:twilight-grainx1,supply:nitrate-fertilizerx1
 harvest=0->6
-indoorPlot=building:d09b52ae73464f689de80add2ead8eda
+outdoorCycleWater=supplied:1;tickDelta=0
+indoorPlot=building:80d18dee63164921b687a0a857db3499
 indoorMaterials=material:charcoalx1,material:compostx1,resource:clean-waterx1,seed-lot:cave-mushroomx1,supply:mushroom-substratex1,supply:nitrate-fertilizerx1
 indoorPhase=Growing
-fungalPlot=building:0ef070c8ff4f430eb2708884d241f651
+indoorCycleWater=supplied:1;tickDelta=0
+fungalPlot=building:032d5584aeac4b92b3e7913e8d30b309
 fungalMaterials=material:compostx1,resource:clean-waterx1,seed-lot:cave-mushroomx1,supply:inoculated-logx1
 inoculatedLog=700g;consumed=1
 fungalPhase=Growing

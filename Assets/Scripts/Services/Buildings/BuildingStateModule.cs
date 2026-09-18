@@ -321,11 +321,17 @@ public sealed class FacilityRuntimeStateModule : IBuildingStateModule
     }
 
     public string ModuleId => BuildingStateModuleIds.FacilityOperation;
-    public int CurrentVersion => 2;
+    public int CurrentVersion => 3;
 
     public string CaptureState()
     {
-        return JsonUtility.ToJson(building.FacilityState.Clone());
+        FacilityRuntimeState state = building.FacilityState.Clone();
+        if (!state.IsValid(out string error))
+        {
+            throw new InvalidOperationException(
+                $"Cannot capture invalid facility runtime state: {error}");
+        }
+        return JsonUtility.ToJson(state);
     }
 
     public bool TryRestoreState(int version, string payload, out string error)
@@ -342,6 +348,10 @@ public sealed class FacilityRuntimeStateModule : IBuildingStateModule
             if (state == null)
             {
                 error = "payload did not contain facility runtime state";
+                return false;
+            }
+            if (!state.IsValid(out error))
+            {
                 return false;
             }
 

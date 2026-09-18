@@ -156,7 +156,7 @@ public static class BlueprintResearchDebugScenarios
         using ResearchScenarioWorld world = new ResearchScenarioWorld();
         BlueprintResearchRuntime runtime = world.CreateResearchRuntime();
         FacilityBlueprintSO blueprint = LoadBlueprint("BP_DefenseBasics");
-        BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(2, 0));
+        BuildableObject lab = world.Place("Q01_연구책상", new Vector2Int(2, 0));
         CharacterActor researcher = world.CreateCharacter("Species_Vampire", "Trait_Researcher");
         ResearchProjectSO project = LoadProject(blueprint.TargetResearchProjectId);
 
@@ -180,7 +180,7 @@ public static class BlueprintResearchDebugScenarios
         using ResearchScenarioWorld world = new ResearchScenarioWorld();
         BlueprintResearchRuntime runtime = world.CreateResearchRuntime();
         FacilityBlueprintSO blueprint = LoadBlueprint("BP_DefenseBasics");
-        BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(2, 0));
+        BuildableObject lab = world.Place("Q01_연구책상", new Vector2Int(2, 0));
         CharacterActor researcher = world.CreateCharacter("Species_Vampire", "Trait_Researcher");
         BuildingSO tacticalMap = LoadModularBuilding("G04_전술지도탁자");
         GameSessionState dayOne = CreateGameData(500);
@@ -214,7 +214,7 @@ public static class BlueprintResearchDebugScenarios
         using ResearchScenarioWorld world = new ResearchScenarioWorld();
         BlueprintResearchRuntime runtime = world.CreateResearchRuntime();
         FacilityBlueprintSO blueprint = LoadBlueprint("BP_BattleDining");
-        BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(2, 0));
+        BuildableObject lab = world.Place("Q01_연구책상", new Vector2Int(2, 0));
         CharacterActor researcher = world.CreateCharacter("Species_Vampire", "Trait_Researcher");
         ResearchProjectSO project = LoadProject(blueprint.TargetResearchProjectId);
 
@@ -274,7 +274,7 @@ public static class BlueprintResearchDebugScenarios
     private static bool VerifyOpenUnlockEntry()
     {
         FacilityBlueprintSO blueprint = ScriptableObject.CreateInstance<FacilityBlueprintSO>();
-        BuildingSO building = LoadBuilding("P1_ResearchLab");
+        BuildingSO building = LoadBuilding("Q01_연구책상");
         DebugBlueprintUnlock debugUnlock = new DebugBlueprintUnlock();
         blueprint.blueprintName = "확장 해금 테스트";
         blueprint.unlocks.Add(debugUnlock);
@@ -329,7 +329,7 @@ public static class BlueprintResearchDebugScenarios
     private static bool VerifyResearchSpeedUsesCharacterAndFacilityModifiers()
     {
         using ResearchScenarioWorld world = new ResearchScenarioWorld();
-        BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(2, 0));
+        BuildableObject lab = world.Place("Q01_연구책상", new Vector2Int(2, 0));
         CharacterActor fighter = world.CreateCharacter("Species_Orc", "Trait_Fighter");
         CharacterActor researcher = world.CreateCharacter("Species_Vampire", "Trait_Researcher");
 
@@ -355,7 +355,7 @@ public static class BlueprintResearchDebugScenarios
         using ResearchScenarioWorld world = new ResearchScenarioWorld();
         BlueprintResearchRuntime runtime = world.CreateResearchRuntime();
         FacilityBlueprintSO blueprint = LoadBlueprint("BP_DefenseBasics");
-        BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(2, 0));
+        BuildableObject lab = world.Place("Q01_연구책상", new Vector2Int(2, 0));
         CharacterActor researcher = world.CreateCharacter(
             "Species_Vampire",
             "Trait_Researcher");
@@ -396,7 +396,7 @@ public static class BlueprintResearchDebugScenarios
     {
         using ResearchScenarioWorld world = new ResearchScenarioWorld();
         BlueprintResearchRuntime runtime = world.CreateResearchRuntime();
-        BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(2, 0));
+        BuildableObject lab = world.Place("Q01_연구책상", new Vector2Int(2, 0));
         CharacterActor researcher = world.CreateCharacter("Species_Vampire", "Trait_Researcher");
         AbilityWork work = researcher.GetAbility<AbilityWork>();
         GridPathSearchResult search = world.Grid.SearchPath(Vector2Int.zero);
@@ -459,7 +459,7 @@ public static class BlueprintResearchDebugScenarios
 
     private static BuildingSO LoadBuilding(string assetName)
     {
-        return AssetDatabase.LoadAssetAtPath<BuildingSO>($"Assets/Resources/SO/Building/P1/{assetName}.asset");
+        return AssetDatabase.LoadAssetAtPath<BuildingSO>($"Assets/Resources/SO/Building/Modular/{assetName}.asset");
     }
 
     private static BuildingSO LoadModularBuilding(string assetName)

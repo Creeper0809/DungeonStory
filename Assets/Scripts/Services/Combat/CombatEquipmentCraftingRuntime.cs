@@ -107,6 +107,45 @@ public sealed class CombatEquipmentCraftingRuntime
     public IReadOnlyList<CombatEquipmentCraftOrderSaveData> Queue =>
         orders.AsReadOnly();
 
+    public CraftQualityAttemptEstimate CaptureQualityEstimate(string orderId)
+    {
+        CombatEquipmentCraftOrderSaveData order = orders.FirstOrDefault(value => value.orderId == orderId);
+        if (order == null || IsAmmunitionRecipe(order.definitionId))
+            return CraftQualityAttemptEstimate.Unavailable("품질 반복 대상 장비 주문 없음");
+        if (qualityResolver is not ICraftQualityProbabilityQuery probabilityQuery)
+            return CraftQualityAttemptEstimate.Unavailable("현재 품질 계산기가 확률 미리보기를 제공하지 않음");
+        if (!catalog.TryGet(order.definitionId, out CombatEquipmentDefinitionSO definition)
+            || !TryGetConcreteMaterials(order, out IReadOnlyDictionary<string, int> inputs))
+            return CraftQualityAttemptEstimate.Unavailable("장비·물리 재료 정의 확인 필요");
+        double bestProbability = -1d;
+        foreach (CharacterActor actor in characterWorld?.Characters ?? Array.Empty<CharacterActor>())
+        {
+            if (actor == null || !WorkerSelectionPolicyRules.IsEligible(
+                    order.workerPolicy, actor, narrativeQualification, out _)) continue;
+            double probability = probabilityQuery.EstimateSuccessProbability(order.minimumQuality,
+                GetEquipmentQualitySkill(actor), order.facilityQualityBonus, 0f,
+                Mathf.Clamp(order.craftWorkPerAttempt / 20f, 0f, 25f));
+            if (definition.AllowMythicInspiration
+                && ExtremeCraftInspirationRuntime.TryResolveRule(actor, out ExtremeCraftInspirationRule rule))
+            {
+                double mythic = Math.Round(Mathf.Clamp01(rule.mythicChance)
+                    * MythicCraftInspirationRules.RollScale, MidpointRounding.AwayFromZero)
+                    / MythicCraftInspirationRules.RollScale;
+                probability += (1d - probability) * mythic;
+            }
+            bestProbability = Math.Max(bestProbability, probability);
+        }
+        if (bestProbability < 0d)
+            return CraftQualityAttemptEstimate.Unavailable("조건에 맞는 작업자 미정 — 확률 산정 보류");
+        if (bestProbability > 0d && order.qualityStage == QualityTargetPipelineStage.TargetCurrentlyUnreachable)
+            return CraftQualityAttemptEstimate.Unavailable("주문은 현재 도달 불가 상태 — 특수 품질 조건 재검증 필요");
+        return CraftQualityAttemptEstimate.Create(bestProbability,
+            order.repeatLimitMode == QualityRepeatLimitMode.SafeLimits ? Mathf.Max(1, order.maximumAttempts) : null,
+            order.craftWorkPerAttempt, string.Empty, inputs.Values.Sum(),
+            "현재 적격 작업자 중 최고 성공률·단독 새 시도·주문 시설 보정 고정 추정 / 재료는 BOM 개수 합계"
+            + (order.workBudget > 0f ? " / WU 예산으로 조기 종료 가능" : string.Empty));
+    }
+
     public bool IsDefinitionUnlocked(string definitionId, out string failureReason)
     {
         failureReason = string.Empty;

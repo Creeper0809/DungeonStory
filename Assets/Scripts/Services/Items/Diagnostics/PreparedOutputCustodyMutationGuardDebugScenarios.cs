@@ -330,10 +330,11 @@ public static class PreparedOutputCustodyMutationGuardDebugScenarios
             components: custody);
         WorldItemStackRecord source = repository.RecordsById[stackId];
         string signature = ItemStackSignature.Create(source.itemId, source.components);
-        PhysicalItemRelocationService relocation = new(
+        DeterministicPhysicalItemRelocationOutcomeFixture outcomeFixture = new();
+        IPhysicalItemRelocationService relocation = outcomeFixture.CreateService(
             repository,
-            spawner,
             mass,
+            catalog,
             EditorNullItemMarkerPresenter.Instance);
 
         Require(!relocation.TryRelocateQuantity(
@@ -350,6 +351,7 @@ public static class PreparedOutputCustodyMutationGuardDebugScenarios
                 StringComparison.Ordinal)
             && source.position == new Vector2Int(2, 3)
             && source.quantity == 2
+            && outcomeFixture.PreparedCount == 0
             && ItemStackSignature.Create(source.itemId, source.components) == signature,
             "Whole-stack relocation mutated protected custody.");
         Require(!relocation.TryRelocateQuantity(
@@ -555,6 +557,217 @@ public static class PreparedOutputCustodyMutationGuardDebugScenarios
             grid = null;
             return false;
         }
+    }
+}
+
+/// <summary>
+/// Deterministic Editor-only joint-outcome fixture for physical relocation
+/// tests. It models a real prepared/commit/diagnostics contract; callers never
+/// replace mandatory outcome capture with a null or no-op participant.
+/// </summary>
+public sealed class DeterministicPhysicalItemRelocationOutcomeFixture :
+    IPhysicalItemRelocationOutcomeParticipant,
+    IGameplayOutcomeRecorder,
+    IGameplayOutcomeDiagnosticsQuery
+{
+    private readonly Dictionary<GameplayResultKey, GameplayOutcomeReplayIdentity>
+        identities = new();
+    private long nextSequence = 1L;
+
+    public int PreparedCount { get; private set; }
+    public int CommittedCount { get; private set; }
+
+    public IPhysicalItemRelocationService CreateService(
+        WorldItemRepository repository,
+        IPhysicalItemMassQuery mass,
+        IDungeonItemCatalogProvider catalog,
+        IItemMarkerPresenter markers) => new PhysicalItemRelocationService(
+        repository,
+        new PreparedPhysicalItemRelocationService(
+            repository,
+            mass,
+            catalog,
+            markers),
+        this,
+        this,
+        this);
+
+    public bool TryPrepare(
+        in PreparedPhysicalItemRelocationPreview preview,
+        out IPreparedPhysicalItemGameplayOutcome prepared,
+        out string failureReason)
+    {
+        prepared = null;
+        failureReason = string.Empty;
+        if (!preview.IsValid)
+        {
+            failureReason = "qa-physical-relocation-preview-invalid";
+            return false;
+        }
+
+        GameplayResultKey resultKey = new(
+            "qa.physical-item-relocation",
+            new GameplayOperationId(preview.Receipt.OperationId),
+            preview.OwnerRevision,
+            0);
+        string payloadHash = NarrativeInferenceHash.ComputeSha256Utf8(
+            FormattableString.Invariant(
+                $"{preview.Receipt.OperationId}|{preview.Receipt.SourceStackId}|{preview.Receipt.DestinationStackId}|{preview.Receipt.Quantity}|{preview.Receipt.MassGrams}|{preview.OwnerRevision}"));
+        PreparedCount++;
+        prepared = new PreparedOutcome(
+            this,
+            resultKey,
+            preview.OwnerRevision,
+            payloadHash,
+            identities.ContainsKey(resultKey));
+        return true;
+    }
+
+    private bool TryCommit(
+        GameplayResultKey resultKey,
+        long ownerRevision,
+        string payloadHash,
+        long expectedOwnerRevision,
+        out PhysicalGameplayOutcomeAttachment attachment,
+        out string failureReason)
+    {
+        attachment = default;
+        failureReason = string.Empty;
+        if (expectedOwnerRevision != ownerRevision)
+        {
+            failureReason = "qa-physical-relocation-owner-revision-mismatch";
+            return false;
+        }
+        if (!identities.TryGetValue(
+                resultKey,
+                out GameplayOutcomeReplayIdentity identity))
+        {
+            identity = new GameplayOutcomeReplayIdentity(
+                resultKey,
+                new GameplayOutcomeId(
+                    new GameplayOutcomeRunId(
+                        "run:qa-physical-item-relocation"),
+                    nextSequence++),
+                GameplayOutcomeReplayState.PublishedAcknowledged,
+                payloadHash);
+            identities.Add(resultKey, identity);
+            CommittedCount++;
+        }
+        else if (!string.Equals(
+                     identity.CanonicalPayloadHash,
+                     payloadHash,
+                     StringComparison.Ordinal))
+        {
+            failureReason = "qa-physical-relocation-replay-conflict";
+            return false;
+        }
+
+        attachment = new PhysicalGameplayOutcomeAttachment(
+            identity.ResultKey,
+            identity.OutcomeId,
+            identity.State,
+            identity.CanonicalPayloadHash);
+        return attachment.IsValid;
+    }
+
+    public GameplayOutcomeLedgerDiagnostics GetDiagnostics() => default;
+
+    public IReadOnlyList<GameplayOutcomeOutboxSnapshot> GetOutboxSnapshot() =>
+        Array.Empty<GameplayOutcomeOutboxSnapshot>();
+
+    public bool TryGetResultIdentity(
+        GameplayResultKey resultKey,
+        out GameplayOutcomeReplayIdentity identity) =>
+        identities.TryGetValue(resultKey, out identity);
+
+    public int RetryPendingDeliveries(int maximumCount) => 0;
+
+    public OutcomePrepareResult TryPrepare<TReceipt>(
+        in TReceipt receipt,
+        out PreparedOutcomeToken prepared) =>
+        throw DirectRecorderUse();
+
+    public OutcomePrepareResult TryReserve(
+        in OutcomeWriteRequirements requirements,
+        out PreparedOutcomeReservation reservation) =>
+        throw DirectRecorderUse();
+
+    public OutcomePrepareResult TryWriteReserved<TReceipt>(
+        in TReceipt receipt,
+        in PreparedOutcomeReservation reservation,
+        out PreparedOutcomeToken prepared) =>
+        throw DirectRecorderUse();
+
+    public void CancelReservation(
+        in PreparedOutcomeReservation reservation) =>
+        throw DirectRecorderUse();
+
+    public void CancelPrepared(in PreparedOutcomeToken prepared) =>
+        throw DirectRecorderUse();
+
+    public OutcomeCommitResult CommitPrepared(
+        in PreparedOutcomeToken prepared,
+        long expectedOwnerRevision,
+        out CommittedOutcomeToken committed) =>
+        throw DirectRecorderUse();
+
+    public OutcomeDeliveryResult TryDeliver(
+        in CommittedOutcomeToken committed) =>
+        throw DirectRecorderUse();
+
+    public OutcomeAcknowledgeResult Acknowledge(
+        in CommittedOutcomeToken committed) =>
+        throw DirectRecorderUse();
+
+    private static InvalidOperationException DirectRecorderUse() => new(
+        "The deterministic relocation fixture must capture outcomes through its typed participant.");
+
+    private sealed class PreparedOutcome :
+        IPreparedPhysicalItemGameplayOutcome
+    {
+        private readonly DeterministicPhysicalItemRelocationOutcomeFixture owner;
+        private readonly long ownerRevision;
+        private readonly string payloadHash;
+        private bool terminal;
+
+        internal PreparedOutcome(
+            DeterministicPhysicalItemRelocationOutcomeFixture owner,
+            GameplayResultKey resultKey,
+            long ownerRevision,
+            string payloadHash,
+            bool replay)
+        {
+            this.owner = owner;
+            ResultKey = resultKey;
+            this.ownerRevision = ownerRevision;
+            this.payloadHash = payloadHash;
+            IsCanonicalReplay = replay;
+        }
+
+        public GameplayResultKey ResultKey { get; }
+        public bool IsCanonicalReplay { get; }
+
+        public bool TryCommit(
+            long expectedOwnerRevision,
+            out PhysicalGameplayOutcomeAttachment attachment,
+            out bool canonicalCommitted,
+            out string failureReason)
+        {
+            if (terminal)
+                throw new InvalidOperationException(
+                    "The deterministic relocation outcome is already terminal.");
+            canonicalCommitted = owner.TryCommit(
+                ResultKey,
+                ownerRevision,
+                payloadHash,
+                expectedOwnerRevision,
+                out attachment,
+                out failureReason);
+            terminal = canonicalCommitted;
+            return canonicalCommitted;
+        }
+
+        public void Cancel() => terminal = true;
     }
 }
 #endif

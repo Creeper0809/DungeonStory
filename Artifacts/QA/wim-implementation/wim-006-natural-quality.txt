@@ -1,0 +1,9 @@
+PASS
+recipe=recipe:cold-work-suit
+physical-output-count=1
+real-loose-input-haul-and-fuelled-power=PASS
+natural-AutomationRuntime-work=13.83466
+manual-worker-contribution=0
+physical-apparel-target-and-cap=PASS
+research-and-buildings=FIXTURE_CHECKPOINT
+original-scene-save=NONE

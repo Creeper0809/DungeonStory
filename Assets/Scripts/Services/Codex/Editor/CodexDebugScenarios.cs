@@ -87,7 +87,7 @@ public static class CodexDebugScenarios
         CodexEntrySnapshot orc = runtime.State.GetSnapshot(CodexEntryCategory.Monster, "monster:Orc");
         CodexEntrySnapshot intruder = runtime.State.GetSnapshot(CodexEntryCategory.Invasion, CodexService.BreakthroughIntruderId);
         CodexEntrySnapshot spike = runtime.State.GetSnapshot(CodexEntryCategory.Facility, $"facility:{LoadBuilding("P1_SpikeTrap").id}");
-        CodexEntrySnapshot guard = runtime.State.GetSnapshot(CodexEntryCategory.Facility, $"facility:{LoadBuilding("P1_GuardRoom").id}");
+        CodexEntrySnapshot guard = runtime.State.GetSnapshot(CodexEntryCategory.Facility, $"facility:{LoadBuilding("G01_경비초소책상").id}");
 
         return slime != null
             && orc != null
@@ -155,12 +155,12 @@ public static class CodexDebugScenarios
         using CodexScenarioWorld world = new CodexScenarioWorld();
         CodexRuntime runtime = world.CreateRuntime();
         CharacterActor orc = world.CreateCharacter("Owner_Orc");
-        BuildableObject meatRestaurant = world.CreateFacility("P1_MeatRestaurant");
+        BuildableObject meatRestaurant = world.CreateFacility("D02_고기그릴");
 
         CharacterAiEditorTestDependencies.GameEvents.Publish(
             new FacilityVisitEvent(CharacterActor.From(orc), meatRestaurant));
         CodexEntrySnapshot orcEntry = runtime.State.GetSnapshot(CodexEntryCategory.Monster, "monster:Orc");
-        CodexEntrySnapshot restaurantEntry = runtime.State.GetSnapshot(CodexEntryCategory.Facility, $"facility:{LoadBuilding("P1_MeatRestaurant").id}");
+        CodexEntrySnapshot restaurantEntry = runtime.State.GetSnapshot(CodexEntryCategory.Facility, $"facility:{LoadBuilding("D02_고기그릴").id}");
 
         return orcEntry != null
             && ContainsLinePart(orcEntry, "관찰:")

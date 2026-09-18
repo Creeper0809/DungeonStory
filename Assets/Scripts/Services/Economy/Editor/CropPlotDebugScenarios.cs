@@ -16,6 +16,637 @@ public static class CropPlotDebugScenarios
     public const string RequestPath =
         "Temp/v27-crop-plot-runtime.request";
 
+    // Actual main services and actual player presenter, with an explicitly
+    // controlled environmental checkpoint. No natural farm/AI claim.
+    public static bool RunWim016LightObservationFocused(out string report)
+    {
+        var lines = new List<string> {
+            "WIM016 main field -> crop snapshot -> player presenter",
+            "scope=protected paused Play; real sow/WIP; controlled field checkpoints",
+            "not-tested=natural growth/depletion, staff AI, lamp construction, irrigation" };
+        GameObject fixture = null;
+        GameObject panel = null;
+        IEnvironmentalFieldPersistence fieldPersistence = null;
+        DungeonEnvironmentalFieldSaveData originalField = null;
+        try
+        {
+            Require(Application.isPlaying && Time.timeScale == 0,
+                "Requires protected paused disposable main Play.");
+            var scope = UnityEngine.Object.FindFirstObjectByType<DungeonRuntimeLifetimeScope>();
+            Require(scope?.Container != null, "Missing main scope.");
+            var runtime = scope.Container.Resolve<CropPlotRuntime>();
+            var items = scope.Container.Resolve<IWorldItemStackRuntime>();
+            var transfers = scope.Container.Resolve<IItemTransferService>();
+            var catalog = scope.Container.Resolve<IResourceEconomyContentCatalog>();
+            var research = scope.Container.Resolve<ProgressionSceneRuntimeReferences>().BlueprintResearch;
+            foreach (string id in new[] { "research:agriculture:gathering", "research:agriculture:field" })
+                Require(research.TryCompleteProjectImmediatelyForVerification(new ResearchProjectId(id), out string failure), failure);
+            Require(scope.Container.Resolve<IGridSystemProvider>().TryGetGrid(out Grid grid), "Missing grid.");
+            fieldPersistence = scope.Container.Resolve<IEnvironmentalFieldPersistence>();
+            originalField = fieldPersistence.Capture();
+            Require(catalog.TryGetCrop("crop:twilight-grain", out CropDefinitionSO crop), "Missing authored grain.");
+            fixture = new GameObject("Wim016_Light_Observation_Witness");
+            var plot = fixture.AddComponent<Facility>();
+            scope.Container.Inject(plot);
+            plot.SetGrid(grid);
+            plot.Initialization(LoadBuilding("P23"), new Vector2Int(4, 0));
+            runtime.Restore(runtime.BuildRestore(runtime.Capture()));
+            Require(runtime.TrySetCrop(plot, crop.CropId, out string cropFailure), cropFailure);
+            runtime.Tick();
+            string plotId = plot.RequirePersistentInstanceId().Value;
+            var waiting = runtime.Plots.Single(p => p.PlotId == plotId);
+            foreach (var input in waiting.RequiredMaterials)
+                Require(SpawnCropMaterial(items, transfers, crop, input.Key, input.Value,
+                    plot.centerPos, waiting.MaterialDestinationId, out int spawned) && spawned == input.Value,
+                    "Physical sow input preparation failed: " + input.Key);
+            runtime.Tick();
+            Require(runtime.TryGetWork(plot, BuiltInWorkTypeIds.Sow, out var sow) && sow.Available,
+                "Sow unavailable: " + sow.UnavailableReason);
+            Require(runtime.ApplyWork(plot, BuiltInWorkTypeIds.Sow, sow.RequiredWork, out bool done) && done,
+                "Actual sow failed.");
+            var presenter = scope.Container.Resolve<ICropPlotBuildingPanelPresenter>();
+            string before = JsonUtility.ToJson(runtime.Capture());
+            foreach (var row in new (float Light, float Multiplier, CropGrowthLightStatus Status, string Ui)[] {
+                (0, 0, CropGrowthLightStatus.Stopped, "광량·현재0·정지5·충분50·성장0%"),
+                (20, 1f / 3f, CropGrowthLightStatus.Slowed, "광량·현재20·정지5·충분50·성장33%"),
+                (50, 1, CropGrowthLightStatus.Normal, "광량·현재50·정지5·충분50·성장100%"),
+                (100, 1, CropGrowthLightStatus.Normal, "광량·현재100·정지5·충분50·성장100%"),
+                (0, 0, CropGrowthLightStatus.Stopped, "광량·현재0·정지5·충분50·성장0%") })
+            {
+                var field = JsonUtility.FromJson<DungeonEnvironmentalFieldSaveData>(JsonUtility.ToJson(originalField));
+                field.cells.RemoveAll(c => c.x == plot.centerPos.x && c.y == plot.centerPos.y);
+                field.cells.Add(new EnvironmentalCellSaveData { x = plot.centerPos.x, y = plot.centerPos.y,
+                    temperatureC = 20, airQuality = 100, lightLevel = row.Light });
+                fieldPersistence.Restore(fieldPersistence.PrepareRestore(field));
+                // Deliberately no crop Tick: environment revision alone must
+                // refresh a stopped plot's derived observation without mutation.
+                var observed = runtime.Plots.Single(p => p.PlotId == plotId);
+                Require(observed.CurrentLight == row.Light && observed.LightStatus == row.Status
+                    && Mathf.Approximately(observed.LightGrowthMultiplier, row.Multiplier),
+                    "Actual field change did not reach crop projection: " + row.Light);
+                Require(JsonUtility.ToJson(runtime.Capture()) == before,
+                    "Readonly light observation changed crop/water ownership.");
+                panel = new GameObject("Wim016_Crop_Panel_Witness", typeof(RectTransform), typeof(Canvas));
+                presenter.Render(panel.transform, plot, TMPro.TMP_Settings.defaultFontAsset, _ => { }, () => { });
+                string text = string.Join("\n", panel.GetComponentsInChildren<TMPro.TMP_Text>(true).Select(t => t.text));
+                string lightLine = text.Split('\n').SingleOrDefault(line => line.StartsWith("광량 ·", StringComparison.Ordinal));
+                Require(lightLine != null && lightLine.Replace(" ", "").Replace("\u00a0", "") == row.Ui,
+                    "Actual player crop panel light values stale/wrong: " + lightLine);
+                Require(text.Contains("급수") || text.Contains("수분"), "Crop panel lost separate water observation.");
+                lines.Add($"[PASS] actual field {row.Light} -> {observed.LightStatus}/{observed.LightGrowthMultiplier:R}; presenter contains light and water; readonly crop capture exact");
+                UnityEngine.Object.DestroyImmediate(panel);
+                panel = null;
+            }
+            lines.Add("result=PASS; controlled main-service/presenter witness, not natural UI selection or growth");
+            report = string.Join("\n", lines);
+            return true;
+        }
+        catch (Exception error)
+        {
+            lines.Add("result=FAIL\n" + error);
+            report = string.Join("\n", lines);
+            return false;
+        }
+        finally
+        {
+            if (panel != null) UnityEngine.Object.DestroyImmediate(panel);
+            if (fixture != null) UnityEngine.Object.DestroyImmediate(fixture);
+            if (fieldPersistence != null && originalField != null)
+                fieldPersistence.Restore(fieldPersistence.PrepareRestore(originalField));
+        }
+    }
+
+    // Root-owned scoped service witness. Run only in disposable protected Play,
+    // after the medical witness is terminal and before Stop. It deliberately
+    // prepares a dry current-format checkpoint; it is not a natural growth/AI test.
+    public static string StartWim016FiniteNetworkFocused()
+    {
+        Require(Application.isPlaying,
+            "Operator must enter a new disposable main Play session before this witness.");
+        Require(UnityEngine.Object.FindFirstObjectByType<Wim016FiniteNetworkPlayModeRunner>() == null,
+            "Finite-network witness is already running; do not start a duplicate.");
+        var scope = UnityEngine.Object.FindFirstObjectByType<DungeonRuntimeLifetimeScope>();
+        Require(scope?.Container != null, "Missing main scope; do not run before initialization.");
+        // Reuse the verified WIM048 public persistence protection, before any fixture,
+        // party action or clock advancement. No user save/settings file is written.
+        var saveCommands = scope.Container.Resolve<IDungeonSaveCommandService>();
+        var metaPersistence = scope.Container.Resolve<MetaProfilePersistenceService>();
+        Require(saveCommands is IDisposable && metaPersistence is IDisposable,
+            "Cannot protect the disposable session's persistence services.");
+        ((IDisposable)saveCommands).Dispose();
+        ((IDisposable)metaPersistence).Dispose();
+        UnityEngine.Object.FindFirstObjectByType<GameManager>().isPause = true;
+        scope.Container.Resolve<IGameTimeScaleController>().Scale = 0f;
+        new GameObject("Wim016FiniteNetworkWitness")
+            .AddComponent<Wim016FiniteNetworkPlayModeRunner>();
+        return "RUNNING: " + Wim016FiniteNetworkPlayModeRunner.ReportPath;
+    }
+
+    public static IEnumerator PrepareWim016FiniteNetworkFocused(IList<string> lines)
+    {
+        Require(Application.isPlaying && Time.timeScale == 0f,
+            "Main Play must be paused during witness preparation.");
+        var scope = UnityEngine.Object.FindFirstObjectByType<DungeonRuntimeLifetimeScope>();
+        Require(scope?.Container != null, "Missing main scope.");
+        var owner = UnityEngine.Object.FindFirstObjectByType<OwnerRunManager>();
+        Require(owner != null, "Main owner manager is unavailable.");
+        if (owner.CurrentOwnerActor == null)
+        {
+            Require(scope.Container.Resolve<IDungeonSpaceExpansionCommand>()
+                    .TryReconcileNewRunTierZero(out var expansion, out string expansionFailure),
+                "Normal TierZero preparation failed: " + expansionFailure);
+            Require(expansion.CurrentInteriorColumns == 29,
+                "Unexpected authored TierZero; do not change capacity just for this test.");
+            var ownerButton = Resources.FindObjectsOfTypeAll<UnityEngine.UI.Button>()
+                .SingleOrDefault(value => value != null && value.gameObject.scene.isLoaded
+                    && value.gameObject.activeInHierarchy && value.name == "OwnerOption_1001");
+            Require(ownerButton != null && ownerButton.IsInteractable()
+                    && PlayModeVerificationFrameWait.DispatchPointerClick(ownerButton.gameObject, Vector2.zero),
+                "Actual owner preparation UI is unavailable.");
+            yield return StartPartyPlayModeTestDriver.CompleteIfVisible(30f);
+            UnityEngine.Object.FindFirstObjectByType<GameManager>().isPause = true;
+            scope.Container.Resolve<IGameTimeScaleController>().Scale = 0f;
+            Require(owner.CurrentOwnerActor != null, "Actual party UI did not create the main owner.");
+            lines.Add("setup=persistence disposed before actual owner/party UI; normal TierZero; re-paused; no save writes");
+        }
+        Require(scope.Container.Resolve<IGridSystemProvider>().TryGetGrid(out Grid grid),
+            "Missing real main Grid.");
+        var research = scope.Container.Resolve<ProgressionSceneRuntimeReferences>().BlueprintResearch;
+        foreach (string id in new[] { "gathering", "field", "compost", "irrigation" })
+            Require(research.TryCompleteProjectImmediatelyForVerification(
+                    new ResearchProjectId("research:agriculture:" + id), out string failure),
+                "Research fixture preparation failed: " + failure);
+        var definitions = new[]
+        {
+            LoadBuilding("RF02"),
+            AssetDatabase.LoadAssetAtPath<BuildingSO>(
+                "Assets/Resources/SO/Building/Industrial/I08_상수_탱크.asset"),
+            LoadBuilding("P23")
+        };
+        Require(definitions.All(value => value != null), "Missing authored RF02/I08/P23.");
+        var offsets = new[] { Vector2Int.zero, new Vector2Int(2, 0), new Vector2Int(4, 0) };
+        var layouts = scope.Container.Resolve<IRoomLayoutCache>();
+        Vector2Int? selected = null;
+        foreach (var room in layouts.GetLayout(grid).Rooms.Where(value => value != null && value.IsUsable)
+                     .OrderBy(value => value.Bounds.yMin).ThenBy(value => value.Bounds.xMin))
+        {
+            foreach (Vector2Int cell in room.Cells.OrderBy(value => value.y).ThenBy(value => value.x))
+            {
+                bool legal = true;
+                var claimed = new HashSet<(GridLayer, Vector2Int)>();
+                for (int index = 0; index < definitions.Length && legal; index++)
+                {
+                    BuildingSO definition = definitions[index];
+                    legal = definition.GetGridPosList(cell + offsets[index]).All(footprint =>
+                        room.ContainsCell(footprint)
+                        && grid.GetGridCell(footprint) is GridCell gridCell
+                        && gridCell.CanBuildInArea(definition)
+                        && gridCell.CanOccupy(definition.Placement.Layer)
+                        && claimed.Add((definition.Placement.Layer, footprint)));
+                }
+                if (!legal) continue;
+                selected = cell;
+                break;
+            }
+            if (selected.HasValue) break;
+        }
+        Require(selected.HasValue, "No existing usable room has a legal six-cell witness footprint.");
+        var factory = scope.Container.Resolve<IGridBuildingObjectFactory>();
+        var placed = new BuildableObject[3];
+        for (int index = 0; index < placed.Length; index++)
+        {
+            Vector2Int anchor = selected.Value + offsets[index];
+            BuildingSO definition = definitions[index];
+            BuildableObject building = factory.Create(grid, definition, anchor);
+            Require(building != null, "Main building factory rejected witness.");
+            placed[index] = building;
+            foreach (MonoBehaviour component in building.GetComponentsInChildren<MonoBehaviour>(true))
+                scope.Container.Inject(component);
+            building.SetGrid(grid);
+            building.Initialization(definition, anchor);
+            Require(grid.RegisterOccupant(building, definition.Placement.Layer,
+                    definition.GetGridPosList(anchor), definition.Placement.IsMovement),
+                "Main Grid rejected preflighted witness footprint.");
+        }
+        lines.Add($"setup=existing usable room; RF02={placed[0].centerPos}; I08={placed[1].centerPos}; P23={placed[2].centerPos}; factory placement/research/input are controlled preparation");
+        IEnumerator witness = RunWim016FiniteNetworkFocused(placed[2], placed[1], placed[0], lines);
+        try
+        {
+            while (witness.MoveNext()) yield return witness.Current;
+        }
+        finally
+        {
+            (witness as IDisposable)?.Dispose();
+            // Do not destroy registered owners in isolation: operator stops disposable
+            // Play after observing the result, reverting the complete prepared world.
+        }
+    }
+
+    // Root-owned integration witness. The caller supplies real, registered main-world
+    // buildings in a legal room, and must protect persistence before disposable Play.
+    // This does not substitute direct irrigation calls for the normal crop scheduler.
+    public static IEnumerator RunWim016FiniteNetworkFocused(
+        BuildableObject plot,
+        BuildableObject tank,
+        BuildableObject irrigator,
+        IList<string> lines)
+    {
+        Require(Application.isPlaying && Time.timeScale == 0f,
+            "Requires paused, persistence-protected disposable main Play.");
+        var scope = UnityEngine.Object.FindFirstObjectByType<DungeonRuntimeLifetimeScope>();
+        Require(scope?.Container != null, "Missing main runtime scope.");
+        var services = scope.Container;
+        var runtime = services.Resolve<CropPlotRuntime>();
+        var fluid = services.Resolve<IFluidInfrastructureTransaction>();
+        var water = services.Resolve<IFluidInfrastructureQuery>();
+        var irrigation = services.Resolve<ICropIrrigationRuntime>();
+        var fluidPersistence = services.Resolve<IFluidInfrastructurePersistence>();
+        var saves = services.Resolve<IDungeonGameSaveService>();
+        var clock = services.Resolve<IGameClock>();
+        var game = UnityEngine.Object.FindFirstObjectByType<GameManager>();
+        var timeScale = services.Resolve<IGameTimeScaleController>();
+        var world = services.Resolve<IBuildingWorldQuery>();
+        var items = services.Resolve<IWorldItemStackRuntime>();
+        var transfers = services.Resolve<IItemTransferService>();
+        var catalog = services.Resolve<IResourceEconomyContentCatalog>();
+        Require(game != null && new[] { plot, tank, irrigator }.All(value =>
+                value != null && world.Buildings.Contains(value)),
+            "Witness buildings must belong to the real published main world.");
+        Require(plot.BuildingData?.id == 1095 && tank.BuildingData?.id == 9817
+                && irrigator.BuildingData?.id == 8802,
+            "Witness must use authored P23, I08 and RF02 definitions.");
+        Require(services.Resolve<IFacilityCapabilityQuery>()
+                .FindOperational(FacilityCapabilityKind.None).Contains(irrigator),
+            "RF02 must have an actual usable room, not a detached eligibility stub.");
+        Require(water.TryGetNetwork(tank, out var tankNetwork)
+                && water.TryGetNetwork(irrigator, out var irrigationNetwork)
+                && tankNetwork.NetworkId == irrigationNetwork.NetworkId
+                && tankNetwork.Channel == UtilityChannel.CleanWater
+                && tankNetwork.CleanWater == 0f,
+            "Requires an empty, isolated real I08/RF02 clean-water network.");
+        string isolatedNetworkId = tankNetwork.NetworkId;
+        string plotInstanceId = plot.RequirePersistentInstanceId().Value;
+        string tankInstanceId = tank.RequirePersistentInstanceId().Value;
+        string irrigatorInstanceId = irrigator.RequirePersistentInstanceId().Value;
+        Require(world.Buildings.Count(value => value != null
+                && water.TryGetNetwork(value, out var network)
+                && network.NetworkId == isolatedNetworkId) == 2,
+            "Finite source has another connected producer or consumer.");
+        Require(catalog.TryGetCrop("crop:twilight-grain", out CropDefinitionSO crop),
+            "Missing authored crop:twilight-grain.");
+        runtime.Restore(runtime.BuildRestore(runtime.Capture()));
+        Require(runtime.TrySetCrop(plot, crop.CropId, out string cropFailure), cropFailure);
+        runtime.Tick(); // Paused preparation only; never drive Tick during live frames.
+        string plotId = plotInstanceId;
+        CropPlotSnapshot row = runtime.Plots.Single(value => value.PlotId == plotId);
+        foreach (var input in row.RequiredMaterials)
+            Require(SpawnCropMaterial(items, transfers, crop, input.Key, input.Value,
+                    plot.centerPos, row.MaterialDestinationId, out int spawned)
+                && spawned == input.Value, "Physical sow input failed: " + input.Key);
+        runtime.Tick();
+        Require(runtime.TryGetWork(plot, BuiltInWorkTypeIds.Sow, out var sow)
+                && sow.Available, "Authored sow work unavailable.");
+        Require(runtime.ApplyWork(plot, BuiltInWorkTypeIds.Sow, sow.RequiredWork,
+                out bool sowed) && sowed, "Physical sow did not commit.");
+        row = runtime.Plots.Single(value => value.PlotId == plotId);
+        Require(row.Phase == CropPlotPhase.Growing && row.CurrentWater == 1f,
+            "Sow must publish exactly one initial water.");
+
+        // Explicit counterfactual checkpoint: no natural time-to-dry claim is made.
+        var dry = runtime.Capture();
+        var dryRow = dry.plots.Single(value => value.buildingInstanceId == plotId);
+        Require(dryRow.waterRefill.phase == CropWaterRefillPhase.None,
+            "Cannot overwrite a manual refill owner to prepare irrigation.");
+        dryRow.currentWater = 0f;
+        runtime.Restore(runtime.BuildRestore(dry));
+        var request = new CropIrrigationRequest(plot, true, 0f, 2f, false);
+        var assessment = irrigation.Assess(request);
+        string emptyCrop = JsonUtility.ToJson(runtime.Capture());
+        string emptyFluid = JsonUtility.ToJson(fluidPersistence.Capture());
+        Require(assessment.Status == CropIrrigationStatus.WaterUnavailable
+                && water.TryGetNetwork(tank, out tankNetwork)
+                && tankNetwork.CleanWater == 0f,
+            "Empty actual clean-water network did not expose an unavailable irrigation state.");
+        for (int query = 0; query < 5; query++)
+        {
+            irrigation.Assess(request);
+            _ = runtime.Plots;
+            _ = runtime.Capture();
+        }
+        Require(JsonUtility.ToJson(runtime.Capture()) == emptyCrop
+                && JsonUtility.ToJson(fluidPersistence.Capture()) == emptyFluid,
+            "Unavailable irrigation observation mutated crop or physical fluid authority.");
+        Require(RenderCropPanelText(services, plot).Contains(
+                "배관망에 깨끗한 물이 부족",
+                StringComparison.Ordinal),
+            "Actual crop panel did not expose the empty-network reason.");
+        lines.Add("[PASS] empty actual network -> unavailable UI; repeated assess/capture leaves crop and fluid byte-equivalent");
+
+        DungeonGameSaveData dryWhole = saves.FromJson(saves.ToJson(saves.Capture()));
+        runtime.Tick();
+        row = runtime.Plots.Single(value => value.PlotId == plotId);
+        Require(row.WaterRefillPhase == CropWaterRefillPhase.WaitingForDelivery,
+            "Empty network did not publish the real manual refill owner.");
+        Require(fluid.TryAdd(tank, WorldWaterQuality.Clean, 1f, out float manualBudget)
+                && manualBudget == 1f,
+            "Manual-owner suppression budget must be exactly one water.");
+        assessment = irrigation.Assess(new CropIrrigationRequest(
+            plot, true, 0f, 2f, true));
+        float manualGameStart = clock.Time;
+        float manualWallStart = Time.realtimeSinceStartup;
+        game.isPause = false;
+        timeScale.Scale = 1f;
+        while (clock.Time - manualGameStart < 0.333333f
+            && Time.realtimeSinceStartup - manualWallStart < 15f)
+            yield return null;
+        game.isPause = true;
+        timeScale.Scale = 0f;
+        row = runtime.Plots.Single(value => value.PlotId == plotId);
+        Require(assessment.Status == CropIrrigationStatus.ManualRefillActive
+                && clock.Time - manualGameStart >= 0.333333f
+                && row.CurrentWater == 0f
+                && row.WaterRefillPhase != CropWaterRefillPhase.None
+                && water.TryGetNetwork(tank, out tankNetwork)
+                && tankNetwork.CleanWater == 1f,
+            "A live positive-time scheduler did not preserve manual-owner suppression without debit.");
+        Require(RenderCropPanelText(services, plot).Contains(
+                "관개 · 직원 급수 진행 중",
+                StringComparison.Ordinal),
+            "Actual crop panel did not distinguish manual-owner suppression.");
+        lines.Add("[PASS] positive-time real scheduler with manual refill owner + recovered tank1 -> auto debit0/crop credit0; presenter=manual active");
+
+        Require(saves.TryRestore(dryWhole, out DungeonGameRestoreReport dryRestore)
+                && dryRestore.Success,
+            "Current whole-world dry checkpoint restore failed: "
+            + string.Join(" | ", dryRestore.Errors));
+        plot = ResolveLiveBuilding(services, plotInstanceId);
+        tank = ResolveLiveBuilding(services, tankInstanceId);
+        irrigator = ResolveLiveBuilding(services, irrigatorInstanceId);
+        Require(runtime.Plots.Single(value => value.PlotId == plotId)
+                    .WaterRefillPhase == CropWaterRefillPhase.None
+                && water.TryGetNetwork(tank, out tankNetwork)
+                && tankNetwork.CleanWater == 0f,
+            "Whole restore did not clear the controlled manual owner and recover exact empty fluid state.");
+        Require(fluid.TryAdd(tank, WorldWaterQuality.Clean, 1f, out float accepted)
+                && accepted == 1f,
+            "Finite preparation budget must be exactly one water.");
+        request = new CropIrrigationRequest(plot, true, 0f, 2f, false);
+        assessment = irrigation.Assess(request);
+        Require(assessment.Status == CropIrrigationStatus.Available
+                && assessment.IrrigatorId.Equals(irrigator.RequirePersistentInstanceId()),
+            "Actual research/room/network/access route did not recover.");
+        Require(RenderCropPanelText(services, plot).Contains(
+                "관개 · 공급 가능",
+                StringComparison.Ordinal),
+            "Actual crop panel did not expose recovered irrigation availability.");
+
+        DungeonGameSaveData availableWhole = saves.FromJson(
+            saves.ToJson(saves.Capture()));
+        Require(saves.TryRestore(availableWhole, out DungeonGameRestoreReport availableRestore)
+                && availableRestore.Success,
+            "Current whole-world finite-water restore failed: "
+            + string.Join(" | ", availableRestore.Errors));
+        plot = ResolveLiveBuilding(services, plotInstanceId);
+        tank = ResolveLiveBuilding(services, tankInstanceId);
+        irrigator = ResolveLiveBuilding(services, irrigatorInstanceId);
+        row = runtime.Plots.Single(value => value.PlotId == plotId);
+        Require(row.CurrentWater == 0f
+                && row.WaterRefillPhase == CropWaterRefillPhase.None
+                && water.TryGetNetwork(tank, out tankNetwork)
+                && tankNetwork.CleanWater == 1f,
+            "Finite-water whole restore filled the crop, duplicated water or created an owner.");
+        lines.Add("[PASS] current whole-save low-water restore: crop0/owner none/tank1 exact; presenter unavailable->manual->available");
+
+        string pausedBefore = JsonUtility.ToJson(runtime.Capture());
+        for (int query = 0; query < 5; query++)
+        {
+            irrigation.Assess(request);
+            _ = runtime.Plots;
+            _ = runtime.Capture();
+        }
+        Require(JsonUtility.ToJson(runtime.Capture()) == pausedBefore
+                && water.TryGetNetwork(tank, out tankNetwork) && tankNetwork.CleanWater == 1f,
+            "Paused observation consumed finite water or changed crop ownership/state.");
+        lines.Add("[PASS] real registered room/network/access; paused query/capture leaves crop and tank1 unchanged");
+
+        float gameStart = clock.Time;
+        float realStart = Time.realtimeSinceStartup;
+        try
+        {
+            game.isPause = false;
+            timeScale.Scale = 1f;
+            bool supplied = false;
+            while (Time.realtimeSinceStartup - realStart < 15f)
+            {
+                yield return null; // Observe the normal main-world scheduler once per frame.
+                Require(water.TryGetNetwork(tank, out tankNetwork), "Live tank lost its network.");
+                if (tankNetwork.CleanWater != 0f) continue;
+                supplied = true;
+                break;
+            }
+            game.isPause = true;
+            timeScale.Scale = 0f;
+            float elapsed = clock.Time - gameStart;
+            row = runtime.Plots.Single(value => value.PlotId == plotId);
+            Require(supplied && elapsed > 0f,
+                "No real-clock supply; elapsed game seconds=" + elapsed);
+            // Maximum authored dry-weather depletion bounds any observation lag.
+            // The expected credit is independent (1), not computed by the supplier.
+            float maximumDepletion = crop.DailyWater
+                * plot.BuildingData.GetAbility<BuildingCropPlotAbility>().WaterMultiplier
+                * elapsed / 180f;
+            Require(row.CurrentWater > 0f && row.CurrentWater <= 1f
+                    && row.CurrentWater >= 1f - maximumDepletion - 0.0001f,
+                "Tank debit did not yield exactly one crop credit minus bounded live depletion.");
+            Require(row.WaterRefillPhase == CropWaterRefillPhase.None,
+                "Same supply also created a competing manual refill owner.");
+            string suppliedSnapshot = JsonUtility.ToJson(runtime.Capture());
+            for (int query = 0; query < 5; query++)
+            {
+                _ = runtime.Plots;
+                _ = runtime.Capture();
+                irrigation.Assess(new CropIrrigationRequest(plot, true,
+                    row.CurrentWater, row.WaterCapacity, false));
+            }
+            Require(JsonUtility.ToJson(runtime.Capture()) == suppliedSnapshot
+                    && water.TryGetNetwork(tank, out tankNetwork) && tankNetwork.CleanWater == 0f,
+                "Paused post-supply observation replayed or regenerated water.");
+            float terminalWater = row.CurrentWater;
+            DungeonGameSaveData terminalWhole = saves.FromJson(
+                saves.ToJson(saves.Capture()));
+            Require(saves.TryRestore(terminalWhole, out DungeonGameRestoreReport terminalRestore)
+                    && terminalRestore.Success,
+                "Terminal irrigated whole-world restore failed: "
+                + string.Join(" | ", terminalRestore.Errors));
+            plot = ResolveLiveBuilding(services, plotInstanceId);
+            tank = ResolveLiveBuilding(services, tankInstanceId);
+            row = runtime.Plots.Single(value => value.PlotId == plotId);
+            Require(Mathf.Approximately(row.CurrentWater, terminalWater)
+                    && row.WaterRefillPhase == CropWaterRefillPhase.None
+                    && water.TryGetNetwork(tank, out tankNetwork)
+                    && tankNetwork.CleanWater == 0f,
+                "Terminal restore replayed irrigation debit/credit or changed the owner.");
+            lines.Add($"[PASS] actual clock {elapsed:0.######}s / wall {Time.realtimeSinceStartup - realStart:0.###}s: tank1->0, crop={row.CurrentWater:0.######}, no competing owner/replay");
+            lines.Add("[PASS] terminal current whole-save restore preserves tank0/crop credit and does not replay supply");
+            lines.Add("scope=controlled dry checkpoint + real main clock/crop scheduler/fluid network/current whole-save/presenter; not natural staff haul, full cycle or six-adult proof");
+        }
+        finally
+        {
+            game.isPause = true;
+            timeScale.Scale = 0f;
+        }
+    }
+
+    private static string RenderCropPanelText(
+        IObjectResolver services,
+        BuildableObject plot)
+    {
+        GameObject panel = new(
+            "Wim016IrrigationPanelWitness",
+            typeof(RectTransform),
+            typeof(Canvas));
+        try
+        {
+            services.Resolve<ICropPlotBuildingPanelPresenter>().Render(
+                panel.transform,
+                plot,
+                TMPro.TMP_Settings.defaultFontAsset,
+                _ => { },
+                () => { });
+            return string.Join(
+                "\n",
+                panel.GetComponentsInChildren<TMPro.TMP_Text>(true)
+                    .Select(value => value.text));
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(panel);
+        }
+    }
+
+    private static BuildableObject ResolveLiveBuilding(
+        IObjectResolver services,
+        string instanceId) => services.Resolve<IBuildingWorldQuery>()
+        .Buildings
+        .Single(value => value != null
+            && string.Equals(
+                value.PersistentInstanceId.Value,
+                instanceId,
+                StringComparison.Ordinal));
+
+    public static bool RunWim016WaterRefillFocused(out string report)
+    {
+        var lines = new List<string> { "WIM016 actual crop refill service witness",
+            "scope=authored detached facility + real input/WIP gateway, controlled dry checkpoint",
+            "not-tested=natural depletion, staff AI/haul, irrigation, save-section staging, whole-world restore" };
+        GameObject fixture = null;
+        try
+        {
+            Require(Application.isPlaying && Time.timeScale == 0f,
+                "Requires paused disposable protected main Play.");
+            var scope = UnityEngine.Object.FindFirstObjectByType<DungeonRuntimeLifetimeScope>();
+            Require(scope?.Container != null, "Missing main runtime scope.");
+            var runtime = scope.Container.Resolve<CropPlotRuntime>();
+            var items = scope.Container.Resolve<IWorldItemStackRuntime>();
+            var transfers = scope.Container.Resolve<IItemTransferService>();
+            var catalog = scope.Container.Resolve<IResourceEconomyContentCatalog>();
+            var research = scope.Container.Resolve<ProgressionSceneRuntimeReferences>().BlueprintResearch;
+            foreach (string id in new[] { "research:agriculture:gathering", "research:agriculture:field" })
+                Require(research.TryCompleteProjectImmediatelyForVerification(new ResearchProjectId(id), out string failure),
+                    "Research fixture preparation failed: " + failure);
+            Require(scope.Container.Resolve<IGridSystemProvider>().TryGetGrid(out Grid grid), "Grid missing.");
+            BuildingSO authored = LoadBuilding("P23");
+            Require(authored != null && catalog.TryGetCrop("crop:twilight-grain", out _), "Authored plot/crop missing.");
+            catalog.TryGetCrop("crop:twilight-grain", out CropDefinitionSO crop);
+            fixture = new GameObject("Wim016_Refill_Service_Witness");
+            var plot = fixture.AddComponent<Facility>();
+            scope.Container.Inject(plot);
+            plot.SetGrid(grid);
+            plot.Initialization(authored, new Vector2Int(4, 0));
+            runtime.Restore(runtime.BuildRestore(runtime.Capture()));
+            Require(runtime.TrySetCrop(plot, crop.CropId, out string cropFailure), cropFailure);
+            runtime.Tick();
+            string plotId = plot.RequirePersistentInstanceId().Value;
+            CropPlotSnapshot current = runtime.Plots.Single(p => p.PlotId == plotId);
+            const string water = "resource:clean-water";
+            Require(current.RequiredMaterials.TryGetValue(water, out int initialWater) && initialWater == 1,
+                "Sow must consume one initial water, not full cycle prepayment.");
+            foreach (var input in current.RequiredMaterials)
+                Require(SpawnCropMaterial(items, transfers, crop, input.Key, input.Value, plot.centerPos,
+                        current.MaterialDestinationId, out int spawned) && spawned == input.Value,
+                    "Physical fixture input failed: " + input.Key);
+            runtime.Tick();
+            Require(runtime.TryGetWork(plot, BuiltInWorkTypeIds.Sow, out var sow) && sow.Available,
+                "Sow work unavailable: " + sow.UnavailableReason);
+            Require(runtime.ApplyWork(plot, BuiltInWorkTypeIds.Sow, sow.RequiredWork, out bool sowed) && sowed,
+                "Sow did not commit.");
+            current = runtime.Plots.Single(p => p.PlotId == plotId);
+            Require(current.Phase == CropPlotPhase.Growing && Mathf.Approximately(current.CurrentWater, 1f),
+                "Actual sow receipt did not initialize exactly one water.");
+            lines.Add("[PASS] physical initial water1 -> sow -> growing/currentWater1");
+
+            var dry = runtime.Capture();
+            dry.plots.Single(p => p.buildingInstanceId == plotId).currentWater = 0f;
+            runtime.Restore(runtime.BuildRestore(dry));
+            runtime.Tick();
+            current = runtime.Plots.Single(p => p.PlotId == plotId);
+            Require(current.WaterGrowthMultiplier == 0f && current.WaterRefillPhase == CropWaterRefillPhase.WaitingForDelivery,
+                "Dry checkpoint did not stop growth and request a refill.");
+            string destination = current.WaterRefillDestinationId;
+            int beforeSpawn = CountItem(items, water);
+            Require(items.SpawnItemAt(water, 1, plot.centerPos, WorldItemStackState.FacilityBuffer,
+                    destination, out int delivered) && delivered == 1, "Exact refill buffer admission failed.");
+            runtime.Tick();
+            current = runtime.Plots.Single(p => p.PlotId == plotId);
+            Require(current.CurrentWater == 0f && CountItem(items, water) == beforeSpawn + 1,
+                "Delivery alone consumed water or restored moisture.");
+            Require(runtime.TryGetWork(plot, BuiltInWorkTypeIds.Treat, out var work)
+                && work.Available && Mathf.Approximately(work.RequiredWork, 1f),
+                "Authored P23 refill work must be1WU and available after delivery.");
+            Require(runtime.ApplyWork(plot, BuiltInWorkTypeIds.Treat, 0.5f, out bool completed) && !completed,
+                "Partial refill unexpectedly completed.");
+            var partial = runtime.Capture();
+            var partialRow = partial.plots.Single(p => p.buildingInstanceId == plotId);
+            Require(partialRow.currentWater == 0f && partialRow.waterRefill.completedWork == 0.5f
+                && CountItem(items, water) == beforeSpawn + 1, "Partial work changed physical water/moisture.");
+            Require(!runtime.TrySetCrop(plot, crop.CropId, out _), "Active refill allowed crop replacement.");
+            var restored = JsonUtility.FromJson<DungeonCropPlotSaveData>(JsonUtility.ToJson(partial));
+            runtime.Restore(runtime.BuildRestore(restored));
+            runtime.Tick();
+            var resumed = runtime.Capture().plots.Single(p => p.buildingInstanceId == plotId);
+            Require(resumed.waterRefill.destinationId == destination && resumed.waterRefill.completedWork == 0.5f
+                && resumed.currentWater == 0f && CountItem(items, water) == beforeSpawn + 1,
+                "Partial current-format restore reset progress, moisture or physical quantity.");
+            lines.Add("[PASS] delivery/0.5WU no consumption or moisture; active owner retained; partial DTO restore exact");
+            Require(runtime.ApplyWork(plot, BuiltInWorkTypeIds.Treat, 0.5f, out completed) && completed,
+                "Resumed refill did not complete exact remaining work.");
+            current = runtime.Plots.Single(p => p.PlotId == plotId);
+            Require(Mathf.Approximately(current.CurrentWater, 1f)
+                && current.WaterRefillPhase == CropWaterRefillPhase.None
+                && CountItem(items, water) == beforeSpawn, "Refill WIP/ACK did not consume1 and publish1 once.");
+            Require(!runtime.ApplyWork(plot, BuiltInWorkTypeIds.Treat, 1f, out _),
+                "Completed refill accepted duplicate work without a new owner.");
+            runtime.Restore(runtime.BuildRestore(runtime.Capture()));
+            current = runtime.Plots.Single(p => p.PlotId == plotId);
+            Require(Mathf.Approximately(current.CurrentWater, 1f) && CountItem(items, water) == beforeSpawn,
+                "Terminal runtime DTO round-trip replayed water consumption/moisture.");
+            lines.Add("[PASS] remaining0.5WU -> consume1/publish1/ACK; duplicate work rejected; terminal runtime DTO round-trip exact");
+            lines.Add("PASS; controlled service/runtime DTO evidence only; operator MUST Stop disposable Play");
+            report = string.Join("\n", lines);
+            return true;
+        }
+        catch (Exception error)
+        {
+            lines.Add("FAIL: " + error);
+            report = string.Join("\n", lines);
+            return false;
+        }
+        finally
+        {
+            if (fixture != null) UnityEngine.Object.DestroyImmediate(fixture);
+        }
+    }
+
     [MenuItem("Tools/DungeonStory/Economy/Request Crop Plot Runtime Verification")]
     public static void RequestRuntimeVerification()
     {
@@ -114,6 +745,11 @@ public static class CropPlotDebugScenarios
                     "crop:twilight-grain",
                     out CropDefinitionSO crop),
                 "twilight grain definition is missing.");
+            const string WaterItemId = "resource:clean-water";
+            lines.Add(VerifyTemperatureGate(
+                crop,
+                outdoorPlot.GetAbility<BuildingCropPlotAbility>(),
+                indoorPlot.GetAbility<BuildingCropPlotAbility>()));
 
             plotObject = new GameObject("CropPlot_Runtime_Verifier");
             Facility plot = plotObject.AddComponent<Facility>();
@@ -171,7 +807,12 @@ public static class CropPlotDebugScenarios
                 waiting.Phase == CropPlotPhase.WaitingForMaterials,
                 $"unexpected initial phase={waiting.Phase}");
             Require(
-                waiting.RequiredMaterials.Count > 0,
+                waiting.RequiredMaterials.TryGetValue(
+                    WaterItemId,
+                    out int outdoorWaterRequired)
+                && waiting.CycleWaterSupplyStatus
+                    == CropCycleWaterSupplyStatus.AwaitingCycleSupply
+                && waiting.CycleWaterQuantity == outdoorWaterRequired,
                 "outdoor crop plot requested no physical water.");
             foreach (KeyValuePair<string, int> material in waiting.RequiredMaterials)
             {
@@ -212,6 +853,8 @@ public static class CropPlotDebugScenarios
             Require(
                 growing.phase == CropPlotPhase.Growing,
                 $"crop did not enter growing phase: {growing.phase}");
+            CropPlotSnapshot outdoorGrowing = runtime.Plots.Single(entry =>
+                entry.PlotId == waiting.PlotId);
             Require(
                 growing.cycleExecutionReceipt.status
                     == CropCycleExecutionReceiptStatus.Active
@@ -224,6 +867,25 @@ public static class CropPlotDebugScenarios
                     CropExecutionActionId,
                     out _),
                 "Active Crop execution receipt was not durable or became observable before terminal completion.");
+            Require(
+                outdoorGrowing.CycleWaterSupplyStatus
+                    == CropCycleWaterSupplyStatus.SuppliedForCurrentCycle
+                && outdoorGrowing.CycleWaterQuantity == outdoorWaterRequired,
+                "Outdoor cycle water supply was not projected from its active sow receipt.");
+            int outdoorWaterAfterSow = CountItem(items, WaterItemId);
+            runtime.Restore(runtime.BuildRestore(growingSave));
+            CropPlotSnapshot restoredOutdoorGrowing = runtime.Plots.Single(entry =>
+                entry.PlotId == waiting.PlotId);
+            Require(
+                restoredOutdoorGrowing.CycleWaterSupplyStatus
+                    == CropCycleWaterSupplyStatus.SuppliedForCurrentCycle
+                && restoredOutdoorGrowing.CycleWaterQuantity
+                    == outdoorWaterRequired,
+                "Outdoor cycle water supply drifted across crop-plot restore.");
+            runtime.Tick();
+            Require(
+                CountItem(items, WaterItemId) == outdoorWaterAfterSow,
+                "Outdoor growth tick consumed the sow-paid cycle water again.");
             growing.growthHours = crop.GrowthHours;
             runtime.Restore(runtime.BuildRestore(growingSave));
             runtime.Tick();
@@ -334,14 +996,13 @@ public static class CropPlotDebugScenarios
 
             CropPlotSnapshot indoorWaiting = runtime.Plots.Single(entry =>
                 entry.PlotId == indoor.RequirePersistentInstanceId().Value);
-            const string waterItemId = "resource:clean-water";
             string fuelItemId = indoorWaiting.RequiredMaterials.Keys
                 .SingleOrDefault(itemId => catalog.TryGetItem(
                         itemId,
                         out ResourceItemDefinitionSO definition)
                     && (definition.IngredientTags & ResourceIngredientTag.Fuel) != 0);
             Require(
-                indoorWaiting.RequiredMaterials.ContainsKey(waterItemId)
+                indoorWaiting.RequiredMaterials.ContainsKey(WaterItemId)
                 && indoorWaiting.RequiredMaterials.ContainsKey("material:compost")
                 && !string.IsNullOrWhiteSpace(fuelItemId)
                 && indoorWaiting.RequiredMaterials.ContainsKey(fuelItemId),
@@ -352,10 +1013,15 @@ public static class CropPlotDebugScenarios
                     out CropDefinitionSO indoorCrop),
                 "cave mushroom definition is missing.");
 
-            int waterRequired = indoorWaiting.RequiredMaterials[waterItemId];
+            int waterRequired = indoorWaiting.RequiredMaterials[WaterItemId];
+            Require(
+                indoorWaiting.CycleWaterSupplyStatus
+                    == CropCycleWaterSupplyStatus.AwaitingCycleSupply
+                && indoorWaiting.CycleWaterQuantity == waterRequired,
+                "Indoor pending cycle water quantity was not projected.");
             Require(
                 items.SpawnItemAt(
-                    waterItemId,
+                    WaterItemId,
                     waterRequired,
                     indoor.centerPos,
                     WorldItemStackState.FacilityBuffer,
@@ -376,7 +1042,7 @@ public static class CropPlotDebugScenarios
                      indoorWaiting.RequiredMaterials.Where(entry =>
                          !string.Equals(
                              entry.Key,
-                             waterItemId,
+                             WaterItemId,
                              StringComparison.Ordinal)))
             {
                 Require(
@@ -414,6 +1080,16 @@ public static class CropPlotDebugScenarios
             Require(
                 indoorGrowing.Phase == CropPlotPhase.Growing,
                 $"Indoor crop did not start growing: {indoorGrowing.Phase}");
+            Require(
+                indoorGrowing.CycleWaterSupplyStatus
+                    == CropCycleWaterSupplyStatus.SuppliedForCurrentCycle
+                && indoorGrowing.CycleWaterQuantity == waterRequired,
+                "Indoor cycle water supply was not projected from its active sow receipt.");
+            int indoorWaterAfterSow = CountItem(items, WaterItemId);
+            runtime.Tick();
+            Require(
+                CountItem(items, WaterItemId) == indoorWaterAfterSow,
+                "Indoor growth tick consumed the sow-paid cycle water again.");
 
             Require(
                 catalog.TryGetItem(
@@ -494,12 +1170,16 @@ public static class CropPlotDebugScenarios
                 waiting.RequiredMaterials.Select(entry =>
                     $"{entry.Key}x{entry.Value}")));
             lines.Add($"harvest={stockBefore}->{stockAfter}");
+            lines.Add(
+                $"outdoorCycleWater=supplied:{outdoorWaterRequired};tickDelta=0");
             lines.Add($"indoorPlot={indoorWaiting.PlotId}");
             lines.Add("indoorMaterials=" + string.Join(
                 ",",
                 indoorWaiting.RequiredMaterials.Select(entry =>
                     $"{entry.Key}x{entry.Value}")));
             lines.Add($"indoorPhase={indoorGrowing.Phase}");
+            lines.Add(
+                $"indoorCycleWater=supplied:{waterRequired};tickDelta=0");
             lines.Add($"fungalPlot={fungalWaiting.PlotId}");
             lines.Add("fungalMaterials=" + string.Join(
                 ",",
@@ -567,6 +1247,88 @@ public static class CropPlotDebugScenarios
             .FirstOrDefault(building =>
                 building?.GetAbility<BuildingFacilityPartAbility>()?.code
                 == code);
+    }
+
+    private static string VerifyTemperatureGate(
+        CropDefinitionSO crop,
+        BuildingCropPlotAbility outdoorAbility,
+        BuildingCropPlotAbility indoorAbility)
+    {
+        CropGenomePhenotype phenotype = new(
+            coldToleranceDegrees: 2f,
+            heatToleranceDegrees: 3f,
+            growthMultiplier: 1.16f,
+            yieldMultiplier: 1f,
+            diseaseRiskMultiplier: 1f,
+            seedYieldBonus: 0);
+        Vector2 authored = crop.TemperatureRange;
+        float minimum = authored.x - phenotype.ColdToleranceDegrees;
+        float maximum = authored.y + phenotype.HeatToleranceDegrees;
+        CropGrowthTemperatureEvaluation waiting =
+            CropGrowthCycleAuthority.EvaluateTemperature(
+                crop,
+                phenotype,
+                hasEnvironmentObservation: false,
+                observedTemperatureC: 0f);
+        CropGrowthTemperatureEvaluation cold =
+            CropGrowthCycleAuthority.EvaluateTemperature(
+                crop,
+                phenotype,
+                hasEnvironmentObservation: true,
+                observedTemperatureC: minimum - 0.1f);
+        CropGrowthTemperatureEvaluation suitable =
+            CropGrowthCycleAuthority.EvaluateTemperature(
+                crop,
+                phenotype,
+                hasEnvironmentObservation: true,
+                observedTemperatureC: minimum);
+        CropGrowthTemperatureEvaluation hot =
+            CropGrowthCycleAuthority.EvaluateTemperature(
+                crop,
+                phenotype,
+                hasEnvironmentObservation: true,
+                observedTemperatureC: maximum + 0.1f);
+        Require(
+            waiting.Status
+                == CropGrowthTemperatureStatus.WaitingForEnvironmentObservation
+            && cold.Status == CropGrowthTemperatureStatus.TooCold
+            && suitable.Status == CropGrowthTemperatureStatus.Suitable
+            && hot.Status == CropGrowthTemperatureStatus.TooHot
+            && suitable.MinimumTemperatureC == minimum
+            && suitable.MaximumTemperatureC == maximum,
+            "Actual crop-cell temperature gate or genome tolerance drifted.");
+
+        SurvivalEnvironmentSnapshot rain = new(
+            SurvivalWeatherType.Rain,
+            outdoorTemperature: -999f,
+            exteriorNightDanger: 0f,
+            sanitationRisk: 0f,
+            diseaseRisk: 0f);
+        float outdoor = CropGrowthCycleAuthority.ResolveOutdoorRuntimeMultiplier(
+            outdoorAbility,
+            phenotype,
+            rain,
+            cropCalendarOperational: true);
+        float outdoorExpected = outdoorAbility.GrowthMultiplier
+            * CropGrowthCycleAuthority.OutdoorRainMultiplier
+            * CropGrowthCycleAuthority.CropCalendarMultiplier
+            * phenotype.GrowthMultiplier;
+        float indoor = CropGrowthCycleAuthority.ResolveIndoorRuntimeMultiplier(
+            indoorAbility,
+            climateControlOperational: true,
+            cropCalendarOperational: true,
+            phenotype);
+        float indoorExpected = indoorAbility.GrowthMultiplier
+            * CropGrowthCycleAuthority.ClimateControlMultiplier
+            * CropGrowthCycleAuthority.CropCalendarMultiplier
+            * phenotype.GrowthMultiplier;
+        Require(
+            Mathf.Approximately(outdoor, outdoorExpected)
+            && Mathf.Approximately(indoor, indoorExpected),
+            "Temperature eligibility duplicated existing indoor or outdoor growth multipliers.");
+        return "PASS CROP_ACTUAL_CELL_TEMPERATURE_GATE "
+            + $"range={minimum:0.#}..{maximum:0.#};"
+            + "unobserved=waiting;outdoorFactorsOnce=true;indoorFactorsOnce=true";
     }
 
     private static int CountItem(
@@ -1074,6 +1836,45 @@ public static class CropPlotDebugScenarios
         string absolutePath = Path.GetFullPath(ReportPath);
         Directory.CreateDirectory(Path.GetDirectoryName(absolutePath) ?? ".");
         File.WriteAllLines(absolutePath, lines);
+    }
+}
+
+public sealed class Wim016FiniteNetworkPlayModeRunner : MonoBehaviour
+{
+    public const string ReportPath = "Artifacts/QA/wim-implementation/wim-016-finite-network-runtime.txt";
+
+    private IEnumerator Start()
+    {
+        var lines = new List<string> { "WIM016 finite real-network / actual-clock witness", "status=RUNNING" };
+        Directory.CreateDirectory(Path.GetDirectoryName(ReportPath));
+        File.WriteAllLines(ReportPath, lines);
+        IEnumerator test = CropPlotDebugScenarios.PrepareWim016FiniteNetworkFocused(lines);
+        Exception failure = null;
+        while (true)
+        {
+            bool moved;
+            object current;
+            try
+            {
+                moved = test.MoveNext();
+                current = moved ? test.Current : null;
+            }
+            catch (Exception error)
+            {
+                failure = error;
+                break;
+            }
+            if (!moved) break;
+            yield return current;
+        }
+        try { (test as IDisposable)?.Dispose(); }
+        catch (Exception error) { failure ??= error; }
+        lines[1] = failure == null ? "status=PASS" : "status=FAIL";
+        if (failure != null) lines.Add(failure.ToString());
+        lines.Add("Operator must stop protected disposable Play; no save-section/full-cycle/AI completion claimed.");
+        File.WriteAllLines(ReportPath, lines);
+        Debug.Log("WIM016_FINITE_NETWORK_" + (failure == null ? "PASS" : "FAIL") + ": " + ReportPath);
+        Destroy(gameObject);
     }
 }
 

@@ -39,6 +39,12 @@
     {
       "aliases": [],
       "kind": "character",
+      "slug": "funeral-culture-human",
+      "title": "Funeral_Human"
+    },
+    {
+      "aliases": [],
+      "kind": "character",
       "slug": "funeral-culture-kobold",
       "title": "Funeral_Kobold"
     },
@@ -99,6 +105,12 @@
     {
       "aliases": [],
       "kind": "character",
+      "slug": "life-history-human",
+      "title": "Life_Human"
+    },
+    {
+      "aliases": [],
+      "kind": "character",
       "slug": "life-history-kobold",
       "title": "Life_Kobold"
     },
@@ -155,6 +167,12 @@
       "kind": "character",
       "slug": "reproduction-harpy",
       "title": "Reproduction_Harpy"
+    },
+    {
+      "aliases": [],
+      "kind": "character",
+      "slug": "reproduction-human",
+      "title": "Reproduction_Human"
     },
     {
       "aliases": [],
@@ -341,6 +359,12 @@
       "kind": "character",
       "slug": "trait-513",
       "title": "과식"
+    },
+    {
+      "aliases": [],
+      "kind": "character",
+      "slug": "acquired-trait-module-social-bridge",
+      "title": "관계의 다리"
     },
     {
       "aliases": [],
@@ -885,6 +909,18 @@
     {
       "aliases": [],
       "kind": "character",
+      "slug": "acquired-trait-module-scar-memory",
+      "title": "상흔의 기억"
+    },
+    {
+      "aliases": [],
+      "kind": "character",
+      "slug": "acquired-trait-module-survival-instinct",
+      "title": "생존 본능"
+    },
+    {
+      "aliases": [],
+      "kind": "character",
       "slug": "history-mason",
       "title": "석공"
     },
@@ -1083,6 +1119,12 @@
     {
       "aliases": [],
       "kind": "character",
+      "slug": "character-archetype-9010",
+      "title": "아린"
+    },
+    {
+      "aliases": [],
+      "kind": "character",
       "slug": "character-archetype-9005",
       "title": "아자라"
     },
@@ -1103,6 +1145,12 @@
       "kind": "character",
       "slug": "trait-202",
       "title": "안정된 발놀림"
+    },
+    {
+      "aliases": [],
+      "kind": "character",
+      "slug": "acquired-trait-module-night-vigil",
+      "title": "야간 경계"
     },
     {
       "aliases": [],
@@ -1233,6 +1281,12 @@
     {
       "aliases": [],
       "kind": "character",
+      "slug": "acquired-trait-module-ritual-attunement",
+      "title": "의례적 공명"
+    },
+    {
+      "aliases": [],
+      "kind": "character",
       "slug": "proficiency-medicine",
       "title": "의료"
     },
@@ -1263,6 +1317,12 @@
     {
       "aliases": [],
       "kind": "character",
+      "slug": "characterspecies-11",
+      "title": "인간"
+    },
+    {
+      "aliases": [],
+      "kind": "character",
       "slug": "trait-412",
       "title": "인내심"
     },
@@ -1271,6 +1331,12 @@
       "kind": "character",
       "slug": "character-archetype-1101",
       "title": "일반 직원"
+    },
+    {
+      "aliases": [],
+      "kind": "character",
+      "slug": "acquired-trait-module-work-rhythm",
+      "title": "일의 리듬"
     },
     {
       "aliases": [],
@@ -1313,6 +1379,12 @@
       "kind": "character",
       "slug": "heritable-cold-blood-adaptation",
       "title": "저온 대사 적응"
+    },
+    {
+      "aliases": [],
+      "kind": "character",
+      "slug": "acquired-trait-module-battle-temper",
+      "title": "전장의 담력"
     },
     {
       "aliases": [],
@@ -1595,6 +1667,12 @@
       "kind": "character",
       "slug": "trait-227",
       "title": "회수 전문가"
+    },
+    {
+      "aliases": [],
+      "kind": "character",
+      "slug": "acquired-trait-module-steady-hands",
+      "title": "흔들림 없는 손"
     },
     {
       "aliases": [],
@@ -2463,6 +2541,12 @@
     {
       "aliases": [],
       "kind": "event",
+      "slug": "faction-contract-myconid-winter-fuel-demand",
+      "title": "균사정원 겨울 연료 요청"
+    },
+    {
+      "aliases": [],
+      "kind": "event",
       "slug": "faction-contract-myconid-crisis",
       "title": "균사정원 위기 대응 계약"
     },
@@ -2493,6 +2577,12 @@
     {
       "aliases": [],
       "kind": "event",
+      "slug": "faction-contract-kobold-winter-fuel-demand",
+      "title": "깊은톱니 굴 겨울 연료 요청"
+    },
+    {
+      "aliases": [],
+      "kind": "event",
       "slug": "faction-contract-kobold-crisis",
       "title": "깊은톱니 굴 위기 대응 계약"
     },
@@ -2513,6 +2603,12 @@
       "kind": "event",
       "slug": "guest-request-plague-screening",
       "title": "대상단 검역"
+    },
+    {
+      "aliases": [],
+      "kind": "event",
+      "slug": "faction-contract-golem-winter-fuel-demand",
+      "title": "돌맥 주조소 겨울 연료 요청"
     },
     {
       "aliases": [],
@@ -2589,6 +2685,12 @@
     {
       "aliases": [],
       "kind": "event",
+      "slug": "faction-contract-beastkin-winter-fuel-demand",
+      "title": "붉은발톱 교역소 겨울 연료 요청"
+    },
+    {
+      "aliases": [],
+      "kind": "event",
       "slug": "faction-contract-beastkin-crisis",
       "title": "붉은발톱 교역소 위기 대응 계약"
     },
@@ -2603,12 +2705,6 @@
       "kind": "event",
       "slug": "faction-contract-beastkin-supply",
       "title": "붉은발톱 교역소 정기 물자 계약"
-    },
-    {
-      "aliases": [],
-      "kind": "event",
-      "slug": "guest-request-monster-circus",
-      "title": "비전 생물 시연"
     },
     {
       "aliases": [],
@@ -2645,6 +2741,12 @@
       "kind": "event",
       "slug": "practice-kobold-bench-feast",
       "title": "작업대 잔치"
+    },
+    {
+      "aliases": [],
+      "kind": "event",
+      "slug": "faction-contract-demon-winter-fuel-demand",
+      "title": "잿빛 계약정 겨울 연료 요청"
     },
     {
       "aliases": [],
@@ -2705,6 +2807,12 @@
       "kind": "event",
       "slug": "practice-myconid-spore-return",
       "title": "포자 귀환"
+    },
+    {
+      "aliases": [],
+      "kind": "event",
+      "slug": "faction-contract-harpy-winter-fuel-demand",
+      "title": "폭풍둥지 겨울 연료 요청"
     },
     {
       "aliases": [],
@@ -4545,6 +4653,12 @@
     {
       "aliases": [],
       "kind": "facility",
+      "slug": "building-9829",
+      "title": "인공태양"
+    },
+    {
+      "aliases": [],
+      "kind": "facility",
       "slug": "building-runtime-exterior-zone-0-0",
       "title": "입구"
     },
@@ -5097,6 +5211,12 @@
     {
       "aliases": [],
       "kind": "facility",
+      "slug": "building-9828",
+      "title": "태양등"
+    },
+    {
+      "aliases": [],
+      "kind": "facility",
       "slug": "building-8852",
       "title": "토양 검사대"
     },
@@ -5307,12 +5427,6 @@
     {
       "aliases": [],
       "kind": "item",
-      "slug": "facility-kit-35",
-      "title": "1성 경비실 설치 키트"
-    },
-    {
-      "aliases": [],
-      "kind": "item",
       "slug": "facility-kit-34",
       "title": "1성 냉기 분사구 설치 키트"
     },
@@ -5349,50 +5463,14 @@
     {
       "aliases": [],
       "kind": "item",
-      "slug": "facility-kit-51",
-      "title": "2성 고급 고기 식당 설치 키트"
-    },
-    {
-      "aliases": [],
-      "kind": "item",
       "slug": "facility-kit-52",
       "title": "2성 맹독 가시 함정 설치 키트"
     },
     {
       "aliases": [],
       "kind": "item",
-      "slug": "facility-kit-54",
-      "title": "2성 병영 설치 키트"
-    },
-    {
-      "aliases": [],
-      "kind": "item",
-      "slug": "facility-kit-50",
-      "title": "2성 전투 식당 설치 키트"
-    },
-    {
-      "aliases": [],
-      "kind": "item",
-      "slug": "facility-kit-56",
-      "title": "3성 귀족의 식당 설치 키트"
-    },
-    {
-      "aliases": [],
-      "kind": "item",
       "slug": "facility-kit-57",
       "title": "3성 부식 냉각 함정 설치 키트"
-    },
-    {
-      "aliases": [],
-      "kind": "item",
-      "slug": "facility-kit-55",
-      "title": "3성 전장의 식당 설치 키트"
-    },
-    {
-      "aliases": [],
-      "kind": "item",
-      "slug": "facility-kit-59",
-      "title": "3성 전투 병영 설치 키트"
     },
     {
       "aliases": [],
@@ -5691,12 +5769,6 @@
     {
       "aliases": [],
       "kind": "item",
-      "slug": "facility-kit-11",
-      "title": "고기 식당 설치 키트"
-    },
-    {
-      "aliases": [],
-      "kind": "item",
       "slug": "food-meat-pie",
       "title": "고기 파이"
     },
@@ -5723,6 +5795,12 @@
       "kind": "item",
       "slug": "facility-kit-9852",
       "title": "고속 컨베이어 설치 키트"
+    },
+    {
+      "aliases": [],
+      "kind": "item",
+      "slug": "surgery-prosthetic-torso",
+      "title": "골격 보강 몸통"
     },
     {
       "aliases": [],
@@ -6183,6 +6261,12 @@
     {
       "aliases": [],
       "kind": "item",
+      "slug": "surgery-prosthetic-hypha-core",
+      "title": "균핵 보철"
+    },
+    {
+      "aliases": [],
+      "kind": "item",
       "slug": "resource-shade-fiber",
       "title": "그늘섬유"
     },
@@ -6557,6 +6641,12 @@
       "kind": "item",
       "slug": "facility-kit-1005",
       "title": "대형연회식탁 설치 키트"
+    },
+    {
+      "aliases": [],
+      "kind": "item",
+      "slug": "surgery-prosthetic-heat-sac-variant-demon-heat-sac",
+      "title": "데몬 열낭 보강기"
     },
     {
       "aliases": [],
@@ -6993,12 +7083,6 @@
     {
       "aliases": [],
       "kind": "item",
-      "slug": "facility-kit-17",
-      "title": "마력 저장소 설치 키트"
-    },
-    {
-      "aliases": [],
-      "kind": "item",
       "slug": "facility-kit-1056",
       "title": "마력보관함 설치 키트"
     },
@@ -7043,6 +7127,12 @@
       "kind": "item",
       "slug": "facility-kit-8866",
       "title": "만성 관리실 설치 키트"
+    },
+    {
+      "aliases": [],
+      "kind": "item",
+      "slug": "item-memory-erasure-seal",
+      "title": "망각의 인장"
     },
     {
       "aliases": [],
@@ -7259,18 +7349,6 @@
       "kind": "item",
       "slug": "facility-kit-1018",
       "title": "무기보관함 설치 키트"
-    },
-    {
-      "aliases": [],
-      "kind": "item",
-      "slug": "facility-kit-5",
-      "title": "무기상점 설치 키트"
-    },
-    {
-      "aliases": [],
-      "kind": "item",
-      "slug": "facility-kit-13",
-      "title": "무기점 설치 키트"
     },
     {
       "aliases": [],
@@ -8313,12 +8391,6 @@
     {
       "aliases": [],
       "kind": "item",
-      "slug": "facility-kit-3",
-      "title": "사장실 설치 키트"
-    },
-    {
-      "aliases": [],
-      "kind": "item",
       "slug": "apparel-envoy-coat",
       "title": "사절 외투"
     },
@@ -8835,12 +8907,6 @@
     {
       "aliases": [],
       "kind": "item",
-      "slug": "facility-kit-61",
-      "title": "세면장 설치 키트"
-    },
-    {
-      "aliases": [],
-      "kind": "item",
       "slug": "facility-kit-9504",
       "title": "세정대 설치 키트"
     },
@@ -8975,6 +9041,18 @@
       "kind": "item",
       "slug": "craft-resin-balm",
       "title": "수액 연고"
+    },
+    {
+      "aliases": [],
+      "kind": "item",
+      "slug": "surgery-prosthetic-leg-left-variant-beastkin-sprint-joint",
+      "title": "수인 질주 관절"
+    },
+    {
+      "aliases": [],
+      "kind": "item",
+      "slug": "resource-crystal-beetle-carapace",
+      "title": "수정딱정벌레 갑각"
     },
     {
       "aliases": [],
@@ -9489,12 +9567,6 @@
     {
       "aliases": [],
       "kind": "item",
-      "slug": "facility-kit-16",
-      "title": "연구실 설치 키트"
-    },
-    {
-      "aliases": [],
-      "kind": "item",
       "slug": "facility-kit-1032",
       "title": "연구용책장 설치 키트"
     },
@@ -9681,6 +9753,12 @@
     {
       "aliases": [],
       "kind": "item",
+      "slug": "surgery-prosthetic-heart-variant-orc-combat-heart",
+      "title": "오크 전투 심장"
+    },
+    {
+      "aliases": [],
+      "kind": "item",
       "slug": "facility-kit-1603",
       "title": "온도 제어 발효조 설치 키트"
     },
@@ -9711,8 +9789,20 @@
     {
       "aliases": [],
       "kind": "item",
+      "slug": "surgery-prosthetic-wing-left",
+      "title": "왼날개 보철"
+    },
+    {
+      "aliases": [],
+      "kind": "item",
       "slug": "surgery-prosthetic-leg-left",
       "title": "왼다리 보철"
+    },
+    {
+      "aliases": [],
+      "kind": "item",
+      "slug": "surgery-prosthetic-hand-left",
+      "title": "왼손 정밀 보철"
     },
     {
       "aliases": [],
@@ -9725,6 +9815,12 @@
       "kind": "item",
       "slug": "surgery-prosthetic-kidney-left",
       "title": "왼쪽 신장 보철"
+    },
+    {
+      "aliases": [],
+      "kind": "item",
+      "slug": "surgery-prosthetic-night-eye-left",
+      "title": "왼쪽 야간안 보철"
     },
     {
       "aliases": [],
@@ -9939,6 +10035,12 @@
     {
       "aliases": [],
       "kind": "item",
+      "slug": "surgery-prosthetic-brain-variant-human-neural-assist",
+      "title": "인간 신경 보조기"
+    },
+    {
+      "aliases": [],
+      "kind": "item",
       "slug": "dark-bone",
       "title": "인간형 뼈"
     },
@@ -9947,6 +10049,12 @@
       "kind": "item",
       "slug": "dark-humanoid-corpse",
       "title": "인간형 사체"
+    },
+    {
+      "aliases": [],
+      "kind": "item",
+      "slug": "facility-kit-9829",
+      "title": "인공태양 설치 키트"
     },
     {
       "aliases": [],
@@ -10067,12 +10175,6 @@
       "kind": "item",
       "slug": "facility-kit-1015",
       "title": "잡화상자 설치 키트"
-    },
-    {
-      "aliases": [],
-      "kind": "item",
-      "slug": "facility-kit-12",
-      "title": "잡화점 설치 키트"
     },
     {
       "aliases": [],
@@ -10283,12 +10385,6 @@
       "kind": "item",
       "slug": "wild-carcass-ash-goat",
       "title": "잿빛 산양 사체"
-    },
-    {
-      "aliases": [],
-      "kind": "item",
-      "slug": "facility-kit-10",
-      "title": "저가 음식점 설치 키트"
     },
     {
       "aliases": [],
@@ -10815,12 +10911,6 @@
     {
       "aliases": [],
       "kind": "item",
-      "slug": "facility-kit-18",
-      "title": "창고 설치 키트"
-    },
-    {
-      "aliases": [],
-      "kind": "item",
       "slug": "food-vegetable-pie",
       "title": "채소 파이"
     },
@@ -11091,6 +11181,12 @@
     {
       "aliases": [],
       "kind": "item",
+      "slug": "surgery-prosthetic-balance-tail-variant-kobold-tail-balance",
+      "title": "코볼트 평형 꼬리 보강기"
+    },
+    {
+      "aliases": [],
+      "kind": "item",
       "slug": "facility-kit-8900",
       "title": "탄도 시험장 설치 키트"
     },
@@ -11123,6 +11219,12 @@
       "kind": "item",
       "slug": "tool-prospecting-kit",
       "title": "탐광 키트"
+    },
+    {
+      "aliases": [],
+      "kind": "item",
+      "slug": "facility-kit-9828",
+      "title": "태양등 설치 키트"
     },
     {
       "aliases": [],
@@ -11211,8 +11313,8 @@
     {
       "aliases": [],
       "kind": "item",
-      "slug": "facility-kit-6",
-      "title": "패스트푸드점 설치 키트"
+      "slug": "surgery-prosthetic-balance-tail",
+      "title": "평형 꼬리 보철"
     },
     {
       "aliases": [],
@@ -11583,12 +11685,6 @@
     {
       "aliases": [],
       "kind": "item",
-      "slug": "facility-kit-60",
-      "title": "화장실 설치 키트"
-    },
-    {
-      "aliases": [],
-      "kind": "item",
       "slug": "facility-kit-1058",
       "title": "화장실칸막이 설치 키트"
     },
@@ -11679,12 +11775,6 @@
     {
       "aliases": [],
       "kind": "item",
-      "slug": "facility-kit-15",
-      "title": "훈련장 설치 키트"
-    },
-    {
-      "aliases": [],
-      "kind": "item",
       "slug": "facility-kit-1040",
       "title": "훈련허수아비 설치 키트"
     },
@@ -11693,12 +11783,6 @@
       "kind": "item",
       "slug": "facility-kit-1088",
       "title": "훈연대 설치 키트"
-    },
-    {
-      "aliases": [],
-      "kind": "item",
-      "slug": "facility-kit-14",
-      "title": "휴식방 설치 키트"
     },
     {
       "aliases": [],
@@ -12789,6 +12873,12 @@
     {
       "aliases": [],
       "kind": "recipe",
+      "slug": "recipe-surgery-reinforced-torso",
+      "title": "골격 보강 몸통 조립"
+    },
+    {
+      "aliases": [],
+      "kind": "recipe",
       "slug": "recipe-v22-apparel-golem-functional-lining",
       "title": "골렘 기능성 내피 재단"
     },
@@ -12851,6 +12941,12 @@
       "kind": "recipe",
       "slug": "recipe-supply-mushroom-substrate",
       "title": "균사 재배 배지"
+    },
+    {
+      "aliases": [],
+      "kind": "recipe",
+      "slug": "recipe-surgery-hypha-core",
+      "title": "균핵 보철 조립"
     },
     {
       "aliases": [],
@@ -13809,6 +13905,12 @@
     {
       "aliases": [],
       "kind": "recipe",
+      "slug": "recipe-surgery-sprint-joint",
+      "title": "수인 질주 관절 조립"
+    },
+    {
+      "aliases": [],
+      "kind": "recipe",
       "slug": "recipe-component-waterwheel-drive-shaft",
       "title": "수차 구동축"
     },
@@ -13877,6 +13979,12 @@
       "kind": "recipe",
       "slug": "source-spoilage-plant",
       "title": "식물식 부패"
+    },
+    {
+      "aliases": [],
+      "kind": "recipe",
+      "slug": "recipe-surgery-brain-assist",
+      "title": "신경 보조기 조립"
     },
     {
       "aliases": [],
@@ -13995,6 +14103,12 @@
     {
       "aliases": [],
       "kind": "recipe",
+      "slug": "recipe-surgery-heat-sac",
+      "title": "열낭 보철 조립"
+    },
+    {
+      "aliases": [],
+      "kind": "recipe",
       "slug": "recipe-salted-meat-stew",
       "title": "염장육 스튜"
     },
@@ -14015,6 +14129,24 @@
       "kind": "recipe",
       "slug": "recipe-v22-apparel-surgical-apron",
       "title": "외과 앞치마 재단"
+    },
+    {
+      "aliases": [],
+      "kind": "recipe",
+      "slug": "recipe-surgery-wing",
+      "title": "왼날개 보철 조립"
+    },
+    {
+      "aliases": [],
+      "kind": "recipe",
+      "slug": "recipe-surgery-precision-hand",
+      "title": "왼손 정밀 보철 조립"
+    },
+    {
+      "aliases": [],
+      "kind": "recipe",
+      "slug": "recipe-surgery-night-eye",
+      "title": "왼쪽 야간안 보철 조립"
     },
     {
       "aliases": [],
@@ -14063,6 +14195,12 @@
       "kind": "recipe",
       "slug": "recipe-moonflower-tea",
       "title": "월화차"
+    },
+    {
+      "aliases": [],
+      "kind": "recipe",
+      "slug": "recipe-surgery-pseudopods",
+      "title": "위족 보철 조립"
     },
     {
       "aliases": [],
@@ -14255,6 +14393,12 @@
       "kind": "recipe",
       "slug": "recipe-medical-whole-body-regeneration-medium",
       "title": "전신 재생 배지"
+    },
+    {
+      "aliases": [],
+      "kind": "recipe",
+      "slug": "recipe-surgery-heart-augmentation",
+      "title": "전투 심장 보철 조립"
     },
     {
       "aliases": [],
@@ -14505,6 +14649,12 @@
     {
       "aliases": [],
       "kind": "recipe",
+      "slug": "recipe-surgery-tail-balance-augmentation",
+      "title": "코볼트 평형 꼬리 보강기 조립"
+    },
+    {
+      "aliases": [],
+      "kind": "recipe",
       "slug": "recipe-material-cartridge-paper",
       "title": "탄약지"
     },
@@ -14537,6 +14687,12 @@
       "kind": "recipe",
       "slug": "recipe-material-plate-blank",
       "title": "판금 소재판"
+    },
+    {
+      "aliases": [],
+      "kind": "recipe",
+      "slug": "recipe-surgery-balance-tail",
+      "title": "평형 꼬리 보철 조립"
     },
     {
       "aliases": [],

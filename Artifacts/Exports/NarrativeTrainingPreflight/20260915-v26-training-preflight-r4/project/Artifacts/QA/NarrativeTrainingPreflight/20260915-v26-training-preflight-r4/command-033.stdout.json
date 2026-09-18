@@ -1,0 +1,12 @@
+{
+  "success": false,
+  "command": "unity job wait",
+  "data": null,
+  "errors": [
+    {
+      "code": "COMMAND_FAILED",
+      "message": "40초 후 작업 342ad45a8a71401eb564f77fc870be8e 대기를 중지했습니다. 작업은 계속 실행됩니다. unity job wait 342ad45a8a71401eb564f77fc870be8e로 다시 연결하세요."
+    }
+  ],
+  "warnings": []
+}

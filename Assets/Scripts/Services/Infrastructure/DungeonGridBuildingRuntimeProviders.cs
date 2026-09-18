@@ -14,6 +14,7 @@ public interface IWorldPointerPositionProvider
 public interface IMainCameraProvider
 {
     Camera Camera { get; }
+    bool TryGetCamera(out Camera camera);
 }
 
 public interface IGridTextureProvider
@@ -92,8 +93,14 @@ public sealed class SceneMainCameraProvider : IMainCameraProvider
             ?? throw new ArgumentNullException(nameof(sceneReferences));
     }
 
-    public Camera Camera => sceneReferences.MainCamera != null
-        ? sceneReferences.MainCamera
+    public Camera Camera => TryGetCamera(out Camera camera)
+        ? camera
         : throw new InvalidOperationException(
             $"{nameof(IMainCameraProvider)} requires a registered {nameof(Camera)}.");
+
+    public bool TryGetCamera(out Camera camera)
+    {
+        camera = sceneReferences.MainCamera;
+        return camera != null;
+    }
 }

@@ -1,0 +1,235 @@
+{
+  "schemaVersion": 1,
+  "phase": "phase80-trade-inventory-outcomes",
+  "generatedAt": "2026-09-18",
+  "rows": [
+    {
+      "candidate": "FacilityCrimeEvent",
+      "actualOwner": "ShopCrimeRuntime over Shop inventory, retail physical runtime and visitor activity",
+      "currentMutationPoint": "TryResolve takes an exact retail lot, commits the lot to the external Sink, then publishes FacilityStockConsumedEvent and FacilityCrimeEvent",
+      "saveAuthority": "PhysicalItemsSaveSection plus facility/retail stock state and character activity state",
+      "missingJointSeam": "no pre-Sink outcome reservation and no save-compatible transaction that can restore the exact lot after an outcome failure",
+      "recommendedMinimumSeam": "create a persistent ShopliftingTransaction carrying the exact lot, actor/facility immutable display snapshots, loss and result key; reserve before TryCommitExactRetailExternalSink; commit shop stock, physical Sink and outcome together; acknowledge before legacy events"
+    },
+    {
+      "candidate": "FacilityRevenueEvent",
+      "actualOwner": "ShopCustomerInteractionService plus IGameMoneyAccount",
+      "currentMutationPoint": "shopping and meal paths call CustomerMoneyAccount.Add and only then publish FacilityRevenueEvent",
+      "saveAuthority": "TreasuryEconomySaveSection/session economy plus facility/regular-customer state",
+      "missingJointSeam": "the money account has no prepared credit transaction or exact compensation token tied to the facility-service operation",
+      "recommendedMinimumSeam": "introduce an idempotent facility-revenue credit plan with operation id, actor/facility snapshots and before/after balance; reserve outcome before credit; persist credit receipt and outcome key in one service-completion outbox; publish event after acknowledgement"
+    },
+    {
+      "candidate": "FacilityShopPurchasedEvent",
+      "actualOwner": "FacilityShopService/DailyFacilityShopRuntime over IGameMoneyAccount and FacilityShopUnlockState",
+      "currentMutationPoint": "TryPurchaseOffer spends money and applies the unlock before purchaseCompleted invokes PublishPurchase",
+      "saveAuthority": "FacilityShopSaveSection plus TreasuryEconomySaveSection/session economy",
+      "missingJointSeam": "there is no detached unlock-state candidate and no exact refund/rollback receipt spanning both authorities",
+      "recommendedMinimumSeam": "replace the static callback transaction with a FacilityShopPurchasePlan; prepare exact offer/display/cost facts, stage money debit and cloned unlock state, publish both with a persistent purchase outbox and outcome revision, then emit the event"
+    },
+    {
+      "candidate": "FacilityStockConsumedEvent",
+      "actualOwner": "ShopCrimeRuntime and ShopCustomerInteractionService over retail physical stock",
+      "currentMutationPoint": "publish occurs after BuildingRetailPurchaseCommitResult or external-Sink commit reports success",
+      "saveAuthority": "PhysicalItemsSaveSection plus facility retail stock state",
+      "missingJointSeam": "the event omits exact lot/commit identity in the normal purchase path and neither producer reserves an outcome before physical mutation",
+      "recommendedMinimumSeam": "integrate a higher exact RetailPurchase/Shoplifting result preserving lot id, item definition/instance, category, quantity, facility and consumer; only classify this event as a substitute after that result is atomically ledger-integrated"
+    },
+    {
+      "candidate": "FacilityVisitEvent",
+      "actualOwner": "the facility interaction/session owner; BuildingVisitEventPublisher is only an observer adapter",
+      "currentMutationPoint": "PublishVisit receives already-selected visitor/facility references and immediately emits the event without a receipt",
+      "saveAuthority": "facility occupancy/service session save owner and RegularCustomerSaveSection where applicable",
+      "missingJointSeam": "no operation id, terminal outcome, owner revision, exact visit facts, or rollback-capable owner is present at this port",
+      "recommendedMinimumSeam": "move capture to the authoritative facility-use completion command; build a FacilityVisitReceipt with service session id, terminal result, participant snapshots and location; prepare before terminal session mutation and commit via a persistent service outbox"
+    },
+    {
+      "candidate": "GrandProjectPhysicalInputReceipt",
+      "actualOwner": "GrandProjectRuntime with GrandProjectApplicationAdapter and physical batch disposition",
+      "currentMutationPoint": "ApplyWork commits delivered materials pending, writes pendingPhysicalCommit, mutates completed-project state, then acknowledges the physical receipt",
+      "saveAuthority": "GrandProjectSaveSection plus PhysicalItemsSaveSection",
+      "missingJointSeam": "pendingPhysicalCommit does not contain a gameplay result key/canonical payload and outcome capacity is not reserved before the physical Sink",
+      "recommendedMinimumSeam": "extend GrandProjectPhysicalCommitSaveData with result key, immutable project/item display snapshots and outcome phase; reserve before CommitDeliveredMaterialsPending; commit project candidate plus outcome while physical receipt remains pending; acknowledge last"
+    },
+    {
+      "candidate": "GuestRequestDeliveryReceipt",
+      "actualOwner": "GuestRequestDeliveryRuntime/V20 campaign state with physical transfer gateway",
+      "currentMutationPoint": "AdvanceDelivery calls TryCommitTransferPending, then stateCommands.TryRecordGuestRequestDeliveryReceipt records the campaign-side outbox",
+      "saveAuthority": "V20Campaign/FactionCampaign save owner plus PhysicalItemsSaveSection",
+      "missingJointSeam": "the campaign row lacks gameplay result identity and exact immutable guest, venue and item display snapshots; prepare is after neither mutation",
+      "recommendedMinimumSeam": "extend GuestRequestDeliverySaveData with outcome result key/revision and frozen participant/item snapshots; reserve before physical transfer; commit the campaign receipt and gameplay outcome before physical acknowledgement"
+    },
+    {
+      "candidate": "ItemExtractionReceipt",
+      "actualOwner": "ItemTransferService over WorldItemRepository and ItemQuantityReservationService",
+      "currentMutationPoint": "the service relocates or creates the extracted stack, decrements source quantity, retargets lease slices and only then creates ItemExtractionReceipt",
+      "saveAuthority": "PhysicalItemsSaveSection",
+      "missingJointSeam": "rollback exists only on internal branch failure; successful extraction returns no reversible handle and no durable pending extraction row",
+      "recommendedMinimumSeam": "split extraction into Prepare/Commit/Acknowledge with a persistent extraction outbox containing exact source and destination stack/component snapshots; reserve outcome from the prepared shape, mutate, write exact receipt, commit at physical repository revision, then acknowledge"
+    },
+    {
+      "candidate": "MetaUpgradePurchasedEvent",
+      "actualOwner": "MetaProgressionState/MetaProgressionRuntime",
+      "currentMutationPoint": "TryPurchaseUpgrade increments SpentCurrency and UpgradeLevels before MetaProgressionRuntime publishes the event",
+      "saveAuthority": "MetaProgressionSaveSection/DungeonRuntimeAggregateRootStore",
+      "missingJointSeam": "state exposes no purchase preview, detached candidate replacement, rollback snapshot, operation sequence or persistent outcome outbox",
+      "recommendedMinimumSeam": "add a monotonic purchase sequence and MetaUpgradePurchasePlan with definition reference, title/pronunciation snapshot, cost and level transition; prepare first, replace a cloned aggregate plus outbox at the new revision, commit outcome, then publish legacy UI/event"
+    },
+    {
+      "candidate": "PackagedLotTareOutputReceipt",
+      "actualOwner": "PackagedLotTareDispositionService over IPackagedLotTareOutputGateway",
+      "currentMutationPoint": "EnsureTerminalSinkOutputs iterates planned tare outputs and spawns each missing output before constructing the aggregate receipt",
+      "saveAuthority": "PhysicalItemsSaveSection",
+      "missingJointSeam": "the gateway supports SpawnOutput but not exact rollback/removal; a later failure can leave earlier outputs and no outcome row",
+      "recommendedMinimumSeam": "use an exact-source batch publication transaction with Prepare/Rollback/Acknowledge for every tare output, persist parent/output commit ids and result key, reserve outcome before the first spawn and remove the physical pending row only after outcome acknowledgement"
+    },
+    {
+      "candidate": "PhysicalItemExactSourcePublicationReceipt",
+      "actualOwner": "PhysicalItemExactSourcePublicationService over planned-output admission and publication gateways",
+      "currentMutationPoint": "TryCommit admits the prepared batch, acknowledges/release-publishes it, retires authority and removes the in-memory Pending before returning the receipt",
+      "saveAuthority": "PhysicalItemsSaveSection plus each domain save owner that recreates exact-source restore descriptors",
+      "missingJointSeam": "the pending exact-source transaction carries no gameplay result key or delivery phase and is removed before an outcome can be canonically acknowledged",
+      "recommendedMinimumSeam": "persist the exact-source transaction/result key with its domain restore descriptor; reserve during TryPrepare; commit the physical admission and outcome while pending remains; acknowledge publication and clear the transaction only after ledger acknowledgement"
+    },
+    {
+      "candidate": "PhysicalItemSourcePublicationReceipt",
+      "actualOwner": "PhysicalItemSourcePublicationService over IEquipmentPhysicalItemGateway",
+      "currentMutationPoint": "TryEnsureLooseOutputs spawns every missing deterministic commit-marked stack in sequence and returns only after postcondition checks",
+      "saveAuthority": "PhysicalItemsSaveSection plus the abstract source owner",
+      "missingJointSeam": "commit-marker idempotency prevents duplicate minting but cannot undo a partial batch or prove a gameplay-outcome commit; no pending source-publication outbox exists",
+      "recommendedMinimumSeam": "route through PhysicalItemExactSourcePublicationService or add a prepared batch transaction with exact rollback; persist definition/instance refs, quantities, masses and display snapshots with the result key; commit source owner, physical batch and outcome before acknowledgement"
+    },
+    {
+      "candidate": "PhysicalItemTransformReceipt",
+      "actualOwner": "PhysicalItemTransformService/WorldItemRepository",
+      "currentMutationPoint": "the service spawns all outputs, consumes source stacks, refreshes markers and then constructs the transform receipt",
+      "saveAuthority": "PhysicalItemsSaveSection",
+      "missingJointSeam": "quantitiesBefore/source mutation snapshots are local and discarded after success; there is no durable transform outbox or post-success rollback handle",
+      "recommendedMinimumSeam": "introduce a PhysicalItemTransformPlan and persistent pending transform row with exact input/output definition and instance refs; reserve outcome before spawn, write exact receipt after mutation, rollback on commit failure and clear only after acknowledgement"
+    },
+    {
+      "candidate": "RegionalSupplyDeliveryTransferReceipt",
+      "actualOwner": "RegionalSupplyContractRuntime/RegionalSupplyContractDeliveryOutbox with physical transfer and money credit adapters",
+      "currentMutationPoint": "AdvanceDelivery commits physical transfer, records delivery fields on the contract, publishes reward/status and then acknowledges the transfer",
+      "saveAuthority": "Regional supply contract state in its planning save section plus PhysicalItemsSaveSection and TreasuryEconomySaveSection",
+      "missingJointSeam": "the existing phase enum covers physical and reward states only; it has no outcome key/revision, display snapshots, or delivery acknowledgement state",
+      "recommendedMinimumSeam": "add OutcomePrepared/OutcomeCommitted phases and frozen contract/region/item display snapshots; reserve before TryCommitDeliveryTransferPending; commit contract candidate and outcome before reward/physical acknowledgements"
+    },
+    {
+      "candidate": "ReservedRetailStockTransferReceipt",
+      "actualOwner": "ItemTransferService reserved retail transfer over world stacks, carried inventory, leases and unique-item binding",
+      "currentMutationPoint": "the service removes carried entries, consumes lease slices and source records, binds unique lots, then returns an in-process rollback receipt",
+      "saveAuthority": "PhysicalItemsSaveSection plus character carried-inventory save owner and retail unique-instance authority",
+      "missingJointSeam": "the rollback object references live carry inventory and snapshots but is not a durable save contract; no outcome is prepared before those multi-authority mutations",
+      "recommendedMinimumSeam": "persist a retail transfer transaction row with exact lots, carry/source undo data, result key and owner revisions; reserve outcome first, commit all three authorities plus ledger, then release the rollback row after acknowledgement"
+    },
+    {
+      "candidate": "ResourceStockPolicySaleTransferReceipt",
+      "actualOwner": "ResourceStockPolicyRuntime/ResourceStockPolicySaleOutbox with physical transfer and IIdempotentGameMoneyAccount",
+      "currentMutationPoint": "EvaluateSale commits physical transfer pending, records ResourceStockPolicyPendingSale, credits income and acknowledges the transfer during finalization",
+      "saveAuthority": "resource stock policy aggregate save section plus PhysicalItemsSaveSection and TreasuryEconomySaveSection",
+      "missingJointSeam": "ResourceStockPolicyPendingSale stores physical/income phases but not gameplay-outcome capacity, result identity or immutable item display metadata",
+      "recommendedMinimumSeam": "extend the sale outbox with outcome key/revision/snapshots and phase; reserve before physical transfer; commit policy candidate and outcome after exact receipt but before income/physical acknowledgement; canonical replay must compare the full sale receipt"
+    },
+    {
+      "candidate": "StockSupplyEvent",
+      "actualOwner": "StockSupplyService for paid deliveries and OffenseStockRewardGrantHandler for reward spawns",
+      "currentMutationPoint": "paid delivery spends money, spawns possibly partial physical stock and refunds the remainder before callback publish; reward grant spawns first and publishes afterward",
+      "saveAuthority": "PhysicalItemsSaveSection plus TreasuryEconomySaveSection and Offense aggregate state for rewards",
+      "missingJointSeam": "StockSupplyResult lacks operation id, exact stack/instance receipts and owner revision; the two producers do not share a rollback-capable transaction",
+      "recommendedMinimumSeam": "replace the observer event with producer-specific paid-delivery and offense-reward receipts preserving all exact physical/economy facts; integrate each at its owner boundary before treating StockSupplyEvent as NonResult"
+    },
+    {
+      "candidate": "WarehouseMassAdmissionReceipt",
+      "actualOwner": "WarehouseMassAdmissionService plus external warehouse inventory mutation owner",
+      "currentMutationPoint": "TryCommit observes that stored mass and item quantity already increased, then changes token status/authority revisions and records the receipt",
+      "saveAuthority": "PhysicalItemsSaveSection warehouse admission state plus warehouse inventory state",
+      "missingJointSeam": "the admission service cannot roll back the external inventory write and its token receipt has no outcome attachment or acknowledgement phase",
+      "recommendedMinimumSeam": "move warehouse inventory insertion behind a mass-admission transaction that owns both candidate states; reserve outcome after receipt calculation but before insertion, publish inventory/admission/outcome at one revision and retain a save-backed pending row until acknowledgement"
+    },
+    {
+      "candidate": "WorldResourceRenewableDebitReceipt",
+      "actualOwner": "WorldResourceRuntime with WorldResourceEnvironmentPortAdapter and physical output publication",
+      "currentMutationPoint": "TryDebitSource debits the renewable patch; a later output publication failure invokes TryRollbackRenewablePatchDebit, while successful cycle completion persists resource/output state",
+      "saveAuthority": "WorldResourceSaveSection plus PhysicalItemsSaveSection",
+      "missingJointSeam": "the port receipt is intermediate and may be rolled back by the enclosing cycle; neither port nor cycle persists a gameplay-outcome result key with both debit and output transaction",
+      "recommendedMinimumSeam": "reserve at the world-resource cycle after output plan preflight and before TryDebitSource; store debit receipt plus output publication receipt/result key in the cycle outbox; commit the outcome only with successful cycle publication and rollback debit on any prepare/write/commit failure"
+    },
+    {
+      "candidate": "BuildingRetailPurchaseCommitResult",
+      "actualOwner": "AbilityShopping plus ItemTransferService reserved retail transaction",
+      "currentMutationPoint": "the exact retail lot is committed into the result only after the underlying physical transfer has succeeded",
+      "saveAuthority": "PhysicalItemsSaveSection plus character carried inventory and facility retail stock",
+      "missingJointSeam": "the exact result is a transient latch without operation identity, owner revision, snapshots, gameplay result key or durable acknowledgement phase",
+      "recommendedMinimumSeam": "persist the existing ReservedRetailStockTransferReceipt undo data and exact committed lot in a retail purchase outbox; reserve outcome before transfer, commit the result at the physical revision, then retire undo/outbox only after canonical acknowledgement"
+    },
+    {
+      "candidate": "FacilityShopPurchaseResult",
+      "actualOwner": "FacilityShopService over IGameMoneyAccount and FacilityShopUnlockState",
+      "currentMutationPoint": "money debit and unlock mutation finish before the result is returned to DailyFacilityShopRuntime",
+      "saveAuthority": "FacilityShopSaveSection plus TreasuryEconomySaveSection/session money",
+      "missingJointSeam": "no detached unlock candidate, reversible debit receipt, monotonic operation identity or save-backed result/outcome row",
+      "recommendedMinimumSeam": "introduce a purchase plan and persistent result owner containing exact offer definition, cost, prior/new unlock state and display snapshots; prepare outcome before atomic state swap and keep the row until acknowledgement"
+    },
+    {
+      "candidate": "StockSupplyResult",
+      "actualOwner": "StockSupplyService paid delivery/internal production and their physical item gateways",
+      "currentMutationPoint": "money and physical spawning, including partial delivery/refund, are complete before the result callback",
+      "saveAuthority": "PhysicalItemsSaveSection plus treasury/session money and the invoking producer owner",
+      "missingJointSeam": "result quantity/cost facts are exact only at category level and lack stack/instance identities, operation key, immutable names and a durable multi-authority commit phase",
+      "recommendedMinimumSeam": "split paid/internal paths into producer-specific prepared physical batches with an idempotent money plan; persist the exact result and gameplay key before mutation, commit both authorities, and publish StockSupplyEvent only as a legacy projection"
+    },
+    {
+      "candidate": "AutoProcurementResult",
+      "actualOwner": "Treasury auto-procurement runtime and persisted AutoProcurementSaveData.lastResults",
+      "currentMutationPoint": "the saved result is written after the daily procurement decision and purchase effects",
+      "saveAuthority": "TreasuryEconomySaveSection plus physical inventory owner used by procurement",
+      "missingJointSeam": "the saved result has no stable purchase operation id, exact physical receipt/display snapshot or outcome delivery/acknowledgement phase",
+      "recommendedMinimumSeam": "give each day/rule attempt a stable id and persistent transaction row; prepare from the exact item offer and physical plan, jointly commit treasury/inventory/outcome, and retain both success and failure terminal facts through acknowledgement"
+    },
+    {
+      "candidate": "RegularCustomerRecruitResult",
+      "actualOwner": "RegularCustomerSystem recruitment transition",
+      "currentMutationPoint": "customer state is changed before terminal result publication",
+      "saveAuthority": "RegularCustomerSaveSection",
+      "missingJointSeam": "no detached customer candidate or save-backed outcome join",
+      "recommendedMinimumSeam": "prepare an exact recruit receipt and outcome before atomic customer state replacement, retaining it through acknowledgement"
+    },
+    {
+      "candidate": "RegularCustomerVisitResult",
+      "actualOwner": "RegularCustomerSystem visit transition",
+      "currentMutationPoint": "visit counters/status change before result consumption",
+      "saveAuthority": "RegularCustomerSaveSection and facility session state",
+      "missingJointSeam": "no operation id, snapshots, owner revision or durable outcome phase",
+      "recommendedMinimumSeam": "join the terminal facility session and regular-customer candidate to one exact gameplay result"
+    },
+    {
+      "candidate": "SubstanceUseResult",
+      "actualOwner": "character consumable substance runtime",
+      "currentMutationPoint": "item and character effects are applied before terminal result",
+      "saveAuthority": "character survival/health state plus PhysicalItemsSaveSection",
+      "missingJointSeam": "no shared prepared receipt/rollback/outcome owner",
+      "recommendedMinimumSeam": "stage exact item consumption and character effect candidate, prepare outcome, then commit both authorities atomically"
+    },
+    {
+      "candidate": "WasteFeedRequestResult",
+      "actualOwner": "waste feed request runtime",
+      "currentMutationPoint": "request resolution around input custody mutation",
+      "saveAuthority": "waste processing state plus PhysicalItemsSaveSection",
+      "missingJointSeam": "no durable exact input/outcome join",
+      "recommendedMinimumSeam": "prepare exact feed input and outcome before custody mutation and retain a save-backed transaction until acknowledgement"
+    },
+    {
+      "candidate": "WastePolicyCommandResult",
+      "actualOwner": "waste policy command runtime",
+      "currentMutationPoint": "policy command result after policy change or rejection",
+      "saveAuthority": "waste policy save owner",
+      "missingJointSeam": "no exact integrated policy-state result or exclusion proof",
+      "recommendedMinimumSeam": "stage policy candidate and exact command result with a stable key, or prove rejection-only/UI feedback paths as NonResult"
+    }
+  ],
+  "rowCount": 28,
+  "observerOnlyIntegrationAccepted": false,
+  "lossyHashAcceptedAsCompletion": false,
+  "humanApprovalClaimed": false
+}

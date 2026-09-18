@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "의식에 필요한 불과 제물을 안전하게 다루도록 만든 의식 화로 설치 부품이며, 베르사디온에서도 이 부품의 치수를 알아본다.",
+  "in_game_description": "의식 화로에서 표본과 기록을 조사하는 공정을 맡기 위해 준비한 설치 부품이다. 베르사디온산 의식 화로의 쌍인장은 마나를 댄 사람과 쓰는 사람의 손 모양이다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

@@ -1,0 +1,79 @@
+{
+  "catalogHash": "sha256:0f6e4be939180f679109088e0e3eba59f85cfc5851ed2e01760daef9e14fe4a6",
+  "continuityWitnessCount": 6,
+  "evidenceGateCount": 0,
+  "inputDigest": "sha256:2d122f17851137b66a86c2d0a75371525e324c7499555624c6046ad55949ebdf",
+  "manifestFileCount": 288,
+  "negativeScenarioCount": 14,
+  "parityProfileCounts": {
+    "AcquiredTrait": 6,
+    "CharacterSkill": 2,
+    "EquipmentChoice": 2,
+    "EvolutionHistory": 2,
+    "FacilityEvolution": 2,
+    "Persona": 2
+  },
+  "publicContextSchemaHash": "sha256:78465d2f5418966e20baffb2e172cb647be6fc836b3a81e9cdcf8d8c50d18612",
+  "requiredProvenanceCount": 194,
+  "scenarioMaterialSummary": {
+    "AcquiredTrait": {
+      "candidateMax": 21,
+      "candidateMin": 1,
+      "effectDescriptionMax": 6,
+      "effectDescriptionMin": 1,
+      "publicFactMax": 24,
+      "publicFactMin": 8
+    },
+    "CharacterSkill": {
+      "candidateMax": 3,
+      "candidateMin": 1,
+      "effectDescriptionMax": 21,
+      "effectDescriptionMin": 8,
+      "publicFactMax": 6,
+      "publicFactMin": 6
+    },
+    "EquipmentChoice": {
+      "candidateMax": 3,
+      "candidateMin": 2,
+      "effectDescriptionMax": 3,
+      "effectDescriptionMin": 2,
+      "publicFactMax": 2,
+      "publicFactMin": 2
+    },
+    "EvolutionHistory": {
+      "candidateMax": 3,
+      "candidateMin": 2,
+      "effectDescriptionMax": 3,
+      "effectDescriptionMin": 2,
+      "publicFactMax": 4,
+      "publicFactMin": 4
+    },
+    "FacilityEvolution": {
+      "candidateMax": 1,
+      "candidateMin": 1,
+      "effectDescriptionMax": 1,
+      "effectDescriptionMin": 1,
+      "publicFactMax": 1,
+      "publicFactMin": 1
+    },
+    "Persona": {
+      "candidateMax": 1,
+      "candidateMin": 1,
+      "effectDescriptionMax": 2,
+      "effectDescriptionMin": 2,
+      "publicFactMax": 6,
+      "publicFactMin": 5
+    }
+  },
+  "scenarioPositiveCount": 100,
+  "scenarioProfileCounts": {
+    "AcquiredTrait": 20,
+    "CharacterSkill": 20,
+    "EquipmentChoice": 15,
+    "EvolutionHistory": 15,
+    "FacilityEvolution": 15,
+    "Persona": 15
+  },
+  "status": "PASS",
+  "trainingEligible": false
+}

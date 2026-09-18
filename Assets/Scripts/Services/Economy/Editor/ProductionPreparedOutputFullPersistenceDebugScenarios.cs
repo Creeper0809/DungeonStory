@@ -3017,6 +3017,12 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                 QuantityReservations,
                 QuantityReservations,
                 bufferAggregation,
+                new DeterministicPhysicalItemRelocationOutcomeFixture()
+                    .CreateService(
+                        Repository,
+                        Mass,
+                        ItemCatalog,
+                        EditorNullItemMarkerPresenter.Instance),
                 warehouseMassAdmission: null,
                 retailStockPhysical: null,
                 facilityBufferMassAdmission: Admission);
@@ -3335,6 +3341,7 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                     exposures = Array.Empty<CharacterEnvironmentExposure>(),
                     equippedWorkwear = Array.Empty<EnvironmentalWorkwearSaveData>(),
                     equippedApparel = Array.Empty<EquippedApparelSaveData>(),
+                    apparelPolicies = Array.Empty<CharacterApparelPolicySaveData>(),
                     apparelWorkOrders = Array.Empty<ApparelWorkOrderSaveData>(),
                     apparelWorkOrderTerminalStates =
                         Array.Empty<ApparelWorkOrderTerminalStateSaveData>()
@@ -3893,6 +3900,8 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
     private sealed class EmptyApparelWorkOrders : IApparelWorkOrderQuery
     {
         internal static readonly EmptyApparelWorkOrders Instance = new();
+        public CraftQualityAttemptEstimate CaptureQualityEstimate(string orderId) =>
+            CraftQualityAttemptEstimate.Unavailable("Fixture has no apparel orders.");
         public int Version => 0;
         public IReadOnlyList<ApparelWorkOrderSaveData> Orders { get; }
             = Array.Empty<ApparelWorkOrderSaveData>();

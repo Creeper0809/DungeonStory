@@ -31,6 +31,13 @@ public class AIExitDungeon : AIActionSet
 
     public override bool CanStart(CharacterActor actor)
     {
+        AbilityMove move = null;
+        actor?.TryGetAbility(out move);
+        if (move == null || !move.CanStartExitDungeon(out _))
+        {
+            return false;
+        }
+
         AbilityShopping shopping = null;
         actor?.TryGetAbility(out shopping);
         DungeonStory.AI.AiCharacterDecisionSnapshot snapshot = new(
@@ -52,27 +59,41 @@ public class AIExitDungeon : AIActionSet
 
     public override void Execute(CharacterActor actor)
     {
-        AbilityShopping shopping = null;
-        actor?.TryGetAbility(out shopping);
-        shopping?.TryStealLooseItemBeforeExit();
-
         AbilityMove move = null;
         actor?.TryGetAbility(out move);
         if (move != null)
         {
+            if (!move.CanStartExitDungeon(out AIActionFailure failure))
+            {
+                FailExitAction(actor, failure);
+                return;
+            }
+
+            AbilityShopping shopping = null;
+            actor?.TryGetAbility(out shopping);
+            shopping?.TryStealLooseItemBeforeExit();
             move.StartExitDungeon();
             return;
         }
 
+        FailExitAction(
+            actor,
+            AIActionFailure.Create(
+                AIActionFailureKind.Unsupported,
+                "exit-dungeon-movement-ability-missing",
+                actor?.Brain?.bestAction?.destination));
+    }
+
+    private static void FailExitAction(
+        CharacterActor actor,
+        AIActionFailure failure)
+    {
         if (actor != null && actor.Brain != null)
         {
             AIBrain brain = actor.Brain;
             AIAction failedAction = brain.bestAction;
             brain.ReportRuntimeActionFailure(
-                AIActionFailure.Create(
-                    AIActionFailureKind.Unsupported,
-                    "exit-dungeon-movement-ability-missing",
-                    failedAction?.destination),
+                failure,
                 requestImmediateReplan: false);
             brain.EndExpectedAction(
                 failedAction,

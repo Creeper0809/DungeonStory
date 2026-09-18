@@ -4,6 +4,50 @@ using System.Linq;
 using UnityEngine;
 
 [Serializable]
+public sealed class GameplayNarrativeEventContext
+{
+    public string eventInstanceId = string.Empty;
+    public string chainId = string.Empty;
+    public string locationId = string.Empty;
+    public string locationDisplayName = string.Empty;
+    public string actorId = string.Empty;
+    public string actorDisplayName = string.Empty;
+    public string counterpartyId = string.Empty;
+    public string counterpartyDisplayName = string.Empty;
+    public string usedObjectId = string.Empty;
+    public string usedObjectDisplayName = string.Empty;
+    public string resultDetail = string.Empty;
+    public int occurredDay;
+    public long sequence;
+
+    public bool HasNarrativeDetail =>
+        !string.IsNullOrWhiteSpace(locationDisplayName)
+        && !string.IsNullOrWhiteSpace(actorDisplayName)
+        && (!string.IsNullOrWhiteSpace(counterpartyDisplayName)
+            || !string.IsNullOrWhiteSpace(usedObjectDisplayName)
+            || !string.IsNullOrWhiteSpace(resultDetail));
+
+    public GameplayNarrativeEventContext Clone() => new GameplayNarrativeEventContext
+    {
+        eventInstanceId = Canonical(eventInstanceId),
+        chainId = Canonical(chainId),
+        locationId = Canonical(locationId),
+        locationDisplayName = Canonical(locationDisplayName),
+        actorId = Canonical(actorId),
+        actorDisplayName = Canonical(actorDisplayName),
+        counterpartyId = Canonical(counterpartyId),
+        counterpartyDisplayName = Canonical(counterpartyDisplayName),
+        usedObjectId = Canonical(usedObjectId),
+        usedObjectDisplayName = Canonical(usedObjectDisplayName),
+        resultDetail = Canonical(resultDetail),
+        occurredDay = Math.Max(0, occurredDay),
+        sequence = Math.Max(0L, sequence)
+    };
+
+    private static string Canonical(string value) => value?.Trim() ?? string.Empty;
+}
+
+[Serializable]
 public sealed class UsageLedgerEvent
 {
     public string evidenceId = string.Empty;
@@ -17,6 +61,7 @@ public sealed class UsageLedgerEvent
     public int repeatCount = 1;
     public long sequence;
     public List<string> sourceTags = new List<string>();
+    public GameplayNarrativeEventContext narrativeContext = new GameplayNarrativeEventContext();
 
     public UsageLedgerEvent Clone()
     {
@@ -32,6 +77,7 @@ public sealed class UsageLedgerEvent
             generation = Mathf.Max(0, generation),
             repeatCount = Mathf.Max(1, repeatCount),
             sequence = sequence,
+            narrativeContext = narrativeContext?.Clone() ?? new GameplayNarrativeEventContext(),
             sourceTags = sourceTags?
                 .Where(tag => !string.IsNullOrWhiteSpace(tag))
                 .Select(tag => tag.Trim())
@@ -203,9 +249,37 @@ public sealed class EvolutionNode
     public int narrativeRetryCount;
     public bool narrativeUsedFallback;
     public float potencyMultiplier = 1f;
+    public float burdenPotencyMultiplier;
     public List<string> evidenceIds = new List<string>();
+    // Exact gameplay-outcome evidence is persisted as typed bindings. Compacted
+    // memories remain presentation-only and never appear in this collection.
+    public List<GameplayOutcomeEvidenceBindingSnapshot> gameplayOutcomeEvidence = new();
+    public int formulaVersion;
+    public string formulaCatalogSha256 = string.Empty;
+    public List<EquipmentEvolutionFormulaCapabilityEnvelope> formulaCapabilities = new();
+    public int formulaBudget;
+    public int calculatedCost;
+    public int positiveCost;
+    public int drawbackCredit;
+    public string drawbackId = string.Empty;
+    public bool drawbackEvidenceQualified;
+    public string moduleSelectionId = string.Empty;
+    public List<EquipmentEvolutionModuleOfferState> moduleSelectionOffers = new();
+    public string mechanicalDescription = string.Empty;
+    public string presentationId = string.Empty;
+    public string narrativeFlavor = string.Empty;
+    public EquipmentEvolutionPresentationState presentationState;
+    public int presentationFailureCount;
     public List<string> legalCandidateEffectIds = new List<string>();
     public int selectedCandidateIndex = -1;
+    public bool equipmentChoiceAuditRecorded;
+    public bool equipmentChoiceSucceeded;
+    public bool equipmentChoiceFallbackUsed;
+    public string equipmentChoiceFailureKind = string.Empty;
+    public string equipmentChoiceFailureReason = string.Empty;
+    public string equipmentChoiceCandidatePacketHash = string.Empty;
+    public int equipmentChoiceRequestedIndex = -1;
+    public long equipmentChoiceAuditUtcTicks;
     public EvolutionModuleActivationRule activationRule =
         new EvolutionModuleActivationRule();
 
@@ -238,11 +312,41 @@ public sealed class EvolutionNode
             narrativeRetryCount = Mathf.Max(0, narrativeRetryCount),
             narrativeUsedFallback = narrativeUsedFallback,
             potencyMultiplier = Mathf.Max(0.01f, potencyMultiplier),
+            burdenPotencyMultiplier = Mathf.Max(0f, burdenPotencyMultiplier),
             evidenceIds = evidenceIds?
                 .Where(id => !string.IsNullOrWhiteSpace(id))
                 .Select(id => id.Trim())
                 .Distinct(StringComparer.Ordinal)
                 .ToList() ?? new List<string>(),
+            gameplayOutcomeEvidence = gameplayOutcomeEvidence?
+                .Where(value => value != null)
+                .Select(value => value.Clone())
+                .OrderBy(value => value.publicFactId, StringComparer.Ordinal)
+                .ToList() ?? new List<GameplayOutcomeEvidenceBindingSnapshot>(),
+            formulaVersion = Mathf.Max(0, formulaVersion),
+            formulaCatalogSha256 = formulaCatalogSha256 ?? string.Empty,
+            formulaCapabilities = formulaCapabilities?
+                .Where(value => value != null)
+                .Select(value => value.Clone())
+                .OrderBy(value => value.capabilityId, StringComparer.Ordinal)
+                .ToList() ?? new List<EquipmentEvolutionFormulaCapabilityEnvelope>(),
+            formulaBudget = Mathf.Max(0, formulaBudget),
+            calculatedCost = Mathf.Max(0, calculatedCost),
+            positiveCost = Mathf.Max(0, positiveCost),
+            drawbackCredit = Mathf.Max(0, drawbackCredit),
+            drawbackId = drawbackId ?? string.Empty,
+            drawbackEvidenceQualified = drawbackEvidenceQualified,
+            moduleSelectionId = moduleSelectionId ?? string.Empty,
+            moduleSelectionOffers = moduleSelectionOffers?
+                .Where(value => value != null)
+                .Select(value => value.Clone())
+                .OrderBy(value => value.moduleId, StringComparer.Ordinal)
+                .ToList() ?? new List<EquipmentEvolutionModuleOfferState>(),
+            mechanicalDescription = mechanicalDescription ?? string.Empty,
+            presentationId = presentationId ?? string.Empty,
+            narrativeFlavor = narrativeFlavor ?? string.Empty,
+            presentationState = presentationState,
+            presentationFailureCount = Mathf.Max(0, presentationFailureCount),
             legalCandidateEffectIds = legalCandidateEffectIds?
                 .Where(id => !string.IsNullOrWhiteSpace(id))
                 .Select(id => id.Trim())
@@ -250,6 +354,17 @@ public sealed class EvolutionNode
                 .Take(3)
                 .ToList() ?? new List<string>(),
             selectedCandidateIndex = selectedCandidateIndex,
+            equipmentChoiceAuditRecorded = equipmentChoiceAuditRecorded,
+            equipmentChoiceSucceeded = equipmentChoiceSucceeded,
+            equipmentChoiceFallbackUsed = equipmentChoiceFallbackUsed,
+            equipmentChoiceFailureKind = equipmentChoiceFailureKind
+                ?? string.Empty,
+            equipmentChoiceFailureReason = equipmentChoiceFailureReason
+                ?? string.Empty,
+            equipmentChoiceCandidatePacketHash =
+                equipmentChoiceCandidatePacketHash ?? string.Empty,
+            equipmentChoiceRequestedIndex = equipmentChoiceRequestedIndex,
+            equipmentChoiceAuditUtcTicks = Math.Max(0L, equipmentChoiceAuditUtcTicks),
             activationRule = activationRule?.Clone() ??
                 new EvolutionModuleActivationRule()
         };
@@ -266,6 +381,9 @@ public enum EvolutionNarrativeTargetKind
 [Serializable]
 public sealed class EvolutionNarrativeRequestSnapshot
 {
+    public const string LegacyFrozenHistoryUnavailable =
+        "legacy-limited:no-frozen-event-details";
+
     public string requestKey = string.Empty;
     public EvolutionNarrativeTargetKind targetKind;
     public string targetPersistentId = string.Empty;
@@ -283,6 +401,13 @@ public sealed class EvolutionNarrativeRequestSnapshot
     public List<string> evidenceIds = new List<string>();
     public List<string> participantIds = new List<string>();
     public List<string> sourceTags = new List<string>();
+    public bool frozenHistoryCaptured;
+    public List<UsageLedgerEvent> frozenCurrentEvents =
+        new List<UsageLedgerEvent>();
+    public List<CompactedHistorySegment> frozenPriorGenerationSegments =
+        new List<CompactedHistorySegment>();
+    public string publicContextSemanticHash = string.Empty;
+    public string historyContinuityLimitation = string.Empty;
 
     public EvolutionNarrativeRequestSnapshot Clone()
     {
@@ -309,7 +434,31 @@ public sealed class EvolutionNarrativeRequestSnapshot
             selectedCandidateIndex = selectedCandidateIndex,
             evidenceIds = Normalize(evidenceIds),
             participantIds = Normalize(participantIds),
-            sourceTags = Normalize(sourceTags)
+            sourceTags = Normalize(sourceTags),
+            frozenHistoryCaptured = frozenHistoryCaptured,
+            frozenCurrentEvents = frozenCurrentEvents?
+                .Where(entry => entry != null)
+                .Select(entry => entry.Clone())
+                .OrderByDescending(entry => Mathf.Abs(entry.amount))
+                .ThenBy(entry => entry.sequence)
+                .ThenBy(entry => entry.evidenceId, StringComparer.Ordinal)
+                .Take(8)
+                .ToList() ?? new List<UsageLedgerEvent>(),
+            frozenPriorGenerationSegments = frozenPriorGenerationSegments?
+                .Where(segment => segment != null)
+                .Select(segment => segment.Clone())
+                .OrderBy(segment => segment.level)
+                .ThenBy(segment => segment.firstGeneration)
+                .ThenBy(segment => segment.lastGeneration)
+                .ThenBy(segment => segment.historyHash, StringComparer.Ordinal)
+                .ToList() ?? new List<CompactedHistorySegment>(),
+            publicContextSemanticHash = publicContextSemanticHash
+                ?? string.Empty,
+            historyContinuityLimitation = frozenHistoryCaptured
+                ? (historyContinuityLimitation?.Trim() ?? string.Empty)
+                : string.IsNullOrWhiteSpace(historyContinuityLimitation)
+                    ? LegacyFrozenHistoryUnavailable
+                    : historyContinuityLimitation.Trim()
         };
     }
 

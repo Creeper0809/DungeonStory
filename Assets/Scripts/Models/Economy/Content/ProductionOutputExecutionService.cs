@@ -15,7 +15,8 @@ public interface IProductionOutputExecutionService
         ProductionRecipeSO recipe,
         ProductionFacilityHandle facility,
         ProductionWorkerHandle worker,
-        float batchIntegrity);
+        float batchIntegrity,
+        float maximumCraftScore = 100f);
 
     DomainFailure ValidateOne(ProductionResolvedOutputSaveData output);
 
@@ -78,7 +79,8 @@ public sealed class ProductionOutputExecutionService :
         ProductionRecipeSO recipe,
         ProductionFacilityHandle facility,
         ProductionWorkerHandle worker,
-        float batchIntegrity)
+        float batchIntegrity,
+        float maximumCraftScore = 100f)
     {
         if (recipe == null || facility == null)
         {
@@ -163,7 +165,8 @@ public sealed class ProductionOutputExecutionService :
                 outputComponentCodecVersion = capability.ComponentCodecVersion,
                 outputCapabilityFingerprint = capability.Fingerprint,
                 amount = outputAmount,
-                qualityModifier = qualityModifier,
+                qualityModifier = bridge.ApplyCraftQualityCeiling(
+                    capability, qualityModifier, maximumCraftScore),
                 workerQuality = workerQuality
             });
         }

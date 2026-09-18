@@ -9,6 +9,7 @@ using VContainer.Unity;
 internal sealed class FluidNetworkRuntime :
     IFluidInfrastructureQuery,
     IFluidInfrastructureTransaction,
+    IManualWaterAvailabilityQuery,
     IManualWaterTransferTransaction,
     IFluidInfrastructureBatchTransaction,
     IFluidWastewaterTransaction,
@@ -27,6 +28,8 @@ internal sealed class FluidNetworkRuntime :
     private readonly IPhysicalItemBatchDispositionService physicalDispositions;
     private readonly IWorldFilthQuery filth;
     private readonly IGameClock clock;
+    private readonly IEnvironmentalFieldQuery environment;
+    private readonly ISeasonalEventQuery seasonalEvents;
     private readonly IFacilityCapabilityQuery facilities;
     private readonly IBuildingFacilityStateChangePort facilityStateChanges;
     private readonly FluidNetworkStateStore stateStore;
@@ -46,6 +49,8 @@ internal sealed class FluidNetworkRuntime :
         IPhysicalItemBatchDispositionService physicalDispositions,
         IWorldFilthQuery filth,
         IGameClock clock,
+        IEnvironmentalFieldQuery environment,
+        ISeasonalEventQuery seasonalEvents,
         IFacilityCapabilityQuery facilities,
         IBuildingFacilityStateChangePort facilityStateChanges,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
@@ -61,6 +66,8 @@ internal sealed class FluidNetworkRuntime :
             physicalDispositions,
             filth,
             clock,
+            environment,
+            seasonalEvents,
             facilities,
             facilityStateChanges,
             aggregateRootStore,
@@ -80,6 +87,8 @@ internal sealed class FluidNetworkRuntime :
         IPhysicalItemBatchDispositionService physicalDispositions,
         IWorldFilthQuery filth,
         IGameClock clock,
+        IEnvironmentalFieldQuery environment,
+        ISeasonalEventQuery seasonalEvents,
         IFacilityCapabilityQuery facilities,
         IBuildingFacilityStateChangePort facilityStateChanges,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
@@ -93,6 +102,10 @@ internal sealed class FluidNetworkRuntime :
             ?? throw new ArgumentNullException(nameof(physicalDispositions));
         this.filth = filth ?? throw new ArgumentNullException(nameof(filth));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        this.environment = environment
+            ?? throw new ArgumentNullException(nameof(environment));
+        this.seasonalEvents = seasonalEvents
+            ?? throw new ArgumentNullException(nameof(seasonalEvents));
         this.facilities = facilities
             ?? throw new ArgumentNullException(nameof(facilities));
         this.facilityStateChanges = facilityStateChanges
@@ -115,6 +128,8 @@ internal sealed class FluidNetworkRuntime :
         IPhysicalItemBatchDispositionService physicalDispositions,
         IWorldFilthQuery filth,
         IGameClock clock,
+        IEnvironmentalFieldQuery environment,
+        ISeasonalEventQuery seasonalEvents,
         IFacilityCapabilityQuery facilities,
         IBuildingFacilityStateChangePort facilityStateChanges,
         DungeonRuntimeAggregateRootStore aggregateRootStore)
@@ -125,6 +140,8 @@ internal sealed class FluidNetworkRuntime :
             physicalDispositions,
             filth,
             clock,
+            environment,
+            seasonalEvents,
             facilities,
             facilityStateChanges,
             aggregateRootStore,
@@ -182,9 +199,14 @@ internal sealed class FluidNetworkRuntime :
         }
 
         EnsureTopology();
+        bool waterConditionChanged = ReconcileFrozenPipes();
         accumulated += clock.DeltaTime;
         if (accumulated < TickInterval)
         {
+            if (waterConditionChanged)
+            {
+                stateStore.Touch();
+            }
             return;
         }
 
@@ -270,7 +292,7 @@ internal sealed class FluidNetworkRuntime :
         foreach (WorldWaterQuality quality in
                  FluidNodeWaterRules.GetConsumptionOrder(minimumQuality))
         {
-            if (GetNetworkWater(networkId, quality) + 0.0001f >= amount)
+            if (GetNetworkWaterReadOnly(networkId, quality) + 0.0001f >= amount)
             {
                 return true;
             }
@@ -556,6 +578,115 @@ internal sealed class FluidNetworkRuntime :
             out failure);
     }
 
+    public bool CanConsumeManualContainer(
+        BuildableObject consumer,
+        string destinationId,
+        float amount,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        string destination = destinationId ?? string.Empty;
+        if (consumer == null
+            || consumer.IsBuildingDestroyed
+            || consumer.IsGridDestroyed
+            || !consumer.PersistentInstanceId.IsValid
+            || float.IsNaN(amount)
+            || float.IsInfinity(amount)
+            || !Canonical(destination))
+        {
+            failure = new DomainFailure(
+                FailureCode.FluidManualWaterUnavailable);
+            return false;
+        }
+
+        string nodeId = consumer.PersistentInstanceId.Value;
+        IndustrialTopologySnapshot topology = topologyRuntime.Current;
+        if (!topology.NodeIdsByBuilding.TryGetValue(
+                consumer,
+                out string registeredNodeId)
+            || !string.Equals(
+                registeredNodeId,
+                nodeId,
+                StringComparison.Ordinal)
+            || !topology.Nodes.TryGetValue(
+                nodeId,
+                out IndustrialNodeDescriptor node)
+            || !ReferenceEquals(node.Building, consumer)
+            || (node.Channels & UtilityChannel.CleanWater) == 0
+            || !stateStore.CurrentNodes.TryGetValue(
+                nodeId,
+                out FluidNodeState state))
+        {
+            failure = new DomainFailure(
+                FailureCode.FluidManualWaterUnavailable);
+            return false;
+        }
+
+        if (amount <= 0f)
+        {
+            return true;
+        }
+
+        ManualWaterTransferState pending = state.PendingManualWaterTransfers
+            .SingleOrDefault(value => value.ImmediateConsumption);
+        if (pending != null)
+        {
+            if (pending.OperationSequence
+                    != state.NextImmediateManualWaterOperationSequence
+                || !string.Equals(
+                    pending.OperationId,
+                    FluidPhysicalOperationIdentity
+                        .FormatImmediateManualWaterOperationId(
+                            nodeId,
+                            pending.OperationSequence),
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    pending.DestinationId,
+                    destination,
+                    StringComparison.Ordinal)
+                || !Mathf.Approximately(
+                    pending.RequestedWaterUnits,
+                    amount))
+            {
+                failure = new DomainFailure(
+                    FailureCode.IndustrialCommandInvalid,
+                    pending.OperationId,
+                    "manual-water-immediate-operation-conflict");
+                return false;
+            }
+
+            if (pending.FluidStateApplied
+                || state.ManualWaterReserve
+                    + pending.TransferredWaterUnits
+                    + 0.0001f
+                    >= pending.RequestedWaterUnits)
+            {
+                return true;
+            }
+
+            failure = new DomainFailure(
+                FailureCode.FluidManualWaterUnavailable,
+                destination);
+            return false;
+        }
+
+        int requiredWaterUnits = GetRequiredManualWaterUnits(
+            amount,
+            state.ManualWaterReserve);
+        if (TrySelectManualWaterInputs(
+                destination,
+                requiredWaterUnits,
+                out _))
+        {
+            return true;
+        }
+
+        failure = new DomainFailure(
+            FailureCode.FluidManualWaterUnavailable,
+            destination);
+        return false;
+    }
+
     public bool TryStageManualWaterTransfer(
         BuildableObject consumer,
         string destinationId,
@@ -658,9 +789,9 @@ internal sealed class FluidNetworkRuntime :
             return receipt.IsValid;
         }
 
-        int requiredWaterUnits = Mathf.Max(
-            0,
-            Mathf.CeilToInt(amount - state.ManualWaterReserve - 0.0001f));
+        int requiredWaterUnits = GetRequiredManualWaterUnits(
+            amount,
+            state.ManualWaterReserve);
         var pending = new ManualWaterTransferState
         {
             OperationId = operation,
@@ -672,36 +803,10 @@ internal sealed class FluidNetworkRuntime :
         };
         if (requiredWaterUnits > 0)
         {
-            int remaining = requiredWaterUnits;
-            var inputs = new List<PhysicalItemTransformInput>();
-            foreach (WorldItemStackSnapshot stack in items.GetAllStacks()
-                         .Where(stack => stack != null
-                             && stack.State == WorldItemStackState.FacilityBuffer
-                             && !stack.HasReservations
-                             && string.Equals(
-                                 stack.ItemId,
-                                 BottledCleanWaterItemId,
-                                 StringComparison.Ordinal)
-                             && string.Equals(
-                                 stack.DestinationId,
-                                 destination,
-                                 StringComparison.Ordinal))
-                         .OrderBy(stack => stack.StackId, StringComparer.Ordinal))
-            {
-                int quantity = Mathf.Min(remaining, stack.AvailableQuantity);
-                if (quantity <= 0)
-                {
-                    continue;
-                }
-                inputs.Add(new PhysicalItemTransformInput(stack.StackId, quantity));
-                remaining -= quantity;
-                if (remaining == 0)
-                {
-                    break;
-                }
-            }
-
-            if (remaining > 0
+            if (!TrySelectManualWaterInputs(
+                    destination,
+                    requiredWaterUnits,
+                    out List<PhysicalItemTransformInput> inputs)
                 || !physicalDispositions.TryCommitPending(
                     inputs,
                     PhysicalItemDispositionKind.Transfer,
@@ -890,6 +995,60 @@ internal sealed class FluidNetworkRuntime :
         state = stateStore.EnsureState(nodeId);
         return true;
     }
+
+    private static int GetRequiredManualWaterUnits(
+        float amount,
+        float manualWaterReserve) =>
+        Mathf.Max(
+            0,
+            Mathf.CeilToInt(amount - manualWaterReserve - 0.0001f));
+
+    private bool TrySelectManualWaterInputs(
+        string destination,
+        int requiredWaterUnits,
+        out List<PhysicalItemTransformInput> inputs)
+    {
+        int remaining = requiredWaterUnits;
+        inputs = new List<PhysicalItemTransformInput>();
+        if (remaining == 0)
+        {
+            return true;
+        }
+
+        foreach (WorldItemStackSnapshot stack in items.GetAllStacks()
+                     .Where(stack => stack != null
+                         && stack.State == WorldItemStackState.FacilityBuffer
+                         && !stack.HasReservations
+                         && string.Equals(
+                             stack.ItemId,
+                             BottledCleanWaterItemId,
+                             StringComparison.Ordinal)
+                         && string.Equals(
+                             stack.DestinationId,
+                             destination,
+                             StringComparison.Ordinal))
+                     .OrderBy(stack => stack.StackId, StringComparer.Ordinal))
+        {
+            int quantity = Mathf.Min(remaining, stack.AvailableQuantity);
+            if (quantity <= 0)
+            {
+                continue;
+            }
+
+            inputs.Add(new PhysicalItemTransformInput(stack.StackId, quantity));
+            remaining -= quantity;
+            if (remaining == 0)
+            {
+                break;
+            }
+        }
+
+        return remaining == 0;
+    }
+
+    private static bool Canonical(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
 
     public bool TryGetNetwork(
         BuildableObject building,
@@ -1093,6 +1252,54 @@ internal sealed class FluidNetworkRuntime :
         return false;
     }
 
+    public bool TryGetWaterCondition(
+        BuildableObject building,
+        out BuildingWaterConditionSnapshot snapshot)
+    {
+        EnsureTopology();
+        snapshot = default;
+        if (building == null
+            || !projectionAdapter.TryResolveState(
+                building,
+                out FluidNodeState state))
+        {
+            return false;
+        }
+
+        SeasonalPipedWaterContribution contribution =
+            seasonalEvents.GetPipedWaterContribution();
+        bool sourceMatches = contribution.IsActive
+            && string.Equals(
+                state.FrozenPipeOccurrenceInstanceId,
+                contribution.OccurrenceInstanceId,
+                StringComparison.Ordinal);
+        bool hasTemperature = environment.TryGetCell(
+            building.centerPos,
+            out EnvironmentalCellSnapshot cell);
+        bool frozen = sourceMatches && state.FrozenPipeLatched;
+        bool recovering = frozen
+            && hasTemperature
+            && cell.TemperatureC > contribution.FreezeThresholdC
+            && cell.TemperatureC < contribution.RecoveryThresholdC;
+        snapshot = new BuildingWaterConditionSnapshot(
+            new BuildingInstanceId(
+                IndustrialInfrastructureIdentity.GetNodeId(building)),
+            contribution.IsActive
+                ? contribution.OccurrenceInstanceId
+                : string.Empty,
+            contribution.IsActive ? contribution.DefinitionId : string.Empty,
+            contribution.IsActive ? contribution.DisplayName : string.Empty,
+            contribution.IsActive ? contribution.RemainingDays : 0,
+            hasTemperature,
+            hasTemperature ? cell.TemperatureC : 0f,
+            frozen,
+            recovering,
+            frozen ? contribution.ThroughputMultiplier : 1f,
+            contribution.IsActive ? contribution.FreezeThresholdC : 0f,
+            contribution.IsActive ? contribution.RecoveryThresholdC : 0f);
+        return true;
+    }
+
     public InfrastructureCommandResult RepairLeak(BuildableObject building)
     {
         if (!projectionAdapter.TryResolveState(
@@ -1141,7 +1348,10 @@ internal sealed class FluidNetworkRuntime :
                     pendingContainerFeed = ToSaveData(
                         pair.Value.PendingContainerFeed),
                     transferMode = pair.Value.TransferMode,
-                    transferWork = pair.Value.TransferWork
+                    transferWork = pair.Value.TransferWork,
+                    frozenPipeLatched = pair.Value.FrozenPipeLatched,
+                    frozenPipeOccurrenceInstanceId = pair.Value
+                        .FrozenPipeOccurrenceInstanceId
                 })
                 .ToList()
         };
@@ -1188,7 +1398,10 @@ internal sealed class FluidNetworkRuntime :
                     saved.transferMode)
                         ? saved.transferMode
                         : WaterContainerTransferMode.Disabled,
-                TransferWork = Mathf.Max(0f, saved.transferWork)
+                TransferWork = Mathf.Max(0f, saved.transferWork),
+                FrozenPipeLatched = saved.frozenPipeLatched,
+                FrozenPipeOccurrenceInstanceId =
+                    saved.frozenPipeOccurrenceInstanceId
             };
             restoredNode.PendingManualWaterTransfers.AddRange(
                 (saved.pendingManualWaterTransfers
@@ -1966,8 +2179,77 @@ internal sealed class FluidNetworkRuntime :
     private float ResolveFlowMultiplier(IndustrialNodeDescriptor node)
     {
         FluidNodeState state = stateStore.EnsureState(node.NodeId);
+        SeasonalPipedWaterContribution contribution =
+            seasonalEvents.GetPipedWaterContribution();
+        float seasonalMultiplier = state.FrozenPipeLatched
+            && contribution.IsActive
+            && string.Equals(
+                state.FrozenPipeOccurrenceInstanceId,
+                contribution.OccurrenceInstanceId,
+                StringComparison.Ordinal)
+                ? contribution.ThroughputMultiplier
+                : 1f;
         return Mathf.Clamp01(
-            1f - state.Blockage / 100f - state.FaultEquivalent());
+            1f - state.Blockage / 100f - state.FaultEquivalent())
+            * seasonalMultiplier;
+    }
+
+    private bool ReconcileFrozenPipes()
+    {
+        bool changed = false;
+        SeasonalPipedWaterContribution contribution =
+            seasonalEvents.GetPipedWaterContribution();
+        foreach (IndustrialNodeDescriptor node in topologyRuntime.Current.Nodes
+                     .Values.Where(value => (value.Channels
+                         & (UtilityChannel.CleanWater
+                            | UtilityChannel.Wastewater)) != 0)
+                     .OrderBy(value => value.NodeId, StringComparer.Ordinal))
+        {
+            FluidNodeState state = stateStore.EnsureState(node.NodeId);
+            bool beforeLatched = state.FrozenPipeLatched;
+            string beforeSource = state.FrozenPipeOccurrenceInstanceId;
+            if (!contribution.IsActive)
+            {
+                state.FrozenPipeLatched = false;
+                state.FrozenPipeOccurrenceInstanceId = string.Empty;
+                changed |= beforeLatched
+                    || !string.IsNullOrEmpty(beforeSource);
+                continue;
+            }
+
+            if (!environment.TryGetCell(
+                    node.Building.centerPos,
+                    out EnvironmentalCellSnapshot cell))
+            {
+                throw new InvalidOperationException(
+                    $"Fluid node '{node.NodeId}' has no environmental cell for its active piped-water contribution.");
+            }
+
+            bool sameOccurrence = string.Equals(
+                state.FrozenPipeOccurrenceInstanceId,
+                contribution.OccurrenceInstanceId,
+                StringComparison.Ordinal);
+            state.FrozenPipeOccurrenceInstanceId =
+                contribution.OccurrenceInstanceId;
+            if (!sameOccurrence)
+            {
+                state.FrozenPipeLatched = false;
+            }
+            if (cell.TemperatureC <= contribution.FreezeThresholdC)
+            {
+                state.FrozenPipeLatched = true;
+            }
+            else if (cell.TemperatureC >= contribution.RecoveryThresholdC)
+            {
+                state.FrozenPipeLatched = false;
+            }
+            changed |= beforeLatched != state.FrozenPipeLatched
+                || !string.Equals(
+                    beforeSource,
+                    state.FrozenPipeOccurrenceInstanceId,
+                    StringComparison.Ordinal);
+        }
+        return changed;
     }
 
     private float AddNetworkWater(
@@ -2017,6 +2299,20 @@ internal sealed class FluidNetworkRuntime :
             .Sum(node => FluidNodeWaterRules.GetWater(
                 stateStore.EnsureState(node.NodeId),
                 quality));
+    }
+
+    private float GetNetworkWaterReadOnly(
+        string networkId,
+        WorldWaterQuality quality)
+    {
+        return projectionAdapter.GetNetworkNodes(
+                UtilityChannel.CleanWater,
+                networkId)
+            .Sum(node => stateStore.CurrentNodes.TryGetValue(
+                    node.NodeId,
+                    out FluidNodeState state)
+                ? FluidNodeWaterRules.GetWater(state, quality)
+                : 0f);
     }
 
     private float GetNetworkWaterFreeCapacity(string networkId)

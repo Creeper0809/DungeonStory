@@ -232,8 +232,13 @@ internal sealed class ShopInventoryRuntime
     public bool TryTakeExactLot(
         int saleItemId,
         out RetailStockLotSnapshot taken,
+        out string unitOperationId,
         out string failureReason) =>
-        core.TryTakeExactLot(saleItemId, out taken, out failureReason);
+        core.TryTakeExactLot(
+            saleItemId,
+            out taken,
+            out unitOperationId,
+            out failureReason);
     public bool TryRestoreTakenExactLot(
         RetailStockLotSnapshot taken,
         out string failureReason) =>

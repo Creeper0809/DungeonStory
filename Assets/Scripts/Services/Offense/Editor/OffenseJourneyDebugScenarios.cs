@@ -28,6 +28,9 @@ public static class OffenseJourneyDebugScenarios
         Run("camp recovery and formation", VerifyCampRecoveryAndFormation, errors);
         Run("experience pacing", VerifyExperiencePacing, errors);
         Run("return recovery readiness", VerifyReturnRecoveryReadiness, errors);
+        Run("return resource retry commits once",
+            VerifyReturnResourceRetryCommitsOnce,
+            errors);
         Run("expedition death loses equipment modules together",
             VerifyExpeditionDeathLosesEquipmentModulesTogether,
             errors);
@@ -207,6 +210,140 @@ public static class OffenseJourneyDebugScenarios
         return true;
     }
 
+    private static bool VerifyReturnResourceRetryCommitsOnce()
+    {
+        VerifyCommittedReturnStageIsReused();
+
+        using ActorFixture fixture = new ActorFixture("Return Retry Tester");
+        OffenseExpeditionRun run = CreateRun(
+            fixture.Actor,
+            new OffenseSupplyLoadout());
+        RetryableReturnPort returnPort = new RetryableReturnPort();
+        RecordingResultFinalizer finalizer = new RecordingResultFinalizer();
+        OffenseExpeditionReturnCoordinator coordinator = new(
+            returnPort,
+            finalizer,
+            new GameEventBus(),
+            CharacterAiEditorTestDependencies.NeutralPerformance);
+        List<OffenseExpeditionResult> history = new();
+        int levelBefore = fixture.Actor.Progression.Level;
+        int experienceBefore = fixture.Actor.Progression.CurrentExperience;
+
+        coordinator.Complete(
+            run,
+            true,
+            "retry-proof",
+            history,
+            null);
+        Require(run.ReturnPending
+                && !run.ReturnFinalized
+                && !run.ReturnResourcesCommitted
+                && !string.IsNullOrEmpty(run.ReturnResourceFailure)
+                && history.Count == 0
+                && finalizer.CallCount == 0
+                && returnPort.PhysicalStock == 2
+                && fixture.Actor.Progression.Level == levelBefore
+                && fixture.Actor.Progression.CurrentExperience
+                    == experienceBefore,
+            "A failed return output commit latched finalization or granted result/XP before the retry.");
+
+        coordinator.Complete(
+            run,
+            true,
+            "retry-proof",
+            history,
+            null);
+        Require(run.ReturnFinalized
+                && run.ReturnResourcesCommitted
+                && string.IsNullOrEmpty(run.ReturnResourceFailure)
+                && history.Count == 1
+                && finalizer.CallCount == 1
+                && returnPort.PhysicalStock == 2
+                && run.ReturnItemReceipts.Count == 1
+                && history[0].itemReceipts.Count == 1
+                && (fixture.Actor.Progression.Level > levelBefore
+                    || (fixture.Actor.Progression.Level == levelBefore
+                        && fixture.Actor.Progression.CurrentExperience
+                            > experienceBefore)),
+            "The return retry did not publish one physical receipt, result, and XP grant.");
+        int levelAfter = fixture.Actor.Progression.Level;
+        int experienceAfter = fixture.Actor.Progression.CurrentExperience;
+        coordinator.Complete(
+            run,
+            true,
+            "retry-proof",
+            history,
+            null);
+        Require(history.Count == 1
+                && finalizer.CallCount == 1
+                && returnPort.PhysicalStock == 2
+                && fixture.Actor.Progression.Level == levelAfter
+                && fixture.Actor.Progression.CurrentExperience
+                    == experienceAfter,
+            "A completed return retry duplicated physical stock, result history, or XP.");
+        return true;
+    }
+
+    private static void VerifyCommittedReturnStageIsReused()
+    {
+        using ActorFixture fixture = new ActorFixture("Return Stage Tester");
+        OffenseSupplyLoadout supplies = new();
+        supplies.Add(OffenseSupplyType.Rations, 2);
+        OffenseExpeditionRun run = CreateRun(fixture.Actor, supplies);
+        run.AddCarriedLoot(StockCategory.General, 3);
+        StageRetryPreparation preparation = new();
+        ChangingWorkValueProjection values = new();
+        OffenseExpeditionReturnPort port = new(
+            preparation,
+            BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                .Create<IExpeditionReturnService>(),
+            BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                .Create<IOffenseReturnArrivalRuntime>(),
+            OffenseEditorTestDependencies.CreateCombatEquipmentRuntime(),
+            BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                .Create<IGameMoneyAccount>(),
+            new GameEventBus(),
+            BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                .Create<IWorldDropZoneQuery>(),
+            values);
+
+        bool firstFailed = false;
+        try
+        {
+            port.ReleaseResourcesWithReceipt(run, hasSurvivor: true);
+        }
+        catch (InvalidOperationException)
+        {
+            firstFailed = true;
+        }
+
+        OffenseExpeditionItemReceipt committedSupply = run.ReturnItemReceipts
+            .Single(value => value.kind
+                == OffenseExpeditionItemReceiptKind.SupplyReturned);
+        string committedBasis = committedSupply.valuation.basisId;
+        Require(firstFailed
+                && preparation.SupplyCalls == 1
+                && preparation.LootCalls == 1
+                && values.QueryCount == 1
+                && !run.ReturnResourcesCommitted,
+            "The fixture did not stop after the committed supply stage and failed loot stage.");
+
+        port.ReleaseResourcesWithReceipt(run, hasSurvivor: true);
+        Require(run.ReturnResourcesCommitted
+                && preparation.SupplyCalls == 1
+                && preparation.LootCalls == 2
+                && values.QueryCount == 2
+                && ReferenceEquals(
+                    committedSupply,
+                    run.ReturnItemReceipts.Single(value => value.kind
+                        == OffenseExpeditionItemReceiptKind.SupplyReturned))
+                && string.Equals(
+                    committedBasis,
+                    committedSupply.valuation.basisId,
+                    StringComparison.Ordinal),
+            "A retry republished or revalued an already committed physical return stage.");
+    }
+
     private static bool VerifyExpeditionDeathLosesEquipmentModulesTogether()
     {
         using ActorFixture fixture = new ActorFixture("Equipment Loss Tester");
@@ -327,7 +464,9 @@ public static class OffenseJourneyDebugScenarios
                 .Create<IGameMoneyAccount>(),
             new GameEventBus(),
             BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
-                .Create<IWorldDropZoneQuery>());
+                .Create<IWorldDropZoneQuery>(),
+            BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                .Create<IV27EmbeddedWorkValueProjectionQuery>());
         returnPort.HandleMemberDeath(fixture.Actor);
 
         Require(equipment.TryGetInstance(
@@ -403,13 +542,115 @@ public static class OffenseJourneyDebugScenarios
         using ActorFixture fixture = new ActorFixture("Save Payload Tester");
         OffenseExpeditionRun run = CreateRun(
             fixture.Actor,
-            Loadout((OffenseSupplyType.Rations, 4), (OffenseSupplyType.Tools, 1)));
+            Loadout(
+                (OffenseSupplyType.Rations, 4),
+                (OffenseSupplyType.Tools, 1),
+                (OffenseSupplyType.Medicine, 1)));
+        ICombatEquipmentRuntime settlementEquipment =
+            OffenseEditorTestDependencies.CreateCombatEquipmentRuntime();
+        CombatEquipmentInstance settlementWeapon =
+            settlementEquipment.CreateExternalInstance(
+                "weapon:crossbow",
+                CombatEquipmentQuality.Normal);
+        Require(settlementEquipment.TryAssignToCharacter(
+                fixture.Actor.Identity.PersistentId,
+                settlementWeapon.instanceId,
+                out string equipmentFailure),
+            $"Settlement equipment setup failed: {equipmentFailure}");
+        run.CaptureEquipmentBaseline(settlementEquipment);
+        run.RecordAmmunitionConsumption(
+            settlementWeapon.instanceId,
+            "ammo:bolt-iron",
+            2);
         OffenseRouteNode eventNode = run.GetAvailableRouteNodes()
             .Single(node => node.Kind == OffenseRouteNodeKind.Event);
         run.TryEnterNode(eventNode.Id, out _);
         run.TryResolveCurrentNode(false, out _, out _);
+        fixture.Actor.ApplyDamage(20f, "settlement receipt test");
+        Require(run.TryUseSupply(OffenseSupplyType.Medicine, 0, out _),
+            "Medicine receipt setup failed.");
         run.MemberStates[0].Restore(OffenseFormationSlot.Rear, 37f, 14f);
         run.AddRecoveredEquipment("equipment:save-recovered:test");
+        run.RestorePhysicalReturn(
+            true,
+            true,
+            "return-resource-save-proof",
+            new[]
+            {
+                new ExpeditionReturnProgress(
+                    fixture.Actor.Identity.PersistentId,
+                    ExpeditionReturnStage.Arrived)
+            });
+        run.RestoreReturnResourceSettlement(
+            false,
+            "return-resource-retry-pending",
+            new[]
+            {
+                new OffenseExpeditionItemReceipt(
+                    OffenseExpeditionItemReceiptKind.SupplyReturned,
+                    OffenseSupplyCatalog.GetPhysicalItemId(
+                        OffenseSupplyType.Rations),
+                    1,
+                    string.Empty,
+                    0f,
+                    OffenseExpeditionRun.CreateValuation(
+                        null,
+                        OffenseSupplyCatalog.GetPhysicalItemId(
+                            OffenseSupplyType.Rations),
+                        1))
+            },
+            Array.Empty<OffenseExpeditionCurrencyReceipt>());
+
+        OffenseExpeditionResult settlementResult = new OffenseExpeditionResult(
+                "result:settlement:test",
+                Target().id,
+                Target().title,
+                true,
+                10f,
+                10f,
+                1f,
+                12f,
+                Array.Empty<OffenseExpeditionMemberSnapshot>(),
+                Array.Empty<string>())
+            .WithSettlement(
+                run.FreezeItemReceipts(settlementEquipment, null),
+                run.TreatmentReceipts)
+            .WithGrantedRewards(new[]
+            {
+                new OffenseRewardGrantResult(
+                    OffenseRewardCategory.Money,
+                    "receipt reward",
+                    3,
+                    3,
+                    true,
+                    "committed",
+                    new[]
+                    {
+                        new OffenseRewardPhysicalItemGrant(
+                            OffenseLootItemIds.UnappraisedLoot,
+                            3)
+                    })
+            })
+            .WithAdditionalItemReceipts(new[]
+            {
+                new OffenseExpeditionItemReceipt(
+                    OffenseExpeditionItemReceiptKind.RewardGranted,
+                    OffenseLootItemIds.UnappraisedLoot,
+                    3,
+                    string.Empty,
+                    0f,
+                    OffenseExpeditionRun.CreateValuation(
+                        null,
+                        OffenseLootItemIds.UnappraisedLoot,
+                        3))
+            })
+            .WithAdditionalCurrencyReceipts(new[]
+            {
+                new OffenseExpeditionCurrencyReceipt(
+                    OffenseSettlementCurrencyIds.Gold,
+                    7,
+                    "field-funds:return:save-fixture")
+            });
 
         GameObject runtimeObject = new GameObject("Offense Save Payload Runtime");
         try
@@ -420,8 +661,10 @@ public static class OffenseJourneyDebugScenarios
             runtime.PublishRestoreCandidate(
                 runtime.BuildRestoreCandidate(
                     new List<OffenseExpeditionRun> { run },
-                    new List<OffenseExpeditionResult>()));
-            FakeCharacterSaveService characterSave = new FakeCharacterSaveService(fixture.Actor, "actor:save-test");
+                    new List<OffenseExpeditionResult> { settlementResult }));
+            FakeCharacterSaveService characterSave = new FakeCharacterSaveService(
+                fixture.Actor,
+                fixture.Actor.Identity.PersistentId);
             OffenseSaveService service = new OffenseSaveService(
                 new OffenseSceneRuntimeReferences(
                     worldMap,
@@ -441,7 +684,7 @@ public static class OffenseJourneyDebugScenarios
             DungeonOffenseExpeditionRunSaveData saved = restored.activeExpeditions.Single();
             DungeonOffenseExpeditionMemberStateSaveData savedMember = saved.memberStates.Single();
 
-            Require(saved.journeyVersion == 2, "Journey save version was not written.");
+            Require(saved.journeyVersion == DungeonOffenseExpeditionRunSaveData.CurrentVersion, "Journey save version was not written.");
             Require(saved.phase == run.Phase && saved.currentNodeId == run.CurrentNodeId,
                 "Journey phase or current node did not round-trip.");
             Require(Mathf.Approximately(saved.light, run.Light), "Journey light did not round-trip.");
@@ -456,6 +699,42 @@ public static class OffenseJourneyDebugScenarios
             Require(saved.recoveredEquipmentInstanceIds.SequenceEqual(
                     new[] { "equipment:save-recovered:test" }),
                 "Recovered physical equipment IDs did not round-trip.");
+            Require(saved.consumedSupplies.Any(value =>
+                    value.type == OffenseSupplyType.Rations && value.amount == 1)
+                && saved.consumedSupplies.Any(value =>
+                    value.type == OffenseSupplyType.Medicine && value.amount == 1),
+                "Committed supply receipts did not round-trip.");
+            Require(saved.treatmentReceipts.Count == 1
+                    && saved.treatmentReceipts[0].kind
+                        == OffenseExpeditionTreatmentKind.Healing
+                    && saved.treatmentReceipts[0].healedAmount > 0f,
+                "Actual healing receipt did not round-trip.");
+            Require(saved.equipmentBaselines.Count == 1
+                    && saved.ammunitionConsumptions.Count == 1
+                    && saved.ammunitionConsumptions[0].instanceId
+                        == settlementWeapon.instanceId
+                    && saved.ammunitionConsumptions[0].itemId
+                        == "ammo:bolt-iron"
+                    && saved.ammunitionConsumptions[0].quantity == 2,
+                "Committed ammunition consumption did not round-trip with its equipment owner.");
+            Require(saved.returnPending
+                    && !saved.returnResourcesCommitted
+                    && saved.returnResourceFailure
+                        == "return-resource-retry-pending"
+                    && saved.returnItemReceipts.Count == 1
+                    && saved.returnItemReceipts[0].kind
+                        == OffenseExpeditionItemReceiptKind.SupplyReturned,
+                "Retryable return resource state and its successful partial receipt did not round-trip.");
+            DungeonOffenseExpeditionResultSaveData savedResult =
+                restored.resultHistory.Single();
+            Require(savedResult.grantedRewards.Count == 1
+                    && savedResult.grantedRewards[0].grantedAmount == 3
+                    && savedResult.grantedRewards[0].physicalItems.Count == 1
+                    && savedResult.itemReceipts.Count >= 3
+                    && savedResult.treatmentReceipts.Count == 1
+                    && savedResult.currencyReceipts.Count == 1
+                    && savedResult.currencyReceipts[0].amount == 7,
+                "Immutable settlement result details did not round-trip.");
             return true;
         }
         finally
@@ -570,6 +849,191 @@ public static class OffenseJourneyDebugScenarios
         public void Dispose()
         {
             UnityEngine.Object.DestroyImmediate(gameObject);
+        }
+    }
+
+    private sealed class RetryableReturnPort :
+        IOffenseExpeditionReturnPort,
+        IOffenseExpeditionReturnSettlementPort
+    {
+        private bool physicalOutputCommitted;
+
+        public int PhysicalStock { get; private set; }
+
+        public void Begin(string expeditionId)
+        {
+        }
+
+        public void ReleaseResources(
+            OffenseExpeditionRun expedition,
+            bool hasSurvivor) =>
+            ReleaseResourcesWithReceipt(expedition, hasSurvivor);
+
+        public OffenseExpeditionReturnReceipt ReleaseResourcesWithReceipt(
+            OffenseExpeditionRun expedition,
+            bool hasSurvivor)
+        {
+            if (!physicalOutputCommitted)
+            {
+                PhysicalStock += 2;
+                physicalOutputCommitted = true;
+                throw new InvalidOperationException(
+                    "fixture-output-publication-interrupted");
+            }
+
+            return new OffenseExpeditionReturnReceipt(new[]
+            {
+                new OffenseExpeditionItemReceipt(
+                    OffenseExpeditionItemReceiptKind.SupplyReturned,
+                    "item:return-retry-proof",
+                    2,
+                    string.Empty,
+                    0f,
+                    new OffenseItemValuationSnapshot(
+                        "item:return-retry-proof",
+                        2,
+                        OffenseSettlementValuationState.UnvaluedItem))
+            });
+        }
+
+        public bool TryBeginMemberReturn(
+            string expeditionId,
+            CharacterActor actor,
+            Action<ExpeditionReturnOutcome> completed,
+            ExpeditionReturnProgress progress = null)
+        {
+            completed?.Invoke(ExpeditionReturnOutcome.Arrived);
+            return true;
+        }
+
+        public void EndMemberImmediately(CharacterActor actor, bool survived)
+        {
+        }
+
+        public void HandleMemberDeath(CharacterActor actor)
+        {
+        }
+
+        public void Seal(string expeditionId)
+        {
+        }
+    }
+
+    private sealed class StageRetryPreparation :
+        IOffensePreparationService,
+        IOffensePreparationSettlementPort
+    {
+        public int SupplyCalls { get; private set; }
+        public int LootCalls { get; private set; }
+
+        public IReadOnlyList<OffensePhysicalItemCommitReceipt>
+            ReturnSuppliesWithReceipt(
+                OffenseSupplyLoadout loadout,
+                string packageId)
+        {
+            SupplyCalls++;
+            return new[]
+            {
+                new OffensePhysicalItemCommitReceipt(
+                    OffenseSupplyCatalog.GetPhysicalItemId(
+                        OffenseSupplyType.Rations),
+                    loadout.Get(OffenseSupplyType.Rations),
+                    "return-stage:supply")
+            };
+        }
+
+        public IReadOnlyList<OffensePhysicalItemCommitReceipt>
+            DepositLootWithReceipt(
+                IReadOnlyDictionary<StockCategory, int> loot,
+                string expeditionId)
+        {
+            LootCalls++;
+            if (LootCalls == 1)
+            {
+                throw new InvalidOperationException(
+                    "fixture-loot-publication-interrupted");
+            }
+
+            return new[]
+            {
+                new OffensePhysicalItemCommitReceipt(
+                    OffenseLootItemIds.UnappraisedLoot,
+                    loot.Values.Sum(),
+                    "return-stage:loot")
+            };
+        }
+
+        public OffensePreparationSnapshot Evaluate() =>
+            throw new NotSupportedException();
+        public OffenseSupplyPackingSnapshot GetPackingSnapshot(string packageId) =>
+            throw new NotSupportedException();
+        public bool IsPackageReady(string packageId) => false;
+        public bool TryCommitLoadout(
+            OffenseSupplyLoadout loadout,
+            OffenseExpeditionPreparation preparation,
+            string packageId,
+            out string message)
+        {
+            message = string.Empty;
+            return false;
+        }
+        public bool TryConsumePackedSupplies(
+            string packageId,
+            out string message)
+        {
+            message = string.Empty;
+            return false;
+        }
+        public void ConsumePackedSupplies(string packageId) { }
+        public void AbandonPackedSupplies(string packageId) { }
+        public void ReturnSupplies(
+            OffenseSupplyLoadout loadout,
+            string packageId = "") =>
+            ReturnSuppliesWithReceipt(loadout, packageId);
+        public void DepositLoot(IReadOnlyDictionary<StockCategory, int> loot) =>
+            DepositLootWithReceipt(loot, "fixture");
+        public IReadOnlyList<OffenseSupplyPackingStateData> CapturePackingState() =>
+            Array.Empty<OffenseSupplyPackingStateData>();
+        public void RestorePackingState(
+            IEnumerable<OffenseSupplyPackingStateData> restored,
+            DungeonGameRestoreReport report = null) { }
+    }
+
+    private sealed class ChangingWorkValueProjection :
+        IV27EmbeddedWorkValueProjectionQuery
+    {
+        public bool AuthorityAvailable => true;
+        public string AuthorityFailure => string.Empty;
+        public int QueryCount { get; private set; }
+
+        public bool TryGet(
+            string itemId,
+            out V27EmbeddedWorkValueProjection value)
+        {
+            QueryCount++;
+            value = new V27EmbeddedWorkValueProjection(
+                itemId,
+                1000L + QueryCount,
+                500L + QueryCount,
+                $"basis:return-stage-{QueryCount}",
+                $"source:return-stage-{QueryCount}");
+            return true;
+        }
+    }
+
+    private sealed class RecordingResultFinalizer :
+        IOffenseExpeditionResultFinalizer
+    {
+        public int CallCount { get; private set; }
+
+        public OffenseExpeditionResult Finalize(
+            OffenseExpeditionRun expedition,
+            OffenseExpeditionResult result,
+            List<OffenseExpeditionResult> resultHistory)
+        {
+            CallCount++;
+            resultHistory.Insert(0, result);
+            return result;
         }
     }
 

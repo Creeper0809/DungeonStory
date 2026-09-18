@@ -24,6 +24,15 @@ public interface ICharacterPerformanceQuery
         CharacterPerformanceFormulaDomain domain);
 }
 
+public interface ICharacterGameplayEffectValueQuery
+{
+    GameplayEffectProjectionResult ProjectGameplayEffectValue(
+        CharacterActor actor,
+        string targetId,
+        float baseValue,
+        GameplayEffectContext context = null);
+}
+
 public sealed class CharacterPerformanceEvaluationContext
 {
     public float ContextFactor { get; set; } = 1f;
@@ -114,7 +123,9 @@ public sealed class CharacterPerformanceFormulaCatalog
         $"{workTypeId?.Trim()}|{(int)resultChannel}";
 }
 
-public sealed class CharacterPerformanceQuery : ICharacterPerformanceQuery
+public sealed class CharacterPerformanceQuery :
+    ICharacterPerformanceQuery,
+    ICharacterGameplayEffectValueQuery
 {
     private const float DefaultRequiredThreshold = 0.10f;
 
@@ -429,6 +440,22 @@ public sealed class CharacterPerformanceQuery : ICharacterPerformanceQuery
         .Where(value => value.Domain == domain)
         .Select(value => Evaluate(actor, value.FormulaId))
         .ToArray();
+
+    public GameplayEffectProjectionResult ProjectGameplayEffectValue(
+        CharacterActor actor,
+        string targetId,
+        float baseValue,
+        GameplayEffectContext context = null)
+    {
+        if (actor == null) throw new ArgumentNullException(nameof(actor));
+        if (string.IsNullOrWhiteSpace(targetId))
+            throw new ArgumentException(
+                "A gameplay-effect target ID is required.",
+                nameof(targetId));
+        if (float.IsNaN(baseValue) || float.IsInfinity(baseValue))
+            throw new ArgumentOutOfRangeException(nameof(baseValue));
+        return gameplayEffects.ProjectValue(actor, targetId.Trim(), baseValue, context);
+    }
 
     private bool TryResolveProficiencyFactor(
         CharacterActor actor,

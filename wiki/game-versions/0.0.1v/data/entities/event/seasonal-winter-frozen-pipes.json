@@ -20,6 +20,6 @@
   "schema_version": 1,
   "slug": "seasonal-winter-frozen-pipes",
   "spoiler_tier": "warning",
-  "summary": "동결이 물 공급과 의료실 운영을 함께 위협한다.",
+  "summary": "사건 동안 실제 시설 온도가 0도 이하면 배관 유량이 80%로 줄고 2도 이상에서 회복한다. 저장된 물과 수동 급수는 손상되지 않는다.",
   "title": "동결 배관"
 }

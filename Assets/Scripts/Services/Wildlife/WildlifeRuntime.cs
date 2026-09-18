@@ -9,6 +9,7 @@ using VContainer.Unity;
 
 public sealed class WildlifeRuntime :
     IWildlifeRuntime,
+    IWildlifeExternalArrivalRuntime,
     IDungeonRestoreTransactionParticipant,
     IWildlifeRestorePort,
     ITickable
@@ -67,7 +68,8 @@ public sealed class WildlifeRuntime :
         WildlifeWorldServices world,
         WildlifeCombatServices combat,
         WildlifeExecutionServices execution,
-        WildlifeRestoreServices restore)
+        WildlifeRestoreServices restore,
+        IWildlifeHaulLifecycleSink haulLifecycle)
     {
         WildlifeWorldServices requiredWorld = world
             ?? throw new ArgumentNullException(nameof(world));
@@ -89,7 +91,10 @@ public sealed class WildlifeRuntime :
         performanceRecorder = requiredExecution.Performance;
         randomStream = requiredExecution.RandomStreams.Get("wildlife.runtime");
         diseaseVectorRuntime = new WildlifeDiseaseVectorRuntime(requiredWorld);
-        worldRuntime = new WildlifeWorldRuntime(requiredWorld, requiredExecution);
+        worldRuntime = new WildlifeWorldRuntime(
+            requiredWorld,
+            requiredExecution,
+            haulLifecycle ?? throw new ArgumentNullException(nameof(haulLifecycle)));
         RebuildPopulationRuntimes();
         restoreCoordinator = new WildlifeRestoreCoordinator(
             this,
@@ -404,6 +409,92 @@ public sealed class WildlifeRuntime :
         actor.SetIntent(WildlifeIntent.Rest, "원정대가 운반 상자에서 내려놓았습니다.");
         message = $"{species.DisplayName}이 하차장에 도착했습니다.";
         return true;
+    }
+
+    [GameplayInternalOnly(
+        "Reserves immutable wildlife IDs for one persisted seasonal-arrival plan.",
+        "SeasonalWildlifeVisitorApplicationAdapter only")]
+    public IReadOnlyList<string> ReserveExternalArrivalIds(int exactCount)
+    {
+        if (exactCount is < 1 or > 8)
+        {
+            throw new ArgumentOutOfRangeException(nameof(exactCount));
+        }
+
+        string[] ids = new string[exactCount];
+        for (int index = 0; index < ids.Length; index++)
+        {
+            ids[index] = NextWildlifeId();
+        }
+        return Array.AsReadOnly(ids);
+    }
+
+    [GameplayInternalOnly(
+        "Materializes one already-planned seasonal visitor at its exact legal exterior cell.",
+        "SeasonalWildlifeVisitorApplicationAdapter only")]
+    public ExternalWildlifeArrivalDisposition TrySpawnExternalArrival(
+        string speciesId,
+        string wildlifeId,
+        Vector2Int position,
+        out WildlifeActor actor,
+        out string message)
+    {
+        actor = wildlife.FirstOrDefault(value =>
+            value != null
+            && string.Equals(
+                value.WildlifeId,
+                wildlifeId,
+                StringComparison.Ordinal));
+        if (actor != null)
+        {
+            if (string.Equals(
+                    actor.SpeciesId,
+                    speciesId,
+                    StringComparison.Ordinal))
+            {
+                message = $"{actor.DisplayName}의 기존 개체를 확인했습니다.";
+                return ExternalWildlifeArrivalDisposition.ExactReplay;
+            }
+
+            message = "예약된 야생동물 ID가 다른 종에 사용 중입니다.";
+            actor = null;
+            return ExternalWildlifeArrivalDisposition.Rejected;
+        }
+
+        if (!TryParseWildlifeSequence(wildlifeId, out int sequence)
+            || sequence >= nextSequence)
+        {
+            message = "계절 방문 야생동물 ID가 먼저 예약되지 않았습니다.";
+            return ExternalWildlifeArrivalDisposition.Rejected;
+        }
+        if (!string.Equals(
+                speciesId,
+                speciesId?.Trim(),
+                StringComparison.Ordinal)
+            || !speciesCatalog.TryGetSpecies(
+                speciesId,
+                out WildlifeSpeciesDefinition species))
+        {
+            message = "계절 방문 야생동물 종을 찾지 못했습니다.";
+            return ExternalWildlifeArrivalDisposition.Rejected;
+        }
+        if (!gridSystemProvider.TryGetGrid(out Grid grid))
+        {
+            message = "그리드가 준비되지 않았습니다.";
+            return ExternalWildlifeArrivalDisposition.Rejected;
+        }
+        if (!WildlifeWorldRuntime.CanInitialSpawnAt(grid, position))
+        {
+            message = "확정된 계절 방문 위치가 더 이상 합법 외부 칸이 아닙니다.";
+            return ExternalWildlifeArrivalDisposition.Rejected;
+        }
+
+        actor = SpawnActor(grid, species, position, wildlifeId, null);
+        actor.SetIntent(
+            WildlifeIntent.Rest,
+            "계절 이동 중 외부 서식지에 도착함");
+        message = $"{species.DisplayName}이 계절 방문지에 도착했습니다.";
+        return ExternalWildlifeArrivalDisposition.Created;
     }
 
     public IReadOnlyList<WorldItemStackSnapshot> GetReachableFoodRaidTargets() =>
@@ -773,6 +864,22 @@ public sealed class WildlifeRuntime :
     private string NextWildlifeId()
     {
         return "wild:" + nextSequence++;
+    }
+
+    private static bool TryParseWildlifeSequence(
+        string wildlifeId,
+        out int sequence)
+    {
+        const string prefix = "wild:";
+        sequence = 0;
+        return !string.IsNullOrWhiteSpace(wildlifeId)
+            && string.Equals(
+                wildlifeId,
+                wildlifeId.Trim(),
+                StringComparison.Ordinal)
+            && wildlifeId.StartsWith(prefix, StringComparison.Ordinal)
+            && int.TryParse(wildlifeId.Substring(prefix.Length), out sequence)
+            && sequence > 0;
     }
 
     private bool TickFoodRaid(WildlifeActor actor, Grid grid, float now) =>

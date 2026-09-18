@@ -22,6 +22,7 @@ internal sealed class ElectricalNetworkAggregateState
                 Heat = source.Heat,
                 Fault = source.Fault,
                 BreakerTripped = source.BreakerTripped,
+                ConnectionEnabled = source.ConnectionEnabled,
                 Powered = source.Powered,
                 SuppliedFraction = source.SuppliedFraction,
                 NextFuelOperationSequence = source.NextFuelOperationSequence,
@@ -75,7 +76,10 @@ internal sealed class FluidNetworkAggregateState
                     ?? new ContainerWaterFeedState(),
                 TransferMode = source.TransferMode,
                 TransferWork = source.TransferWork,
-                TransferStatus = source.TransferStatus
+                TransferStatus = source.TransferStatus,
+                FrozenPipeLatched = source.FrozenPipeLatched,
+                FrozenPipeOccurrenceInstanceId =
+                    source.FrozenPipeOccurrenceInstanceId
             };
             clonedNode.PendingManualWaterTransfers.AddRange(
                 source.PendingManualWaterTransfers.ConvertAll(value => value.DeepClone()));

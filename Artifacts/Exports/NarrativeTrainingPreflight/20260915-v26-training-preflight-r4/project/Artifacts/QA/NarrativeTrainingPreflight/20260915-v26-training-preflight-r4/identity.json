@@ -1,0 +1,1767 @@
+{
+  "catalogBytesSha256": "sha256:d2b616c9022a44af8070f66949eeeec5f2f5f16d1aafac9ffc5f61eb55272f81",
+  "catalogHash": "sha256:38706406b7a4192ff8408d34a44c507a4b94ae308da9a82cceb3feb42545bd25",
+  "catalogId": "dungeonstory-v25-mechanic-catalog",
+  "files": [
+    {
+      "gitStatus": " M",
+      "path": "Assets/Resources/SO/Building/Modular/D01_간이화덕.asset",
+      "sha256": "sha256:cd71228705a503a28ffa3c78485d07c6587309a9ed98ea2ddbd9230c490158cd",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/Building/Modular/D01_간이화덕.asset.meta",
+      "sha256": "sha256:02c96dd88ccf31500618e423d713d370a508255501c10a3c1ce115e7d02ccc33",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Resources/SO/Building/Modular/D02_고기그릴.asset",
+      "sha256": "sha256:a5a8e1a73b3bde9e87350b4659156b3d6521efe040e8e6649e0e7da44647646e",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/Building/Modular/D02_고기그릴.asset.meta",
+      "sha256": "sha256:7cce65aad96e176f5301df64aa5705dc5cf6f4b1b880df84014a59f8e10862b1",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/Building/Modular/G01_경비초소책상.asset",
+      "sha256": "sha256:a14fa0007a0e4e1a51162481abba8729d689cba4a5330a8b8486592fd53d10fe",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/Building/Modular/G01_경비초소책상.asset.meta",
+      "sha256": "sha256:701717bb6642bf7f222314cfdfd01ee1e3e09b84610262ca2b011829fc3d7414",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/Building/Modular/G04_전술지도탁자.asset",
+      "sha256": "sha256:8556c3c3305633bb901db6267ea78bc755e3a9682111f95a80c26377cc536c5c",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/Building/Modular/G04_전술지도탁자.asset.meta",
+      "sha256": "sha256:0f55e8e1a79f10dcfe12395143bbfac15fbe8b88f17168d83371ca13e7cc3c46",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/Building/Modular/M01_마력수정선반.asset",
+      "sha256": "sha256:84073b363d4f382b888a5fcef40465b25557512023bb18b077e7d2471075c1f7",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/Building/Modular/M01_마력수정선반.asset.meta",
+      "sha256": "sha256:262b401ac29fe0f076506777239574c3d33cda6f11dc1257294a59196c6e924d",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/Building/Modular/M04_의식초점석.asset",
+      "sha256": "sha256:40d4329a4ebe581b8c64044e2bdf1361ada03d8bdd19999c96633dd1b643e7e6",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/Building/Modular/M04_의식초점석.asset.meta",
+      "sha256": "sha256:0bd4536041ce47fb4696713011aa2656a556b41a3f9c543a4cb1b08a8da6981b",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/Building/Modular/Q01_연구책상.asset",
+      "sha256": "sha256:8b1b1c22b5b6784823bd0f167e0487638997292bfd151cdb00c0f20b586796cd",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/Building/Modular/Q01_연구책상.asset.meta",
+      "sha256": "sha256:5012bee5e7eef5c0d24650d49e7b8849fea4a6d620d4fd668f497863f4acc6ab",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/Building/Modular/Q02_연금술작업대.asset",
+      "sha256": "sha256:2efa662ea1cadc240c64e7e68a885628ac3d301fd19a52f1cd6ea68b0d5ff844",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/Building/Modular/Q02_연금술작업대.asset.meta",
+      "sha256": "sha256:90bd242e1ae7fd21b36b8cca7a122172918250ad9efde689ccf830466466edea",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/Building/Modular/S02_잡화진열선반.asset",
+      "sha256": "sha256:32c808a9234411edc2f7dc8bbd7569d35b31f2611646e6e5e7f5a784997a14c4",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/Building/Modular/S02_잡화진열선반.asset.meta",
+      "sha256": "sha256:b92e74b99057130db023a3ffbbe27463f54bfba273f2e24662574b5fbf809e89",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/Building/Modular/S03_잠금진열장.asset",
+      "sha256": "sha256:3636df079b92025dc76c99be55eb37e7e8b80e84ee4c70b6dddca123bb386b75",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/Building/Modular/S03_잠금진열장.asset.meta",
+      "sha256": "sha256:bf09fbe98d8fdd25fbb6fbfd243ca3bf4b0a0ff473c38209f448b3fd08e7f5e7",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/Building/Modular/T01_훈련허수아비.asset",
+      "sha256": "sha256:0cf1862477e40da8b1886d51909f5908d096934a75371b1362fd9e7fa52acbc8",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/Building/Modular/T01_훈련허수아비.asset.meta",
+      "sha256": "sha256:8db6fd933191168567c9c5c77b6dc8773b86655c91eadc76459def4dcd863658",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/Building/Modular/T02_사격과녁.asset",
+      "sha256": "sha256:6b1422db94a0312aeb9fc9bd3f219bdd13b4674a26d0da545803522c2a89abb4",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/Building/Modular/T02_사격과녁.asset.meta",
+      "sha256": "sha256:d5ddf68b374e96c00536f92442385eb017a68f9a444033d21c1c159f1aa0020f",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Resources/SO/Character/CharacterSkillSystemSettings.asset",
+      "sha256": "sha256:f376fdc939d1add6d46b11d7dcb57d86fd8bc27fbfca96e58996d2d2682fa0dd",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/Character/CharacterSkillSystemSettings.asset.meta",
+      "sha256": "sha256:e1223712e2b396d81fdb30fa1a72e43142e8f5cf37c9edd1eec65a5788374934",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Resources/SO/Content/GameDomainContentCatalog.asset",
+      "sha256": "sha256:07f8cc929fccb5e0d10adc2d3042e60a733b799b0b62058a2136acd83c05e546",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/Content/GameDomainContentCatalog.asset.meta",
+      "sha256": "sha256:c1c65d35728aaeb0466c5586c1a26559b39e0991bb49db4614dc4508bdf7e05a",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Resources/SO/Content/ItemDefinitionCatalog.asset",
+      "sha256": "sha256:43f7d2b083cc748be820a247e3c40a94c6d9226dd2fb2fea65c2371fa0af00f9",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/Content/ItemDefinitionCatalog.asset.meta",
+      "sha256": "sha256:42d54aee00f422d0e7185c9677403be8d75e40718ca4d280d324ffd671ceca55",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/FacilityEvolution/P1/EV_AlchemyBench.asset",
+      "sha256": "sha256:5d5e2791ff6a6181996a36c9d12607f283a6da308905673cd7ebf3fc5582e919",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/FacilityEvolution/P1/EV_AlchemyBench.asset.meta",
+      "sha256": "sha256:acd42acc18e012368f6ea7e338f41f6e86d1c335a359390f116f0163b0001c99",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/FacilityEvolution/P1/EV_ArcheryTarget.asset",
+      "sha256": "sha256:eb290183944199f7c92b7764162e29cc53042e0a19235ed9bb1389eb8906b7ac",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/FacilityEvolution/P1/EV_ArcheryTarget.asset.meta",
+      "sha256": "sha256:5964741f01437b583701e0b66e162002cd33adae54338035e586c7deec81b864",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/FacilityEvolution/P1/EV_CommercialGrill.asset",
+      "sha256": "sha256:948137a3eb2fe1b7b6c2e58a4e6f2727eba22deae840681684aa3ba241f68804",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/FacilityEvolution/P1/EV_CommercialGrill.asset.meta",
+      "sha256": "sha256:dbf05a2a0a8450ed09a5535c7216191c284e56a5ead9cc30cd2387bde42fcba8",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/FacilityEvolution/P1/EV_RitualFocus.asset",
+      "sha256": "sha256:e64bbe1ab1f0e5bdce566ee13919b65abfe131064666f1bc82b54c507993c638",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/FacilityEvolution/P1/EV_RitualFocus.asset.meta",
+      "sha256": "sha256:e1ff56817237948aa556a179cc26a96bbececdfda20e1fb97596ec7ee47e3f4e",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/FacilityEvolution/P1/EV_SecureDisplay.asset",
+      "sha256": "sha256:89694e451cc9c7f4e66a35138f705ec703cac84d9ea9ea05e12466cd7b112d8a",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/FacilityEvolution/P1/EV_SecureDisplay.asset.meta",
+      "sha256": "sha256:b46007ecba76691b9cccf5ae79208f945920b4ce26d0751d21cf97542bfa5485",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/FacilityEvolution/P1/EV_TacticalTable.asset",
+      "sha256": "sha256:cdaaee2c64d98c841b2658ed0ac05ca0b93625bf6016735604aa3ee53f060895",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/FacilityEvolution/P1/EV_TacticalTable.asset.meta",
+      "sha256": "sha256:8f20d3fbff358729e6ed0107f129093a246a278859574e2640d0a9e55bad4fc1",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/GameContentCatalog.asset",
+      "sha256": "sha256:8b3fe3d0265e1c18a3a25c54e4c0d011c64e4f75eb264aee22d4466700861645",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/GameContentCatalog.asset.meta",
+      "sha256": "sha256:7048beb01d0ef2df3bae93a7925bce71b150d663382052b0ccb20d8da70aafcd",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Resources/SO/InGameNarrativeTextCatalog.asset",
+      "sha256": "sha256:1ed41cd61984e4e1d33e95ba5965d0846f1a9e30f48541487428d9d169c6a927",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/InGameNarrativeTextCatalog.asset.meta",
+      "sha256": "sha256:530cbb8272b0d993432a0589012f9bb94c9700143ebff8696f6f983cd9e94254",
+      "tracked": true
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Resources/SO/Items/Definitions/item_memory_erasure_seal.asset",
+      "sha256": "sha256:64533f2e7dd95f1f530fbdf6c95c3b2436c8e891ee7caa67d1fd43513c278a96",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Resources/SO/Items/Definitions/item_memory_erasure_seal.asset.meta",
+      "sha256": "sha256:f7720649209cd1408a7f6c4be563dfb7fb8984d4b3c24bd5d4bbc42271277a9d",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Resources/SO/V25/AcquiredTraits.meta",
+      "sha256": "sha256:74ffd74667ad8730e3167c87a080a2fda9a04bdbc8b18fc037c063f5d4263feb",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Resources/SO/V25/AcquiredTraits/Modules.meta",
+      "sha256": "sha256:1d03c20d978cc03ea44a71cbb3d916633f44617a554ab4f85ebd8768af369377",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Resources/SO/V25/AcquiredTraits/Modules/acquired-trait_module_battle-temper.asset",
+      "sha256": "sha256:2f8f9ce1557984acea5b6635926f1dcdbf2a767519794cb56be275f8926cda33",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Resources/SO/V25/AcquiredTraits/Modules/acquired-trait_module_battle-temper.asset.meta",
+      "sha256": "sha256:25b153c42241bbca352a3280096d05c9d395c89b62c9aba7713c07cdfe583e27",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Resources/SO/V25/AcquiredTraits/Modules/acquired-trait_module_night-vigil.asset",
+      "sha256": "sha256:d0aa55bfc7ba98ff6d5ec9c4c6f4d8538e3c27410f4682b7e5aaad9344ac1d27",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Resources/SO/V25/AcquiredTraits/Modules/acquired-trait_module_night-vigil.asset.meta",
+      "sha256": "sha256:9ef886467db698cf8e690889b41f4b23b04ae3f082babf0d2cfb6331e06fd4a1",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Resources/SO/V25/AcquiredTraits/Modules/acquired-trait_module_ritual-attunement.asset",
+      "sha256": "sha256:7f4255fb3450a53869fda4fe29b208893e384fd1ac3bbd476305281fd42a73e1",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Resources/SO/V25/AcquiredTraits/Modules/acquired-trait_module_ritual-attunement.asset.meta",
+      "sha256": "sha256:d0ad989dd2c8fe25a53b56cc64e01d130fbac06e6780ee35cd3182b6a5b4448f",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Resources/SO/V25/AcquiredTraits/Modules/acquired-trait_module_scar-memory.asset",
+      "sha256": "sha256:c9fd1762f87d2f8398e9d5babfbf2a9a7665043eaeb0621b7462b515df40707d",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Resources/SO/V25/AcquiredTraits/Modules/acquired-trait_module_scar-memory.asset.meta",
+      "sha256": "sha256:c0d56a662eb5f16888ac0ecfb2b604089a7f6f82cac1dd6c4d42163dc161495f",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Resources/SO/V25/AcquiredTraits/Modules/acquired-trait_module_social-bridge.asset",
+      "sha256": "sha256:25be98ebd25a27984f67355034b49a9604b15f301ab66019dc267e603ce2765e",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Resources/SO/V25/AcquiredTraits/Modules/acquired-trait_module_social-bridge.asset.meta",
+      "sha256": "sha256:d62687082399f1e5b32a44c74a6b72d0d4a2e9734de1ca50fc52635dc43e7285",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Resources/SO/V25/AcquiredTraits/Modules/acquired-trait_module_steady-hands.asset",
+      "sha256": "sha256:64ead08ee02b0b4097474b4d795b373824707c074888cde794a346a5ab10c01b",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Resources/SO/V25/AcquiredTraits/Modules/acquired-trait_module_steady-hands.asset.meta",
+      "sha256": "sha256:5316837560a11feccbd7a3aa68592e2f76679fc8364e9d019afd2991d644cc48",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Resources/SO/V25/AcquiredTraits/Modules/acquired-trait_module_survival-instinct.asset",
+      "sha256": "sha256:03aab116582f070e4431189e14bd4d858c210cfa5ecd024e09edf86924bf603b",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Resources/SO/V25/AcquiredTraits/Modules/acquired-trait_module_survival-instinct.asset.meta",
+      "sha256": "sha256:67cadbdaf11962f15b0af8cf0bb7f29b09077bfb385c3f9866f15dbdb4c8bfb7",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Resources/SO/V25/AcquiredTraits/Modules/acquired-trait_module_work-rhythm.asset",
+      "sha256": "sha256:2d59509644c181f093572bf4275695085e768ef9b82545e0256c3be505a82be9",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Resources/SO/V25/AcquiredTraits/Modules/acquired-trait_module_work-rhythm.asset.meta",
+      "sha256": "sha256:d5191dc906350c84815937862896ecabe5770c8adb2da83a380606569103e9f1",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Resources/SO/V25/AcquiredTraits/acquired-trait-settings.asset",
+      "sha256": "sha256:ed22eadc11f27ed80709bdbb60af8fd8b6a71762fb331afce2fe61ef5dc250aa",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Resources/SO/V25/AcquiredTraits/acquired-trait-settings.asset.meta",
+      "sha256": "sha256:8a0874081634d8794bb159e0fdfc88d0abb8b39bacb461d43af259996bd3251e",
+      "tracked": false
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/V26/Effects/Conditions/shift_day.asset",
+      "sha256": "sha256:de63cbd3a3449ad968b343d084ef26bd43a2a707937861cd5b259168c9da14e8",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/V26/Effects/Conditions/shift_day.asset.meta",
+      "sha256": "sha256:a714dc3300b675a462cd5bd1b9cd5c20a1e2a862c3555f13c8f434ccb9b8fae9",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/V26/Effects/Conditions/shift_night.asset",
+      "sha256": "sha256:3fe9372dcc052f5ba1bc97aac0180dc5106495e34d3512888e307e8256997842",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/V26/Effects/Conditions/shift_night.asset.meta",
+      "sha256": "sha256:30a2843b3b67a17fada23720f67a20ae85cfe797644364d49c6dc86021be6ba2",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/V26/Effects/Conditions/work_dangerous.asset",
+      "sha256": "sha256:b2015e50fa6ae8f1af80893d8bb7ce839caff5cac4574526381271d4104a01ad",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/V26/Effects/Conditions/work_dangerous.asset.meta",
+      "sha256": "sha256:b4b3463b5ae56dcbcdf7cd72921fb12b13f5a44b0c588593db5dea7bef006f1f",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Resources/SO/V26/Effects/Definitions/effect_character_accident-chance_multiply.asset",
+      "sha256": "sha256:cc19843839cecb074bf995b630797aa2a5b20e0f8cd69c779bd74e587e4735d0",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/V26/Effects/Definitions/effect_character_accident-chance_multiply.asset.meta",
+      "sha256": "sha256:7915bec1c95216264ae724424f7fa01c9c7ebe91a916cfa7ab9cb0337343f105",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Resources/SO/V26/Effects/Definitions/effect_character_combat-power_multiply.asset",
+      "sha256": "sha256:dce74269115a1a94ed8649f1d6cfbbd2e49a28706746c0f3d2dc51966a8aa0d9",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/V26/Effects/Definitions/effect_character_combat-power_multiply.asset.meta",
+      "sha256": "sha256:2471c111cee30d528cad9f2065bc9ab73f3faca15ec6c2921f75c9c8381867e5",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Resources/SO/V26/Effects/Definitions/effect_character_negative-mood-duration_multiply.asset",
+      "sha256": "sha256:e086518f9bc8225544905511ca35b165c0151d8e6077cf3a569f90fa4c3aab9e",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/V26/Effects/Definitions/effect_character_negative-mood-duration_multiply.asset.meta",
+      "sha256": "sha256:7150d1cbb6d0da097d8c76c7e0006e3dae442bc6d738180ee91c717d86e5ee4f",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Resources/SO/V26/Effects/Definitions/effect_character_relationship-recovery_multiply.asset",
+      "sha256": "sha256:dea76d750e2688d494c9a4500b40c33d145e81cf2d60f641f32fd87e1701abb0",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/V26/Effects/Definitions/effect_character_relationship-recovery_multiply.asset.meta",
+      "sha256": "sha256:af0e855f9fd1d60fb7511d30ebb5f27988c70a9ac227d88ec388cca931dc92db",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Resources/SO/V26/Effects/Definitions/effect_character_research-speed_multiply.asset",
+      "sha256": "sha256:909d2dc9952b057076f889e897ae9654e976219cc590fa7bfb391b7027fbda19",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/V26/Effects/Definitions/effect_character_research-speed_multiply.asset.meta",
+      "sha256": "sha256:135f8a495f2a2b66a72deabe28cf821e1c769b133f8348ba764f59638d7bed9c",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Resources/SO/V26/Effects/Definitions/effect_character_work-speed_multiply.asset",
+      "sha256": "sha256:c2402c11f3efd39477cd236a6ebe50247ca1ec94071981b6435a92514fb4ab66",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/V26/Effects/Definitions/effect_character_work-speed_multiply.asset.meta",
+      "sha256": "sha256:e219b0f57a3604979ec8280893d43bc5f125dbed959fd08f199d95794be02a5a",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Resources/SO/V26/Effects/Definitions/effect_craft_quality-score_addflat.asset",
+      "sha256": "sha256:814eda7c5de5bcc14077feb6904ce5f612d83ded2d516afe23964d25f5a00426",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Resources/SO/V26/Effects/Definitions/effect_craft_quality-score_addflat.asset.meta",
+      "sha256": "sha256:398af10063427efd17ca813dc1317163757022f9af973a825c35b1e7b319b04e",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Content/GameContentCatalogSO.cs",
+      "sha256": "sha256:3fbbf5b3ed53026e6d1dd0c0f7c435dab637c9ec6f3e551d1b6066fa5374a810",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Content/GameContentCatalogSO.cs.meta",
+      "sha256": "sha256:9c7cffa1d27fbee03a4b37ea011ad99e4793183bf42a68edf0a0dc086279c13f",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Content/GameDomainContentCatalogSO.cs",
+      "sha256": "sha256:324f18c080b4740f2e7677b61098f588c49adb34ca16d4dcbd5fe35ebe460b80",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Content/GameDomainContentCatalogSO.cs.meta",
+      "sha256": "sha256:da1a422a48ba48cc174c26b60cbdbebe8f5634cb9b869c33b1653fac80b57aa4",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Models/AI/Core/LlmStaticSchemaCatalog.cs",
+      "sha256": "sha256:7bca111a4ac5519c230338f373dc0dd4f7c27e13b8093e99d0ba1bfd0dfe338d",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Models/AI/Core/LlmStaticSchemaCatalog.cs.meta",
+      "sha256": "sha256:c3065d95c5ced739d6e6947ea0615b24eb50f8abc6c2095880957a554a2a541f",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Models/AI/Core/LocalLlmRequestQueue.cs",
+      "sha256": "sha256:e13752ef00cd5ac828274f8faab003fc976afb9deae2738ee6996505947a4354",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Models/AI/Core/LocalLlmRequestQueue.cs.meta",
+      "sha256": "sha256:b416023c97a615d238b988fe3f574d9670074cff303fbd951b1fc7acb97c2aa6",
+      "tracked": true
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Models/AI/Core/NarrativePublicContext.cs",
+      "sha256": "sha256:3f27797ae201da8b66a085cc3ce4bacaec1fa567f2e88d3071450895228d7af2",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Models/AI/Core/NarrativePublicContext.cs.meta",
+      "sha256": "sha256:17f3d34ad221f4a551bd2c0261d019a135b30303d24b06cd8909a30035e272b9",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Models/AI/Core/NarrativePublicModelInput.cs",
+      "sha256": "sha256:d02a39328a94ca69b71ac58b5fd38645e37c9fece17e9d4fb6ed01f2660558f3",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Models/AI/Core/NarrativePublicModelInput.cs.meta",
+      "sha256": "sha256:a14785d9d930d242ec11521ecf6864769b1347a62d76c7034c0f12c5a5eebdbd",
+      "tracked": false
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Models/AI/Core/NarrativeStructuredOutputCore.cs",
+      "sha256": "sha256:f51b3811f3177336fce3ff6d767a89f3ef4f5ce9074447d41a212ab24ff8c67d",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Models/AI/Core/NarrativeStructuredOutputCore.cs.meta",
+      "sha256": "sha256:6d04d541e5ff1bbd95583ad2e4b2291264f2702878fb94486c5c8b11ab893dbb",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Models/AI/Core/V25NarrativeInferenceContracts.cs",
+      "sha256": "sha256:dbf505c9e6c4813c25791c7a48a3bfdb7bcf658200d376bce1034bfbd94df2ab",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Models/AI/Core/V25NarrativeInferenceContracts.cs.meta",
+      "sha256": "sha256:966c1f6d2e68e2afbbbc2bf9332aa9d40e54f46d38cf86788c41e2037221c6b4",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Models/Economy/Content/GenericItemDefinitionSO.cs",
+      "sha256": "sha256:9dbcc7450562357d84f216e9b1415ee74cd2693ed6fa293d347e92a3c8c6a3f9",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Models/Economy/Content/GenericItemDefinitionSO.cs.meta",
+      "sha256": "sha256:68d03ec74eb62e5343f125a157d0d7aff3601dbe2669c12fddc153f5569960ab",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Models/Economy/Content/ItemDefinitionCatalogSO.cs",
+      "sha256": "sha256:b9cb34782df73c5caa7374a401cbb3070bb0d7fd8c42d7280558f37ad87f97e0",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Models/Economy/Content/ItemDefinitionCatalogSO.cs.meta",
+      "sha256": "sha256:769dad1ec407dd8157985072d72f957aba1c0ecf883799be0b533d41d93529b6",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Models/Economy/Content/ItemDefinitionSO.cs",
+      "sha256": "sha256:98307b67ce7bb02c88eae0537fe168053fdb15734dd5f4835d69fda42cec6b0c",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Models/Economy/Content/ItemDefinitionSO.cs.meta",
+      "sha256": "sha256:2235c45769e0f790bf796a857d9c93c5eae0b038b4d94f1514a9ef996cceecab",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Models/Evolution/Core/EvolutionHistoryModels.cs",
+      "sha256": "sha256:46426be6ecc765afe4db5456f83bf9c49b1b581ae7b05f8fa75ece4b0c13f4d4",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Models/Evolution/Core/EvolutionHistoryModels.cs.meta",
+      "sha256": "sha256:6c4c9f75e932d44d84af1f15f42413355aa85b247e159356cf6148628a95fbbd",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Models/Evolution/Core/EvolutionModuleRegistry.cs",
+      "sha256": "sha256:9e6dbe3965d659be0e65981ffddc5267ddd7eaa80f08f948bab16f0aaea79c77",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Models/Evolution/Core/EvolutionModuleRegistry.cs.meta",
+      "sha256": "sha256:b59eada89ddfbad23d3ddffd0c430892542a4c236c677c567d85975dea41dea2",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Models/Evolution/Facility/FacilityEvolutionTerms.cs",
+      "sha256": "sha256:e7ebc1c8d3c1086924aba0876787a80e6b5d062d3786855fbec89bbe1c976b65",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Models/Evolution/Facility/FacilityEvolutionTerms.cs.meta",
+      "sha256": "sha256:b0cc053e2a7071cfab8663407bad24e079aa73ce3ccb86bff4491e0d5dcef57f",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Models/Items/Core/ItemPrimitives.cs",
+      "sha256": "sha256:c52d2ec0df7d9ea4c996acc612316b393f555fc71ef821f45f5cf6d631b2ea9e",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Models/Items/Core/ItemPrimitives.cs.meta",
+      "sha256": "sha256:5af75ec1b4b4e6fe30faaaf223e479462938a4108c44e916470f450397f37e57",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Character/AI/CustomerPersonaRuntime.cs",
+      "sha256": "sha256:d1a9b6a31534abc3a609fd09b9a24aeefd1186d4f2d7dbdefd0eb2910ba97222",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Character/AI/CustomerPersonaRuntime.cs.meta",
+      "sha256": "sha256:5a70743bb9553677da2c30a1615b92c28add3120775afc2aa03b2b7bf80ab0c2",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanDebugFixtures.cs",
+      "sha256": "sha256:4124b46b1eb88be55adaa9acc728446e6d919822d7da180738e83c8d445deb85",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanDebugFixtures.cs.meta",
+      "sha256": "sha256:142b7e2102591dff31de150a7315915e2f56d40ab098a3c36ea0a1c01f0714df",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs",
+      "sha256": "sha256:1b8100595c5c6e7ca1bb8654a0fed6c30456b36b66860de816183732edc75019",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs.meta",
+      "sha256": "sha256:aec229f349813b52505b0b07180ce39a0056229627bc75c06af32f76fdf75a1f",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/EditorCharacterSkillGenerationService.cs",
+      "sha256": "sha256:fd07acc36873ee95fb6e9629a4b2e3bc275fe835ff92420effd56fea76115ce6",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/EditorCharacterSkillGenerationService.cs.meta",
+      "sha256": "sha256:7624dfda4e5d8a0e387645a6c1a61df7343b462e197ead79fd0ef0e8376abcfa",
+      "tracked": true
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/NarrativeMechanicCatalogCanonicalJson.cs",
+      "sha256": "sha256:0b99c07cb30115e5c715dfec14a59fa751f3a5775bdefe41720808795576741e",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/NarrativeMechanicCatalogCanonicalJson.cs.meta",
+      "sha256": "sha256:fd3478dabdfefe1ba16e570ca7941715df6893ebd25a909fbf2a023e324ada74",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/NarrativeMechanicCatalogContracts.cs",
+      "sha256": "sha256:02bdf46a7ada311ea6241f04ac28d945fc145c10a38f1273f4543808564c920f",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/NarrativeMechanicCatalogContracts.cs.meta",
+      "sha256": "sha256:08f28b8c93eb3737b7cd2cc09b4ddd40eabd5ace206f5c85867541d10ca82e86",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/NarrativeMechanicCatalogExporter.cs",
+      "sha256": "sha256:323cafc330a55d23b7ee65f59aa0e894860f2157463cd13089ecde11780a1138",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/NarrativeMechanicCatalogExporter.cs.meta",
+      "sha256": "sha256:1a70262e3c58e038e6fa0722fd67d8bd3331ff357d637dfe5951fe0e04fc1ad8",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/NarrativeMechanicCatalogUnityAssetSource.cs",
+      "sha256": "sha256:acfbcd0f540750952bac047d2e8df7b3039f96fcd50722edf28da55d4b36949e",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/NarrativeMechanicCatalogUnityAssetSource.cs.meta",
+      "sha256": "sha256:3cf49c508a99ffd4d418cddc32e737e51133955acf60f2c0c6a67c3fed18ed3c",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/NarrativeMechanicScenarioAcquiredTraitSource.cs",
+      "sha256": "sha256:e61ee17181511ed6df1258e66ab927555e659ecf1d035f4dc98da17be57773f1",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/NarrativeMechanicScenarioAcquiredTraitSource.cs.meta",
+      "sha256": "sha256:621adf8e1423927136dd9406f7a0ca87d3431b2d114c8f49424500576acfd2ed",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/NarrativeMechanicScenarioCharacterSkillSource.cs",
+      "sha256": "sha256:a4830b75bccc6a3ec4666e60b3476e8d9c3a763b9375ae7acd78def56048885c",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/NarrativeMechanicScenarioCharacterSkillSource.cs.meta",
+      "sha256": "sha256:c8538a3a1c2af102005d03b706b5504dc1c4406741b5851944acf7906bd1f03a",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/NarrativeMechanicScenarioContinuityWitnesses.cs",
+      "sha256": "sha256:473d6bde6b58628acb6e65fa9213095139a2a48f9544602abd15d94d3ce45ada",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/NarrativeMechanicScenarioContinuityWitnesses.cs.meta",
+      "sha256": "sha256:d2e0177a8083b58d59ef722cae67a86eb598f22cda9c3c8e3d510d9cc415d4c3",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/NarrativeMechanicScenarioContracts.cs",
+      "sha256": "sha256:31e45c0f19d2b5348448c47b2a67718186b51dbdfd2d9da4b8242aa89aa46a67",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/NarrativeMechanicScenarioContracts.cs.meta",
+      "sha256": "sha256:8158f30eb9808963be184f9c4d944192b2d52a0657ef2a3301a8a1d92de98081",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/NarrativeMechanicScenarioOtherProfilesSource.cs",
+      "sha256": "sha256:e5ac3d192c86dce1d8044040a203fcf667e8beee2274caafd64b156cafa786fa",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/NarrativeMechanicScenarioOtherProfilesSource.cs.meta",
+      "sha256": "sha256:2c90c01ef0090c871fa71da088d72b3945082ad1c0b3c96691352ec52b966ac0",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/NarrativeMechanicScenarioPublicContextSerializer.cs",
+      "sha256": "sha256:869d11732f4971518e745079b73543fd82032376d45d1e2a546e99c08ddaf497",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/NarrativeMechanicScenarioPublicContextSerializer.cs.meta",
+      "sha256": "sha256:afc3419e42fbc1f3cf45f2cbb564555cc77daf5305dbf20cf39b879feef937d0",
+      "tracked": false
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/V25NarrativeInferenceDebugScenarios.cs",
+      "sha256": "sha256:9ec2c37dc897f56296d51d7b352510b5c0d4af9a7107420351c191eab5c6d557",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Character/AI/Editor/V25NarrativeInferenceDebugScenarios.cs.meta",
+      "sha256": "sha256:a502289348c671b0a5b1c882f51abf872aa2e31c253a7af2fb444208fd57191b",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Character/AI/LlmJsonResponseParser.cs",
+      "sha256": "sha256:662c1fd5781d2dfcf7ca19a1ea39b18e1a0c1a7ec67eb2a6ab4e0a20a9512408",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Character/AI/LlmJsonResponseParser.cs.meta",
+      "sha256": "sha256:c68fefae50484b80938f398445bdfe37f08b4255790df433717471126c5db5a5",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Character/AI/NarrativeRequestContext.cs",
+      "sha256": "sha256:292ed82f5d8b33911b3e10fc1177df7415238766780d71f1bb1ff390d02dbe45",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Character/AI/NarrativeRequestContext.cs.meta",
+      "sha256": "sha256:90b72a4875b8d00a87c6c0b1ebbedb3e12811c1e75201be48d6c8d1e51245230",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Character/Ability/AbilityWork.cs",
+      "sha256": "sha256:488d8edee0719a15833cea3b0cd2eae6b910c9b6d55c220d082a17da8f81393a",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Character/Ability/AbilityWork.cs.meta",
+      "sha256": "sha256:4c39fb50a43c5159213174ac53a1fa122382e649d0e349b842c163d89ebfe4d6",
+      "tracked": true
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitDefinitions.cs",
+      "sha256": "sha256:f72dff381327862560605e5c8b3e26debb8d7275e30feddc42ff0134523a1e62",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitDefinitions.cs.meta",
+      "sha256": "sha256:eb9a9a512c1cd6bda06f04b498aabb691d213ec550834c4bf56d3158eda06a98",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitEffectSource.cs",
+      "sha256": "sha256:01a1c49dd5b70b5ecf6f1cad995f4b9d2243479ba08a3e89b76321e29042c0d0",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitEffectSource.cs.meta",
+      "sha256": "sha256:86122c8fe35ef2c1ca31ecf4d0cbdbec289d3fe1abc00eaf9c922cb5ca1b5e5e",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitInferenceContracts.cs",
+      "sha256": "sha256:8fe0b49067e34f251077443cf5358393f113bbe4dcbfd8b9183c9b0b14ef54b5",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitInferenceContracts.cs.meta",
+      "sha256": "sha256:fecc8bcd88cfff1fecd238b8aebb153f6dbb112996e913faac4212573a6a0411",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitInferenceService.cs",
+      "sha256": "sha256:22c8626bd64012b496dc08ee65bfae3cfa176ae3ab2590f5e01d589ea6d13294",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitInferenceService.cs.meta",
+      "sha256": "sha256:517c297b510559e76c6f6d37803e385868300b87f83b4f1db8411259a8d22ca0",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitManifestationRuntime.cs",
+      "sha256": "sha256:ebd97d69423d5b70b237c57de3f0fb26cfc14b963cb8ab9d28be2dc2e6f98670",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitManifestationRuntime.cs.meta",
+      "sha256": "sha256:b5d487f99e2c6220c22bf4e2e8f86f6bb1c2935054b4313b60659b8fcd903b5e",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitModuleSO.cs",
+      "sha256": "sha256:62325d807f6279b47b24634300a937e2504aa023aaa0fd4c9ea8382fa6975e0a",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitModuleSO.cs.meta",
+      "sha256": "sha256:4076618954aabf82dcdfb582568f9a8e531dbf834f6bc632de6701d9220924b0",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitSettingsSO.cs",
+      "sha256": "sha256:70f0ae3378ab90be2c7d142905cfd6ceb8b214151f368c00c9f5908b5c486958",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitSettingsSO.cs.meta",
+      "sha256": "sha256:e0eb317c11f1a92d3cb4abbdc048b8fc6515523d2c966f281d61c4244ce0e418",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitState.cs",
+      "sha256": "sha256:be8fc86634611e84581154178e4ae999b8c6ac5b49fcee2d3d7d802a4b4ac76e",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitState.cs.meta",
+      "sha256": "sha256:3186c6583753a917e1334d5b398924a6a2a6998ae333ee103ff86bd1ad4cbe6a",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitValidation.cs",
+      "sha256": "sha256:b83591846a4156f8e0a0726e0b14f3e6ec0c6671ac5a24fc03e7629c505fc4d5",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitValidation.cs.meta",
+      "sha256": "sha256:c482c224c1bd86b28da10729bfb55aca8c002a845e627b949f878410da16b9e5",
+      "tracked": false
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterActor.cs",
+      "sha256": "sha256:8c54adba956226e58bba35858f66316f3de6983bde4db563f3c67c13ab52cac7",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterActor.cs.meta",
+      "sha256": "sha256:d617292595ffc0087b495f4da2984c66d472c7ad214c288f439569ea3363b8e5",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterGrowthRules.cs",
+      "sha256": "sha256:d9bdbb09103938ecc93f14068c8b874c169733a2102e72b3fd3209410b1ab657",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterGrowthRules.cs.meta",
+      "sha256": "sha256:2515d40f09f0216162a4bae574745ac1e0a0f4cde4ded3767223b06351b77147",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterPerformanceQuery.cs",
+      "sha256": "sha256:16c3db99524a60cc446ad7d5ec533e37b779ebd0292bd87ffdd79075ef1f2a3d",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterPerformanceQuery.cs.meta",
+      "sha256": "sha256:716d6b5c9870a667db0bd2224cf53220e692949e867d5bd387e840611a56c233",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterPopulationService.cs",
+      "sha256": "sha256:e261d2ed6792e5778b181621e8692bc7aedeef5662318a19c0b815aa2017d871",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterPopulationService.cs.meta",
+      "sha256": "sha256:1aa56954f4abe8dcbca33ebc660c43301717b6cc1e7350f545c06e9f6421b8eb",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterProgression.cs",
+      "sha256": "sha256:e8ad09a4ca95aec71e4873d83a01df23642d509e2e94425356af165c85c63a7c",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterProgression.cs.meta",
+      "sha256": "sha256:7acbde7e16541309bfd1bb3dab092321c98589566ef6785786a9334e8aff003c",
+      "tracked": true
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterSkillCombinationSemantics.cs",
+      "sha256": "sha256:23d02b1c318ca966a94aaec56f189dc4ec91cfb5d6f338d5066f75a632677904",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterSkillCombinationSemantics.cs.meta",
+      "sha256": "sha256:257a16d87de65aca0a9f8238d63b047d31d2ccb1ff520f77b6e4d72a50fa3c08",
+      "tracked": false
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterSkillGenerationService.cs",
+      "sha256": "sha256:dc6b95dd3a8757b1d24d91481fe7c818ae6fe97a39f60cc7500640b5b968fbf0",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterSkillGenerationService.cs.meta",
+      "sha256": "sha256:c67b4d34abc5791116c045a78e0ead7463896c536c3655f837c732b881bfadd0",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterSkillModels.cs",
+      "sha256": "sha256:5194b4fe99c6db801d0d4d785cbf41c53b0d85ef6e476131e2729590445dadf4",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterSkillModels.cs.meta",
+      "sha256": "sha256:9ac2816599b7d15cabfb57afcd89309c38f2c55fd733fac78158780d2f4cb7a1",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterSkillRuntimeEffects.cs",
+      "sha256": "sha256:b6931fb1ae44f2070fe0f660db02bb98083bb5ffb224400d46199268cb1536db",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterSkillRuntimeEffects.cs.meta",
+      "sha256": "sha256:6ce1c6ed5dec43ef3cc9cfbe1af012bfb5f16e7e820de3680ca9cfaa2f1da723",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterStatsProjectionService.cs",
+      "sha256": "sha256:7d8a65f7823da8d382ad7c3a8ae5f52593827c38c334241d31c450c37040fd5c",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Character/Core/CharacterStatsProjectionService.cs.meta",
+      "sha256": "sha256:3217cafff169017152ffaababc0b4ab88be3675987656bf61f935814f055139e",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Character/Core/DungeonCharacterSaveData.cs",
+      "sha256": "sha256:5575afed31c931885beba896ea94a2278f4294fc142d7f89c31a5d0092d79bd2",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Character/Core/DungeonCharacterSaveData.cs.meta",
+      "sha256": "sha256:89ff0bf68cb3bb91aed4195e3f46dd2140838ba29a3c9532c2dfce1f1a7c9e0f",
+      "tracked": true
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Core/MemoryErasureSealCommandService.cs",
+      "sha256": "sha256:b6476fdb8d2b862e2de1edd390f53c48573008ca2723fe2f17bb1a53ab7d8dd9",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Core/MemoryErasureSealCommandService.cs.meta",
+      "sha256": "sha256:db4aa7dc4577d8f0dfda02fdbd472c6d1b16a8666ec1f69176c4a80c7a7175e8",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Core/MemoryErasureSealContracts.cs",
+      "sha256": "sha256:ca129e6006460d5247caa297bc7f57c438b26eb0da76312834d48da248a18802",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Core/MemoryErasureSealContracts.cs.meta",
+      "sha256": "sha256:8a899b83b9c73e98a1f9fed605f3df8f79e5f5e7febf10930a5148fdc9df7519",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Core/MemoryErasureSealTransactionService.cs",
+      "sha256": "sha256:55f495096d2c99aba168d4bcbaee94f310e92db6f930a8ebe6be55b56d884e56",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Core/MemoryErasureSealTransactionService.cs.meta",
+      "sha256": "sha256:57bda5a3d584c4c7a6e6f55150ffa47e90dfafa1eadfe9bfefed1e606a2df84f",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Editor/V25AcquiredTraitContentAssetBuilder.cs",
+      "sha256": "sha256:3cafb8fbb3c2ae2f3733510d5cfa01a4b86afff28289758bb239b76df867b530",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Character/Editor/V25AcquiredTraitContentAssetBuilder.cs.meta",
+      "sha256": "sha256:08fbc3504494e1dd64cf55072d512789c753e1cbce430a9ec759bbd16441fd2e",
+      "tracked": false
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Character/SO/CharacterSkillSystemSettingsSO.cs",
+      "sha256": "sha256:176428eb3618db65f2d8b0f7f05c51c07a7a8c3e02cd5878f747bea04330d9fb",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Character/SO/CharacterSkillSystemSettingsSO.cs.meta",
+      "sha256": "sha256:5865c5b497308fb12af8d92f7194688cc9bf40becbced4b5cdb69e8f48325573",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Combat/EquipmentEvolutionRules.cs",
+      "sha256": "sha256:d3b8ebddffbbedba0553d8821d1061c74d634e34743aa28a43ad8ef4f887d73e",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Combat/EquipmentEvolutionRules.cs.meta",
+      "sha256": "sha256:bf9b18959abcc50cce5f297917f634902d3865d59e80d94d042abc14cfeb19ad",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Effects/Runtime/CharacterDerivedStatsSnapshot.cs",
+      "sha256": "sha256:c4dbd4f6a87db11f3a5d152348b0f475cd7a084a99d26706f7619f99af9f9860",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Effects/Runtime/CharacterDerivedStatsSnapshot.cs.meta",
+      "sha256": "sha256:93892a16262a1b9a88970948c2900e5d8b5acca9159808804d52c7ddbd6ec822",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Effects/Runtime/CharacterGameplayEffectProjector.cs",
+      "sha256": "sha256:75c087a11adcce6b72dc5e961aff91b01cbfeedf7fc83f7ca7042c0d3a0bd4d1",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Effects/Runtime/CharacterGameplayEffectProjector.cs.meta",
+      "sha256": "sha256:11e7a5eb6bc98f0fb0f4c25aaf11942216b87618c2d8fc3020c1c72ecd596f6e",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Evolution/Editor/InstanceEvolutionDebugScenarios.cs",
+      "sha256": "sha256:5efca29630a500e09979f547a0a843fad3d474a44cb169b932e3f3b13ca312bb",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Evolution/Editor/InstanceEvolutionDebugScenarios.cs.meta",
+      "sha256": "sha256:05c1343569dacfde9ec0a815b8794abdce30c84272cf9d01d5c99db3acaaedd4",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Evolution/EvolutionHistoryNarrativeRuntime.cs",
+      "sha256": "sha256:cbf5258885695d795767c79dc2cc0c0c7ae9da7fd26fa6e3723392646515e8ab",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Evolution/EvolutionHistoryNarrativeRuntime.cs.meta",
+      "sha256": "sha256:7271a94d1725f902d743507764172fbc18a76e76291bda6a34aa74556f78501c",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionLlmProposalProvider.cs",
+      "sha256": "sha256:6056023097d5548edd2ea7b6999996d5ffbdee0bd410acd68804f67af15ad517",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionLlmProposalProvider.cs.meta",
+      "sha256": "sha256:901bb3aadf4136118fd4a3f213d99058cff9d66e0595eafd7bb7de85793b19f0",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecipeSO.cs",
+      "sha256": "sha256:a3e0d589862b548dd116f10fe5c5e1178ab943faf111cfeb6d78da8294267a13",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecipeSO.cs.meta",
+      "sha256": "sha256:7537c46697086f5fd83ade15c3c6129ccf39ac03473d6ef7d6ec458e6cbe12bb",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionService.cs",
+      "sha256": "sha256:b4027aa5f88e36bbf6a6591e394b789b9e484cd4c9be8a5c69686c580f897b38",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionService.cs.meta",
+      "sha256": "sha256:8ea7f3a0c5bbc38730e78b39689fd7acc60a155ff36b6222d7c486ecb9ff456e",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Foundation/GameplayEffectConditionDefinitionSO.cs",
+      "sha256": "sha256:8dfaac78cf3bee1740540b0aa29092d9f951926b731fd1cffdf2ae81406db135",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Foundation/GameplayEffectConditionDefinitionSO.cs.meta",
+      "sha256": "sha256:bf82b20bf2c00babf6a0c49b32605234ac75a628410dd0ec00de129e3a3ca22d",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Foundation/GameplayEffectContracts.cs",
+      "sha256": "sha256:f645f68eb0dd58bf6ff9cb5b83bd6a027130f2383364f89554d4053b37f61f21",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Foundation/GameplayEffectContracts.cs.meta",
+      "sha256": "sha256:d6fdd5099263ef3db7dabf626898f2b3f88af73abece2fadcf35baa54640aa4d",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Foundation/GameplayEffectDefinitionSO.cs",
+      "sha256": "sha256:e28366d4ac947db3cd76d9a11eb7542d066561084d3a59fd32da09e586ca11cb",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Foundation/GameplayEffectDefinitionSO.cs.meta",
+      "sha256": "sha256:a3e24982f561bd1be363c325f2683dc9d3c7c73b2daa67376c0ab8d9022f3991",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Infrastructure/CharacterV18RestoreIdentityResolver.cs",
+      "sha256": "sha256:af247d255787502895007d2ee989d8ea12d3961fd538a97d020acbd1cefbdcae",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Infrastructure/CharacterV18RestoreIdentityResolver.cs.meta",
+      "sha256": "sha256:c89571dc2148d14e0388af59f4b7cf5447b4a3add522ab3bbcd38f92c1642fa8",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Infrastructure/CharacterWorldSaveService.cs",
+      "sha256": "sha256:2fafc763ce910f01ecb0d2c296c04714e4ebc77266569b8179e4bfb69a24e95e",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Infrastructure/CharacterWorldSaveService.cs.meta",
+      "sha256": "sha256:48ee89597f6a0e66c9497422e762c520dedcb0c20933f92df1ba9833d165e51b",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Infrastructure/CharacterWorldSaveValidation.cs",
+      "sha256": "sha256:c5f953079d4b9099e9bc2dde2abbac0a05c0d619b3c8b2975fafd576399d5ecc",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Infrastructure/CharacterWorldSaveValidation.cs.meta",
+      "sha256": "sha256:3ce67c9a71ba59eb816e441b81be44dc9f412f47f2cf561e228dcdf1bfbe349c",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Infrastructure/DungeonRuntimeLifetimeScope.cs",
+      "sha256": "sha256:2ee8d20372514efd1b612a9efb6d990a8f093b0078caa692c5602f2aeb724477",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Infrastructure/DungeonRuntimeLifetimeScope.cs.meta",
+      "sha256": "sha256:bf23a2b373479979844da2961b1330da7c016b9b0241f48b7d75d1ac13d33d8c",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Infrastructure/OffenseSaveService.cs",
+      "sha256": "sha256:9743a58cd622f3de5806018b53f5968046f0432860a8810992c7267426eb3581",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Infrastructure/OffenseSaveService.cs.meta",
+      "sha256": "sha256:1c9195d4db7d812bb80fe03b1dfb4717ab8ce2ad877019af12bdcb8be9a968e1",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonCharacterRegistration.cs",
+      "sha256": "sha256:53792a3ae716f08e2f38fc6abf91b00cc4ba4f163eba7de59b61407f4ca0a801",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonCharacterRegistration.cs.meta",
+      "sha256": "sha256:6fd3c20f7bec5498868e219f01ad2b31913e8de6987d97713fbdc52c227c8f6a",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonPresentationRegistration.cs",
+      "sha256": "sha256:3d098116b62a0cf096924642acc4ccbde0936ca60a40cc182c2a0a646b4c87b5",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonPresentationRegistration.cs.meta",
+      "sha256": "sha256:da2e9cad9bb2627141edcf6606cb1d2f059f0caa7938a2ddf82c5cdc3b665c8d",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonProgressionOffenseRegistration.cs",
+      "sha256": "sha256:0c02f5ff41639c34c2d7b5bc1e3ffacf9e7e0313809ccd656dc459bd1e3c6c58",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonProgressionOffenseRegistration.cs.meta",
+      "sha256": "sha256:87c5a5780c1be94a1a8882d1aec14c3d5b4b886226af3945433b870ba6785693",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Infrastructure/Save/DungeonAggregateReferencePreflight.cs",
+      "sha256": "sha256:71c7d2ce925c2d5ead940fbfca641b345e7542f6e59f0f2d3bd12f5292cd0963",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Infrastructure/Save/DungeonAggregateReferencePreflight.cs.meta",
+      "sha256": "sha256:6f7cffa4a3cd52507e73af7bcf9198aca5d718acf9424a3234e8d9649ec7665b",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Infrastructure/Save/WorldAndCharacterSaveSections.cs",
+      "sha256": "sha256:103c3292723ec7bf352c304590b2fbb49fb7b8411dad70df72faad21b92bac0f",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Infrastructure/Save/WorldAndCharacterSaveSections.cs.meta",
+      "sha256": "sha256:282f7247a403e44ccb9777f1306d5d0a6e54e3aa0c3db0e226a4f792af80d317",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Items/CharacterCarryInventory.cs",
+      "sha256": "sha256:42169baf4ba8a8feb58e846bd6d294817fbc84857c941fc966d237bb9b05a350",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Items/CharacterCarryInventory.cs.meta",
+      "sha256": "sha256:484609d165f2a5ce187e8746d7ae83a25a1bba4c8a05f0426d4d0cf378c2b877",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Items/Editor/PhysicalItemPilePlayModeVerifier.cs",
+      "sha256": "sha256:ce0015f9538815915476b288afa4f8234a31fd34caa8784251ed119663ec2359",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Items/Editor/PhysicalItemPilePlayModeVerifier.cs.meta",
+      "sha256": "sha256:cca16765f63278b2d576504e0878b8d48473158d9d0eb0b283f8e8fb3b6d8d65",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Items/ItemPileInfoPanel.cs",
+      "sha256": "sha256:0f3d422ad91837562bd554fdde57a9b31cc061ae250a1c06df88ce0c56e58a3d",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Items/ItemPileInfoPanel.cs.meta",
+      "sha256": "sha256:981a21655d9162997a372580a6525e4b0a8b7393fc03bc2602d5e4fbf678700d",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Items/ItemTransferService.cs",
+      "sha256": "sha256:32b3a65d37c7f36455fac89b8f299ecb1ad85088ec4f73feaf9931b234df33f3",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Items/ItemTransferService.cs.meta",
+      "sha256": "sha256:3506603ea0b8d2d2310ae9bc701f0578345d40690215791031a8efd94e031096",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Items/PhysicalItemBatchDispositionService.cs",
+      "sha256": "sha256:82d80eb793efdcc47729b56bfebaaf74af99fcad12135ef5e1ee2a362c72ddbe",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Items/PhysicalItemBatchDispositionService.cs.meta",
+      "sha256": "sha256:f0d4d84d21613660c3408a9f7267596b3e8ca015160e8063e71b23eee360a05a",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Items/PhysicalItemSaveValidation.cs",
+      "sha256": "sha256:26294adeb9d78c86e17dee473bab9520e5ab6e49c53d8b385e0ef39e9793b0ab",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Items/PhysicalItemSaveValidation.cs.meta",
+      "sha256": "sha256:43ce7dbed0465235bae40d96f4b2f826ad4d1cada7f1e0069d0d68ed3bfc57eb",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Items/PhysicalItemsSaveSection.cs",
+      "sha256": "sha256:73bf99d2512551cdd19b65ca345749a78f67bb8ddc78c781cfbc8a5b6007c02d",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Items/PhysicalItemsSaveSection.cs.meta",
+      "sha256": "sha256:24596943f17cfad8413bf720485f092334a1ef6acea081826db19a895d4685c0",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Items/WarehousePhysicalRestoreValidation.cs",
+      "sha256": "sha256:c4689099489b432eda4941589a209bc981e18cc9ffacdf1088cd273b45fb22f2",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Items/WarehousePhysicalRestoreValidation.cs.meta",
+      "sha256": "sha256:bd96ad040aa0c02a1da1e383a70f6189fdcc64530faa47317adac8d2b65410c0",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Items/WorldItemModels.cs",
+      "sha256": "sha256:d0e53c5dba79c100455fbbc62dc4e11a69914a8a76d580a73fe900d654086c87",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Items/WorldItemModels.cs.meta",
+      "sha256": "sha256:1a090e77ecd123937fc9175a27aa029f8cc33c1d991b6f4b39fba8c3bd2898c0",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Items/WorldItemPersistenceService.cs",
+      "sha256": "sha256:21e72d09fe0e7bcc9b0118f1bffd8eb62a31eb02c52803b9fb983a9d6cb5f011",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Items/WorldItemPersistenceService.cs.meta",
+      "sha256": "sha256:41479cfa4922d16a99bae099aaacb24de0f55092b8484c72325491d5884faeba",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Items/WorldItemStackRuntime.cs",
+      "sha256": "sha256:e646a22d1af0377c9867b1caf68a0183189bbdc96a8f55264e4482a0bc3b4957",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Items/WorldItemStackRuntime.cs.meta",
+      "sha256": "sha256:4c59c1d736d21f22ac440d43725d62e68e8686e58e8fa8df0fc2a97d2513789c",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Items/WorldItemWarehouseService.cs",
+      "sha256": "sha256:7050fd93aeaef80c89b6b2277295e6e6558c6b8a576dd288ce436a8c5ccdc4f8",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Items/WorldItemWarehouseService.cs.meta",
+      "sha256": "sha256:61dfe72a13cdaf054ddfff90d459d508b268be3cb933902ef9fcbf414ea17168",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Offense/Editor/OffenseRewardDebugScenarios.cs",
+      "sha256": "sha256:59473ba6ffda1aebd07f365a2986f858108618fd805fc4821392173ca9fa8e13",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Offense/Editor/OffenseRewardDebugScenarios.cs.meta",
+      "sha256": "sha256:30dc669a0a86d6d381176868c0d9e45b3dbddd98572a9367522a84ce3594a2a5",
+      "tracked": true
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Offense/MemoryErasureSealBossAwardService.cs",
+      "sha256": "sha256:619775791299e3409d68b00009aed3d4ae37d4ddb7f9fd6965bda65fb3dd2be7",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Services/Offense/MemoryErasureSealBossAwardService.cs.meta",
+      "sha256": "sha256:d7b80c476e270c9061d69072249fc628cf4f3b6b394ef950dae9831a155951d0",
+      "tracked": false
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Offense/OffenseAggregateSaveValidation.cs",
+      "sha256": "sha256:bdd004ae5dc26abdf10e8c8a3d539d7fc216fba24de6d623d740f6387c98de01",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Offense/OffenseAggregateSaveValidation.cs.meta",
+      "sha256": "sha256:64e6603d88422706eaeb97923fd378401f0f873fb930da26f20feda72d9d44b9",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Offense/OffenseExpeditionBattleCompletionHandler.cs",
+      "sha256": "sha256:fa4acedae5d022db6616896d49aed88c861edc664cf893303851881e858be0fa",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Offense/OffenseExpeditionBattleCompletionHandler.cs.meta",
+      "sha256": "sha256:6367b3346230b673542f446d8c25d7aee9791f776880fe1fcaa3886809516e99",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Services/Offense/OffenseRegionRuntime.cs",
+      "sha256": "sha256:c277d8c3f6711750032f4974d6bb862e9f880fd0bedc3b7014327c90a2e18080",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Offense/OffenseRegionRuntime.cs.meta",
+      "sha256": "sha256:deac896958d0ea2550331b96632b09f3b961a78ddf0be7953d0197c2ac10e1c6",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Offense/OffenseSaveSections.cs",
+      "sha256": "sha256:036974c7a929a07eec33b73d2f9d7eb98a4d0057ba9a31535b302d2ab7353dbc",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Services/Offense/OffenseSaveSections.cs.meta",
+      "sha256": "sha256:5d5fc6b35f71e2f8514e9451b486147781839e24ecfc601cccfa507c31e4705d",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Views/UI/CharacterSummaryGrowthPresenter.cs",
+      "sha256": "sha256:da35f9e5472f40cd32f10e013c8924f02e1ae258a177f35744f0accdb05db036",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Views/UI/CharacterSummaryGrowthPresenter.cs.meta",
+      "sha256": "sha256:0109b1d1993444d17dd0a09a2ec15999bf91085ae20d78e500dd154fb6dba487",
+      "tracked": true
+    },
+    {
+      "gitStatus": " M",
+      "path": "Assets/Scripts/Views/UI/CharacterSummaryInfo.cs",
+      "sha256": "sha256:ad95d86f55e4d22c4cfdf4047c4b01eeb29253809e40cb037c0ae127ef7a9718",
+      "tracked": true
+    },
+    {
+      "gitStatus": "clean",
+      "path": "Assets/Scripts/Views/UI/CharacterSummaryInfo.cs.meta",
+      "sha256": "sha256:d00df30505d7092fbc94052a5aed7aeaa1bd24fba66d1e9e9e6d3f97c15bffd8",
+      "tracked": true
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Views/UI/MemoryErasureSealUseModal.cs",
+      "sha256": "sha256:07c94491b0bb7d767ac77b2fdd8039191764b0a4f46154ed2e473d6cd0a993b9",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "Assets/Scripts/Views/UI/MemoryErasureSealUseModal.cs.meta",
+      "sha256": "sha256:83781e7769537472fa7c1f982df39f894188b30f4ad54b6ed6ec625896d67daf",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "tools/Documentation/capture_v25_narrative_training_preflight.py",
+      "sha256": "sha256:451908f10e92944b4f0d804f14bc0168e85e6f427aee2fc08d9001ca1e070c94",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "tools/Documentation/test_capture_v25_narrative_training_preflight.py",
+      "sha256": "sha256:4c0b978e5c612c83efcd8176aef0befcf0b2282db96116d2d03290c664f36cad",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "tools/Documentation/verify_v25_narrative_ai_adapter_input.py",
+      "sha256": "sha256:698e3cfd19fdd406cb5e7f5d5db629152a4ddfeedc632ae9231020ffcbd59f9a",
+      "tracked": false
+    },
+    {
+      "gitStatus": "??",
+      "path": "tools/Documentation/verify_v25_narrative_mechanic_handoff.py",
+      "sha256": "sha256:bd8ca739d3a4b72c40ea1694abcd5c4a84e87e3b86cc1c211b82188fbf0839ed",
+      "tracked": false
+    }
+  ],
+  "inputDigest": "sha256:fafc75af266d751b3363b36fa58ee799c5c2310aac65a3496ca97af0cdf55d59",
+  "schemaVersion": 2,
+  "source": {
+    "authority": "unity-editor-export",
+    "gameCommit": "c03d2e0a1c68067de48840f3851b388483966a6e"
+  },
+  "trainingEligible": false,
+  "uncommittedSourceHash": "sha256:15c5e60b6390779094a1998f4efb79047b97c0b45015fa08a99e4fdc42ac3e84"
+}

@@ -1,0 +1,5 @@
+precedence=all-access default and deny-over-allow precedence preserved
+presets=cell and animal-pen presets separate their contained groups
+staff-customer=PASS
+scope=existing-policy-contracts
+result=PASS

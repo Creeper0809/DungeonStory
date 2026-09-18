@@ -28,62 +28,49 @@ internal static class SurvivalFacilityWorkRules
         }
     }
 
-    public static bool CanDrawWater(
-        BuildableObject building,
-        SurvivalWeatherType weather)
-    {
-        BuildingWaterSourceAbility ability =
-            building?.BuildingData?.GetAbility<BuildingWaterSourceAbility>();
-        return ability != null
-            && (!ability.blockedByFreezingWeather
-                || weather != SurvivalWeatherType.ColdSnap);
-    }
+    public static bool CanDrawWater(BuildableObject building) =>
+        building?.BuildingData?.GetAbility<BuildingWaterSourceAbility>() != null;
 
     public static bool TryApplyRefuel(
         IBuildingVisitorPort actor,
         BuildableObject building,
         SurvivalFoodStockRuntime stockRuntime,
-        DungeonSurvivalSaveData state,
         out int amount,
         out DomainFailure failure)
     {
-        amount = 0;
-        BuildingFuelConsumerAbility fuel =
-            building.BuildingData?.GetAbility<BuildingFuelConsumerAbility>();
-        if (fuel == null)
+        if (!stockRuntime.TryCommitFacilityFuel(building, out amount, out failure))
         {
-            failure = new DomainFailure(
-                FailureCode.SurvivalRefuelUnsupported,
-                building.PersistentInstanceId.Value);
             return false;
         }
 
-        int needed = Mathf.Max(1, fuel.fuelPerRefuel);
-        amount = stockRuntime.WithdrawStock(StockCategory.Fuel, needed);
-        if (amount <= 0)
+        if (amount > 0)
         {
-            failure = new DomainFailure(
-                FailureCode.SurvivalFuelStockMissing,
-                needed.ToString());
-            return false;
+            actor?.RecordActivity(
+                building,
+                new BuildingActivitySnapshot(
+                    BuildingActivityKinds.Work,
+                    BuildingActivityOutcomes.Completed,
+                    $"{GetBuildingName(building)} refueled.",
+                    BuiltInWorkTypeIds.Refuel.Value,
+                    string.Empty,
+                    "survival-refueled",
+                    0f,
+                    amount,
+                    false));
         }
 
-        state.lastMissingFuel = 0;
-        actor?.RecordActivity(
-            building,
-            new BuildingActivitySnapshot(
-                BuildingActivityKinds.Work,
-                BuildingActivityOutcomes.Completed,
-                $"{GetBuildingName(building)} refueled.",
-                BuiltInWorkTypeIds.Refuel.Value,
-                string.Empty,
-                "survival-refueled",
-                0f,
-                amount,
-                false));
         failure = DomainFailure.None;
         return true;
     }
+
+    public static bool IsEnvironmentalFuelConsumer(BuildableObject building) =>
+        building != null
+        && !building.isDestroy
+        && building.BuildingData != null
+        && building.BuildingData.GetAbility<BuildingFuelConsumerAbility>() != null
+        && (building.BuildingData.GetAbility<BuildingLightingAbility>() != null
+            || building.BuildingData.GetAbility<BuildingTemperatureAbility>() != null
+            || building.BuildingData.GetAbility<BuildingThermalEmitterAbility>() != null);
 
     public static string FormatWeather(SurvivalWeatherType weather)
     {
@@ -135,7 +122,6 @@ internal sealed class SurvivalEnvironmentRiskEvaluator
     private readonly IGridSystemProvider gridSystemProvider;
     private readonly ICharacterAiWorldRegistry worldRegistry;
     private readonly IWorldThreatModifierQuery threatModifiers;
-    private int cachedBuildingVersion = int.MinValue;
     private float cachedVentilationBonus;
     private float cachedLightSafety;
 
@@ -170,10 +156,12 @@ internal sealed class SurvivalEnvironmentRiskEvaluator
         int rotStacks,
         SurvivalWeatherType weather)
     {
-        RefreshBuildingContributionsIfNeeded();
+        RefreshBuildingContributions();
+        // Stock shortage remains a planning/dashboard forecast. Personal
+        // thirst harm and contaminated-water exposure are owned by their
+        // respective character runtime paths, not this aggregate forecast.
         float sanitationRisk = Mathf.Clamp(
             (rotStacks * 12f)
-            + (state.lastMissingWater * 8f)
             - cachedVentilationBonus
             + GetThreatStrength(OffenseThreatModifierKind.Sanitation) * 45f,
             0f,
@@ -181,7 +169,6 @@ internal sealed class SurvivalEnvironmentRiskEvaluator
         float diseaseRisk = Mathf.Clamp(
             (sanitationRisk * 0.55f)
             + (state.consecutiveFoodShortageDays * 7f)
-            + (state.consecutiveWaterShortageDays * 12f)
             + GetThreatStrength(OffenseThreatModifierKind.Disease) * 40f,
             0f,
             100f);
@@ -195,7 +182,6 @@ internal sealed class SurvivalEnvironmentRiskEvaluator
         };
         float exteriorNightDanger = Mathf.Clamp(
             weatherDanger
-            + (state.lastMissingFuel * 18f)
             + (rotStacks * 4f)
             - cachedLightSafety,
             0f,
@@ -240,18 +226,15 @@ internal sealed class SurvivalEnvironmentRiskEvaluator
         return threatModifiers.GetModifier(kind).EffectiveStrength;
     }
 
-    private void RefreshBuildingContributionsIfNeeded()
+    private void RefreshBuildingContributions()
     {
-        int buildingVersion = worldRegistry.BuildingVersion;
-        if (cachedBuildingVersion == buildingVersion
-            || !gridSystemProvider.TryGetGrid(out Grid grid))
+        cachedVentilationBonus = 0f;
+        cachedLightSafety = 0f;
+        if (!gridSystemProvider.TryGetGrid(out Grid grid))
         {
             return;
         }
 
-        cachedBuildingVersion = buildingVersion;
-        cachedVentilationBonus = 0f;
-        cachedLightSafety = 0f;
         IReadOnlyList<BuildableObject> buildings = worldRegistry.Buildings;
         if (buildings.Count > 0)
         {
@@ -288,6 +271,15 @@ internal sealed class SurvivalEnvironmentRiskEvaluator
         cachedVentilationBonus += ventilation?.hygieneRiskReduction ?? 0f;
         BuildingFuelConsumerAbility fuelConsumer =
             building.BuildingData.GetAbility<BuildingFuelConsumerAbility>();
-        cachedLightSafety += fuelConsumer?.lightSafety ?? 0f;
+        if (fuelConsumer != null
+            && building.BuildingData.GetAbility<BuildingLightingAbility>() != null
+            && building.isActiveAndEnabled
+            && !building.IsDetachedRestoreCandidate
+            && !(building.IsDamaged
+                && building.Facility?.disabledWhenDamaged == true)
+            && building.HasFacilityFuelSupply)
+        {
+            cachedLightSafety += fuelConsumer.lightSafety;
+        }
     }
 }

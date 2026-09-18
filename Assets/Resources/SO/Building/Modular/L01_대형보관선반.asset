@@ -61,6 +61,8 @@ MonoBehaviour:
     - rid: 7737211921440178752
     - rid: 7737211921440178753
     - rid: 7737211921440178754
+    - rid: 7737211921440178755
+    - rid: 7737211921440178756
   width: 2
   height: 1
   layer: 1
@@ -160,3 +162,30 @@ MonoBehaviour:
         capacity: 60
         maxStoredMassGrams: 25000
         allCategories: 1
+    - rid: 7737211921440178755
+      type: {class: BuildingEnvironmentalFireAbility, ns: , asm: DungeonStory.Environment}
+      data:
+        abilityId: BuildingEnvironmentalFireAbility
+        acceptedSources: 50
+        fuelCapacity: 1
+        maximumIntensity: 0.8
+        growthPerTick: 0.001
+        fuelConsumedPerTick: 0.1
+        damagePerTick: 12
+        minimumSpreadIntensity: 0.55
+        spreadChancePerTick: 0.1
+        spreadIgnitionMultiplier: 0.5
+        waterSuppressionPerUnit: 0.5
+        electricalIgnitionHeat: 90
+        electricalIgnitionFault: 5
+        electricalIgnitionWindowSeconds: 30
+        electricalIgnitionChancePerWindow: 0.15
+        electricalIgnitionIntensity: 0.25
+    - rid: 7737211921440178756
+      type: {class: BuildingStructuralIntegrityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingStructuralIntegrityAbility
+        maxHitPoints: 112
+        toughness: 8
+        repairHitPointsPerWork: 7
+        breachable: 1

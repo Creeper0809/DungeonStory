@@ -44,6 +44,15 @@ SpeciesLifeHistorySO|life-history:harpy,life-history:harpy,adultAgeYears,14,,,ex
 SpeciesLifeHistorySO|life-history:harpy,life-history:harpy,elderAgeYears,52,,,explicit-serialized
 SpeciesLifeHistorySO|life-history:harpy,life-history:harpy,untreatedExpectedLifeYears,84.2,,,explicit-serialized
 SpeciesLifeHistorySO|life-history:harpy,life-history:harpy,construct,0,,,explicit-serialized
+SpeciesLifeHistorySO|life-history:human,life-history:human,m_Name,Life_Human,,,explicit-serialized
+SpeciesLifeHistorySO|life-history:human,life-history:human,definitionId,life-history:human,,,explicit-serialized
+SpeciesLifeHistorySO|life-history:human,life-history:human,speciesTag,Human,,,explicit-serialized
+SpeciesLifeHistorySO|life-history:human,life-history:human,infantEndAgeYears,3,,,explicit-serialized
+SpeciesLifeHistorySO|life-history:human,life-history:human,adolescentStartAgeYears,13,,,explicit-serialized
+SpeciesLifeHistorySO|life-history:human,life-history:human,adultAgeYears,18,,,explicit-serialized
+SpeciesLifeHistorySO|life-history:human,life-history:human,elderAgeYears,55,,,explicit-serialized
+SpeciesLifeHistorySO|life-history:human,life-history:human,untreatedExpectedLifeYears,87.2,,,explicit-serialized
+SpeciesLifeHistorySO|life-history:human,life-history:human,construct,0,,,explicit-serialized
 SpeciesLifeHistorySO|life-history:kobold,life-history:kobold,m_Name,Life_Kobold,,,explicit-serialized
 SpeciesLifeHistorySO|life-history:kobold,life-history:kobold,definitionId,life-history:kobold,,,explicit-serialized
 SpeciesLifeHistorySO|life-history:kobold,life-history:kobold,speciesTag,Kobold,,,explicit-serialized

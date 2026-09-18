@@ -121,6 +121,12 @@ public sealed class CaptivityRuntime :
             RecalculateCaptiveState);
         CaptivityActorRuntimeLookup actorRuntime =
             new CaptivityActorRuntimeLookup(FindActor);
+        CaptivityInterrogationInformationRuntime interrogationInformation =
+            new CaptivityInterrogationInformationRuntime(
+                narratives,
+                characters.EnemyArchetypes,
+                session.InterrogationCodex,
+                gameEventBus);
         CaptivityUnityEffectsAdapter captivityEffects =
             new CaptivityUnityEffectsAdapter(
                 FindActor,
@@ -140,6 +146,9 @@ public sealed class CaptivityRuntime :
             actorAccess,
             actorRuntime,
             interactions,
+            interrogationInformation,
+            bodyHealthQuery,
+            bodyHealthCommands,
             itemRuntime,
             interactionMaterials,
             TryGetHousing);
@@ -273,6 +282,7 @@ public sealed class CaptivityRuntime :
     private void TickRuntime()
     {
         RequireCareLaborInputOwner("tick");
+        interactionRuntime.RetryPendingInterrogationPublications(captives);
         if (gameClock.IsPaused || gameClock.DeltaTime <= 0f)
         {
             return;
@@ -297,7 +307,6 @@ public sealed class CaptivityRuntime :
                 continue;
             }
 
-            state.health = EstimateHealth(actor);
             TickLaborToolPreparation(state, actor);
             TickLaborToolWear(state, actor);
             TickCarePriority(state, actor);
@@ -364,7 +373,6 @@ public sealed class CaptivityRuntime :
                 CharacterCondition.HUNGER,
                 35f,
                 CharacterNeedRecoverySource.Meal);
-            state.health = Mathf.Clamp(state.health + 5f, 0f, 100f);
             state.nextCareSupplyAt = gameClock.Time + 120f;
             state.lastResult = "명성 특혜 식량을 배급받았습니다.";
             return;
@@ -699,7 +707,7 @@ public bool IsWorkAllowed(
         }
 
         if (state.status != CaptivityStatus.Labor
-            || !state.CanLabor
+            || !CanLabor(state, actor)
             || string.IsNullOrWhiteSpace(state.assignedLaborToolItemId)
             || state.assignedLaborToolDurability <= 0f)
         {
@@ -959,7 +967,7 @@ public bool IsWorkAllowed(
         CaptiveLaborPermission requestedPermissions =
             permissions & CaptiveLaborPermission.All;
         if (requestedPermissions != CaptiveLaborPermission.None
-            && !state.CanLabor)
+            && !CanLabor(state, FindActor(state.captiveId)))
         {
             failureReason = "순응도 50 이상, 건강 40% 이상부터 노역을 허용할 수 있습니다.";
             return false;
@@ -1430,7 +1438,7 @@ public bool IsWorkAllowed(
         {
             return false;
         }
-        paidAmount = state.RansomValue;
+        paidAmount = state.CalculateRansomValue(GetHealthPercent(actor));
         state.status = CaptivityStatus.Ransom;
         state.retaliationPressure = ClampStat(
             state.retaliationPressure + state.grudge * 0.35f);
@@ -2060,17 +2068,36 @@ public bool IsWorkAllowed(
             : building.RequirePersistentInstanceId().Value;
     }
 
-    private static float EstimateHealth(CharacterActor actor)
+    private bool CanLabor(CaptiveState state, CharacterActor actor)
     {
-        if (actor?.Stats == null)
+        if (state == null || actor == null)
+        {
+            return false;
+        }
+
+        CharacterVitalsSnapshot vitals = bodyHealthQuery.GetVitals(actor);
+        CharacterBodyHealthSnapshot body = bodyHealthQuery.GetSnapshot(actor);
+        return state.CanLaborWithBody(
+            CaptivityBodyHealthRules.GetHealthPercent(
+                vitals.CurrentHealth,
+                vitals.MaximumHealth),
+            CaptivityBodyHealthRules.IsBodyAvailable(
+                actor.IsDead,
+                vitals.IsDead,
+                body.Downed));
+    }
+
+    private float GetHealthPercent(CharacterActor actor)
+    {
+        if (actor == null)
         {
             return 0f;
         }
 
-        return Mathf.Clamp(
-            actor.Stats.CurrentHealth / Mathf.Max(1f, actor.Stats.MaxHealth) * 100f,
-            0f,
-            100f);
+        CharacterVitalsSnapshot vitals = bodyHealthQuery.GetVitals(actor);
+        return CaptivityBodyHealthRules.GetHealthPercent(
+            vitals.CurrentHealth,
+            vitals.MaximumHealth);
     }
 
     private static int Manhattan(Vector2Int left, Vector2Int right)

@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-surgery-pseudopods",
+    "spoiler_tier": "none",
+    "title": "위족 보철 조립"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-pseudopods",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "surgery-prosthetic-pseudopods",
+      "target_spoiler_tier": "none",
+      "target_title": "위족 보철",
+      "to": "item/surgery-prosthetic-pseudopods",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-pseudopods",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "천",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-pseudopods",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "목재",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-surgery-pseudopods",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-steel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "강철",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-pseudopods",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-prosthetics",
+      "target_spoiler_tier": "none",
+      "target_title": "보철 공학",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

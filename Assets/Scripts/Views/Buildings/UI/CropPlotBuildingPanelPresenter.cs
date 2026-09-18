@@ -78,13 +78,24 @@ public sealed class CropPlotBuildingPanelPresenter :
             DungeonUiTheme.TextSecondary,
             42f,
             created);
+        if (plot.HasSeasonalPrimaryYieldDamage)
+        {
+            AddText(
+                parent,
+                FormatSeasonalPrimaryYieldDamage(plot),
+                font,
+                14f,
+                DungeonUiTheme.Warning,
+                34f,
+                created);
+        }
         AddText(
             parent,
             FormatMaterials(plot),
             font,
             14f,
             DungeonUiTheme.TextSecondary,
-            42f,
+            74f,
             created);
         if (!string.IsNullOrWhiteSpace(plot.BlockedReason))
         {
@@ -390,25 +401,102 @@ public sealed class CropPlotBuildingPanelPresenter :
 
     private string FormatMaterials(CropPlotSnapshot plot)
     {
-        if (plot.RequiredMaterials.Count == 0)
+        string materials = plot.RequiredMaterials.Count == 0
+            ? "파종 재료 없음"
+            : "파종 재료 · " + string.Join(
+                "  /  ",
+                plot.RequiredMaterials.Select(requirement =>
+                {
+                    plot.DeliveredMaterials.TryGetValue(
+                        requirement.Key,
+                        out int delivered);
+                    string name = catalog.TryGetItem(
+                        requirement.Key,
+                        out ResourceItemDefinitionSO item)
+                            ? item.DisplayName
+                            : FormatAuthoredItem(requirement.Key);
+                    return $"{name} {delivered}/{requirement.Value}";
+                }));
+        return materials + "\n" + FormatWater(plot)
+            + "\n" + FormatTemperature(plot)
+            + "\n" + FormatLight(plot);
+    }
+
+    private static string FormatWater(CropPlotSnapshot plot)
+    {
+        if (plot.WaterStatus == CropPlotWaterStatus.NotRequired)
+            return "급수 · 물 불필요";
+        string level = $"급수 · {plot.CurrentWater:0.##}/{plot.WaterCapacity:0.##}"
+            + $" · 성장 {plot.WaterGrowthMultiplier:P0}";
+        string stage = plot.WaterRefillPhase switch
         {
-            return "파종 재료 없음";
+            CropWaterRefillPhase.WaitingForDelivery =>
+                $" · 물 운반 {plot.WaterRefillDeliveredQuantity}/1",
+            CropWaterRefillPhase.ReadyForWork => " · 직원 작업 대기",
+            CropWaterRefillPhase.Working =>
+                $" · 직원 작업 {plot.WaterRefillCompletedWork:0.#}/"
+                + $"{plot.WaterRefillRequiredWork:0.#} WU",
+            CropWaterRefillPhase.InputCommitted => " · 물리 투입 확정",
+            CropWaterRefillPhase.OutcomePublished => " · 투입 승인 대기",
+            _ => string.Empty
+        };
+        string failure = string.IsNullOrWhiteSpace(
+                plot.WaterRefillFailureReason)
+            ? string.Empty
+            : " · " + plot.WaterRefillFailureReason;
+        string irrigation = plot.IrrigationStatus switch
+        {
+            CropIrrigationStatus.Available => "관개 · 공급 가능",
+            CropIrrigationStatus.NotRequired => "관개 · 현재 불필요",
+            CropIrrigationStatus.ManualRefillActive => "관개 · 직원 급수 진행 중",
+            CropIrrigationStatus.RateLimited => "관개 · 다음 공급 대기",
+            _ => "관개 · " + (string.IsNullOrWhiteSpace(plot.IrrigationReason)
+                ? "사용 불가"
+                : plot.IrrigationReason)
+        };
+        return level + stage + failure + "\n" + irrigation;
+    }
+
+    private static string FormatLight(CropPlotSnapshot plot)
+    {
+        if (plot.LightStatus == CropGrowthLightStatus.LightIndependent)
+        {
+            return $"광량 · 현재 {plot.CurrentLight:0.#} · 영향 없음"
+                + $" · 성장 {plot.LightGrowthMultiplier:P0}";
+        }
+        if (plot.LightStatus
+            == CropGrowthLightStatus.WaitingForEnvironmentObservation)
+        {
+            return "광량 · 관측 대기"
+                + $" · 정지 {plot.LightStopThreshold:0.#}"
+                + $" · 충분 {plot.LightSufficientThreshold:0.#}";
         }
 
-        return "파종 재료 · " + string.Join(
-            "  /  ",
-            plot.RequiredMaterials.Select(requirement =>
-            {
-                plot.DeliveredMaterials.TryGetValue(
-                    requirement.Key,
-                    out int delivered);
-                string name = catalog.TryGetItem(
-                    requirement.Key,
-                    out ResourceItemDefinitionSO item)
-                        ? item.DisplayName
-                        : FormatAuthoredItem(requirement.Key);
-                return $"{name} {delivered}/{requirement.Value}";
-            }));
+        return $"광량 · 현재 {plot.CurrentLight:0.#}"
+            + $" · 정지 {plot.LightStopThreshold:0.#}"
+            + $" · 충분 {plot.LightSufficientThreshold:0.#}"
+            + $" · 성장 {plot.LightGrowthMultiplier:P0}";
+    }
+
+    private static string FormatTemperature(CropPlotSnapshot plot)
+    {
+        string range = $"품종 적용 적정 {plot.MinimumTemperatureC:0.#}"
+            + $"~{plot.MaximumTemperatureC:0.#}℃";
+        return plot.TemperatureStatus switch
+        {
+            CropGrowthTemperatureStatus.WaitingForEnvironmentObservation =>
+                $"기온 · 관측 대기 · {range}",
+            CropGrowthTemperatureStatus.Suitable =>
+                $"기온 · 현재 {plot.CurrentTemperatureC:0.#}℃ · {range}",
+            CropGrowthTemperatureStatus.TooCold =>
+                $"기온 · 현재 {plot.CurrentTemperatureC:0.#}℃ · {range} · 저온으로 성장 정지",
+            CropGrowthTemperatureStatus.TooHot =>
+                $"기온 · 현재 {plot.CurrentTemperatureC:0.#}℃ · {range} · 고온으로 성장 정지",
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(plot.TemperatureStatus),
+                plot.TemperatureStatus,
+                "Unknown crop temperature status.")
+        };
     }
 
     private static string FormatEcology(CropPlotSnapshot plot)
@@ -421,6 +509,19 @@ public sealed class CropPlotBuildingPanelPresenter :
             : plot.CropDisease.ToString();
         return $"품종 {cultivar}  /  비옥도 {plot.Fertility:0}  /  "
             + $"해충 {plot.PestPressure:0}  /  병압 {plot.DiseasePressure:0} ({disease})";
+    }
+
+    private static string FormatSeasonalPrimaryYieldDamage(
+        CropPlotSnapshot plot)
+    {
+        string prefix = "계절 해충 피해 · 주 생산량 -"
+            + plot.SeasonalPrimaryBatchLossPercent + "%";
+        return plot.FrozenPrimaryQuantityBeforeSeasonalLoss > 0
+            ? prefix + " · "
+                + plot.FrozenPrimaryQuantityBeforeSeasonalLoss + "→"
+                + plot.FrozenPrimaryQuantityAfterSeasonalLoss
+                + " (손실 " + plot.FrozenPrimarySeasonalLossQuantity + ")"
+            : prefix + " · 수확 결과 확정 전";
     }
 
     private string FormatAuthoredItem(string itemId)

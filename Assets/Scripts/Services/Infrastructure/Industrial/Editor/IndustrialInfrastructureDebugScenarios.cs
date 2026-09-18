@@ -652,7 +652,7 @@ public static class IndustrialInfrastructureDebugScenarios
     {
         Require(
             DungeonPowerInfrastructureSaveData.CurrentVersion == 3
-            && DungeonFluidInfrastructureSaveData.CurrentVersion == 6
+            && DungeonFluidInfrastructureSaveData.CurrentVersion == 7
             && DungeonConveyorInfrastructureSaveData.CurrentVersion == 3
             && DungeonAutomationSaveData.CurrentVersion == 2,
             "Industrial save DTO versions changed without fixture approval.");
@@ -664,6 +664,7 @@ public static class IndustrialInfrastructureDebugScenarios
                 new PowerNodeSaveData
                 {
                     buildingInstanceId = "building:power:fuelled",
+                    connectionState = 1,
                     fuelSeconds = 120f,
                     nextFuelOperationSequence = 4,
                     pendingFuel = new PowerFuelCommitSaveData
@@ -865,7 +866,10 @@ public static class IndustrialInfrastructureDebugScenarios
                             },
                         transferMode =
                             WaterContainerTransferMode.FeedNetwork,
-                        transferWork = 2.5f
+                        transferWork = 2.5f,
+                        frozenPipeLatched = true,
+                        frozenPipeOccurrenceInstanceId =
+                            "seasonal:test:frozen-pipes:0001"
                     }
                 }
             };
@@ -881,6 +885,9 @@ public static class IndustrialInfrastructureDebugScenarios
                 && Mathf.Approximately(
                     restoredFluid.nodes[0].manualWaterReserve,
                     0.65f)
+                && restoredFluid.nodes[0].frozenPipeLatched
+                && restoredFluid.nodes[0].frozenPipeOccurrenceInstanceId
+                    == "seasonal:test:frozen-pipes:0001"
                 && restoredFluid.nodes[0]
                     .nextImmediateManualWaterOperationSequence == 3
                 && restoredFluid.nodes[0]

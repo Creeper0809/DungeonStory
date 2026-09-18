@@ -49,7 +49,9 @@ public interface IRoomEnvironmentExperienceService
     IReadOnlyList<string> GetActiveConditionIds(BuildableObject facility);
 }
 
-public sealed class RoomEnvironmentExperienceService : IRoomEnvironmentExperienceService
+public sealed class RoomEnvironmentExperienceService :
+    IRoomEnvironmentExperienceService,
+    IRoomEnvironmentOutcomePersistence
 {
     private readonly IRoomLayoutCache roomLayoutCache;
     private readonly IRoomEnvironmentEvaluator evaluator;
@@ -57,8 +59,10 @@ public sealed class RoomEnvironmentExperienceService : IRoomEnvironmentExperienc
     private readonly IGameEventBus events;
     private readonly IGameClock gameClock;
     private readonly IHeritableTraitEffectQuery heritableTraits;
+    private readonly IEnvironmentGameplayOutcomeCommitter outcomeCommitter;
     private readonly Dictionary<string, float> lastCleanlinessByObserverRoom =
         new(StringComparer.Ordinal);
+    private long nextOutcomeSequence = 1L;
 
     public RoomEnvironmentExperienceService(
         IRoomLayoutCache roomLayoutCache,
@@ -66,7 +70,8 @@ public sealed class RoomEnvironmentExperienceService : IRoomEnvironmentExperienc
         IRoomEnvironmentSettingsProvider settingsProvider,
         IGameEventBus events,
         IGameClock gameClock,
-        IHeritableTraitEffectQuery heritableTraits)
+        IHeritableTraitEffectQuery heritableTraits,
+        IEnvironmentGameplayOutcomeCommitter outcomeCommitter)
     {
         this.roomLayoutCache = roomLayoutCache
             ?? throw new ArgumentNullException(nameof(roomLayoutCache));
@@ -78,6 +83,8 @@ public sealed class RoomEnvironmentExperienceService : IRoomEnvironmentExperienc
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
         this.heritableTraits = heritableTraits
             ?? throw new ArgumentNullException(nameof(heritableTraits));
+        this.outcomeCommitter = outcomeCommitter
+            ?? throw new ArgumentNullException(nameof(outcomeCommitter));
     }
 
     public bool Apply(RoomEnvironmentExperienceEvent eventType)
@@ -113,29 +120,120 @@ public sealed class RoomEnvironmentExperienceService : IRoomEnvironmentExperienc
             snapshot.Cleanliness);
         float impressionMood = mood.ImpressionMood;
         float cleanlinessMood = mood.CleanlinessMood;
-        string roomKey = $"{facility.Grid.GetHashCode()}:{room.Bounds.xMin}:{room.Bounds.yMin}";
-        PublishRoomCondition(actor, roomKey, snapshot.Cleanliness);
+        BuildingInstanceId facilityId = facility.RequirePersistentInstanceId();
+        string roomKey = $"room:{facilityId.Value}:{room.Bounds.xMin}:{room.Bounds.yMin}:{room.Bounds.xMax}:{room.Bounds.yMax}";
         string roomName = RoomEnvironmentPresentation.GetRoomName(snapshot);
         string action = GetActionLabel(eventType, facility);
-
-        if (!Mathf.Approximately(impressionMood, 0f))
+        string actorDisplayName = actor.Identity?.DisplayName?.Trim() ?? string.Empty;
+        string facilityDisplayName = facility.BuildingData?.objectName?.Trim()
+            ?? string.Empty;
+        if (!CharacterPersistentIdentity.TryGet(actor, out CharacterId characterId)
+            || actorDisplayName.Length == 0
+            || facilityDisplayName.Length == 0
+            || string.IsNullOrWhiteSpace(roomName))
         {
-            actor.ApplyMoodFactor(
-                $"room:{roomKey}:impression",
-                BuildImpressionLabel(snapshot.Impressiveness, roomName, action),
-                impressionMood,
-                settings.MoodDurationSeconds,
-                1);
+            throw new InvalidOperationException(
+                "Room environment outcomes require stable identities and immutable display snapshots.");
         }
+        int absoluteDay = Math.Max(
+            0,
+            (int)Math.Floor(gameClock.Time / GameCalendarRules.SecondsPerDay));
+        CoreGridCell roomLocation = new(room.Bounds.xMin, room.Bounds.yMin);
 
-        if (!Mathf.Approximately(cleanlinessMood, 0f))
-        {
-            actor.ApplyMoodFactor(
-                $"room:{roomKey}:cleanliness",
-                BuildCleanlinessLabel(snapshot.Cleanliness, roomName),
+        CommitRoomCondition(
+            characterId,
+            actorDisplayName,
+            facilityId,
+            facilityDisplayName,
+            roomKey,
+            roomName,
+            snapshot.Cleanliness,
+            roomLocation,
+            absoluteDay);
+
+        if (Mathf.Approximately(impressionMood, 0f)
+            && Mathf.Approximately(cleanlinessMood, 0f))
+            return false;
+
+        long sequence = nextOutcomeSequence;
+        long advancedSequence = checked(sequence + 1L);
+        RoomEnvironmentExperienceOutcomeReceipt experienceReceipt =
+            EnvironmentOutcomeReceiptFactory.CreateRoomExperience(
+                sequence,
+                characterId,
+                actorDisplayName,
+                facilityId,
+                facilityDisplayName,
+                roomKey,
+                roomName,
+                eventType.Activity,
+                eventType.WorkTypeId,
+                impressionMood,
                 cleanlinessMood,
                 settings.MoodDurationSeconds,
-                1);
+                roomLocation,
+                absoluteDay);
+        if (!outcomeCommitter.TryPrepare(
+                experienceReceipt,
+                out PreparedEnvironmentOutcome preparedExperience,
+                out string prepareFailure))
+            throw new InvalidOperationException(
+                "Room environment outcome prepare failed: " + prepareFailure);
+        if (actor.Stats == null)
+        {
+            outcomeCommitter.Cancel(preparedExperience);
+            throw new InvalidOperationException(
+                "Room environment outcome requires character mood state.");
+        }
+        CharacterMoodDeliveryTransactionSnapshot moodBefore =
+            actor.Stats.CaptureMoodDeliveryTransactionState();
+
+        try
+        {
+            if (!Mathf.Approximately(impressionMood, 0f))
+            {
+                actor.ApplyMoodFactor(
+                    $"{roomKey}:impression",
+                    BuildImpressionLabel(snapshot.Impressiveness, roomName, action),
+                    impressionMood,
+                    settings.MoodDurationSeconds,
+                    1);
+            }
+
+            if (!Mathf.Approximately(cleanlinessMood, 0f))
+            {
+                actor.ApplyMoodFactor(
+                    $"{roomKey}:cleanliness",
+                    BuildCleanlinessLabel(snapshot.Cleanliness, roomName),
+                    cleanlinessMood,
+                    settings.MoodDurationSeconds,
+                    1);
+            }
+
+            EnvironmentOutcomeCommitResult committed = outcomeCommitter.Commit(
+                preparedExperience,
+                sequence);
+            if (!committed.DurablyCommitted)
+            {
+                throw new InvalidOperationException(
+                    "Room environment outcome commit failed: " + committed.DetailCode);
+            }
+            nextOutcomeSequence = advancedSequence;
+        }
+        catch
+        {
+            EnvironmentOutcomeCommitResult reconciled = outcomeCommitter.Reconcile(
+                experienceReceipt.Payload.ResultKey);
+            if (reconciled.DurablyCommitted)
+            {
+                nextOutcomeSequence = advancedSequence;
+            }
+            else
+            {
+                actor.Stats.RestoreMoodDeliveryTransactionState(moodBefore);
+                outcomeCommitter.Cancel(preparedExperience);
+                throw;
+            }
         }
 
         return !Mathf.Approximately(impressionMood, 0f)
@@ -168,30 +266,126 @@ public sealed class RoomEnvironmentExperienceService : IRoomEnvironmentExperienc
         return conditions;
     }
 
-    private void PublishRoomCondition(
-        CharacterActor actor,
+    private void CommitRoomCondition(
+        CharacterId characterId,
+        string actorDisplayName,
+        BuildingInstanceId facilityId,
+        string facilityDisplayName,
         string roomKey,
-        float currentCleanliness)
+        string roomDisplayName,
+        float currentCleanliness,
+        CoreGridCell location,
+        int absoluteDay)
     {
-        if (!CharacterPersistentIdentity.TryGet(actor, out CharacterId characterId))
-            return;
-        string observerRoomKey = $"{characterId.Value}|{roomKey}";
+        string observerRoomKey = characterId.Value + "\n" + roomKey;
         if (lastCleanlinessByObserverRoom.TryGetValue(
                 observerRoomKey,
                 out float previousCleanliness)
             && !Mathf.Approximately(previousCleanliness, currentCleanliness))
         {
+            long sequence = nextOutcomeSequence;
+            long advancedSequence = checked(sequence + 1L);
+            RoomConditionOutcomeReceipt conditionReceipt =
+                EnvironmentOutcomeReceiptFactory.CreateRoomCondition(
+                    sequence,
+                    characterId,
+                    actorDisplayName,
+                    facilityId,
+                    facilityDisplayName,
+                    roomKey,
+                    roomDisplayName,
+                    previousCleanliness / 100f,
+                    currentCleanliness / 100f,
+                    location,
+                    absoluteDay);
+            if (!outcomeCommitter.TryPrepare(
+                    conditionReceipt,
+                    out PreparedEnvironmentOutcome preparedCondition,
+                    out string prepareFailure))
+                throw new InvalidOperationException(
+                    "Room condition outcome prepare failed: " + prepareFailure);
+
+            lastCleanlinessByObserverRoom[observerRoomKey] = currentCleanliness;
+            EnvironmentOutcomeCommitResult committed;
+            try
+            {
+                committed = outcomeCommitter.Commit(preparedCondition, sequence);
+            }
+            catch
+            {
+                committed = outcomeCommitter.Reconcile(
+                    conditionReceipt.Payload.ResultKey);
+                if (!committed.DurablyCommitted)
+                {
+                    lastCleanlinessByObserverRoom[observerRoomKey] = previousCleanliness;
+                    outcomeCommitter.Cancel(preparedCondition);
+                    throw;
+                }
+            }
+            if (!committed.DurablyCommitted)
+            {
+                lastCleanlinessByObserverRoom[observerRoomKey] = previousCleanliness;
+                throw new InvalidOperationException(
+                    "Room condition outcome commit failed: " + committed.DetailCode);
+            }
+            nextOutcomeSequence = advancedSequence;
             events.Publish(new RoomConditionChangedEvent(
                 characterId,
                 roomKey,
                 previousCleanliness / 100f,
                 currentCleanliness / 100f,
-                Math.Max(
-                    0,
-                    (int)Math.Floor(
-                        gameClock.Time / GameCalendarRules.SecondsPerDay))));
+                absoluteDay));
+            return;
         }
         lastCleanlinessByObserverRoom[observerRoomKey] = currentCleanliness;
+    }
+
+    public RoomEnvironmentOutcomeSaveData CaptureOutcomeState() => new()
+    {
+        nextOutcomeSequence = nextOutcomeSequence,
+        observations = lastCleanlinessByObserverRoom
+            .OrderBy(value => value.Key, StringComparer.Ordinal)
+            .Select(value => new RoomEnvironmentObservationSaveData
+            {
+                observerRoomKey = value.Key,
+                cleanliness = value.Value
+            })
+            .ToList()
+    };
+
+    public RoomEnvironmentOutcomeRestoreCandidate PrepareOutcomeRestore(
+        RoomEnvironmentOutcomeSaveData data)
+    {
+        if (data == null
+            || data.version != RoomEnvironmentOutcomeSaveData.CurrentVersion
+            || data.nextOutcomeSequence <= 0L)
+            throw new InvalidOperationException("Room environment outcome save header is invalid.");
+        Dictionary<string, float> restored = new(StringComparer.Ordinal);
+        foreach (RoomEnvironmentObservationSaveData row in
+                 data.observations ?? new List<RoomEnvironmentObservationSaveData>())
+        {
+            if (row == null
+                || string.IsNullOrWhiteSpace(row.observerRoomKey)
+                || !float.IsFinite(row.cleanliness)
+                || row.cleanliness < 0f
+                || row.cleanliness > 100f
+                || !restored.TryAdd(row.observerRoomKey, row.cleanliness))
+                throw new InvalidOperationException(
+                    "Room environment observation save row is invalid.");
+        }
+        return new RoomEnvironmentOutcomeRestoreCandidate(
+            data.nextOutcomeSequence,
+            restored);
+    }
+
+    public void PublishOutcomeRestore(RoomEnvironmentOutcomeRestoreCandidate candidate)
+    {
+        if (candidate == null)
+            throw new ArgumentNullException(nameof(candidate));
+        lastCleanlinessByObserverRoom.Clear();
+        foreach (KeyValuePair<string, float> row in candidate.Observations)
+            lastCleanlinessByObserverRoom.Add(row.Key, row.Value);
+        nextOutcomeSequence = candidate.NextOutcomeSequence;
     }
 
     private void PublishManaExposure(RoomEnvironmentExperienceEvent eventType)
@@ -217,7 +411,9 @@ public sealed class RoomEnvironmentExperienceService : IRoomEnvironmentExperienc
             heritableTraits.GetMultiplier(
                 characterId,
                 HeritableTraitConsequenceKind.ManaOverloadDamage,
-                "mana-exposure")));
+                "mana-exposure"),
+            sourceKind: "room-mana-exposure",
+            sourceId: eventType.Facility.RequirePersistentInstanceId().Value));
     }
 
     private bool TryGetFacilityRoom(BuildableObject facility, out RoomInstance room)

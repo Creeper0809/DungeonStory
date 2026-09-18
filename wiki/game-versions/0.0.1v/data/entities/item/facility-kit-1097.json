@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "폐기 소각로를 현장에 세워 공간의 용도와 작업 동선을 갖추는 데 쓰는 설치 부품이며, 하르나크에서도 같은 규격으로 조립한다.",
+  "in_game_description": "폐기 소각로를 현장에 세워 공간의 용도와 작업 동선을 갖추는 데 쓰는 설치 부품이다. 하르나크 주민은 폐기 소각로를 어느 한 도시의 소유로 두지 않고 정비 교대를 나눠 맡는다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

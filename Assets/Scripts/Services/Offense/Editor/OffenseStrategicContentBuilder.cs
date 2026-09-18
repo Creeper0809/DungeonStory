@@ -20,7 +20,7 @@ public static class OffenseStrategicContentBuilder
         BuildEncounters();
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
-        Debug.Log("Offense Strategic content built: 12 sites, 6 urgent sites, 49 cards, 6 encounters.");
+        Debug.Log("Offense Strategic content built: 12 sites, 6 urgent sites, 54 cards, 6 encounters.");
     }
 
     private static void BuildSiteArchetypes()
@@ -209,69 +209,107 @@ public static class OffenseStrategicContentBuilder
         string folder = Root + "/Cards";
         EnsureFolder(folder);
         List<CardSeed> seeds = CreateCardSeeds();
-        if (seeds.Count < 48)
+        if (seeds.Count != 54)
         {
             throw new InvalidOperationException(
-                $"Offense Strategic requires at least 48 initial cards, got {seeds.Count}.");
+                $"Offense Strategic requires exactly 54 authored cards, got {seeds.Count}.");
         }
 
         for (int index = 0; index < seeds.Count; index++)
         {
+            BuildDecisionCard(folder, seeds[index], index);
+        }
+    }
+
+    [MenuItem("DungeonStory/Build/WIM-017 Weather Decision Cards Only")]
+    public static void BuildWeatherDecisionCardsOnly()
+    {
+        string folder = Root + "/Cards";
+        EnsureFolder(folder);
+        List<CardSeed> seeds = CreateCardSeeds();
+        int built = 0;
+        for (int index = 0; index < seeds.Count; index++)
+        {
             CardSeed seed = seeds[index];
-            string path = $"{folder}/{index + 1:00}_{seed.Id}.asset";
-            OffenseDecisionCardSO asset = LoadOrCreate<OffenseDecisionCardSO>(path);
-            asset.id = 170300 + index;
-            asset.cardId = seed.Id;
-            asset.stage = seed.Stage;
-            asset.title = seed.Title;
-            asset.situation = seed.Situation;
-            asset.requiredWorldTags = new List<string>();
-            asset.choices = new List<OffenseDecisionChoiceDefinition>
+            if (seed.RequiredWorldTags == null
+                || seed.RequiredWorldTags.Count == 0)
             {
-                new OffenseDecisionChoiceDefinition
-                {
-                    choiceId = "left",
-                    label = seed.Left,
-                    description = seed.LeftDescription,
-                    requiredTag = seed.LeftRequiredTag,
-                    transformedLabel = seed.LeftTransformedLabel,
-                    transformedDescription = seed.LeftTransformedDescription,
-                    directionLabel = seed.LeftDirection,
-                    severity = seed.LeftSeverity,
-                    mayStartCombat = seed.LeftCombat,
-                    mayCauseInjury = seed.LeftInjury,
-                    mayMoveExpedition = seed.LeftMove,
-                    effects = BuildDecisionEffects(
+                continue;
+            }
+            BuildDecisionCard(folder, seed, index);
+            built++;
+        }
+        if (built != 6)
+        {
+            throw new InvalidOperationException(
+                $"WIM-017 requires exactly 6 weather-qualified cards, got {built}.");
+        }
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log("WIM_017_WEATHER_DECISION_CARDS=PASS; cards=6");
+    }
+
+    private static void BuildDecisionCard(
+        string folder,
+        CardSeed seed,
+        int index)
+    {
+        string path = $"{folder}/{index + 1:00}_{seed.Id}.asset";
+        OffenseDecisionCardSO asset = LoadOrCreate<OffenseDecisionCardSO>(path);
+        asset.id = 170300 + index;
+        asset.cardId = seed.Id;
+        asset.stage = seed.Stage;
+        asset.title = seed.Title;
+        asset.situation = seed.Situation;
+        asset.requiredWorldTags = seed.RequiredWorldTags?.ToList()
+            ?? new List<string>();
+        asset.choices = new List<OffenseDecisionChoiceDefinition>
+        {
+            new OffenseDecisionChoiceDefinition
+            {
+                choiceId = "left",
+                label = seed.Left,
+                description = seed.LeftDescription,
+                requiredTag = seed.LeftRequiredTag,
+                transformedLabel = seed.LeftTransformedLabel,
+                transformedDescription = seed.LeftTransformedDescription,
+                directionLabel = seed.LeftDirection,
+                severity = seed.LeftSeverity,
+                mayStartCombat = seed.LeftCombat,
+                mayCauseInjury = seed.LeftInjury,
+                mayMoveExpedition = seed.LeftMove,
+                effects = seed.LeftEffects?.ToList()
+                    ?? BuildDecisionEffects(
                         seed.LeftDirection,
                         seed.LeftSeverity,
                         seed.LeftCombat,
                         seed.LeftInjury,
                         seed.LeftMove)
-                },
-                new OffenseDecisionChoiceDefinition
-                {
-                    choiceId = "right",
-                    label = seed.Right,
-                    description = seed.RightDescription,
-                    requiredTag = seed.RightRequiredTag,
-                    transformedLabel = seed.RightTransformedLabel,
-                    transformedDescription = seed.RightTransformedDescription,
-                    directionLabel = seed.RightDirection,
-                    severity = seed.RightSeverity,
-                    mayStartCombat = seed.RightCombat,
-                    mayCauseInjury = seed.RightInjury,
-                    mayMoveExpedition = seed.RightMove,
-                    effects = BuildDecisionEffects(
+            },
+            new OffenseDecisionChoiceDefinition
+            {
+                choiceId = "right",
+                label = seed.Right,
+                description = seed.RightDescription,
+                requiredTag = seed.RightRequiredTag,
+                transformedLabel = seed.RightTransformedLabel,
+                transformedDescription = seed.RightTransformedDescription,
+                directionLabel = seed.RightDirection,
+                severity = seed.RightSeverity,
+                mayStartCombat = seed.RightCombat,
+                mayCauseInjury = seed.RightInjury,
+                mayMoveExpedition = seed.RightMove,
+                effects = seed.RightEffects?.ToList()
+                    ?? BuildDecisionEffects(
                         seed.RightDirection,
                         seed.RightSeverity,
                         seed.RightCombat,
                         seed.RightInjury,
                         seed.RightMove)
-                }
-            };
-            ConfigureBribeOffer(asset);
-            EditorUtility.SetDirty(asset);
-        }
+            }
+        };
+        ConfigureBribeOffer(asset);
+        EditorUtility.SetDirty(asset);
     }
 
     private static void ConfigureBribeOffer(OffenseDecisionCardSO card)
@@ -621,10 +659,32 @@ public static class OffenseStrategicContentBuilder
                 "길가에서 적의 표식을 단 정찰병이 피를 흘리고 있습니다.",
                 "치료하고 묻는다", "약품을 쓰고 주변 정보의 대가를 요구합니다.", "약품 감소·정보 증가", 1,
                 "흔적만 조사한다", "거리를 유지한 채 지나온 경로를 살핍니다.", "정보 소폭 증가", 0),
-            Card("travel_black_rain", OffenseDecisionStage.Travel, "검은 비",
-                "먹구름에서 기름 냄새가 나는 빗방울이 떨어지기 시작합니다.",
-                "천막을 친다", "보급을 보호하며 비가 잦아들기를 기다립니다.", "피로 증가", 1,
-                "행군을 계속한다", "시간을 아끼지만 장비와 몸이 젖습니다.", "장비 손상 위험", 2, rightInjury: true),
+            WeatherCard(
+                Card("travel_black_rain", OffenseDecisionStage.Travel, "검은 비",
+                    "폭풍 구름에서 기름 냄새가 나는 검은 빗방울이 쏟아집니다.",
+                    "천막을 친다", "보급을 보호하며 한 시간 동안 폭풍이 잦아들기를 기다립니다.",
+                    "대기 1시간·스트레스 +10", 1,
+                    "행군을 계속한다", "장비 내구 13과 비치명 부상 11.5%를 감수하고 행군합니다.",
+                    "장비 내구 -13·비치명 부상 11.5%", 2,
+                    rightInjury: true),
+                "weather:storm",
+                new OffenseDecisionEffectDefinition[]
+                {
+                    new OffenseTimeDecisionEffect { elapsedHours = 1f },
+                    new OffenseStressDecisionEffect { amount = 10f }
+                },
+                new OffenseDecisionEffectDefinition[]
+                {
+                    new OffenseEquipmentWearDecisionEffect
+                    {
+                        durabilityDamage = 13f
+                    },
+                    new OffenseInjuryDecisionEffect
+                    {
+                        maxHealthRatio = 0.115f,
+                        nonLethal = true
+                    }
+                }),
             Card("travel_false_milestone", OffenseDecisionStage.Travel, "뒤집힌 이정표",
                 "누군가 이정표의 방향판을 바꿔 놓았습니다.",
                 "지형을 대조한다", "높은 곳에서 길과 별자리를 다시 맞춥니다.", "시간 감소", 1,
@@ -816,7 +876,136 @@ public static class OffenseStrategicContentBuilder
                 "던전 외곽의 불빛이 나무 사이로 희미하게 보입니다.",
                 "정찰을 먼저 보낸다", "입구 주변의 위험을 확인한 뒤 접근합니다.", "시간 감소·위험 감소", 0,
                 "곧장 돌아간다", "지친 대원들과 전리품을 빠르게 귀환시킵니다.", "귀환 가속", 0, rightMove: true)
+            ,
+            WeatherCard(
+                Card("travel_rain_drift_cargo", OffenseDecisionStage.Travel,
+                    "빗속의 떠내려온 짐",
+                    "불어난 빗물에 묶음 짐 하나가 떠내려와 바위틈에 걸렸습니다.",
+                    "짐을 건져 낸다", "한 시간 반을 들여 급류에 접근해 쓸 만한 식량을 건집니다.",
+                    "대기 1.5시간·노출 +8·식량 +2", 1,
+                    "그대로 지나간다", "급류에 가까이 가지 않고 원래 행군을 계속합니다.",
+                    "변화 없음", 0),
+                "weather:rain",
+                new OffenseDecisionEffectDefinition[]
+                {
+                    new OffenseTimeDecisionEffect { elapsedHours = 1.5f },
+                    new OffenseExposureDecisionEffect { amount = 8f },
+                    new OffenseSupplyDecisionEffect
+                    {
+                        supplyType = OffenseSupplyType.Rations,
+                        amount = 2
+                    }
+                },
+                Array.Empty<OffenseDecisionEffectDefinition>()),
+            WeatherCard(
+                Card("travel_fog_guide", OffenseDecisionStage.Travel,
+                    "안개 속 길잡이",
+                    "짙은 안개 속에서 이 길을 안다는 낯선 길잡이가 모습을 드러냅니다.",
+                    "길잡이를 고용한다", "현장 자금 100을 지불해 안전한 길과 주변 지형 정보를 얻습니다.",
+                    "현장 자금 -100·노출 -10·정찰 +1", 1,
+                    "직접 길을 찾는다", "한 시간 반을 들여 표식을 대조하지만 흔적이 더 드러납니다.",
+                    "대기 1.5시간·노출 +8", 1),
+                "weather:fog",
+                new OffenseDecisionEffectDefinition[]
+                {
+                    new OffenseGoldDecisionEffect { amount = -100 },
+                    new OffenseExposureDecisionEffect { amount = -10f },
+                    new OffenseReconDecisionEffect { revealCount = 1 }
+                },
+                new OffenseDecisionEffectDefinition[]
+                {
+                    new OffenseTimeDecisionEffect { elapsedHours = 1.5f },
+                    new OffenseExposureDecisionEffect { amount = 8f }
+                }),
+            WeatherCard(
+                Card("travel_heatwave_shade_shelter", OffenseDecisionStage.Travel,
+                    "그늘의 쉼터",
+                    "폭염 속 길가의 무너진 차양 아래에 잠시 몸을 숨길 그늘이 남아 있습니다.",
+                    "그늘에서 쉰다", "두 시간을 쉬어 열 노출과 대원의 스트레스를 낮춥니다.",
+                    "대기 2시간·스트레스 -9·노출 -8", 1,
+                    "행군을 강행한다", "시간을 아끼는 대신 더위와 긴장을 그대로 감수합니다.",
+                    "스트레스 +7·노출 +8", 1),
+                "weather:heatwave",
+                new OffenseDecisionEffectDefinition[]
+                {
+                    new OffenseTimeDecisionEffect { elapsedHours = 2f },
+                    new OffenseStressDecisionEffect { amount = -9f },
+                    new OffenseExposureDecisionEffect { amount = -8f }
+                },
+                new OffenseDecisionEffectDefinition[]
+                {
+                    new OffenseStressDecisionEffect { amount = 7f },
+                    new OffenseExposureDecisionEffect { amount = 8f }
+                }),
+            WeatherCard(
+                Card("travel_cold_snap_frost_camp", OffenseDecisionStage.Travel,
+                    "서리 덮인 야영지",
+                    "한파에 버려진 야영지의 천막과 장작이 단단한 서리에 덮여 있습니다.",
+                    "마나등으로 대비한다", "마나등 보급 하나를 써서 얼어붙은 장비와 길을 안전하게 밝힙니다.",
+                    "마나등 -1·노출 -12", 1,
+                    "추위를 견딘다", "보급을 아끼는 대신 한기와 긴장을 감수합니다.",
+                    "스트레스 +7·노출 +15", 1),
+                "weather:cold-snap",
+                new OffenseDecisionEffectDefinition[]
+                {
+                    new OffenseSupplyDecisionEffect
+                    {
+                        supplyType = OffenseSupplyType.ManaLantern,
+                        amount = -1
+                    },
+                    new OffenseExposureDecisionEffect { amount = -12f }
+                },
+                new OffenseDecisionEffectDefinition[]
+                {
+                    new OffenseStressDecisionEffect { amount = 7f },
+                    new OffenseExposureDecisionEffect { amount = 15f }
+                }),
+            WeatherCard(
+                Card("travel_storm_exposed_hideout", OffenseDecisionStage.Travel,
+                    "폭풍에 드러난 은닉처",
+                    "폭풍에 무너진 비탈 아래로 감춰져 있던 은닉처 입구가 드러났습니다.",
+                    "은닉처를 수색한다", "한 시간 반을 수색해 물자를 얻고 비치명 부상 9%를 감수합니다.",
+                    "대기 1.5시간·비치명 부상 9%·전리품 +6", 2,
+                    "안전을 우선한다", "입구를 건드리지 않고 폭풍 속 행군에 집중합니다.",
+                    "변화 없음", 0,
+                    leftInjury: true),
+                "weather:storm",
+                new OffenseDecisionEffectDefinition[]
+                {
+                    new OffenseTimeDecisionEffect { elapsedHours = 1.5f },
+                    new OffenseInjuryDecisionEffect
+                    {
+                        maxHealthRatio = 0.09f,
+                        nonLethal = true
+                    },
+                    new OffenseLootDecisionEffect
+                    {
+                        stockCategory = StockCategory.General,
+                        amount = 6
+                    }
+                },
+                Array.Empty<OffenseDecisionEffectDefinition>())
         };
+    }
+
+    private static CardSeed WeatherCard(
+        CardSeed seed,
+        string requiredWorldTag,
+        IReadOnlyList<OffenseDecisionEffectDefinition> leftEffects,
+        IReadOnlyList<OffenseDecisionEffectDefinition> rightEffects)
+    {
+        if (seed == null
+            || string.IsNullOrWhiteSpace(requiredWorldTag)
+            || leftEffects == null
+            || rightEffects == null)
+        {
+            throw new ArgumentException(
+                "Weather decision cards require one tag and two explicit effect lists.");
+        }
+        seed.RequiredWorldTags = new[] { requiredWorldTag };
+        seed.LeftEffects = leftEffects;
+        seed.RightEffects = rightEffects;
+        return seed;
     }
 
     private static CardSeed Card(
@@ -1013,6 +1202,7 @@ public static class OffenseStrategicContentBuilder
         public OffenseDecisionStage Stage;
         public string Title;
         public string Situation;
+        public IReadOnlyList<string> RequiredWorldTags;
         public string Left;
         public string LeftDescription;
         public string LeftDirection;
@@ -1023,6 +1213,7 @@ public static class OffenseStrategicContentBuilder
         public string LeftRequiredTag;
         public string LeftTransformedLabel;
         public string LeftTransformedDescription;
+        public IReadOnlyList<OffenseDecisionEffectDefinition> LeftEffects;
         public string Right;
         public string RightDescription;
         public string RightDirection;
@@ -1033,6 +1224,7 @@ public static class OffenseStrategicContentBuilder
         public string RightRequiredTag;
         public string RightTransformedLabel;
         public string RightTransformedDescription;
+        public IReadOnlyList<OffenseDecisionEffectDefinition> RightEffects;
     }
 }
 #endif

@@ -9,6 +9,7 @@ import {
   fencedCodeForBlock,
   renderFencedCode,
   renderInlineMarkdown,
+  stripHtmlComments,
 } from '../src/lib/guide-markdown.mjs';
 
 test('multiline formula fences keep blank lines and become independent blocks', () => {
@@ -57,6 +58,12 @@ test('malformed and unclosed fences fail clearly', () => {
   assert.throws(() => extractFencedCode('```text\n값'), /Unclosed fenced-code block/);
 });
 
+test('source-only HTML comments never become visible guide text', () => {
+  const source = '<!-- reviewed-rules:start -->\n## 주민 생활과 작업의 판정 기준\n\n본문';
+  assert.equal(stripHtmlComments(source), '\n## 주민 생활과 작업의 판정 기준\n\n본문');
+  assert.throws(() => stripHtmlComments('<!-- reviewed-rules:start'), /Unbalanced HTML comment/);
+});
+
 test('every versioned guide has well-formed fenced code', async () => {
   const wikiRoot = fileURLToPath(new URL('..', import.meta.url));
   const versionsRoot = path.join(wikiRoot, 'game-versions');
@@ -72,6 +79,8 @@ test('every versioned guide has well-formed fenced code', async () => {
   assert.ok(guideFiles.length > 0, 'Expected at least one versioned guide.');
   for (const guideFile of guideFiles) {
     const source = await readFile(guideFile, 'utf8');
-    assert.doesNotThrow(() => extractFencedCode(source), guideFile);
+    const visibleSource = stripHtmlComments(source);
+    assert.doesNotMatch(visibleSource, /reviewed-rules/, guideFile);
+    assert.doesNotThrow(() => extractFencedCode(visibleSource), guideFile);
   }
 });

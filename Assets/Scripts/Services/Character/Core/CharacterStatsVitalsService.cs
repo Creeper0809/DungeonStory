@@ -41,6 +41,16 @@ public sealed class CharacterStatsVitalsService
             maximumHealth,
             resetCurrentHealth);
 
+    [GameplayInternalOnly(
+        "CharacterStats forwards a freshly derived maximum to the body-health authority.",
+        "CharacterStats")]
+    public void RefreshMaximumHealthPreservingCurrent(
+        CharacterActor actor,
+        float maximumHealth) =>
+        bodyHealthCommands.RefreshMaximumHealthPreservingCurrent(
+            actor,
+            maximumHealth);
+
     public CharacterVitalsSnapshot GetProjection(
         CharacterStats owner,
         CharacterActor actor,

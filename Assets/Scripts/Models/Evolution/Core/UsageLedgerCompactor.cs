@@ -17,7 +17,8 @@ public interface IUsageLedgerCompactor
         HistoricalEvidenceKind historicalEvidenceKind = HistoricalEvidenceKind.None,
         string outcomeId = "",
         int generation = 0,
-        int repeatCount = 1);
+        int repeatCount = 1,
+        GameplayNarrativeEventContext narrativeContext = null);
     CompactedHistorySegment CloseGeneration(UsageLedger ledger, int generation);
     string ComputeHistoryHash(UsageLedger ledger);
 }
@@ -38,7 +39,8 @@ public sealed class UsageLedgerCompactor : IUsageLedgerCompactor
         HistoricalEvidenceKind historicalEvidenceKind = HistoricalEvidenceKind.None,
         string outcomeId = "",
         int generation = 0,
-        int repeatCount = 1)
+        int repeatCount = 1,
+        GameplayNarrativeEventContext narrativeContext = null)
     {
         if (ledger == null)
         {
@@ -67,8 +69,14 @@ public sealed class UsageLedgerCompactor : IUsageLedgerCompactor
             generation = Math.Max(0, generation),
             repeatCount = Math.Max(1, repeatCount),
             sequence = sequence,
+            narrativeContext = narrativeContext?.Clone() ?? new GameplayNarrativeEventContext(),
             sourceTags = Normalize(sourceTags)
         };
+        if (entry.narrativeContext.sequence <= 0L)
+            entry.narrativeContext.sequence = sequence;
+        if (string.IsNullOrWhiteSpace(entry.narrativeContext.eventInstanceId))
+            entry.narrativeContext.eventInstanceId = "usage:" +
+                sequence.ToString(CultureInfo.InvariantCulture);
 
         ledger.currentGenerationEvents ??= new List<UsageLedgerEvent>();
         ledger.currentGenerationEvents.Add(entry);
@@ -366,6 +374,9 @@ public sealed class UsageLedgerCompactor : IUsageLedgerCompactor
             .Append(entry.outcomeId ?? string.Empty).Append('|')
             .Append(entry.generation).Append('|')
             .Append(entry.repeatCount).Append('|');
+        // Narrative context explains an already-recorded mechanical event. It must not
+        // change the history hash, candidate identity, costs, or deterministic outcome.
+        // The export hashes the context separately as presentation provenance.
         foreach (string tag in entry.sourceTags.OrderBy(
                      value => value,
                      StringComparer.Ordinal))

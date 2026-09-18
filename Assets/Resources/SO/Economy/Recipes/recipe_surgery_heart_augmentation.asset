@@ -1,0 +1,78 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f75000297946ffe4481d69575fdbfd0a, type: 3}
+  m_Name: recipe_surgery_heart_augmentation
+  m_EditorClassIdentifier: DungeonStory.Economy::ProductionRecipeSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 9809
+  recipeId: recipe:surgery:heart-augmentation
+  displayName: "\uC804\uD22C \uC2EC\uC7A5 \uBCF4\uCCA0 \uC870\uB9BD"
+  description: "\uAC15\uCCA0 \uD38C\uD504 \uBD80\uD488\uACFC \uB9C8\uB098 \uACB0\uC815,
+    \uACE0\uAE09 \uC57D\uD488\uC73C\uB85C \uC804\uD22C \uC2EC\uC7A5 \uBCF4\uCCA0\uC744
+    \uB9CC\uB4E0\uB2E4."
+  facilityTag: m06
+  workstationTag: 
+  requiredSupportTags: []
+  batchSupportTag: 
+  processKind: 0
+  flowRole: 0
+  processClass: 6
+  processClassAuthored: 1
+  workTypeId: work:craft
+  proficiency:
+    primaryProficiencyId: proficiency:crafting
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
+  requiredResearchId: research:medical:prosthetics
+  requiredWork: 34
+  preparationWork: 0
+  finishingWork: 0
+  processingGameHours: 0
+  optimalTemperatureC: {x: 12, y: 24}
+  warningTemperatureC: {x: 4, y: 32}
+  cleanWaterPerCycle: 0
+  wastewaterPerCycle: 0
+  wastewaterComposition: 0
+  allowsManualWaterFallback: 0
+  spoilageItemId: 
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=CuttingWaste|reason=prosthetic-machining-and-fitting-offcuts|physicalByproduct=false
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
+  inputs:
+  - itemId: material:steel-ingot
+    amount: 2
+  - itemId: resource:mana-crystal
+    amount: 1
+  - itemId: medicine:advanced
+    amount: 1
+  outputs:
+  - outputLineId: output:recipe:surgery:heart-augmentation/000/main/surgery:prosthetic:heart/variant/orc-combat-heart
+    role: 0
+    itemId: surgery:prosthetic:heart/variant/orc-combat-heart
+    amount: 1
+    probability: 1

@@ -21,6 +21,7 @@ MonoBehaviour:
   season: 3
   minimumDurationDays: 3
   maximumDurationDays: 6
+  worldWaterRegenerationMultiplier: 1
   affectedDomainIds:
   - disease
   - service

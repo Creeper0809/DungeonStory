@@ -28,6 +28,11 @@ public static class OffenseRewardDebugScenarios
         RunScenario("원정 완료 시 보상 지급 연결", VerifyExpeditionCompletionGrantsRewards, errors);
         RunScenario("보상 핸들러 개방형 확장", VerifyOpenRewardHandlerExtension, errors);
         RunScenario("방어 설계도 판정 capability 확장", VerifyDefenseBlueprintUnlockCapability, errors);
+        RunScenario("계획 전투 명령 payload 전달 회귀", VerifyPlannedCommandPayloadForwarding, errors);
+        RunScenario(
+            "지역 보스 망각의 인장 최초 지급과 복원 재조정",
+            VerifyMemoryErasureSealBossAwardLifecycle,
+            errors);
 
         if (errors.Count > 0)
         {
@@ -45,6 +50,192 @@ public static class OffenseRewardDebugScenarios
         }
 
         return true;
+    }
+
+    public static bool VerifyRegionalPressureReceiptUnits()
+    {
+        using ScenarioContext context = new ScenarioContext(0);
+        using RewardFixture fixture = new RewardFixture(context);
+        OffenseTargetDefinition target = new OffenseTargetDefinition
+        {
+            id = "reward-pressure-receipt",
+            title = "Regional pressure receipt",
+            regionId = OffenseRegionRuntime.BorderTradeRegionId,
+            regionDisplayName = "변경 교역권",
+            factionId = OffenseRegionRuntime.HumanFactionId,
+            strategicPressureAxis = StrategicPressureAxis.Logistics,
+            strategicPressureAmount = 15f
+        };
+        OffenseRewardContext rewardContext = context.CreateRewardContext(target);
+        rewardContext.regionRuntime = fixture.Regions;
+        OffenseRegionState region = fixture.Regions.Regions.Single(value =>
+            string.Equals(
+                value.regionId,
+                OffenseRegionRuntime.BorderTradeRegionId,
+                StringComparison.Ordinal));
+
+        IReadOnlyList<OffenseRewardGrantResult> fullGrant = CreateGrantService().GrantRewards(
+            new[] { Reward(new OffenseRegionalPressureRewardSpec(), "receipt units", 1) },
+            rewardContext);
+        bool fullGrantValid = fullGrant.Count == 1
+            && fullGrant[0].success
+            && fullGrant[0].requestedAmount == 15
+            && fullGrant[0].grantedAmount == 15
+            && Mathf.Approximately(region.logisticsDamage, 15f);
+
+        target.strategicPressureAmount = 14f;
+        region.logisticsDamage = 95f;
+        IReadOnlyList<OffenseRewardGrantResult> cappedGrant = CreateGrantService().GrantRewards(
+            new[] { Reward(new OffenseRegionalPressureRewardSpec(), "receipt units", 1) },
+            rewardContext);
+        bool cappedGrantValid = cappedGrant.Count == 1
+            && cappedGrant[0].success
+            && cappedGrant[0].requestedAmount == 14
+            && cappedGrant[0].grantedAmount == 5
+            && Mathf.Approximately(region.logisticsDamage, 100f);
+
+        IReadOnlyList<OffenseRewardGrantResult> saturatedGrant = CreateGrantService().GrantRewards(
+            new[] { Reward(new OffenseRegionalPressureRewardSpec(), "receipt units", 1) },
+            rewardContext);
+        bool saturatedGrantValid = saturatedGrant.Count == 1
+            && !saturatedGrant[0].success
+            && saturatedGrant[0].requestedAmount == 14
+            && saturatedGrant[0].grantedAmount == 0
+            && Mathf.Approximately(region.logisticsDamage, 100f);
+
+        return fullGrantValid && cappedGrantValid && saturatedGrantValid;
+    }
+
+    public static bool VerifyMemoryErasureSealBossAwardLifecycle()
+    {
+        OffenseRegionRuntime sourceRegions = new OffenseRegionRuntime();
+        MemorySealPublicationFixture publications =
+            new MemorySealPublicationFixture();
+        MemoryErasureSealBossAwardService sourceService =
+            new MemoryErasureSealBossAwardService(
+                sourceRegions,
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IOffenseWorldSimulation>(),
+                publications,
+                MemorySealDropZoneFixture.Instance);
+
+        MemoryErasureSealBossAwardResult first = AwardRegionBoss(
+            sourceService,
+            OffenseRegionRuntime.BorderTradeRegionId,
+            "memory-seal-border");
+        MemoryErasureSealBossAwardResult duplicate = AwardRegionBoss(
+            sourceService,
+            OffenseRegionRuntime.BorderTradeRegionId,
+            "memory-seal-border-repeat");
+        MemoryErasureSealBossAwardResult secondRegion = AwardRegionBoss(
+            sourceService,
+            OffenseRegionRuntime.RivalOutpostRegionId,
+            "memory-seal-rival");
+
+        publications.FailNextPublication = true;
+        MemoryErasureSealBossAwardResult interrupted = AwardRegionBoss(
+            sourceService,
+            OffenseRegionRuntime.SealedZoneRegionId,
+            "memory-seal-pending");
+        DungeonOffenseRegionSaveData saved = sourceRegions.Capture();
+
+        OffenseRegionRuntime restoredRegions = new OffenseRegionRuntime();
+        restoredRegions.PublishRestoreCandidate(
+            restoredRegions.BuildRestoreCandidate(saved));
+        MemoryErasureSealBossAwardService restoredService =
+            new MemoryErasureSealBossAwardService(
+                restoredRegions,
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IOffenseWorldSimulation>(),
+                publications,
+                MemorySealDropZoneFixture.Instance);
+        restoredService.OnRestoreCompleted();
+        restoredService.Tick();
+
+        MemoryErasureSealBossAwardResult afterRecoveryDuplicate =
+            AwardRegionBoss(
+                restoredService,
+                OffenseRegionRuntime.SealedZoneRegionId,
+                "memory-seal-pending-repeat");
+        IReadOnlyList<string> pending = restoredRegions
+            .CapturePendingMemoryErasureSealAwardRegionIds();
+        OffenseRegionState[] restored = restoredRegions.Regions
+            .OrderBy(region => region.regionId, StringComparer.Ordinal)
+            .ToArray();
+
+        string expectedBorderOperation =
+            MemoryErasureSealBossAwardRules.BuildOperationId(
+                OffenseRegionRuntime.BorderTradeRegionId);
+        string expectedRivalOperation =
+            MemoryErasureSealBossAwardRules.BuildOperationId(
+                OffenseRegionRuntime.RivalOutpostRegionId);
+        string expectedSealedOperation =
+            MemoryErasureSealBossAwardRules.BuildOperationId(
+                OffenseRegionRuntime.SealedZoneRegionId);
+        bool valid = first.Status == MemoryErasureSealBossAwardStatus.Awarded
+            && first.OperationId == expectedBorderOperation
+            && duplicate.Status
+                == MemoryErasureSealBossAwardStatus.AlreadyAwarded
+            && duplicate.OperationId == expectedBorderOperation
+            && secondRegion.Status
+                == MemoryErasureSealBossAwardStatus.Awarded
+            && secondRegion.OperationId == expectedRivalOperation
+            && interrupted.Status == MemoryErasureSealBossAwardStatus.Failed
+            && interrupted.OperationId == expectedSealedOperation
+            && afterRecoveryDuplicate.Status
+                == MemoryErasureSealBossAwardStatus.AlreadyAwarded
+            && afterRecoveryDuplicate.OperationId == expectedSealedOperation
+            && pending.Count == 0
+            && restored.Length == 3
+            && restored.All(region =>
+                region.memoryErasureSealAwardPublished)
+            && publications.SuccessfulPublicationCount == 3
+            && publications.SuccessfulOperationIds.SetEquals(new[]
+            {
+                expectedBorderOperation,
+                expectedRivalOperation,
+                expectedSealedOperation
+            })
+            && publications.GetSuccessfulOutputQuantity(
+                expectedBorderOperation) == 1
+            && publications.GetSuccessfulOutputQuantity(
+                expectedRivalOperation) == 1
+            && publications.GetSuccessfulOutputQuantity(
+                expectedSealedOperation) == 1;
+        if (!valid)
+        {
+            throw new InvalidOperationException(
+                "Region-first memory-erasure seal publication was not "
+                + "idempotent across failure, save restore, and retry.");
+        }
+
+        return true;
+    }
+
+    private static MemoryErasureSealBossAwardResult AwardRegionBoss(
+        IMemoryErasureSealBossAwardService service,
+        string regionId,
+        string expeditionId)
+    {
+        OffenseTargetDefinition target = new OffenseTargetDefinition
+        {
+            id = "target:" + expeditionId,
+            title = expeditionId,
+            regionId = regionId,
+            durationSeconds = 1f,
+            requiredMembers = 1
+        };
+        OffenseExpeditionRun expedition = new OffenseExpeditionRun(
+            expeditionId,
+            target,
+            Array.Empty<CharacterActor>(),
+            0f);
+        OffenseRouteNode boss = expedition.Route.Nodes.Single(node =>
+            node.IsBoss);
+        return service.TryAwardForVictory(
+            expedition,
+            boss,
+            worldObjectiveBattle: false);
     }
 
     private static void RunScenario(string name, Func<bool> scenario, List<string> errors)
@@ -218,7 +409,7 @@ public static class OffenseRewardDebugScenarios
             "food_farm",
             party.Select(CharacterActor.From).ToArray(),
             out OffenseExpeditionRun expedition,
-            out _);
+            out string startMessage);
         bool journeyCompleted = started && CompleteJourney(scenario, expedition);
 
         OffenseExpeditionResult result = scenario.Expedition.Runtime.ResultHistory.FirstOrDefault();
@@ -255,7 +446,7 @@ public static class OffenseRewardDebugScenarios
         if (!valid)
         {
             throw new InvalidOperationException(
-                $"Expedition reward diagnostic: started={started}, journeyCompleted={journeyCompleted}, " +
+                $"Expedition reward diagnostic: started={started}, startMessage={startMessage}, journeyCompleted={journeyCompleted}, " +
                 $"active={scenario.Expedition.Runtime.ActiveExpeditions.Count}, battle={scenario.Battle.HasActiveBattle}, " +
                 $"result={(result == null ? "null" : result.success.ToString())}, grants={result?.grantedRewards.Count ?? -1}, " +
                 $"members={result?.members.Count ?? -1}, power={result?.totalPower ?? -1:0.##}/" +
@@ -270,6 +461,122 @@ public static class OffenseRewardDebugScenarios
         }
 
         return valid;
+    }
+
+    public static bool VerifyPlannedCommandPayloadForwarding()
+    {
+        using ExpeditionRewardScenario scenario = new ExpeditionRewardScenario(
+            includeExpeditionFixture: false);
+        CharacterActor unarmedActor = scenario.CreateCharacter(
+            "Planned Unarmed",
+            CharacterType.NPC,
+            CharacterRole.Regular,
+            100);
+        CharacterActor firearmActor = scenario.CreateCharacter(
+            "Planned Firearm",
+            CharacterType.NPC,
+            CharacterRole.Regular,
+            100);
+        string firearmActorId = scenario.EquipCharacterWithWeapon(
+            firearmActor,
+            "weapon:handgonne");
+        string unarmedActorId = scenario.GetPersistentId(unarmedActor);
+        OffenseTargetDefinition target = OffenseEditorTestDependencies
+            .CreateCampaignCatalog()
+            .Targets
+            .FirstOrDefault(candidate => candidate != null
+                && string.Equals(candidate.id, "food_farm", StringComparison.Ordinal));
+        if (target == null)
+        {
+            throw new InvalidOperationException(
+                "The authored food_farm target is required for planned-command payload coverage.");
+        }
+
+        OffenseExpeditionRun expedition = new OffenseExpeditionRun(
+            "reward:planned-command-payload",
+            target,
+            new[] { unarmedActor, firearmActor },
+            totalPower: 1f);
+        bool started = scenario.Battle.TryStartBattle(expedition, out string startMessage);
+        OffenseBattleSession session = scenario.Battle.Session;
+        if (!started || session == null)
+        {
+            throw new InvalidOperationException(
+                "Planned-command payload fixture could not start a public battle session: "
+                + startMessage);
+        }
+
+        int directorTurn = session.RoundNumber;
+        OffenseBattleCombatant unarmedCombatant = session.FindCombatant(unarmedActorId);
+        OffenseBattleCombatant firearmCombatant = session.FindCombatant(firearmActorId);
+        bool switchAccepted = scenario.Battle.TryExecutePlannedCommand(
+            directorTurn,
+            unarmedActorId,
+            unarmedActorId,
+            OffenseBattleActionType.SwitchWeapon,
+            "combat:unarmed",
+            out OffenseBattleCommandResult switchResult);
+        bool switchedToUnarmed = string.Equals(
+            unarmedCombatant?.Weapon?.DefinitionId,
+            "combat:unarmed",
+            StringComparison.Ordinal);
+
+        const CombatFireMode supportedMode = CombatFireMode.Suppressive;
+        CombatFireMode? initialFireMode = firearmCombatant?.FireMode;
+        bool firearmSupportsMode = firearmCombatant?.Weapon?.IsRanged == true
+            && firearmCombatant.Weapon.SupportsSuppressive;
+        bool firearmStartsInDifferentMode = initialFireMode.HasValue
+            && initialFireMode.Value != supportedMode;
+        bool fireModeAccepted = scenario.Battle.TryExecutePlannedCommand(
+            directorTurn,
+            firearmActorId,
+            firearmActorId,
+            OffenseBattleActionType.SetFireMode,
+            supportedMode.ToString(),
+            out OffenseBattleCommandResult fireModeResult);
+        bool fireModeChanged = firearmCombatant?.FireMode == supportedMode;
+
+        long commandIdBeforeEmptyAbility = session.LastProcessedCommandId;
+        bool emptyAbilityAccepted = scenario.Battle.TryExecutePlannedCommand(
+            directorTurn,
+            firearmActorId,
+            firearmActorId,
+            OffenseBattleActionType.Ability,
+            string.Empty,
+            out OffenseBattleCommandResult emptyAbilityResult);
+        bool emptyAbilityDidNotAdvanceCommand =
+            session.LastProcessedCommandId == commandIdBeforeEmptyAbility;
+        bool emptyAbilityRejectedForMissingId = !emptyAbilityAccepted
+            && string.Equals(
+                emptyAbilityResult?.Message,
+                "Strategic Ability command is missing its source ability ID.",
+                StringComparison.Ordinal);
+
+        bool valid = switchAccepted
+            && switchedToUnarmed
+            && firearmSupportsMode
+            && firearmStartsInDifferentMode
+            && fireModeAccepted
+            && fireModeChanged
+            && emptyAbilityRejectedForMissingId
+            && emptyAbilityDidNotAdvanceCommand;
+        if (!valid)
+        {
+            throw new InvalidOperationException(
+                "Planned-command payload diagnostic: "
+                + $"turn={directorTurn}/{session.RoundNumber}, "
+                + $"switch={switchAccepted}:{switchResult?.Message}, "
+                + $"unarmed={unarmedCombatant?.Weapon?.DefinitionId ?? "none"}, "
+                + $"firearm={firearmCombatant?.Weapon?.DefinitionId ?? "none"}, "
+                + $"supportsSuppressive={firearmSupportsMode}, "
+                + $"initialFireMode={initialFireMode?.ToString() ?? "none"}, "
+                + $"fireMode={fireModeAccepted}:{fireModeResult?.Message}:"
+                + $"{firearmCombatant?.FireMode.ToString() ?? "none"}, "
+                + $"emptyAbility={emptyAbilityAccepted}:{emptyAbilityResult?.Message}, "
+                + $"command={commandIdBeforeEmptyAbility}->{session.LastProcessedCommandId}");
+        }
+
+        return true;
     }
 
     private static bool CompleteJourney(ExpeditionRewardScenario scenario, OffenseExpeditionRun expedition)
@@ -456,8 +763,10 @@ public static class OffenseRewardDebugScenarios
             StockCategory category,
             int amount,
             string sourceLabel,
+            out string itemId,
             out int spawned)
         {
+            itemId = $"fixture:{category.ToString().ToLowerInvariant()}";
             spawned = Mathf.Max(0, amount);
             return spawned > 0;
         }
@@ -622,10 +931,14 @@ public static class OffenseRewardDebugScenarios
         public bool HasWarehouseInventory => true;
     }
 
-    private sealed class EmptyStockQuery : IStockQuery
+    private sealed class EmptyStockQuery :
+        IStockQuery,
+        IWarehousePhysicalMassQueryPort
     {
         public static readonly EmptyStockQuery Instance = new EmptyStockQuery();
         private EmptyStockQuery() { }
+        public int PhysicalItemStackVersion => 0;
+        public long PhysicalMassAuthorityRevision => 0L;
         public IReadOnlyList<WorldItemStackSnapshot> GetAllStacks() =>
             Array.Empty<WorldItemStackSnapshot>();
         public int GetGlobalQuantity(string itemDefinitionId) => 0;
@@ -636,6 +949,11 @@ public static class OffenseRewardDebugScenarios
             BuildingInstanceId warehouseId,
             StockCategory category) => 0;
         public int GetWarehouseTotal(BuildingInstanceId warehouseId) => 0;
+        public long GetWarehouseStoredMassGrams(
+            BuildingInstanceId warehouseId) => 0L;
+        public long GetWarehouseStoredMassRevision(
+            BuildingInstanceId warehouseId) => 0L;
+        public long GetDefinitionUnitMassGrams(string itemDefinitionId) => 1L;
     }
 
     private sealed class TestReturnArrivalRuntime : IOffenseReturnArrivalRuntime
@@ -644,6 +962,9 @@ public static class OffenseRewardDebugScenarios
         public int WildlifeCount { get; private set; }
         public IReadOnlyList<OffenseReturnArrivalState> Arrivals =>
             Array.Empty<OffenseReturnArrivalState>();
+
+        public IReadOnlyList<OffenseExpeditionArrivalReceipt> GetSettlementReceipts(
+            string expeditionId) => Array.Empty<OffenseExpeditionArrivalReceipt>();
 
         public void BeginExpeditionReturn(string expeditionId) { }
         public void RegisterReturningMember(string expeditionId) { }
@@ -725,7 +1046,7 @@ public static class OffenseRewardDebugScenarios
         public string LastBattleSummary { get; private set; } = string.Empty;
         public DungeonStory.Foundation.IGameEventBus GameEvents { get; }
 
-        public ExpeditionRewardScenario()
+        public ExpeditionRewardScenario(bool includeExpeditionFixture = true)
         {
             GameEvents = new DungeonStory.Foundation.GameEventBus();
             Context = new ScenarioContext(0);
@@ -771,11 +1092,14 @@ public static class OffenseRewardDebugScenarios
                 returnArrivals: Context.ReturnArrivals,
                 performance: rewardPerformance);
             Battle.BattleCompleted += OnBattleCompleted;
-            Expedition = new ExpeditionFixture(
-                WorldMap.Runtime,
-                Reward.Runtime,
-                GameEvents,
-                Battle);
+            if (includeExpeditionFixture)
+            {
+                Expedition = new ExpeditionFixture(
+                    WorldMap.Runtime,
+                    Reward.Runtime,
+                    GameEvents,
+                    Battle);
+            }
         }
 
         public CharacterActor CreateCharacter(
@@ -831,10 +1155,43 @@ public static class OffenseRewardDebugScenarios
             return character;
         }
 
+        public string GetPersistentId(CharacterActor character)
+        {
+            return characterSaveService.GetOrAssignPersistentId(character);
+        }
+
+        public string EquipCharacterWithWeapon(
+            CharacterActor character,
+            string weaponDefinitionId)
+        {
+            string persistentId = GetPersistentId(character);
+            CombatEquipmentInstance weapon = battleEquipment.CreateExternalInstance(
+                weaponDefinitionId,
+                CombatEquipmentQuality.Normal);
+            string activeFailure = string.Empty;
+            if (!battleEquipment.TryAssignToCharacter(
+                    persistentId,
+                    weapon.instanceId,
+                    out string assignFailure)
+                || !battleEquipment.TrySetActiveWeapon(
+                    persistentId,
+                    weapon.instanceId,
+                    out activeFailure))
+            {
+                throw new InvalidOperationException(
+                    $"Reward fixture could not equip '{weaponDefinitionId}' for planned-command coverage: "
+                    + (string.IsNullOrWhiteSpace(assignFailure)
+                        ? activeFailure
+                        : assignFailure));
+            }
+
+            return persistentId;
+        }
+
         public void Dispose()
         {
             Battle.BattleCompleted -= OnBattleCompleted;
-            Expedition.Dispose();
+            Expedition?.Dispose();
             Reward.Dispose();
             WorldMap.Dispose();
             Context.Dispose();
@@ -877,7 +1234,9 @@ public static class OffenseRewardDebugScenarios
                 externalInfluence: null,
                 campaign,
                 campaign,
-                OffenseEditorTestDependencies.CreateCampaignCatalog());
+                OffenseEditorTestDependencies.CreateCampaignCatalog(),
+                EditorNoOpOffenseOutcomeCommitter.Instance,
+                EditorFixedGameCalendar.Instance);
             Runtime.StartWorldMap();
         }
 
@@ -964,7 +1323,8 @@ public static class OffenseRewardDebugScenarios
                     returnSafety,
                     fieldMobility,
                     gameEventBus,
-                    OffenseEditorTestDependencies.CreateCombatEquipmentRuntime());
+                    OffenseEditorTestDependencies.CreateCombatEquipmentRuntime(),
+                    NonAwardingMemoryErasureSealFixture.Instance);
             Runtime.Construct(
                 new EmptyExpeditionMemberQuery(),
                 offenseRuntimes,
@@ -987,8 +1347,7 @@ public static class OffenseRewardDebugScenarios
                 BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                     .Create<IOffenseDecisionEffectExecutor>(),
                 returnSafety,
-                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
-                    .Create<IOffenseStrategicTargetService>(),
+                LegacyWorldMapStrategicTargetFixture.Instance,
                 BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                     .Create<IOffenseStrategicBattleLauncher>(),
                 BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
@@ -1004,12 +1363,107 @@ public static class OffenseRewardDebugScenarios
                 equipmentPickupRuntime: null,
                 fieldMedical,
                 fieldMobility,
-                CharacterAiEditorTestDependencies.NeutralPerformance);
+                calendar: CharacterAiEditorTestDependencies.GameCalendar,
+                performance: CharacterAiEditorTestDependencies.NeutralPerformance,
+                settlementStandings: CharacterAiEditorTestDependencies.SettlementStandings);
         }
 
         public void Dispose()
         {
             Object.DestroyImmediate(obj);
+        }
+    }
+
+    private sealed class LegacyWorldMapStrategicTargetFixture :
+        IOffenseStrategicTargetService
+    {
+        public static readonly LegacyWorldMapStrategicTargetFixture Instance = new();
+
+        private LegacyWorldMapStrategicTargetFixture()
+        {
+        }
+
+        public bool TryCreateTarget(
+            string siteId,
+            out OffenseTargetDefinition target,
+            out OffenseHexCoord destination)
+        {
+            target = null;
+            destination = default;
+            return false;
+        }
+
+        public bool TryCreateRescueTarget(
+            string targetId,
+            out OffenseTargetDefinition target,
+            out OffenseHexCoord destination,
+            out string strandedExpeditionId)
+        {
+            target = null;
+            destination = default;
+            strandedExpeditionId = string.Empty;
+            return false;
+        }
+
+        public bool TryCommitLaunch(string siteId) =>
+            !string.IsNullOrWhiteSpace(siteId);
+
+        public bool TryPrepareTravel(
+            OffenseExpeditionRun expedition,
+            OffenseHexCoord destination,
+            bool pauseUntilDepartureCompletes,
+            bool startsSiteAttack,
+            out string message)
+        {
+            message = "Legacy world-map targets do not use strategic travel.";
+            return false;
+        }
+
+        public bool TryRedirect(
+            OffenseExpeditionRun expedition,
+            OffenseHexCoord destination,
+            string siteId,
+            bool startsSiteAttack,
+            out string message)
+        {
+            message = "Legacy world-map targets do not use strategic redirection.";
+            return false;
+        }
+
+        public void RegisterRescueDispatch(
+            bool isRescue,
+            string strandedExpeditionId,
+            OffenseExpeditionRun rescue,
+            IEnumerable<CharacterActor> party)
+        {
+        }
+    }
+
+    private sealed class NonAwardingMemoryErasureSealFixture :
+        IMemoryErasureSealBossAwardService
+    {
+        public static readonly NonAwardingMemoryErasureSealFixture Instance = new();
+
+        private NonAwardingMemoryErasureSealFixture()
+        {
+        }
+
+        public MemoryErasureSealBossAwardResult TryAwardForVictory(
+            OffenseExpeditionRun expedition,
+            OffenseRouteNode completedNode,
+            bool worldObjectiveBattle) =>
+            new(
+                MemoryErasureSealBossAwardStatus.NotRegionBoss,
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                "This reward-focused fixture verifies legacy expedition rewards; " +
+                "the physical memory-seal lifecycle has a dedicated scenario.");
+
+        public bool TryReconcilePendingAwards(out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
         }
     }
 
@@ -1152,6 +1606,98 @@ public static class OffenseRewardDebugScenarios
     {
         public OffenseWorldMapPanel ShowWorldMap() => null;
         public OffenseExpeditionPanel ShowExpedition(OffenseExpeditionRuntime runtime) => null;
+    }
+
+    private sealed class MemorySealPublicationFixture :
+        IPhysicalItemSourcePublicationService
+    {
+        private readonly Dictionary<string, int> outputByOperation =
+            new Dictionary<string, int>(StringComparer.Ordinal);
+
+        public bool FailNextPublication { get; set; }
+        public int SuccessfulPublicationCount => outputByOperation.Count;
+        public HashSet<string> SuccessfulOperationIds =>
+            outputByOperation.Keys.ToHashSet(StringComparer.Ordinal);
+
+        public int GetSuccessfulOutputQuantity(string operationId) =>
+            outputByOperation.TryGetValue(operationId, out int quantity)
+                ? quantity
+                : 0;
+
+        public bool TryEnsureLooseOutputs(
+            IReadOnlyDictionary<string, int> outputs,
+            Vector2Int outputPosition,
+            string operationId,
+            string reasonCode,
+            out PhysicalItemSourcePublicationReceipt receipt,
+            out string failureReason)
+        {
+            receipt = default;
+            failureReason = string.Empty;
+            if (FailNextPublication)
+            {
+                FailNextPublication = false;
+                failureReason = "fixture-publication-interrupted";
+                return false;
+            }
+
+            if (outputs == null
+                || outputs.Count != 1
+                || !outputs.TryGetValue(
+                    MemoryErasureSealItemRules.ItemId,
+                    out int quantity)
+                || quantity != MemoryErasureSealItemRules.UseQuantity
+                || !string.Equals(
+                    reasonCode,
+                    MemoryErasureSealBossAwardRules.PublicationReason,
+                    StringComparison.Ordinal))
+            {
+                failureReason = "fixture-publication-request-invalid";
+                return false;
+            }
+
+            if (outputByOperation.TryGetValue(
+                    operationId,
+                    out int existingQuantity)
+                && existingQuantity != quantity)
+            {
+                failureReason = "fixture-publication-conflict";
+                return false;
+            }
+
+            outputByOperation[operationId] = quantity;
+            receipt = new PhysicalItemSourcePublicationReceipt(
+                operationId,
+                reasonCode,
+                new[] { "fixture-commit:" + operationId },
+                quantity,
+                quantity);
+            return receipt.IsCommitted;
+        }
+    }
+
+    private sealed class MemorySealDropZoneFixture : IWorldDropZoneQuery
+    {
+        public static readonly MemorySealDropZoneFixture Instance = new();
+        private static readonly Vector2Int Dropoff = new Vector2Int(3, 4);
+
+        public bool TryGetDeliveryDropoff(out Vector2Int position)
+        {
+            position = Dropoff;
+            return true;
+        }
+
+        public bool TryGetExpeditionLootDropoff(out Vector2Int position)
+        {
+            position = Dropoff;
+            return true;
+        }
+
+        public bool TryGetVisitorEntryPoint(out WorldGridEntryPoint entryPoint)
+        {
+            entryPoint = default;
+            return false;
+        }
     }
 
     private sealed class RewardFixture : IDisposable

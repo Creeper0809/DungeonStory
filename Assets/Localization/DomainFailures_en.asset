@@ -336,8 +336,20 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 1173704830
-    m_Localized: "Emergency surgery continuing \xB7 temperature {2:0.#}\xB0C \xB7
-      air {3:0.#} \xB7 light {4:0.#}"
+    m_Localized: "Emergency surgery continuing \xB7 cause {0} \xB7 environmental
+      risk \xB7 temperature {2:0.#}\xB0C \xB7 air {3:0.#} \xB7 light {4:0.#}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704835
+    m_Localized: acute bleeding
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704836
+    m_Localized: acute infection
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704837
+    m_Localized: critical non-vital tissue damage
     m_Metadata:
       m_Items: []
   - m_Id: 1173710101

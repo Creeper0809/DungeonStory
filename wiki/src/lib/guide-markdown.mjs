@@ -20,6 +20,23 @@ export function escapeHtml(value) {
 }
 
 /**
+ * Removes source-only HTML comments before guide blocks are parsed. The guide
+ * renderer intentionally supports a small Markdown subset, so comments must be
+ * handled here instead of falling through as visible paragraph text.
+ *
+ * @param {string} value
+ * @returns {string}
+ */
+export function stripHtmlComments(value) {
+  const starts = value.match(/<!--/g)?.length ?? 0;
+  const ends = value.match(/-->/g)?.length ?? 0;
+  if (starts !== ends) {
+    throw new Error('Unbalanced HTML comment in guide source.');
+  }
+  return value.replace(/<!--[\s\S]*?-->/g, '').replace(/\n{3,}/g, '\n\n');
+}
+
+/**
  * Pulls fenced blocks out before the guide renderer splits prose on blank lines.
  * The returned tokens always occupy their own block, even when the source omits
  * blank lines around a fence.

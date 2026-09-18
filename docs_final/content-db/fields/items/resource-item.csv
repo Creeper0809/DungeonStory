@@ -4785,8 +4785,11 @@ ResourceItemDefinitionSO|drug:dreamleaf-analgesic,drug:dreamleaf-analgesic,refer
 ResourceItemDefinitionSO|drug:dreamleaf-analgesic,drug:dreamleaf-analgesic,references.RefIds.3.data.toleranceGain,0.12,,,explicit-serialized
 ResourceItemDefinitionSO|drug:dreamleaf-analgesic,drug:dreamleaf-analgesic,references.RefIds.3.data.withdrawalPerHour,0.02,,,explicit-serialized
 ResourceItemDefinitionSO|drug:dreamleaf-analgesic,drug:dreamleaf-analgesic,references.RefIds.3.data.moodEffect,4,,,explicit-serialized
-ResourceItemDefinitionSO|drug:dreamleaf-analgesic,drug:dreamleaf-analgesic,references.RefIds.3.data.workSpeedEffect,0.05,,,explicit-serialized
+ResourceItemDefinitionSO|drug:dreamleaf-analgesic,drug:dreamleaf-analgesic,references.RefIds.3.data.workSpeedEffect,0,,,explicit-serialized
 ResourceItemDefinitionSO|drug:dreamleaf-analgesic,drug:dreamleaf-analgesic,references.RefIds.3.data.combatEffect,-0.03,,,explicit-serialized
+ResourceItemDefinitionSO|drug:dreamleaf-analgesic,drug:dreamleaf-analgesic,references.RefIds.3.data.fatigueAccumulationReduction,0,,,explicit-serialized
+ResourceItemDefinitionSO|drug:dreamleaf-analgesic,drug:dreamleaf-analgesic,references.RefIds.3.data.researchSpeedEffect,0,,,explicit-serialized
+ResourceItemDefinitionSO|drug:dreamleaf-analgesic,drug:dreamleaf-analgesic,references.RefIds.3.data.suppressesPerceivedPain,1,,,explicit-serialized
 ResourceItemDefinitionSO|drug:dreamleaf-analgesic,drug:dreamleaf-analgesic,references.RefIds.3.data.durationSeconds,240,,,explicit-serialized
 ResourceItemDefinitionSO|drug:dreamleaf-analgesic,drug:dreamleaf-analgesic,IngredientTags,0,ResourceIngredientTag,None,implicit-csharp-default
 ResourceItemDefinitionSO|drug:dreamleaf-analgesic,drug:dreamleaf-analgesic,Kind,0,ResourceItemKind,Raw,implicit-csharp-default
@@ -4889,8 +4892,11 @@ ResourceItemDefinitionSO|drug:mana-awakener,drug:mana-awakener,references.RefIds
 ResourceItemDefinitionSO|drug:mana-awakener,drug:mana-awakener,references.RefIds.3.data.toleranceGain,0.16,,,explicit-serialized
 ResourceItemDefinitionSO|drug:mana-awakener,drug:mana-awakener,references.RefIds.3.data.withdrawalPerHour,0.025,,,explicit-serialized
 ResourceItemDefinitionSO|drug:mana-awakener,drug:mana-awakener,references.RefIds.3.data.moodEffect,2,,,explicit-serialized
-ResourceItemDefinitionSO|drug:mana-awakener,drug:mana-awakener,references.RefIds.3.data.workSpeedEffect,0.18,,,explicit-serialized
+ResourceItemDefinitionSO|drug:mana-awakener,drug:mana-awakener,references.RefIds.3.data.workSpeedEffect,0,,,explicit-serialized
 ResourceItemDefinitionSO|drug:mana-awakener,drug:mana-awakener,references.RefIds.3.data.combatEffect,0.08,,,explicit-serialized
+ResourceItemDefinitionSO|drug:mana-awakener,drug:mana-awakener,references.RefIds.3.data.fatigueAccumulationReduction,0,,,explicit-serialized
+ResourceItemDefinitionSO|drug:mana-awakener,drug:mana-awakener,references.RefIds.3.data.researchSpeedEffect,0.18,,,explicit-serialized
+ResourceItemDefinitionSO|drug:mana-awakener,drug:mana-awakener,references.RefIds.3.data.suppressesPerceivedPain,0,,,explicit-serialized
 ResourceItemDefinitionSO|drug:mana-awakener,drug:mana-awakener,references.RefIds.3.data.durationSeconds,180,,,explicit-serialized
 ResourceItemDefinitionSO|drug:mana-awakener,drug:mana-awakener,IngredientTags,0,ResourceIngredientTag,None,implicit-csharp-default
 ResourceItemDefinitionSO|drug:mana-awakener,drug:mana-awakener,Kind,0,ResourceItemKind,Raw,implicit-csharp-default
@@ -5045,8 +5051,11 @@ ResourceItemDefinitionSO|drug:vitality-tonic,drug:vitality-tonic,references.RefI
 ResourceItemDefinitionSO|drug:vitality-tonic,drug:vitality-tonic,references.RefIds.3.data.toleranceGain,0,,,explicit-serialized
 ResourceItemDefinitionSO|drug:vitality-tonic,drug:vitality-tonic,references.RefIds.3.data.withdrawalPerHour,0,,,explicit-serialized
 ResourceItemDefinitionSO|drug:vitality-tonic,drug:vitality-tonic,references.RefIds.3.data.moodEffect,2,,,explicit-serialized
-ResourceItemDefinitionSO|drug:vitality-tonic,drug:vitality-tonic,references.RefIds.3.data.workSpeedEffect,0.12,,,explicit-serialized
+ResourceItemDefinitionSO|drug:vitality-tonic,drug:vitality-tonic,references.RefIds.3.data.workSpeedEffect,0,,,explicit-serialized
 ResourceItemDefinitionSO|drug:vitality-tonic,drug:vitality-tonic,references.RefIds.3.data.combatEffect,0,,,explicit-serialized
+ResourceItemDefinitionSO|drug:vitality-tonic,drug:vitality-tonic,references.RefIds.3.data.fatigueAccumulationReduction,0.12,,,explicit-serialized
+ResourceItemDefinitionSO|drug:vitality-tonic,drug:vitality-tonic,references.RefIds.3.data.researchSpeedEffect,0,,,explicit-serialized
+ResourceItemDefinitionSO|drug:vitality-tonic,drug:vitality-tonic,references.RefIds.3.data.suppressesPerceivedPain,0,,,explicit-serialized
 ResourceItemDefinitionSO|drug:vitality-tonic,drug:vitality-tonic,references.RefIds.3.data.durationSeconds,150,,,explicit-serialized
 ResourceItemDefinitionSO|drug:vitality-tonic,drug:vitality-tonic,IngredientTags,0,ResourceIngredientTag,None,implicit-csharp-default
 ResourceItemDefinitionSO|drug:vitality-tonic,drug:vitality-tonic,Kind,0,ResourceItemKind,Raw,implicit-csharp-default
@@ -10828,6 +10837,31 @@ ResourceItemDefinitionSO|resource:coal,resource:coal,MealDietClass,0,MealDietCla
 ResourceItemDefinitionSO|resource:coal,resource:coal,MealQuality,0,MealQualityTier,Simple,implicit-csharp-default
 ResourceItemDefinitionSO|resource:coal,resource:coal,QualityBand,0,MealQualityBand,Poor,implicit-csharp-default
 ResourceItemDefinitionSO|resource:coal,resource:coal,ServingRole,0,MealServingRole,Full Meal,implicit-csharp-default
+ResourceItemDefinitionSO|resource:crystal-beetle-carapace,resource:crystal-beetle-carapace,m_Name,resource_crystal_beetle_carapace,,,explicit-serialized
+ResourceItemDefinitionSO|resource:crystal-beetle-carapace,resource:crystal-beetle-carapace,id,8110,,,explicit-serialized
+ResourceItemDefinitionSO|resource:crystal-beetle-carapace,resource:crystal-beetle-carapace,itemId,resource:crystal-beetle-carapace,,,explicit-serialized
+ResourceItemDefinitionSO|resource:crystal-beetle-carapace,resource:crystal-beetle-carapace,displayName,수정딱정벌레 갑각,,,explicit-serialized
+ResourceItemDefinitionSO|resource:crystal-beetle-carapace,resource:crystal-beetle-carapace,description,수정딱정벌레 사체에서 분리한 장식성 갑각. 아직 제작 재료로 소비되지 않는다.,,,explicit-serialized
+ResourceItemDefinitionSO|resource:crystal-beetle-carapace,resource:crystal-beetle-carapace,stockCategory,1,StockCategory,General (일반),explicit-serialized
+ResourceItemDefinitionSO|resource:crystal-beetle-carapace,resource:crystal-beetle-carapace,unitWeight,1,,,explicit-serialized
+ResourceItemDefinitionSO|resource:crystal-beetle-carapace,resource:crystal-beetle-carapace,maxStack,40,,,explicit-serialized
+ResourceItemDefinitionSO|resource:crystal-beetle-carapace,resource:crystal-beetle-carapace,sprite.fileID,0,,,explicit-serialized
+ResourceItemDefinitionSO|resource:crystal-beetle-carapace,resource:crystal-beetle-carapace,unitPrice,5,,,explicit-serialized
+ResourceItemDefinitionSO|resource:crystal-beetle-carapace,resource:crystal-beetle-carapace,features.0.rid,2763484101997494413,,,explicit-serialized
+ResourceItemDefinitionSO|resource:crystal-beetle-carapace,resource:crystal-beetle-carapace,references.version,2,,,explicit-serialized
+ResourceItemDefinitionSO|resource:crystal-beetle-carapace,resource:crystal-beetle-carapace,references.RefIds.0.rid,2763484101997494413,,,explicit-serialized
+ResourceItemDefinitionSO|resource:crystal-beetle-carapace,resource:crystal-beetle-carapace,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
+ResourceItemDefinitionSO|resource:crystal-beetle-carapace,resource:crystal-beetle-carapace,references.RefIds.0.type.ns,,,,explicit-serialized
+ResourceItemDefinitionSO|resource:crystal-beetle-carapace,resource:crystal-beetle-carapace,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
+ResourceItemDefinitionSO|resource:crystal-beetle-carapace,resource:crystal-beetle-carapace,references.RefIds.0.data.kind,5,ResourceItemKind,Animal Product,explicit-serialized
+ResourceItemDefinitionSO|resource:crystal-beetle-carapace,resource:crystal-beetle-carapace,references.RefIds.0.data.ingredientTags,512,ResourceIngredientTag,Mineral,explicit-serialized
+ResourceItemDefinitionSO|resource:crystal-beetle-carapace,resource:crystal-beetle-carapace,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
+ResourceItemDefinitionSO|resource:crystal-beetle-carapace,resource:crystal-beetle-carapace,IngredientTags,0,ResourceIngredientTag,None,implicit-csharp-default
+ResourceItemDefinitionSO|resource:crystal-beetle-carapace,resource:crystal-beetle-carapace,Kind,0,ResourceItemKind,Raw,implicit-csharp-default
+ResourceItemDefinitionSO|resource:crystal-beetle-carapace,resource:crystal-beetle-carapace,MealDietClass,0,MealDietClass,Vegan,implicit-csharp-default
+ResourceItemDefinitionSO|resource:crystal-beetle-carapace,resource:crystal-beetle-carapace,MealQuality,0,MealQualityTier,Simple,implicit-csharp-default
+ResourceItemDefinitionSO|resource:crystal-beetle-carapace,resource:crystal-beetle-carapace,QualityBand,0,MealQualityBand,Poor,implicit-csharp-default
+ResourceItemDefinitionSO|resource:crystal-beetle-carapace,resource:crystal-beetle-carapace,ServingRole,0,MealServingRole,Full Meal,implicit-csharp-default
 ResourceItemDefinitionSO|resource:dark-resin,resource:dark-resin,m_Name,resource_dark_resin,,,explicit-serialized
 ResourceItemDefinitionSO|resource:dark-resin,resource:dark-resin,id,8010,,,explicit-serialized
 ResourceItemDefinitionSO|resource:dark-resin,resource:dark-resin,itemId,resource:dark-resin,,,explicit-serialized

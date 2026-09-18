@@ -1,0 +1,10 @@
+PASS actual notice acceptance with no RF25: active pending, physical debit0, reward0, notice retained
+fixture authored RF25 instance=building:0d00abcf76b54732b306c4ec351a5377; anchor=(17, 1)
+fixture authored RF25 instance=building:b6527ff63e4947b387b3650690bc73b6; anchor=(28, 1)
+final stock=2; destination=facility-input:exact:run.guest-request:event%3A2%3Aguest-request%3Asealed-archive%3Awim037-live; carried=False; arrived=False
+result=FAIL
+System.InvalidOperationException: Reward changed before an observed physical delivery receipt.
+  at Wim037GuestDeliveryLiveRunner+<Run>d__31.MoveNext () [0x0115a] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Run\Editor\Wim037GuestDeliveryLiveRunner.cs:288 
+  at Wim037GuestDeliveryLiveRunner+<Observe>d__30.MoveNext () [0x0004b] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Run\Editor\Wim037GuestDeliveryLiveRunner.cs:80 
+scope=controlled authored occurrence/day2, RF25 buildings and two physical drawings; actual EventSystem notice/accept, autonomous haul, terminal reward and current whole save. Not natural request selection, construction cost, venue9 authoring, onsite work or six-adult balance.
+cleanup=paused disposable main Play; disk persistence disabled before owner UI; operator stops without scene/profile/save writes

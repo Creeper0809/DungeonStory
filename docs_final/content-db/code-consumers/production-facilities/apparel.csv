@@ -6,10 +6,12 @@ ApparelDefinitionSO,content-type,,type-reference,services:economy,content-loadin
 ApparelDefinitionSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/V23BalanceWorkCalculator.cs
 ApparelDefinitionSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/V27BalanceWorkCalculator.cs
 ApparelDefinitionSO,content-type,,type-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/ApparelAvailabilityIndex.cs
+ApparelDefinitionSO,content-type,,type-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/ApparelConditionRuntime.cs
 ApparelDefinitionSO,content-type,,type-reference,services:infrastructure,persistence,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/ApparelItemStateCodec.cs
 ApparelDefinitionSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs
 ApparelDefinitionSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/CharacterApparelRuntime.cs
 ApparelDefinitionSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearProductionOutputHandler.cs
 ApparelDefinitionSO,content-type,,type-reference; save-restore-reference,services:infrastructure,persistence,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearProductionOutputRestoreCapabilityValidator.cs
 ApparelDefinitionSO,content-type,,type-reference; save-restore-reference,services:infrastructure,persistence,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearProductionOutputRestoreCapabilityValidatorDebugScenarios.cs
-ApparelDefinitionSO,content-type,,type-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/Buildings/UI/ApparelBuildingPanelPresenter.cs
+ApparelDefinitionSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearRuntime.cs
+ApparelDefinitionSO,content-type,,type-reference; save-restore-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/Buildings/UI/ApparelBuildingPanelPresenter.cs

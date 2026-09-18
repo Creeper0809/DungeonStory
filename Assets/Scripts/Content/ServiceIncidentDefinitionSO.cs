@@ -8,12 +8,18 @@ public enum ServiceIncidentKind { Brawl, Theft, Contamination, CulturalInsult, F
 public sealed class ServiceIncidentDefinitionSO : V20AuthoredContentSO
 {
     public ServiceIncidentKind kind;
+    public ExperienceEventRiskTier riskTier;
+    [TextArea] public string riskReason = string.Empty;
     public V20ContentRequirementSet triggerRequirements = new();
     public List<V20ChoiceDefinition> responses = new();
 
     public override IReadOnlyList<string> ValidateDefinition()
     {
         List<string> errors = base.ValidateDefinition().ToList();
+        errors.AddRange(SocietyEventRiskContract.Validate(
+            StableId,
+            riskTier,
+            riskReason));
         if (responses == null || responses.Count < 2 || responses.Count > 4)
             errors.Add($"'{StableId}' requires two to four responses.");
         else foreach (V20ChoiceDefinition response in responses) errors.AddRange(response.Validate(StableId));

@@ -12,6 +12,21 @@ public static class CaptivityCircusDebugScenarios
 {
     private const string ReportPath = "Temp/captivity-circus-contracts.tsv";
 
+    public static void RunDoorPolicyOnly()
+    {
+        string precedence = VerifyDoorAccessPolicy();
+        string presets = VerifyDoorAccessPresets();
+        var policy = new DoorAccessPolicyState();
+        policy.ApplyPreset(DoorAccessPreset.StaffOnly);
+        Require(policy.IsGroupAllowed(DoorAccessGroup.Staff) && !policy.IsGroupAllowed(DoorAccessGroup.Customer),
+            "Staff-only door admitted customer.");
+        policy.ApplyPreset(DoorAccessPreset.CustomerArea);
+        Require(policy.IsGroupAllowed(DoorAccessGroup.Customer), "Customer-area door denied customer.");
+        Directory.CreateDirectory("Artifacts/QA/wim-implementation");
+        File.WriteAllLines("Artifacts/QA/wim-implementation/wim-045-door-policy.txt", new[]
+        { "precedence=" + precedence, "presets=" + presets, "staff-customer=PASS", "scope=existing-policy-contracts", "result=PASS" });
+    }
+
     [MenuItem("DungeonStory/Debug/Captivity/Run Captivity And Circus Contracts")]
     public static void RunFromMenu()
     {
@@ -129,18 +144,22 @@ public static class CaptivityCircusDebugScenarios
             captiveId = "character:captive:test",
             status = CaptivityStatus.Confined,
             compliance = 49f,
-            health = 100f,
             trust = 70f,
             grudge = 30f,
             corruption = 59f
         };
 
-        Require(!state.CanLabor, "labor unlocked below compliance 50");
+        Require(!state.CanLaborWithBody(100f, bodyAvailable: true),
+            "labor unlocked below compliance 50");
         state.compliance = 50f;
-        Require(state.CanLabor, "labor did not unlock at compliance 50");
-        state.health = 39f;
-        Require(!state.CanLabor, "labor remained available below health 40");
-        state.health = 40f;
+        Require(state.CanLaborWithBody(100f, bodyAvailable: true),
+            "labor did not unlock at compliance 50");
+        Require(!state.CanLaborWithBody(39f, bodyAvailable: true),
+            "labor remained available below health 40");
+        Require(state.CanLaborWithBody(40f, bodyAvailable: true),
+            "labor rejected exact health threshold 40");
+        Require(!state.CanLaborWithBody(100f, bodyAvailable: false),
+            "labor allowed a body that cannot work");
         Require(state.CanRecruit, "recruitment thresholds rejected a valid captive");
         state.corruption = 60f;
         Require(!state.CanRecruit, "recruitment allowed corruption 60");
@@ -361,7 +380,6 @@ public static class CaptivityCircusDebugScenarios
                     policyId = CaptivityPolicyIds.Standard,
                     housingBuildingId = "building:test-cell",
                     compliance = 60f,
-                    health = 80f,
                     laborPermissions = CaptiveLaborPermission.Clean,
                     assignedLaborToolItemId =
                         CaptivityItemDefinitions.PrisonerWorkKitItemId,
@@ -440,7 +458,6 @@ public static class CaptivityCircusDebugScenarios
             policyId = CaptivityPolicyIds.Standard,
             housingBuildingId = "building:test-cell",
             compliance = 60f,
-            health = 80f,
             pendingLaborPermissions = CaptiveLaborPermission.Clean,
             laborToolDestinationId = "captive-labor-tool:" + captiveId,
             assignedLaborToolItemId =

@@ -289,13 +289,14 @@ public class InvasionDirectorRuntime : MonoBehaviour
                 finalDefenseTarget,
                 isBoss,
                 individual,
-                individualRuntimeId);
+                individualRuntimeId,
+                enemyArchetype.stableId);
             runtime.gameObject.name = individual.SaveData.displayName;
             factory.Publish(runtime);
             activeIntruders.Add(runtime);
             registered = true;
             runtime.OnFinished += OnIntruderFinished;
-            runtime.StartPrepared(entry.DoorPosition, entry.GridPosition);
+            runtime.StartPrepared(entry);
             ResolveEnemyIndividuals().EnsureCharacterDomains(individual);
             InvasionIntruderPatternDefinition pattern = runtime.Pattern;
             committedIntruder = preparedIntruder;
@@ -307,7 +308,9 @@ public class InvasionDirectorRuntime : MonoBehaviour
             nextRehearsalOwnerDamageMultiplier = 1f;
             nextRehearsalRetreatHealthRatio = 0f;
 
-            gameEventBus.Publish(new InvasionStartedEvent(snapshot));
+            gameEventBus.Publish(new InvasionStartedEvent(
+                runtime.RuntimeId,
+                snapshot));
             gameEventBus.Publish(new InvasionSpawnedEvent(
                 committedIntruder,
                 snapshot));
@@ -321,7 +324,7 @@ public class InvasionDirectorRuntime : MonoBehaviour
                 isBoss
                     ? $"최종 침공 집결 · {pattern.title}"
                     : $"침입자 집결 · {pattern.title}",
-                BuildRallyDescription(effectiveSettings, operation),
+                BuildRallyDescription(runtime, operation),
                 EventAlertImportance.High,
                 "침입");
             return true;
@@ -532,17 +535,33 @@ public class InvasionDirectorRuntime : MonoBehaviour
     }
 
     private static string BuildRallyDescription(
-        InvasionIntruderSettings settings,
+        InvasionIntruderRuntime runtime,
         ScheduledInvasionOperationState operation)
     {
-        string operationText = operation != null
-            ? $" 작전: {operation.kind} · 목표: {operation.objectiveId} · " +
-              $"정보 신뢰도 {operation.intelligenceConfidence * 100f:0}%."
+        if (runtime == null
+            || !runtime.TryGetCommittedWarningProjection(
+                out InvasionCommittedWarningProjection projection))
+        {
+            throw new InvalidOperationException(
+                "A committed invasion must expose its runtime warning projection.");
+        }
+
+        bool isMatchingOperation = operation != null
+            && string.Equals(
+                operation.operationId?.Trim(),
+                projection.RaidId,
+                StringComparison.Ordinal);
+        string objective = isMatchingOperation
+            ? operation.objectiveId
             : string.Empty;
-        return
-            $"침입자들이 외부에서 집결 중입니다. 약 " +
-            $"{Mathf.CeilToInt(settings.rallyDurationSeconds)}초 뒤 진입합니다." +
-            operationText;
+        float? intelligenceConfidence = isMatchingOperation
+            ? operation.intelligenceConfidence
+            : null;
+        return InvasionThreatCalculator.BuildCommittedCandidateDetail(
+            projection,
+            runtime.WarningRallySecondsRemaining,
+            objective,
+            intelligenceConfidence);
     }
 
     public IReadOnlyList<InvasionIntruderPersistenceState> CapturePersistentState(Grid grid) =>

@@ -1,0 +1,86 @@
+R01 post-lease-fix same-world resume failure diagnostic
+Current compile Editor1ABC99BE378A1F2334505AA5EE12BB9CE93AC166D4D7C03D2597599E4B84C4C2; Runtime5F98F2EE40CD78ACF6CC927CE52414E019ADE533F88F349D4AFED1CE2EB6CB1B; root fixture15803393127201F1C253171E34076915BF30F052B83A0EF53352C5F861AF68A9.
+Actual release0/physicalWater-1 PASS. Auto-research resume timed out45wall (primary *-live-fixed report), no forced replan/lease cleanup. Captured by public query before main stopped06:29:34Z; Console1978→1979 W/E0/0.
+{
+  "brain": "행동: 대기\n단계: 없음\n목표: 없음\n경로: 경로 없음\n전환완충: 0.3s\n기분: 57.5\n이유: 정상\n운반 계획: 운반 계획 없음\n적재: 0/28.7kg\n정리 사유: 진행 중",
+  "duty": "OnDuty",
+  "IsOffDuty": false,
+  "diagnostics": {
+    "DutyState": 0,
+    "ActorMissing": false,
+    "ExpeditionBlocked": false,
+    "PrioritySuppress": false,
+    "PriorityWork": false,
+    "UrgentPriorityWork": false,
+    "RoutineNeedBlocked": false,
+    "DiscontentBlocked": false,
+    "DiscontentReason": "",
+    "ConditionWouldTakeOffDuty": false,
+    "RestProtectionBlocked": false,
+    "CanStartByDutyGate": true
+  },
+  "failure": {
+    "Kind": 0,
+    "Reason": "",
+    "Target": null,
+    "HasFailure": false,
+    "IsDeferred": false
+  },
+  "block": {
+    "ActionStableId": null,
+    "ActionLabel": null,
+    "TargetStableId": null,
+    "TargetLabel": null,
+    "ActionEpoch": 0,
+    "Failure": {
+      "Kind": 0,
+      "Reason": null,
+      "Target": null,
+      "HasFailure": false,
+      "IsDeferred": false
+    },
+    "DomainFailure": {
+      "Code": 0,
+      "IsFailure": false
+    },
+    "Axis": 0,
+    "RetryKind": 0,
+    "IsCurrent": false,
+    "HasKnownExpiry": false,
+    "ExpiresAt": 0,
+    "ObservedAt": 0,
+    "IsCurrentnessConfirmed": false,
+    "HasTarget": false,
+    "HasObservation": false,
+    "HasCurrentBlock": false
+  },
+  "recent": {
+    "ActionStableId": null,
+    "ActionLabel": null,
+    "TargetStableId": null,
+    "TargetLabel": null,
+    "ActionEpoch": 0,
+    "Failure": {
+      "Kind": 0,
+      "Reason": null,
+      "Target": null,
+      "HasFailure": false,
+      "IsDeferred": false
+    },
+    "DomainFailure": {
+      "Code": 0,
+      "IsFailure": false
+    },
+    "Axis": 0,
+    "RetryKind": 0,
+    "IsCurrent": false,
+    "HasKnownExpiry": false,
+    "ExpiresAt": 0,
+    "ObservedAt": 0,
+    "IsCurrentnessConfirmed": false,
+    "HasTarget": false,
+    "HasObservation": false,
+    "HasCurrentBlock": false
+  }
+}
+

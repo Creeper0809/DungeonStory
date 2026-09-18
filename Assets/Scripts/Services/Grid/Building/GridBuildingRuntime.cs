@@ -531,8 +531,7 @@ public class GridBuildingPlacementService
     {
         if (initialPlacement == null) return;
 
-        List<InitialBuildInfo> placements = CollapseAdjacentRoomBoundaries(
-                ModularFacilityInitialPlacementMigrator.ExpandInitialRooms(initialPlacement, findBuildingData))
+        List<InitialBuildInfo> placements = CollapseAdjacentRoomBoundaries(initialPlacement)
             .Where((item) => item != null && item.Building != null)
             .ToList();
         foreach (InitialBuildInfo item in placements)

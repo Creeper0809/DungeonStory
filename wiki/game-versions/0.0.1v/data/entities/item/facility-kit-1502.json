@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "방 안의 공기와 온도를 조절해 작업 환경을 유지하는 공조기 설치 부품이며, 하르나크의 시설과도 체결 규격이 맞는다.",
+  "in_game_description": "공조기에서 열을 내어 주변 공간을 덥히도록 만든 설치 부품이다. 하르나크의 공조기는 밤에 일하는 뱀파이어 쪽은 어둡고 균사 주민 쪽은 촉촉하게 맞춰져 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

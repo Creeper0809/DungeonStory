@@ -1,0 +1,21 @@
+preparation=crafter:character:staff:1:01; M06:building:a147416e954a420088c112b40922a954@(13, 0)
+preProductionProfile=False; publication capacity is checked after the completed batch commits
+PASS recipe:surgery:heart-augmentation; item=surgery:prosthetic:heart/variant/orc-combat-heart; node=heart; bill=production-bill:1; part/instance/commit=surgical-part:1/item-instance:94c2987ece6d4fd9bf77ecee2a7e9bfe/production-output:production-bill:1:00000001:output:recipe:surgery:heart-augmentation/000/main/surgery:prosthetic:heart/variant/orc-combat-heart:surgery:prosthetic:heart/variant/orc-combat-heart:00000000; stack=stack:2502207c37224fcb8a7555dbe7775f3b; output=production-output:building:a147416e954a420088c112b40922a954; grams=1800; consumedInputs=material:steel-ingotx2,resource:mana-crystalx1,medicine:advancedx1; terminalRetry=None
+clinicalPreparation=Orc actual owner; doctor=character:staff:1:01; table=building:94b9bbee89254212ad07e64363c8ed23; order=surgery:1; supplies=medicine:disinfectantx1,medicine:standardx1,resource:clean-waterx1; outcomeState=1; neutral field22C/air100/light100 refreshed5gameSeconds; preMaxHP=100
+observed=PatientWaiting/PatientAdmissionWaiting/Loose; wu=0; patient=(18, 0); doctor=(19, 0); wall=0.004237175; game=0
+observed=PatientWaiting/PatientCurrentMovePending/Loose; wu=0; patient=(18, 0); doctor=(19, 0); wall=2.65541; game=1.333333
+observed=PatientWaiting/PatientMovingToSurgery/Loose; wu=0; patient=(18, 0); doctor=(19, 0); wall=2.816537; game=2.666667
+observed=PatientWaiting/PatientMovingToSurgery/Carried; wu=0; patient=(22, 0); doctor=(19, 0); wall=3.946643; game=7.324806
+observed=MaterialsWaiting/MaterialsDeliveryPending/Carried; wu=0; patient=(34, 0); doctor=(25, 1); wall=7.686402; game=21.67036
+observed=MaterialsWaiting/MaterialsDeliveryPending/FacilityBuffer; wu=0; patient=(34, 0); doctor=(34, 1); wall=10.48511; game=33.02635
+observed=Anesthetizing/PatientRestraintInProgress/FacilityBuffer; wu=0; patient=(34, 0); doctor=(34, 1); wall=10.8943; game=33.40555
+observed=Incision/IncisionInProgress/FacilityBuffer; wu=5.347103; patient=(34, 0); doctor=(37, 0); wall=26.18351; game=80.74111
+observed=Procedure/ProcedureInProgress/FacilityBuffer; wu=11.95095; patient=(34, 0); doctor=(37, 0); wall=30.19661; game=89.23631
+observed=Suturing/SuturingInProgress/FacilityBuffer; wu=29.89656; patient=(34, 0); doctor=(37, 0); wall=48.04637; game=110.5696
+observed=Recovering/RecoveryObservation/; wu=34; patient=(34, 0); doctor=(37, 0); wall=55.06849; game=115.903
+clinicalTerminal=Completed; status=RecoveryCompleted; wu=34; carried=True; delivered=True; admissionMove=True; admitted=True; doctorWork=True; wall=68.08969; game=125.2363
+clinicalVitals=102.45/100; before=100/100
+PASS actual Orc heart produced->UI->carried->surgery buffer->patient walk/admit->doctor work->installed; maxHP=100->102.45; quality=0.7; condition=0.35; exact single effect=1.0245; loose/carried installed copy=0
+result=PASS
+scope=controlled authored Orc party, facilities, qualifications, neutral environment, supplies and fixed outcome stream; real production commands -> actual surgery UI pointer -> natural part/supply haul, patient admission and doctor work -> installed heart effect. NOT natural crafting, uncontrolled clinical-risk/balance or whole-save certification. No admission/progress/result writes.
+cleanup=paused disposable main Play; runtime fixture/output retained for inspection until operator stops. User persistence disabled before party selection; no whole-world save restore, source-asset modification or scene save.

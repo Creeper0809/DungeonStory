@@ -79,6 +79,10 @@ public static class CropPlotInputOwnerAuthority
         "crop-plot-sow-input-completed";
     public const string TreatmentCompletedReleaseReasonCode =
         "crop-plot-treatment-input-completed";
+    public const string WaterRefillCompletedReleaseReasonCode =
+        "crop-plot-water-refill-completed";
+    public const string WaterRefillNoLongerRequiredReleaseReasonCode =
+        "crop-plot-water-refill-no-longer-required";
     public const string CropChangedReleaseReasonCode =
         "crop-plot-input-crop-changed";
     public const string TreatmentCancelledReleaseReasonCode =
@@ -99,6 +103,13 @@ public static class CropPlotInputOwnerAuthority
         string plotId,
         int operationSequence) => BuildDestinationId(
         "treatment",
+        plotId,
+        operationSequence);
+
+    public static string BuildWaterRefillDestinationId(
+        string plotId,
+        int operationSequence) => BuildDestinationId(
+        "water-refill",
         plotId,
         operationSequence);
 
@@ -250,7 +261,7 @@ public interface ICropPlotInputOwnerDescriptorSource
 }
 
 /// <summary>
-/// Owns the exact claim/profile pair for every live crop sow or treatment
+/// Owns the exact claim/profile pair for every live crop sow, water refill, or treatment
 /// destination. Terminal retirement first releases unpicked, carried, and
 /// deposited custody through the shared release service and only then revokes
 /// the paired authority.

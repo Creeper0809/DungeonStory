@@ -1,0 +1,6 @@
+result=PASS
+PASS authored 70/30 policy; all five deterministic single axes and one distinct two-axis compound sampled; exact 3/7/8 lifetime including compound recovery state; same-day no reroll; compound per-axis pressure weaker than single
+PASS actual campaign consumers: climate water regeneration, logistics haul work speed, and positive faction rapport consume their owned single-axis modifiers
+PASS actual combat threat multiplier and candidate/start/resolve runtime-ID ownership; unrelated resolution retained owner; early result persisted; pressure then authored recovery; overlap blocked; recovery end allowed exactly one next crisis
+PASS pressure-end active response enters awaiting with no recovery burn; current-format milestone JSON and threat owner/runtime persistence join round-trip exact; malformed ownership rejected atomically; unrelated owner no-op; matching owner starts recovery from actual resolution day
+scope=production V20CampaignRuntime policy/lifecycle/persistence plus actual campaign climate/logistics/faction and InvasionThreatRuntime combat consumers; controlled EditMode fixture; not a natural multi-day colony recovery burden or UI click witness

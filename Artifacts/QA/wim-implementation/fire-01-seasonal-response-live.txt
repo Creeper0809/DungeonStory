@@ -1,0 +1,11 @@
+[PASS] operational fire-capable L01 without Stored feed is not seasonally eligible
+[PASS] exact Loose silage -> AI Carried -> L01 Stored; target query selected the same stack/facility
+[PASS] seasonal ignition consumed the selected silage lot through one exact acknowledged physical Sink receipt
+[PASS] one production fire tick applied structural damage plus heat-protection-aware damage to the actual same-cell character
+[PASS] seasonal occurrence ignited exact L01; alert/hazard published; at least one structural damage tick retained
+[PASS] sole unpaused staff Brain->AIWork->ThreatMitigation suppressed the damaged fire without water hauling; exact history/persistence capture retained once
+[PASS] active fire routed ordinary residents away from the fire, excluded the responder, and captured both authorities together
+[PASS] large fire requested one exact clean-water lot; actual AI carried it, suppression consumed it once, and fire-only evacuation released after recovery
+result=PASS
+scope=controlled L01 construction inputs, one Loose silage seed, one same-cell character exposure placement and one clean-water lot; actual exact-stack hauls, no-stock eligibility, production OperatingDayStartedEvent, occurrence-bound feed self-heating ignition and exact fuel Sink, structural/body damage, alert/hazard publication, fire-only resident evacuation capture, initial attack and large-fire water suppression. Not natural silage crafting, free-running calendar duration, natural large-fire producer, spread topology or six-adult balance.
+cleanup=paused disposable protected Play; persistence disabled before owner preparation; operator stops without scene/profile/save writes

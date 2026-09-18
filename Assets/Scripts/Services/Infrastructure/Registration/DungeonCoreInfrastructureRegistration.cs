@@ -198,6 +198,9 @@ public static class DungeonCoreInfrastructureRegistration
         builder.Register<DungeonStory.Characters.CharacterIdRegistry>(Lifetime.Singleton);
         builder.Register<CharacterIdRegistryAdapter>(Lifetime.Singleton)
             .As<ICharacterIdRegistry>();
+        builder.RegisterFactory<IExteriorIncidentRuntime>(
+            resolver => () => resolver.Resolve<IExteriorIncidentRuntime>(),
+            Lifetime.Singleton);
         builder.Register<CharacterWorldSaveService>(Lifetime.Singleton)
             .As<ICharacterWorldSaveService>()
             .As<ICharacterWorldPersistenceIdentityQuery>()

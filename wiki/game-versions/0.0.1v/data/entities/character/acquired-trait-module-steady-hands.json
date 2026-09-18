@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "효과",
+      "value": "1개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "acquired-trait-module-steady-hands",
+  "spoiler_tier": "none",
+  "summary": "반복된 제작 경험이 손끝의 정밀함으로 남아 제작 품질 점수가 높아집니다.",
+  "title": "흔들림 없는 손"
+}

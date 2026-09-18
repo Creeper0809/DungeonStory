@@ -3035,8 +3035,8 @@ public static class RuntimeAuthorityV18Validator
         RequireSourceContract(
             errors,
             fluidModelsPath,
-            "public const int CurrentVersion = 6;",
-            "Fluid V6 must persist immediate and network-feed physical ownership.");
+            "public const int CurrentVersion = 7;",
+            "Fluid V7 must persist physical ownership and frozen-pipe hysteresis.");
         RequireSourceContract(
             errors,
             fluidRuntimePath,

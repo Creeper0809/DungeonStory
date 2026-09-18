@@ -497,20 +497,11 @@ internal sealed class CharacterMedicalRestoreCoordinator
 
             bool isDraining = order.state ==
                 CharacterMedicalOrderState.MaterialDestinationDraining;
-            CharacterMedicalSupplyDestinationDrainJoinData activeDrain =
-                isDraining
-                    ? order.treatmentDestinationDrainJoins.SingleOrDefault(
-                        value => value != null
-                            && value.phase !=
-                                CharacterMedicalSupplyDestinationDrainPhase
-                                    .ClosedAwaitingCheckpointGc)
-                    : null;
             CharacterActor patient = FindCharacter(order.patientId);
             if (patient == null || patient.IsDead)
             {
-                if (isDraining
-                    && activeDrain?.targetState ==
-                        CharacterMedicalOrderState.Cancelled)
+                if (!CharacterMedicalSaveValidation
+                        .RequiresLivingPatientReference(order))
                 {
                     order.carried = false;
                     order.rescuerId = string.Empty;

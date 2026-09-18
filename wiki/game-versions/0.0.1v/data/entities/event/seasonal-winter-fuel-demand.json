@@ -16,20 +16,10 @@
   "game_version": "0.0.1v",
   "group": "events-campaign",
   "kind": "event",
-  "relations": [
-    {
-      "amount": "8",
-      "label": "연결",
-      "target_kind": "item",
-      "target_slug": "material-charcoal",
-      "target_spoiler_tier": "none",
-      "target_title": "숯",
-      "type": "consumes-item"
-    }
-  ],
+  "relations": [],
   "schema_version": 1,
   "slug": "seasonal-winter-fuel-demand",
   "spoiler_tier": "warning",
-  "summary": "주변 세력이 연료 계약을 요구해 난방과 외교가 충돌한다.",
+  "summary": "주변 세력이 난방 연료 계약을 제시한다. 수락하면 사건 종료 전 숯 8개를 실제 납품해야 한다.",
   "title": "연료 쟁탈"
 }

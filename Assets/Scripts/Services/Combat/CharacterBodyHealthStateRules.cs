@@ -362,15 +362,8 @@ internal sealed class CharacterBodyHealthStateRules
         float damage,
         float bleeding)
     {
-        AnatomyProfileDefinition profile = ResolveProfile(state.anatomyProfileId);
-        AnatomyNodeDefinition definition = profile.Nodes.FirstOrDefault(node =>
-            node.MapsToLegacyBodyPart && node.LegacyBodyPart == bodyPart);
-        if (definition == null)
-        {
-            return;
-        }
-
-        AnatomyNodeHealthState node = FindAnatomyNode(state, definition.NodeId);
+        string nodeId = GetSurfaceNodeId(state.anatomyProfileId, bodyPart);
+        AnatomyNodeHealthState node = FindAnatomyNode(state, nodeId);
         if (node == null)
         {
             return;
@@ -378,6 +371,7 @@ internal sealed class CharacterBodyHealthStateRules
 
         node.currentHealth = Mathf.Max(0f, node.currentHealth - damage);
         node.bleedingPerSecond += Mathf.Max(0f, bleeding);
+        SyncLegacySurfaceNode(state, node.nodeId);
     }
 
     public void SyncAnatomySurfaceNodesFromLegacy(CharacterBodyHealthState state)
@@ -406,26 +400,28 @@ internal sealed class CharacterBodyHealthStateRules
         string nodeId)
     {
         AnatomyNodeHealthState node = FindAnatomyNode(state, nodeId);
-        if (node == null)
+        if (node == null || state?.parts == null)
         {
             return;
         }
 
-        CombatBodyPart? bodyPart = GetLegacyBodyPart(state.anatomyProfileId, nodeId);
-        if (!bodyPart.HasValue)
+        // A typed surface node can back several compatibility parts. Publish
+        // every forward alias so a later legacy-to-anatomy sync cannot restore
+        // the node from a stale sibling (for example, a Slime membrane).
+        foreach (CharacterBodyPartHealthState legacy in state.parts)
         {
-            return;
-        }
+            if (legacy == null
+                || !string.Equals(
+                    GetSurfaceNodeId(state.anatomyProfileId, legacy.bodyPart),
+                    node.nodeId,
+                    StringComparison.Ordinal))
+            {
+                continue;
+            }
 
-        CharacterBodyPartHealthState legacy = state.parts.FirstOrDefault(
-            part => part.bodyPart == bodyPart.Value);
-        if (legacy == null)
-        {
-            return;
+            legacy.currentHealth = legacy.maxHealth * node.HealthRatio;
+            legacy.bleedingPerSecond = node.bleedingPerSecond;
         }
-
-        legacy.currentHealth = legacy.maxHealth * node.HealthRatio;
-        legacy.bleedingPerSecond = node.bleedingPerSecond;
     }
 
     public void KillForDestroyedVitalNode(
@@ -748,6 +744,36 @@ internal sealed class CharacterVitalsAuthority
             state.currentHealth = Mathf.Clamp(nextMaximum * ratio, 1f, nextMaximum);
         }
 
+        UpdateInjuryProjection(state);
+        Project(actor, state);
+    }
+
+    [GameplayInternalOnly(
+        "CharacterBodyHealthRuntime is the public command surface for derived maximum-health refresh.",
+        "CharacterBodyHealthRuntime")]
+    internal void RefreshMaximumHealthPreservingCurrent(
+        CharacterActor actor,
+        CharacterBodyHealthState state,
+        float maximumHealth)
+    {
+        if (state == null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
+        if (!float.IsFinite(maximumHealth) || maximumHealth <= 0f)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(maximumHealth),
+                maximumHealth,
+                "Maximum health must be finite and positive.");
+        }
+
+        float nextMaximum = Mathf.Max(1f, maximumHealth);
+        state.maxHealth = nextMaximum;
+        state.currentHealth = Mathf.Clamp(
+            state.currentHealth,
+            0f,
+            nextMaximum);
         UpdateInjuryProjection(state);
         Project(actor, state);
     }

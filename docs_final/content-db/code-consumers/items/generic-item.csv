@@ -13,6 +13,7 @@ GenericItemDefinitionSO,stable-id,dark:humanoid_meat,stable-id-literal,models:su
 GenericItemDefinitionSO,stable-id,evolution:facility-package,stable-id-literal,services:evolution,runtime,exact-literal-consumer,Assets/Scripts/Services/Evolution/EvolutionCatalystEconomyRuntime.cs
 GenericItemDefinitionSO,stable-id,industrial:sludge,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/IndustrialItemDefinitions.cs
 GenericItemDefinitionSO,stable-id,industrial:sludge,stable-id-literal,services:infrastructure,runtime,exact-literal-consumer,Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureBuildingAbilities.cs
+GenericItemDefinitionSO,stable-id,item:memory-erasure-seal,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/Core/MemoryErasureSealContracts.cs
 GenericItemDefinitionSO,stable-id,medicine:blood-pack,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
 GenericItemDefinitionSO,stable-id,medicine:blood-pack,stable-id-literal,models:medical,runtime,exact-literal-consumer,Assets/Scripts/Models/Medical/Core/SurgeryItemDefinitions.cs
 GenericItemDefinitionSO,stable-id,medicine:blood-pack,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/DiseaseFieldResponseRuntime.cs

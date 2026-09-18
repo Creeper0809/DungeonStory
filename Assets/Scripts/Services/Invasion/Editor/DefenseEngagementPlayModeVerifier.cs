@@ -14,8 +14,12 @@ public static class DefenseEngagementPlayModeVerifier
 {
     public const string ReportPath =
         "Artifacts/QA/defense-engagement-playmode.txt";
+    public const string Wim048ReportPath =
+        "Artifacts/QA/wim-implementation/wim-048-resident-room-evacuation.txt";
     private const string PendingFlagPath =
         "Temp/defense-engagement-playmode.flag";
+    private const string Wim048PendingFlagPath =
+        "Temp/wim-048-resident-room-evacuation.flag";
     private const string GameplayScenePath = "Assets/Scenes/GameplayScene.unity";
     private const int PendingSchema = 1;
     private static readonly TimeSpan PendingMaximumAge = TimeSpan.FromMinutes(30);
@@ -34,6 +38,9 @@ public static class DefenseEngagementPlayModeVerifier
     private static float ownerFinalProbeOwnerHealth;
     private static float ownerFinalProbeIntruderHealth;
     private static bool ownerEvacuationProbeDurabilityBoosted;
+    private static string wim048Report =
+        "WIM-048 주민 방 대피 검증을 실행하지 않았습니다.";
+    private static bool wim048Completed;
 
     [MenuItem("DungeonStory/Debug/Invasion/Start Defense Engagement PlayMode Verification")]
     public static void StartFromMenu()
@@ -57,6 +64,31 @@ public static class DefenseEngagementPlayModeVerifier
         }
 
         RejectUnauthorisedRuntimeStart(
+            "EditMode clean-scene preflight evidence is required.");
+    }
+
+    [MenuItem("DungeonStory/Debug/Invasion/Run WIM-048 Resident Room Evacuation Focused")]
+    public static void RunWim048ResidentRoomEvacuationFocused()
+    {
+        if (!Application.isPlaying)
+        {
+            if (!TryCaptureCleanSceneRequest(
+                    out PendingRunRequest request,
+                    out string failureReason))
+            {
+                DeleteWim048PendingFlag();
+                FinishWim048Immediately(false, failureReason);
+                return;
+            }
+
+            Directory.CreateDirectory("Temp");
+            File.WriteAllLines(Wim048PendingFlagPath, request.Serialize());
+            EditorApplication.EnterPlaymode();
+            return;
+        }
+
+        FinishWim048Immediately(
+            false,
             "EditMode clean-scene preflight evidence is required.");
     }
 
@@ -86,6 +118,58 @@ public static class DefenseEngagementPlayModeVerifier
             DeletePendingFlag();
         }
         StartRuntimeProbe(request);
+    }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    private static void BootstrapWim048PendingRun()
+    {
+        if (!File.Exists(Wim048PendingFlagPath))
+        {
+            return;
+        }
+
+        PendingRunRequest request = default;
+        string failureReason = string.Empty;
+        try
+        {
+            if (!PendingRunRequest.TryParse(
+                    File.ReadAllLines(Wim048PendingFlagPath),
+                    out request,
+                    out failureReason)
+                || !request.ValidateRuntime(out failureReason))
+            {
+                FinishWim048Immediately(false, failureReason);
+                return;
+            }
+        }
+        finally
+        {
+            DeleteWim048PendingFlag();
+        }
+
+        foreach (Wim048Runner existing in
+                 UnityEngine.Object.FindObjectsByType<Wim048Runner>(
+                     FindObjectsInactive.Include,
+                     FindObjectsSortMode.None))
+        {
+            if (existing != null)
+            {
+                UnityEngine.Object.Destroy(existing.gameObject);
+            }
+        }
+
+        wim048Completed = false;
+        wim048Report = "RUNNING: WIM-048 런타임 준비 중";
+        Directory.CreateDirectory(Path.GetDirectoryName(Wim048ReportPath)
+            ?? "Artifacts/QA/wim-implementation");
+        if (File.Exists(Wim048ReportPath))
+        {
+            File.Delete(Wim048ReportPath);
+        }
+        Time.timeScale = 1f;
+        GameObject root = new GameObject("WIM-048 Resident Room Evacuation Verifier");
+        Wim048Runner runner = root.AddComponent<Wim048Runner>();
+        runner.SetCleanBootEvidence(request);
     }
 
     public static string StartRuntimeProbe()
@@ -178,6 +262,32 @@ public static class DefenseEngagementPlayModeVerifier
     {
         if (File.Exists(PendingFlagPath))
             File.Delete(PendingFlagPath);
+    }
+
+    private static void DeleteWim048PendingFlag()
+    {
+        if (File.Exists(Wim048PendingFlagPath))
+        {
+            File.Delete(Wim048PendingFlagPath);
+        }
+    }
+
+    public static string GetWim048ResidentRoomEvacuationReport() =>
+        $"completed={wim048Completed}; {wim048Report}";
+
+    private static void FinishWim048Immediately(bool success, string detail)
+    {
+        wim048Completed = true;
+        wim048Report = $"{(success ? "PASS" : "FAIL")}: {detail ?? string.Empty}";
+        Directory.CreateDirectory(Path.GetDirectoryName(Wim048ReportPath)
+            ?? "Artifacts/QA/wim-implementation");
+        File.WriteAllLines(Wim048ReportPath, new[]
+        {
+            "# WIM-048 resident room evacuation focused verification",
+            "result=" + (success ? "PASS" : "FAIL"),
+            "utc=" + DateTime.UtcNow.ToString("O"),
+            "terminal=" + wim048Report
+        });
     }
 
     private readonly struct PendingRunRequest
@@ -469,7 +579,8 @@ public static class DefenseEngagementPlayModeVerifier
         {
             return "FAIL: V18 저장 서비스를 찾지 못했습니다.";
         }
-        DungeonGameSaveData saveData = saveService.Capture();
+        DungeonGameSaveData saveData = saveService.FromJson(
+            saveService.ToJson(saveService.Capture()));
         if (!saveService.TryRestore(saveData, out DungeonGameRestoreReport report))
         {
             return "FAIL: V18 원자 복원 실패 · "
@@ -802,6 +913,727 @@ public static class DefenseEngagementPlayModeVerifier
         }
     }
 
+    private sealed class Wim048Runner : MonoBehaviour
+    {
+        private bool cleanBootEvidence;
+        private string cleanBootScenePath = string.Empty;
+        private DungeonGameSaveData baseline;
+        private IDungeonGameSaveService saveService;
+        private ICharacterCombatCommandRuntime combatCommands;
+        private CharacterActor excludedActor;
+        private bool excludedActorWasInCombat;
+        private InvasionThreatRuntime naturalThreat;
+        private bool naturalThreatWasEnabled;
+        private bool cleanupComplete;
+        private readonly List<string> evidence = new();
+
+        internal void SetCleanBootEvidence(PendingRunRequest request)
+        {
+            cleanBootEvidence = !request.SceneDirty
+                && request.SceneCount == 1
+                && string.Equals(
+                    request.ScenePath,
+                    GameplayScenePath,
+                    StringComparison.Ordinal);
+            cleanBootScenePath = request.ScenePath;
+        }
+
+        private IEnumerator Start()
+        {
+            DontDestroyOnLoad(gameObject);
+            float deadline = Time.realtimeSinceStartup + StartupTimeoutSeconds;
+            bool attemptedPartySetup = false;
+            IBuildingFeatureQueryService buildingQuery = null;
+            IBuildingFeatureCommandService buildingCommands = null;
+            IDefenseFeatureCommandService defenseCommands = null;
+            IDefenseEngagementRuntime defenseRuntime = null;
+            ICharacterSettlementStandingQuery standings = null;
+            InvasionDirectorRuntime director = null;
+            List<CharacterActor> residents = null;
+            BuildingFeatureRoomRow roomRow = null;
+
+            while (Time.realtimeSinceStartup < deadline)
+            {
+                buildingQuery ??= ResolveService<IBuildingFeatureQueryService>();
+                buildingCommands ??= ResolveService<IBuildingFeatureCommandService>();
+                defenseCommands ??= ResolveService<IDefenseFeatureCommandService>();
+                defenseRuntime ??= ResolveRuntime();
+                standings ??= ResolveService<ICharacterSettlementStandingQuery>();
+                saveService ??= ResolveService<IDungeonGameSaveService>();
+                combatCommands ??= ResolveService<ICharacterCombatCommandRuntime>();
+                director ??= FindFirstObjectByType<InvasionDirectorRuntime>(
+                    FindObjectsInactive.Include);
+                residents = FindObjectsByType<CharacterActor>(
+                        FindObjectsInactive.Exclude,
+                        FindObjectsSortMode.None)
+                    .Where(actor => IsNormalResident(actor, standings))
+                    .OrderBy(actor => actor.Identity?.PersistentId ?? string.Empty,
+                        StringComparer.Ordinal)
+                    .ToList();
+                roomRow = buildingQuery?.Capture().Rooms
+                    .Where(row => row?.Room != null
+                        && row.Room.IsUsable
+                        && !row.Room.IsSelfContained
+                        && row.Room.Cells.Count >= Math.Max(1, residents.Count))
+                    .OrderByDescending(row => row.Room.Cells.Count)
+                    .ThenBy(row => row.Room.Id)
+                    .FirstOrDefault();
+                if (buildingCommands != null
+                    && defenseCommands != null
+                    && defenseRuntime?.OwnerEvacuation != null
+                    && standings != null
+                    && saveService != null
+                    && combatCommands != null
+                    && director != null
+                    && residents.Count >= 2
+                    && roomRow != null)
+                {
+                    break;
+                }
+
+                if (!attemptedPartySetup
+                    && Time.realtimeSinceStartup + 1f < deadline
+                    && residents.Count < 2)
+                {
+                    attemptedPartySetup = true;
+                    Runner.TryPrepareStartParty(out string setupMessage);
+                    evidence.Add("party-setup=" + setupMessage);
+                }
+                yield return null;
+            }
+
+            if (buildingCommands == null
+                || defenseCommands == null
+                || defenseRuntime?.OwnerEvacuation == null
+                || standings == null
+                || saveService == null
+                || combatCommands == null
+                || director == null
+                || residents == null
+                || residents.Count < 2
+                || roomRow == null)
+            {
+                Finish(false,
+                    "실제 방/UI/침입 런타임 준비 실패 · residents="
+                    + (residents?.Count ?? 0)
+                    + ";room=" + (roomRow?.Room != null));
+                yield break;
+            }
+
+            naturalThreat = FindFirstObjectByType<InvasionThreatRuntime>(
+                FindObjectsInactive.Include);
+            if (naturalThreat != null)
+            {
+                naturalThreatWasEnabled = naturalThreat.enabled;
+                naturalThreat.enabled = false;
+            }
+
+            try
+            {
+                baseline = saveService.Capture();
+            }
+            catch (Exception exception)
+            {
+                Finish(false,
+                    "변경 전 전체 저장 기준선을 캡처하지 못했습니다: "
+                    + exception.GetType().Name + " " + exception.Message);
+                yield break;
+            }
+
+            CharacterActor subject = residents.FirstOrDefault(actor =>
+                CharacterWorkRoleUtility.TryGetWork(actor, out _));
+            excludedActor = residents.FirstOrDefault(actor => actor != subject);
+            if (subject == null
+                || excludedActor == null
+                || !CharacterWorkRoleUtility.TryGetWork(
+                    subject,
+                    out AbilityWork subjectWork))
+            {
+                Finish(false,
+                    "Guard-Off 주민과 대표 전투 제외 주민을 준비하지 못했습니다.");
+                yield break;
+            }
+            string subjectId = CharacterPersistentIdentity.Require(subject).Value;
+            string excludedId = CharacterPersistentIdentity.Require(excludedActor).Value;
+            excludedActorWasInCombat = combatCommands.IsInCombatStance(excludedActor);
+            if (!combatCommands.SetCombatStance(
+                    excludedActor,
+                    true,
+                    out string stanceMessage))
+            {
+                Finish(false,
+                    "대표 비대상 전투 태세를 설정하지 못했습니다: " + stanceMessage);
+                yield break;
+            }
+
+            subjectWork.SetWorkPriority(
+                BuiltInWorkTypeIds.Guard,
+                WorkPriorityLevel.Off);
+            if (subjectWork.WorkPriorities.GetPriority(BuiltInWorkTypeIds.Guard)
+                != WorkPriorityLevel.Off)
+            {
+                Finish(false, "대표 비전투 주민의 Guard-Off 정책이 적용되지 않았습니다.");
+                yield break;
+            }
+
+            BuildingFeatureCommandResult designation =
+                buildingCommands.DesignateResidentEvacuationRoom(
+                    roomRow.Grid,
+                    roomRow.Room);
+            if (!designation.Success)
+            {
+                Finish(false,
+                    "실제 방 UI 지정 명령 실패: " + designation.Message);
+                yield break;
+            }
+
+            if (director.ActiveIntruders.Count != 0)
+            {
+                Finish(false, "대표 시나리오는 침입 없는 기준선이 필요합니다.");
+                yield break;
+            }
+            InvasionThreatSnapshot threat = new(
+                125f,
+                InvasionThreatStage.Candidate,
+                new InvasionThreatFactors(6f, 4f, 3f, 1f),
+                0f,
+                0f);
+            if (!director.TrySpawnIntruder(threat, out CharacterActor intruder)
+                || intruder == null)
+            {
+                Finish(false, "실제 침입 생성 명령이 침입자를 만들지 못했습니다.");
+                yield break;
+            }
+
+            yield return null;
+            yield return null;
+            if (subjectWork.HasEmergencyResponseWorkGateForDiagnostics)
+            {
+                Finish(false,
+                    "Guard-Off 주민을 침입 경보 responder가 잘못 소유했습니다: epoch="
+                    + subjectWork.EmergencyResponseWorkEpochForDiagnostics
+                    + ";work="
+                    + subjectWork.EmergencyResponseOnlyWorkTypeForDiagnostics);
+                yield break;
+            }
+
+            CharacterActor alarmResponder = FindGuardAlarmResponder(subject);
+            if (alarmResponder == null
+                || !CharacterWorkRoleUtility.TryGetWork(
+                    alarmResponder,
+                    out AbilityWork responderWork))
+            {
+                Finish(false, "Guard-enabled 침입 경보 responder를 찾지 못했습니다.");
+                yield break;
+            }
+            WorkPriorityLevel responderGuardPriority =
+                responderWork.WorkPriorities.GetPriority(BuiltInWorkTypeIds.Guard);
+            long responderEpoch =
+                responderWork.EmergencyResponseWorkEpochForDiagnostics;
+            yield return null;
+            yield return null;
+            if (!responderWork.HasEmergencyResponseWorkGateForDiagnostics
+                || responderWork.EmergencyResponseWorkEpochForDiagnostics
+                    != responderEpoch
+                || responderWork.EmergencyResponseOnlyWorkTypeForDiagnostics
+                    != BuiltInWorkTypeIds.Guard)
+            {
+                Finish(false,
+                    "Guard-enabled responder의 기존 경보 ownership이 유지되지 않았습니다.");
+                yield break;
+            }
+
+            responderWork.SetWorkPriority(
+                BuiltInWorkTypeIds.Guard,
+                WorkPriorityLevel.Off);
+            float responderReleaseDeadline = Time.realtimeSinceStartup + 5f;
+            while (responderWork.HasEmergencyResponseWorkGateForDiagnostics
+                   && Time.realtimeSinceStartup < responderReleaseDeadline)
+            {
+                yield return null;
+            }
+            if (responderWork.HasEmergencyResponseWorkGateForDiagnostics
+                || !alarmResponder.CanRunAi
+                || alarmResponder.IsDead
+                || alarmResponder.CurrentLifecycleState
+                    != CharacterLifecycleState.Active
+                || responderWork.WorkPriorities.IsEnabled(BuiltInWorkTypeIds.Guard))
+            {
+                Finish(false,
+                    "Guard 우선순위 변경만으로 responder ownership을 해제하지 못했습니다.");
+                yield break;
+            }
+            responderWork.SetWorkPriority(
+                BuiltInWorkTypeIds.Guard,
+                responderGuardPriority);
+            evidence.Add("alarm-guard-priority-ownership=PASS");
+
+            DefenseFeatureCommandResult request =
+                defenseCommands.RequestResidentEvacuation();
+            if (!request.Succeeded)
+            {
+                Finish(false, "실제 방어 UI 대피 명령 실패: " + request.Message);
+                yield break;
+            }
+
+            IInvasionOwnerEvacuationService evacuation =
+                defenseRuntime.OwnerEvacuation;
+            if (!evacuation.ResidentEvacuationParticipants.Any(item =>
+                    string.Equals(item.CharacterId, subjectId, StringComparison.Ordinal))
+                || evacuation.ResidentEvacuationParticipants.Any(item =>
+                    string.Equals(item.CharacterId, excludedId, StringComparison.Ordinal)))
+            {
+                Finish(false,
+                    "실제 대상/전투 제외 투영이 일치하지 않습니다: "
+                    + evacuation.ResidentEvacuationStatusText);
+                yield break;
+            }
+
+            yield return WaitForResidentStatus(
+                evacuation,
+                subjectId,
+                ResidentEvacuationParticipantStatus.Holding,
+                30f);
+            if (!HasResidentStatus(
+                    evacuation,
+                    subjectId,
+                    ResidentEvacuationParticipantStatus.Holding))
+            {
+                Finish(false,
+                    "대상 주민이 실제 actor-aware 경로로 대기 칸에 도착하지 못했습니다: "
+                    + evacuation.ResidentEvacuationStatusText);
+                yield break;
+            }
+            evidence.Add("ui-route-holding=PASS;subject=" + subjectId);
+
+            if (!subject.Brain.TryBeginExternallyDrivenAction(
+                    "qa:wim048:emergency-preemption",
+                    CharacterActionIntentKind.EmergencyPhysicalImminent,
+                    "WIM-048 긴급 선점",
+                    "Emergency",
+                    "주민 대피 stale epoch 보호",
+                    out CharacterActionIntentLease emergencyLease))
+            {
+                Finish(false, "긴급 행동이 주민 대피 RoutineNeed를 선점하지 못했습니다.");
+                yield break;
+            }
+            yield return null;
+            if (!subject.Brain.IsExternalIntentCurrent(emergencyLease)
+                || !HasResidentStatus(
+                    evacuation,
+                    subjectId,
+                    ResidentEvacuationParticipantStatus.PreemptedEmergency))
+            {
+                Finish(false,
+                    "stale 대피 실행이 긴급 이동 epoch를 보존하지 못했습니다.");
+                yield break;
+            }
+            if (!subject.Brain.EndExternallyDrivenAction(emergencyLease))
+            {
+                Finish(false, "대표 긴급 행동 epoch를 정상 종료하지 못했습니다.");
+                yield break;
+            }
+            yield return WaitForResidentStatus(
+                evacuation,
+                subjectId,
+                ResidentEvacuationParticipantStatus.Holding,
+                30f);
+            if (!HasResidentStatus(
+                    evacuation,
+                    subjectId,
+                    ResidentEvacuationParticipantStatus.Holding))
+            {
+                Finish(false, "긴급 종료 뒤 주민 대피 lease를 재취득하지 못했습니다.");
+                yield break;
+            }
+            evidence.Add("emergency-preempt-reacquire=PASS");
+
+            ResidentEvacuationParticipantView participantBeforeRestore =
+                evacuation.ResidentEvacuationParticipants.FirstOrDefault(item =>
+                    string.Equals(
+                        item.CharacterId,
+                        subjectId,
+                        StringComparison.Ordinal));
+            if (string.IsNullOrEmpty(participantBeforeRestore.CharacterId)
+                || !participantBeforeRestore.HasTarget)
+            {
+                Finish(false,
+                    "현재 저장 전 주민 대피 target 권위를 찾지 못했습니다.");
+                yield break;
+            }
+            Vector2Int targetBeforeRestore = participantBeforeRestore.Target;
+            DungeonGameSaveData activeSave = saveService.Capture();
+            string intruderId = CharacterPersistentIdentity.Require(intruder).Value;
+            if (!TryReadActiveIntruderPersistenceJoin(
+                    activeSave,
+                    intruderId,
+                    out string intruderJoinReason))
+            {
+                Finish(false,
+                    "현재 침입자 life/world 저장 join이 일치하지 않습니다: "
+                    + intruderJoinReason);
+                yield break;
+            }
+            if (!TryReadResidentSave(
+                    activeSave,
+                    subjectId,
+                    ResidentEvacuationZoneStatus.Active,
+                    out string saveReason))
+            {
+                Finish(false, "현재 대피 저장이 권위 상태와 다릅니다: " + saveReason);
+                yield break;
+            }
+            evidence.Add("active-intruder-life-without-world-actor=PASS");
+            string activeSaveJson = saveService.ToJson(activeSave);
+            DungeonGameSaveData parsedActiveSave =
+                saveService.FromJson(activeSaveJson);
+            if (!saveService.TryRestore(
+                    parsedActiveSave,
+                    out DungeonGameRestoreReport activeRestore)
+                || !activeRestore.Success)
+            {
+                Finish(false,
+                    "현재 대피 whole-save 복원 실패: "
+                    + string.Join(" | ", activeRestore.Errors));
+                yield break;
+            }
+
+            defenseRuntime = ResolveRuntime();
+            evacuation = defenseRuntime?.OwnerEvacuation;
+            CharacterActor restoredSubject = FindObjectsByType<CharacterActor>(
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None)
+                .FirstOrDefault(actor => actor != null
+                    && string.Equals(
+                        actor.Identity?.PersistentId,
+                        subjectId,
+                        StringComparison.Ordinal));
+            if (restoredSubject == null
+                || !CharacterWorkRoleUtility.TryGetWork(
+                    restoredSubject,
+                    out AbilityWork restoredSubjectWork)
+                || restoredSubjectWork.WorkPriorities.GetPriority(
+                    BuiltInWorkTypeIds.Guard) != WorkPriorityLevel.Off
+                || restoredSubjectWork.HasEmergencyResponseWorkGateForDiagnostics)
+            {
+                Finish(false,
+                    "현재 저장 복원 뒤 Guard-Off 주민에게 경보 gate가 재부착되었습니다.");
+                yield break;
+            }
+            ResidentEvacuationParticipantView participantAfterRestore =
+                evacuation != null
+                    ? evacuation.ResidentEvacuationParticipants.FirstOrDefault(
+                        item => string.Equals(
+                            item.CharacterId,
+                            subjectId,
+                            StringComparison.Ordinal))
+                    : default;
+            if (evacuation?.ResidentZoneStatus
+                    != ResidentEvacuationZoneStatus.Active
+                || !restoredSubject.gameObject.activeInHierarchy
+                || string.IsNullOrEmpty(participantAfterRestore.CharacterId)
+                || !participantAfterRestore.HasTarget
+                || participantAfterRestore.Target != targetBeforeRestore)
+            {
+                Finish(false,
+                    "전체복원 완료 hook 뒤 actor/방/주민 target join이 유지되지 않았습니다: zone="
+                    + evacuation?.ResidentZoneStatus
+                    + ";target=" + participantAfterRestore.Target);
+                yield break;
+            }
+            yield return null;
+            if (evacuation.ResidentZoneStatus
+                    != ResidentEvacuationZoneStatus.Active
+                || !evacuation.ResidentEvacuationParticipants.Any(item =>
+                    string.Equals(
+                        item.CharacterId,
+                        subjectId,
+                        StringComparison.Ordinal)
+                    && item.HasTarget
+                    && item.Target == targetBeforeRestore))
+            {
+                Finish(false,
+                    "전체복원 완료 다음 정상 프레임에 대피 topology/participant가 유실되었습니다.");
+                yield break;
+            }
+            yield return WaitForResidentStatus(
+                evacuation,
+                subjectId,
+                ResidentEvacuationParticipantStatus.Holding,
+                30f);
+            if (!HasResidentStatus(
+                    evacuation,
+                    subjectId,
+                    ResidentEvacuationParticipantStatus.Holding))
+            {
+                Finish(false, "현재 대피 whole-save 복원 뒤 대기 상태가 복구되지 않았습니다.");
+                yield break;
+            }
+            evidence.Add(
+                "current-whole-save-json-completed-hook=PASS;target="
+                + targetBeforeRestore);
+
+            buildingQuery = ResolveService<IBuildingFeatureQueryService>();
+            BuildingFeatureRoomRow restoredRoom = buildingQuery?.Capture().Rooms
+                .FirstOrDefault(row => row != null
+                    && row.IsResidentEvacuationRoom);
+            BuildableObject[] boundaryDoors = restoredRoom?.Room?.Doors
+                .Where(door => door != null && !door.isDestroy)
+                .ToArray() ?? Array.Empty<BuildableObject>();
+            if (boundaryDoors.Length == 0)
+            {
+                Finish(false, "복원된 지정 방에서 구조 경계 문을 찾지 못했습니다.");
+                yield break;
+            }
+            foreach (BuildableObject door in boundaryDoors)
+            {
+                door.DestroySelf();
+            }
+            float topologyDeadline = Time.realtimeSinceStartup + 5f;
+            while (evacuation.ResidentZoneStatus
+                       != ResidentEvacuationZoneStatus.LostByTopology
+                   && Time.realtimeSinceStartup < topologyDeadline)
+            {
+                yield return null;
+            }
+            if (evacuation.ResidentZoneStatus
+                != ResidentEvacuationZoneStatus.LostByTopology)
+            {
+                Finish(false, "실제 방 경계 유실이 LostByTopology로 전이되지 않았습니다.");
+                yield break;
+            }
+
+            DungeonGameSaveData lostSave = saveService.Capture();
+            DungeonGameRestoreReport lostRestore = null;
+            if (!TryReadResidentSave(
+                    lostSave,
+                    subjectId: null,
+                    expectedZone: ResidentEvacuationZoneStatus.LostByTopology,
+                    reason: out string lostReason)
+                || !saveService.TryRestore(
+                    lostSave,
+                    out lostRestore)
+                || !lostRestore.Success)
+            {
+                Finish(false,
+                    "LostByTopology 현재 저장/복원 실패: " + lostReason
+                    + " | " + string.Join(" | ", lostRestore?.Errors
+                        ?? Array.Empty<string>()));
+                yield break;
+            }
+            evidence.Add("topology-loss-current-save=PASS");
+
+            if (!TryRestoreBaseline(out string cleanupReason))
+            {
+                Finish(false, "대표 시나리오 정리 복원 실패: " + cleanupReason);
+                yield break;
+            }
+            Finish(true, string.Join(";", evidence));
+        }
+
+        private static CharacterActor FindGuardAlarmResponder(
+            CharacterActor excluded) =>
+            FindObjectsByType<CharacterActor>(
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None)
+                .Where(actor => actor != null
+                    && actor != excluded
+                    && !actor.IsDead
+                    && actor.CurrentLifecycleState == CharacterLifecycleState.Active
+                    && actor.CanRunAi
+                    && actor.characterType != CharacterType.Customer
+                    && actor.characterType != CharacterType.Intruder
+                    && CharacterWorkRoleUtility.TryGetWork(
+                        actor,
+                        out AbilityWork work)
+                    && work.WorkPriorities.IsEnabled(BuiltInWorkTypeIds.Guard)
+                    && work.HasEmergencyResponseWorkGateForDiagnostics
+                    && work.EmergencyResponseOnlyWorkTypeForDiagnostics
+                        == BuiltInWorkTypeIds.Guard)
+                .OrderBy(actor => actor.Identity?.PersistentId ?? string.Empty,
+                    StringComparer.Ordinal)
+                .FirstOrDefault();
+
+        private static bool IsNormalResident(
+            CharacterActor actor,
+            ICharacterSettlementStandingQuery standings) =>
+            actor != null
+            && !actor.IsDead
+            && actor.CurrentLifecycleState == CharacterLifecycleState.Active
+            && !actor.IsOwner
+            && actor.characterType != CharacterType.Customer
+            && actor.characterType != CharacterType.Intruder
+            && standings != null
+            && (standings.IsFormalResident(actor) || standings.IsMinion(actor));
+
+        private static IEnumerator WaitForResidentStatus(
+            IInvasionOwnerEvacuationService evacuation,
+            string actorId,
+            ResidentEvacuationParticipantStatus expected,
+            float timeoutSeconds)
+        {
+            float deadline = Time.realtimeSinceStartup + timeoutSeconds;
+            while (!HasResidentStatus(evacuation, actorId, expected)
+                   && Time.realtimeSinceStartup < deadline)
+            {
+                yield return null;
+            }
+        }
+
+        private static bool HasResidentStatus(
+            IInvasionOwnerEvacuationService evacuation,
+            string actorId,
+            ResidentEvacuationParticipantStatus expected) =>
+            evacuation?.ResidentEvacuationParticipants.Any(item =>
+                string.Equals(item.CharacterId, actorId, StringComparison.Ordinal)
+                && item.Status == expected) == true;
+
+        private static bool TryReadResidentSave(
+            DungeonGameSaveData save,
+            string subjectId,
+            ResidentEvacuationZoneStatus expectedZone,
+            out string reason)
+        {
+            reason = string.Empty;
+            if (!DungeonSaveSectionPayload.TryRead(
+                    save,
+                    InvasionSaveSection.Id,
+                    out DungeonInvasionSaveData invasion)
+                || invasion?.ownerEvacuation?.residentZone == null)
+            {
+                reason = "invasion section missing";
+                return false;
+            }
+
+            IReadOnlyList<ResidentEvacuationParticipantSaveData> participants =
+                invasion.ownerEvacuation.residentParticipants
+                ?? new List<ResidentEvacuationParticipantSaveData>();
+            bool valid = invasion.version == DungeonInvasionSaveData.CurrentVersion
+                && invasion.ownerEvacuation.residentZone.status == expectedZone
+                && (subjectId == null
+                    ? participants.Count == 0
+                    : participants.Any(item => item != null
+                        && string.Equals(
+                            item.characterId,
+                            subjectId,
+                            StringComparison.Ordinal)));
+            reason = $"version={invasion.version};zone="
+                + invasion.ownerEvacuation.residentZone.status
+                + ";participants=" + participants.Count;
+            return valid;
+        }
+
+        private static bool TryReadActiveIntruderPersistenceJoin(
+            DungeonGameSaveData save,
+            string intruderId,
+            out string reason)
+        {
+            reason = string.Empty;
+            if (!DungeonSaveSectionPayload.TryRead(
+                    save,
+                    InvasionSaveSection.Id,
+                    out DungeonInvasionSaveData invasion)
+                || !DungeonSaveSectionPayload.TryRead(
+                    save,
+                    CharacterLifeSaveSection.Id,
+                    out CharacterLifeWorldSaveData life)
+                || !DungeonSaveSectionPayload.TryRead(
+                    save,
+                    CharacterWorldSaveSection.Id,
+                    out DungeonCharacterWorldSaveData characterWorld))
+            {
+                reason = "invasion/life/character-world section missing";
+                return false;
+            }
+
+            int activeInvasionCount = (invasion.activeIntruders
+                    ?? new List<DungeonInvasionIntruderSaveData>())
+                .Count(item => item?.enemyIndividual != null
+                    && string.Equals(
+                        item.enemyIndividual.characterId,
+                        intruderId,
+                        StringComparison.Ordinal));
+            int lifeCount = (life.characters
+                    ?? new List<CharacterLifeRecordSaveData>())
+                .Count(item => item != null
+                    && string.Equals(
+                        item.characterId,
+                        intruderId,
+                        StringComparison.Ordinal));
+            int characterWorldActorCount = (characterWorld.actors
+                    ?? new List<DungeonCharacterSaveData>())
+                .Count(item => item != null
+                    && string.Equals(
+                        item.persistentId,
+                        intruderId,
+                        StringComparison.Ordinal));
+            reason = $"activeInvasion={activeInvasionCount};life={lifeCount};"
+                + $"characterWorldActors={characterWorldActorCount};id={intruderId}";
+            return activeInvasionCount == 1
+                && lifeCount == 1
+                && characterWorldActorCount == 0;
+        }
+
+        private bool TryRestoreBaseline(out string reason)
+        {
+            if (cleanupComplete)
+            {
+                reason = string.Empty;
+                return true;
+            }
+            cleanupComplete = true;
+            bool restored = baseline != null
+                && saveService != null
+                && saveService.TryRestore(
+                    baseline,
+                    out DungeonGameRestoreReport report)
+                && report.Success;
+            if (!restored && excludedActor != null && combatCommands != null)
+            {
+                combatCommands.SetCombatStance(
+                    excludedActor,
+                    excludedActorWasInCombat,
+                    out _);
+            }
+            if (naturalThreat != null)
+            {
+                naturalThreat.enabled = naturalThreatWasEnabled;
+            }
+            reason = restored
+                ? string.Empty
+                : "whole-save baseline restore rejected";
+            return restored;
+        }
+
+        private void Finish(bool success, string detail)
+        {
+            success &= cleanBootEvidence;
+            if (!cleanupComplete)
+            {
+                bool cleanup = TryRestoreBaseline(out string cleanupReason);
+                success &= cleanup;
+                if (!cleanup)
+                {
+                    detail += ";cleanup=" + cleanupReason;
+                }
+            }
+            FinishWim048Immediately(success,
+                "cleanBoot=" + cleanBootEvidence
+                + ";scene=" + cleanBootScenePath
+                + ";" + detail);
+            Time.timeScale = 0f;
+            Debug.Log("WIM048_RESIDENT_EVACUATION " + wim048Report);
+        }
+
+        private void OnDestroy()
+        {
+            if (!cleanupComplete)
+            {
+                TryRestoreBaseline(out _);
+            }
+        }
+    }
+
     private sealed class Runner : MonoBehaviour
     {
         private readonly Dictionary<CharacterActor, float> healthBefore =
@@ -1037,7 +1869,7 @@ public static class DefenseEngagementPlayModeVerifier
             lastReport = $"RUNNING: 침입자 {spawned.Identity?.DisplayName ?? spawned.name} 진입 중";
         }
 
-        private static bool TryPrepareStartParty(out string message)
+        internal static bool TryPrepareStartParty(out string message)
         {
             message = string.Empty;
             DungeonRuntimeLifetimeScope scope = FindFirstObjectByType<DungeonRuntimeLifetimeScope>(

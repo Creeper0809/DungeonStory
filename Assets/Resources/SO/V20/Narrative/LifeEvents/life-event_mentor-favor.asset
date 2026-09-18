@@ -20,11 +20,14 @@ MonoBehaviour:
   sourceNote: V20 content-density expansion; hand-authored Korean source revision
     1.
   category: 1
+  riskTier: 1
+  riskReason: "\uC791\uC131\uB41C \uC120\uD0DD\uC5D0 \uAE30\uBD84 -3\uC774 \uC788\uB2E4."
   automatic: 0
   emergency: 0
   responseDeadlineDays: 3
   cooldownDays: 90
   frequencyRule: 1
+  occurrencePolicy: 0
   triggerRequirements:
     items: []
     facilities: []

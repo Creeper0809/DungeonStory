@@ -1,0 +1,44 @@
+batch=wim-20260912-research-crop-retirement-weather
+phase=current-source-live-partial-pass
+mainEditor=Unity6000.3.8f1; F:/01_Programming/01_Project/02_Unity/DungeonStory
+compile=PASS; runtimeDllUtc=2026-09-12T08:22:32Z; editorDllUtc=2026-09-12T08:37:16Z; architectureTestsDllUtc=2026-09-12T08:37:11Z
+compilePriorFailure=3 test errors; internal restore Editor-assembly access2, missing neutral constructor argument1; fixed without production API expansion
+sixAdult=PASS; sourceDigest=2c817991e2ca8ff193c115224ee92f9b5077e9056014d2be49bbe449ae4fd8dd; effectiveMilliWu=270000; recurringMilliWu=86618; recurringSharePermille=321
+sixAdultInputs=crop18000+cooking50008+waterProduction17560+manualRefill1050; cookingWaterPerCycle3400; refillWork1000; totalDailyWater14047
+sixAdultPhysicalReserve=grain60;immediateMeals12;cleanWater99;requiredStorageMassGrams77700;maximumRelevantStackMassGrams30000
+sixAdultReport=Artifacts/QA/v27-balance-six-adult-food-water-loop.txt
+retirementSupplyFocused=PASS; retired-definition offer rejection and purchase static-asset preservation
+weatherTravelFocused=PASS3; authored cards including exact2 deliberate no-change options; frozen-segment weather/actual internal two-phase service restore;6weather-qualified card filters/once-only resolution
+weatherScope=authored assets and production service fixture, not live UI/whole-save
+liveBootstrap=FAIL; VContainer circular constructor dependency before root runtime/container availability
+cycle=CharacterPerformanceQuery>CharacterDerivedStatsSnapshotProjector>CharacterSurgicalPartGameplayEffectSourceQuery>SurgicalPartRuntime>EnvironmentalFieldRuntimeApplicationAdapter>SurvivalFoodRuntime>CharacterConsumablesRuntime>CharacterConsumablesApplicationPorts>CharacterPerformanceQuery
+researchLive=NOT_STARTED_CURRENT_SOURCE; previous report timestamp2026-09-11T07:10:19Z not consumed as current proof
+cleanup=Play stopped;main ready/stopped/notcompiling/notreloading2026-09-12T08:40:19Z; no scene save/restart
+bootstrapCorrection=deferred existing ISurgicalPartRuntime singleton factory; source query resolves only after composition; no new authority/save schema
+currentCompile=PASS; completed failed=false/errors=[]; runtimeDllUtc=2026-09-12T08:42:04Z;editorDllUtc=2026-09-12T08:42:08Z
+currentRuntimeSha256=5FF2A0168C0D0A912800969421991C30E63CEA1A426E086F7D142B0BA276F7F2
+currentEditorSha256=7B8072ED874938C5CC0C9659197F620905F2BF3878ECBCDA594EE44A06E168E7
+currentBootstrap=PASS; real main runtime container available; earlier bootstrap failure retained above as history
+initialWorld=PASS; retired0;modular39;rooms14;usable12;furnished12;interiorDoors12; actual main grid/RoomRegistry read before test setup
+loadedSceneMissingScripts=0;observedLoadedSceneObjects4787; after disposable016 setup; not an exhaustive all-asset missing-reference scan
+researchCurrent=FAIL_BEFORE_RESEARCH; authored UI estimate/enqueue PASS; actor staff:1:01 still approaching research desk,MovePath32,cell31/1,workforce0,progress0; initial75wall witness timeout; no research loss/AI deadlock conclusion from this observation
+researchFailureArchive=Artifacts/QA/wim-implementation/wim-r01-research-self-care-live-20260912-initial-approach-failure.txt
+manualRefillCurrent=PASS; physical carry/buffer1;partialTreat0.07332393/1WU;invalid incoming water restore atomically rejected;valid partial whole JSON restore;remaining AI work/physical-1/water+1/ACK exact;terminal whole restore;natural-clock growth/depletion resumes
+manualRefillReport=Artifacts/QA/wim-implementation/wim-016-manual-refill-live.txt;SHA256=31AD26280B7E21A163248599D19F05F9DF2741EEC9873B3E4516D591AB5BFA62
+manualRefillScope=controlled research/placement/sow/dry/healthy staff/preferences/environment setup, actual haul/Treat/UI/current-world restore; not natural full-cycle/six-person dynamic simulation or committed-ACK fault injection
+currentConsole=after2026-09-12T08:45:30Z newWarning0/newError0; terminalcursor8694; historical errors retained/not cleared
+currentCleanup=main stopped/ready/compilingfalse/reloadingfalse2026-09-12T08:49:21Z; six protected scene/persistence/test-result hashes unchanged; no save/restart/restore-delete
+retiredKitGeneratorFocused=PASS; actual GameContentCatalogAssetBuilder.FindAssets<BuildingSO> returns400; production positive/nondeprecated candidate filter357; retired candidates0; retired physical kit definitions0; reads only/no full generator run
+retiredGeneratorScope=EnsurePhysicalOfferDefinitions enumerates that AssetDatabase input then EnsureInstallationKit per candidate; no hardcoded removed-ID recreation path remains. Full regeneration would unnecessarily rewrite all kits/blueprints and was not run. This is the required focused generation-input gate, not a no-op claim for the whole generator.
+next=research approach minimal observational diagnostics;023 intrinsic paired-node compatibility correction; preserved016 lighting/irrigation PASS and current six-adult static ledger without broad rerun
+secondCompile=PASS; runtime8480453A7D6B3AE187DE0E677AD6AF722BED3901E58CABCABD11F8620D0C9E2B UTC09:07:53;editorBCEE58966224F19C68708CF5FDB49B1F795438E97EF26D52B73DB020D4298E50 UTC09:07:57
+pairedOwnership=PASS; exact/actual humanoid authored arm:left-to-arm:right/current detached JSON;8 invalid profile/node/kind/forward/reverse/subject joins rejected with unchanged inputs; root fixture8B1CE4CB653C15ABF7324D0837C9782BD5B030B3582D13A39E67E178C979D69F
+pairedScope=registered preflight requires existing anatomy catalog; persisted anatomyProfileId/profileId owns resolution; no new save fields. Legacy3arg exact-only fixture seam is Editor-only. No live installed-effect/maxHP/whole-world surgery proof claimed.
+researchObservedAttempt=FAIL_BEFORE_RESEARCH;start19/0;end3/0;cellChanges50;window104.8028game/75.01527wall;progress0/workforce0;terminalWait; not a continuous movement hang
+researchObservedFollowup=actual paused world desk35/2/bookshelf36/2 both reachable;duty gate allowed;no routine/discontent/rest block;no last action/execution/interruption/orphan failure;direct Research candidate query returnedtrue. Subsequent source audit confirms typed query bypasses the generic scorer cache but changes candidate diagnostics; not a fix or retrospective root-cause proof.
+researchObservedFailureArchive=Artifacts/QA/wim-implementation/wim-r01-research-self-care-live-20260912-observed-approach-failure.txt
+researchDiagnosticCheckpoint=Temp/wim-r01-20260912-observed-approach-checkpoint.json;2249974chars;captured after diagnostic candidate query;disposable world only;user slots untouched
+researchNext=cache/priority audit found no proven cause. Selected actor has AIDrink/AbilityWork but fixture does not explicitly require an AIWork action; pre-unpause actionset/assignment read is the next discriminating observation. No third whole replay without a justified correction.
+secondCleanup=main stopped/ready09:14:30Z;Console since8694 through8714 newW/E0/0; no in-flight Unity command
+completion=original39/47;research0/1;wiki13/13;additional2/2;FIRE0/4;063removed/reference/mainboot/focusedgeneration checks closed; batch-end KB/final whole-goal integration remain
+pendingProjectionAttempt1=TEST_SETUP_FAIL;compile09:32:07 PASS; actual natural-organ transfer failure/pending query/current JSON+6 invalid joins/retry reached, final JSON rejected because detached caller omitted resolvedEffectCount=1 after successful command. Production SurgeryRuntime writes index+1 after the effect succeeds (line1690); source projection is not the cause. Controlled coordinator completion marker added only after real command success; do not weaken save validation.

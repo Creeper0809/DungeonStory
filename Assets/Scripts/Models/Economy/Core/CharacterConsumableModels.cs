@@ -275,6 +275,7 @@ public readonly struct PhysicalMealConsumedEvent
 public interface ICharacterDietPolicyQuery
 {
     CharacterDietPolicyKind GetPolicy(CharacterActor actor);
+    CharacterMealQualityLimit GetMealQualityLimit(CharacterActor actor);
     bool IsAllowed(CharacterActor actor, ResourceItemDefinitionSO meal);
 }
 
@@ -296,11 +297,16 @@ public interface ICharacterSubstanceQuery
     bool TryGetAutomaticUseRequest(CharacterActor actor, out CharacterSubstanceUseRequest request);
     float GetWorkSpeedMultiplier(CharacterActor actor);
     float GetCombatMultiplier(CharacterActor actor);
+    float GetFatigueAccumulationMultiplier(CharacterActor actor);
+    float GetResearchSpeedMultiplier(CharacterActor actor);
+    bool SuppressesPerceivedPain(CharacterActor actor);
+    CharacterToxicityStatus GetToxicityStatus(CharacterActor actor);
 }
 
 public interface ICharacterDietPolicyCommand
 {
     void SetPolicy(CharacterActor actor, CharacterDietPolicyKind policy);
+    void SetMealQualityLimit(CharacterActor actor, CharacterMealQualityLimit qualityLimit);
 }
 
 public interface IMealConsumptionCommand

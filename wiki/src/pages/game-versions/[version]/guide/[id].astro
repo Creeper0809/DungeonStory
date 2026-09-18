@@ -7,7 +7,7 @@ const version = Astro.params.version ?? '';
 if (!hasGameVersion(version)) return new Response(null, { status: 404 });
 const guideId = Astro.params.id ?? '';
 const redirectTo = getGuideRedirect(version, guideId);
-if (redirectTo) return Response.redirect(new URL(`/game-versions/${version}/guide/${redirectTo}/`, Astro.url), 308);
+if (redirectTo) return Astro.redirect(`/game-versions/${version}/guide/${redirectTo}/`, 308);
 const guide = getGuide(version, guideId);
 if (!guide) return new Response(null, { status: 404 });
 const navigation = getGuideNavigation(version);

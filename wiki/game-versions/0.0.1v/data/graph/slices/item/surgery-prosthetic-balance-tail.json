@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "surgery-prosthetic-balance-tail",
+    "spoiler_tier": "none",
+    "title": "평형 꼬리 보철"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-balance-tail",
+      "label": "생산·해금",
+      "to": "item/surgery-prosthetic-balance-tail",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

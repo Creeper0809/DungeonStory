@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "축전지에 남는 동력을 모아 두었다가 부족할 때 내보내는 설치 부품이며, 제4주조도시에서도 같은 규격으로 조립한다.",
+  "in_game_description": "축전지에 남는 동력을 모아 두었다가 부족할 때 내보내는 설치 부품이다. 제4주조도시식 축전지의 네모 홈은 출력이 흔들릴수록 깊어져 골렘이 손끝으로 고장 지점을 찾게 한다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

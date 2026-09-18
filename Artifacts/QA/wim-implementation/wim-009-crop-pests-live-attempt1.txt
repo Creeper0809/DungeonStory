@@ -1,0 +1,7 @@
+result=FAIL
+System.InvalidOperationException: Repeated start or active-event polling damaged a later sow or changed the first damage.
+  at Wim009CropPestLiveRunner.RunScenario () [0x00848] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Economy\Editor\Wim009CropPestLiveRunner.cs:231 
+  at Wim009CropPestLiveRunner+<Run>d__15.MoveNext () [0x002ca] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Economy\Editor\Wim009CropPestLiveRunner.cs:114 
+  at Wim009CropPestLiveRunner+<Observe>d__14.MoveNext () [0x0004b] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Economy\Editor\Wim009CropPestLiveRunner.cs:59 
+scope=actual main content transaction/postcommit dispatcher, registered crop consumer, current save, harvest work/physical output and crop presenter; owner/party UI is real, research/placement/growth/full-buffer are controlled setup; no natural crop growth/AI/six-adult balance/frost/whole-WIM009 claim
+cleanup=operator stops disposable Play; no scene or user persistence writes

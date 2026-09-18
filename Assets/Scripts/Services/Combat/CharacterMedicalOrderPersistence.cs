@@ -8,6 +8,10 @@ internal static class CharacterMedicalOrderPersistence
         {
             orderId = source.orderId ?? string.Empty,
             patientId = source.patientId ?? string.Empty,
+            societyResponseOperationId =
+                source.societyResponseOperationId ?? string.Empty,
+            societyResponseReceiptId =
+                source.societyResponseReceiptId ?? string.Empty,
             rescuerId = source.rescuerId ?? string.Empty,
             treatmentFacilityId = source.treatmentFacilityId ?? string.Empty,
             state = source.state,

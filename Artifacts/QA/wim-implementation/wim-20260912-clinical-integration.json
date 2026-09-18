@@ -1,0 +1,105 @@
+{
+  "scope": "WIM023 focused clinical integration; not full WIM/balance certification",
+  "source": {
+    "ui": "226F59617ED8EF39FFF6D040DA851B9907DBDBCD202CED0E13B77C99BBEDCFF7",
+    "maximumHealthBuilder": "262C90F420AE63CBD48DE6611B6C5139130F7F3FE77C6D7CC58D55E5654CDAEA",
+    "maximumHealthAsset": "386A87B106629484800D3FE1F3E64219023541397DD220D0DDA425ED32FDE0DC",
+    "custodyDrain": "E787FD69A0E298B0FE976BCAD1F90E0EFBF7B68642C1EC2A87CABF8F52816912",
+    "clinicalTest": "ED2FC25BA1DF250AF7FD887CC239DB63D937E19579076DE44E11CEAC20B86ABB",
+    "authoredBoundTest": "3193D9A71B1BBE6618EB6273A9459AB667F6E8F3F3DC17AC466E226670FEA7F6",
+    "movingCargoTest": "94BE7E2BD4C50E82781D433851B9E1096FA8B62345DDBA4017DC23C699E1DAC4"
+  },
+  "compiled": {
+    "errors": [],
+    "failed": false,
+    "runtime": "AE473E355037554CAF81BE2DBA17ACE666DB2E870662E5E917CF5E77EC5628FD",
+    "editor": "B8F611F05B35BD9A1C55C213A7852BE85F33146C6882593C549B170ADCDF892E"
+  },
+  "authoredHp": "Executed RunMaximumHealthBound: base100->110 PASS, finite final result bound. No runtime mutation.",
+  "movingCargo": {
+    "output": null,
+    "diagnostics": [],
+    "success": true,
+    "result": "PASS moved actor4,1; carried pickup metadata2,1; exact current-cell drop; buffer owner cell retained; quantities/mass/IDs conserved; no active lease/intent; receipt replay exact"
+  },
+  "dropFailure": {
+    "output": null,
+    "diagnostics": [],
+    "success": true,
+    "result": "drop-publication-failure=recovery-pending; retry=exact-once; acknowledgement=exact"
+  },
+  "actualTerminal": {
+    "output": null,
+    "diagnostics": [],
+    "success": true,
+    "result": {
+      "running": false,
+      "child": "{\"schemaVersion\":1,\"parentOperationId\":\"surgery-material-terminal:surgery:1\",\"stepOperationId\":\"surgery-material-terminal:surgery:1:custody\",\"ownerStableId\":\"surgery-order:surgery:1\",\"billId\":\"surgery:1\",\"facilityId\":\"building:94b9bbee89254212ad07e64363c8ed23\",\"sourceDestinationId\":\"surgery-materials:surgery:1\",\"ownerGridX\":36,\"ownerGridY\":0,\"sourceClaimFingerprint\":\"8c959e762e86de1b7482515827534ed5066d76fb3f193c903fad88c39420c3ca\",\"sourceOwnershipFingerprint\":\"8a3b4ebfea7fe89357742be97215f009bda83300e67f997e47558840bb14cd93\",\"requestFingerprint\":\"ffb37c92373003e2811d47a5385f21acc78d9ac8ca708233447dfd1ac92eb4d0\",\"phase\":5,\"sourceStacks\":[{\"stackId\":\"stack:01350e19986a4cb0b9628ac9c70a9e1a\",\"itemId\":\"resource:clean-water\",\"itemInstanceId\":\"\",\"componentFingerprint\":\"17a76d32302c5a611f82d43d0ac32a09a6f7735382cd81992a7e5353a06af267\",\"quantity\":1,\"massGrams\":500,\"state\":2,\"positionX\":36,\"positionY\":0,\"sourceStorageDestinationId\":\"\",\"destinationPositionX\":36,\"destinationPositionY\":0,\"reservationRevision\":2}],\"sourceOperations\":[],\"sourceActors\":[],\"completedActorIds\":[],\"releasedOperationIds\":[],\"releasedStackIds\":[\"stack:01350e19986a4cb0b9628ac9c70a9e1a\"],\"inputQuantity\":1,\"inputMassGrams\":500,\"releasedQuantity\":1,\"releasedMassGrams\":500,\"resultFingerprint\":\"0c5bfe40f5e6e34d3b9db44031ac65fa57c84e6a6843601662c18bb8d6a21da5\",\"commitId\":\"production-input-destination-custody-drain-commit:6d86c000e3c97694bf871a5af8107a7fd381b83c70df39f22f482150b1ef31b9\",\"receiptFingerprint\":\"b2c80b8e6afbe8fe8f8473df16db5ab30c951dcfba5acb7360069bade7a8bff0\"}",
+      "remainingDestination": 0,
+      "released": [
+        {
+          "StackId": "stack:01350e19986a4cb0b9628ac9c70a9e1a",
+          "ItemId": "resource:clean-water",
+          "Quantity": 1,
+          "State": 0,
+          "DestinationId": "",
+          "Position": {
+            "x": 36,
+            "y": 0,
+            "magnitude": 36,
+            "sqrMagnitude": 1296
+          }
+        }
+      ]
+    }
+  },
+  "clinicalReport": {
+    "path": "wim-023-main-produced-part-clinical-chain.txt",
+    "sha256": "F48B85F2187C726C786E8F019571FCEF15CD48FE3768FCF3C4F82D3D6AC68C00",
+    "wallSeconds": 68.08969,
+    "gameSeconds": 125.2363,
+    "result": "PASS",
+    "maxHp": 102.45,
+    "currentHp": 100
+  },
+  "console": {
+    "cursor": 34099,
+    "returned": 0,
+    "dropped": false,
+    "entries": []
+  },
+  "protectedFiles": [
+    {
+      "path": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Assets\\Scenes\\GameplayScene.unity",
+      "sha256": "E1181C098CB05DC0CD87CF47861831835F95BD4740026CC0C50D9E34288AD10F"
+    },
+    {
+      "path": "C:\\Users\\vulpo\\AppData\\LocalLow\\DungeonStory\\DungeonStory\\TestResults.xml",
+      "sha256": "D29E4ED59E8BF16D392E68E8557CB474F9DA2FEBA0CBAD954677C77F4A8FCFF6"
+    },
+    {
+      "path": "C:\\Users\\vulpo\\AppData\\LocalLow\\DungeonStory\\DungeonStory\\Migration\\legacy-default-company-v1.done",
+      "sha256": "20A378C47930E1C27A49B616A3ECFE43DCE07A975F836333CD8594E0E39D54D1"
+    },
+    {
+      "path": "C:\\Users\\vulpo\\AppData\\LocalLow\\DungeonStory\\DungeonStory\\Profile\\meta-profile.json",
+      "sha256": "3B5FFFBCC153A0EE615BBF4CDAE4DF285ABC73A8FEB6231FE0B84E47A387C9D7"
+    },
+    {
+      "path": "C:\\Users\\vulpo\\AppData\\LocalLow\\DungeonStory\\DungeonStory\\Saves\\autosave.json",
+      "sha256": "C0D468669EFCD205672C62DDE54019A1AC3447B82A1B844A6E70DADA84A0952C"
+    },
+    {
+      "path": "C:\\Users\\vulpo\\AppData\\LocalLow\\DungeonStory\\DungeonStory\\Settings\\user-settings.json",
+      "sha256": "E567B678BF78EFF0C46574063BD9B6CF1876A6F918F4DCFEF553C85991657BD3"
+    }
+  ],
+  "protectedFilesAllUnchanged": true,
+  "cleanup": "Main stopped-ready 2026-09-12T13:09:24Z; no save/restart/scene overwrite; all authors frozen",
+  "limitations": [
+    "Prepared authored Orc party/facilities/research/qualifications/environment/supplies; fixed existing outcome RNG; public direct crafting commands, actual UI pointer and natural haul/admission/doctor work.",
+    "Final actual drain captured already-buffered water (no source actor); in-flight moved-cargo termination is independently covered by focused exact-ownership regression.",
+    "No all-species live procedures, uncontrolled risks, full save rerun, balance or goal completion claim.",
+    "Prior failed reports/Console errors retained; latest Console0/0 does not erase history."
+  ]
+}

@@ -15,6 +15,7 @@ public sealed class ProductionBillRecord
     public BuildingInstanceId buildingInstanceId { get; internal set; }
     public ProductionOrderMode mode { get; internal set; }
     public int remainingCycles { get; internal set; }
+    public int minimumCraftQuality { get; internal set; } = -1;
     public int targetStock { get; internal set; }
     public int minimumReserve { get; internal set; }
     public bool suspended { get; internal set; }
@@ -115,6 +116,14 @@ public sealed class ProductionBillRecord
     {
         suspended = value;
         reservedWorkerId = string.Empty;
+    }
+
+    public void SetMinimumCraftQuality(int minimumTier)
+    {
+        if (minimumTier < -1 || minimumTier > 7) throw new ArgumentOutOfRangeException(nameof(minimumTier));
+        if (materialsConsumed || completedWork > 0f || outputOutcomeResolved)
+            throw new InvalidOperationException("Production quality target cannot change during a cycle.");
+        minimumCraftQuality = minimumTier;
     }
 
     public void SetStockPolicy(int minimum, int target)
@@ -245,6 +254,21 @@ public sealed class ProductionBillRecord
             ProductionPreparedOutputPhase.PhysicalBatchCommittedPublicationPending);
         ProductionPreparedOutputBatchSaveData candidate = preparedOutput.Clone();
         candidate.phase = ProductionPreparedOutputPhase.Completed;
+        ValidateAndPublishPrepared(candidate);
+    }
+
+    /// <summary>
+    /// Reverts only the still-uncommitted physical-publication transaction.
+    /// Callers must first roll back the matching repository batch and may not
+    /// use this after the admission token has committed.
+    /// </summary>
+    public void RollbackPreparedOutputPhysicalBatch()
+    {
+        RequirePreparedPhase(
+            ProductionPreparedOutputPhase.PhysicalBatchCommittedPublicationPending);
+        ProductionPreparedOutputBatchSaveData candidate = preparedOutput.Clone();
+        candidate.phase = ProductionPreparedOutputPhase.PublicationPrepared;
+        candidate.physicalCandidates.Clear();
         ValidateAndPublishPrepared(candidate);
     }
 
@@ -775,6 +799,7 @@ public sealed class ProductionAggregateStateSession
                 buildingInstanceId = (BuildingInstanceId)saved.buildingInstanceId,
                 mode = saved.mode,
                 remainingCycles = saved.remainingCycles,
+                minimumCraftQuality = saved.minimumCraftQuality,
                 targetStock = saved.targetStock,
                 minimumReserve = saved.minimumReserve,
                 suspended = saved.suspended,

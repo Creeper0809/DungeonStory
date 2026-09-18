@@ -1,0 +1,14 @@
+controlled-port actual escort coroutine=PASS; Pending retains ownership -> Ready once; pending cancel/no resume; Unreachable terminal; not natural pathfinding evidence
+setup=protected actual owner/party UI; no unrelated irrigation test replay
+warden preparation=needs filled once; normal decay/self-care/actual AI retained; not a survival-network witness
+actual pre-pickup cancellation=PASS; subject world/capture cell and carried restraint unchanged; action released
+preparation=controlled authored enemy/suppression/input/high-fear; actual invasion owner release/capture/escort/current-world captive replacement PASS; natural battle NOT_RUN
+warden preparation=needs filled once; normal decay/self-care/actual AI retained; not a survival-network witness
+typed Warden preference requested after real material readiness and haul completion; normal duty/need/AI gates retained
+automatic-warden=PASS; gameSeconds=119.862; wallSeconds=15.065; input=1; statDelta=-8/+9/-4/+7; notice-recorded=1; downstream-publication-ack-pending=true
+post-notice-downstream-failure/current-world-restore/retry=PASS; same Codex fact; source-id notice1/count1; real notice click/detail=PASS; pre-delivery-notice-failure=NOT_RUN
+warden preparation=needs filled once; normal decay/self-care/actual AI retained; not a survival-network witness
+repeat-known-fact=real delivery then explicit public AdvanceInteraction(18WU), no-information/new attempt/source; completed-work replay=rejected/no-consumption; second automatic AI replay NOT_RUN
+scope=controlled enemy/suppression/high-fear/input/healthy-warden setup; first attempt uses existing typed next-work preference after real delivery, actual capture/escort and Warden AI; second known-fact probe uses public work command; real Codex/notices/current world restore; unprompted priority competition/natural battle/6adult NOT_RUN
+result=PASS
+cleanup=operator must stop this disposable protected Play; no scene/profile/save writes

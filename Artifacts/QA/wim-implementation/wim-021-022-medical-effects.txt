@@ -1,0 +1,51 @@
+[INFO] FAST_PARTY_COMMIT committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; tierZero=changed=True;columns=27->29;startX=17;entrance=(17, 0); liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Roma:-7334696:character:staff:1:01:active=True,Arin:-7334764:character:staff:1:02:active=True; diagnostics=prepared-1:name=Roma;go=-7334668;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-7334736;id=character:staff:1:02;active=False || scan:name=Roma;go=-7334668;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-7334736;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-7334668;id=character:staff:1:01;active=True || retained:name=Arin;go=-7334736;id=character:staff:1:02;active=True
+[PASS] PLAYABLE_RUN Leon
+[PASS] RUNTIME_SCOPE scope resolved
+[PASS] SURGERY_PRODUCTION_BOUNDARY query, command, work command, and tick runtime resolved
+[PASS] MEDICAL_AUTHORITIES physical items, body/anatomy, environment, character world, and save resolved
+[PASS] FIXTURE_AUTHORITIES catalog, research, proficiency, room, grid, building, fuel, and environment fixtures resolved
+[PASS] BIOLOGICAL_PATIENT_AND_DOCTOR patient=owner; doctor=character:staff:1:01
+[PASS] SUTURE_AUTHORED_EFFECTS heal 8/infection 8 plus exact-node hemostasis
+[PASS] TRANSFUSION_AUTHORED_EFFECTS character-only heal 14/infection 2 plus blood-loss recovery 25
+[PASS] EMERGENCY_TABLE_PLACEMENT asset=True; position=(28, 2)
+[PASS] EMERGENCY_TABLE_PRODUCTION_VISIBLE registered=True; world=True
+[PASS] EMERGENCY_TABLE_AVAILABLE None
+[PASS] AUTHORED_SURGERY_LIGHTING_FIXTURE fixture-only E01; registered=True; fuelSpawned=True; fuelDestination=warehouse:building:002eeb8ace8841afa7b15fe3a92686a9; refueled=True; consumed=1; failure=None; supplied=True; environment=temp=20,air=100,light=75
+[PASS] PATIENT_ANATOMY_PROFILE anatomy:slime
+[PASS] TWO_EXISTING_NONVITAL_NODES sensory-gel,pseudopods
+[PASS] CANCEL_ACTIVE_WOUND_PRECONDITION applied=True; bleed=0.23
+[PASS] TRANSFUSION_CANCELLED_PRE_COMPLETION cancelled=True; failure=None
+[PASS] CANCEL_PRESERVES_BLOOD_LOSS expected=30; actual=30
+[PASS] CANCEL_PRESERVES_NODE_BLEEDING expected=0.23; actual=0.23
+[PASS] ORDER_REACHES_TERMINAL_surgery:1 expected=Cancelled; actual=Cancelled
+[PASS] SUTURE_PRODUCTION_COMPLETION order=surgery:2; preCompletion=True; applied=True; completed=True; state=Recovering; resultRolled=True; failure=None:
+[PASS] SUTURE_TARGET_BLEEDING_ZERO expected=0; actual=0
+[PASS] SUTURE_OTHER_NODE_INVARIANT health=25->25; bleed=0.22->0.22; infection=7->7
+[PASS] SUTURE_EXISTING_BLOOD_LOSS_INVARIANT expected=45; actual=45
+[PASS] SUTURE_HEALTH_EFFECT_PRESERVED expected=8; actual=8
+[PASS] SUTURE_INFECTION_EFFECT_PRESERVED expected=4; actual=4
+[PASS] SUTURE_TARGET_LEGACY_PROJECTION_NOT_APPLICABLE node=sensory-gel; no authored legacy mapping
+[PASS] SUTURE_OTHER_LEGACY_PROJECTION_NOT_APPLICABLE node=pseudopods; no authored legacy mapping
+[PASS] ORDER_REACHES_TERMINAL_surgery:2 expected=Completed; actual=Completed
+[PASS] TRANSFUSION_ACTIVE_WOUND_PRECONDITION applied=True; bleed=0.31
+[PASS] TRANSFUSION_FULL_NODE_HP_PRECONDITION expected=16; actual=16
+[PASS] TRANSFUSION_PRODUCTION_COMPLETION order=surgery:3; preCompletion=True; applied=True; completed=True; state=Recovering; resultRolled=True; failure=None:
+[PASS] TRANSFUSION_REDUCES_BLOOD_LOSS_BY_25 expected=15; actual=15
+[PASS] TRANSFUSION_DOES_NOT_STOP_WOUND_BLEEDING expected=0.31; actual=0.31
+[PASS] TRANSFUSION_VALID_HEAL_NOOP_REACHES_BLOOD_EFFECT expected=16; actual=16
+[PASS] TRANSFUSION_ZERO_INFECTION_REMAINS_ZERO expected=0; actual=0
+[PASS] RESULT_ROLLED_RECOVERY_RESTORE order=surgery:3
+[PASS] RECOVERING_AUTHORITY_REBOUND patient=True; doctor=True; state=Recovering; resultRolled=True; table=True
+[PASS] RESTORE_DOES_NOT_REPEAT_TRANSFUSION_EFFECT expected=15; actual=15
+[PASS] ORDER_REACHES_TERMINAL_surgery:3 expected=Completed; actual=Completed
+[PASS] RESTORED_RECOVERY_COMPLETES Completed
+[PASS] COMPLETION_DOES_NOT_REPEAT_TRANSFUSION_EFFECT expected=15; actual=15
+[PASS] TRANSFUSION_CLAMP_PRODUCTION_COMPLETION order=surgery:4; preCompletion=True; applied=True; completed=True; state=Recovering; resultRolled=True; failure=None:
+[PASS] TRANSFUSION_CLAMPS_TO_ACTUAL_LOSS expected=0; actual=0
+[PASS] ORDER_REACHES_TERMINAL_surgery:4 expected=Completed; actual=Completed
+[PASS] TRANSFUSION_NO_BLOOD_REJECTED scheduled=False; failure=SurgeryEffectFailed; active=0
+[PASS] TRANSFUSION_WILDLIFE_REJECTED scheduled=False; failure=SurgerySubjectKindUnsupported
+[PASS] TRANSFUSION_CONSTRUCT_REJECTED_BY_EXISTING_GATE scheduled=False; failure=SurgerySubjectMaintenanceOnly
+[PASS] TRANSFUSION_SPECIES_SPOOF_REJECTED_BY_LIVE_AUTHORITY scheduled=False; failure=SurgerySpeciesUnsupported
+capturedErrors=0; 
+RESULT=PASS; failures=0; 

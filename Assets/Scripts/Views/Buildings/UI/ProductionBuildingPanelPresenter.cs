@@ -309,6 +309,24 @@ public sealed class ProductionBuildingPanelPresenter :
                 refresh,
                 index);
 
+            if (bill.CurrentManualCraftQuality >= 0)
+            {
+                string target = bill.MinimumCraftQuality < 0 ? "품질 무관"
+                    : "최소 " + GameplayUiPresentationText.Quality((CraftsmanshipQualityTier)bill.MinimumCraftQuality);
+                ProductionBuildingViewFactory.AddButton(actions.transform, target, font, false,
+                    () => ApplyResult(billCommands.SetMinimumCraftQuality(bill.BillId,
+                            bill.MinimumCraftQuality >= 7 ? -1 : bill.MinimumCraftQuality + 1),
+                        facilityKey, showFeedback, refresh), $"ProductionMinimumQuality_{index}");
+                GameObject qualityRow = ProductionBuildingViewFactory.CreateRow(parent,
+                    $"ProductionQualityCondition_{index}", 52f);
+                created.Add(qualityRow);
+                ProductionBuildingViewFactory.AddText(qualityRow.transform,
+                    "현재 조건: 수동 " + GameplayUiPresentationText.Quality((CraftsmanshipQualityTier)bill.CurrentManualCraftQuality)
+                    + " / 자동·혼합 " + GameplayUiPresentationText.Quality((CraftsmanshipQualityTier)bill.CurrentAutomaticCraftQuality)
+                    + "\n목표 미달이면 대기 · 진행 중 목표 변경 불가", font, 12f,
+                    DungeonUiTheme.TextSecondary, 52f, created);
+            }
+
             GameObject modes = ProductionBuildingViewFactory.CreateRow(
                 parent,
                 $"ProductionBillModes_{index}",

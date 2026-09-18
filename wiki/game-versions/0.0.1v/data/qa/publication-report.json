@@ -1,17 +1,17 @@
 {
   "canonical_relation_target_count": 74,
   "excluded_by_reason": {
-    "internal-type": 485,
-    "manual-review": 47,
-    "non-active-lifecycle": 25,
-    "runtime-not-verified": 14
+    "internal-type": 482,
+    "manual-review": 45,
+    "non-active-lifecycle": 4,
+    "runtime-not-verified": 15
   },
-  "excluded_record_count": 571,
+  "excluded_record_count": 546,
   "game_version": "0.0.1v",
-  "item_narrative_count": 1075,
-  "omitted_relation_count": 2349,
-  "published_record_count": 2905,
-  "published_relation_count": 3846,
+  "item_narrative_count": 1069,
+  "omitted_relation_count": 2419,
+  "published_record_count": 2931,
+  "published_relation_count": 3940,
   "schema_version": 1,
-  "source_record_count": 3476
+  "source_record_count": 3477
 }

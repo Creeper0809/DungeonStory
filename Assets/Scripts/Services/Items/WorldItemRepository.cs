@@ -41,6 +41,8 @@ internal sealed class WorldItemRepositoryState
     internal int WarehouseEvacuationRevision { get; set; }
     internal Dictionary<string, PhysicalItemBatchDispositionSaveData>
         PendingBatchDispositions { get; } = new(StringComparer.Ordinal);
+    internal Dictionary<string, PhysicalItemRelocationSaveData>
+        PhysicalItemRelocations { get; } = new(StringComparer.Ordinal);
     internal Dictionary<string, ProductionPhysicalCustodyDrainSaveData>
         PendingProductionCustodyDrains { get; } = new(StringComparer.Ordinal);
     internal Dictionary<string, ProductionInputDestinationCustodyDrainSaveData>
@@ -99,6 +101,60 @@ public sealed class WorldItemRepository : IItemInstanceRepository
             .OrderBy(value => value.operationId, StringComparer.Ordinal)
             .Select(CloneBatchDisposition)
             .ToArray();
+
+    internal IReadOnlyList<PhysicalItemRelocationSaveData>
+        CapturePhysicalItemRelocations() => state.PhysicalItemRelocations.Values
+            .OrderBy(value => value.operationId, StringComparer.Ordinal)
+            .Select(ClonePhysicalItemRelocation)
+            .ToArray();
+
+    internal bool CanAddPhysicalItemRelocation(string operationId)
+    {
+        string operation = operationId?.Trim() ?? string.Empty;
+        return operation.Length > 0
+            && (state.PhysicalItemRelocations.ContainsKey(operation)
+                || state.PhysicalItemRelocations.Count
+                    < PhysicalItemSaveValidation.MaxPhysicalItemRelocations);
+    }
+
+    internal bool TryGetPhysicalItemRelocation(
+        string operationId,
+        out PhysicalItemRelocationSaveData relocation) =>
+        state.PhysicalItemRelocations.TryGetValue(
+            operationId ?? string.Empty,
+            out relocation);
+
+    internal void AddPhysicalItemRelocation(
+        PhysicalItemRelocationSaveData relocation)
+    {
+        if (relocation == null
+            || !CanAddPhysicalItemRelocation(relocation.operationId)
+            || !state.PhysicalItemRelocations.TryAdd(
+                relocation.operationId,
+                ClonePhysicalItemRelocation(relocation)))
+        {
+            throw new InvalidOperationException(
+                "Duplicate, invalid, or full physical relocation journal '"
+                + relocation?.operationId + "'.");
+        }
+    }
+
+    internal bool TryUpdatePhysicalItemRelocation(
+        PhysicalItemRelocationSaveData relocation)
+    {
+        if (relocation == null
+            || !state.PhysicalItemRelocations.ContainsKey(
+                relocation.operationId ?? string.Empty))
+        {
+            return false;
+        }
+        state.PhysicalItemRelocations[relocation.operationId] =
+            ClonePhysicalItemRelocation(relocation);
+        return true;
+    }
+
+    internal bool RemovePhysicalItemRelocation(string operationId) =>
+        state.PhysicalItemRelocations.Remove(operationId ?? string.Empty);
 
     internal IReadOnlyList<ProductionPhysicalCustodyDrainSaveData>
         CapturePendingProductionCustodyDrains() =>
@@ -481,6 +537,16 @@ public sealed class WorldItemRepository : IItemInstanceRepository
             operationId ?? string.Empty,
             out pending);
 
+    internal bool TryGetPendingBatchDispositionByCommitId(
+        string commitId,
+        out PhysicalItemBatchDispositionSaveData pending)
+    {
+        string canonical = commitId?.Trim() ?? string.Empty;
+        pending = state.PendingBatchDispositions.Values.SingleOrDefault(value =>
+            string.Equals(value.commitId, canonical, StringComparison.Ordinal));
+        return pending != null;
+    }
+
     internal void AddPendingBatchDisposition(
         PhysicalItemBatchDispositionSaveData pending)
     {
@@ -511,6 +577,27 @@ public sealed class WorldItemRepository : IItemInstanceRepository
         {
             return false;
         }
+        MarkChanged();
+        return true;
+    }
+
+    internal bool TryAttachPendingBatchDispositionOutcome(
+        string commitId,
+        PhysicalGameplayOutcomeAttachmentSaveData attachment)
+    {
+        string canonical = commitId?.Trim() ?? string.Empty;
+        if (canonical.Length == 0 || attachment == null)
+            return false;
+        PhysicalItemBatchDispositionSaveData pending =
+            state.PendingBatchDispositions.Values.SingleOrDefault(value =>
+                string.Equals(value.commitId, canonical, StringComparison.Ordinal));
+        if (pending == null)
+            return false;
+        if (pending.gameplayOutcome != null)
+            return PhysicalGameplayOutcomeSaveCodec.Equals(
+                pending.gameplayOutcome,
+                attachment);
+        pending.gameplayOutcome = CloneGameplayOutcomeAttachment(attachment);
         MarkChanged();
         return true;
     }
@@ -672,6 +759,8 @@ public sealed class WorldItemRepository : IItemInstanceRepository
         IReadOnlyList<string> pendingWarehouseEvacuationIds = null,
         IReadOnlyList<PhysicalItemBatchDispositionSaveData>
             pendingBatchDispositions = null,
+        IReadOnlyList<PhysicalItemRelocationSaveData>
+            physicalItemRelocations = null,
         IReadOnlyList<ProductionPhysicalCustodyDrainSaveData>
             pendingProductionCustodyDrains = null,
         IReadOnlyList<ProductionInputDestinationCustodyDrainSaveData>
@@ -710,6 +799,20 @@ public sealed class WorldItemRepository : IItemInstanceRepository
             {
                 throw new InvalidOperationException(
                     $"Duplicate pending physical disposition '{pending?.operationId}'.");
+            }
+        }
+        foreach (PhysicalItemRelocationSaveData relocation in
+                 physicalItemRelocations
+                 ?? Array.Empty<PhysicalItemRelocationSaveData>())
+        {
+            if (relocation == null
+                || !detached.PhysicalItemRelocations.TryAdd(
+                    relocation.operationId,
+                    ClonePhysicalItemRelocation(relocation)))
+            {
+                throw new InvalidOperationException(
+                    "Duplicate physical relocation journal '"
+                    + relocation?.operationId + "'.");
             }
         }
         foreach (ProductionPhysicalCustodyDrainSaveData pending in
@@ -784,7 +887,90 @@ public sealed class WorldItemRepository : IItemInstanceRepository
         sourceStackIds = (source.sourceStackIds ?? new List<string>()).ToList(),
         quantity = source.quantity,
         inputMassGrams = source.inputMassGrams,
-        commitId = source.commitId
+        commitId = source.commitId,
+        outcomeOwnerRevision = source.outcomeOwnerRevision,
+        gameplayOutcomeExpected = source.gameplayOutcomeExpected,
+        expectedOutcomeProducerId = source.expectedOutcomeProducerId,
+        expectedOutcomeOperationId = source.expectedOutcomeOperationId,
+        expectedOutcomeCommitRevision = source.expectedOutcomeCommitRevision,
+        expectedOutcomeLocalResultIndex = source.expectedOutcomeLocalResultIndex,
+        sourceFacts = (source.sourceFacts
+                ?? new List<PhysicalItemDispositionSourceFactSaveData>())
+            .Select(CloneDispositionSourceFact)
+            .ToList(),
+        gameplayOutcome = source.gameplayOutcome == null
+            ? null
+            : CloneGameplayOutcomeAttachment(source.gameplayOutcome)
+    };
+
+    private static PhysicalItemRelocationSaveData ClonePhysicalItemRelocation(
+        PhysicalItemRelocationSaveData source) => new()
+    {
+        operationId = source.operationId,
+        reasonCode = source.reasonCode,
+        requestFingerprint = source.requestFingerprint,
+        phase = source.phase,
+        sourceStackId = source.sourceStackId,
+        destinationStackId = source.destinationStackId,
+        itemDefinitionId = source.itemDefinitionId,
+        itemInstanceId = source.itemInstanceId,
+        quantity = source.quantity,
+        massGrams = source.massGrams,
+        sourceX = source.sourceX,
+        sourceY = source.sourceY,
+        destinationX = source.destinationX,
+        destinationY = source.destinationY,
+        destinationState = source.destinationState,
+        destinationId = source.destinationId,
+        outcomeOwnerRevision = source.outcomeOwnerRevision,
+        displayText = source.displayText,
+        displaySnapshotRevision = source.displaySnapshotRevision,
+        pronunciationMode = source.pronunciationMode,
+        pronunciationValue = source.pronunciationValue,
+        explicitFinalConsonant = source.explicitFinalConsonant,
+        pronunciationRevision = source.pronunciationRevision,
+        locale = source.locale,
+        expectedOutcomeProducerId = source.expectedOutcomeProducerId,
+        expectedOutcomeOperationId = source.expectedOutcomeOperationId,
+        expectedOutcomeCommitRevision = source.expectedOutcomeCommitRevision,
+        expectedOutcomeLocalResultIndex = source.expectedOutcomeLocalResultIndex,
+        gameplayOutcome = source.gameplayOutcome == null
+            ? null
+            : CloneGameplayOutcomeAttachment(source.gameplayOutcome)
+    };
+
+    private static PhysicalItemDispositionSourceFactSaveData
+        CloneDispositionSourceFact(
+            PhysicalItemDispositionSourceFactSaveData source) => new()
+    {
+        stackId = source.stackId,
+        itemDefinitionId = source.itemDefinitionId,
+        itemInstanceId = source.itemInstanceId,
+        quantity = source.quantity,
+        massGrams = source.massGrams,
+        sourceX = source.sourceX,
+        sourceY = source.sourceY,
+        displayText = source.displayText,
+        displaySnapshotRevision = source.displaySnapshotRevision,
+        pronunciationMode = source.pronunciationMode,
+        pronunciationValue = source.pronunciationValue,
+        explicitFinalConsonant = source.explicitFinalConsonant,
+        pronunciationRevision = source.pronunciationRevision,
+        locale = source.locale
+    };
+
+    private static PhysicalGameplayOutcomeAttachmentSaveData
+        CloneGameplayOutcomeAttachment(
+            PhysicalGameplayOutcomeAttachmentSaveData source) => new()
+    {
+        producerId = source.producerId,
+        operationId = source.operationId,
+        commitRevision = source.commitRevision,
+        localResultIndex = source.localResultIndex,
+        outcomeRunId = source.outcomeRunId,
+        outcomeSequence = source.outcomeSequence,
+        replayState = source.replayState,
+        canonicalPayloadHash = source.canonicalPayloadHash
     };
 
     internal void ReplaceState(WorldItemRepositoryState staged)

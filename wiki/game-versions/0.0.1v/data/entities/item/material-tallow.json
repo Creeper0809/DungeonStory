@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "비누, 양초와 연고의 기초이다. 라카쉬 세갈래길의 정제 지방은 조리용과 공업용을 항아리 봉인색으로 나눠 냄새가 밴 것을 음식에 쓰지 않게 한다.",
+  "in_game_description": "비누, 양초와 연고의 기초이다. 라카쉬 세갈래길에서 손질한 정제 지방에는 먹을 몫과 만들 몫을 가르는 두 줄 칼집이 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

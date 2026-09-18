@@ -10,12 +10,12 @@
     },
     {
       "label": "기준 가격",
-      "value": "11"
+      "value": "12"
     }
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "맞은 자리에 짙은 연막을 펼쳐 시야와 사선을 끊는 탄약이다. 오르데나에서 지급한 연막 탄약 겉면에는 연막이 퍼지는 거리와 지속 시간이 찍혀 있다.",
+  "in_game_description": "맞은 자리에 짙은 연막을 펼쳐 시야와 사선을 끊는 탄약이다. 오르데나 수호원은 연막 탄약의 방아쇠울 안쪽에도 군영 번호를 새긴다. 탈영병이 가장 먼저 긁어내는 자리다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

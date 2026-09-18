@@ -1,0 +1,126 @@
+{
+  "success": true,
+  "command": "job wait",
+  "data": {
+    "jobId": "198597f115fa41179e2ed30b4df95403",
+    "command": "eval",
+    "state": "completed",
+    "cancellationRequested": false,
+    "result": {
+      "output": null,
+      "diagnostics": [
+        {
+          "severity": "error",
+          "message": "The type 'JObject' exists in both 'Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed' and 'Unity.Localization.ThirdParty.Editor, Version=13.0.0.0, Culture=neutral, PublicKeyToken=null'",
+          "line": 2,
+          "column": 11,
+          "id": "CS0433"
+        },
+        {
+          "severity": "error",
+          "message": "The type 'JArray' exists in both 'Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed' and 'Unity.Localization.ThirdParty.Editor, Version=13.0.0.0, Culture=neutral, PublicKeyToken=null'",
+          "line": 3,
+          "column": 34,
+          "id": "CS0433"
+        },
+        {
+          "severity": "error",
+          "message": "The type 'JObject' exists in both 'Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed' and 'Unity.Localization.ThirdParty.Editor, Version=13.0.0.0, Culture=neutral, PublicKeyToken=null'",
+          "line": 11,
+          "column": 40,
+          "id": "CS0433"
+        },
+        {
+          "severity": "error",
+          "message": "The type 'JObject' exists in both 'Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed' and 'Unity.Localization.ThirdParty.Editor, Version=13.0.0.0, Culture=neutral, PublicKeyToken=null'",
+          "line": 13,
+          "column": 59,
+          "id": "CS0433"
+        },
+        {
+          "severity": "error",
+          "message": "The type 'JObject' exists in both 'Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed' and 'Unity.Localization.ThirdParty.Editor, Version=13.0.0.0, Culture=neutral, PublicKeyToken=null'",
+          "line": 12,
+          "column": 26,
+          "id": "CS0433"
+        },
+        {
+          "severity": "error",
+          "message": "The type 'JArray' exists in both 'Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed' and 'Unity.Localization.ThirdParty.Editor, Version=13.0.0.0, Culture=neutral, PublicKeyToken=null'",
+          "line": 34,
+          "column": 36,
+          "id": "CS0433"
+        },
+        {
+          "severity": "error",
+          "message": "Operator '<' cannot be applied to operands of type 'method group' and 'int'",
+          "line": 35,
+          "column": 7,
+          "id": "CS0019"
+        },
+        {
+          "severity": "error",
+          "message": "Operator '-' cannot be applied to operands of type 'method group' and 'int'",
+          "line": 36,
+          "column": 54,
+          "id": "CS0019"
+        },
+        {
+          "severity": "error",
+          "message": "The type 'JObject' exists in both 'Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed' and 'Unity.Localization.ThirdParty.Editor, Version=13.0.0.0, Culture=neutral, PublicKeyToken=null'",
+          "line": 36,
+          "column": 38,
+          "id": "CS0433"
+        },
+        {
+          "severity": "error",
+          "message": "Operator '+' cannot be applied to operands of type 'string' and 'method group'",
+          "line": 37,
+          "column": 24,
+          "id": "CS0019"
+        },
+        {
+          "severity": "error",
+          "message": "The type 'JObject' exists in both 'Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed' and 'Unity.Localization.ThirdParty.Editor, Version=13.0.0.0, Culture=neutral, PublicKeyToken=null'",
+          "line": 41,
+          "column": 16,
+          "id": "CS0433"
+        },
+        {
+          "severity": "error",
+          "message": "The type 'JObject' exists in both 'Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed' and 'Unity.Localization.ThirdParty.Editor, Version=13.0.0.0, Culture=neutral, PublicKeyToken=null'",
+          "line": 42,
+          "column": 39,
+          "id": "CS0433"
+        },
+        {
+          "severity": "error",
+          "message": "The type 'JObject' exists in both 'Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed' and 'Unity.Localization.ThirdParty.Editor, Version=13.0.0.0, Culture=neutral, PublicKeyToken=null'",
+          "line": 45,
+          "column": 35,
+          "id": "CS0433"
+        },
+        {
+          "severity": "warning",
+          "message": "Unreachable code detected",
+          "line": 53,
+          "column": 12,
+          "id": "CS0162"
+        }
+      ],
+      "success": false,
+      "command": "eval",
+      "result": null,
+      "executionTimeMs": 580,
+      "message": null,
+      "error": "Compilation Failed",
+      "errorDetails": "Code compilation failed",
+      "executedAt": "2026-09-15T14:08:58.3253082Z"
+    },
+    "error": null,
+    "errorDetails": null,
+    "progress": null
+  },
+  "errors": [],
+  "warnings": []
+}

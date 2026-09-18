@@ -131,7 +131,7 @@ public sealed class FacilityBuildingOffer : FacilityShopOffer
     public BuildingSO Building { get; }
     public override string OfferTypeId => FacilityShopOfferTypeIds.Building;
     public override string TypeDisplayName => "시설";
-    public override bool IsValid => Building != null;
+    public override bool IsValid => Building != null && !Building.IsDeprecatedCompatibilityAsset;
     public override int Star => FacilityShopService.GetBuildingStar(Building);
     public override int DataId => Building != null ? Building.id : -1;
     public override string DisplayName => FacilityShopService.GetBuildingName(Building);
@@ -490,7 +490,9 @@ public static class FacilityShopService
 
     public static bool CanEnterBasicPurchase(BuildingSO building)
     {
-        return building != null && GetBuildingStar(building) <= 2;
+        return building != null
+            && !building.IsDeprecatedCompatibilityAsset
+            && GetBuildingStar(building) <= 2;
     }
 
     public static int GetBuildingStar(BuildingSO building)
@@ -580,6 +582,7 @@ public static class FacilityShopService
     private static bool IsDailyShopBuildingCandidate(BuildingSO building)
     {
         return building != null
+            && !building.IsDeprecatedCompatibilityAsset
             && !building.IsGridMovement
             && !building.IsWall
             && GetBuildingStar(building) <= 2;

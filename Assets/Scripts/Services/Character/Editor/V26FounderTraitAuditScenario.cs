@@ -73,6 +73,13 @@ public static class V26FounderTraitAuditScenario
                 characterId = characterId.Value
             };
         }
+        public bool TryGetLightAdaptation(
+            CharacterId characterId,
+            out CharacterLightAdaptationSnapshot snapshot)
+        {
+            snapshot = default;
+            return false;
+        }
         public EnvironmentalExposureBand GetPhysiologicalBand(
             CharacterId characterId) => EnvironmentalExposureBand.Stable;
         public EnvironmentalExposureBand GetVisualBand(

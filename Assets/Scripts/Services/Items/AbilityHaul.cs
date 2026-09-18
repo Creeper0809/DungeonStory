@@ -5,7 +5,7 @@ using System.Linq;
 using UnityEngine;
 using VContainer;
 
-public sealed class AbilityHaul : MonoBehaviour
+public sealed class AbilityHaul : MonoBehaviour, IHaulDeliveryPathFailureQuery
 {
     private const int MaximumPathResolveFrames = 240;
     private const int MaximumMovementAttempts = 5;
@@ -28,6 +28,7 @@ public sealed class AbilityHaul : MonoBehaviour
     private string activePathDebug = string.Empty;
     private bool haulingHarnessEquippedForCurrentRun;
     private string lastFailureReason = string.Empty;
+    private HaulDeliveryPathFailureSnapshot lastDeliveryPathFailure;
     private long runtimeHaulStartCount;
     private long runtimeHaulTerminalCount;
     private string lastTerminalDiagnostics = string.Empty;
@@ -75,6 +76,73 @@ public sealed class AbilityHaul : MonoBehaviour
 
     public bool IsCapacityRoutingQuiescenceFrozen =>
         capacityRoutingQuiescencePlanFingerprint.Length > 0;
+
+    public bool TryGetLastDeliveryPathFailure(
+        out HaulDeliveryPathFailureSnapshot snapshot)
+    {
+        snapshot = default;
+        HaulDeliveryPathFailureSnapshot candidate = lastDeliveryPathFailure;
+        IWorldItemStackRuntime itemRuntime = ItemRuntime;
+        if (!candidate.IsValid || itemRuntime == null)
+        {
+            return false;
+        }
+
+        if (candidate.OwnerOperationId.Length > 0
+            && itemRuntime.TryCaptureHaulDeliveryIntent(
+                candidate.OwnerOperationId,
+                out HaulDeliveryIntentSaveData intent)
+            && intent != null
+            && string.Equals(
+                intent.destinationId,
+                candidate.DestinationId,
+                StringComparison.Ordinal)
+            && intent.commitments != null
+            && intent.commitments.Any(commitment => commitment != null
+                    && (string.Equals(
+                            commitment.sourceStackId,
+                            candidate.SourceStackId,
+                            StringComparison.Ordinal)
+                        || string.Equals(
+                            commitment.carriedStackId,
+                            candidate.SourceStackId,
+                            StringComparison.Ordinal))
+                    && string.Equals(
+                        commitment.itemId,
+                        candidate.ItemId,
+                        StringComparison.Ordinal)))
+        {
+            snapshot = candidate;
+            return true;
+        }
+
+        bool sameRequestedSource = (itemRuntime.GetAllStacks()
+                ?? Array.Empty<WorldItemStackSnapshot>()).Any(stack =>
+            stack != null
+            && stack.Quantity > 0
+            && !stack.Forbidden
+            && stack.State is WorldItemStackState.Loose
+                or WorldItemStackState.Stored
+            && string.Equals(
+                stack.StackId,
+                candidate.SourceStackId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                stack.ItemId,
+                candidate.ItemId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                stack.DestinationId,
+                candidate.DestinationId,
+                StringComparison.Ordinal));
+        if (!sameRequestedSource)
+        {
+            return false;
+        }
+
+        snapshot = candidate;
+        return true;
+    }
 
 #if UNITY_EDITOR
     [GameplayInternalOnly(
@@ -864,6 +932,7 @@ public sealed class AbilityHaul : MonoBehaviour
 
     private void OnDisable()
     {
+        ClearLastDeliveryPathFailure();
         if (Application.isPlaying)
         {
             if (IsCapacityRoutingQuiescenceFrozen)
@@ -917,6 +986,44 @@ public sealed class AbilityHaul : MonoBehaviour
         return ItemRuntime.HasAvailableHaulJob(actor);
     }
 
+    internal bool CanStartActiveEmergencySupportHauling(
+        WorkTypeId requiredEmergencyWorkTypeId,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        CacheReferences();
+        if (!HasExactEmergencyResponseGate(requiredEmergencyWorkTypeId))
+        {
+            failureReason = "emergency-support-haul-work-gate-mismatch";
+            return false;
+        }
+        if (actor == null || move == null || ItemRuntime == null)
+        {
+            failureReason = "hauling-dependencies-unavailable";
+            return false;
+        }
+        if (activePlan != null || restoredDeliveryPending || haulExecutionActive)
+        {
+            failureReason = "emergency-support-haul-plan-already-bound";
+            return false;
+        }
+        if (TryGetPendingCarriedCapacityDrain(out string drainingBatch))
+        {
+            failureReason = "capacity-routing-drain-pending:" + drainingBatch;
+            return false;
+        }
+        if (ItemRuntime is not IActiveEmergencySupportHaulPlanRuntime support)
+        {
+            failureReason = "emergency-support-haul-planner-unavailable";
+            return false;
+        }
+
+        return support.TryPreviewActiveEmergencySupportHaulPlan(
+            actor,
+            out _,
+            out failureReason);
+    }
+
     private bool TryGetPendingCarriedCapacityDrain(out string batchCommitId)
     {
         batchCommitId = string.Empty;
@@ -948,6 +1055,31 @@ public sealed class AbilityHaul : MonoBehaviour
 
     public void StartHauling()
     {
+        StartHauling(activeEmergencySupportOnly: false);
+    }
+
+    internal void StartActiveEmergencySupportHauling(
+        WorkTypeId requiredEmergencyWorkTypeId)
+    {
+        CacheReferences();
+        if (!HasExactEmergencyResponseGate(requiredEmergencyWorkTypeId))
+        {
+            const string reason =
+                "emergency-support-haul-work-gate-mismatch";
+            actor?.Brain?.SetActionPhase("운반 대기", null, reason);
+            EndAiAction(
+                CharacterAiActionTerminalKind.Failed,
+                AIActionFailure.Create(
+                    AIActionFailureKind.CannotStart,
+                    reason));
+            return;
+        }
+
+        StartHauling(activeEmergencySupportOnly: true);
+    }
+
+    private void StartHauling(bool activeEmergencySupportOnly)
+    {
         CacheReferences();
         IWorldItemStackRuntime itemRuntime = ItemRuntime;
         if (actor == null || move == null || itemRuntime == null)
@@ -976,6 +1108,8 @@ public sealed class AbilityHaul : MonoBehaviour
             return;
         }
 
+        ClearLastDeliveryPathFailure();
+
         WorldItemHaulPlan reservedPlan;
         string reason;
         bool resumingRestoredDelivery = restoredDeliveryPending
@@ -984,18 +1118,44 @@ public sealed class AbilityHaul : MonoBehaviour
         {
             reservedPlan = activePlan;
         }
-        else if (!itemRuntime.TryReserveBestHaulPlan(
-                     actor,
-                     out reservedPlan,
-                     out reason))
+        else
         {
-            actor.Brain?.SetActionPhase("운반 대기", null, reason);
-            EndAiAction(
-                CharacterAiActionTerminalKind.Failed,
-                AIActionFailure.Create(
-                    AIActionFailureKind.NoWork,
-                    reason));
-            return;
+            bool reserved;
+            if (activeEmergencySupportOnly)
+            {
+                if (itemRuntime
+                    is IActiveEmergencySupportHaulPlanRuntime support)
+                {
+                    reserved = support.TryReserveActiveEmergencySupportHaulPlan(
+                        actor,
+                        out reservedPlan,
+                        out reason);
+                }
+                else
+                {
+                    reservedPlan = null;
+                    reason = "emergency-support-haul-planner-unavailable";
+                    reserved = false;
+                }
+            }
+            else
+            {
+                reserved = itemRuntime.TryReserveBestHaulPlan(
+                    actor,
+                    out reservedPlan,
+                    out reason);
+            }
+
+            if (!reserved)
+            {
+                actor.Brain?.SetActionPhase("운반 대기", null, reason);
+                EndAiAction(
+                    CharacterAiActionTerminalKind.Failed,
+                    AIActionFailure.Create(
+                        AIActionFailureKind.NoWork,
+                        reason));
+                return;
+            }
         }
 
         activePlan = reservedPlan;
@@ -1083,6 +1243,17 @@ public sealed class AbilityHaul : MonoBehaviour
         // StartCoroutine may complete before returning. Preserve the terminal
         // state written by FinishHauling instead of storing a stale handle.
         haulingRoutine = haulExecutionActive ? started : null;
+    }
+
+    private bool HasExactEmergencyResponseGate(
+        WorkTypeId requiredEmergencyWorkTypeId)
+    {
+        return requiredEmergencyWorkTypeId.IsValid
+            && actor != null
+            && actor.TryGetAbility(out AbilityWork work)
+            && work.HasEmergencyResponseWorkGateForDiagnostics
+            && work.EmergencyResponseOnlyWorkTypeForDiagnostics
+                == requiredEmergencyWorkTypeId;
     }
 
     private bool TryRenewActivePlanLeases(out string failureReason)
@@ -1186,6 +1357,7 @@ public sealed class AbilityHaul : MonoBehaviour
             failureReason = "capacity-routing-haul-authority-release-frozen";
             return false;
         }
+        ClearLastDeliveryPathFailure();
         if (disposition == HaulInterruptionDisposition
                 .ReleaseUnpickedAndRetainCarriedForReplan
             && TrySuspendCarriedDeliveryForReplan(reason, stopRoutine: true))
@@ -1334,6 +1506,7 @@ public sealed class AbilityHaul : MonoBehaviour
         out string failureReason)
     {
         failureReason = string.Empty;
+        ClearLastDeliveryPathFailure();
         CacheReferences();
         string actorId = actor?.Identity?.PersistentId?.Trim() ?? string.Empty;
         if (actor == null
@@ -1531,6 +1704,7 @@ public sealed class AbilityHaul : MonoBehaviour
             haulingRoutine = null;
         }
         activePlan = null;
+        ClearLastDeliveryPathFailure();
         pickedLeaseIds.Clear();
         releasedLeaseIds.Clear();
         executionStage = "restore-delivery-rollback";
@@ -1584,6 +1758,7 @@ public sealed class AbilityHaul : MonoBehaviour
         // Old runtime lease IDs must be forgotten, not released into the restored
         // ledger.  The replacement actor owns the persisted carry snapshot.
         activePlan = null;
+        ClearLastDeliveryPathFailure();
         pickedLeaseIds.Clear();
         releasedLeaseIds.Clear();
         unloadReason = WorldItemHaulPlanUnloadReason.Interrupted;
@@ -1663,7 +1838,8 @@ public sealed class AbilityHaul : MonoBehaviour
                 yield return MoveTo(
                     grid,
                     pickup.PickupStandPosition,
-                    expectedAction);
+                    expectedAction,
+                    pickup);
                 executionStage = "픽업 이동 반환";
                 routineHeartbeat++;
                 pickupReached = lastMoveSucceeded;
@@ -1775,7 +1951,8 @@ public sealed class AbilityHaul : MonoBehaviour
                 yield return MoveTo(
                     grid,
                     delivery.DeliveryPosition,
-                    expectedAction);
+                    expectedAction,
+                    delivery);
                 executionStage = "배송 이동 반환";
                 routineHeartbeat++;
                 deliveryReached = lastMoveSucceeded;
@@ -1867,7 +2044,8 @@ public sealed class AbilityHaul : MonoBehaviour
     private IEnumerator MoveTo(
         Grid grid,
         Vector2Int target,
-        AIAction expectedAction)
+        AIAction expectedAction,
+        WorldItemHaulPlanLeg? haulLeg = null)
     {
         lastMoveSucceeded = false;
         executionStage = "경로 준비";
@@ -1940,6 +2118,10 @@ public sealed class AbilityHaul : MonoBehaviour
 
                 if (status == GridPathRequestStatus.Unreachable)
                 {
+                    if (haulLeg.HasValue)
+                    {
+                        RecordDeliveryPathUnreachable(haulLeg.Value);
+                    }
                     actor.Brain?.SetActionPhase(
                         "운반 경로 없음",
                         null,
@@ -2118,6 +2300,10 @@ public sealed class AbilityHaul : MonoBehaviour
         {
             lastFailureReason = "delivery-completed-with-carried-items";
             unloadReason = WorldItemHaulPlanUnloadReason.DepositRejected;
+        }
+        if (unloadReason == WorldItemHaulPlanUnloadReason.Completed)
+        {
+            ClearLastDeliveryPathFailure();
         }
 
         if (unloadReason != WorldItemHaulPlanUnloadReason.Completed)
@@ -2338,6 +2524,30 @@ public sealed class AbilityHaul : MonoBehaviour
             leaseRuntime.ReleaseQuantityLease(normalizedLeaseId, reason);
         }
         releasedLeaseIds.Add(normalizedLeaseId);
+    }
+
+    private void RecordDeliveryPathUnreachable(WorldItemHaulPlanLeg leg)
+    {
+        WorldItemReservedStackQuantity reservation = leg.Reservation;
+        if (!leg.IsValid
+            || string.IsNullOrWhiteSpace(reservation.StackId)
+            || string.IsNullOrWhiteSpace(reservation.ItemId)
+            || string.IsNullOrWhiteSpace(reservation.DestinationId))
+        {
+            return;
+        }
+
+        lastDeliveryPathFailure = new HaulDeliveryPathFailureSnapshot(
+            reservation.OwnerOperationId,
+            reservation.StackId,
+            reservation.DestinationId,
+            reservation.ItemId,
+            AIActionFailureKind.NoPath);
+    }
+
+    private void ClearLastDeliveryPathFailure()
+    {
+        lastDeliveryPathFailure = default;
     }
 
     private static AIActionFailureKind ResolveFailureKind(

@@ -7,6 +7,7 @@ internal static class SurgicalPartProductionOutputSemantics
     private const string OutcomeSchema = "surgical-part-output@2";
     private const string PublicationOperationPrefix =
         "surgical-part-output-publication:";
+    private const string VariantSegment = "/variant/";
 
     internal static string PublicationOperationId(string commitId) =>
         PublicationOperationPrefix + (commitId ?? string.Empty);
@@ -23,15 +24,30 @@ internal static class SurgicalPartProductionOutputSemantics
             && value.StartsWith(
                 SurgeryItemDefinitions.ProstheticPrefix,
                 StringComparison.Ordinal);
-        nodeId = canonical
+        string authoredSuffix = canonical
             ? value.Substring(SurgeryItemDefinitions.ProstheticPrefix.Length)
             : string.Empty;
+        int variantIndex = authoredSuffix.IndexOf(
+            VariantSegment,
+            StringComparison.Ordinal);
+        string variantId = variantIndex >= 0
+            ? authoredSuffix.Substring(variantIndex + VariantSegment.Length)
+            : string.Empty;
+        nodeId = variantIndex >= 0
+            ? authoredSuffix.Substring(0, variantIndex)
+            : authoredSuffix;
+        bool variantCanonical = variantIndex < 0
+            || variantId.Length > 0
+                && string.Equals(variantId, variantId.Trim(), StringComparison.Ordinal)
+                && !variantId.Contains(VariantSegment, StringComparison.Ordinal)
+                && !variantId.Contains('/');
         kind = nodeId.StartsWith("eye:", StringComparison.Ordinal)
             ? SurgicalPartKind.Implant
             : SurgicalPartKind.Prosthetic;
         return canonical
             && nodeId.Length > 0
-            && string.Equals(nodeId, nodeId.Trim(), StringComparison.Ordinal);
+            && string.Equals(nodeId, nodeId.Trim(), StringComparison.Ordinal)
+            && variantCanonical;
     }
 
     internal static void ResolveDefinition(

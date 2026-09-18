@@ -386,6 +386,8 @@ public class CharacterStats :
             loss *= Mathf.Max(
                 0f,
                 actor.Identity?.Data?.species?.needs?.sleepRateMultiplier ?? 1f);
+            loss *= RequireProjectionService()
+                .GetFatigueAccumulationMultiplier(CreateProjectionContext());
         }
 
         if (loss > 0f)
@@ -636,16 +638,15 @@ public class CharacterStats :
 
     public float GetWorkSpeedMultiplier(WorkTypeId workTypeId)
     {
-        return EvaluateWorkPerformance(workTypeId, "speed").Value;
+        return EvaluateWorkSpeedPerformance(workTypeId).Value;
     }
 
     public float GetWorkSpeedMultiplier(
         WorkTypeId workTypeId,
         BuildableObject target)
     {
-        return EvaluateWorkPerformance(
+        return EvaluateWorkSpeedPerformance(
             workTypeId,
-            "speed",
             target).Value;
     }
 
@@ -661,6 +662,10 @@ public class CharacterStats :
                 $"Work type '{workTypeId.Value}' is not registered.");
     }
 
+    internal GameplayEffectContext BuildWorkEffectContext(
+        WorkTypeId workTypeId) => RequireProjectionService()
+        .BuildWorkEffectContext(CreateProjectionContext(), workTypeId);
+
     public float GetWorkPreferenceScore(WorkTypeId workTypeId)
     {
         return WorkTypeCatalog.TryGet(workTypeId, out WorkTypeDefinition definition)
@@ -672,18 +677,6 @@ public class CharacterStats :
     public float GetFacilityPreferenceScore(FacilityRole roles)
     {
         return GetEffectiveProfile()?.GetFacilityPreferenceScore(roles) ?? 0.5f;
-    }
-
-    public float GetAccidentChanceMultiplier()
-    {
-        WorkTypeId workTypeId = actor != null
-            && actor.TryGetAbility(out AbilityWork work)
-                ? work.AssignedWorkTypeId
-                : default;
-        if (!workTypeId.IsValid)
-            throw new InvalidOperationException(
-                "Work accident projection requires an assigned work type.");
-        return EvaluateWorkPerformance(workTypeId, "accident").Value;
     }
 
     public CharacterSpeciesIncidentType GetIncidentType()
@@ -723,9 +716,8 @@ public class CharacterStats :
         return snapshot.Value;
     }
 
-    private CharacterPerformanceSnapshot EvaluateWorkPerformance(
+    private CharacterPerformanceSnapshot EvaluateWorkSpeedPerformance(
         WorkTypeId workTypeId,
-        string channel,
         BuildableObject targetOverride = null)
     {
         if (!workTypeId.IsValid || actor == null)
@@ -746,29 +738,18 @@ public class CharacterStats :
                 out ProficiencyWorkProfile profile,
                 out string failureReason))
             throw new InvalidOperationException(failureReason);
-        CharacterPerformanceResultChannel resultChannel = channel switch
-        {
-            "speed" => CharacterPerformanceResultChannel.Speed,
-            "accident" => CharacterPerformanceResultChannel.AccidentRisk,
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(channel),
-                channel,
-                null)
-        };
         CharacterPerformanceSnapshot snapshot = RequirePerformance().EvaluateWork(
             actor,
             workTypeId,
-            resultChannel,
+            CharacterPerformanceResultChannel.Speed,
             workPerformanceContext.BuildEvaluationContext(
                 profile,
-                new GameplayEffectContext(new[] { workTypeId.Value }),
-                channel == "speed"
-                    ? GetWorkContextMultiplier(workTypeId)
-                    : 1f));
+                BuildWorkEffectContext(workTypeId),
+                GetWorkContextMultiplier(workTypeId)));
         if (!snapshot.IsApplicable)
             throw new InvalidOperationException(
                 snapshot.Failure?.Message
-                ?? $"Work performance '{workTypeId.Value}:{channel}' is unavailable.");
+                ?? $"Work performance '{workTypeId.Value}:speed' is unavailable.");
         return snapshot;
     }
 
@@ -920,6 +901,19 @@ public class CharacterStats :
             actor,
             calculatedMaximum,
             resetCurrentHealth);
+    }
+
+    [GameplayInternalOnly(
+        "Installed-part lifecycle and bounded health maintenance refresh derived maximum health without healing.",
+        "CharacterBodyHealthRuntime|InstallSurgicalPartEffectHandler|SurgicalPartRuntime")]
+    internal void RefreshDerivedMaximumHealthPreservingCurrent()
+    {
+        float calculatedMaximum = RequireProjectionService()
+            .CalculateMaximumHealth(CreateProjectionContext());
+
+        RequireVitalsService().RefreshMaximumHealthPreservingCurrent(
+            actor,
+            calculatedMaximum);
     }
 
     public void RestorePersistentState(

@@ -56,6 +56,8 @@ internal sealed class CharacterConsumablesAggregateState
         SubstancePolicies = new();
     internal readonly Dictionary<CharacterSubstanceKey, CharacterSubstanceState>
         SubstanceStates = new();
+    internal readonly Dictionary<CharacterId, CharacterToxicityState>
+        ToxicityStates = new();
     internal readonly Dictionary<ConsumableDeliveryId, CharacterMealDeliveryState>
         PendingDeliveries = new();
     internal readonly Dictionary<MealDeliveryRoute, ConsumableDeliveryId>
@@ -67,6 +69,8 @@ internal sealed class CharacterConsumablesAggregateState
         ActiveMealPlans = new();
     internal readonly Dictionary<ConsumableOperationId, CharacterSubstanceUsePlan>
         ActiveSubstanceUsePlans = new();
+    internal readonly Dictionary<ConsumableOperationId, CharacterDetoxTreatmentPlan>
+        ActiveDetoxTreatmentPlans = new();
     internal long NextOperationSequence = 1;
     internal long NextDeliverySequence = 1;
     internal float NextDeliveryPruneAt;
@@ -98,6 +102,12 @@ internal sealed class CharacterConsumablesAggregateState
         {
             clone.SubstanceStates.Add(pair.Key, CharacterConsumablesStateRules.Clone(pair.Value));
         }
+        foreach (KeyValuePair<CharacterId, CharacterToxicityState> pair in ToxicityStates)
+        {
+            clone.ToxicityStates.Add(
+                pair.Key,
+                CharacterConsumablesStateRules.Clone(pair.Value));
+        }
         foreach (KeyValuePair<ConsumableDeliveryId, CharacterMealDeliveryState> pair in PendingDeliveries)
         {
             CharacterMealDeliveryState delivery = CharacterConsumablesStateRules.Clone(pair.Value);
@@ -124,12 +134,79 @@ internal sealed class CharacterConsumablesAggregateState
                 pair.Key,
                 CharacterConsumablesStateRules.Clone(pair.Value));
         }
+        foreach (KeyValuePair<ConsumableOperationId, CharacterDetoxTreatmentPlan> pair in
+                 ActiveDetoxTreatmentPlans)
+        {
+            clone.ActiveDetoxTreatmentPlans.Add(
+                pair.Key,
+                CharacterConsumablesStateRules.Clone(pair.Value));
+        }
         return clone;
     }
 }
 
 internal static class CharacterConsumablesStateRules
 {
+    internal static CharacterDetoxTreatmentPlan Clone(
+        CharacterDetoxTreatmentPlan source) => new()
+    {
+        operationId = source?.operationId ?? string.Empty,
+        characterId = source?.characterId ?? string.Empty,
+        facilityInstanceId = source?.facilityInstanceId ?? string.Empty,
+        itemDefinitionId = source?.itemDefinitionId ?? string.Empty,
+        sourceStackId = source?.sourceStackId ?? string.Empty,
+        phase = source?.phase ?? CharacterDetoxTreatmentPlanPhase.ItemCommitted,
+        detoxReduction = source?.detoxReduction ?? 0f,
+        appliedReduction = source?.appliedReduction ?? 0f,
+        physicalCommitOperationId = source?.physicalCommitOperationId ?? string.Empty,
+        physicalCommitReasonCode = source?.physicalCommitReasonCode ?? string.Empty,
+        physicalCommitId = source?.physicalCommitId ?? string.Empty,
+        physicalCommitSourceStackIds = source?.physicalCommitSourceStackIds?.ToList()
+            ?? new List<string>(),
+        physicalCommitQuantity = source?.physicalCommitQuantity ?? 0,
+        physicalCommitInputMassGrams = source?.physicalCommitInputMassGrams ?? 0L
+    };
+
+    internal static CharacterDetoxTreatmentPlanSaveData ToSaveData(
+        CharacterDetoxTreatmentPlan source) => new()
+    {
+        operationId = source?.operationId ?? string.Empty,
+        characterId = source?.characterId ?? string.Empty,
+        facilityInstanceId = source?.facilityInstanceId ?? string.Empty,
+        itemDefinitionId = source?.itemDefinitionId ?? string.Empty,
+        sourceStackId = source?.sourceStackId ?? string.Empty,
+        phase = source?.phase ?? CharacterDetoxTreatmentPlanPhase.ItemCommitted,
+        detoxReduction = source?.detoxReduction ?? 0f,
+        appliedReduction = source?.appliedReduction ?? 0f,
+        physicalCommitOperationId = source?.physicalCommitOperationId ?? string.Empty,
+        physicalCommitReasonCode = source?.physicalCommitReasonCode ?? string.Empty,
+        physicalCommitId = source?.physicalCommitId ?? string.Empty,
+        physicalCommitSourceStackIds = source?.physicalCommitSourceStackIds?.ToList()
+            ?? new List<string>(),
+        physicalCommitQuantity = source?.physicalCommitQuantity ?? 0,
+        physicalCommitInputMassGrams = source?.physicalCommitInputMassGrams ?? 0L
+    };
+
+    internal static CharacterDetoxTreatmentPlan FromSaveData(
+        CharacterDetoxTreatmentPlanSaveData source) => new()
+    {
+        operationId = source?.operationId ?? string.Empty,
+        characterId = source?.characterId ?? string.Empty,
+        facilityInstanceId = source?.facilityInstanceId ?? string.Empty,
+        itemDefinitionId = source?.itemDefinitionId ?? string.Empty,
+        sourceStackId = source?.sourceStackId ?? string.Empty,
+        phase = source?.phase ?? CharacterDetoxTreatmentPlanPhase.ItemCommitted,
+        detoxReduction = source?.detoxReduction ?? 0f,
+        appliedReduction = source?.appliedReduction ?? 0f,
+        physicalCommitOperationId = source?.physicalCommitOperationId ?? string.Empty,
+        physicalCommitReasonCode = source?.physicalCommitReasonCode ?? string.Empty,
+        physicalCommitId = source?.physicalCommitId ?? string.Empty,
+        physicalCommitSourceStackIds = source?.physicalCommitSourceStackIds?.ToList()
+            ?? new List<string>(),
+        physicalCommitQuantity = source?.physicalCommitQuantity ?? 0,
+        physicalCommitInputMassGrams = source?.physicalCommitInputMassGrams ?? 0L
+    };
+
     internal static CharacterSubstanceUsePlan Clone(
         CharacterSubstanceUsePlan source) => new()
     {
@@ -342,6 +419,14 @@ internal static class CharacterConsumablesStateRules
             overdosed = source?.overdosed ?? false
         };
 
+    internal static CharacterToxicityState Clone(CharacterToxicityState source) =>
+        new()
+        {
+            characterId = source?.characterId ?? string.Empty,
+            toxicity = CharacterToxicityPolicy.Clamp(source?.toxicity ?? 0f),
+            lastNaturalRecoveryDay = source?.lastNaturalRecoveryDay ?? 0
+        };
+
     internal static CharacterMealDeliveryState Clone(CharacterMealDeliveryState source) =>
         new()
         {
@@ -361,10 +446,13 @@ internal static class CharacterConsumablesStateRules
             characterId = source?.characterId ?? string.Empty,
             itemDefinitionId = source?.itemDefinitionId ?? string.Empty,
             itemStackId = source?.itemStackId ?? string.Empty,
+            facilityInstanceId = source?.facilityInstanceId ?? string.Empty,
             meal = source?.meal ?? false,
+            detox = source?.detox ?? false,
             policyViolation = source?.policyViolation ?? false,
             contaminated = source?.contaminated ?? false,
-            completedAt = source?.completedAt ?? 0f
+            completedAt = source?.completedAt ?? 0f,
+            appliedEffect = source?.appliedEffect ?? 0f
         };
 
     internal static MealDeliveryRoute Route(CharacterMealDeliveryState delivery) =>
@@ -392,6 +480,8 @@ internal static class CharacterConsumablesStateRules
             substanceStates = state.SubstanceStates.Values.Select(Clone)
                 .OrderBy(value => value.characterId, StringComparer.Ordinal)
                 .ThenBy(value => value.itemDefinitionId, StringComparer.Ordinal).ToList(),
+            toxicityStates = state.ToxicityStates.Values.Select(Clone)
+                .OrderBy(value => value.characterId, StringComparer.Ordinal).ToList(),
             pendingMealDeliveries = state.PendingDeliveries.Values.Select(Clone)
                 .OrderBy(value => value.deliveryId, StringComparer.Ordinal).ToList(),
             completedOperations = state.CompletedOperations.Values.Select(Clone)
@@ -401,6 +491,10 @@ internal static class CharacterConsumablesStateRules
                 .OrderBy(value => value.planId, StringComparer.Ordinal)
                 .ToList(),
             activeSubstanceUsePlans = state.ActiveSubstanceUsePlans.Values
+                .Select(ToSaveData)
+                .OrderBy(value => value.operationId, StringComparer.Ordinal)
+                .ToList(),
+            activeDetoxTreatmentPlans = state.ActiveDetoxTreatmentPlans.Values
                 .Select(ToSaveData)
                 .OrderBy(value => value.operationId, StringComparer.Ordinal)
                 .ToList(),
@@ -449,11 +543,13 @@ internal static class CharacterConsumablesStateRules
         }
         if (payload.dietPolicies == null || payload.substancePolicies == null
             || payload.substanceStates == null || payload.pendingMealDeliveries == null
+            || payload.toxicityStates == null
             || payload.completedOperations == null
             || payload.mealFollowupCooldowns == null
             || payload.mealQualityPolicies == null
             || payload.activeMealPlans == null
-            || payload.activeSubstanceUsePlans == null)
+            || payload.activeSubstanceUsePlans == null
+            || payload.activeDetoxTreatmentPlans == null)
         {
             report.AddError("Character consumables payload contains a null collection.");
             return;
@@ -467,11 +563,13 @@ internal static class CharacterConsumablesStateRules
         HashSet<CharacterId> mealQualityIds = new();
         HashSet<CharacterSubstanceKey> policyKeys = new();
         HashSet<CharacterSubstanceKey> stateKeys = new();
+        HashSet<CharacterId> toxicityIds = new();
         HashSet<ConsumableDeliveryId> deliveryIds = new();
         HashSet<MealDeliveryRoute> deliveryRoutes = new();
         HashSet<ConsumableOperationId> completedOperationIds = new();
         HashSet<ConsumableOperationId> activePlanIds = new();
         HashSet<ConsumableOperationId> activeSubstancePlanIds = new();
+        HashSet<ConsumableOperationId> activeDetoxPlanIds = new();
         HashSet<CharacterId> cooldownIds = new();
 
         string previous = null;
@@ -556,6 +654,27 @@ internal static class CharacterConsumablesStateRules
         }
 
         previous = null;
+        foreach (CharacterToxicityState state in payload.toxicityStates)
+        {
+            if (state == null
+                || !IsExactCharacterId(state.characterId, state.CharacterId)
+                || requireWorldReferences && !characters.Contains(state.CharacterId)
+                || !toxicityIds.Add(state.CharacterId)
+                || !IsFiniteRange(
+                    state.toxicity,
+                    0f,
+                    CharacterToxicityPolicy.MaximumToxicity)
+                || state.lastNaturalRecoveryDay < 0
+                || !IsAfter(previous, state.characterId))
+            {
+                report.AddError(
+                    "Character consumables toxicity states contain invalid, duplicate, unordered, or non-finite state.");
+                break;
+            }
+            previous = state.characterId;
+        }
+
+        previous = null;
         foreach (CharacterMealDeliveryState delivery in payload.pendingMealDeliveries)
         {
             MealDeliveryRoute route = delivery == null ? default : Route(delivery);
@@ -630,8 +749,28 @@ internal static class CharacterConsumablesStateRules
         foreach (CharacterConsumableOperationState operation in payload.completedOperations)
         {
             bool validItem = operation != null && (operation.meal
-                ? inventory.TryGetMeal(operation.ItemDefinitionId, out _)
-                : inventory.TryResolveSubstance(operation.ItemDefinitionId, out _));
+                ? !operation.detox
+                    && inventory.TryGetMeal(operation.ItemDefinitionId, out _)
+                : operation.detox
+                    ? inventory.TryResolveDetoxMedicine(
+                        operation.ItemDefinitionId,
+                        out _)
+                    : inventory.TryResolveSubstance(
+                        operation.ItemDefinitionId,
+                        out _));
+            bool validFacility = operation != null
+                && (operation.meal || operation.detox
+                    ? operation.FacilityId.IsValid
+                        && IsExactValue(
+                            operation.facilityInstanceId,
+                            operation.FacilityId.Value)
+                    : string.IsNullOrEmpty(operation.facilityInstanceId));
+            bool validAppliedEffect = operation != null && (operation.detox
+                ? IsFiniteRange(
+                    operation.appliedEffect,
+                    0f,
+                    CharacterToxicityPolicy.MaximumToxicity)
+                : operation.appliedEffect == 0f);
             if (operation == null
                 || !operation.OperationId.IsValid
                 || !IsExactValue(operation.operationId, operation.OperationId.Value)
@@ -645,6 +784,8 @@ internal static class CharacterConsumablesStateRules
                 || requireWorldReferences
                     && !characters.Contains(operation.CharacterId)
                 || !validItem || !completedOperationIds.Add(operation.OperationId)
+                || !validFacility
+                || !validAppliedEffect
                 || !IsFiniteNonNegative(operation.completedAt)
                 || !IsAfter(previous, operation.operationId))
             {
@@ -759,6 +900,66 @@ internal static class CharacterConsumablesStateRules
         }
 
         previous = null;
+        foreach (CharacterDetoxTreatmentPlanSaveData plan in
+                 payload.activeDetoxTreatmentPlans)
+        {
+            bool validMedicine = plan != null
+                && inventory.TryResolveDetoxMedicine(
+                    plan.ItemDefinitionId,
+                    out CharacterDetoxMedicineDefinitionSnapshot medicine)
+                && plan.detoxReduction.Equals(medicine.DetoxReduction);
+            bool effectsPublished = plan != null
+                && plan.phase is CharacterDetoxTreatmentPlanPhase.EffectsPublished
+                    or CharacterDetoxTreatmentPlanPhase.PhysicalAcknowledged;
+            bool completedMatches = plan != null
+                && completedOperationIds.Contains(plan.OperationId) == effectsPublished;
+            if (plan == null
+                || !plan.OperationId.IsValid
+                || !IsExactValue(plan.operationId, plan.OperationId.Value)
+                || !IsExactCharacterId(plan.characterId, plan.CharacterId)
+                || requireWorldReferences && !characters.Contains(plan.CharacterId)
+                || !plan.FacilityId.IsValid
+                || !IsExactValue(
+                    plan.facilityInstanceId,
+                    plan.FacilityId.Value)
+                || requireWorldReferences && !facilities.Contains(plan.FacilityId)
+                || !plan.ItemDefinitionId.IsValid
+                || !IsExactValue(
+                    plan.itemDefinitionId,
+                    plan.ItemDefinitionId.Value)
+                || !plan.SourceStackId.IsValid
+                || !IsExactValue(plan.sourceStackId, plan.SourceStackId.Value)
+                || !validMedicine
+                || !IsFiniteRange(
+                    plan.detoxReduction,
+                    float.Epsilon,
+                    CharacterToxicityPolicy.MaximumToxicity)
+                || !IsFiniteRange(
+                    plan.appliedReduction,
+                    0f,
+                    plan.detoxReduction)
+                || (!effectsPublished && plan.appliedReduction != 0f)
+                || plan.phase is not (CharacterDetoxTreatmentPlanPhase.ItemCommitted
+                    or CharacterDetoxTreatmentPlanPhase.EffectsPublished
+                    or CharacterDetoxTreatmentPlanPhase.PhysicalAcknowledged)
+                || !activeDetoxPlanIds.Add(plan.OperationId)
+                || activePlanIds.Contains(plan.OperationId)
+                || activeSubstancePlanIds.Contains(plan.OperationId)
+                || !completedMatches
+                || !ValidDetoxPhysicalCommit(
+                    plan,
+                    inventory,
+                    requireWorldReferences)
+                || !IsAfter(previous, plan.operationId))
+            {
+                report.AddError(
+                    "Character consumables active detox plans contain an invalid, duplicate, unordered, or unknown pending disposition.");
+                break;
+            }
+            previous = plan.operationId;
+        }
+
+        previous = null;
         foreach (CharacterMealFollowupCooldownSaveData cooldown in
                  payload.mealFollowupCooldowns)
         {
@@ -806,6 +1007,11 @@ internal static class CharacterConsumablesStateRules
             CharacterSubstanceState clone = Clone(source);
             state.SubstanceStates.Add(new(clone.CharacterId, clone.ItemDefinitionId), clone);
         }
+        foreach (CharacterToxicityState source in payload.toxicityStates)
+        {
+            CharacterToxicityState clone = Clone(source);
+            state.ToxicityStates.Add(clone.CharacterId, clone);
+        }
         foreach (CharacterMealDeliveryState source in payload.pendingMealDeliveries)
         {
             CharacterMealDeliveryState clone = Clone(source);
@@ -827,6 +1033,12 @@ internal static class CharacterConsumablesStateRules
         {
             CharacterSubstanceUsePlan plan = FromSaveData(source);
             state.ActiveSubstanceUsePlans.Add(source.OperationId, plan);
+        }
+        foreach (CharacterDetoxTreatmentPlanSaveData source in
+                 payload.activeDetoxTreatmentPlans)
+        {
+            CharacterDetoxTreatmentPlan plan = FromSaveData(source);
+            state.ActiveDetoxTreatmentPlans.Add(source.OperationId, plan);
         }
         foreach (CharacterMealFollowupCooldownSaveData source in
                  payload.mealFollowupCooldowns)
@@ -863,6 +1075,68 @@ internal static class CharacterConsumablesStateRules
         && !float.IsInfinity(value)
         && value >= minimum
         && value <= maximum;
+
+    private static bool ValidDetoxPhysicalCommit(
+        CharacterDetoxTreatmentPlanSaveData plan,
+        ICharacterConsumablesInventoryPort inventory,
+        bool requirePhysicalJoin)
+    {
+        IReadOnlyList<string> sourceIds = plan.physicalCommitSourceStackIds != null
+            ? plan.physicalCommitSourceStackIds
+            : Array.Empty<string>();
+        bool canonicalSources = sourceIds.Count > 0;
+        string previous = null;
+        for (int index = 0; index < sourceIds.Count; index++)
+        {
+            if (!IsAfter(previous, sourceIds[index]))
+            {
+                canonicalSources = false;
+                break;
+            }
+            previous = sourceIds[index];
+        }
+        bool structurallyValid = string.Equals(
+                plan.physicalCommitOperationId,
+                plan.operationId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                plan.physicalCommitReasonCode,
+                CharacterConsumablesRuntime.DetoxPhysicalSinkReason,
+                StringComparison.Ordinal)
+            && !string.IsNullOrWhiteSpace(plan.physicalCommitId)
+            && plan.physicalCommitId.StartsWith(
+                "physical-batch-disposition:",
+                StringComparison.Ordinal)
+            && canonicalSources
+            && plan.physicalCommitQuantity == 1
+            && plan.physicalCommitInputMassGrams > 0L;
+        if (!structurallyValid || !requirePhysicalJoin)
+            return structurallyValid;
+
+        if (!inventory.TryGetPendingDetoxConsumption(
+                plan.OperationId,
+                out CharacterDetoxPhysicalCommitSnapshot pending))
+        {
+            return plan.phase is CharacterDetoxTreatmentPlanPhase.EffectsPublished
+                or CharacterDetoxTreatmentPlanPhase.PhysicalAcknowledged;
+        }
+        return string.Equals(
+                plan.physicalCommitOperationId,
+                pending.OperationId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                plan.physicalCommitReasonCode,
+                pending.ReasonCode,
+                StringComparison.Ordinal)
+            && string.Equals(
+                plan.physicalCommitId,
+                pending.CommitId,
+                StringComparison.Ordinal)
+            && plan.physicalCommitQuantity == pending.Quantity
+            && plan.physicalCommitInputMassGrams == pending.InputMassGrams
+            && sourceIds.SequenceEqual(
+                pending.SourceStackIds ?? Array.Empty<string>());
+    }
 
     private static bool ValidSubstancePhysicalCommit(
         CharacterSubstanceUsePlanSaveData plan,
@@ -1032,6 +1306,14 @@ internal static class CharacterConsumablesStateRules
                 value => value?.operationId,
                 CharacterConsumableIdContract.ClassifyOperation,
                 "active substance operation",
+                report));
+        highestOperation = Math.Max(
+            highestOperation,
+            ValidateGeneratedIds(
+                payload.activeDetoxTreatmentPlans,
+                value => value?.operationId,
+                CharacterConsumableIdContract.ClassifyOperation,
+                "active detox operation",
                 report));
         long highestDelivery = ValidateGeneratedIds(
             payload.pendingMealDeliveries,

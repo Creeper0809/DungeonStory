@@ -2,7 +2,7 @@
 CharacterSO,content-type,,type-reference,controllers,runtime,structural-type-consumer,Assets/Scripts/Controllers/GameManager.cs
 CharacterSO,content-type,,type-reference; save-restore-reference,services:character,ai-decision,structural-type-consumer,Assets/Scripts/Services/Character/AI/AIBrain.cs
 CharacterSO,content-type,,type-reference; save-restore-reference,services:character,ai-decision,structural-type-consumer,Assets/Scripts/Services/Character/AI/CustomerPersonaRuntime.cs
-CharacterSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Ability/AbilityMove.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Ability/AbilityMove.cs
 CharacterSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Ability/AbilityShopping.cs
 CharacterSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Ability/AbilityWork.cs
 CharacterSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Ability/CharacterAbility.cs

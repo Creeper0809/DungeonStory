@@ -1,0 +1,5 @@
+PASS actual funeral producer consumed one physical kit, completed exact grief, applied Trauma 20->10 and published one grave-visit receipt/effect/alert
+PASS current whole save restores funeral ownership and exact replay changes no state, item, effect or alert
+result=PASS
+scope=actual registered ISocialCareCommand with one active owner participant, controlled archived same-species death/grief/trauma seed, authored RF87 memorial placement, one actual physical funeral kit, exact receipt/Trauma/alert and current whole-save restore; preparation is not natural death, construction, crafting or autonomous funeral scheduling evidence
+cleanup=paused disposable protected Play; disk persistence disabled before owner selection; operator stops without scene/profile/save writes

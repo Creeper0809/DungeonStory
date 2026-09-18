@@ -545,6 +545,12 @@
         },
         {
           "kind": "event",
+          "slug": "faction-contract-myconid-winter-fuel-demand",
+          "spoiler_tier": "none",
+          "title": "균사정원 겨울 연료 요청"
+        },
+        {
+          "kind": "event",
           "slug": "faction-contract-myconid-crisis",
           "spoiler_tier": "none",
           "title": "균사정원 위기 대응 계약"
@@ -590,6 +596,12 @@
           "slug": "faction-arc-kobold",
           "spoiler_tier": "warning",
           "title": "깊은톱니 굴"
+        },
+        {
+          "kind": "event",
+          "slug": "faction-contract-kobold-winter-fuel-demand",
+          "spoiler_tier": "none",
+          "title": "깊은톱니 굴 겨울 연료 요청"
         },
         {
           "kind": "event",
@@ -737,6 +749,12 @@
         },
         {
           "kind": "event",
+          "slug": "faction-contract-golem-winter-fuel-demand",
+          "spoiler_tier": "none",
+          "title": "돌맥 주조소 겨울 연료 요청"
+        },
+        {
+          "kind": "event",
           "slug": "faction-contract-golem-crisis",
           "spoiler_tier": "none",
           "title": "돌맥 주조소 위기 대응 계약"
@@ -776,12 +794,6 @@
           "slug": "practice-vampire-consent-cup",
           "spoiler_tier": "none",
           "title": "동의의 잔"
-        },
-        {
-          "kind": "event",
-          "slug": "seasonal-spring-nesting-season",
-          "spoiler_tier": "warning",
-          "title": "둥지철"
         },
         {
           "kind": "event",
@@ -935,6 +947,12 @@
         },
         {
           "kind": "event",
+          "slug": "faction-contract-beastkin-winter-fuel-demand",
+          "spoiler_tier": "none",
+          "title": "붉은발톱 교역소 겨울 연료 요청"
+        },
+        {
+          "kind": "event",
           "slug": "faction-contract-beastkin-crisis",
           "spoiler_tier": "none",
           "title": "붉은발톱 교역소 위기 대응 계약"
@@ -956,12 +974,6 @@
           "slug": "faction-chapter-beastkin-2",
           "spoiler_tier": "warning",
           "title": "비어 가는 사냥터"
-        },
-        {
-          "kind": "event",
-          "slug": "guest-request-monster-circus",
-          "spoiler_tier": "none",
-          "title": "비전 생물 시연"
         },
         {
           "kind": "event",
@@ -1211,6 +1223,12 @@
         },
         {
           "kind": "event",
+          "slug": "faction-contract-demon-winter-fuel-demand",
+          "spoiler_tier": "none",
+          "title": "잿빛 계약정 겨울 연료 요청"
+        },
+        {
+          "kind": "event",
           "slug": "faction-contract-demon-crisis",
           "spoiler_tier": "none",
           "title": "잿빛 계약정 위기 대응 계약"
@@ -1379,6 +1397,12 @@
         },
         {
           "kind": "event",
+          "slug": "faction-contract-harpy-winter-fuel-demand",
+          "spoiler_tier": "none",
+          "title": "폭풍둥지 겨울 연료 요청"
+        },
+        {
+          "kind": "event",
           "slug": "faction-chapter-kobold-3",
           "spoiler_tier": "warning",
           "title": "폭풍둥지 운반 특허"
@@ -1424,6 +1448,12 @@
           "slug": "faction-chapter-kobold-1",
           "spoiler_tier": "warning",
           "title": "한 톱니 모자란 상자"
+        },
+        {
+          "kind": "event",
+          "slug": "seasonal-spring-drift-cargo",
+          "spoiler_tier": "warning",
+          "title": "해빙 표류 화물"
         },
         {
           "kind": "event",
@@ -1474,7 +1504,7 @@
           "title": "희귀 병원체 공동연구"
         }
       ],
-      "entry_count": 171,
+      "entry_count": 176,
       "id": "events",
       "label": "사건"
     },
@@ -4129,6 +4159,12 @@
         },
         {
           "kind": "facility",
+          "slug": "building-9829",
+          "spoiler_tier": "none",
+          "title": "인공태양"
+        },
+        {
+          "kind": "facility",
           "slug": "building-runtime-exterior-zone-0-0",
           "spoiler_tier": "none",
           "title": "입구"
@@ -4687,6 +4723,12 @@
         },
         {
           "kind": "facility",
+          "slug": "building-9828",
+          "spoiler_tier": "none",
+          "title": "태양등"
+        },
+        {
+          "kind": "facility",
           "slug": "building-8852",
           "spoiler_tier": "none",
           "title": "토양 검사대"
@@ -4902,18 +4944,12 @@
           "title": "흑강 주조 보조로"
         }
       ],
-      "entry_count": 425,
+      "entry_count": 427,
       "id": "facilities",
       "label": "시설·방"
     },
     {
       "entries": [
-        {
-          "kind": "item",
-          "slug": "facility-kit-35",
-          "spoiler_tier": "none",
-          "title": "1성 경비실 설치 키트"
-        },
         {
           "kind": "item",
           "slug": "facility-kit-34",
@@ -4952,51 +4988,15 @@
         },
         {
           "kind": "item",
-          "slug": "facility-kit-51",
-          "spoiler_tier": "none",
-          "title": "2성 고급 고기 식당 설치 키트"
-        },
-        {
-          "kind": "item",
           "slug": "facility-kit-52",
           "spoiler_tier": "none",
           "title": "2성 맹독 가시 함정 설치 키트"
         },
         {
           "kind": "item",
-          "slug": "facility-kit-54",
-          "spoiler_tier": "none",
-          "title": "2성 병영 설치 키트"
-        },
-        {
-          "kind": "item",
-          "slug": "facility-kit-50",
-          "spoiler_tier": "none",
-          "title": "2성 전투 식당 설치 키트"
-        },
-        {
-          "kind": "item",
-          "slug": "facility-kit-56",
-          "spoiler_tier": "none",
-          "title": "3성 귀족의 식당 설치 키트"
-        },
-        {
-          "kind": "item",
           "slug": "facility-kit-57",
           "spoiler_tier": "none",
           "title": "3성 부식 냉각 함정 설치 키트"
-        },
-        {
-          "kind": "item",
-          "slug": "facility-kit-55",
-          "spoiler_tier": "none",
-          "title": "3성 전장의 식당 설치 키트"
-        },
-        {
-          "kind": "item",
-          "slug": "facility-kit-59",
-          "spoiler_tier": "none",
-          "title": "3성 전투 병영 설치 키트"
         },
         {
           "kind": "item",
@@ -5294,12 +5294,6 @@
         },
         {
           "kind": "item",
-          "slug": "facility-kit-11",
-          "spoiler_tier": "none",
-          "title": "고기 식당 설치 키트"
-        },
-        {
-          "kind": "item",
           "slug": "food-meat-pie",
           "spoiler_tier": "none",
           "title": "고기 파이"
@@ -5327,6 +5321,12 @@
           "slug": "facility-kit-9852",
           "spoiler_tier": "none",
           "title": "고속 컨베이어 설치 키트"
+        },
+        {
+          "kind": "item",
+          "slug": "surgery-prosthetic-torso",
+          "spoiler_tier": "none",
+          "title": "골격 보강 몸통"
         },
         {
           "kind": "item",
@@ -5786,6 +5786,12 @@
         },
         {
           "kind": "item",
+          "slug": "surgery-prosthetic-hypha-core",
+          "spoiler_tier": "none",
+          "title": "균핵 보철"
+        },
+        {
+          "kind": "item",
           "slug": "resource-shade-fiber",
           "spoiler_tier": "none",
           "title": "그늘섬유"
@@ -6161,6 +6167,12 @@
           "slug": "facility-kit-1005",
           "spoiler_tier": "none",
           "title": "대형연회식탁 설치 키트"
+        },
+        {
+          "kind": "item",
+          "slug": "surgery-prosthetic-heat-sac-variant-demon-heat-sac",
+          "spoiler_tier": "none",
+          "title": "데몬 열낭 보강기"
         },
         {
           "kind": "item",
@@ -6596,12 +6608,6 @@
         },
         {
           "kind": "item",
-          "slug": "facility-kit-17",
-          "spoiler_tier": "none",
-          "title": "마력 저장소 설치 키트"
-        },
-        {
-          "kind": "item",
           "slug": "facility-kit-1056",
           "spoiler_tier": "none",
           "title": "마력보관함 설치 키트"
@@ -6647,6 +6653,12 @@
           "slug": "facility-kit-8866",
           "spoiler_tier": "none",
           "title": "만성 관리실 설치 키트"
+        },
+        {
+          "kind": "item",
+          "slug": "item-memory-erasure-seal",
+          "spoiler_tier": "none",
+          "title": "망각의 인장"
         },
         {
           "kind": "item",
@@ -6863,18 +6875,6 @@
           "slug": "facility-kit-1018",
           "spoiler_tier": "none",
           "title": "무기보관함 설치 키트"
-        },
-        {
-          "kind": "item",
-          "slug": "facility-kit-5",
-          "spoiler_tier": "none",
-          "title": "무기상점 설치 키트"
-        },
-        {
-          "kind": "item",
-          "slug": "facility-kit-13",
-          "spoiler_tier": "none",
-          "title": "무기점 설치 키트"
         },
         {
           "kind": "item",
@@ -7916,12 +7916,6 @@
         },
         {
           "kind": "item",
-          "slug": "facility-kit-3",
-          "spoiler_tier": "none",
-          "title": "사장실 설치 키트"
-        },
-        {
-          "kind": "item",
           "slug": "apparel-envoy-coat",
           "spoiler_tier": "none",
           "title": "사절 외투"
@@ -8438,12 +8432,6 @@
         },
         {
           "kind": "item",
-          "slug": "facility-kit-61",
-          "spoiler_tier": "none",
-          "title": "세면장 설치 키트"
-        },
-        {
-          "kind": "item",
           "slug": "facility-kit-9504",
           "spoiler_tier": "none",
           "title": "세정대 설치 키트"
@@ -8579,6 +8567,18 @@
           "slug": "craft-resin-balm",
           "spoiler_tier": "none",
           "title": "수액 연고"
+        },
+        {
+          "kind": "item",
+          "slug": "surgery-prosthetic-leg-left-variant-beastkin-sprint-joint",
+          "spoiler_tier": "none",
+          "title": "수인 질주 관절"
+        },
+        {
+          "kind": "item",
+          "slug": "resource-crystal-beetle-carapace",
+          "spoiler_tier": "none",
+          "title": "수정딱정벌레 갑각"
         },
         {
           "kind": "item",
@@ -9092,12 +9092,6 @@
         },
         {
           "kind": "item",
-          "slug": "facility-kit-16",
-          "spoiler_tier": "none",
-          "title": "연구실 설치 키트"
-        },
-        {
-          "kind": "item",
           "slug": "facility-kit-1032",
           "spoiler_tier": "none",
           "title": "연구용책장 설치 키트"
@@ -9284,6 +9278,12 @@
         },
         {
           "kind": "item",
+          "slug": "surgery-prosthetic-heart-variant-orc-combat-heart",
+          "spoiler_tier": "none",
+          "title": "오크 전투 심장"
+        },
+        {
+          "kind": "item",
           "slug": "facility-kit-1603",
           "spoiler_tier": "none",
           "title": "온도 제어 발효조 설치 키트"
@@ -9314,9 +9314,21 @@
         },
         {
           "kind": "item",
+          "slug": "surgery-prosthetic-wing-left",
+          "spoiler_tier": "none",
+          "title": "왼날개 보철"
+        },
+        {
+          "kind": "item",
           "slug": "surgery-prosthetic-leg-left",
           "spoiler_tier": "none",
           "title": "왼다리 보철"
+        },
+        {
+          "kind": "item",
+          "slug": "surgery-prosthetic-hand-left",
+          "spoiler_tier": "none",
+          "title": "왼손 정밀 보철"
         },
         {
           "kind": "item",
@@ -9329,6 +9341,12 @@
           "slug": "surgery-prosthetic-kidney-left",
           "spoiler_tier": "none",
           "title": "왼쪽 신장 보철"
+        },
+        {
+          "kind": "item",
+          "slug": "surgery-prosthetic-night-eye-left",
+          "spoiler_tier": "none",
+          "title": "왼쪽 야간안 보철"
         },
         {
           "kind": "item",
@@ -9542,6 +9560,12 @@
         },
         {
           "kind": "item",
+          "slug": "surgery-prosthetic-brain-variant-human-neural-assist",
+          "spoiler_tier": "none",
+          "title": "인간 신경 보조기"
+        },
+        {
+          "kind": "item",
           "slug": "dark-bone",
           "spoiler_tier": "none",
           "title": "인간형 뼈"
@@ -9551,6 +9575,12 @@
           "slug": "dark-humanoid-corpse",
           "spoiler_tier": "none",
           "title": "인간형 사체"
+        },
+        {
+          "kind": "item",
+          "slug": "facility-kit-9829",
+          "spoiler_tier": "none",
+          "title": "인공태양 설치 키트"
         },
         {
           "kind": "item",
@@ -9671,12 +9701,6 @@
           "slug": "facility-kit-1015",
           "spoiler_tier": "none",
           "title": "잡화상자 설치 키트"
-        },
-        {
-          "kind": "item",
-          "slug": "facility-kit-12",
-          "spoiler_tier": "none",
-          "title": "잡화점 설치 키트"
         },
         {
           "kind": "item",
@@ -9887,12 +9911,6 @@
           "slug": "wild-carcass-ash-goat",
           "spoiler_tier": "none",
           "title": "잿빛 산양 사체"
-        },
-        {
-          "kind": "item",
-          "slug": "facility-kit-10",
-          "spoiler_tier": "none",
-          "title": "저가 음식점 설치 키트"
         },
         {
           "kind": "item",
@@ -10418,12 +10436,6 @@
         },
         {
           "kind": "item",
-          "slug": "facility-kit-18",
-          "spoiler_tier": "none",
-          "title": "창고 설치 키트"
-        },
-        {
-          "kind": "item",
           "slug": "food-vegetable-pie",
           "spoiler_tier": "none",
           "title": "채소 파이"
@@ -10694,6 +10706,12 @@
         },
         {
           "kind": "item",
+          "slug": "surgery-prosthetic-balance-tail-variant-kobold-tail-balance",
+          "spoiler_tier": "none",
+          "title": "코볼트 평형 꼬리 보강기"
+        },
+        {
+          "kind": "item",
           "slug": "facility-kit-8900",
           "spoiler_tier": "none",
           "title": "탄도 시험장 설치 키트"
@@ -10727,6 +10745,12 @@
           "slug": "tool-prospecting-kit",
           "spoiler_tier": "none",
           "title": "탐광 키트"
+        },
+        {
+          "kind": "item",
+          "slug": "facility-kit-9828",
+          "spoiler_tier": "none",
+          "title": "태양등 설치 키트"
         },
         {
           "kind": "item",
@@ -10814,9 +10838,9 @@
         },
         {
           "kind": "item",
-          "slug": "facility-kit-6",
+          "slug": "surgery-prosthetic-balance-tail",
           "spoiler_tier": "none",
-          "title": "패스트푸드점 설치 키트"
+          "title": "평형 꼬리 보철"
         },
         {
           "kind": "item",
@@ -11186,12 +11210,6 @@
         },
         {
           "kind": "item",
-          "slug": "facility-kit-60",
-          "spoiler_tier": "none",
-          "title": "화장실 설치 키트"
-        },
-        {
-          "kind": "item",
           "slug": "facility-kit-1058",
           "spoiler_tier": "none",
           "title": "화장실칸막이 설치 키트"
@@ -11282,12 +11300,6 @@
         },
         {
           "kind": "item",
-          "slug": "facility-kit-15",
-          "spoiler_tier": "none",
-          "title": "훈련장 설치 키트"
-        },
-        {
-          "kind": "item",
           "slug": "facility-kit-1040",
           "spoiler_tier": "none",
           "title": "훈련허수아비 설치 키트"
@@ -11297,12 +11309,6 @@
           "slug": "facility-kit-1088",
           "spoiler_tier": "none",
           "title": "훈연대 설치 키트"
-        },
-        {
-          "kind": "item",
-          "slug": "facility-kit-14",
-          "spoiler_tier": "none",
-          "title": "휴식방 설치 키트"
         },
         {
           "kind": "item",
@@ -11359,7 +11365,7 @@
           "title": "흑색화약"
         }
       ],
-      "entry_count": 1075,
+      "entry_count": 1069,
       "id": "items",
       "label": "아이템·자원"
     },
@@ -13908,6 +13914,12 @@
         },
         {
           "kind": "recipe",
+          "slug": "recipe-surgery-reinforced-torso",
+          "spoiler_tier": "none",
+          "title": "골격 보강 몸통 조립"
+        },
+        {
+          "kind": "recipe",
           "slug": "recipe-v22-apparel-golem-functional-lining",
           "spoiler_tier": "none",
           "title": "골렘 기능성 내피 재단"
@@ -13971,6 +13983,12 @@
           "slug": "recipe-supply-mushroom-substrate",
           "spoiler_tier": "none",
           "title": "균사 재배 배지"
+        },
+        {
+          "kind": "recipe",
+          "slug": "recipe-surgery-hypha-core",
+          "spoiler_tier": "none",
+          "title": "균핵 보철 조립"
         },
         {
           "kind": "recipe",
@@ -14928,6 +14946,12 @@
         },
         {
           "kind": "recipe",
+          "slug": "recipe-surgery-sprint-joint",
+          "spoiler_tier": "none",
+          "title": "수인 질주 관절 조립"
+        },
+        {
+          "kind": "recipe",
           "slug": "recipe-component-waterwheel-drive-shaft",
           "spoiler_tier": "none",
           "title": "수차 구동축"
@@ -14997,6 +15021,12 @@
           "slug": "source-spoilage-plant",
           "spoiler_tier": "none",
           "title": "식물식 부패"
+        },
+        {
+          "kind": "recipe",
+          "slug": "recipe-surgery-brain-assist",
+          "spoiler_tier": "none",
+          "title": "신경 보조기 조립"
         },
         {
           "kind": "recipe",
@@ -15114,6 +15144,12 @@
         },
         {
           "kind": "recipe",
+          "slug": "recipe-surgery-heat-sac",
+          "spoiler_tier": "none",
+          "title": "열낭 보철 조립"
+        },
+        {
+          "kind": "recipe",
           "slug": "recipe-salted-meat-stew",
           "spoiler_tier": "none",
           "title": "염장육 스튜"
@@ -15135,6 +15171,24 @@
           "slug": "recipe-v22-apparel-surgical-apron",
           "spoiler_tier": "none",
           "title": "외과 앞치마 재단"
+        },
+        {
+          "kind": "recipe",
+          "slug": "recipe-surgery-wing",
+          "spoiler_tier": "none",
+          "title": "왼날개 보철 조립"
+        },
+        {
+          "kind": "recipe",
+          "slug": "recipe-surgery-precision-hand",
+          "spoiler_tier": "none",
+          "title": "왼손 정밀 보철 조립"
+        },
+        {
+          "kind": "recipe",
+          "slug": "recipe-surgery-night-eye",
+          "spoiler_tier": "none",
+          "title": "왼쪽 야간안 보철 조립"
         },
         {
           "kind": "recipe",
@@ -15183,6 +15237,12 @@
           "slug": "recipe-moonflower-tea",
           "spoiler_tier": "none",
           "title": "월화차"
+        },
+        {
+          "kind": "recipe",
+          "slug": "recipe-surgery-pseudopods",
+          "spoiler_tier": "none",
+          "title": "위족 보철 조립"
         },
         {
           "kind": "recipe",
@@ -15375,6 +15435,12 @@
           "slug": "recipe-medical-whole-body-regeneration-medium",
           "spoiler_tier": "none",
           "title": "전신 재생 배지"
+        },
+        {
+          "kind": "recipe",
+          "slug": "recipe-surgery-heart-augmentation",
+          "spoiler_tier": "none",
+          "title": "전투 심장 보철 조립"
         },
         {
           "kind": "recipe",
@@ -15624,6 +15690,12 @@
         },
         {
           "kind": "recipe",
+          "slug": "recipe-surgery-tail-balance-augmentation",
+          "spoiler_tier": "none",
+          "title": "코볼트 평형 꼬리 보강기 조립"
+        },
+        {
+          "kind": "recipe",
           "slug": "recipe-material-cartridge-paper",
           "spoiler_tier": "none",
           "title": "탄약지"
@@ -15657,6 +15729,12 @@
           "slug": "recipe-material-plate-blank",
           "spoiler_tier": "none",
           "title": "판금 소재판"
+        },
+        {
+          "kind": "recipe",
+          "slug": "recipe-surgery-balance-tail",
+          "spoiler_tier": "none",
+          "title": "평형 꼬리 보철 조립"
         },
         {
           "kind": "recipe",
@@ -15893,7 +15971,7 @@
           "title": "흑색화약"
         }
       ],
-      "entry_count": 355,
+      "entry_count": 367,
       "id": "recipes",
       "label": "제작식"
     },
@@ -15934,6 +16012,12 @@
           "slug": "funeral-culture-harpy",
           "spoiler_tier": "none",
           "title": "Funeral_Harpy"
+        },
+        {
+          "kind": "character",
+          "slug": "funeral-culture-human",
+          "spoiler_tier": "none",
+          "title": "Funeral_Human"
         },
         {
           "kind": "character",
@@ -15997,6 +16081,12 @@
         },
         {
           "kind": "character",
+          "slug": "life-history-human",
+          "spoiler_tier": "none",
+          "title": "Life_Human"
+        },
+        {
+          "kind": "character",
           "slug": "life-history-kobold",
           "spoiler_tier": "none",
           "title": "Life_Kobold"
@@ -16054,6 +16144,12 @@
           "slug": "reproduction-harpy",
           "spoiler_tier": "none",
           "title": "Reproduction_Harpy"
+        },
+        {
+          "kind": "character",
+          "slug": "reproduction-human",
+          "spoiler_tier": "none",
+          "title": "Reproduction_Human"
         },
         {
           "kind": "character",
@@ -16240,6 +16336,12 @@
           "slug": "trait-513",
           "spoiler_tier": "none",
           "title": "과식"
+        },
+        {
+          "kind": "character",
+          "slug": "acquired-trait-module-social-bridge",
+          "spoiler_tier": "none",
+          "title": "관계의 다리"
         },
         {
           "kind": "character",
@@ -16783,6 +16885,18 @@
         },
         {
           "kind": "character",
+          "slug": "acquired-trait-module-scar-memory",
+          "spoiler_tier": "none",
+          "title": "상흔의 기억"
+        },
+        {
+          "kind": "character",
+          "slug": "acquired-trait-module-survival-instinct",
+          "spoiler_tier": "none",
+          "title": "생존 본능"
+        },
+        {
+          "kind": "character",
           "slug": "history-mason",
           "spoiler_tier": "none",
           "title": "석공"
@@ -16981,6 +17095,12 @@
         },
         {
           "kind": "character",
+          "slug": "character-archetype-9010",
+          "spoiler_tier": "none",
+          "title": "아린"
+        },
+        {
+          "kind": "character",
           "slug": "character-archetype-9005",
           "spoiler_tier": "none",
           "title": "아자라"
@@ -17002,6 +17122,12 @@
           "slug": "trait-202",
           "spoiler_tier": "none",
           "title": "안정된 발놀림"
+        },
+        {
+          "kind": "character",
+          "slug": "acquired-trait-module-night-vigil",
+          "spoiler_tier": "none",
+          "title": "야간 경계"
         },
         {
           "kind": "character",
@@ -17131,6 +17257,12 @@
         },
         {
           "kind": "character",
+          "slug": "acquired-trait-module-ritual-attunement",
+          "spoiler_tier": "none",
+          "title": "의례적 공명"
+        },
+        {
+          "kind": "character",
           "slug": "proficiency-medicine",
           "spoiler_tier": "none",
           "title": "의료"
@@ -17161,6 +17293,12 @@
         },
         {
           "kind": "character",
+          "slug": "characterspecies-11",
+          "spoiler_tier": "none",
+          "title": "인간"
+        },
+        {
+          "kind": "character",
           "slug": "trait-412",
           "spoiler_tier": "none",
           "title": "인내심"
@@ -17170,6 +17308,12 @@
           "slug": "character-archetype-1101",
           "spoiler_tier": "none",
           "title": "일반 직원"
+        },
+        {
+          "kind": "character",
+          "slug": "acquired-trait-module-work-rhythm",
+          "spoiler_tier": "none",
+          "title": "일의 리듬"
         },
         {
           "kind": "character",
@@ -17212,6 +17356,12 @@
           "slug": "heritable-cold-blood-adaptation",
           "spoiler_tier": "none",
           "title": "저온 대사 적응"
+        },
+        {
+          "kind": "character",
+          "slug": "acquired-trait-module-battle-temper",
+          "spoiler_tier": "none",
+          "title": "전장의 담력"
         },
         {
           "kind": "character",
@@ -17494,9 +17644,15 @@
           "slug": "trait-227",
           "spoiler_tier": "none",
           "title": "회수 전문가"
+        },
+        {
+          "kind": "character",
+          "slug": "acquired-trait-module-steady-hands",
+          "spoiler_tier": "none",
+          "title": "흔들림 없는 손"
         }
       ],
-      "entry_count": 266,
+      "entry_count": 279,
       "id": "characters",
       "label": "주민·사회"
     }

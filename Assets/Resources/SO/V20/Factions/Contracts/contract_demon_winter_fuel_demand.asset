@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9e5cb0b174bbada438546f6557854054, type: 3}
+  m_Name: contract_demon_winter_fuel_demand
+  m_EditorClassIdentifier: DungeonStory.Content::FactionContractDefinitionSO
+  stableId: faction-contract:demon:winter-fuel-demand
+  displayName: "잿빛 계약정 겨울 연료 요청"
+  description: "잿빛 계약정이 겨울 사건 종료 전 숯 8개의 실제 납품을 요청한다."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored faction/service manifest.
+  factionId: faction:dungeon:demon
+  seasonalEventId: seasonal:winter-fuel-demand
+  kind: 0
+  deadlineDays: 4
+  completionRequirements:
+    items:
+    - itemDefinitionId: material:charcoal
+      amount: 8
+      consume: 1
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  successEffects:
+  - kind: 6
+    targetId: faction:dungeon:demon
+    amount: 8
+    durationDays: 0
+  - kind: 8
+    targetId: faction:dungeon:demon
+    amount: 1
+    durationDays: 0
+  failureEffects:
+  - kind: 7
+    targetId: faction:dungeon:demon
+    amount: 7
+    durationDays: 0

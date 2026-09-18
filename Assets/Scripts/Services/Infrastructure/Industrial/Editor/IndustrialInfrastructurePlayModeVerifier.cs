@@ -4,10 +4,13 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 using VContainer;
 
 public static class IndustrialInfrastructurePlayModeVerifier
@@ -18,6 +21,10 @@ public static class IndustrialInfrastructurePlayModeVerifier
         "Artifacts/QA/industrial-power-fuel-buffer-playmode-report.txt";
     public const string ScreenshotPath =
         "Temp/IndustrialInfrastructure/playmode-live.png";
+    public const string CommittedInvasionWarningEvidencePath =
+        "Artifacts/QA/wim-implementation/wim-047-committed-invasion-warning.txt";
+    public const string Wim009TemporarySupplyEvidencePath =
+        "Artifacts/QA/wim-implementation/wim-009-temporary-supply-live.txt";
 
     [MenuItem(
         "DungeonStory/Debug/Infrastructure/Run Live Industrial PlayMode Scenario")]
@@ -31,7 +38,29 @@ public static class IndustrialInfrastructurePlayModeVerifier
         CreateRunner(powerFuelOnly: true);
     }
 
-    private static void CreateRunner(bool powerFuelOnly)
+    public static void RunConveyorOnly() => CreateRunner(false, conveyorOnly: true);
+
+    public static void RunConveyorFiltersOnly() => CreateRunner(false, conveyorFiltersOnly: true);
+
+    public static void RunPowerConnectionsOnly() => CreateRunner(true, powerConnectionsOnly: true);
+
+    public static void RunLightingOnly() => CreateRunner(true, lightingOnly: true);
+    public static void RunDoorsOnly() => CreateRunner(false, doorsOnly: true);
+    public static void RunReturnRestoreOnly() => CreateRunner(false, doorsOnly: true, returnRestoreOnly: true);
+    public static void RunDoorConsumersOnly() => CreateRunner(false, doorConsumersOnly: true);
+    public static void RunDoorConsumersRemainingOnly() =>
+        CreateRunner(false, doorConsumersRemainingOnly: true);
+    public static void RunCommittedInvasionWarningOnly() =>
+        CreateRunner(false, committedInvasionWarningOnly: true);
+
+    public static void RunWim009TemporarySupplyOnly() =>
+        CreateRunner(false, temporarySupplyOnly: true);
+
+    private static void CreateRunner(bool powerFuelOnly, bool conveyorOnly = false, bool conveyorFiltersOnly = false,
+        bool powerConnectionsOnly = false, bool lightingOnly = false, bool doorsOnly = false, bool returnRestoreOnly = false,
+        bool doorConsumersOnly = false, bool doorConsumersRemainingOnly = false,
+        bool committedInvasionWarningOnly = false,
+        bool temporarySupplyOnly = false)
     {
         if (!Application.isPlaying)
         {
@@ -53,6 +82,16 @@ public static class IndustrialInfrastructurePlayModeVerifier
             runnerObject.AddComponent<
                 IndustrialInfrastructurePlayModeVerificationRunner>();
         runner.PowerFuelOnly = powerFuelOnly;
+        runner.ConveyorOnly = conveyorOnly;
+        runner.ConveyorFiltersOnly = conveyorFiltersOnly;
+        runner.PowerConnectionsOnly = powerConnectionsOnly;
+        runner.LightingOnly = lightingOnly;
+        runner.DoorsOnly = doorsOnly;
+        runner.ReturnRestoreOnly = returnRestoreOnly;
+        runner.DoorConsumersOnly = doorConsumersOnly;
+        runner.DoorConsumersRemainingOnly = doorConsumersRemainingOnly;
+        runner.CommittedInvasionWarningOnly = committedInvasionWarningOnly;
+        runner.TemporarySupplyOnly = temporarySupplyOnly;
     }
 }
 
@@ -60,6 +99,16 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
     MonoBehaviour
 {
     public bool PowerFuelOnly { get; set; }
+    public bool ConveyorOnly { get; set; }
+    public bool ConveyorFiltersOnly { get; set; }
+    public bool PowerConnectionsOnly { get; set; }
+    public bool LightingOnly { get; set; }
+    public bool DoorsOnly { get; set; }
+    public bool ReturnRestoreOnly { get; set; }
+    public bool DoorConsumersOnly { get; set; }
+    public bool DoorConsumersRemainingOnly { get; set; }
+    public bool CommittedInvasionWarningOnly { get; set; }
+    public bool TemporarySupplyOnly { get; set; }
     private const string ConveyorDestinationPrefix = "qa:industrial-output:";
     private const string ConveyorBufferOwnerDomain =
         "qa.infrastructure.conveyor";
@@ -110,6 +159,7 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
     private bool ownerSelectionWasActive;
     private bool originalFuelHaulerAiPause;
     private Vector3 originalFuelHaulerWorldPosition;
+    private string originalFuelHaulerPersistentId = string.Empty;
 
     private DungeonPowerInfrastructureSaveData originalPower;
     private DungeonFluidInfrastructureSaveData originalFluid;
@@ -118,47 +168,84 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
     private DungeonPhysicalItemSaveData originalItems;
     private List<DungeonSaveSectionEnvelope> originalWorld;
     private bool originalStateCaptured;
+    private bool exitPlayModeOnCompletion;
+    private DungeonAutosaveService isolatedAutosave;
+    private MetaProfilePersistenceService isolatedMetaPersistence;
+    private readonly Dictionary<string, string> realPersistenceBefore =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     private string conveyorDestination = string.Empty;
     private FacilityBufferDestinationClaim[] originalConveyorBufferClaims =
         Array.Empty<FacilityBufferDestinationClaim>();
     private FacilityBufferCapacityProfile[] originalConveyorBufferProfiles =
         Array.Empty<FacilityBufferCapacityProfile>();
     private Exception verificationFailure;
+    private readonly List<Exception> cleanupFailures = new();
 
     private IEnumerator Start()
     {
         yield return ExecuteGuarded(RunVerification());
 
         Cleanup();
-        bool passed = verificationFailure == null;
+        Exception terminalFailure = verificationFailure
+            ?? cleanupFailures.FirstOrDefault();
+        bool passed = terminalFailure == null;
         report.Add(passed ? "result=PASS" : "result=FAIL");
         if (!passed)
         {
-            report.Add("failure=" + verificationFailure.Message);
-            Debug.LogException(verificationFailure);
+            report.Add("failure=" + terminalFailure.Message);
+            if (verificationFailure != null)
+                Debug.LogException(verificationFailure);
+            foreach (Exception cleanupFailure in cleanupFailures)
+                Debug.LogException(cleanupFailure);
         }
 
-        WriteReport();
-        if (passed)
+        try
         {
-            Debug.Log(
-                "Live industrial PlayMode verification passed. "
-                + IndustrialInfrastructurePlayModeVerifier.ReportPath);
+            WriteReport();
+            if (passed)
+            {
+                Debug.Log(
+                    "Live industrial PlayMode verification passed. "
+                    + IndustrialInfrastructurePlayModeVerifier.ReportPath);
+            }
+            else
+            {
+                Debug.LogError(
+                    "Live industrial PlayMode verification failed: "
+                    + terminalFailure);
+            }
         }
-        else
+        finally
         {
-            Debug.LogError(
-                "Live industrial PlayMode verification failed: "
-                + verificationFailure);
+            if (exitPlayModeOnCompletion)
+            {
+                EditorApplication.ExitPlaymode();
+            }
+            Destroy(gameObject);
         }
-
-        Destroy(gameObject);
     }
 
     private IEnumerator RunVerification()
     {
+            if (CommittedInvasionWarningOnly || TemporarySupplyOnly)
+            {
+                // A save restore deliberately retires transient visitors. That
+                // state cannot be reconstructed by the durable save contract,
+                // so every WIM047 run is disposable before any setup mutation.
+                exitPlayModeOnCompletion = true;
+            }
             yield return ResolveRuntime();
+            if (CommittedInvasionWarningOnly || TemporarySupplyOnly)
+            {
+                IsolateCommittedInvasionPersistence();
+            }
             yield return EnsurePlayableRun();
+            if (CommittedInvasionWarningOnly)
+            {
+                EstablishCommittedInvasionRestorableBaseline();
+            }
+            Require(scope.Container.Resolve<IGridSystemProvider>().TryGetGrid(out grid),
+                "시작 인원 확정 이후 현재 Grid를 찾지 못했습니다.");
             fuelHauler = FindHauler();
             Require(fuelHauler != null,
                 "발전기 exact-stack 운반을 실행할 실제 캐릭터가 없습니다.");
@@ -167,7 +254,41 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
             ConfigureVerificationTime();
             SetOwnerSelectionVisible(false);
 
-            Dictionary<string, BuildingSO> assets = LoadAssets();
+            if (CommittedInvasionWarningOnly)
+            {
+                yield return WimCommittedInvasionWarningScenario.Run(
+                    scope,
+                    saveSections,
+                    report);
+                report.Add("mode=committed-invasion-warning-only");
+                yield break;
+            }
+            if (DoorsOnly)
+            {
+                yield return WimDoorOperationScenario.Run(scope, fuelHauler, grid, PlaceBuilding, report, ReturnRestoreOnly);
+                report.Add("mode=doors-only-no-power-fixture");
+                yield break;
+            }
+            if (DoorConsumersOnly)
+            {
+                yield return WimDoorConsumerScenario.Run(scope, fuelHauler, grid, PlaceBuilding, report);
+                report.Add("mode=door-consumers-only-no-prior-door-or-return-suite");
+                yield break;
+            }
+            if (DoorConsumersRemainingOnly)
+            {
+                yield return WimDoorConsumerScenario.RunRemaining(
+                    scope, fuelHauler, grid, PlaceBuilding, report);
+                report.Add("mode=door-consumers-remaining-only-restock-and-launch");
+                yield break;
+            }
+
+            Dictionary<string, BuildingSO> assets = LoadAssets(LightingOnly);
+            if (TemporarySupplyOnly)
+            {
+                Require(assets.ContainsKey("I04"),
+                    "WIM009 temporary-supply verification requires authored I04 battery.");
+            }
             BuildingSO automationAsset = LoadAutomationFacility();
             Require(automationAsset != null,
                 "자동화 모듈이 부착된 생산 시설 자산이 없습니다.");
@@ -183,13 +304,68 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
                     && conveyor.Networks.Count >= 2,
                 "실제 배치 이후 기반 시설 토폴로지가 생성되지 않았습니다.");
 
+            if (TemporarySupplyOnly)
+            {
+                string[] fixtureBuildingIds = createdBuildings
+                    .Select(GetNodeId)
+                    .ToArray();
+                yield return Wim009TemporarySupplyLiveScenario.Run(
+                    scope,
+                    FindBuilding("I03"),
+                    FindBuilding("I04"),
+                    FindBuilding("I07"),
+                    FindBuilding("I08"),
+                    report);
+                Require(scope.Container.Resolve<IGridSystemProvider>()
+                        .TryGetGrid(out grid),
+                    "WIM009 whole-save restore did not republish the current Grid.");
+                createdBuildings.Clear();
+                foreach (string fixtureId in fixtureBuildingIds)
+                {
+                    Require(TryResolveLiveBuilding(
+                            fixtureId,
+                            out BuildableObject restoredBuilding),
+                        "WIM009 whole-save restore lost fixture " + fixtureId);
+                    createdBuildings.Add(restoredBuilding);
+                }
+                report.Add("mode=wim-009-temporary-supply-only");
+                yield break;
+            }
+
             yield return VerifyPowerAndFluids();
+            if (LightingOnly)
+                yield return WimLightingSupplyScenario.Run(scope, FindBuilding("I15"), FindBuilding("E01"), report);
+            if (PowerConnectionsOnly)
+                yield return WimPowerConnectionScenario.Run(scope, FindBuilding("I03"),
+                    createdBuildings.First(building => building.BuildingData.GetAbility<BuildingAutomationAbility>() != null),
+                    FindBuilding("U04"), report);
             if (PowerFuelOnly)
             {
                 report.Add("mode=power-fuel-only");
                 yield break;
             }
+            if (ConveyorFiltersOnly)
+            {
+                BuildableObject filterOutput = FindBuilding("C03");
+                conveyorDestination = ConveyorDestinationPrefix + GetNodeId(filterOutput);
+                PublishConveyorOutputAuthority(filterOutput, GetNodeId(filterOutput),
+                    filterOutput.BuildingData.GetGridPosList(filterOutput.centerPos).First(),
+                    itemMass.GetQuantityMass((ItemDefinitionId)"material:lumber",
+                        PhysicalItemMassSubject.ForDefinition((ItemDefinitionId)"material:lumber"), 20), 1L);
+                Require(conveyorCommands.SetPortDestination(filterOutput, conveyorDestination).Succeeded,
+                    "Cannot set filter-test physical output.");
+                yield return WimConveyorFilterReserveScenario.Run(scope, FindBuilding("C02"), filterOutput,
+                    FindBuilding("C09"), conveyorDestination, report);
+                report.Add("mode=conveyor-filter-reserve-only");
+                yield break;
+            }
             yield return VerifyConveyorTransport(origin);
+            if (ConveyorOnly)
+            {
+                yield return VerifyAuthoredFuelDestination(origin);
+                report.Add("mode=conveyor-destination-only");
+                yield break;
+            }
             yield return VerifyAutomation();
             yield return VerifyDeadlockAndOverflow();
             yield return CaptureVisual();
@@ -355,6 +531,8 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         originalPause = gameManager != null && gameManager.isPause;
         ownerSelectionWasActive =
             ownerSelection != null && ownerSelection.gameObject.activeSelf;
+        originalFuelHaulerPersistentId =
+            CharacterPersistentIdentity.Require(fuelHauler).Value;
         originalFuelHaulerAiPause = fuelHauler.IsAiPaused();
         originalFuelHaulerWorldPosition = fuelHauler.transform.position;
         if (mainCamera != null)
@@ -425,7 +603,7 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         }
     }
 
-    private static Dictionary<string, BuildingSO> LoadAssets()
+    private static Dictionary<string, BuildingSO> LoadAssets(bool includeLighting)
     {
         string[] requiredCodes =
         {
@@ -468,6 +646,15 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
                 $"산업 검증 자산 {code}를 찾지 못했습니다.");
         }
 
+        if (includeLighting)
+        {
+            Require(assets.ContainsKey("I15"), "Authored electric arc lamp missing.");
+            BuildingSO torch = AssetDatabase.LoadAssetAtPath<BuildingSO>(
+                "Assets/Resources/SO/Building/Modular/E01_벽횃불.asset");
+            Require(torch != null && torch.GetAbility<BuildingLightingAbility>() != null
+                && torch.GetAbility<BuildingFuelConsumerAbility>() != null, "Authored fuel torch missing.");
+            assets.Add("E01", torch);
+        }
         return assets;
     }
 
@@ -557,7 +744,7 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         report.Add($"placedBuildings={createdBuildings.Count}");
     }
 
-    private static List<(BuildingSO Asset, Vector2Int Position)>
+    private List<(BuildingSO Asset, Vector2Int Position)>
         CreatePlacementPlan(
             Vector2Int origin,
             IReadOnlyDictionary<string, BuildingSO> assets,
@@ -582,10 +769,19 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         Add("C01L", 1, 2);
 
         Add("I03", 0, 0);
+        if (TemporarySupplyOnly)
+        {
+            Add("I04", 3, 1);
+        }
         Add("I07", 3, 0);
         Add("I08", 5, 0);
         Add("I14", 7, 0);
         Add("I09", 9, 0);
+        if (LightingOnly)
+        {
+            Add("I15", 6, 1);
+            Add("E01", 8, 1);
+        }
         result.Add((automationAsset, origin + new Vector2Int(11, 0)));
 
         HashSet<Vector2Int> utilityCells = new HashSet<Vector2Int>();
@@ -596,6 +792,11 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         for (int x = 0; x <= 2; x++)
         {
             utilityCells.Add(origin + new Vector2Int(x, 1));
+        }
+        if (TemporarySupplyOnly)
+        {
+            utilityCells.Add(origin + new Vector2Int(3, 1));
+            utilityCells.Add(origin + new Vector2Int(4, 1));
         }
         for (int x = 0; x <= 1; x++)
         {
@@ -726,7 +927,7 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         AIHaul fuelHaulAction = ScriptableObject.CreateInstance<AIHaul>();
         try
         {
-            Require(fuelHaulAction.CanStart(fuelHauler),
+            yield return WaitUntil(() => fuelHaulAction.CanStart(fuelHauler),
                 "발전기 exact-stack 요청을 실제 AIHaul이 선택하지 못했습니다: "
                 + DescribePowerFuelHaul(generatorDestination));
             AbilityHaul.Ensure(fuelHauler);
@@ -749,12 +950,26 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
 
             List<DungeonSaveSectionEnvelope> checkpoint =
                 saveSections.CaptureAll();
+            string[] fixtureBuildingIds = createdBuildings.Select(GetNodeId).ToArray();
             DungeonGameRestoreReport restoreReport = new();
             Require(saveSections.RestoreAll(checkpoint, restoreReport),
                 "발전기 연료 carried checkpoint 복원 실패: "
                 + string.Join(" | ", restoreReport.Errors));
             for (int settleFrame = 0; settleFrame < 4; settleFrame++)
                 yield return null;
+
+            Require(scope.Container.Resolve<IGridSystemProvider>().TryGetGrid(out grid),
+                "복원된 산업 시설 Grid를 찾지 못했습니다.");
+            createdBuildings.Clear();
+            foreach (string fixtureId in fixtureBuildingIds)
+            {
+                Require(TryResolveLiveBuilding(fixtureId, out BuildableObject restoredBuilding),
+                    "복원된 산업 fixture가 없습니다: " + fixtureId);
+                createdBuildings.Add(restoredBuilding);
+            }
+            cleanTank = FindBuilding("I08");
+            shower = FindBuilding("I14");
+            wastewaterTank = FindBuilding("I09");
 
             fuelHauler = FindHauler();
             Require(fuelHauler != null,
@@ -856,6 +1071,21 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
     {
         BuildableObject input = FindBuilding("C02");
         BuildableObject output = FindBuilding("C03");
+        IPowerInfrastructureCommand powerCommands = scope.Container.Resolve<IPowerInfrastructureCommand>();
+        BuildableObject[] deliveryBelt = createdBuildings.Where(building =>
+            building.BuildingData.GetAbility<BuildingConveyorSegmentAbility>() != null
+            && building.centerPos.y == origin.y
+            && building.centerPos.x >= origin.x + 4 && building.centerPos.x <= origin.x + 10).ToArray();
+        foreach (BuildableObject belt in deliveryBelt)
+            Require(powerCommands.SetPriority(belt, PowerPriority.Critical).Succeeded,
+                "Could not prioritize the focused delivery belt.");
+        foreach (BuildableObject belt in deliveryBelt)
+            report.Add("focused-belt-power=" + GetNodeId(belt) + ";" + belt.centerPos + ";"
+                + (power.TryGetNode(belt, out PowerNodeSnapshot state)
+                    ? $"network={state.NetworkId};powered={state.Powered};demand={state.DemandPerSecond};supplied={state.SuppliedFraction};fault={state.Fault};heat={state.Heat}"
+                    : "missing-node"));
+        yield return WaitUntil(() => deliveryBelt.All(power.IsPowered),
+            "Focused delivery belt lacks authored power supply.");
         string outputFacilityId =
             output.RequirePersistentInstanceId().Value;
         conveyorDestination = ConveyorDestinationPrefix + outputFacilityId;
@@ -878,14 +1108,48 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
             outputDropPosition,
             blockedCapacity,
             1L);
-        Require(conveyorCommands.SetPortDestination(
-                input,
-                conveyorDestination).Succeeded,
-            "컨베이어 입력 목적지를 설정하지 못했습니다.");
+        Require(conveyor.GetDestinationChoices(output).Any(choice => choice.DestinationId == conveyorDestination
+                && choice.DropPosition == outputDropPosition && choice.MaximumMassGrams == blockedCapacity.Value),
+            "출력 목적지 선택이 실제 claim/gram profile에서 나오지 않았습니다.");
         Require(conveyorCommands.SetPortDestination(
                 output,
                 conveyorDestination).Succeeded,
             "컨베이어 출력 목적지를 설정하지 못했습니다.");
+        Require(conveyor.GetDestinationChoices(input).Any(choice => choice.DestinationId == conveyorDestination),
+            "연결된 출력 포트가 입력 목적지 목록에 없습니다.");
+        Require(conveyorCommands.SetPortDestination(input, conveyorDestination).Succeeded,
+            "컨베이어 입력 목적지를 설정하지 못했습니다.");
+        Require(conveyorCommands.SetPortDestination(input, string.Empty).Succeeded, "Clear input for UI test.");
+        Require(conveyorCommands.SetPortDestination(output, string.Empty).Succeeded, "Clear output for UI test.");
+        UITabManager tabs = UnityEngine.Object.FindFirstObjectByType<UITabManager>();
+        Require(tabs != null, "Main tab manager missing.");
+        tabs.ToggleSelectButton(10);
+        yield return null;
+        ClickConveyorUi("ConveyorDestination_" + outputFacilityId);
+        yield return null;
+        ClickConveyorUi("ConveyorDestinationChoice_" + outputFacilityId + "_" + conveyorDestination);
+        yield return null;
+        ClickConveyorUi("ConveyorDestination_" + GetNodeId(input));
+        yield return null;
+        ClickConveyorUi("ConveyorDestinationChoice_" + GetNodeId(input) + "_" + conveyorDestination);
+        DungeonConveyorInfrastructureSaveData configured = conveyorPersistence.Capture();
+        Require(configured.nodes.Single(value => value.buildingInstanceId == GetNodeId(input)).destinationId
+            == conveyorDestination, "Input UI did not publish selected destination.");
+        Require(configured.nodes.Single(value => value.buildingInstanceId == outputFacilityId).destinationId
+            == conveyorDestination, "Output UI did not publish selected destination.");
+        string configuredJson = JsonUtility.ToJson(configured);
+        Require(conveyorCommands.SetPortDestination(input, string.Empty).Succeeded, "Clear for restore test.");
+        conveyorPersistence.Restore(conveyorPersistence.PrepareRestore(
+            JsonUtility.FromJson<DungeonConveyorInfrastructureSaveData>(configuredJson)));
+        Require(JsonUtility.ToJson(conveyorPersistence.Capture()) == configuredJson,
+            "Configured conveyor domain serialization round trip changed state.");
+        report.Add("destination-main-EventSystem-input-output-and-serialized-restore=PASS");
+        string beforeRejectedCommand = JsonUtility.ToJson(conveyorPersistence.Capture());
+        Require(!conveyorCommands.SetPortDestination(input, " " + conveyorDestination).Succeeded
+            && !conveyorCommands.SetPortDestination(input, "unknown:wim-destination").Succeeded
+            && beforeRejectedCommand == JsonUtility.ToJson(conveyorPersistence.Capture()),
+            "잘못된 목적지 명령이 상태를 변경했습니다.");
+        report.Add("destination-choices-exact-profile-and-invalid-command-atomic=PASS");
         HashSet<string> preexistingInputStackIds = items
             .GetStacksAt(input.centerPos, includeStored: true)
             .Select(stack => stack.StackId)
@@ -938,9 +1202,15 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
             "출력 버퍼 입고 실패가 InTransit 화물을 보존하지 못했습니다.");
         WorldItemStackSnapshot transitAfterFailure = items.GetAllStacks()
             .Single(stack => stack.StackId == originalStackId);
+        report.Add($"transit-during-travel=content:{transitBeforeFailure.ContentRevision}->{transitAfterFailure.ContentRevision};reservation:{transitBeforeFailure.ReservationRevision}->{transitAfterFailure.ReservationRevision};position:{transitBeforeFailure.Position}->{transitAfterFailure.Position};signature:{transitBeforeFailure.StackSignature}->{transitAfterFailure.StackSignature}");
+        // Compare one rejected admission in the same game-time instant; travel
+        // and normal item maintenance between ticks are not that transaction.
+        Require(!itemTransfers.TryCompleteTransitToFacilityBuffer(new ItemStackId(originalStackId),
+                payloadId, outputDropPosition, conveyorDestination, out _, out _),
+            "Undersized output capacity unexpectedly admitted the payload.");
         RequireSameTransitCustody(
-            transitBeforeFailure,
             transitAfterFailure,
+            items.GetAllStacks().Single(stack => stack.StackId == originalStackId),
             payloadId);
         Require(conveyor.Networks
                 .SelectMany(network => network.Payloads)
@@ -962,6 +1232,30 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
             $"blockedPayload={payloadId};"
             + $"capacityGrams={blockedCapacity.Value};"
             + "state=InTransit;retry=retained");
+
+        Require(conveyorCommands.SetPortDestination(output, string.Empty).Succeeded,
+            "출력 목적지 해제가 실패했습니다.");
+        yield return WaitUntil(() => conveyor.Networks.SelectMany(network => network.Payloads)
+                .Any(payload => payload.PayloadId == payloadId && payload.StallReason == ConveyorStallReason.NoRoute),
+            "설정 해제 후 목적지 없는 화물이 보존 정지하지 않았습니다.");
+        Require(itemTransfers.TryGetTransitStack(new ItemStackId(originalStackId), payloadId, out var retainedAfterChange)
+            && retainedAfterChange.Quantity == 3,
+            "목적지 변경이 화물을 바닥 배출하거나 삭제했습니다.");
+        Require(conveyorCommands.SetPortDestination(output, conveyorDestination).Succeeded,
+            "출력 목적지 복구 실패.");
+        report.Add("in-transit-destination-clear-no-ground-drop-and-resume=PASS");
+
+        Require(bufferLifecycle.TryReplaceOwnedAuthorities(ConveyorBufferOwnerDomain,
+                originalConveyorBufferClaims, originalConveyorBufferProfiles, out string removedReason),
+            "Could not remove fixture output owner: " + removedReason);
+        Require(!conveyor.GetDestinationChoices(input).Any(choice => choice.DestinationId == conveyorDestination),
+            "Removed destination remained selectable.");
+        yield return WaitUntil(() => conveyor.Networks.SelectMany(network => network.Payloads)
+                .Any(payload => payload.PayloadId == payloadId && payload.StallReason == ConveyorStallReason.NoRoute),
+            "Removed destination did not retain its payload as NoRoute.");
+        Require(itemTransfers.TryGetTransitStack(new ItemStackId(originalStackId), payloadId, out var ownerRemoved)
+                && ownerRemoved.Quantity == 3, "Removed destination lost its physical payload.");
+        report.Add("destination-owner-removal-retained-no-route=PASS");
 
         PublishConveyorOutputAuthority(
             output,
@@ -1006,6 +1300,37 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
             + $"distance={Mathf.Abs(output.centerPos.x - origin.x)};"
             + $"capacityGrams={outputCapacity.Value};"
             + "admission=exact-owner-profile");
+    }
+
+    private IEnumerator VerifyAuthoredFuelDestination(Vector2Int origin)
+    {
+        BuildableObject generator = FindBuilding("I03");
+        string destination = "power:" + GetNodeId(generator);
+        BuildableObject input = PlaceBuilding(FindBuilding("C02").BuildingData, origin + Vector2Int.left);
+        BuildableObject output = PlaceBuilding(FindBuilding("C03").BuildingData, generator.centerPos);
+        conveyorCommands.MarkTopologyDirty();
+        Require(conveyor.GetDestinationChoices(output).Any(value => value.DestinationId == destination
+            && value.OwnerFacilityId == GetNodeId(generator)), "Authored generator destination is not selectable.");
+        foreach (P0FeatureSurfacePanel panel in UnityEngine.Object.FindObjectsByType<P0FeatureSurfacePanel>(FindObjectsSortMode.None))
+            if (panel.gameObject.activeInHierarchy) panel.Refresh();
+        yield return null;
+        ClickConveyorUi("ConveyorDestination_" + GetNodeId(output));
+        yield return null;
+        ClickConveyorUi("ConveyorDestinationChoice_" + GetNodeId(output) + "_" + destination);
+        yield return null;
+        ClickConveyorUi("ConveyorDestination_" + GetNodeId(input));
+        yield return null;
+        ClickConveyorUi("ConveyorDestinationChoice_" + GetNodeId(input) + "_" + destination);
+        Require(items.SpawnItemAt("resource:mana-crystal", 1, input.centerPos,
+            WorldItemStackState.Loose, string.Empty, out int count) && count == 1, "Fuel source creation failed.");
+        WorldItemStackSnapshot source = items.GetStacksAt(input.centerPos).Single(value => value.ItemId == "resource:mana-crystal");
+        Require(conveyorTransactions.TryLoadStack(new ItemStackId(source.StackId), input, destination,
+            out _, out DomainFailure failure), "Authored fuel conveyor load failed: " + failure.Code);
+        yield return WaitUntil(() => items.GetStacksAt(generator.centerPos, includeStored: true)
+            .Any(value => value.StackId == source.StackId && value.State == WorldItemStackState.FacilityBuffer
+                && value.DestinationId == destination && value.Quantity == 1),
+            "Real generator buffer did not receive the same physical fuel lot.");
+        report.Add("authored-generator-owner-main-UI-conveyor-physical-fuel-delivery=PASS");
     }
 
     private void PublishConveyorOutputAuthority(
@@ -1378,9 +1703,14 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
                     FindObjectsInactive.Exclude,
                     FindObjectsSortMode.None))
             .Where(actor => actor != null && !actor.IsDead)
+            .Where(actor => actor.TryGetAbility(out AbilityWork work)
+                && work.WorkPriorities != null
+                && work.WorkPriorities.GetPriority(BuiltInWorkTypeIds.Haul) != WorkPriorityLevel.Off
+                && work.PriorityWorkTarget == null)
             .OrderByDescending(actor => actor.TryGetAbility(out AbilityWork _))
             .ThenBy(actor => actor.Identity != null
                 && actor.Identity.Role == CharacterRole.Owner ? 1 : 0)
+            .ThenBy(actor => actor.BuildingCharacterId.Value, StringComparer.Ordinal)
             .FirstOrDefault(actor => actor.TryGetAbility(out AbilityMove _)
                 && (actor.TryGetAbility(out AbilityWork _)
                     || actor.Identity != null
@@ -1427,6 +1757,17 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         mainCamera.orthographicSize = Mathf.Max(7f, originalCameraSize);
     }
 
+    private static void ClickConveyorUi(string actionName)
+    {
+        Canvas.ForceUpdateCanvases();
+        Button button = UnityEngine.Object.FindObjectsByType<Button>(FindObjectsSortMode.None)
+            .SingleOrDefault(value => value.gameObject.activeInHierarchy && value.name == actionName);
+        Require(button != null && button.IsInteractable() && EventSystem.current != null,
+            "Main industrial UI action missing: " + actionName);
+        ExecuteEvents.Execute(button.gameObject, new PointerEventData(EventSystem.current)
+            { button = PointerEventData.InputButton.Left }, ExecuteEvents.pointerClickHandler);
+    }
+
     private void WriteReport()
     {
         string directory = Path.GetDirectoryName(
@@ -1441,8 +1782,95 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         File.WriteAllLines(
             IndustrialInfrastructurePlayModeVerifier.ReportPath,
             report);
-        if (PowerFuelOnly && verificationFailure == null)
+        if (ConveyorOnly)
+        {
+            Directory.CreateDirectory("Artifacts/QA/wim-implementation");
+            File.WriteAllLines("Artifacts/QA/wim-implementation/wim-007-conveyor-live.txt",
+                report.Where(line => !line.StartsWith("fastPartyCommit=", StringComparison.Ordinal)
+                    && !line.StartsWith("unityFrame=", StringComparison.Ordinal)
+                    && !line.StartsWith("gameTime=", StringComparison.Ordinal)), new UTF8Encoding(false));
+        }
+        if (PowerFuelOnly
+            && verificationFailure == null
+            && cleanupFailures.Count == 0)
             WritePowerFuelEvidence();
+        if (ConveyorFiltersOnly)
+        {
+            Directory.CreateDirectory("Artifacts/QA/wim-implementation");
+            File.WriteAllLines("Artifacts/QA/wim-implementation/wim-008-conveyor-filter-reserve.txt",
+                report.Where(line => !line.StartsWith("fastPartyCommit=", StringComparison.Ordinal)
+                    && !line.StartsWith("unityFrame=", StringComparison.Ordinal)
+                    && !line.StartsWith("gameTime=", StringComparison.Ordinal)), new UTF8Encoding(false));
+        }
+        if (PowerConnectionsOnly)
+        {
+            Directory.CreateDirectory("Artifacts/QA/wim-implementation");
+            File.WriteAllLines("Artifacts/QA/wim-implementation/wim-013-main-power.txt",
+                report.Where(line => !line.StartsWith("fastPartyCommit=", StringComparison.Ordinal)
+                    && !line.StartsWith("unityFrame=", StringComparison.Ordinal)
+                    && !line.StartsWith("gameTime=", StringComparison.Ordinal)), new UTF8Encoding(false));
+        }
+        if (LightingOnly)
+        {
+            Directory.CreateDirectory("Artifacts/QA/wim-implementation");
+            File.WriteAllLines("Artifacts/QA/wim-implementation/wim-011-main-lighting.txt",
+                report.Where(line => !line.StartsWith("fastPartyCommit=", StringComparison.Ordinal)
+                    && !line.StartsWith("unityFrame=", StringComparison.Ordinal)
+                    && !line.StartsWith("gameTime=", StringComparison.Ordinal)), new UTF8Encoding(false));
+        }
+        if (DoorsOnly)
+        {
+            Directory.CreateDirectory("Artifacts/QA/wim-implementation");
+            File.WriteAllLines(ReturnRestoreOnly ? "Artifacts/QA/wim-implementation/wim-045-return-restore.txt"
+                : "Artifacts/QA/wim-implementation/wim-045-012-main-doors.txt", report
+                .Where(line => !line.StartsWith("fastPartyCommit=", StringComparison.Ordinal)
+                    && !line.StartsWith("unityFrame=", StringComparison.Ordinal)
+                    && !line.StartsWith("gameTime=", StringComparison.Ordinal)), new UTF8Encoding(false));
+        }
+        if (DoorConsumersOnly)
+        {
+            Directory.CreateDirectory("Artifacts/QA/wim-implementation");
+            File.WriteAllLines("Artifacts/QA/wim-implementation/wim-045-door-consumers.txt", report
+                .Where(line => !line.StartsWith("fastPartyCommit=", StringComparison.Ordinal)
+                    && !line.StartsWith("unityFrame=", StringComparison.Ordinal)
+                    && !line.StartsWith("gameTime=", StringComparison.Ordinal)), new UTF8Encoding(false));
+        }
+        if (DoorConsumersRemainingOnly)
+        {
+            Directory.CreateDirectory("Artifacts/QA/wim-implementation");
+            File.WriteAllLines(
+                "Artifacts/QA/wim-implementation/wim-045-door-consumers-remaining.txt",
+                report.Where(line => !line.StartsWith("fastPartyCommit=", StringComparison.Ordinal)
+                    && !line.StartsWith("unityFrame=", StringComparison.Ordinal)
+                    && !line.StartsWith("gameTime=", StringComparison.Ordinal)),
+                new UTF8Encoding(false));
+        }
+        if (CommittedInvasionWarningOnly)
+        {
+            Directory.CreateDirectory("Artifacts/QA/wim-implementation");
+            File.WriteAllLines(
+                IndustrialInfrastructurePlayModeVerifier
+                    .CommittedInvasionWarningEvidencePath,
+                report.Where(line => !line.StartsWith(
+                        "fastPartyCommit=",
+                        StringComparison.Ordinal)
+                    && !line.StartsWith("unityFrame=", StringComparison.Ordinal)
+                    && !line.StartsWith("gameTime=", StringComparison.Ordinal)),
+                new UTF8Encoding(false));
+        }
+        if (TemporarySupplyOnly)
+        {
+            Directory.CreateDirectory("Artifacts/QA/wim-implementation");
+            File.WriteAllLines(
+                IndustrialInfrastructurePlayModeVerifier
+                    .Wim009TemporarySupplyEvidencePath,
+                report.Where(line => !line.StartsWith(
+                        "fastPartyCommit=",
+                        StringComparison.Ordinal)
+                    && !line.StartsWith("unityFrame=", StringComparison.Ordinal)
+                    && !line.StartsWith("gameTime=", StringComparison.Ordinal)),
+                new UTF8Encoding(false));
+        }
     }
 
     private void WritePowerFuelEvidence()
@@ -1491,8 +1919,22 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
 
     private void Cleanup()
     {
+        string cleanupResult = originalStateCaptured
+            ? null
+            : "not-required";
         try
         {
+            if (fuelHauler == null
+                && !string.IsNullOrEmpty(originalFuelHaulerPersistentId))
+            {
+                fuelHauler = UnityEngine.Object.FindObjectsByType<CharacterActor>(
+                        FindObjectsInactive.Include,
+                        FindObjectsSortMode.None)
+                    .SingleOrDefault(actor => string.Equals(
+                        actor.Identity?.PersistentId,
+                        originalFuelHaulerPersistentId,
+                        StringComparison.Ordinal));
+            }
             fuelHauler?.GetComponent<AbilityHaul>()?.StopHauling(
                 "qa-industrial-power-fuel-cleanup");
             if (fuelHauler != null && originalStateCaptured)
@@ -1518,52 +1960,13 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
                 }
             }
 
-            for (int index = createdBuildings.Count - 1; index >= 0; index--)
-            {
-                BuildableObject building = createdBuildings[index];
-                if (building == null)
-                    continue;
-
-                BuildingSO data = building.BuildingData;
-                if (data != null && grid != null)
-                {
-                    grid.RemoveOccupant(
-                        building,
-                        data.layer,
-                        data.GetGridPosList(building.centerPos),
-                        data.Placement.IsMovement);
-                }
-
-                Destroy(building.gameObject);
-            }
-
-            createdBuildings.Clear();
-            if (powerPersistence != null && originalPower != null)
-            {
-                powerPersistence.Restore(
-                    powerPersistence.PrepareRestore(originalPower));
-            }
-            if (fluidPersistence != null && originalFluid != null)
-            {
-                fluidPersistence.Restore(
-                    fluidPersistence.PrepareRestore(originalFluid));
-            }
-            if (items != null && originalItems != null)
-                items.Restore(originalItems);
-            if (conveyorPersistence != null && originalConveyor != null)
-            {
-                conveyorPersistence.Restore(
-                    conveyorPersistence.PrepareRestore(originalConveyor));
-            }
-            if (automationPersistence != null && originalAutomation != null)
-            {
-                automationPersistence.Restore(
-                    automationPersistence.PrepareRestore(originalAutomation));
-            }
+            // The whole-registry transaction below owns building, actor, stack,
+            // lease and admission restoration together. Replacing only items
+            // first invalidates other actors' live carried commitments.
         }
         catch (Exception exception)
         {
-            verificationFailure ??= new InvalidOperationException(
+            RecordCleanupFailure(
                 "산업 PlayMode 수동 정리 실패.",
                 exception);
         }
@@ -1571,9 +1974,14 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         bool worldRestored = false;
         try
         {
-            if (originalStateCaptured && saveSections != null
-                && originalWorld != null)
+            if (originalStateCaptured)
             {
+                if (saveSections == null)
+                    throw new InvalidOperationException(
+                        "whole-registry save authority is missing during cleanup.");
+                if (originalWorld == null)
+                    throw new InvalidOperationException(
+                        "whole-registry baseline snapshot is missing during cleanup.");
                 DungeonGameRestoreReport restoreReport = new();
                 worldRestored = saveSections.RestoreAll(
                     originalWorld,
@@ -1589,29 +1997,54 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         }
         catch (Exception exception)
         {
-            verificationFailure ??= new InvalidOperationException(
+            RecordCleanupFailure(
                 "산업 PlayMode 전체 baseline 복원 실패.",
                 exception);
         }
 
         try
         {
-            if (originalStateCaptured && bufferLifecycle != null
-                && !bufferLifecycle.TryReplaceOwnedAuthorities(
-                    ConveyorBufferOwnerDomain,
-                    originalConveyorBufferClaims,
-                    originalConveyorBufferProfiles,
-                    out string authorityRestoreFailure))
+            if (originalStateCaptured)
             {
-                throw new InvalidOperationException(authorityRestoreFailure);
+                if (bufferLifecycle == null)
+                    throw new InvalidOperationException(
+                        "FacilityBuffer lifecycle authority is missing during cleanup.");
+                if (!bufferLifecycle.TryReplaceOwnedAuthorities(
+                        ConveyorBufferOwnerDomain,
+                        originalConveyorBufferClaims,
+                        originalConveyorBufferProfiles,
+                        out string authorityRestoreFailure))
+                {
+                    throw new InvalidOperationException(authorityRestoreFailure);
+                }
+                if (!worldRestored)
+                    throw new InvalidOperationException(
+                        "whole-registry baseline was not restored; byte validation is unavailable.");
             }
 
             if (worldRestored)
             {
                 List<DungeonSaveSectionEnvelope> after =
                     saveSections.CaptureAll();
-                if (!SaveEnvelopesEqual(originalWorld, after))
+                bool byteExact = SaveEnvelopesEqual(originalWorld, after);
+                if (!byteExact && SaveEnvelopesEqual(originalWorld, after, allowMetaClockRounding: true))
+                    cleanupResult = "exact-except-meta-elapsed-float-rounding-under-0.00001s";
+                else if (byteExact)
+                    cleanupResult = CommittedInvasionWarningOnly
+                        ? "post-restore-scenario-baseline-byte-exact;"
+                            + "original-transient-visitors=playmode-discard"
+                        : "byte-exact";
+                else
                 {
+                    Directory.CreateDirectory("Temp/IndustrialInfrastructure/cleanup-diff");
+                    foreach (DungeonSaveSectionEnvelope before in originalWorld)
+                    {
+                        DungeonSaveSectionEnvelope restored = after.SingleOrDefault(value => value.sectionId == before.sectionId);
+                        if (restored != null && before.payloadJson == restored.payloadJson) continue;
+                        report.Add("cleanup-difference=" + before.sectionId);
+                        File.WriteAllText("Temp/IndustrialInfrastructure/cleanup-diff/" + before.sectionId + ".before.json", before.payloadJson);
+                        File.WriteAllText("Temp/IndustrialInfrastructure/cleanup-diff/" + before.sectionId + ".after.json", restored?.payloadJson ?? "null");
+                    }
                     throw new InvalidOperationException(
                         "whole-registry baseline is not byte-equivalent after cleanup.");
                 }
@@ -1619,15 +2052,232 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         }
         catch (Exception exception)
         {
-            verificationFailure ??= new InvalidOperationException(
+            RecordCleanupFailure(
                 "산업 PlayMode FacilityBuffer 권위/byte 복원 실패.",
+                exception);
+        }
+
+        CheckCommittedInvasionPersistenceIntegrity();
+
+        if (cleanupFailures.Count == 0)
+        {
+            report.Add("cleanup=" + (cleanupResult ?? "not-required"));
+            return;
+        }
+
+        report.Add("cleanup=FAIL");
+        for (int index = 0; index < cleanupFailures.Count; index++)
+        {
+            report.Add("cleanupFailure[" + index + "]="
+                + DescribeExceptionChain(cleanupFailures[index]));
+        }
+    }
+
+    private void EstablishCommittedInvasionRestorableBaseline()
+    {
+        List<DungeonSaveSectionEnvelope> live = saveSections.CaptureAll();
+        DungeonSaveSectionEnvelope charactersBefore = live.Single(value =>
+            string.Equals(
+                value.sectionId,
+                CharacterWorldSaveSection.Id,
+                StringComparison.Ordinal));
+        DungeonCharacterWorldSaveData before = JsonUtility.FromJson<
+            DungeonCharacterWorldSaveData>(charactersBefore.payloadJson);
+        int visitingBefore = before?.populationProfiles?
+            .Count(value => value != null && value.isVisiting) ?? 0;
+        DungeonCharacterWorldSaveData expectedCharacters = JsonUtility.FromJson<
+            DungeonCharacterWorldSaveData>(charactersBefore.payloadJson);
+        foreach (WorldCharacterProfile profile in expectedCharacters
+                     ?.populationProfiles ?? new List<WorldCharacterProfile>())
+        {
+            if (profile == null || !profile.isVisiting)
+            {
+                continue;
+            }
+            Require(!profile.isStaff
+                    && profile.settlementStanding
+                    == CharacterSettlementStanding.Visitor,
+                "WIM047 found an unsupported visiting-profile shape before "
+                + "baseline restore: " + profile.persistentId + ".");
+            profile.isVisiting = false;
+            profile.settlementStanding =
+                CharacterSettlementStanding.PreparedCandidate;
+        }
+
+        DungeonGameRestoreReport restoreReport = new();
+        bool restored = saveSections.RestoreAll(live, restoreReport)
+            && restoreReport.Success;
+        Require(restored,
+            "WIM047 could not establish a save-restorable world baseline: "
+            + string.Join(" | ", restoreReport.Errors));
+
+        List<DungeonSaveSectionEnvelope> canonical = saveSections.CaptureAll();
+        DungeonSaveSectionEnvelope charactersAfter = canonical.Single(value =>
+            string.Equals(
+                value.sectionId,
+                CharacterWorldSaveSection.Id,
+                StringComparison.Ordinal));
+        DungeonCharacterWorldSaveData after = JsonUtility.FromJson<
+            DungeonCharacterWorldSaveData>(charactersAfter.payloadJson);
+        int visitingAfter = after?.populationProfiles?
+            .Count(value => value != null && value.isVisiting) ?? 0;
+        Require(visitingAfter == 0,
+            "WIM047 save-restorable baseline retained transient visiting profiles: "
+            + visitingAfter + ".");
+        Require(live.Count == canonical.Count,
+            "WIM047 pre-baseline restore changed the save-section count.");
+        foreach (DungeonSaveSectionEnvelope previous in live)
+        {
+            DungeonSaveSectionEnvelope current = canonical.SingleOrDefault(value =>
+                string.Equals(
+                    value.sectionId,
+                    previous.sectionId,
+                    StringComparison.Ordinal));
+            Require(current != null
+                    && current.sectionVersion == previous.sectionVersion
+                    && current.restorePhase == previous.restorePhase
+                    && current.optional == previous.optional,
+                "WIM047 pre-baseline restore changed save-section identity: "
+                + previous.sectionId + ".");
+            string expectedPayload = string.Equals(
+                    previous.sectionId,
+                    CharacterWorldSaveSection.Id,
+                    StringComparison.Ordinal)
+                ? JsonUtility.ToJson(expectedCharacters)
+                : previous.payloadJson;
+            bool payloadMatches = string.Equals(
+                expectedPayload,
+                current.payloadJson,
+                StringComparison.Ordinal);
+            if (!payloadMatches
+                && string.Equals(
+                    previous.sectionId,
+                    MetaProgressionSaveSection.Id,
+                    StringComparison.Ordinal))
+            {
+                payloadMatches = MetaClockRoundingOnly(
+                    expectedPayload,
+                    current.payloadJson);
+            }
+            Require(payloadMatches,
+                "WIM047 pre-baseline restore changed an unexpected durable field: "
+                + previous.sectionId + ".");
+        }
+        report.Add("wim047-restorable-scenario-baseline=PASS;visitingProfiles="
+            + visitingBefore + "->" + visitingAfter
+            + ";allowedChange=characters.world:isVisiting:true-to-false+"
+            + "settlementStanding:Visitor-to-PreparedCandidate-only;"
+            + "metaClockRoundingUnder=0.00001s;"
+            + "originalTransientVisitorStateRestored=False;"
+            + "terminalDisposition=PlayModeDiscard");
+    }
+
+    private void IsolateCommittedInvasionPersistence()
+    {
+        IMetaProfileStore profileStore = scope.Container.Resolve<
+            IMetaProfileStore>();
+        IDungeonSaveSlotCatalog slotCatalog = scope.Container.Resolve<
+            IDungeonSaveSlotCatalog>();
+        string[] paths =
+        {
+            profileStore.ProfilePath,
+            slotCatalog.GetPath(DungeonGameSaveSlotService.AutoSaveSlot),
+            slotCatalog.GetPath(DungeonGameSaveSlotService.QuickSaveSlot),
+            slotCatalog.GetPath(DungeonGameSaveSlotService.ManualSaveSlot)
+        };
+        Require(paths.All(path => !string.IsNullOrWhiteSpace(path))
+                && paths.Select(Path.GetFullPath)
+                    .Distinct(StringComparer.OrdinalIgnoreCase).Count()
+                    == paths.Length,
+            "WIM047 real profile/save-slot paths are missing or duplicated.");
+        foreach (string path in paths)
+        {
+            string fullPath = Path.GetFullPath(path);
+            realPersistenceBefore.Add(
+                fullPath,
+                CaptureFileFingerprint(fullPath));
+        }
+
+        isolatedAutosave = scope.Container.Resolve<IDungeonSaveCommandService>()
+            as DungeonAutosaveService;
+        isolatedMetaPersistence = scope.Container.Resolve<
+            MetaProfilePersistenceService>();
+        Require(isolatedAutosave != null && isolatedMetaPersistence != null,
+            "WIM047 production autosave/meta persistence services are unavailable.");
+        isolatedAutosave.Dispose();
+        isolatedMetaPersistence.Dispose();
+        report.Add("wim047-persistence-isolation=PASS;autosave=True;"
+            + "metaProfile=True;realFiles=" + realPersistenceBefore.Count
+            + ";terminalDisposition=PlayModeDiscard");
+    }
+
+    private void CheckCommittedInvasionPersistenceIntegrity()
+    {
+        if ((!CommittedInvasionWarningOnly && !TemporarySupplyOnly)
+            || realPersistenceBefore.Count == 0)
+        {
+            return;
+        }
+        try
+        {
+            string[] changed = realPersistenceBefore
+                .Where(pair => !string.Equals(
+                    pair.Value,
+                    CaptureFileFingerprint(pair.Key),
+                    StringComparison.Ordinal))
+                .Select(pair => pair.Key)
+                .ToArray();
+            Require(changed.Length == 0,
+                "WIM047 changed real profile/save-slot bytes; files will not be rewritten: "
+                + string.Join(",", changed));
+            report.Add("wim047-real-persistence=PASS;unchanged="
+                + realPersistenceBefore.Count + "/"
+                + realPersistenceBefore.Count);
+        }
+        catch (Exception exception)
+        {
+            RecordCleanupFailure(
+                "WIM047 real profile/save-slot integrity check failed.",
                 exception);
         }
     }
 
+    private static string CaptureFileFingerprint(string path)
+    {
+        if (!File.Exists(path))
+        {
+            return "MISSING";
+        }
+        using FileStream stream = File.Open(
+            path,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.ReadWrite | FileShare.Delete);
+        using SHA256 sha = SHA256.Create();
+        return stream.Length + ":"
+            + BitConverter.ToString(sha.ComputeHash(stream))
+                .Replace("-", string.Empty);
+    }
+
+    private void RecordCleanupFailure(string message, Exception exception) =>
+        cleanupFailures.Add(new InvalidOperationException(message, exception));
+
+    private static string DescribeExceptionChain(Exception exception)
+    {
+        List<string> messages = new();
+        for (Exception current = exception; current != null; current = current.InnerException)
+        {
+            messages.Add((current.Message ?? current.GetType().Name)
+                .Replace('\r', ' ')
+                .Replace('\n', ' '));
+        }
+        return string.Join(" <- ", messages);
+    }
+
     private static bool SaveEnvelopesEqual(
         IReadOnlyList<DungeonSaveSectionEnvelope> left,
-        IReadOnlyList<DungeonSaveSectionEnvelope> right)
+        IReadOnlyList<DungeonSaveSectionEnvelope> right,
+        bool allowMetaClockRounding = false)
     {
         if (left == null || right == null || left.Count != right.Count)
             return false;
@@ -1639,15 +2289,31 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
                 || a.sectionVersion != b.sectionVersion
                 || a.restorePhase != b.restorePhase
                 || a.optional != b.optional
-                || !string.Equals(
+                || (!string.Equals(
                     a.payloadJson,
                     b.payloadJson,
-                    StringComparison.Ordinal))
+                    StringComparison.Ordinal)
+                    && !(allowMetaClockRounding && a.sectionId == MetaProgressionSaveSection.Id
+                        && MetaClockRoundingOnly(a.payloadJson, b.payloadJson))))
             {
                 return false;
             }
         }
         return true;
+    }
+
+    private static bool MetaClockRoundingOnly(string before, string after)
+    {
+        DungeonMetaProgressionSaveData left = JsonUtility.FromJson<DungeonMetaProgressionSaveData>(before);
+        DungeonMetaProgressionSaveData right = JsonUtility.FromJson<DungeonMetaProgressionSaveData>(after);
+        if (left?.runProgress == null || right?.runProgress == null
+            || !(Math.Abs((double)left.runProgress.elapsedSeconds - right.runProgress.elapsedSeconds) < 0.00001d))
+            return false;
+        // MetaRunProgressTracker reprojects clock - (clock - elapsed) as float.
+        // This fixture exception never applies to physical stock, currency,
+        // orders, destination state, or production restore validation.
+        right.runProgress.elapsedSeconds = left.runProgress.elapsedSeconds;
+        return JsonUtility.ToJson(left) == JsonUtility.ToJson(right);
     }
 
     private static void Require(bool condition, string message)

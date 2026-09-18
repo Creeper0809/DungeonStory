@@ -9,7 +9,6 @@ OffenseSiteArchetypeSO,stable-id,armory,stable-id-literal,services:invasion,runt
 OffenseSiteArchetypeSO,stable-id,caravan,stable-id-literal,services:invasion,runtime,exact-literal-consumer,Assets/Scripts/Services/Invasion/InvasionCampaignRuntime.cs
 OffenseSiteArchetypeSO,stable-id,farm,stable-id-literal,services:factions,runtime,exact-literal-consumer,Assets/Scripts/Services/Factions/FactionRuntime.cs
 OffenseSiteArchetypeSO,stable-id,farm,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/MilestonePressureApplicationAdapter.cs
-OffenseSiteArchetypeSO,stable-id,farm,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/V20CampaignRuntime.cs
 OffenseSiteArchetypeSO,stable-id,farm,stable-id-literal,services:run,persistence,exact-literal-consumer,Assets/Scripts/Services/Run/V20MilestoneWorldSnapshotProjector.cs
 OffenseSiteArchetypeSO,stable-id,fixed:rival-dungeon,stable-id-literal,services:offense,runtime,exact-literal-consumer,Assets/Scripts/Services/Offense/Strategic/OffenseHexWorldSimulation.cs
 OffenseSiteArchetypeSO,stable-id,fixed:truth-core,stable-id-literal,services:offense,runtime,exact-literal-consumer,Assets/Scripts/Services/Offense/Strategic/OffenseHexWorldSimulation.cs

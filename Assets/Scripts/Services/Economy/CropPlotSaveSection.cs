@@ -181,6 +181,7 @@ public sealed class CropPlotSaveSection :
         CropHarvestOutputSaveData owner,
         FacilityBufferPlannedOutputRestoreBatchSnapshot batch)
     {
+        ValidateFrozenSeasonalPrimaryLoss(owner);
         ProductionDomainOutputRestoreGuard.ValidateIncoming(
             owner.outputPublication,
             batch);
@@ -232,10 +233,52 @@ public sealed class CropPlotSaveSection :
                 + owner.operationId);
     }
 
+    private static void ValidateFrozenSeasonalPrimaryLoss(
+        CropHarvestOutputSaveData owner)
+    {
+        if (owner == null)
+            throw new InvalidOperationException(
+                "Crop harvest seasonal-loss owner is missing.");
+        if (owner.seasonalPrimaryBatchLossPercent == 0)
+        {
+            if (!string.IsNullOrEmpty(
+                    owner.seasonalDamageSourceEventInstanceId)
+                || !string.IsNullOrEmpty(
+                    owner.seasonalDamageSourceDefinitionId)
+                || owner.primaryQuantityBeforeSeasonalLoss != 0
+                || owner.seasonalPrimaryLossQuantity != 0)
+                throw new InvalidOperationException(
+                    "Crop harvest contains partial seasonal-loss provenance.");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(
+                owner.seasonalDamageSourceEventInstanceId)
+            || string.IsNullOrWhiteSpace(
+                owner.seasonalDamageSourceDefinitionId)
+            || owner.primaryQuantityBeforeSeasonalLoss <= 0
+            || owner.seasonalPrimaryLossQuantity
+                != CropHarvestOutputRules.ResolvePrimaryBatchLoss(
+                    owner.primaryQuantityBeforeSeasonalLoss,
+                    owner.seasonalPrimaryBatchLossPercent)
+            || owner.harvestQuantity
+                != CropHarvestOutputRules.ApplyPrimaryBatchLoss(
+                    owner.primaryQuantityBeforeSeasonalLoss,
+                    owner.seasonalPrimaryBatchLossPercent))
+        {
+            throw new InvalidOperationException(
+                "Crop harvest seasonal-loss arithmetic or provenance drifted.");
+        }
+    }
+
     private void ValidateDetachedPlot(CropPlotSaveData plot)
     {
         CropHarvestOutputSaveData owner = plot?.pendingHarvest;
-        if (owner == null || owner.phase == CropHarvestOutputPhase.None)
+        CropWaterRefillSaveData water = plot?.waterRefill;
+        bool hasHarvest = owner != null
+            && owner.phase != CropHarvestOutputPhase.None;
+        bool hasWater = water != null
+            && water.phase != CropWaterRefillPhase.None;
+        if (!hasHarvest && !hasWater)
             return;
         if (!worldCandidates.TryGetBuildings(
                 out IReadOnlyList<BuildableObject> buildings)
@@ -252,10 +295,21 @@ public sealed class CropPlotSaveSection :
             .GetAbility<BuildingCropPlotAbility>();
         if (facility == null
             || facility.IsBuildingDestroyed
-            || plotAbility == null
-            || plotAbility.Indoor != owner.indoor)
+            || plotAbility == null)
             throw new InvalidOperationException(
-                "Crop harvest detached facility or indoor authority drifted: "
+                "Crop detached facility authority drifted: "
+                + (plot.buildingInstanceId ?? string.Empty));
+        if (hasWater
+            && !water.requiredWork.Equals(
+                CropWaterRules.RequireRefillWork(facility)))
+            throw new InvalidOperationException(
+                "Crop water-refill authored work drifted: "
+                + plot.buildingInstanceId);
+        if (!hasHarvest)
+            return;
+        if (plotAbility.Indoor != owner.indoor)
+            throw new InvalidOperationException(
+                "Crop harvest detached indoor authority drifted: "
                 + (plot.buildingInstanceId ?? string.Empty));
 
         ProductionOutputBatchMaximumMassProof proof = new(new[]

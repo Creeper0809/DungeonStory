@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "사료, 퇴비, 깔짚과 저급 연료에 쓰는 섬유질이다. 밀로세아 가도의 풀·짚은 큰 압축 단위로 묶고, 속까지 마른 것만 검문 표식을 받는다.",
+  "in_game_description": "사료, 퇴비, 깔짚과 저급 연료에 쓰는 섬유질이다. 밀로세아 가도를 지난 풀·짚 묶음에는 마지막 검문소의 색실이 하나씩 더해진다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

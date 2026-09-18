@@ -35,7 +35,25 @@ public sealed class OffenseExpeditionExperienceRules
                 $"node:{node.Kind}",
                 expedition.Target?.id ?? string.Empty,
                 "resolved",
-                experience);
+                experience,
+                eventContext: new GameplayNarrativeEventContext
+                {
+                    eventInstanceId = $"{expedition.ExpeditionId}:node:{node.Id}:{actor.Identity?.PersistentId}",
+                    chainId = expedition.ExpeditionId,
+                    locationId = expedition.Target?.id ?? string.Empty,
+                    locationDisplayName = !string.IsNullOrWhiteSpace(expedition.Target?.regionDisplayName)
+                        ? expedition.Target.regionDisplayName
+                        : expedition.Target?.title ?? string.Empty,
+                    actorId = actor.Identity?.PersistentId ?? string.Empty,
+                    actorDisplayName = actor.BuildingDisplayName,
+                    counterpartyId = expedition.Target?.factionId ?? string.Empty,
+                    counterpartyDisplayName = expedition.Target?.title ?? string.Empty,
+                    usedObjectId = node.Id,
+                    usedObjectDisplayName = node.Title,
+                    resultDetail = string.IsNullOrWhiteSpace(node.Description)
+                        ? node.Kind.ToString()
+                        : node.Description
+                });
         }
     }
 

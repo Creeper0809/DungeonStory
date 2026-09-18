@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using DungeonStory.Narrative.Korean;
 using UnityEngine;
 
 public enum ProductionDomainOutputPublicationStatus
@@ -126,6 +127,42 @@ public interface IProductionDomainOutputPublicationService
         out string failureReason);
 }
 
+public readonly struct ProductionDomainOutputGameplayOutcomePreview
+{
+    public ProductionDomainOutputGameplayOutcomePreview(
+        string ownerId,
+        string outcomeFingerprint,
+        PreparedFacilityBufferOutputPublicationPreview physical)
+    {
+        OwnerId = ownerId ?? string.Empty;
+        OutcomeFingerprint = outcomeFingerprint ?? string.Empty;
+        Physical = physical;
+    }
+
+    public string OwnerId { get; }
+    public string OutcomeFingerprint { get; }
+    public PreparedFacilityBufferOutputPublicationPreview Physical { get; }
+    public bool IsValid => OwnerId.Length > 0
+        && OutcomeFingerprint.Length > 0
+        && Physical.IsValid;
+}
+
+public interface IProductionDomainOutputGameplayOutcomeParticipant
+{
+    bool TryPrepare(
+        in ProductionDomainOutputGameplayOutcomePreview exactPreview,
+        out IPreparedPhysicalItemGameplayOutcome prepared,
+        out string failureReason);
+}
+
+public interface IOutcomeAwareProductionDomainOutputPublicationService
+{
+    ProductionDomainOutputPublicationResult EnsureCommitted(
+        ProductionDomainOutputPublicationSaveData owner,
+        ProductionDomainOutputPublicationPlan plan,
+        IProductionDomainOutputGameplayOutcomeParticipant outcomeParticipant);
+}
+
 /// <summary>
 /// Shared output transaction for domain-owned producers. It reserves the whole
 /// resolved batch by authoritative grams, atomically publishes it, and commits
@@ -133,7 +170,8 @@ public interface IProductionDomainOutputPublicationService
 /// service to acknowledge output provenance.
 /// </summary>
 public sealed class ProductionDomainOutputPublicationService :
-    IProductionDomainOutputPublicationService
+    IProductionDomainOutputPublicationService,
+    IOutcomeAwareProductionDomainOutputPublicationService
 {
     private const string ComponentFingerprintSchema =
         "production-domain-output-components@1";
@@ -145,6 +183,12 @@ public sealed class ProductionDomainOutputPublicationService :
     private readonly IFacilityBufferMassAdmissionService admission;
     private readonly IFacilityBufferPlannedOutputPublicationService publication;
     private readonly IPhysicalItemMassQuery massQuery;
+    private readonly IPreparedFacilityBufferOutputPublicationService
+        preparedPublication;
+    private readonly IReversibleFacilityBufferPlannedOutputAdmissionService
+        reversibleAdmission;
+    private readonly IGameplayOutcomeDiagnosticsQuery outcomeDiagnostics;
+    private readonly IGameplayOutcomeRecorder outcomeRecorder;
 
     public ProductionDomainOutputPublicationService(
         IProductionFacilityHandleQuery facilities,
@@ -153,7 +197,13 @@ public sealed class ProductionDomainOutputPublicationService :
         IProductionOutputMaximumMassRegistry maximumMassRegistry,
         IFacilityBufferMassAdmissionService admission,
         IFacilityBufferPlannedOutputPublicationService publication,
-        IPhysicalItemMassQuery massQuery)
+        IPhysicalItemMassQuery massQuery,
+        IPreparedFacilityBufferOutputPublicationService
+            preparedPublication = null,
+        IReversibleFacilityBufferPlannedOutputAdmissionService
+            reversibleAdmission = null,
+        IGameplayOutcomeDiagnosticsQuery outcomeDiagnostics = null,
+        IGameplayOutcomeRecorder outcomeRecorder = null)
     {
         this.facilities = facilities
             ?? throw new ArgumentNullException(nameof(facilities));
@@ -169,11 +219,29 @@ public sealed class ProductionDomainOutputPublicationService :
             ?? throw new ArgumentNullException(nameof(publication));
         this.massQuery = massQuery
             ?? throw new ArgumentNullException(nameof(massQuery));
+        this.preparedPublication = preparedPublication;
+        this.reversibleAdmission = reversibleAdmission;
+        this.outcomeDiagnostics = outcomeDiagnostics;
+        this.outcomeRecorder = outcomeRecorder;
     }
 
     public ProductionDomainOutputPublicationResult EnsureCommitted(
         ProductionDomainOutputPublicationSaveData owner,
-        ProductionDomainOutputPublicationPlan plan)
+        ProductionDomainOutputPublicationPlan plan) => EnsureCommittedCore(
+        owner,
+        plan,
+        null);
+
+    public ProductionDomainOutputPublicationResult EnsureCommitted(
+        ProductionDomainOutputPublicationSaveData owner,
+        ProductionDomainOutputPublicationPlan plan,
+        IProductionDomainOutputGameplayOutcomeParticipant outcomeParticipant) =>
+        EnsureCommittedCore(owner, plan, outcomeParticipant);
+
+    private ProductionDomainOutputPublicationResult EnsureCommittedCore(
+        ProductionDomainOutputPublicationSaveData owner,
+        ProductionDomainOutputPublicationPlan plan,
+        IProductionDomainOutputGameplayOutcomeParticipant outcomeParticipant)
     {
         if (owner == null)
             return Conflict("domain-output-owner-missing");
@@ -293,6 +361,21 @@ public sealed class ProductionDomainOutputPublicationService :
                     : Pending(reserveFailure);
             }
 
+            if (owner.gameplayOutcomeExpected && outcomeParticipant == null)
+            {
+                return Conflict(
+                    "domain-output-outcome-participant-required-for-replay");
+            }
+
+            if (outcomeParticipant != null)
+            {
+                return EnsureOutcomeAwareCommitted(
+                    owner,
+                    plan,
+                    token,
+                    outcomeParticipant);
+            }
+
             if (!publication.TryPublishFullBatch(
                     token,
                     out FacilityBufferPlannedOutputPublicationReceipt published,
@@ -363,6 +446,11 @@ public sealed class ProductionDomainOutputPublicationService :
             return false;
         if (owner.outputAcknowledged)
             return true;
+        if (owner.gameplayOutcomeExpected
+            && !TryRefreshAcknowledgedOutcome(owner, out failureReason))
+        {
+            return false;
+        }
         FacilityBufferPlannedOutputPublicationReceipt receipt = new(
             owner.admissionTokenId,
             owner.batchCommitId,
@@ -480,7 +568,8 @@ public sealed class ProductionDomainOutputPublicationService :
             && owner.stacks.Aggregate(
                     0L,
                     (sum, value) => checked(sum + value.massGrams))
-                == owner.outputMassGrams;
+                == owner.outputMassGrams
+            && ValidateGameplayOutcomeJoin(owner);
         }
         catch (OverflowException)
         {
@@ -538,7 +627,9 @@ public sealed class ProductionDomainOutputPublicationService :
             && !owner.outputPublished
             && !owner.admissionCommitted
             && !owner.outputAcknowledged
-            && (owner.stacks == null || owner.stacks.Count == 0);
+            && owner.gameplayOutcome == null
+            && (owner.stacks == null || owner.stacks.Count == 0)
+            && ValidateGameplayOutcomeJoin(owner);
         failureReason = frozenAwaitingReservation
             ? string.Empty
             : "domain-output-owner-not-restorable";
@@ -729,9 +820,636 @@ public sealed class ProductionDomainOutputPublicationService :
         owner.outputPublished = false;
         owner.admissionCommitted = false;
         owner.outputAcknowledged = false;
+        owner.gameplayOutcomeExpected = false;
+        owner.gameplayOutcomeOwnerRevision = 0L;
+        owner.expectedOutcomeProducerId = string.Empty;
+        owner.expectedOutcomeOperationId = string.Empty;
+        owner.expectedOutcomeCommitRevision = 0L;
+        owner.expectedOutcomeLocalResultIndex = 0;
+        owner.gameplayOutcome = null;
         (owner.stacks ??= new List<ProductionDomainPublishedStackSaveData>())
             .Clear();
     }
+
+    private static bool ValidateGameplayOutcomeJoin(
+        ProductionDomainOutputPublicationSaveData owner)
+    {
+        if (!owner.gameplayOutcomeExpected)
+        {
+            return owner.gameplayOutcomeOwnerRevision == 0L
+                && string.IsNullOrEmpty(owner.expectedOutcomeProducerId)
+                && string.IsNullOrEmpty(owner.expectedOutcomeOperationId)
+                && owner.expectedOutcomeCommitRevision == 0L
+                && owner.expectedOutcomeLocalResultIndex == 0
+                && owner.gameplayOutcome == null;
+        }
+        if (owner.gameplayOutcomeOwnerRevision <= 0L
+            || !GameplayOutcomeStableIdSyntax.IsValid(
+                owner.expectedOutcomeProducerId)
+            || !GameplayOutcomeStableIdSyntax.IsValid(
+                owner.expectedOutcomeOperationId)
+            || owner.expectedOutcomeCommitRevision < 0L
+            || owner.expectedOutcomeLocalResultIndex < 0)
+        {
+            return false;
+        }
+        if (owner.outputPublished
+            && (owner.stacks == null
+                || owner.stacks.Count == 0
+                || owner.stacks.Any(value =>
+                    !HasValidDisplaySnapshot(value))))
+        {
+            return false;
+        }
+        GameplayResultKey expected;
+        try
+        {
+            expected = new GameplayResultKey(
+                owner.expectedOutcomeProducerId,
+                new GameplayOperationId(owner.expectedOutcomeOperationId),
+                owner.expectedOutcomeCommitRevision,
+                owner.expectedOutcomeLocalResultIndex);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+        if (owner.gameplayOutcome == null)
+            return true;
+        try
+        {
+            PhysicalGameplayOutcomeAttachment attachment =
+                FromGameplayOutcomeSave(
+                    owner.gameplayOutcome);
+            return attachment.IsValid
+                && attachment.ResultKey.Equals(expected);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    private static bool HasValidDisplaySnapshot(
+        ProductionDomainPublishedStackSaveData value)
+    {
+        if (value == null
+            || !Enum.IsDefined(
+                typeof(KoreanPronunciationMode),
+                value.pronunciationMode)
+            || !Enum.IsDefined(
+                typeof(KoreanFinalConsonantKind),
+                value.explicitFinalConsonant))
+        {
+            return false;
+        }
+        try
+        {
+            return GameplayOutcomeLedger.IsValidDisplayNameSnapshot(
+                new KoreanNameSnapshot(
+                    value.displayText,
+                    value.displaySnapshotRevision,
+                    new KoreanPronunciationHint(
+                        (KoreanPronunciationMode)value.pronunciationMode,
+                        value.pronunciationValue,
+                        (KoreanFinalConsonantKind)value.explicitFinalConsonant,
+                        value.pronunciationRevision),
+                    value.locale));
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    private ProductionDomainOutputPublicationResult EnsureOutcomeAwareCommitted(
+        ProductionDomainOutputPublicationSaveData owner,
+        ProductionDomainOutputPublicationPlan plan,
+        FacilityBufferPlannedOutputToken token,
+        IProductionDomainOutputGameplayOutcomeParticipant outcomeParticipant)
+    {
+        if (preparedPublication == null
+            || reversibleAdmission == null
+            || outcomeDiagnostics == null)
+        {
+            ReleaseReserved(owner, token);
+            return Conflict("domain-output-outcome-transaction-unavailable");
+        }
+
+        if (owner.gameplayOutcomeExpected)
+        {
+            bool hasExpected = TryExpectedOutcomeKey(
+                owner,
+                out GameplayResultKey expected);
+            string replayFailure = string.Empty;
+            bool replayedPhysical = publication.TryPublishFullBatch(
+                    token,
+                    out FacilityBufferPlannedOutputPublicationReceipt replayed,
+                    out _,
+                    out replayFailure);
+            string replayAdmissionFailure = string.Empty;
+            bool replayedAdmission = replayedPhysical
+                && admission.TryCommitPlannedOutput(
+                    token,
+                    replayed,
+                    out _,
+                    out _,
+                    out replayAdmissionFailure);
+            if (!hasExpected || !replayedPhysical || !replayedAdmission)
+            {
+                return Conflict(
+                    "domain-output-outcome-replay:"
+                    + replayFailure + ":" + replayAdmissionFailure);
+            }
+            ProductionDomainOutputGameplayOutcomePreview replayPreview = new(
+                plan.OwnerId,
+                plan.OutcomeFingerprint,
+                new PreparedFacilityBufferOutputPublicationPreview(
+                    replayed,
+                    owner.gameplayOutcomeOwnerRevision,
+                    RestorePreparedOutputFacts(owner, replayed)));
+            if (!outcomeParticipant.TryPrepare(
+                    replayPreview,
+                    out IPreparedPhysicalItemGameplayOutcome replayOutcome,
+                    out string prepareFailure)
+                || replayOutcome == null
+                || !replayOutcome.IsCanonicalReplay
+                || !replayOutcome.ResultKey.Equals(expected))
+            {
+                replayOutcome?.Cancel();
+                return Conflict(
+                    "domain-output-outcome-replay-conflict:"
+                    + prepareFailure);
+            }
+            bool replayCommit;
+            PhysicalGameplayOutcomeAttachment replayAttachment = default;
+            bool replayCanonical = false;
+            string commitFailure = string.Empty;
+            try
+            {
+                replayCommit = replayOutcome.TryCommit(
+                    owner.gameplayOutcomeOwnerRevision,
+                    out replayAttachment,
+                    out replayCanonical,
+                    out commitFailure);
+            }
+            catch (Exception exception) when (IsRecoverable(exception))
+            {
+                replayCanonical = HasCanonicalOutcome(expected);
+                replayCommit = replayCanonical;
+                commitFailure = "domain-output-outcome-replay-exception:"
+                    + exception.Message;
+            }
+            if (!replayCanonical)
+                return Conflict("domain-output-outcome-replay-unresolved:" + commitFailure);
+            if (replayAttachment.IsValid)
+                owner.gameplayOutcome = ToGameplayOutcomeSave(
+                    replayAttachment);
+            else
+                TryRefreshCanonicalOutcomeAttachment(owner, expected, out _);
+            return new ProductionDomainOutputPublicationResult(
+                ProductionDomainOutputPublicationStatus
+                    .CommittedAwaitingOwnerAcknowledgement,
+                replayCommit ? string.Empty : commitFailure);
+        }
+
+        if (!preparedPublication.TryPrepareFullBatch(
+                token,
+                out IPreparedFacilityBufferOutputPublication preparedPhysical,
+                out _,
+                out string physicalPrepareFailure))
+        {
+            ReleaseReserved(owner, token);
+            return Pending(
+                "domain-output-outcome-physical-prepare:"
+                + physicalPrepareFailure);
+        }
+        ProductionDomainOutputGameplayOutcomePreview preview = new(
+            plan.OwnerId,
+            plan.OutcomeFingerprint,
+            preparedPhysical.Preview);
+        IPreparedPhysicalItemGameplayOutcome preparedOutcome = null;
+        string outcomePrepareFailure = string.Empty;
+        if (!preview.IsValid
+            || !outcomeParticipant.TryPrepare(
+                preview,
+                out preparedOutcome,
+                out outcomePrepareFailure)
+            || preparedOutcome == null
+            || !preparedOutcome.ResultKey.IsValid)
+        {
+            preparedPhysical.Cancel();
+            preparedOutcome?.Cancel();
+            ReleaseReserved(owner, token);
+            return Pending(
+                "domain-output-outcome-prepare:" + outcomePrepareFailure);
+        }
+        List<ProductionDomainPublishedStackSaveData> frozenPublishedStacks =
+            CapturePublishedStacks(preparedPhysical.Preview);
+        StoreExpectedOutcome(
+            owner,
+            preparedPhysical.Preview.OwnerRevision,
+            preparedOutcome.ResultKey);
+
+        if (!preparedPhysical.TryApply(
+                out IReversibleFacilityBufferOutputPublication physicalTx,
+                out _,
+                out string physicalApplyFailure))
+        {
+            preparedOutcome.Cancel();
+            ReleaseReserved(owner, token);
+            return Pending(
+                "domain-output-outcome-physical-apply:"
+                + physicalApplyFailure);
+        }
+        owner.outputPublished = true;
+        owner.plannedOutputFingerprint =
+            preparedPhysical.Preview.Receipt.PlannedOutputFingerprint;
+        if (!reversibleAdmission.TryCommitPlannedOutputReversible(
+                token,
+                preparedPhysical.Preview.Receipt,
+                out IReversibleFacilityBufferPlannedOutputAdmission admissionTx,
+                out _,
+                out string admissionFailure))
+        {
+            preparedOutcome.Cancel();
+            if (!physicalTx.TryRollback(out _, out string physicalRollback))
+            {
+                return Conflict(
+                    "domain-output-outcome-admission-physical-rollback:"
+                    + admissionFailure + ":" + physicalRollback);
+            }
+            owner.outputPublished = false;
+            ReleaseReserved(owner, token);
+            return Pending(
+                "domain-output-outcome-admission:" + admissionFailure);
+        }
+        owner.admissionCommitted = true;
+        owner.stacks = frozenPublishedStacks;
+
+        bool outcomeSucceeded;
+        bool canonicalCommitted = false;
+        PhysicalGameplayOutcomeAttachment attachment = default;
+        string outcomeFailure = string.Empty;
+        try
+        {
+            outcomeSucceeded = preparedOutcome.TryCommit(
+                preparedPhysical.Preview.OwnerRevision,
+                out attachment,
+                out canonicalCommitted,
+                out outcomeFailure);
+        }
+        catch (Exception exception) when (IsRecoverable(exception))
+        {
+            canonicalCommitted = HasCanonicalOutcome(
+                preparedOutcome.ResultKey);
+            outcomeSucceeded = canonicalCommitted;
+            outcomeFailure = "domain-output-outcome-commit-exception:"
+                + exception.Message;
+        }
+        if (!outcomeSucceeded && !canonicalCommitted)
+        {
+            preparedOutcome.Cancel();
+            return RollbackOutcomeAwareOutput(
+                owner,
+                token,
+                preparedPhysical.Preview.Receipt,
+                physicalTx,
+                admissionTx,
+                outcomeFailure);
+        }
+        if (attachment.IsValid)
+            owner.gameplayOutcome = ToGameplayOutcomeSave(
+                attachment);
+        physicalTx.TryAcknowledge(out _);
+        admissionTx.TryAcknowledge(out _);
+        return new ProductionDomainOutputPublicationResult(
+            ProductionDomainOutputPublicationStatus
+                .CommittedAwaitingOwnerAcknowledgement,
+            outcomeFailure);
+    }
+
+    private ProductionDomainOutputPublicationResult RollbackOutcomeAwareOutput(
+        ProductionDomainOutputPublicationSaveData owner,
+        FacilityBufferPlannedOutputToken token,
+        FacilityBufferPlannedOutputPublicationReceipt publicationReceipt,
+        IReversibleFacilityBufferOutputPublication physicalTx,
+        IReversibleFacilityBufferPlannedOutputAdmission admissionTx,
+        string outcomeFailure)
+    {
+        if (!admissionTx.TryRollback(out _, out string admissionRollback))
+        {
+            return Conflict(
+                "domain-output-outcome-admission-rollback:"
+                + outcomeFailure + ":" + admissionRollback);
+        }
+        if (!physicalTx.TryRollback(out _, out string physicalRollback))
+        {
+            // Restore the routed admission if physical removal failed so the
+            // two physical authorities remain mutually consistent.
+            admission.TryCommitPlannedOutput(
+                token,
+                publicationReceipt,
+                out _,
+                out _,
+                out string restoreFailure);
+            return Conflict(
+                "domain-output-outcome-physical-rollback:"
+                + outcomeFailure + ":" + physicalRollback
+                + ":" + restoreFailure);
+        }
+        owner.outputPublished = false;
+        owner.admissionCommitted = false;
+        owner.stacks.Clear();
+        if (!admission.TryReleasePlannedOutput(
+                token,
+                FacilityBufferMassAdmissionReleaseReason.TransactionRollback,
+                out _,
+                out string releaseFailure))
+        {
+            return Conflict(
+                "domain-output-outcome-release-rollback:"
+                + outcomeFailure + ":" + releaseFailure);
+        }
+        ResetReleasedAttempt(owner);
+        return Pending("domain-output-outcome-commit:" + outcomeFailure);
+    }
+
+    private static List<ProductionDomainPublishedStackSaveData>
+        CapturePublishedStacks(
+            in PreparedFacilityBufferOutputPublicationPreview preview) =>
+        preview.Facts
+            .OrderBy(value => value.Stack.OutputLineId, StringComparer.Ordinal)
+            .ThenBy(value => value.Stack.StackId, StringComparer.Ordinal)
+            .Select(value => new ProductionDomainPublishedStackSaveData
+            {
+                outputLineId = value.Stack.OutputLineId,
+                itemId = value.Stack.ItemDefinitionId.Value,
+                itemInstanceId = value.Stack.ItemInstanceId,
+                stackId = value.Stack.StackId,
+                quantity = value.Stack.Quantity,
+                massGrams = value.Stack.MassGrams,
+                displayText = value.DisplayName.DisplayText,
+                displaySnapshotRevision =
+                    value.DisplayName.DisplaySnapshotRevision,
+                pronunciationMode =
+                    (int)value.DisplayName.PronunciationHint.Mode,
+                pronunciationValue =
+                    value.DisplayName.PronunciationHint.Value,
+                explicitFinalConsonant = (int)value.DisplayName
+                    .PronunciationHint.ExplicitFinalConsonant,
+                pronunciationRevision =
+                    value.DisplayName.PronunciationHint.Revision,
+                locale = value.DisplayName.Locale
+            })
+            .ToList();
+
+    private static IReadOnlyList<PreparedFacilityBufferOutputFact>
+        RestorePreparedOutputFacts(
+            ProductionDomainOutputPublicationSaveData owner,
+            FacilityBufferPlannedOutputPublicationReceipt receipt)
+    {
+        Dictionary<string, ProductionDomainPublishedStackSaveData> saved =
+            new(StringComparer.Ordinal);
+        foreach (ProductionDomainPublishedStackSaveData value in
+                 owner.stacks
+                 ?? new List<ProductionDomainPublishedStackSaveData>())
+        {
+            if (value == null || !saved.TryAdd(value.stackId, value))
+                return Array.Empty<PreparedFacilityBufferOutputFact>();
+        }
+        PreparedFacilityBufferOutputFact[] result =
+            new PreparedFacilityBufferOutputFact[receipt.Stacks.Count];
+        for (int index = 0; index < receipt.Stacks.Count; index++)
+        {
+            FacilityBufferPublishedOutputStackReceipt stack =
+                receipt.Stacks[index];
+            if (!saved.TryGetValue(
+                    stack.StackId,
+                    out ProductionDomainPublishedStackSaveData value))
+            {
+                return Array.Empty<PreparedFacilityBufferOutputFact>();
+            }
+            result[index] = new PreparedFacilityBufferOutputFact(
+                stack,
+                new KoreanNameSnapshot(
+                    value.displayText,
+                    value.displaySnapshotRevision,
+                    new KoreanPronunciationHint(
+                        (KoreanPronunciationMode)value.pronunciationMode,
+                        value.pronunciationValue,
+                        (KoreanFinalConsonantKind)value.explicitFinalConsonant,
+                        value.pronunciationRevision),
+                    value.locale));
+        }
+        return result;
+    }
+
+    private static void StoreExpectedOutcome(
+        ProductionDomainOutputPublicationSaveData owner,
+        long ownerRevision,
+        GameplayResultKey key)
+    {
+        owner.gameplayOutcomeExpected = true;
+        owner.gameplayOutcomeOwnerRevision = ownerRevision;
+        owner.expectedOutcomeProducerId = key.ProducerId;
+        owner.expectedOutcomeOperationId = key.OperationId.Value;
+        owner.expectedOutcomeCommitRevision = key.CommitRevision;
+        owner.expectedOutcomeLocalResultIndex = key.LocalResultIndex;
+        owner.gameplayOutcome = null;
+    }
+
+    private static bool TryExpectedOutcomeKey(
+        ProductionDomainOutputPublicationSaveData owner,
+        out GameplayResultKey key)
+    {
+        key = default;
+        if (owner == null || !owner.gameplayOutcomeExpected)
+            return false;
+        try
+        {
+            key = new GameplayResultKey(
+                owner.expectedOutcomeProducerId,
+                new GameplayOperationId(owner.expectedOutcomeOperationId),
+                owner.expectedOutcomeCommitRevision,
+                owner.expectedOutcomeLocalResultIndex);
+            return key.IsValid;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    private bool HasCanonicalOutcome(GameplayResultKey key)
+    {
+        try
+        {
+            return outcomeDiagnostics.TryGetResultIdentity(
+                    key,
+                    out GameplayOutcomeReplayIdentity identity)
+                && identity.ResultKey.Equals(key)
+                && new PhysicalGameplayOutcomeAttachment(
+                    identity.ResultKey,
+                    identity.OutcomeId,
+                    identity.State,
+                    identity.CanonicalPayloadHash).IsValid;
+        }
+        catch (Exception exception) when (IsRecoverable(exception))
+        {
+            return false;
+        }
+    }
+
+    private bool TryRefreshAcknowledgedOutcome(
+        ProductionDomainOutputPublicationSaveData owner,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (!TryExpectedOutcomeKey(owner, out GameplayResultKey expected))
+        {
+            failureReason = "domain-output-outcome-expected-key-invalid";
+            return false;
+        }
+        try
+        {
+            outcomeRecorder?.RetryPendingDeliveries(1);
+        }
+        catch (Exception exception) when (IsRecoverable(exception))
+        {
+            failureReason = "domain-output-outcome-delivery-retry:"
+                + exception.Message;
+            return false;
+        }
+        if (!TryRefreshCanonicalOutcomeAttachment(
+                owner,
+                expected,
+                out failureReason))
+        {
+            return false;
+        }
+        PhysicalGameplayOutcomeAttachment attachment;
+        try
+        {
+            attachment = FromGameplayOutcomeSave(
+                owner.gameplayOutcome);
+        }
+        catch (Exception exception) when (IsRecoverable(exception))
+        {
+            failureReason = "domain-output-outcome-attachment-invalid:"
+                + exception.Message;
+            return false;
+        }
+        if (!attachment.HasAcknowledgementProof)
+        {
+            failureReason = "domain-output-outcome-not-acknowledged";
+            return false;
+        }
+        return true;
+    }
+
+    private bool TryRefreshCanonicalOutcomeAttachment(
+        ProductionDomainOutputPublicationSaveData owner,
+        GameplayResultKey expected,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (outcomeDiagnostics == null)
+        {
+            failureReason = "domain-output-outcome-diagnostics-unavailable";
+            return false;
+        }
+        GameplayOutcomeReplayIdentity identity;
+        try
+        {
+            if (!outcomeDiagnostics.TryGetResultIdentity(expected, out identity))
+            {
+                failureReason = "domain-output-outcome-identity-missing";
+                return false;
+            }
+        }
+        catch (Exception exception) when (IsRecoverable(exception))
+        {
+            failureReason = "domain-output-outcome-identity-query:"
+                + exception.Message;
+            return false;
+        }
+        PhysicalGameplayOutcomeAttachment current = new(
+            identity.ResultKey,
+            identity.OutcomeId,
+            identity.State,
+            identity.CanonicalPayloadHash);
+        if (!current.IsValid || !current.ResultKey.Equals(expected))
+        {
+            failureReason = "domain-output-outcome-identity-invalid";
+            return false;
+        }
+        if (owner.gameplayOutcome != null)
+        {
+            PhysicalGameplayOutcomeAttachment saved;
+            try
+            {
+                saved = FromGameplayOutcomeSave(
+                    owner.gameplayOutcome);
+            }
+            catch (Exception exception) when (IsRecoverable(exception))
+            {
+                failureReason = "domain-output-outcome-saved-attachment-invalid:"
+                    + exception.Message;
+                return false;
+            }
+            if (!saved.IsValid
+                || !saved.ResultKey.Equals(current.ResultKey)
+                || !saved.OutcomeId.Equals(current.OutcomeId)
+                || !string.Equals(
+                    saved.CanonicalPayloadHash,
+                    current.CanonicalPayloadHash,
+                    StringComparison.Ordinal))
+            {
+                failureReason = "domain-output-outcome-identity-conflict";
+                return false;
+            }
+        }
+        owner.gameplayOutcome = ToGameplayOutcomeSave(current);
+        return true;
+    }
+
+    private static ProductionDomainGameplayOutcomeAttachmentSaveData
+        ToGameplayOutcomeSave(in PhysicalGameplayOutcomeAttachment attachment) =>
+        new()
+        {
+            producerId = attachment.ResultKey.ProducerId,
+            operationId = attachment.ResultKey.OperationId.Value,
+            commitRevision = attachment.ResultKey.CommitRevision,
+            localResultIndex = attachment.ResultKey.LocalResultIndex,
+            outcomeRunId = attachment.OutcomeId.RunId.Value,
+            outcomeSequence = attachment.OutcomeId.Sequence,
+            replayState = (int)attachment.State,
+            canonicalPayloadHash = attachment.CanonicalPayloadHash
+        };
+
+    private static PhysicalGameplayOutcomeAttachment FromGameplayOutcomeSave(
+        ProductionDomainGameplayOutcomeAttachmentSaveData attachment)
+    {
+        if (attachment == null)
+            return default;
+        return new PhysicalGameplayOutcomeAttachment(
+            new GameplayResultKey(
+                attachment.producerId,
+                new GameplayOperationId(attachment.operationId),
+                attachment.commitRevision,
+                attachment.localResultIndex),
+            new GameplayOutcomeId(
+                new GameplayOutcomeRunId(attachment.outcomeRunId),
+                attachment.outcomeSequence),
+            (GameplayOutcomeReplayState)attachment.replayState,
+            attachment.canonicalPayloadHash);
+    }
+
+    private static bool IsRecoverable(Exception exception) =>
+        exception is not OutOfMemoryException
+        && exception is not StackOverflowException
+        && exception is not AccessViolationException;
 
     private static bool TokenMatchesOwner(
         ProductionDomainOutputPublicationSaveData owner,

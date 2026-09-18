@@ -110,7 +110,10 @@ public static class V24NarrativeLiveModelProbe
                     string correction = prompt
                         + "\nCorrection: the prior response was rejected: "
                         + quality.Error
-                        + ". Return a corrected object using only listed Fxx and Mxx references.";
+                        + ". "
+                        + (NarrativeExactKeyContract.IsRegisteredProfile(profile.Id)
+                            ? "Return only the exact keys for this profile; do not add reference-tracking or mechanical keys."
+                            : "Return a corrected object using only listed Fxx and Mxx references.");
                     call = await CallAsync(client, backend, profile, schema, correction);
                     profileResult.RecordLatency(call.FirstTokenMilliseconds);
                     quality = call.TransportSucceeded
@@ -233,14 +236,17 @@ public static class V24NarrativeLiveModelProbe
     {
         LocalLlmRequestProfile[] profiles =
         {
-            LocalLlmRequestProfiles.CharacterSkill,
+            LocalLlmRequestProfiles.CharacterSkillLegacyV2,
             LocalLlmRequestProfiles.Persona,
             LocalLlmRequestProfiles.MacroGoal,
             LocalLlmRequestProfiles.MoodImpulse,
-            LocalLlmRequestProfiles.FacilityEvolution,
-            LocalLlmRequestProfiles.EvolutionHistory,
+            LocalLlmRequestProfiles.FacilityEvolutionLegacyV2,
+            LocalLlmRequestProfiles.EquipmentChoiceLegacyV2,
+            LocalLlmRequestProfiles.EvolutionHistoryLegacyV2,
+            LocalLlmRequestProfiles.AcquiredTraitLegacyV2,
             LocalLlmRequestProfiles.SocialRumor,
             LocalLlmRequestProfiles.CharacterRecord,
+            LocalLlmRequestProfiles.MultiPerspective,
             LocalLlmRequestProfiles.BubbleLine
         };
         return profiles.First(value => string.Equals(value.Id, profileId, StringComparison.Ordinal));
@@ -251,13 +257,30 @@ public static class V24NarrativeLiveModelProbe
         return "Return one concise schema-valid JSON object for profile " + profileId
             + ". Write player-facing narrative text in Korean fantasy or wuxia style. "
             + "Do not use markdown or invent people, events, relationships, or hidden facts. "
-            + "Use conservative enum values and use F01 and M01 when reference arrays are present. "
-            + "For request-bound identifiers use requestKey=req, targetPersistentId=target, nodeId=node, "
-            + "parentNodeId=parent, effectId=effect, effectBudget=1 and evidenceIds=[evidence]. "
-            + "For FacilityEvolution use proposalIds=[proposal-a], one matching reasons entry, "
-            + "empty rejectedHints, empty mutationTagSuggestions, and a short rejectedHintText. "
-            + "For skill candidates use index=0, trigger=OnTurnStart, target=Self, ultimateDomain=None, "
-            + "cooldownTurns=0, combinationId=probe and an empty modules array. Sample=" + sample + ".";
+            + "Follow the exact schema supplied for this profile and return no keys outside it. "
+            + ProfileOutputInstruction(profileId)
+            + " Sample=" + sample + ".";
+    }
+
+    private static string ProfileOutputInstruction(string profileId)
+    {
+        switch (profileId)
+        {
+            case "CharacterSkillLegacyV2":
+                return "For CharacterSkill return only {\"candidates\":[{\"ruleId\":\"probe-rule\",\"combinationId\":\"probe\",\"displayName\":\"...\",\"description\":\"...\",\"narrativeReason\":\"...\"}]}; each candidate must contain exactly those five keys.";
+            case "FacilityEvolutionLegacyV2":
+                return "For FacilityEvolution return only {\"proposalIds\":[],\"mutationTags\":[],\"reasons\":[],\"flavorText\":\"...\",\"confidence\":0.5}; this probe supplies no candidate pool, so do not invent proposal ids, mutation tags, or reasons.";
+            case "EquipmentChoiceLegacyV2":
+                return "For EquipmentChoice return only {\"selectedIndex\":0}.";
+            case "Persona":
+                return "For Persona return only {\"personaName\":\"...\",\"flavorText\":\"...\"}.";
+            case "EvolutionHistoryLegacyV2":
+                return "For EvolutionHistory return only {\"requestKey\":\"req\",\"targetPersistentId\":\"target\",\"nodeId\":\"node\",\"parentNodeId\":\"parent\",\"effectId\":\"effect\",\"effectBudget\":1,\"evidenceIds\":[\"evidence\"],\"displayName\":\"...\",\"description\":\"...\",\"historyReason\":\"...\"}.";
+            case "AcquiredTraitLegacyV2":
+                return "For AcquiredTrait return only {\"combinationId\":\"probe\",\"displayName\":\"...\",\"description\":\"...\",\"narrativeReason\":\"...\",\"evidenceFactIds\":[]}.";
+            default:
+                return string.Empty;
+        }
     }
 
     private static string CultureForSample(int sample)

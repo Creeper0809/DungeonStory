@@ -1,0 +1,31 @@
+{
+  "facts": [
+    {
+      "label": "성공 효과",
+      "value": "2개"
+    },
+    {
+      "label": "실패 효과",
+      "value": "1개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "8",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "faction-contract-myconid-winter-fuel-demand",
+  "spoiler_tier": "none",
+  "summary": "균사정원이 겨울 사건 종료 전 숯 8개의 실제 납품을 요청한다.",
+  "title": "균사정원 겨울 연료 요청"
+}

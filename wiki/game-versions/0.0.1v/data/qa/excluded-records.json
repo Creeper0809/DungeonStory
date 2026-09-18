@@ -1073,6 +1073,11 @@
     {
       "content_type": "GameplayEffectDefinitionSO",
       "reason": "internal-type",
+      "stable_id": "effect:character:maximum-health:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
       "stable_id": "effect:character:mentee-xp:multiply"
     },
     {
@@ -1124,6 +1129,11 @@
       "content_type": "GameplayEffectDefinitionSO",
       "reason": "internal-type",
       "stable_id": "effect:character:work-speed:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:combat:evasion-chance:add-flat"
     },
     {
       "content_type": "GameplayEffectDefinitionSO",
@@ -1453,12 +1463,37 @@
     {
       "content_type": "OffenseDecisionCardSO",
       "reason": "internal-type",
+      "stable_id": "travel_cold_snap_frost_camp"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
       "stable_id": "travel_false_milestone"
     },
     {
       "content_type": "OffenseDecisionCardSO",
       "reason": "internal-type",
+      "stable_id": "travel_fog_guide"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "travel_heatwave_shade_shelter"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
       "stable_id": "travel_narrow_pass"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "travel_rain_drift_cargo"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "travel_storm_exposed_hideout"
     },
     {
       "content_type": "OffenseDecisionCardSO",
@@ -2373,57 +2408,12 @@
     {
       "content_type": "StockInfo",
       "reason": "internal-type",
-      "stable_id": "asset:New Stock Info"
-    },
-    {
-      "content_type": "StockInfo",
-      "reason": "internal-type",
-      "stable_id": "asset:무기상점"
-    },
-    {
-      "content_type": "StockInfo",
-      "reason": "internal-type",
-      "stable_id": "shop-stock:10"
-    },
-    {
-      "content_type": "StockInfo",
-      "reason": "internal-type",
-      "stable_id": "shop-stock:11"
-    },
-    {
-      "content_type": "StockInfo",
-      "reason": "internal-type",
-      "stable_id": "shop-stock:12"
-    },
-    {
-      "content_type": "StockInfo",
-      "reason": "internal-type",
-      "stable_id": "shop-stock:13"
-    },
-    {
-      "content_type": "StockInfo",
-      "reason": "internal-type",
       "stable_id": "shop-stock:3000"
     },
     {
-      "content_type": "StockInfo",
-      "reason": "internal-type",
-      "stable_id": "shop-stock:50"
-    },
-    {
-      "content_type": "StockInfo",
-      "reason": "internal-type",
-      "stable_id": "shop-stock:51"
-    },
-    {
-      "content_type": "StockInfo",
-      "reason": "internal-type",
-      "stable_id": "shop-stock:55"
-    },
-    {
-      "content_type": "StockInfo",
-      "reason": "internal-type",
-      "stable_id": "shop-stock:56"
+      "content_type": "CharacterAcquiredTraitSettingsSO",
+      "reason": "manual-review",
+      "stable_id": "character:acquired-trait-settings"
     },
     {
       "content_type": "DefenseBurnEffectSO",
@@ -2528,22 +2518,7 @@
     {
       "content_type": "DefenseGuardAttackEffectSO",
       "reason": "manual-review",
-      "stable_id": "asset:P1_Barracks_1_GuardAttack"
-    },
-    {
-      "content_type": "DefenseGuardAttackEffectSO",
-      "reason": "manual-review",
-      "stable_id": "asset:P1_GuardRoom_1_GuardAttack"
-    },
-    {
-      "content_type": "DefenseGuardAttackEffectSO",
-      "reason": "manual-review",
       "stable_id": "asset:P1_StormFireTrap_4_GuardAttack"
-    },
-    {
-      "content_type": "DefenseGuardAttackEffectSO",
-      "reason": "manual-review",
-      "stable_id": "asset:P1_WarBarracks_1_GuardAttack"
     },
     {
       "content_type": "DefenseSlowEffectSO",
@@ -2661,111 +2636,6 @@
       "stable_id": "festival:storage"
     },
     {
-      "content_type": "BuildingSO",
-      "reason": "non-active-lifecycle",
-      "stable_id": "building:10"
-    },
-    {
-      "content_type": "BuildingSO",
-      "reason": "non-active-lifecycle",
-      "stable_id": "building:11"
-    },
-    {
-      "content_type": "BuildingSO",
-      "reason": "non-active-lifecycle",
-      "stable_id": "building:12"
-    },
-    {
-      "content_type": "BuildingSO",
-      "reason": "non-active-lifecycle",
-      "stable_id": "building:13"
-    },
-    {
-      "content_type": "BuildingSO",
-      "reason": "non-active-lifecycle",
-      "stable_id": "building:14"
-    },
-    {
-      "content_type": "BuildingSO",
-      "reason": "non-active-lifecycle",
-      "stable_id": "building:15"
-    },
-    {
-      "content_type": "BuildingSO",
-      "reason": "non-active-lifecycle",
-      "stable_id": "building:16"
-    },
-    {
-      "content_type": "BuildingSO",
-      "reason": "non-active-lifecycle",
-      "stable_id": "building:17"
-    },
-    {
-      "content_type": "BuildingSO",
-      "reason": "non-active-lifecycle",
-      "stable_id": "building:18"
-    },
-    {
-      "content_type": "BuildingSO",
-      "reason": "non-active-lifecycle",
-      "stable_id": "building:3"
-    },
-    {
-      "content_type": "BuildingSO",
-      "reason": "non-active-lifecycle",
-      "stable_id": "building:35"
-    },
-    {
-      "content_type": "BuildingSO",
-      "reason": "non-active-lifecycle",
-      "stable_id": "building:5"
-    },
-    {
-      "content_type": "BuildingSO",
-      "reason": "non-active-lifecycle",
-      "stable_id": "building:50"
-    },
-    {
-      "content_type": "BuildingSO",
-      "reason": "non-active-lifecycle",
-      "stable_id": "building:51"
-    },
-    {
-      "content_type": "BuildingSO",
-      "reason": "non-active-lifecycle",
-      "stable_id": "building:54"
-    },
-    {
-      "content_type": "BuildingSO",
-      "reason": "non-active-lifecycle",
-      "stable_id": "building:55"
-    },
-    {
-      "content_type": "BuildingSO",
-      "reason": "non-active-lifecycle",
-      "stable_id": "building:56"
-    },
-    {
-      "content_type": "BuildingSO",
-      "reason": "non-active-lifecycle",
-      "stable_id": "building:59"
-    },
-    {
-      "content_type": "BuildingSO",
-      "reason": "non-active-lifecycle",
-      "stable_id": "building:6"
-    },
-    {
-      "content_type": "BuildingSO",
-      "reason": "non-active-lifecycle",
-      "stable_id": "building:60"
-    },
-    {
-      "content_type": "BuildingSO",
-      "reason": "non-active-lifecycle",
-      "stable_id": "building:61"
-    },
-    {
       "content_type": "SaleItem",
       "reason": "non-active-lifecycle",
       "stable_id": "sale-item:0"
@@ -2854,6 +2724,11 @@
       "content_type": "CharacterTraitSO",
       "reason": "runtime-not-verified",
       "stable_id": "trait:246"
+    },
+    {
+      "content_type": "GuestRequestDefinitionSO",
+      "reason": "runtime-not-verified",
+      "stable_id": "guest-request:monster-circus"
     }
   ],
   "schema_version": 1

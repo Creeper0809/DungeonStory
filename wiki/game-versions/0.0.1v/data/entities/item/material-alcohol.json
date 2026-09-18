@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "술, 소독제와 연금 용매의 기반이다. 베르사디온의 알코올 병은 식용·소독용·연금용을 봉인색으로 구분하고, 피를 섞은 것은 동의의 잔 표식을 더한다.",
+  "in_game_description": "술, 소독제와 연금 용매의 기반이다. 베르사디온의 알코올 병목에는 동의의 잔에서 떼어 낸 검은 실이 감겨 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

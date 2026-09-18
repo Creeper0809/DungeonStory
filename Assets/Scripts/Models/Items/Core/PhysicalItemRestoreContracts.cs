@@ -51,6 +51,50 @@ public interface IPhysicalItemRestoreCandidateQuery
 }
 
 /// <summary>
+/// Read-only exact-instance projection over the detached physical-item restore
+/// candidate. Cross-aggregate restore joins use this instead of live stock.
+/// </summary>
+public sealed class PhysicalItemRestoreCandidateStackSnapshot
+{
+    public PhysicalItemRestoreCandidateStackSnapshot(
+        string stackId,
+        ItemInstanceId itemInstanceId,
+        string itemId,
+        int quantity,
+        WorldItemStackState state,
+        Vector2Int position,
+        string destinationId,
+        bool forbidden)
+    {
+        StackId = stackId ?? string.Empty;
+        ItemInstanceId = itemInstanceId;
+        ItemId = itemId ?? string.Empty;
+        Quantity = quantity;
+        State = state;
+        Position = position;
+        DestinationId = destinationId ?? string.Empty;
+        Forbidden = forbidden;
+    }
+
+    public string StackId { get; }
+    public ItemInstanceId ItemInstanceId { get; }
+    public string ItemId { get; }
+    public int Quantity { get; }
+    public WorldItemStackState State { get; }
+    public Vector2Int Position { get; }
+    public string DestinationId { get; }
+    public bool Forbidden { get; }
+}
+
+public interface IPhysicalItemRestoreCandidateStackQuery
+{
+    bool IsCandidateAvailable { get; }
+    bool TryGetStack(
+        ItemInstanceId itemInstanceId,
+        out PhysicalItemRestoreCandidateStackSnapshot stack);
+}
+
+/// <summary>
 /// Read-only detached current-format projection of Items-owned production
 /// input-destination drain authority. Economy restore joins use this projection
 /// before either aggregate publishes its staged state.

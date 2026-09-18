@@ -683,11 +683,22 @@ public sealed class ResearchTreeWindow :
             runtime);
         float totalRemainingWork = remainingPrerequisiteWork
             + Mathf.Max(0f, selectedProject.RequiredWork - progress.Progress);
-        const float effectiveWorkPerGameDay = 180f * 0.55f;
-        float expectedDays = totalRemainingWork / effectiveWorkPerGameDay;
+        float effectiveWorkPerAdultDay =
+            SettlementLaborAuthority.EffectiveOutputWuPerAdultDay;
+        float estimatedPreparationDays = totalRemainingWork / effectiveWorkPerAdultDay;
+        string preparationEstimate = string.IsNullOrWhiteSpace(blocker)
+            ? $"\n<b>준비 기준 추정</b> 성인 1명 · "
+                + $"{effectiveWorkPerAdultDay:0.#} WU/게임일 → 약 "
+                + $"{estimatedPreparationDays:0.0} 게임일"
+                + "\n<color=#A0A0A0>실제 연구자·장비·다인 기여·생활 이탈 "
+                + "실측은 반영하지 않음</color>"
+            : $"\n<b>준비 기준 추정</b> 차단 해소 전에는 완료 시점을 추정하지 않습니다."
+                + $"\n<color=#A0A0A0>성인 1명 · "
+                + $"{effectiveWorkPerAdultDay:0.#} WU/게임일 기준; 실제 연구자·장비·"
+                + "다인 기여·생활 이탈 실측은 반영하지 않음</color>";
         string unlocks = presentationRules.FormatUnlocks(selectedProject)
             + $"\n<b>잔여 선행 작업량</b> {remainingPrerequisiteWork:0.#} (중복 제거)"
-            + $"\n<b>예상</b> {Mathf.CeilToInt(expectedDays)}교대 · {expectedDays:0.0}게임일";
+            + preparationEstimate;
         detailText.text =
             $"<b>{selectedProject.DisplayName}</b>\n" +
             $"{ResearchTreePresentationRules.FormatField(selectedProject.Field)} · "

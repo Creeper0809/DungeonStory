@@ -13,8 +13,14 @@ public static class DungeonCombatRegistration
             .As<IPlayerCombatCommandSource>();
         builder.Register<UnityCombatRandomSource>(Lifetime.Singleton)
             .As<ICombatRandomSource>();
+        builder.Register<CombatDamageOutcomeBridge>(Lifetime.Singleton);
+        builder.Register<CombatDamageOutcomeAdapter>(Lifetime.Singleton)
+            .As<IGameplayOutcomeAdapterRegistration>();
+        builder.Register<CombatDamageOutcomeDescriptor>(Lifetime.Singleton)
+            .As<IGameplayOutcomeDescriptor>();
         builder.Register<CombatResolutionService>(Lifetime.Singleton)
-            .As<ICombatResolutionService>();
+            .As<ICombatResolutionService>()
+            .As<ICombatResolutionTransactionService>();
         builder.Register<CombatAffiliationService>(Lifetime.Singleton)
             .As<ICombatAffiliationService>();
         builder.Register<GridCombatLineOfSightService>(Lifetime.Singleton)
@@ -43,6 +49,9 @@ public static class DungeonCombatRegistration
         builder.Register<ResourceEquipmentModuleCatalog>(Lifetime.Singleton)
             .As<IEquipmentModuleCatalog>();
         builder.Register<CombatEquipmentStatProjector>(Lifetime.Singleton);
+        builder.RegisterFactory<IProductionOutputCapabilityRegistry>(
+            resolver => () => resolver.Resolve<IProductionOutputCapabilityRegistry>(),
+            Lifetime.Singleton);
         builder.Register<CombatEquipmentPhysicalStateWriter>(Lifetime.Singleton);
         builder.Register<CombatEquipmentRuntimeStateStore>(Lifetime.Singleton);
         builder.Register<EquipmentModulePreparedOutputBinder>(Lifetime.Singleton)
@@ -104,6 +113,11 @@ public static class DungeonCombatRegistration
             .As<ICharacterTransientGameplayEffectSourceQuery>();
         builder.Register<CharacterEquipmentGameplayEffectSourceQuery>(Lifetime.Singleton)
             .As<ICharacterEquipmentGameplayEffectSourceQuery>();
+        builder.RegisterFactory<ISurgicalPartRuntime>(
+            resolver => () => resolver.Resolve<ISurgicalPartRuntime>(),
+            Lifetime.Singleton);
+        builder.Register<CharacterSurgicalPartGameplayEffectSourceQuery>(Lifetime.Singleton)
+            .As<ICharacterSurgicalPartGameplayEffectSourceQuery>();
         builder.Register<CharacterDerivedStatsSnapshotProjector>(Lifetime.Singleton);
         builder.Register<EquipmentExpeditionRewardService>(Lifetime.Singleton)
             .As<IEquipmentExpeditionRewardService>();
@@ -153,6 +167,7 @@ public static class DungeonCombatRegistration
             .As<ICharacterCombatSpecialStatusQuery>()
             .As<ICharacterManaQuery>()
             .As<ICharacterManaCommand>()
+            .As<ICharacterBodyHealthMutationTransaction>()
             .As<ICharacterBodyHealthPersistence>()
             .As<IAnatomyHealthRuntime>();
         builder.Register<SurgeryAggregateStateStore>(Lifetime.Singleton)
@@ -209,6 +224,10 @@ public static class DungeonCombatRegistration
         builder.Register<SurgeryMaterialTerminalRuntime>(Lifetime.Singleton)
             .As<ISurgeryMaterialTerminalRuntime>();
         builder.Register<HealSurgicalNodeEffectHandler>(Lifetime.Singleton)
+            .As<ISurgicalProcedureEffectHandler>();
+        builder.Register<RecoverBloodLossEffectHandler>(Lifetime.Singleton)
+            .As<ISurgicalProcedureEffectHandler>();
+        builder.Register<StopSurgicalNodeBleedingEffectHandler>(Lifetime.Singleton)
             .As<ISurgicalProcedureEffectHandler>();
         builder.Register<MaintainSurgicalPartEffectHandler>(Lifetime.Singleton)
             .As<ISurgicalProcedureEffectHandler>();
@@ -323,7 +342,9 @@ public static class DungeonCombatRegistration
             .As<IDefenseResponsePolicyRuntime>();
         builder.RegisterEntryPoint<InvasionOwnerEvacuationService>(
                 Lifetime.Singleton)
-            .As<IInvasionOwnerEvacuationService>();
+            .As<IInvasionOwnerEvacuationService>()
+            .As<IDungeonSaveRestoreCompletedHook>();
+        builder.Register<DefenseCompanionCombatRuntime>(Lifetime.Singleton);
         builder.Register<DefenseCombatSupportServices>(Lifetime.Singleton);
         builder.Register<DefenseCombatExecutor>(Lifetime.Singleton)
             .As<IDefenseCombatExecutor>();

@@ -492,7 +492,8 @@ public static class WildlifeDebugScenarios
                 3f,
                 false,
                 1f,
-                2f));
+                2f),
+            migrationProfile: WildlifeMigrationProfile.GeneralHabitat());
         Grid grid = new Grid(4, 1);
         for (int x = 0; x < grid.width; x++)
         {
@@ -919,7 +920,8 @@ public static class WildlifeDebugScenarios
                     new WorldSimulationSceneReferences()),
                 content: new ResourceGameContentCatalog(
                     new UnityGameContentRootLoader()),
-                overlayRoot: new WildlifeOverlayRootPort());
+                overlayRoot: new WildlifeOverlayRootPort(),
+                environmentalField: NoEnvironmentalFieldQuery.Instance);
         WildlifeEcosystemRuntime core = new WildlifeEcosystemRuntime(
             ports,
             ports,

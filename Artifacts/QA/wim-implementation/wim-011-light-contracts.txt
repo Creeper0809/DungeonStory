@@ -1,0 +1,12 @@
+electric-and-fuel-off-on-field-and-Light2D=PASS
+unpowered-intrinsic-and-disabled-reenabled-source=PASS
+field-serialized-round-trip=PASS
+existing-thermal-air-and-save=PASS
+authored-capability-count=5
+E01_벽횃불:power=False;fuel=True
+E02_바닥화로:power=False;fuel=True
+E03_샹들리에:power=False;fuel=True
+E07_촛대:power=False;fuel=True
+I15_전기_아크등:power=True;fuel=False
+scope=real-environment-adapter-with-explicit-test-power-and-fuel-inputs
+result=PASS

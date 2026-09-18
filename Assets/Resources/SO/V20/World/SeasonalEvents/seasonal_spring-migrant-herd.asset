@@ -14,13 +14,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: DungeonStory.Content::SeasonalWorldEventDefinitionSO
   stableId: seasonal:spring-migrant-herd
   displayName: "\uC774\uB3D9 \uCD08\uC2DD\uAD70"
-  description: "\uBC88\uC2DD\uC9C0\uB85C \uD5A5\uD558\uB294 \uCD08\uC2DD\uB3D9\uBB3C\uC774
-    \uBC2D\uC744 \uC9C0\uB098\uBA70 \uD3EC\uC2DD\uC790\uB3C4 \uB04C\uC5B4\uB4E4\uC778\uB2E4."
+  description: "\uBD04 \uC678\uACFD \uCD08\uC9C0\uC5D0 \uC2EC\uCE35\uC5FC\uC18C \uC138
+    \uB9C8\uB9AC\uAC00 \uB3C4\uCC29\uD574 \uC0AC\uB0E5\xB7\uD3EC\uD68D\uD558\uAC70\uB098
+    \uADF8\uB300\uB85C \uC9C0\uB098\uAC00\uAC8C \uB458 \uC218 \uC788\uB2E4."
   authoringRevision: 1
   sourceNote: V20 hand-authored seasonal world event manifest.
   season: 0
   minimumDurationDays: 2
   maximumDurationDays: 4
+  worldWaterRegenerationMultiplier: 1
+  wildlifeArrivalProfile:
+    speciesId: deep_goat
+    exactCount: 3
+    requiredHabitatId: grass
+    qualification: 2
   affectedDomainIds:
   - wildlife
   - agriculture
@@ -33,11 +40,7 @@ MonoBehaviour:
     worldMetrics: []
     requiredFlags: []
     excludedFlags: []
-  startEffects:
-  - kind: 14
-    targetId: herd
-    amount: 3
-    durationDays: 4
+  startEffects: []
   dailyEffects: []
   endEffects:
   - kind: 12

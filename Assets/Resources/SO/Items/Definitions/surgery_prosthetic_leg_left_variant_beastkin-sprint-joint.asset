@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cb4b1f490bee1344a1002cabb362d7a, type: 3}
+  m_Name: surgery_prosthetic_leg_left_variant_beastkin-sprint-joint
+  m_EditorClassIdentifier: DungeonStory.Economy::GenericItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 0
+  itemId: surgery:prosthetic:leg:left/variant/beastkin-sprint-joint
+  displayName: "\uC218\uC778 \uC9C8\uC8FC \uAD00\uC808"
+  description: "\uC218\uC778 \uC67C\uB2E4\uB9AC \uC2AC\uB86F\uC5D0 \uC7A5\uCC29\uD558\uB294
+    \uC9C8\uC8FC\uC6A9 \uAD00\uC808 \uBCF4\uCCA0."
+  stockCategory: 1
+  unitWeight: 1.8
+  maxStack: 1
+  sprite: {fileID: 0}
+  unitPrice: 381
+  features:
+  - rid: 2763484210697601434
+  - rid: 2763484210697601464
+  references:
+    version: 2
+    RefIds:
+    - rid: 2763484210697601434
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        kind: 8
+        ingredientTags: 0
+        sharedIntermediate: 0
+    - rid: 2763484210697601464
+      type: {class: InstalledSurgicalPartEffectItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        effects:
+        - bindingId: part:beastkin-sprint-joint:move-speed
+          definition: {fileID: 11400000, guid: 5efe462ac434ee74498e829584182490, type: 2}
+          value: 1.08
+          condition: {fileID: 0}

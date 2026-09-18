@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "오수 탱크에 물을 모아 두고 필요한 곳으로 내보내는 설비의 설치 부품이며, 하르나크에서도 이 부품의 치수를 알아본다.",
+  "in_game_description": "오수 탱크에 물을 모아 두고 필요한 곳으로 내보내는 설비의 설치 부품이다. 하르나크식 오수 탱크에는 식수, 슬라임 생활수와 공방 용수가 섞이지 않도록 서로 다른 모양의 관이 달린다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

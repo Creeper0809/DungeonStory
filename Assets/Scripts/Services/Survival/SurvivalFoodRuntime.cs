@@ -5,6 +5,74 @@ using DungeonStory.Foundation;
 using UnityEngine;
 using VContainer.Unity;
 
+public interface ISurvivalTreatmentCompletionCommand
+{
+    bool TryEnsureTreatmentSupply(
+        IBuildingVisitorPort actor,
+        BuildableObject building,
+        int workRunId,
+        out bool completionOnly,
+        out DomainFailure failure);
+
+    bool TryApplyTreatmentWork(
+        IBuildingVisitorPort actor,
+        BuildableObject building,
+        int workRunId,
+        out int amount,
+        out DomainFailure failure);
+}
+
+public interface ISurvivalTreatmentTerminalMaintenance
+{
+    bool TryReconcileLostTreatmentOwners(out string failureReason);
+}
+
+public interface ISurvivalRefuelCompletionCommand
+{
+    bool TryEnsureRefuelSupply(
+        IBuildingVisitorPort actor,
+        BuildableObject building,
+        out bool completionOnly,
+        out DomainFailure failure);
+
+    bool TryApplyRefuelWork(
+        IBuildingVisitorPort actor,
+        BuildableObject building,
+        out int amount,
+        out DomainFailure failure);
+}
+
+public readonly struct SurvivalFacilityFuelSupplyPlan
+{
+    public SurvivalFacilityFuelSupplyPlan(
+        string destinationId,
+        string itemId,
+        int requiredQuantity)
+    {
+        DestinationId = destinationId ?? string.Empty;
+        ItemId = itemId ?? string.Empty;
+        RequiredQuantity = requiredQuantity;
+    }
+
+    public string DestinationId { get; }
+    public string ItemId { get; }
+    public int RequiredQuantity { get; }
+}
+
+public interface ISurvivalRefuelSupplyQuery
+{
+    bool TryGetRefuelSupplyPlan(
+        BuildableObject building,
+        out SurvivalFacilityFuelSupplyPlan plan);
+}
+
+public interface ISurvivalFacilityFuelRetirement
+{
+    bool TryPrepareFacilityFuelRetirement(
+        BuildableObject building,
+        out string failureReason);
+}
+
 public sealed partial class SurvivalFoodRuntime :
     ISurvivalFoodQuery,
     ISurvivalFoodCommand,
@@ -13,14 +81,22 @@ public sealed partial class SurvivalFoodRuntime :
     ICharacterNutritionRuntime,
     ISurvivalEnvironmentQuery,
     ISurvivalStorageEnvironmentSink,
+    ISurvivalTreatmentCompletionCommand,
+    ISurvivalRefuelCompletionCommand,
+    ISurvivalRefuelSupplyQuery,
+    ISurvivalFacilityFuelRetirement,
+    ISurvivalTreatmentTerminalMaintenance,
+    ISurvivalTreatmentSupplyQuery,
     IInitializable,
     IDisposable
 {
-    private const int DailyFuelDemand = 1;
     private const float TreatmentMedicineHeal = 16f;
+    public const string TreatmentPhysicalSinkReason =
+        "survival-treatment-material-consumed";
     private const string CleanWaterItemId = "resource:clean-water";
     private const string CookedMealItemId = "survival:cooked_meal";
     private const string PreservedFoodItemId = "survival:preserved_food";
+    private const int TreatmentWorkOperationCapacity = 512;
 
     private readonly IWildlifeSpeciesCatalogProvider speciesCatalog;
     private readonly ICharacterAiWorldRegistry worldRegistry;
@@ -28,6 +104,7 @@ public sealed partial class SurvivalFoodRuntime :
     private readonly IItemDefinitionCatalog itemCatalog;
     private readonly IGameEventBus gameEventBus;
     private readonly IGameClock gameClock;
+    private readonly ICharacterConsumablesApplication consumables;
     private readonly IClimateQuery climate;
     private readonly ISurvivalServiceSessionCapability serviceSessionRuntime;
     private readonly SurvivalFoodStockRuntime stockRuntime;
@@ -39,6 +116,8 @@ public sealed partial class SurvivalFoodRuntime :
     private IDisposable operatingDayStartedSubscription;
     private IDisposable stockConsumedSubscription;
     private IDisposable physicalMealConsumedSubscription;
+    private readonly Dictionary<string, ConsumableOperationId>
+        treatmentOperationsByWork = new(StringComparer.Ordinal);
     private SurvivalWeatherType? debugWeatherOverride;
     private string lastAnnouncedWeatherFrontId = string.Empty;
     private SurvivalFoodAggregateState aggregateState =>
@@ -59,7 +138,8 @@ public sealed partial class SurvivalFoodRuntime :
         IWorldThreatModifierQuery worldThreatModifiers,
         ISurvivalServiceSessionCapability serviceSessionRuntime,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
-        ICharacterCarryInventoryRegistry carryInventories = null)
+        ICharacterCarryInventoryRegistry carryInventories = null,
+        ICharacterConsumablesApplication consumables = null)
     {
         _ = dependencies ?? throw new ArgumentNullException(nameof(dependencies));
         this.speciesCatalog = speciesCatalog ?? throw new ArgumentNullException(nameof(speciesCatalog));
@@ -78,12 +158,22 @@ public sealed partial class SurvivalFoodRuntime :
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.consumables = consumables;
         stockRuntime = new SurvivalFoodStockRuntime(
             dependencies.GridSystemProvider,
             this.worldRegistry,
             this.itemStackRuntime,
             this.itemCatalog,
-            dependencies.StockQuery);
+            dependencies.StockQuery,
+            dependencies.PhysicalSinks,
+            dependencies.PackagedTare,
+            dependencies.Workforce,
+            dependencies.TreatmentBufferCapacities,
+            dependencies.TreatmentBufferOccupancy,
+            dependencies.TreatmentBufferClaims,
+            dependencies.FuelBufferLifecycle,
+            dependencies.FuelBufferRelease,
+            this.aggregateRootStore);
         spoilageRuntime = new SurvivalFoodSpoilageRuntime(
             this.itemStackRuntime,
             this.itemCatalog,
@@ -111,6 +201,36 @@ public sealed partial class SurvivalFoodRuntime :
         spoilageRuntime.ConfigureStorageEnvironment(fieldQuery);
     }
 
+    public bool HasFuelSupply(BuildableObject building) =>
+        SurvivalFacilityWorkRules.IsEnvironmentalFuelConsumer(building)
+        && building.HasFacilityFuelSupply;
+
+    public float GetRemainingFuelGameSeconds(BuildableObject building) =>
+        SurvivalFacilityWorkRules.IsEnvironmentalFuelConsumer(building)
+            ? Mathf.Max(0f, building.FacilityState.remainingFuelGameSeconds)
+            : 0f;
+
+    public bool TryGetRefuelSupplyPlan(
+        BuildableObject building,
+        out SurvivalFacilityFuelSupplyPlan plan)
+    {
+        if (stockRuntime.TryGetFacilityFuelSupplyPlan(
+                building,
+                out string destinationId,
+                out string itemId,
+                out int requiredQuantity))
+        {
+            plan = new SurvivalFacilityFuelSupplyPlan(
+                destinationId,
+                itemId,
+                requiredQuantity);
+            return true;
+        }
+
+        plan = default;
+        return false;
+    }
+
     public SurvivalEnvironmentSnapshot GetEnvironmentSnapshot()
     {
         return environmentRisks.GetSnapshot(
@@ -126,6 +246,13 @@ public sealed partial class SurvivalFoodRuntime :
 
     public void Initialize()
     {
+        stockRuntime.TryRefreshFacilityFuelAuthorities();
+        if (!stockRuntime.TryRecoverFacilityFuelCommits(
+                out string fuelRecoveryFailure))
+        {
+            throw new InvalidOperationException(
+                "Facility fuel recovery failed: " + fuelRecoveryFailure);
+        }
         operatingDayStartedSubscription =
             gameEventBus.Subscribe<OperatingDayStartedEvent>(OnTriggerEvent);
         stockConsumedSubscription =
@@ -205,6 +332,7 @@ public sealed partial class SurvivalFoodRuntime :
     private void ProcessDailySurvival(int day)
     {
         EnsureStateLists();
+        consumables?.ProcessOperatingDay(day);
         PublishMissedMealEvents(day);
         AnnounceDangerousWeatherIfChanged();
         spoilageRuntime.Process(
@@ -213,7 +341,6 @@ public sealed partial class SurvivalFoodRuntime :
             advanceTime: true);
         RefreshDailyFoodForecast(day);
         ConsumeDailyWater(day);
-        ConsumeDailyFuel();
         RefreshSurvivalRisks();
         ApplyHealthConsequences();
         InvalidateOverviewCache();
@@ -256,7 +383,7 @@ public sealed partial class SurvivalFoodRuntime :
         if (!validation.Success)
         {
             throw new InvalidOperationException(
-                "Survival resources restore rejected an invalid V5 candidate: "
+                "Survival resources restore rejected an invalid V7 candidate: "
                 + string.Join(" | ", validation.Errors));
         }
 
@@ -276,6 +403,16 @@ public sealed partial class SurvivalFoodRuntime :
         aggregateRootStore.Replace(
             (candidate ?? throw new ArgumentNullException(nameof(candidate)))
             .State);
+        treatmentOperationsByWork.Clear();
+        stockRuntime.InvalidateFacilityFuelAuthorities();
+        stockRuntime.TryRefreshFacilityFuelAuthorities();
+        if (!stockRuntime.TryRecoverFacilityFuelCommits(
+                out string fuelRecoveryFailure))
+        {
+            throw new InvalidOperationException(
+                "Facility fuel restore recovery failed: "
+                + fuelRecoveryFailure);
+        }
         InvalidateOverviewCache();
     }
 
@@ -394,13 +531,18 @@ public sealed partial class SurvivalFoodRuntime :
             case var id when id == BuiltInWorkTypeIds.Cook:
                 return TryApplyCook(actor, building, out amount, out failure);
             case var id when id == BuiltInWorkTypeIds.Treat:
-                return TryApplyTreat(actor, building, out amount, out failure);
+                return TryApplyTreat(
+                    actor,
+                    building,
+                    default,
+                    out _,
+                    out amount,
+                    out failure);
             case var id when id == BuiltInWorkTypeIds.Refuel:
                 return SurvivalFacilityWorkRules.TryApplyRefuel(
                     actor,
                     building,
                     stockRuntime,
-                    state,
                     out amount,
                     out failure);
             default:
@@ -425,13 +567,12 @@ public sealed partial class SurvivalFoodRuntime :
             var id when id == BuiltInWorkTypeIds.Cook => building.BuildingData.GetAbility<BuildingCookingAbility>() is { } cooking
                 && stockRuntime.CountStoredStock(StockCategory.Food) >= Mathf.Max(1, cooking.inputFood)
                 && (!cooking.requiresFuel || stockRuntime.CountStoredStock(StockCategory.Fuel) > 0),
-            var id when id == BuiltInWorkTypeIds.Treat => building.BuildingData.GetAbility<BuildingMedicalAbility>() != null
-                && HasTreatableHealth()
-                && (building.BuildingData.GetAbility<BuildingMedicalAbility>()?.requiresMedicine != true
-                    || stockRuntime.CountStoredStock(StockCategory.Medicine) > 0
-                    || stockRuntime.CountStoredStock(StockCategory.Biological) > 0),
-            var id when id == BuiltInWorkTypeIds.Refuel => building.BuildingData.GetAbility<BuildingFuelConsumerAbility>() != null
-                && stockRuntime.CountStoredStock(StockCategory.Fuel) > 0,
+            var id when id == BuiltInWorkTypeIds.Treat =>
+                HasAvailableTreatment(building),
+            var id when id == BuiltInWorkTypeIds.Refuel =>
+                SurvivalFacilityWorkRules.IsEnvironmentalFuelConsumer(building)
+                && !building.HasFacilityFuelSupply
+                && stockRuntime.HasPotentialFacilityFuel(building),
             _ => false
         };
     }
@@ -450,13 +591,45 @@ public sealed partial class SurvivalFoodRuntime :
                 + (state.lastMissingWater > 0 ? 25f : 0f),
             var id when id == BuiltInWorkTypeIds.Cook => Mathf.Clamp(70f - (overview.ShortageDays * 12f), 8f, 80f)
                 + (overview.SpoilageWarningCount > 0 ? 15f : 0f),
-            var id when id == BuiltInWorkTypeIds.Treat => 35f + (overview.UntreatedCount * 25f) + Mathf.Clamp(overview.DiseaseRisk * 0.35f, 0f, 35f),
+            var id when id == BuiltInWorkTypeIds.Treat => 35f
+                + (overview.UntreatedCount * 25f)
+                + Mathf.Clamp(overview.DiseaseRisk * 0.35f, 0f, 35f)
+                + Mathf.Clamp(
+                    FindToxicityTreatmentPatient(building)?.Status.Toxicity ?? 0f,
+                    0f,
+                    35f),
             var id when id == BuiltInWorkTypeIds.Refuel => CurrentWeather == SurvivalWeatherType.ColdSnap
                 ? 75f
                 : Mathf.Clamp(overview.ExteriorNightDanger * 0.45f, 10f, 55f),
             _ => 0f
         };
     }
+
+    public bool TryEnsureRefuelSupply(
+        IBuildingVisitorPort actor,
+        BuildableObject building,
+        out bool completionOnly,
+        out DomainFailure failure) => stockRuntime.TryEnsureFacilityFuelSupply(
+        actor,
+        building,
+        out completionOnly,
+        out failure);
+
+    public bool TryApplyRefuelWork(
+        IBuildingVisitorPort actor,
+        BuildableObject building,
+        out int amount,
+        out DomainFailure failure) => SurvivalFacilityWorkRules.TryApplyRefuel(
+        actor,
+        building,
+        stockRuntime,
+        out amount,
+        out failure);
+
+    public bool TryPrepareFacilityFuelRetirement(
+        BuildableObject building,
+        out string failureReason) => stockRuntime
+        .TryPrepareFacilityFuelRetirement(building, out failureReason);
 
     public int GetMealsConsumed(int day)
     {
@@ -737,32 +910,6 @@ public sealed partial class SurvivalFoodRuntime :
             : 0;
     }
 
-    private void ConsumeDailyFuel()
-    {
-        int need = DailyFuelDemand;
-        if (CurrentWeather == SurvivalWeatherType.ColdSnap)
-        {
-            need += 1;
-        }
-        need = Mathf.CeilToInt(
-            need * environmentRisks.GetThreatMultiplier(
-                OffenseThreatModifierKind.FuelConsumption));
-
-        int consumed = stockRuntime.WithdrawStock(StockCategory.Fuel, need);
-        state.lastConsumedFuel = consumed;
-        state.lastMissingFuel = Mathf.Max(0, need - consumed);
-        if (state.lastMissingFuel <= 0)
-        {
-            return;
-        }
-
-        gameEventBus.RaiseAlert(
-            "연료가 부족합니다",
-            "조명과 난방이 약해집니다. 밤 외부 위험과 추위 위험이 함께 오릅니다.",
-            EventAlertImportance.Medium,
-            "생존");
-    }
-
     private void RefreshSurvivalRisks()
     {
         int rotStacks = spoilageRuntime.CountLooseRotStacks();
@@ -830,14 +977,6 @@ public sealed partial class SurvivalFoodRuntime :
         {
             failure = new DomainFailure(
                 FailureCode.SurvivalWaterSourceUnsupported,
-                building.PersistentInstanceId.Value);
-            return false;
-        }
-
-        if (!CanDrawWater(building))
-        {
-            failure = new DomainFailure(
-                FailureCode.SurvivalWaterFrozen,
                 building.PersistentInstanceId.Value);
             return false;
         }
@@ -985,21 +1124,94 @@ public sealed partial class SurvivalFoodRuntime :
     private bool TryApplyTreat(
         IBuildingVisitorPort actor,
         BuildableObject building,
+        ConsumableOperationId requestedOperationId,
+        out ConsumableOperationId resolvedOperationId,
         out int amount,
         out DomainFailure failure)
     {
+        EnsureStateLists();
+        resolvedOperationId = default;
         amount = 0;
-        BuildingMedicalAbility medical = building.BuildingData?.GetAbility<BuildingMedicalAbility>();
+        BuildingMedicalAbility medical =
+            building?.BuildingData?.GetAbility<BuildingMedicalAbility>();
         if (medical == null)
         {
             failure = new DomainFailure(
                 FailureCode.SurvivalTreatmentUnsupported,
-                building.PersistentInstanceId.Value);
+                building?.PersistentInstanceId.Value ?? string.Empty);
             return false;
         }
 
-        SurvivalHealthSaveData patientEntry = FindTreatmentEntry(building);
-        if (patientEntry == null)
+        BuildingInstanceId facilityId = building.RequirePersistentInstanceId();
+        if (requestedOperationId.IsValid
+            && state.completedTreatmentOperationIds.Contains(
+                requestedOperationId.Value,
+                StringComparer.Ordinal))
+        {
+            resolvedOperationId = requestedOperationId;
+            amount = 1;
+            failure = DomainFailure.None;
+            return true;
+        }
+
+        SurvivalTreatmentPlanSaveData activeTreatmentPlan =
+            FindActiveTreatmentPlan(requestedOperationId, facilityId);
+        if (activeTreatmentPlan != null)
+        {
+            resolvedOperationId = new ConsumableOperationId(
+                activeTreatmentPlan.operationId);
+            return TryFinalizeTreatmentPlan(
+                actor,
+                building,
+                medical,
+                activeTreatmentPlan,
+                out amount,
+                out failure);
+        }
+
+        if (!requestedOperationId.IsValid
+            && TryFindPendingDetoxTreatment(
+                facilityId,
+                out ConsumableOperationId pendingDetoxOperationId))
+        {
+            requestedOperationId = pendingDetoxOperationId;
+        }
+
+        CharacterId requestedPatientId = default;
+        BuildingInstanceId requestedFacilityId = default;
+        bool requestedCompleted = false;
+        bool requestedReceipt = consumables != null
+            && consumables.TryGetDetoxTreatmentOwner(
+                requestedOperationId,
+                out requestedPatientId,
+                out requestedFacilityId,
+                out requestedCompleted);
+        if (requestedReceipt && !requestedFacilityId.Equals(facilityId))
+        {
+            failure = new DomainFailure(
+                FailureCode.SurvivalTreatmentTargetMissing,
+                requestedOperationId.Value);
+            return false;
+        }
+        CharacterActor requestedPatient = requestedReceipt
+            ? GetSurvivalConsumers().FirstOrDefault(candidate =>
+                candidate != null
+                && CharacterPersistentIdentity.Require(candidate)
+                    .Equals(requestedPatientId))
+            : null;
+        SurvivalHealthSaveData patientEntry = requestedReceipt
+            ? null
+            : FindTreatmentEntry(building);
+        ToxicityTreatmentPatient toxicityPatient = requestedReceipt
+            ? requestedPatient == null
+                ? null
+                : new ToxicityTreatmentPatient(
+                    requestedPatient,
+                    consumables.GetToxicityStatus(requestedPatientId))
+            : patientEntry == null
+                ? FindToxicityTreatmentPatient(building)
+                : null;
+        if (patientEntry == null && toxicityPatient == null)
         {
             failure = new DomainFailure(
                 FailureCode.SurvivalTreatmentTargetMissing,
@@ -1007,13 +1219,43 @@ public sealed partial class SurvivalFoodRuntime :
             return false;
         }
 
-        bool usedBloodSubstitute = false;
-        CharacterActor patient = SurvivalFoodStatePersistence.FindActor(
-            GetSurvivalConsumers(), patientEntry.persistentId);
-        ServiceSessionSnapshot serviceSession = null;
+        bool detoxTreatment = toxicityPatient != null;
+        CharacterActor patient = detoxTreatment
+            ? toxicityPatient.Actor
+            : SurvivalFoodStatePersistence.FindActor(
+                GetSurvivalConsumers(), patientEntry.persistentId);
+        if (requestedCompleted)
+        {
+            resolvedOperationId = requestedOperationId;
+            amount = 1;
+            failure = DomainFailure.None;
+            return true;
+        }
+
+        SurvivalTreatmentMaterialSelection material = default;
+        if (medical.requiresMedicine
+            && !requestedReceipt
+            && !stockRuntime.TryEnsureTreatmentMaterial(
+                building,
+                detoxTreatment,
+                actor?.BuildingCharacterId ?? default,
+                out material,
+                out string supplyFailure))
+        {
+            failure = new DomainFailure(
+                FailureCode.SurvivalTreatmentMaterialMissing,
+                supplyFailure);
+            return false;
+        }
+
+        ServiceSessionSnapshot serviceSession = !requestedCompleted
+            ? FindActiveTreatmentServiceSession(building, patient)
+            : null;
         BuildingServiceHubAbility serviceHub =
             building.GetServiceHubAbility();
         if (serviceHub != null
+            && !requestedCompleted
+            && serviceSession == null
             && !serviceSessionRuntime.TryBeginSession(
                 new ServiceSessionRequest
                 {
@@ -1030,20 +1272,286 @@ public sealed partial class SurvivalFoodRuntime :
             failure = serviceFailure;
             return false;
         }
-        if (medical.requiresMedicine
-            && !stockRuntime.TryConsumeTreatmentMaterial(out usedBloodSubstitute))
+        if (detoxTreatment)
         {
-            if (serviceSession != null)
+            CharacterId patientId = CharacterPersistentIdentity.Require(patient);
+            CharacterDetoxTreatmentResult detoxResult = default;
+            ConsumableOperationId operationId = requestedReceipt
+                ? requestedOperationId
+                : serviceSession == null
+                    ? default
+                    : CreateDetoxOperationId(serviceSession.SessionId);
+            if (!requestedReceipt
+                && consumables.TryGetPendingDetoxTreatment(
+                    patientId,
+                    out BuildingInstanceId pendingFacilityId,
+                    out ConsumableOperationId pendingOperationId)
+                && pendingFacilityId.Equals(facilityId))
             {
-                serviceSessionRuntime.CancelSession(
-                    serviceSession.SessionId,
-                    FailureCode.SurvivalTreatmentMaterialMissing.ToString());
+                operationId = pendingOperationId;
             }
+            resolvedOperationId = operationId;
+            if ((!requestedCompleted && serviceSession == null)
+                || consumables == null
+                || !consumables.TryApplyDetoxTreatment(
+                    operationId,
+                    patientId,
+                    facilityId,
+                    out detoxResult))
+            {
+                bool committedPending = detoxResult.FailureCode ==
+                    CharacterConsumablesFailureCode.DeliveryPending;
+                if (serviceSession != null && !committedPending)
+                {
+                    serviceSessionRuntime.CancelSession(
+                        serviceSession.SessionId,
+                        detoxResult.Detail);
+                }
+                failure = new DomainFailure(committedPending
+                    ? FailureCode.SurvivalTreatmentMaterialMissing
+                    : detoxResult.FailureCode is
+                        CharacterConsumablesFailureCode.ItemDefinitionMissing
+                        or CharacterConsumablesFailureCode.ItemStackMissing
+                        or CharacterConsumablesFailureCode.PhysicalConsumptionFailed
+                        ? FailureCode.SurvivalTreatmentMaterialMissing
+                        : FailureCode.SurvivalTreatmentTargetMissing,
+                    detoxResult.Detail);
+                return false;
+            }
+            if (requestedCompleted)
+            {
+                amount = 1;
+                failure = DomainFailure.None;
+                return true;
+            }
+            if (!TryCompleteDetoxServiceSession(serviceSession)
+                || !consumables.TryAcknowledgeDetoxTreatment(operationId))
+            {
+                failure = new DomainFailure(
+                    FailureCode.ServiceSessionMissing,
+                    operationId.Value);
+                return false;
+            }
+            RecordWorkActivity(
+                actor,
+                building,
+                BuiltInWorkTypeIds.Treat,
+                BuildingActivityOutcomes.Completed,
+                $"{SurvivalFacilityWorkRules.GetBuildingName(building)}에서 {SurvivalFacilityWorkRules.GetActorName(patient, patientId.Value)}의 독성 부담을 치료했다.",
+                "survival-detox-treated",
+                1,
+                false);
+            amount = 1;
+            failure = DomainFailure.None;
+            return true;
+        }
+
+        if (medical.requiresMedicine)
+        {
+            ConsumableOperationId operationId =
+                CreateTreatmentOperationId(serviceSession?.SessionId);
+            if (!operationId.IsValid || !material.IsReady)
+            {
+                failure = new DomainFailure(
+                    FailureCode.SurvivalTreatmentMaterialMissing,
+                    material.DestinationId);
+                return false;
+            }
+            resolvedOperationId = operationId;
+            SurvivalTreatmentPlanSaveData plan = new()
+            {
+                operationId = operationId.Value,
+                patientId = patientEntry.persistentId,
+                facilityInstanceId = facilityId.Value,
+                serviceSessionId = serviceSession?.SessionId ?? string.Empty,
+                itemDefinitionId = material.ItemId,
+                sourceStackId = material.StackId.Value,
+                destinationId = material.DestinationId,
+                usedBloodSubstitute = material.UsedBloodSubstitute,
+                phase = SurvivalTreatmentPlanPhase.IntentRecorded,
+                physicalCommitOperationId =
+                    CreateTreatmentPhysicalOperationId(operationId.Value),
+                physicalCommitReasonCode = TreatmentPhysicalSinkReason,
+                physicalCommitPositionX = building.centerPos.x,
+                physicalCommitPositionY = building.centerPos.y
+            };
+            state.activeTreatmentPlans.Add(plan);
+            return TryFinalizeTreatmentPlan(
+                actor,
+                building,
+                medical,
+                plan,
+                out amount,
+                out failure);
+        }
+
+        ApplyTreatmentEffects(
+            actor,
+            building,
+            medical,
+            patientEntry,
+            patient,
+            usedBloodSubstitute: false);
+        amount = 1;
+        CompleteTreatmentServiceSession(serviceSession);
+        failure = DomainFailure.None;
+        return true;
+    }
+
+    private bool TryFinalizeTreatmentPlan(
+        IBuildingVisitorPort actor,
+        BuildableObject building,
+        BuildingMedicalAbility medical,
+        SurvivalTreatmentPlanSaveData plan,
+        out int amount,
+        out DomainFailure failure)
+    {
+        amount = 0;
+        ConsumableOperationId operationId = new(plan?.operationId);
+        BuildingInstanceId facilityId = building == null
+            ? default
+            : building.RequirePersistentInstanceId();
+        if (plan == null
+            || !operationId.IsValid
+            || !facilityId.IsValid
+            || !string.Equals(
+                plan.facilityInstanceId,
+                facilityId.Value,
+                StringComparison.Ordinal))
+        {
             failure = new DomainFailure(
-                FailureCode.SurvivalTreatmentMaterialMissing);
+                FailureCode.SurvivalTreatmentTargetMissing,
+                plan?.operationId ?? string.Empty);
             return false;
         }
 
+        CharacterActor patient = GetSurvivalConsumers().FirstOrDefault(candidate =>
+            candidate != null
+            && string.Equals(
+                candidate.Identity?.PersistentId,
+                plan.patientId,
+                StringComparison.Ordinal));
+        bool effectsPending = plan.phase <
+            SurvivalTreatmentPlanPhase.EffectsPublished;
+        if (patient == null
+            || effectsPending && patient.IsDead
+            || plan.phase == SurvivalTreatmentPlanPhase.IntentRecorded
+                && building.isDestroy)
+        {
+            failure = new DomainFailure(
+                FailureCode.SurvivalTreatmentTargetMissing,
+                plan.patientId);
+            return false;
+        }
+
+        if (plan.phase == SurvivalTreatmentPlanPhase.IntentRecorded)
+        {
+            if (!stockRuntime.TryCommitTreatmentMaterialPending(
+                    plan.destinationId,
+                    plan.itemDefinitionId,
+                    plan.physicalCommitOperationId,
+                    plan.physicalCommitReasonCode,
+                    out PhysicalItemBatchDispositionReceipt receipt,
+                    out string physicalFailure))
+            {
+                failure = new DomainFailure(
+                    FailureCode.SurvivalTreatmentMaterialMissing,
+                    physicalFailure);
+                return false;
+            }
+            plan.physicalCommitId = receipt.CommitId;
+            plan.physicalCommitSourceStackIds = receipt.SourceStackIds
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToList();
+            plan.physicalCommitQuantity = receipt.Quantity;
+            plan.physicalCommitInputMassGrams = receipt.InputMassGrams;
+            plan.phase = SurvivalTreatmentPlanPhase.ItemCommitted;
+        }
+
+        if (!stockRuntime.TryGetPendingTreatmentMaterial(
+                plan.physicalCommitOperationId,
+                out PhysicalItemBatchDispositionReceipt pendingReceipt)
+            || !TreatmentReceiptMatches(plan, pendingReceipt))
+        {
+            failure = new DomainFailure(
+                FailureCode.SurvivalTreatmentMaterialMissing,
+                "treatment-physical-receipt-mismatch:"
+                + plan.physicalCommitOperationId);
+            return false;
+        }
+
+        if (plan.phase == SurvivalTreatmentPlanPhase.ItemCommitted)
+        {
+            SurvivalHealthSaveData patientEntry = state.health.FirstOrDefault(entry =>
+                SurvivalHealthStateRules.IsActiveIssue(entry)
+                && string.Equals(
+                    entry.persistentId,
+                    plan.patientId,
+                    StringComparison.Ordinal));
+            if (patientEntry == null)
+            {
+                failure = new DomainFailure(
+                    FailureCode.SurvivalTreatmentTargetMissing,
+                    plan.patientId);
+                return false;
+            }
+            ApplyTreatmentEffects(
+                actor,
+                building,
+                medical,
+                patientEntry,
+                patient,
+                plan.usedBloodSubstitute);
+            plan.phase = SurvivalTreatmentPlanPhase.EffectsPublished;
+        }
+
+        if (plan.phase == SurvivalTreatmentPlanPhase.EffectsPublished)
+        {
+            if (plan.serviceSessionId.Length > 0
+                && !serviceSessionRuntime.TryCompleteSession(
+                    plan.serviceSessionId,
+                    out _,
+                    out DomainFailure completionFailure))
+            {
+                failure = completionFailure.IsFailure
+                    ? completionFailure
+                    : new DomainFailure(
+                        FailureCode.ServiceSessionMissing,
+                        plan.serviceSessionId);
+                return false;
+            }
+            plan.phase = SurvivalTreatmentPlanPhase.ServiceCompleted;
+        }
+
+        if (!stockRuntime.TryPublishTreatmentTareAndAcknowledge(
+                plan.itemDefinitionId,
+                new Vector2Int(
+                    plan.physicalCommitPositionX,
+                    plan.physicalCommitPositionY),
+                plan.physicalCommitId,
+                out string acknowledgeFailure))
+        {
+            failure = new DomainFailure(
+                FailureCode.SurvivalTreatmentMaterialMissing,
+                acknowledgeFailure);
+            return false;
+        }
+
+        RememberCompletedTreatmentOperation(plan.operationId);
+        state.activeTreatmentPlans.Remove(plan);
+        amount = 1;
+        failure = DomainFailure.None;
+        return true;
+    }
+
+    private void ApplyTreatmentEffects(
+        IBuildingVisitorPort actor,
+        BuildableObject building,
+        BuildingMedicalAbility medical,
+        SurvivalHealthSaveData patientEntry,
+        CharacterActor patient,
+        bool usedBloodSubstitute)
+    {
         float treatmentEfficiency = usedBloodSubstitute ? 0.55f : 1f;
         patientEntry.severity = Mathf.Clamp01(
             patientEntry.severity
@@ -1060,8 +1568,8 @@ public sealed partial class SurvivalFoodRuntime :
             patientEntry.state = SurvivalHealthState.Recovering;
         }
 
-        patient?.Heal(TreatmentMedicineHeal * treatmentEfficiency);
-        if (usedBloodSubstitute && patient != null)
+        patient.Heal(TreatmentMedicineHeal * treatmentEfficiency);
+        if (usedBloodSubstitute)
         {
             SurvivalHealthStateRules.RegisterOrRefresh(
                 state,
@@ -1077,7 +1585,7 @@ public sealed partial class SurvivalFoodRuntime :
                 240f,
                 1);
         }
-        patient?.ApplyMoodFactor(
+        patient.ApplyMoodFactor(
             "survival:treated",
             "제때 치료받음",
             3f,
@@ -1092,7 +1600,88 @@ public sealed partial class SurvivalFoodRuntime :
             "survival-treated",
             0,
             false);
-        amount = 1;
+    }
+
+    private SurvivalTreatmentPlanSaveData FindActiveTreatmentPlan(
+        ConsumableOperationId requestedOperationId,
+        BuildingInstanceId facilityId)
+    {
+        if (requestedOperationId.IsValid)
+        {
+            SurvivalTreatmentPlanSaveData exact = state.activeTreatmentPlans
+                .FirstOrDefault(plan => plan != null && string.Equals(
+                    plan.operationId,
+                    requestedOperationId.Value,
+                    StringComparison.Ordinal));
+            if (exact != null)
+            {
+                return exact;
+            }
+        }
+        return state.activeTreatmentPlans
+            .Where(plan => plan != null && string.Equals(
+                plan.facilityInstanceId,
+                facilityId.Value,
+                StringComparison.Ordinal))
+            .OrderBy(plan => plan.operationId, StringComparer.Ordinal)
+            .FirstOrDefault();
+    }
+
+    private SurvivalTreatmentPlanSaveData FindTreatmentPlanByOperation(
+        ConsumableOperationId operationId) => !operationId.IsValid
+        ? null
+        : state.activeTreatmentPlans.FirstOrDefault(plan => plan != null
+            && string.Equals(
+                plan.operationId,
+                operationId.Value,
+                StringComparison.Ordinal));
+
+    private void RememberCompletedTreatmentOperation(string operationId)
+    {
+        if (!state.completedTreatmentOperationIds.Contains(
+                operationId,
+                StringComparer.Ordinal))
+        {
+            state.completedTreatmentOperationIds.Add(operationId);
+            state.completedTreatmentOperationIds.Sort(StringComparer.Ordinal);
+        }
+        while (state.completedTreatmentOperationIds.Count > 512)
+        {
+            state.completedTreatmentOperationIds.RemoveAt(0);
+        }
+    }
+
+    public static string CreateTreatmentPhysicalOperationId(
+        string treatmentOperationId) =>
+        "survival-treatment-material:" + Uri.EscapeDataString(
+            treatmentOperationId ?? string.Empty);
+
+    private static bool TreatmentReceiptMatches(
+        SurvivalTreatmentPlanSaveData plan,
+        PhysicalItemBatchDispositionReceipt receipt) =>
+        plan != null
+        && receipt.IsCommitted
+        && receipt.Kind == PhysicalItemDispositionKind.Sink
+        && string.Equals(
+            receipt.OperationId,
+            plan.physicalCommitOperationId,
+            StringComparison.Ordinal)
+        && string.Equals(
+            receipt.ReasonCode,
+            plan.physicalCommitReasonCode,
+            StringComparison.Ordinal)
+        && string.Equals(
+            receipt.CommitId,
+            plan.physicalCommitId,
+            StringComparison.Ordinal)
+        && receipt.Quantity == plan.physicalCommitQuantity
+        && receipt.InputMassGrams == plan.physicalCommitInputMassGrams
+        && receipt.SourceStackIds.SequenceEqual(
+            plan.physicalCommitSourceStackIds,
+            StringComparer.Ordinal);
+
+    private void CompleteTreatmentServiceSession(ServiceSessionSnapshot serviceSession)
+    {
         if (serviceSession != null
             && !serviceSessionRuntime.TryCompleteSession(
                 serviceSession.SessionId,
@@ -1103,8 +1692,633 @@ public sealed partial class SurvivalFoodRuntime :
                 serviceSession.SessionId,
                 completionFailure.Code.ToString());
         }
-        failure = DomainFailure.None;
-        return true;
+    }
+
+    public bool TryGetTreatmentSupply(
+        CharacterId patientId,
+        out SurvivalTreatmentSupplySnapshot snapshot)
+    {
+        snapshot = default;
+        if (!patientId.IsValid)
+        {
+            return false;
+        }
+
+        SurvivalTreatmentPlanSaveData activePlan = state.activeTreatmentPlans?
+            .Where(plan => plan != null
+                && string.Equals(
+                    plan.patientId,
+                    patientId.Value,
+                    StringComparison.Ordinal))
+            .OrderBy(plan => plan.operationId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (activePlan != null)
+        {
+            BuildingInstanceId facilityId = new(activePlan.facilityInstanceId);
+            ConsumableItemDefinitionId itemId = new(
+                activePlan.itemDefinitionId);
+            BuildableObject facility = FindLiveMedicalFacility(facilityId);
+            if (facility == null
+                || !itemId.IsValid
+                || string.IsNullOrWhiteSpace(activePlan.destinationId))
+            {
+                return false;
+            }
+            if (activePlan.phase >= SurvivalTreatmentPlanPhase.ItemCommitted)
+            {
+                snapshot = new SurvivalTreatmentSupplySnapshot(
+                    patientId,
+                    facilityId,
+                    itemId,
+                    activePlan.destinationId,
+                    SurvivalTreatmentKind.Standard,
+                    SurvivalTreatmentSupplyState.Processing);
+                return true;
+            }
+            if (!stockRuntime.TryInspectPinnedTreatmentMaterial(
+                    facility,
+                    itemId.Value,
+                    activePlan.destinationId,
+                    out SurvivalTreatmentMaterialSelection pinned))
+            {
+                return false;
+            }
+            snapshot = CreateTreatmentSupplySnapshot(
+                patientId,
+                facilityId,
+                itemId,
+                pinned.DestinationId,
+                SurvivalTreatmentKind.Standard,
+                pinned.Status);
+            return true;
+        }
+
+        if (consumables != null
+            && consumables.TryGetPendingDetoxTreatment(
+                patientId,
+                out BuildingInstanceId detoxFacilityId,
+                out _,
+                out ConsumableItemDefinitionId detoxItemId))
+        {
+            BuildableObject detoxFacility =
+                FindLiveMedicalFacility(detoxFacilityId);
+            if (detoxFacility == null)
+            {
+                return false;
+            }
+            string detoxDestinationId =
+                CharacterConsumablesInputDestinationIdentity.Build(
+                    CharacterConsumablesInputKind.MedicalTreatment,
+                    detoxFacilityId,
+                    detoxItemId);
+            snapshot = new SurvivalTreatmentSupplySnapshot(
+                patientId,
+                detoxFacilityId,
+                detoxItemId,
+                detoxDestinationId,
+                SurvivalTreatmentKind.Detox,
+                SurvivalTreatmentSupplyState.Processing);
+            return true;
+        }
+
+        CharacterActor patient = (worldRegistry.AllCharacters
+                ?? Array.Empty<CharacterActor>())
+            .Where(candidate => candidate != null && !candidate.IsDead)
+            .FirstOrDefault(candidate => string.Equals(
+                candidate.Identity?.PersistentId,
+                patientId.Value,
+                StringComparison.Ordinal));
+        if (patient == null)
+        {
+            return false;
+        }
+
+        SurvivalTreatmentSupplySnapshot fallback = default;
+        bool hasFallback = false;
+        foreach (BuildableObject facility in (worldRegistry.Buildings
+                     ?? Array.Empty<BuildableObject>())
+                 .Where(candidate => candidate != null
+                    && !candidate.isDestroy
+                    && candidate.BuildingData?
+                        .GetAbility<BuildingMedicalAbility>()?
+                        .requiresMedicine == true)
+                 .OrderBy(
+                     candidate => candidate.RequirePersistentInstanceId().Value,
+                     StringComparer.Ordinal))
+        {
+            SurvivalTreatmentKind kind;
+            SurvivalHealthSaveData standardPatient =
+                FindTreatmentEntry(facility);
+            if (standardPatient != null)
+            {
+                if (!string.Equals(
+                        standardPatient.persistentId,
+                        patientId.Value,
+                        StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                kind = SurvivalTreatmentKind.Standard;
+            }
+            else
+            {
+                CharacterActor detoxPatient =
+                    FindTreatmentSupplyDetoxPatient(facility);
+                if (detoxPatient == null
+                    || !CharacterPersistentIdentity.Require(detoxPatient)
+                        .Equals(patientId))
+                {
+                    continue;
+                }
+                kind = SurvivalTreatmentKind.Detox;
+            }
+
+            if (!stockRuntime.TryInspectTreatmentMaterial(
+                    facility,
+                    detoxOnly: kind == SurvivalTreatmentKind.Detox,
+                    out SurvivalTreatmentMaterialSelection material))
+            {
+                continue;
+            }
+            SurvivalTreatmentSupplySnapshot candidate =
+                CreateTreatmentSupplySnapshot(
+                patientId,
+                facility.RequirePersistentInstanceId(),
+                new ConsumableItemDefinitionId(material.ItemId),
+                material.DestinationId,
+                kind,
+                material.Status);
+            if (IsExistingTreatmentSupplyRoute(material.Status))
+            {
+                snapshot = candidate;
+                return true;
+            }
+            if (!hasFallback)
+            {
+                fallback = candidate;
+                hasFallback = true;
+            }
+        }
+        if (hasFallback)
+        {
+            snapshot = fallback;
+            return true;
+        }
+        return false;
+    }
+
+    private static bool IsExistingTreatmentSupplyRoute(
+        SurvivalTreatmentSupplyStatus status) =>
+        status is SurvivalTreatmentSupplyStatus.Ready
+            or SurvivalTreatmentSupplyStatus.DeliveryRequested
+            or SurvivalTreatmentSupplyStatus.DeliveryInTransit
+            or SurvivalTreatmentSupplyStatus.DeliveryNoPath;
+
+    private CharacterActor FindTreatmentSupplyDetoxPatient(
+        BuildableObject facility)
+    {
+        if (consumables == null || facility == null)
+        {
+            return null;
+        }
+        BuildingInstanceId facilityId = facility.RequirePersistentInstanceId();
+        return GetSurvivalConsumers()
+            .Where(actor => actor != null && !actor.IsDead)
+            .Select(actor => new
+            {
+                Actor = actor,
+                CharacterId = CharacterPersistentIdentity.Require(actor),
+                Status = consumables.GetToxicityStatus(
+                    CharacterPersistentIdentity.Require(actor))
+            })
+            .Where(candidate => candidate.Status.Toxicity > 0f
+                && (!candidate.Status.TreatmentPending
+                    || consumables.TryGetPendingDetoxTreatment(
+                        candidate.CharacterId,
+                        out BuildingInstanceId pendingFacilityId,
+                        out _)
+                    && pendingFacilityId.Equals(facilityId)))
+            .OrderByDescending(candidate =>
+                candidate.Status.TreatmentPending)
+            .ThenByDescending(candidate => candidate.Status.Toxicity)
+            .ThenBy(
+                candidate => candidate.CharacterId.Value,
+                StringComparer.Ordinal)
+            .Select(candidate => candidate.Actor)
+            .FirstOrDefault();
+    }
+
+    private BuildableObject FindLiveMedicalFacility(BuildingInstanceId facilityId)
+    {
+        if (!facilityId.IsValid)
+        {
+            return null;
+        }
+        return (worldRegistry.Buildings ?? Array.Empty<BuildableObject>())
+            .FirstOrDefault(candidate => candidate != null
+                && !candidate.isDestroy
+                && string.Equals(
+                    candidate.PersistentInstanceId.Value,
+                    facilityId.Value,
+                    StringComparison.Ordinal)
+                && candidate.BuildingData?
+                    .GetAbility<BuildingMedicalAbility>() != null);
+    }
+
+    private static SurvivalTreatmentSupplySnapshot CreateTreatmentSupplySnapshot(
+        CharacterId patientId,
+        BuildingInstanceId facilityId,
+        ConsumableItemDefinitionId itemId,
+        string destinationId,
+        SurvivalTreatmentKind kind,
+        SurvivalTreatmentSupplyStatus status) => new(
+        patientId,
+        facilityId,
+        itemId,
+        destinationId,
+        kind,
+        status switch
+        {
+            SurvivalTreatmentSupplyStatus.Ready =>
+                SurvivalTreatmentSupplyState.Ready,
+            SurvivalTreatmentSupplyStatus.DeliveryRequested =>
+                SurvivalTreatmentSupplyState.Requested,
+            SurvivalTreatmentSupplyStatus.DeliveryInTransit =>
+                SurvivalTreatmentSupplyState.InTransit,
+            SurvivalTreatmentSupplyStatus.CapacityUnavailable =>
+                SurvivalTreatmentSupplyState.CapacityUnavailable,
+            SurvivalTreatmentSupplyStatus.DeliveryNoPath =>
+                SurvivalTreatmentSupplyState.NoPath,
+            SurvivalTreatmentSupplyStatus.Processing =>
+                SurvivalTreatmentSupplyState.Processing,
+            SurvivalTreatmentSupplyStatus.AwaitingRequest =>
+                SurvivalTreatmentSupplyState.AwaitingRequest,
+            _ => SurvivalTreatmentSupplyState.StockMissing
+        });
+
+    public bool TryEnsureTreatmentSupply(
+        IBuildingVisitorPort actor,
+        BuildableObject building,
+        int workRunId,
+        out bool completionOnly,
+        out DomainFailure failure)
+    {
+        EnsureStateLists();
+        completionOnly = false;
+        if (actor == null
+            || !actor.BuildingCharacterId.IsValid
+            || building == null
+            || workRunId <= 0)
+        {
+            failure = new DomainFailure(
+                FailureCode.SurvivalTreatmentTargetMissing,
+                "treatment-work-owner-invalid");
+            return false;
+        }
+        BuildingMedicalAbility medical =
+            building.BuildingData?.GetAbility<BuildingMedicalAbility>();
+        if (medical == null)
+        {
+            failure = new DomainFailure(
+                FailureCode.SurvivalTreatmentUnsupported,
+                building.RequirePersistentInstanceId().Value);
+            return false;
+        }
+        BuildingInstanceId facilityId = building.RequirePersistentInstanceId();
+        string workKey = CreateTreatmentWorkKey(
+            actor.BuildingCharacterId,
+            facilityId,
+            workRunId);
+        if (treatmentOperationsByWork.TryGetValue(
+                workKey,
+                out ConsumableOperationId requestedOperationId))
+        {
+            if (state.completedTreatmentOperationIds.Contains(
+                    requestedOperationId.Value,
+                    StringComparer.Ordinal))
+            {
+                completionOnly = true;
+                failure = DomainFailure.None;
+                return true;
+            }
+            SurvivalTreatmentPlanSaveData requestedPlan =
+                FindTreatmentPlanByOperation(requestedOperationId);
+            if (requestedPlan != null)
+            {
+                if (!string.Equals(
+                        requestedPlan.facilityInstanceId,
+                        facilityId.Value,
+                        StringComparison.Ordinal))
+                {
+                    failure = new DomainFailure(
+                        FailureCode.SurvivalTreatmentTargetMissing,
+                        requestedOperationId.Value);
+                    return false;
+                }
+                completionOnly = true;
+                failure = DomainFailure.None;
+                return true;
+            }
+            if (consumables != null
+                && consumables.TryGetDetoxTreatmentOwner(
+                    requestedOperationId,
+                    out _,
+                    out BuildingInstanceId requestedFacilityId,
+                    out _))
+            {
+                if (!requestedFacilityId.Equals(facilityId))
+                {
+                    failure = new DomainFailure(
+                        FailureCode.SurvivalTreatmentTargetMissing,
+                        requestedOperationId.Value);
+                    return false;
+                }
+                completionOnly = true;
+                failure = DomainFailure.None;
+                return true;
+            }
+        }
+        if (FindActiveTreatmentPlan(default, facilityId) != null)
+        {
+            completionOnly = true;
+            failure = DomainFailure.None;
+            return true;
+        }
+        if (TryFindPendingDetoxTreatment(facilityId, out _))
+        {
+            completionOnly = true;
+            failure = DomainFailure.None;
+            return true;
+        }
+
+        SurvivalHealthSaveData patientEntry = FindTreatmentEntry(building);
+        ToxicityTreatmentPatient toxicityPatient = patientEntry == null
+            ? FindToxicityTreatmentPatient(building)
+            : null;
+        if (patientEntry == null && toxicityPatient == null)
+        {
+            failure = new DomainFailure(
+                FailureCode.SurvivalTreatmentTargetMissing,
+                facilityId.Value);
+            return false;
+        }
+        if (toxicityPatient != null
+            && consumables != null
+            && consumables.TryGetPendingDetoxTreatment(
+                CharacterPersistentIdentity.Require(toxicityPatient.Actor),
+                out BuildingInstanceId pendingFacilityId,
+                out _)
+            && pendingFacilityId.Equals(facilityId))
+        {
+            completionOnly = true;
+            failure = DomainFailure.None;
+            return true;
+        }
+        if (!medical.requiresMedicine)
+        {
+            failure = DomainFailure.None;
+            return true;
+        }
+        bool ready = stockRuntime.TryEnsureTreatmentMaterial(
+            building,
+            toxicityPatient != null,
+            actor.BuildingCharacterId,
+            out _,
+            out string supplyFailure);
+        failure = ready
+            ? DomainFailure.None
+            : new DomainFailure(
+                FailureCode.SurvivalTreatmentMaterialMissing,
+                supplyFailure);
+        return ready;
+    }
+
+    public bool TryApplyTreatmentWork(
+        IBuildingVisitorPort actor,
+        BuildableObject building,
+        int workRunId,
+        out int amount,
+        out DomainFailure failure)
+    {
+        amount = 0;
+        if (actor == null
+            || !actor.BuildingCharacterId.IsValid
+            || building == null
+            || workRunId <= 0)
+        {
+            failure = new DomainFailure(
+                FailureCode.SurvivalTreatmentTargetMissing,
+                "treatment-work-owner-invalid");
+            return false;
+        }
+        string workKey = CreateTreatmentWorkKey(
+            actor.BuildingCharacterId,
+            building.RequirePersistentInstanceId(),
+            workRunId);
+        treatmentOperationsByWork.TryGetValue(
+            workKey,
+            out ConsumableOperationId operationId);
+        bool applied = TryApplyTreat(
+            actor,
+            building,
+            operationId,
+            out ConsumableOperationId resolvedOperationId,
+            out amount,
+            out failure);
+        if (resolvedOperationId.IsValid)
+        {
+            RememberTreatmentWorkOperation(workKey, resolvedOperationId);
+        }
+        return applied;
+    }
+
+    public bool TryReconcileLostTreatmentOwners(out string failureReason)
+    {
+        stockRuntime.TryRefreshFacilityFuelAuthorities();
+        EnsureStateLists();
+        foreach (SurvivalTreatmentPlanSaveData plan in state.activeTreatmentPlans
+                     .Where(value => value != null)
+                     .OrderBy(value => value.operationId, StringComparer.Ordinal)
+                     .ToArray())
+        {
+            CharacterActor patient = worldRegistry.AllCharacters.FirstOrDefault(
+                candidate => candidate != null
+                    && string.Equals(
+                        candidate.Identity?.PersistentId,
+                        plan.patientId,
+                        StringComparison.Ordinal));
+            BuildableObject facility = worldRegistry.Buildings.FirstOrDefault(
+                candidate => candidate != null
+                    && !candidate.isDestroy
+                    && string.Equals(
+                        candidate.PersistentInstanceId.Value,
+                        plan.facilityInstanceId,
+                        StringComparison.Ordinal)
+                    && candidate.BuildingData?
+                        .GetAbility<BuildingMedicalAbility>() != null);
+            if (patient != null && !patient.IsDead && facility != null)
+            {
+                continue;
+            }
+
+            if (plan.phase == SurvivalTreatmentPlanPhase.IntentRecorded)
+            {
+                CancelTreatmentSessionIfNeeded(plan);
+                state.activeTreatmentPlans.Remove(plan);
+                RemoveTreatmentWorkOperations(plan.operationId);
+                continue;
+            }
+            if (!stockRuntime.TryGetPendingTreatmentMaterial(
+                    plan.physicalCommitOperationId,
+                    out PhysicalItemBatchDispositionReceipt receipt)
+                || !TreatmentReceiptMatches(plan, receipt))
+            {
+                failureReason = "treatment-terminal-receipt-mismatch:"
+                    + plan.physicalCommitOperationId;
+                return false;
+            }
+
+            CancelTreatmentSessionIfNeeded(plan);
+            if (!stockRuntime.TryPublishTreatmentTareAndAcknowledge(
+                    plan.itemDefinitionId,
+                    new Vector2Int(
+                        plan.physicalCommitPositionX,
+                        plan.physicalCommitPositionY),
+                    plan.physicalCommitId,
+                    out failureReason))
+            {
+                return false;
+            }
+            RememberCompletedTreatmentOperation(plan.operationId);
+            state.activeTreatmentPlans.Remove(plan);
+            RemoveTreatmentWorkOperations(plan.operationId);
+        }
+        return stockRuntime.TryRecoverFacilityFuelCommits(out failureReason);
+    }
+
+    private void CancelTreatmentSessionIfNeeded(
+        SurvivalTreatmentPlanSaveData plan)
+    {
+        if (plan != null
+            && plan.phase < SurvivalTreatmentPlanPhase.ServiceCompleted
+            && !string.IsNullOrEmpty(plan.serviceSessionId))
+        {
+            serviceSessionRuntime.CancelSession(
+                plan.serviceSessionId,
+                "survival-treatment-owner-lost");
+        }
+    }
+
+    private bool TryFindPendingDetoxTreatment(
+        BuildingInstanceId facilityId,
+        out ConsumableOperationId operationId)
+    {
+        operationId = default;
+        if (consumables == null || !facilityId.IsValid)
+        {
+            return false;
+        }
+        foreach (CharacterActor candidate in worldRegistry.AllCharacters
+                     .Where(value => value != null
+                         && !string.IsNullOrWhiteSpace(
+                             value.Identity?.PersistentId))
+                     .OrderBy(
+                         value => value.Identity.PersistentId,
+                         StringComparer.Ordinal))
+        {
+            if (consumables.TryGetPendingDetoxTreatment(
+                    CharacterPersistentIdentity.Require(candidate),
+                    out BuildingInstanceId pendingFacilityId,
+                    out ConsumableOperationId pendingOperationId)
+                && pendingFacilityId.Equals(facilityId))
+            {
+                operationId = pendingOperationId;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void RememberTreatmentWorkOperation(
+        string workKey,
+        ConsumableOperationId operationId)
+    {
+        if (string.IsNullOrEmpty(workKey) || !operationId.IsValid)
+        {
+            return;
+        }
+        if (!treatmentOperationsByWork.ContainsKey(workKey)
+            && treatmentOperationsByWork.Count >= TreatmentWorkOperationCapacity)
+        {
+            string retired = treatmentOperationsByWork.Keys
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .First();
+            treatmentOperationsByWork.Remove(retired);
+        }
+        treatmentOperationsByWork[workKey] = operationId;
+    }
+
+    private void RemoveTreatmentWorkOperations(string operationId)
+    {
+        foreach (string key in treatmentOperationsByWork
+                     .Where(pair => string.Equals(
+                         pair.Value.Value,
+                         operationId,
+                         StringComparison.Ordinal))
+                     .Select(pair => pair.Key)
+                     .ToArray())
+        {
+            treatmentOperationsByWork.Remove(key);
+        }
+    }
+
+    private bool TryCompleteDetoxServiceSession(
+        ServiceSessionSnapshot serviceSession) =>
+        serviceSession != null
+        && serviceSessionRuntime.TryCompleteSession(
+            serviceSession.SessionId,
+            out _,
+            out _);
+
+    private static ConsumableOperationId CreateDetoxOperationId(
+        string serviceSessionId) => new(
+        "consumable-operation:detox:" + serviceSessionId);
+
+    private static ConsumableOperationId CreateTreatmentOperationId(
+        string serviceSessionId) => string.IsNullOrWhiteSpace(serviceSessionId)
+        ? default
+        : new ConsumableOperationId(
+            "consumable-operation:treatment:" + serviceSessionId);
+
+    private static string CreateTreatmentWorkKey(
+        CharacterId actorId,
+        BuildingInstanceId facilityId,
+        int workRunId) =>
+        "treatment-work:"
+        + Uri.EscapeDataString(actorId.Value) + ":"
+        + Uri.EscapeDataString(facilityId.Value) + ":"
+        + workRunId.ToString(
+            System.Globalization.CultureInfo.InvariantCulture);
+
+    private ServiceSessionSnapshot FindActiveTreatmentServiceSession(
+        BuildableObject building,
+        CharacterActor patient)
+    {
+        if (serviceSessionRuntime is not IServiceSessionRuntime sessions
+            || building == null
+            || patient == null)
+        {
+            return null;
+        }
+        string hubId = building.RequirePersistentInstanceId().Value;
+        string actorId = patient.BuildingCharacterId.Value;
+        return sessions.ActiveSessions
+            .Where(session => session != null
+                && session.IsActive
+                && string.Equals(session.HubId, hubId, StringComparison.Ordinal)
+                && string.Equals(session.ActorId, actorId, StringComparison.Ordinal))
+            .OrderBy(session => session.SessionId, StringComparer.Ordinal)
+            .FirstOrDefault();
     }
 
     private static void RecordWorkActivity(
@@ -1133,7 +2347,7 @@ public sealed partial class SurvivalFoodRuntime :
 
     private bool CanDrawWater(BuildableObject building)
     {
-        return SurvivalFacilityWorkRules.CanDrawWater(building, CurrentWeather);
+        return SurvivalFacilityWorkRules.CanDrawWater(building);
     }
 
     private SurvivalWeatherType CurrentWeather =>
@@ -1170,6 +2384,84 @@ public sealed partial class SurvivalFoodRuntime :
     private bool HasTreatableHealth()
     {
         return SurvivalHealthStateRules.HasTreatable(state);
+    }
+
+    private bool HasAvailableTreatment(BuildableObject building)
+    {
+        BuildingMedicalAbility medical =
+            building?.BuildingData?.GetAbility<BuildingMedicalAbility>();
+        if (medical == null)
+            return false;
+        BuildingInstanceId facilityId = building.RequirePersistentInstanceId();
+        bool standardTreatmentAvailable = HasTreatableHealth()
+            && (!medical.requiresMedicine
+                || state.activeTreatmentPlans.Any(plan => plan != null
+                    && string.Equals(
+                        plan.facilityInstanceId,
+                        facilityId.Value,
+                        StringComparison.Ordinal))
+                || stockRuntime.HasPotentialTreatmentMaterial(
+                    detoxOnly: false));
+        return standardTreatmentAvailable
+            || building.GetServiceHubAbility() != null
+            && FindToxicityTreatmentPatient(building) != null;
+    }
+
+    private sealed class ToxicityTreatmentPatient
+    {
+        internal ToxicityTreatmentPatient(
+            CharacterActor actor,
+            CharacterToxicityStatus status)
+        {
+            Actor = actor;
+            Status = status;
+        }
+
+        internal CharacterActor Actor { get; }
+        internal CharacterToxicityStatus Status { get; }
+    }
+
+    private ToxicityTreatmentPatient FindToxicityTreatmentPatient(
+        BuildableObject building)
+    {
+        if (consumables == null || building == null)
+            return null;
+        BuildingInstanceId facilityId = building.RequirePersistentInstanceId();
+        ToxicityTreatmentPatient[] candidates = GetSurvivalConsumers()
+            .Where(actor => actor != null && !actor.IsDead)
+            .Select(actor => new ToxicityTreatmentPatient(
+                actor,
+                consumables.GetToxicityStatus(
+                    CharacterPersistentIdentity.Require(actor))))
+            .Where(candidate => candidate.Status.TreatmentPending
+                || candidate.Status.Toxicity > 0f
+                && candidate.Status.TreatmentAvailable)
+            .OrderByDescending(candidate =>
+            {
+                CharacterId characterId =
+                    CharacterPersistentIdentity.Require(candidate.Actor);
+                return consumables.TryGetPendingDetoxTreatment(
+                        characterId,
+                        out BuildingInstanceId pendingFacility,
+                        out _)
+                    && pendingFacility.Equals(facilityId);
+            })
+            .ThenByDescending(candidate => candidate.Status.Toxicity)
+            .ThenBy(
+                candidate => CharacterPersistentIdentity.Require(candidate.Actor).Value,
+                StringComparer.Ordinal)
+            .ToArray();
+        return candidates.FirstOrDefault(candidate =>
+        {
+            CharacterId characterId =
+                CharacterPersistentIdentity.Require(candidate.Actor);
+            return !candidate.Status.TreatmentPending
+                || consumables.TryGetPendingDetoxTreatment(
+                    characterId,
+                    out BuildingInstanceId pendingFacility,
+                    out _)
+                && pendingFacility.Equals(facilityId);
+        });
     }
 
     private SurvivalHealthSaveData FindTreatmentEntry(

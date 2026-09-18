@@ -1,0 +1,201 @@
+{
+  "schemaVersion": 1,
+  "phase": "phase80-external-faction-outcomes",
+  "generatedAt": "2026-09-18",
+  "sourceMode": "SOURCE_EDIT",
+  "balanceImpact": "none-observational-ledger-only",
+  "rows": [
+    {
+      "candidate": "ExpeditionOutcomeEvent",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "OffenseExpeditionResultFinalizer.PublishIdentityOutcome",
+      "blocker": "the identity notification is emitted after reward, arrival, campaign, history and meta-progression mutations; no single rollback boundary or exact final receipt presently covers both success and failure",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "ExteriorVisitorReceptionAppliedEvent",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "ExteriorVisitorReceptionIncidentHandler.Apply",
+      "blocker": "visitor readiness and reception effects are already committed before publish and the handler exposes no detached candidate/rollback transaction",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "FactionContractDeliveryReceipt",
+      "classification": "dependent-substitute-pending",
+      "status": "unresolved",
+      "producer": "V20ContentResolutionService faction-contract delivery",
+      "requiredSubstitute": "a ledger-integrated V20/faction-contract result preserving disposition kind, operation id, reason code, request fingerprint, canonical source stack ids, quantity, input mass and calculated commit id",
+      "reason": "no higher same-operation result currently preserves the complete physical receipt"
+    },
+    {
+      "candidate": "FactionRouteArrivedEvent",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "FactionRuntimeApplicationAdapter route arrival",
+      "blocker": "route cargo, settlement, strength, state and campaign effects do not share a gameplay-outcome rollback boundary",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "FactionRouteCargoDeliveryReceipt",
+      "classification": "dependent-substitute-pending",
+      "status": "unresolved",
+      "producer": "FactionRuntimeApplicationAdapter cargo outbox",
+      "requiredSubstitute": "a ledger-integrated route-arrival result preserving state, batch commit id, destination id, outcome fingerprint, delivery cell, mass and every delivered stack",
+      "reason": "FactionRouteArrivedEvent omits the physical cargo receipt"
+    },
+    {
+      "candidate": "FactionRouteSettlementReceipt",
+      "classification": "dependent-substitute-pending",
+      "status": "unresolved",
+      "producer": "FactionRuntimeApplicationAdapter settlement outbox",
+      "requiredSubstitute": "a ledger-integrated route-arrival result preserving capability/version, operation sequence, authored/payment gold, quote lines/digests, transaction parties, balances, alliance authority and reservation/debit evidence",
+      "reason": "FactionRouteArrivedEvent omits settlement and alliance authority facts"
+    },
+    {
+      "candidate": "FactionTrustChangedEvent",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "FactionRuntimeApplicationAdapter trust/goodwill/betrayal paths",
+      "blocker": "three producers mutate different campaign, physical-transfer and faction aggregates before notification; an exact shared transaction has not been introduced",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "FestivalCelebratedEvent",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "FestivalExecutionRuntime.ResolveOccurrence",
+      "blocker": "psychosocial, actor mood, faction rapport, fasting and festival occurrence state commit across multiple authorities without a common rollback transaction",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "FestivalOutcomeEvent",
+      "classification": "dependent-substitute-pending",
+      "status": "unresolved",
+      "producerCount": 0,
+      "requiredSubstitute": "an atomically ledger-integrated FestivalCelebrated result with per-participant character links, festival id, exact grade/outcome mapping and day",
+      "reason": "the type has one identity subscriber but no producer; FestivalCelebratedEvent is not yet transactionally integrated, so supersession cannot be claimed"
+    },
+    {
+      "candidate": "OffenseExpeditionArrivalReceipt",
+      "classification": "dependent-substitute-pending",
+      "status": "unresolved",
+      "requiredSubstitute": "an atomically integrated OffenseExpeditionArrivalResolvedEvent preserving arrival id/kind, requested/materialized/secured/escaped counts and resolution",
+      "reason": "the higher event exists but is only a post-state notification"
+    },
+    {
+      "candidate": "OffenseExpeditionArrivalResolvedEvent",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "OffenseReturnArrivalRuntime",
+      "blocker": "materialization, captivity/wildlife/equipment and arrival aggregate mutations lack a common gameplay-outcome rollback boundary",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "OffenseExpeditionCurrencyReceipt",
+      "classification": "dependent-substitute-pending",
+      "status": "unresolved",
+      "requiredSubstitute": "an atomically integrated OffenseExpeditionReturnReceipt preserving currency id, amount and operation id",
+      "reason": "the aggregate return receipt is not ledger-integrated"
+    },
+    {
+      "candidate": "OffenseExpeditionItemReceipt",
+      "classification": "dependent-substitute-pending",
+      "status": "unresolved",
+      "requiredSubstitute": "an atomically integrated offense return/reward result preserving kind, item id, quantity, instance id, durability loss and valuation",
+      "reason": "neither return nor reward aggregate is ledger-integrated"
+    },
+    {
+      "candidate": "OffenseExpeditionReturnReceipt",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "OffenseExpeditionReturnCoordinator",
+      "blocker": "physical items, currencies, treatments and expedition sealing span multiple authorities and the aggregate receipt is captured after those commits",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "OffenseExpeditionTreatmentReceipt",
+      "classification": "dependent-substitute-pending",
+      "status": "unresolved",
+      "requiredSubstitute": "an atomically integrated OffenseExpeditionReturnReceipt preserving treatment kind, character, anatomy node and healed amount",
+      "reason": "the aggregate return receipt is not ledger-integrated"
+    },
+    {
+      "candidate": "OffensePhysicalItemCommitReceipt",
+      "classification": "dependent-substitute-pending",
+      "status": "unresolved",
+      "requiredSubstitute": "an atomically integrated offense reward/return result preserving item id, quantity and physical operation id",
+      "reason": "no integrated higher result owns the same physical commit"
+    },
+    {
+      "candidate": "OffenseRewardGrantedEvent",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "OffenseExpeditionResultFinalizer",
+      "blocker": "reward authorities and physical item commits complete before the event and cannot be rolled back with an outcome prepare/commit failure",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "OffenseSupplyCustodyReceipt",
+      "classification": "dependent-substitute-pending",
+      "status": "unresolved",
+      "requiredSubstitute": "an atomically integrated offense preparation/return result preserving operation, reason, commit id, canonical source stacks, quantity and mass",
+      "reason": "no exact higher same-operation result is ledger-integrated"
+    },
+    {
+      "candidate": "OffenseTruthRevealedEvent",
+      "classification": "Record",
+      "status": "implemented",
+      "authoritativeReceipt": "OffenseTruthRevealOutcomeReceipt",
+      "outcomeTypeId": "offense.truth-revealed",
+      "producerId": "offense.truth-reveal",
+      "owner": "OffenseCampaignRuntime",
+      "atomicity": "prepare exact target/title/text provenance before mutation; mutate a detached campaign candidate; publish candidate; commit outbox at the same owner revision; restore rollback candidate on commit failure; publish legacy alert/event only after commit",
+      "historicalDisplaySnapshot": "target.title captured with immutable display/pronunciation revisions",
+      "canonicalReplay": "already-committed, already-published/acknowledged and terminal identities succeed only after recorder canonical-payload reconciliation returns the exact result identity; an unreconciled duplicate remains a failure"
+    },
+    {
+      "candidate": "RunStartVariablesSelectedEvent",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "RunVariableRuntime.StartRun",
+      "blocker": "run-wide reseed and selector RNG consumption occur before a transactionally reserved detached aggregate is available",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "RunVariableActivatedEvent",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "RunVariableRuntime.ActivateOperationVariable",
+      "blocker": "mutable run-variable state has no persistent owner revision/result sequence and currently mutates before notification",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "RunVariableExpiredEvent",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "RunVariableRuntime.OnTriggerEvent(OperatingDayEndedEvent)",
+      "blocker": "a day can expire multiple variables, but the recorder has no batch commit/rollback contract and state advances in place before notifications",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "V20ContentEffectsResolvedEvent",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "V20CampaignApplicationAdapter",
+      "blocker": "heterogeneous effect handlers commit campaign, inventory, faction and occurrence state independently before the summary notification",
+      "observerCaptureAccepted": false
+    }
+  ],
+  "summary": {
+    "candidateCount": 23,
+    "recordImplemented": 1,
+    "recordBlocked": 12,
+    "nonResultWithExactSubstitute": 0,
+    "dependentSubstitutePending": 10,
+    "unresolved": 22
+  },
+  "releaseGate": "BLOCKED",
+  "humanApprovalClaimed": false
+}

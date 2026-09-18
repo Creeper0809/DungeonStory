@@ -13,8 +13,6 @@ public sealed class BuildingWaterSourceAbility :
     public int waterPerWork = 4;
     [Min(0.1f), InspectorName("필요 작업량")]
     public float workSeconds = 1f;
-    [InspectorName("동결 날씨에 사용 불가")]
-    public bool blockedByFreezingWeather = true;
 }
 
 [Serializable]
@@ -67,8 +65,12 @@ public sealed class BuildingFuelConsumerAbility :
     BuildingAbility,
     IBuildingWorkCompletionAbility
 {
+    [InspectorName("연료 아이템 ID")]
+    public string fuelItemId = "resource:log";
     [Min(1), InspectorName("보충당 연료")]
     public int fuelPerRefuel = 1;
+    [Min(0.1f), InspectorName("보충당 실제 가동초")]
+    public float fuelSecondsPerRefuel = 180f;
     [Min(0.1f), InspectorName("필요 작업량")]
     public float workSeconds = 0.8f;
     [Min(0f), InspectorName("난방")]

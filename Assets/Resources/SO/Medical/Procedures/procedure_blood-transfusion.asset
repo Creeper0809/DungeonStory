@@ -35,19 +35,25 @@ MonoBehaviour:
   requiresRestraintForUnwilling: 0
   allowsLivingSubject: 1
   allowsCorpseSubject: 0
-  allowsWildlife: 1
+  allowsWildlife: 0
   materials:
   - itemId: medicine:blood-pack
     quantity: 1
     optional: 0
   effects:
-  - rid: 7737212199327498830
+  - rid: 1000
+  - rid: 1001
   references:
     version: 2
     RefIds:
-    - rid: 7737212199327498830
+    - rid: 1000
       type: {class: HealSurgicalNodeEffect, ns: , asm: DungeonStory.Medical}
       data:
         effectId: HealSurgicalNodeEffect
         health: 14
         infectionReduction: 2
+    - rid: 1001
+      type: {class: RecoverBloodLossEffect, ns: , asm: DungeonStory.Medical}
+      data:
+        effectId: RecoverBloodLossEffect
+        amount: 25

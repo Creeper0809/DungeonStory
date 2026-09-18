@@ -36,6 +36,7 @@ public static class V19ClimateContentAssetBuilder
             int minimumDays,
             int maximumDays,
             float modifier,
+            float expeditionTravelMultiplier,
             float spring,
             float summer,
             float autumn,
@@ -47,6 +48,7 @@ public static class V19ClimateContentAssetBuilder
             MinimumDays = minimumDays;
             MaximumDays = maximumDays;
             Modifier = modifier;
+            ExpeditionTravelMultiplier = expeditionTravelMultiplier;
             Weights = new[] { spring, summer, autumn, winter };
         }
         public string Id { get; }
@@ -55,6 +57,7 @@ public static class V19ClimateContentAssetBuilder
         public int MinimumDays { get; }
         public int MaximumDays { get; }
         public float Modifier { get; }
+        public float ExpeditionTravelMultiplier { get; }
         public float[] Weights { get; }
     }
 
@@ -69,12 +72,12 @@ public static class V19ClimateContentAssetBuilder
 
     private static readonly FrontManifest[] Fronts =
     {
-        new("weather:clear", "맑음", WeatherFrontKind.Clear, 1, 3, 0f, 35, 45, 30, 35),
-        new("weather:rain", "비", WeatherFrontKind.Rain, 2, 4, -3f, 30, 15, 25, 8),
-        new("weather:fog", "안개", WeatherFrontKind.Fog, 1, 3, -2f, 15, 8, 20, 18),
-        new("weather:heatwave", "폭염", WeatherFrontKind.Heatwave, 2, 5, 10f, 2, 18, 2, 0),
-        new("weather:cold-snap", "한파", WeatherFrontKind.ColdSnap, 2, 5, -12f, 8, 1, 8, 30),
-        new("weather:storm", "폭풍", WeatherFrontKind.Storm, 1, 2, -6f, 10, 13, 15, 9)
+        new("weather:clear", "맑음", WeatherFrontKind.Clear, 1, 3, 0f, 1f, 35, 45, 30, 35),
+        new("weather:rain", "비", WeatherFrontKind.Rain, 2, 4, -3f, 1.1f, 30, 15, 25, 8),
+        new("weather:fog", "안개", WeatherFrontKind.Fog, 1, 3, -2f, 1.15f, 15, 8, 20, 18),
+        new("weather:heatwave", "폭염", WeatherFrontKind.Heatwave, 2, 5, 10f, 1.1f, 2, 18, 2, 0),
+        new("weather:cold-snap", "한파", WeatherFrontKind.ColdSnap, 2, 5, -12f, 1.15f, 8, 1, 8, 30),
+        new("weather:storm", "폭풍", WeatherFrontKind.Storm, 1, 2, -6f, 1.25f, 10, 13, 15, 9)
     };
 
     [MenuItem("DungeonStory/V19/Build Climate Content")]
@@ -110,6 +113,7 @@ public static class V19ClimateContentAssetBuilder
             asset.minimumDurationDays = manifest.MinimumDays;
             asset.maximumDurationDays = manifest.MaximumDays;
             asset.temperatureModifierC = manifest.Modifier;
+            asset.expeditionTravelMultiplier = manifest.ExpeditionTravelMultiplier;
             asset.springWeight = manifest.Weights[0];
             asset.summerWeight = manifest.Weights[1];
             asset.autumnWeight = manifest.Weights[2];

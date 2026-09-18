@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections;
+using System.Linq;
 using UnityEngine;
 
 public interface IWorkCandidateProvider
@@ -132,6 +133,18 @@ public sealed class WorkExecutionResult
 {
     public bool CompletedSuccessfully { get; set; } = true;
     public bool CompletionEffectsAlreadyApplied { get; set; }
+    public DomainFailure Failure { get; set; } = DomainFailure.None;
+    public CharacterOperationBlockAxis FailureAxis { get; set; } =
+        CharacterOperationBlockAxis.Unknown;
+    internal Func<int> FailureSourceRevisionReader { get; private set; }
+    internal int FailureSourceRevision { get; private set; }
+
+    internal void ObserveFailureSource(Func<int> sourceRevisionReader)
+    {
+        FailureSourceRevisionReader = sourceRevisionReader
+            ?? throw new ArgumentNullException(nameof(sourceRevisionReader));
+        FailureSourceRevision = sourceRevisionReader();
+    }
 }
 
 public sealed class WorkExecutionContext
@@ -276,6 +289,18 @@ public interface IWorkExecutionHandler
     IEnumerator Execute(WorkExecutionContext context, WorkExecutionResult result);
 }
 
+/// <summary>
+/// Optional execution-location policy for work that must remain on the
+/// authored approach cell instead of entering the target facility.
+/// </summary>
+public interface IWorkAccessStandExecutionHandler
+{
+    bool RequiresWorkAccessStand(
+        WorkTypeId workTypeId,
+        CharacterActor actor,
+        BuildableObject target);
+}
+
 public interface IWorkExecutionHandlerRegistry
 {
     bool TryGet(WorkTypeId workTypeId, out IWorkExecutionHandler handler);
@@ -345,7 +370,11 @@ public sealed class WorkExecutionHandlerRegistry :
             && !careers.CanPerformRetiredWork(
                 characterId,
                 calendar.Day,
-                CareerWorkEligibilityRules.IsSafeRetireeWork(workTypeId),
+                CareerWorkEligibilityRules.IsSafeRetireeWork(
+                    workTypeId,
+                    characterId,
+                    target,
+                    careers.Mentorships),
                 out reason))
         {
             return false;
@@ -424,8 +453,30 @@ public static class CareerWorkEligibilityRules
         BuiltInWorkTypeIds.AnimalCare
     };
 
-    public static bool IsSafeRetireeWork(WorkTypeId workTypeId) =>
-        SafeRetireeWorkTypes.Contains(workTypeId);
+    public static bool IsSafeRetireeWork(
+        WorkTypeId workTypeId,
+        CharacterId characterId,
+        BuildableObject target,
+        IReadOnlyList<CareerMentorshipSnapshot> mentorships)
+    {
+        if (SafeRetireeWorkTypes.Contains(workTypeId))
+            return true;
+        if (workTypeId != BuiltInWorkTypeIds.Operate
+            || !characterId.IsValid
+            || target == null
+            || target.isDestroy
+            || target.BuildingData?.ResearchFacilityCommand !=
+                ResearchFacilityCommandKind.MentorAcademy
+            || !target.PersistentInstanceId.IsValid)
+        {
+            return false;
+        }
+        return (mentorships ?? Array.Empty<CareerMentorshipSnapshot>())
+            .Any(value => value.AcademyBuildingId.Equals(
+                    target.PersistentInstanceId)
+                && (value.MentorCharacterId.Equals(characterId)
+                    || value.StudentCharacterId.Equals(characterId)));
+    }
 }
 
 public abstract class CharacterContextWorkPolicy :
@@ -897,7 +948,7 @@ public sealed class WorkAmountCalculator : IWorkAmountCalculator
                 CharacterPerformanceResultChannel.Speed,
                 performanceContext.BuildEvaluationContext(
                     profile,
-                    new GameplayEffectContext(new[] { definition.WorkTypeId.Value }),
+                    actor.Stats.BuildWorkEffectContext(definition.WorkTypeId),
                     actor.GetWorkContextMultiplier(definition.WorkTypeId)));
             if (!snapshot.IsApplicable)
                 throw new InvalidOperationException(

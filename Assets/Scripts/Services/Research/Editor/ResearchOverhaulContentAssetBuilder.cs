@@ -321,6 +321,24 @@ public static class ResearchOverhaulContentAssetBuilder
             });
             if (string.Equals(
                     spec.ResearchId,
+                    "research:agriculture:irrigation",
+                    StringComparison.Ordinal))
+            {
+                abilities.Add(new BuildingUtilityConnectionAbility
+                {
+                    channels = UtilityChannel.CleanWater,
+                    maxThroughput = 1f,
+                    normallyOpen = true
+                });
+                abilities.Add(new BuildingCropIrrigationAbility
+                {
+                    rangeManhattan = 4,
+                    waterPerRefill = 1f,
+                    minimumRefillIntervalSeconds = 1f
+                });
+            }
+            if (string.Equals(
+                    spec.ResearchId,
                     "research:agriculture:greenhouse-horticulture",
                     StringComparison.Ordinal))
             {

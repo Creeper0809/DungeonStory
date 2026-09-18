@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "완성된 의복을 종류와 치수별로 걸어 보여 주는 진열대 설치 부품이며, 라카쉬 세갈래길의 시설과도 체결 규격이 맞는다.",
+  "in_game_description": "의복 진열대에서 채집물과 현장 표본을 정리하는 공정을 맡기 위해 준비한 설치 부품이다. 라카쉬 세갈래길식 의복 진열대 주변은 짐수레 두 대와 피난 행렬이 엇갈릴 만큼 넓게 비워 둔다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

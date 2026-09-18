@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "자동 계산대에서 손님의 주문과 서비스 절차를 처리하도록 꾸린 설치 부품이며, 라카쉬 세갈래길의 시설과도 체결 규격이 맞는다.",
+  "in_game_description": "자동 계산대에서 손님의 주문과 서비스 절차를 처리하도록 꾸린 설치 부품이다. 라카쉬 세갈래길의 자동 계산대 출구에는 물건값보다 다음 안전한 길을 크게 그린 지도가 걸려 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

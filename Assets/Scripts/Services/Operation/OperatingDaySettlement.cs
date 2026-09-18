@@ -261,7 +261,7 @@ public sealed class OperatingDayReport
             $"총 매출: {totalRevenue}",
             $"방문 손님 수: {totalVisits}",
             $"평균 만족도: {averageSatisfaction:0.#}",
-            $"시설 유지비: {maintenanceCost}",
+            $"시설 계약비: {maintenanceCost}",
             $"직원 급여: {payrollCost}",
             $"이전 미납금: {previousDebt}",
             $"운영비 납부: {paidOperatingCost}/{totalOperatingCost}",
@@ -431,19 +431,25 @@ public struct FacilityCrimeEvent
     public FacilityCrimeKind kind;
     public string detail;
     public int lossValue;
+    public RetailStockLotSnapshot committedLot;
+    public string commitOperationId;
 
     public FacilityCrimeEvent(
         IBuildingCharacterPort actor,
         BuildableObject facility,
         FacilityCrimeKind kind,
         string detail,
-        int lossValue)
+        int lossValue,
+        RetailStockLotSnapshot committedLot = null,
+        string commitOperationId = "")
     {
         this.actor = CharacterBuildingVisitorAdapter.GetActorOrNull(actor);
         this.facility = facility;
         this.kind = kind;
         this.detail = detail ?? string.Empty;
         this.lossValue = Mathf.Max(0, lossValue);
+        this.committedLot = committedLot?.Clone();
+        this.commitOperationId = commitOperationId ?? string.Empty;
     }
 
 }

@@ -287,9 +287,16 @@ public static class CharacterSurgeryUiText
             return string.Empty;
         }
 
+        string primaryText = status.code ==
+                SurgeryStatusCode.EmergencyProcedureContinuing
+            && !string.IsNullOrWhiteSpace(status.primaryId)
+                ? LocalizeKey(
+                    status.primaryId,
+                    Array.Empty<object>())
+                : status.primaryId ?? string.Empty;
         object[] arguments =
         {
-            status.primaryId ?? string.Empty,
+            primaryText,
             status.secondaryId ?? string.Empty,
             status.scalarValue,
             status.secondaryScalarValue,

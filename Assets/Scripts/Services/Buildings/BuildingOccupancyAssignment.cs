@@ -62,6 +62,9 @@ public sealed class BuildingOccupancy
         return ids;
     }
 
+    public bool IsActiveUser(CharacterId characterId) =>
+        characterId.IsValid && activeUsers.Contains(characterId);
+
     public void Reset()
     {
         activeUsers.Clear();

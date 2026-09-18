@@ -1,0 +1,35 @@
+{
+  "success": true,
+  "command": "job wait",
+  "data": {
+    "jobId": "5557af617abb4a9f8c8a339fdba856f6",
+    "command": "eval",
+    "state": "completed",
+    "cancellationRequested": false,
+    "result": {
+      "output": null,
+      "diagnostics": [],
+      "success": true,
+      "command": "eval",
+      "result": {
+        "compiling": false,
+        "updating": false,
+        "playing": false,
+        "failed": false,
+        "unityVersion": "6000.3.8f1",
+        "assembly": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Library\\ScriptAssemblies\\Assembly-CSharp-Editor.dll",
+        "assemblyTicks": 639250779371478800
+      },
+      "executionTimeMs": 127,
+      "message": null,
+      "error": null,
+      "errorDetails": null,
+      "executedAt": "2026-09-15T14:44:25.3711404Z"
+    },
+    "error": null,
+    "errorDetails": null,
+    "progress": null
+  },
+  "errors": [],
+  "warnings": []
+}

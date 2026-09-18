@@ -249,6 +249,27 @@ public static class FacilityEvolutionAggregateAdapter
                 StringComparison.Ordinal),
             "Facility evolution pending resolved history is not exact.");
 
+        List<GameplayOutcomeEvidenceBindingSnapshot> evidence =
+            pending.evidenceBindings
+            ?? new List<GameplayOutcomeEvidenceBindingSnapshot>();
+        bool hasEvidenceIntent = evidence.Count > 0;
+        Require(hasEvidenceIntent
+                == !string.IsNullOrWhiteSpace(pending.evidenceAnchorId),
+            "Facility pending evidence-use intent is partial.");
+        Require(!pending.evidenceUseCompleted || hasEvidenceIntent,
+            "Facility pending evidence-use completion has no intent.");
+        if (hasEvidenceIntent)
+        {
+            Require(evidence.All(value =>
+                    GameplayOutcomeEvidenceBindingAuthority.TryValidate(
+                        value,
+                        out _)),
+                "Facility pending evidence-use binding is invalid.");
+            Require(evidence.Select(value => value.publicFactId)
+                    .Distinct(StringComparer.Ordinal).Count() == evidence.Count,
+                "Facility pending evidence-use bindings are duplicated.");
+        }
+
         Domain.FacilityEvolutionRestoreRules.Prepare(ToDomain(resolved));
         int outerHistoryCount = snapshot.evolutionHistory?.Count ?? 0;
         if (pending.phase == FacilityEvolutionMaterialCommitPhase.MaterialCommitted)

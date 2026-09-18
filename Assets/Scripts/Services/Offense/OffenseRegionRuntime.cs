@@ -13,6 +13,8 @@ public sealed class OffenseRegionState
     [Range(0f, 100f)] public float armamentDamage;
     [Range(0f, 100f)] public float manpowerDamage;
     [Range(0f, 100f)] public float intelligenceDamage;
+    public string memoryErasureSealAwardOperationId = string.Empty;
+    public bool memoryErasureSealAwardPublished;
 
     public float GetDamage(StrategicPressureAxis axis)
     {
@@ -56,7 +58,11 @@ public sealed class OffenseRegionState
             logisticsDamage = logisticsDamage,
             armamentDamage = armamentDamage,
             manpowerDamage = manpowerDamage,
-            intelligenceDamage = intelligenceDamage
+            intelligenceDamage = intelligenceDamage,
+            memoryErasureSealAwardOperationId =
+                memoryErasureSealAwardOperationId,
+            memoryErasureSealAwardPublished =
+                memoryErasureSealAwardPublished
         };
     }
 }
@@ -118,6 +124,7 @@ public interface IOffenseRegionRuntime
         OffenseTargetDefinition target,
         int rewardMultiplier,
         out StrategicPressureAxis axis,
+        out float requestedAmount,
         out float appliedAmount);
     bool TryApplyReconnaissance(
         string regionId,
@@ -138,7 +145,9 @@ public sealed class OffenseRegionRestoreCandidate
     internal List<OffenseRegionState> Regions { get; }
 }
 
-public sealed class OffenseRegionRuntime : IOffenseRegionRuntime
+public sealed class OffenseRegionRuntime :
+    IOffenseRegionRuntime,
+    IOffenseRegionMemoryErasureSealAwardAuthority
 {
     public const string BorderTradeRegionId = "border-trade";
     public const string RivalOutpostRegionId = "rival-outpost";
@@ -161,9 +170,11 @@ public sealed class OffenseRegionRuntime : IOffenseRegionRuntime
         OffenseTargetDefinition target,
         int rewardMultiplier,
         out StrategicPressureAxis axis,
+        out float requestedAmount,
         out float appliedAmount)
     {
         axis = target?.strategicPressureAxis ?? StrategicPressureAxis.None;
+        requestedAmount = 0f;
         appliedAmount = 0f;
         if (target == null
             || target.revealsTruth
@@ -177,18 +188,18 @@ public sealed class OffenseRegionRuntime : IOffenseRegionRuntime
             target.regionId,
             target.regionDisplayName,
             target.factionId);
-        appliedAmount = Mathf.Clamp(
+        requestedAmount = Mathf.Clamp(
             Mathf.Max(0f, target.strategicPressureAmount)
             * Mathf.Max(1, rewardMultiplier),
             0f,
             100f);
-        if (appliedAmount <= 0f)
+        if (requestedAmount <= 0f)
         {
             return false;
         }
 
         float before = region.GetDamage(axis);
-        region.AddDamage(axis, appliedAmount);
+        region.AddDamage(axis, requestedAmount);
         appliedAmount = region.GetDamage(axis) - before;
         return appliedAmount > 0f;
     }
@@ -275,6 +286,113 @@ public sealed class OffenseRegionRuntime : IOffenseRegionRuntime
         };
     }
 
+    [GameplayInternalOnly(
+        "The boss-award lifecycle enumerates persisted claims that still need their deterministic physical publication completed.",
+        "MemoryErasureSealBossAwardService")]
+    public IReadOnlyList<string>
+        CapturePendingMemoryErasureSealAwardRegionIds()
+    {
+        return regions
+            .Where(region => region != null
+                && !region.memoryErasureSealAwardPublished
+                && !string.IsNullOrWhiteSpace(
+                    region.memoryErasureSealAwardOperationId))
+            .Select(region => region.regionId)
+            .OrderBy(regionId => regionId, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    [GameplayInternalOnly(
+        "A confirmed region-boss victory claims the region's one-time physical seal publication operation.",
+        "MemoryErasureSealBossAwardService")]
+    public bool TryBeginMemoryErasureSealAward(
+        string regionId,
+        out string operationId,
+        out bool alreadyPublished,
+        out string failureReason)
+    {
+        operationId = string.Empty;
+        alreadyPublished = false;
+        failureReason = string.Empty;
+        string requiredRegionId = regionId?.Trim() ?? string.Empty;
+        OffenseRegionState region = regions.SingleOrDefault(value =>
+            value != null
+            && string.Equals(
+                value.regionId,
+                requiredRegionId,
+                StringComparison.Ordinal));
+        if (region == null)
+        {
+            failureReason =
+                "memory-erasure-seal-region-authority-missing:"
+                + requiredRegionId;
+            return false;
+        }
+
+        string expectedOperation =
+            MemoryErasureSealBossAwardRules.BuildOperationId(requiredRegionId);
+        string existing =
+            region.memoryErasureSealAwardOperationId?.Trim() ?? string.Empty;
+        if (existing.Length == 0)
+        {
+            region.memoryErasureSealAwardOperationId = expectedOperation;
+            region.memoryErasureSealAwardPublished = false;
+        }
+        else if (!string.Equals(
+                     existing,
+                     expectedOperation,
+                     StringComparison.Ordinal))
+        {
+            failureReason =
+                "memory-erasure-seal-region-operation-conflict:"
+                + requiredRegionId;
+            return false;
+        }
+
+        operationId = expectedOperation;
+        alreadyPublished = region.memoryErasureSealAwardPublished;
+        return true;
+    }
+
+    [GameplayInternalOnly(
+        "The exact physical Source receipt closes the already-claimed region award.",
+        "MemoryErasureSealBossAwardService")]
+    public bool TryCompleteMemoryErasureSealAward(
+        string regionId,
+        string operationId,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        string requiredRegionId = regionId?.Trim() ?? string.Empty;
+        string operation = operationId?.Trim() ?? string.Empty;
+        OffenseRegionState region = regions.SingleOrDefault(value =>
+            value != null
+            && string.Equals(
+                value.regionId,
+                requiredRegionId,
+                StringComparison.Ordinal));
+        string expectedOperation =
+            MemoryErasureSealBossAwardRules.BuildOperationId(requiredRegionId);
+        if (region == null
+            || !string.Equals(
+                operation,
+                expectedOperation,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                region.memoryErasureSealAwardOperationId,
+                expectedOperation,
+                StringComparison.Ordinal))
+        {
+            failureReason =
+                "memory-erasure-seal-region-completion-conflict:"
+                + requiredRegionId;
+            return false;
+        }
+
+        region.memoryErasureSealAwardPublished = true;
+        return true;
+    }
+
     internal OffenseRegionRestoreCandidate PrepareRestore(
         DungeonOffenseRegionSaveData saveData)
     {
@@ -309,6 +427,27 @@ public sealed class OffenseRegionRuntime : IOffenseRegionRuntime
             {
                 throw new InvalidOperationException(
                     $"Offense region '{restored.regionId}' has invalid pressure or authored identity.");
+            }
+            string awardOperation =
+                restored.memoryErasureSealAwardOperationId?.Trim()
+                ?? string.Empty;
+            string expectedAwardOperation =
+                MemoryErasureSealBossAwardRules.BuildOperationId(
+                    restored.regionId);
+            if (restored.memoryErasureSealAwardPublished
+                    && awardOperation.Length == 0
+                || awardOperation.Length > 0
+                    && (!string.Equals(
+                            restored.memoryErasureSealAwardOperationId,
+                            awardOperation,
+                            StringComparison.Ordinal)
+                        || !string.Equals(
+                            awardOperation,
+                            expectedAwardOperation,
+                            StringComparison.Ordinal)))
+            {
+                throw new InvalidOperationException(
+                    $"Offense region '{restored.regionId}' has invalid memory-erasure seal award authority.");
             }
             if (candidate.Any(region => string.Equals(
                     region.regionId,

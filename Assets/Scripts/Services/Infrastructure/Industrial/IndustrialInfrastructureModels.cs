@@ -43,6 +43,8 @@ public enum ConveyorNetworkState
 
 public enum ConveyorOverflowPolicy
 {
+    // Numeric save values are stable. Warehouse policies retain cargo on failure;
+    // the historical ThenLoose names do not authorize an implicit ground drop.
     ReserveWarehouseThenLoose = 0,
     AnyCompatibleWarehouseThenLoose = 1,
     LooseOnly = 2,
@@ -90,6 +92,8 @@ public static class ConveyorNetworkStateEvaluator
 public sealed class PowerNodeSaveData
 {
     public string buildingInstanceId = string.Empty;
+    // Required current-format field: 0/missing is invalid, 1 connected, 2 disconnected.
+    public int connectionState;
     public int priority = (int)PowerPriority.Production;
     public float storedPower;
     public float fuelSeconds;
@@ -145,7 +149,7 @@ public sealed class PowerFuelCommitSaveData
 [Serializable]
 public sealed class DungeonPowerInfrastructureSaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
     public int version = CurrentVersion;
     public List<PowerNodeSaveData> nodes = new List<PowerNodeSaveData>();
 }
@@ -265,12 +269,14 @@ public sealed class FluidNodeSaveData
         new ContainerWaterFeedCommitSaveData();
     public WaterContainerTransferMode transferMode;
     public float transferWork;
+    public bool frozenPipeLatched;
+    public string frozenPipeOccurrenceInstanceId = string.Empty;
 }
 
 [Serializable]
 public sealed class DungeonFluidInfrastructureSaveData
 {
-    public const int CurrentVersion = 6;
+    public const int CurrentVersion = 7;
     public int version = CurrentVersion;
     public List<FluidNodeSaveData> nodes = new List<FluidNodeSaveData>();
 }
@@ -356,6 +362,9 @@ public sealed class PowerNodeSnapshot
     public PowerPriority Priority { get; set; }
     public bool Powered { get; set; }
     public bool BreakerTripped { get; set; }
+    public bool HasControllableConnection { get; set; }
+    public bool ConnectionEnabled { get; set; }
+    public float MaximumThroughput { get; set; }
     public float ProductionPerSecond { get; set; }
     public float DemandPerSecond { get; set; }
     public float SuppliedFraction { get; set; }
@@ -371,6 +380,13 @@ public sealed class PowerNetworkSnapshot
     public float ProductionPerSecond { get; set; }
     public float DemandPerSecond { get; set; }
     public float SuppliedPerSecond { get; set; }
+    public float NominalAvailableSourcePerSecond { get; set; }
+    public float AvailableSourcePerSecond { get; set; }
+    public float AvailableSourceMultiplier { get; set; } = 1f;
+    public string CapacitySourceOccurrenceInstanceId { get; set; } = string.Empty;
+    public string CapacitySourceDefinitionId { get; set; } = string.Empty;
+    public string CapacitySourceDisplayName { get; set; } = string.Empty;
+    public int CapacitySourceRemainingDays { get; set; }
     public float StoredPower { get; set; }
     public float StorageCapacity { get; set; }
     public bool Tripped { get; set; }
@@ -460,6 +476,7 @@ public interface IPowerInfrastructureQuery
 
 public interface IPowerInfrastructureCommand
 {
+    InfrastructureCommandResult SetConnectionEnabled(BuildableObject building, bool enabled);
     InfrastructureCommandResult SetPriority(
         BuildableObject building,
         PowerPriority priority);
@@ -486,6 +503,56 @@ public interface IFluidInfrastructureQuery
         BuildableObject building,
         out float blockage,
         out float leak);
+    bool TryGetWaterCondition(
+        BuildableObject building,
+        out BuildingWaterConditionSnapshot snapshot);
+}
+
+public readonly struct BuildingWaterConditionSnapshot
+{
+    public BuildingWaterConditionSnapshot(
+        BuildingInstanceId buildingId,
+        string sourceOccurrenceInstanceId,
+        string sourceDefinitionId,
+        string sourceDisplayName,
+        int sourceRemainingDays,
+        bool hasObservedTemperature,
+        float observedTemperatureC,
+        bool frozen,
+        bool recovering,
+        float throughputMultiplier,
+        float freezeThresholdC,
+        float recoveryThresholdC)
+    {
+        BuildingId = buildingId;
+        SourceOccurrenceInstanceId = sourceOccurrenceInstanceId ?? string.Empty;
+        SourceDefinitionId = sourceDefinitionId ?? string.Empty;
+        SourceDisplayName = sourceDisplayName ?? string.Empty;
+        SourceRemainingDays = sourceRemainingDays;
+        HasObservedTemperature = hasObservedTemperature;
+        ObservedTemperatureC = observedTemperatureC;
+        Frozen = frozen;
+        Recovering = recovering;
+        ThroughputMultiplier = throughputMultiplier;
+        FreezeThresholdC = freezeThresholdC;
+        RecoveryThresholdC = recoveryThresholdC;
+    }
+
+    public BuildingInstanceId BuildingId { get; }
+    public string SourceOccurrenceInstanceId { get; }
+    public string SourceDefinitionId { get; }
+    public string SourceDisplayName { get; }
+    public int SourceRemainingDays { get; }
+    public bool HasObservedTemperature { get; }
+    public float ObservedTemperatureC { get; }
+    public bool Frozen { get; }
+    public bool Recovering { get; }
+    public float ThroughputMultiplier { get; }
+    public float FreezeThresholdC { get; }
+    public float RecoveryThresholdC { get; }
+    public bool HasSeasonalSource =>
+        !string.IsNullOrEmpty(SourceOccurrenceInstanceId);
+    public bool IsThroughputReduced => ThroughputMultiplier < 0.9999f;
 }
 
 public interface IFluidInfrastructureTransaction
@@ -507,6 +574,15 @@ public interface IFluidInfrastructureTransaction
         float amount,
         out float accepted);
     bool TryConsumeManualContainer(
+        BuildableObject consumer,
+        string destinationId,
+        float amount,
+        out DomainFailure failure);
+}
+
+public interface IManualWaterAvailabilityQuery
+{
+    bool CanConsumeManualContainer(
         BuildableObject consumer,
         string destinationId,
         float amount,
@@ -675,6 +751,13 @@ public interface IWaterFixtureUseRuntime
         WaterFixtureUseTicket ticket);
 }
 
+public interface IWaterFixtureUseQuery
+{
+    bool CanBeginWetUse(
+        BuildableObject fixture,
+        out DomainFailure failure);
+}
+
 public interface IProcessFluidUseRuntime
 {
     bool EnsureCycleSupply(
@@ -737,6 +820,44 @@ public interface IConveyorInfrastructureQuery
 {
     int Version { get; }
     IReadOnlyList<ConveyorNetworkSnapshot> Networks { get; }
+    IReadOnlyList<ConveyorDestinationChoice> GetDestinationChoices(BuildableObject port);
+    IReadOnlyList<ConveyorFilterChoice> GetItemFilterChoices();
+    IReadOnlyList<ConveyorFilterChoice> GetMaterialFilterChoices();
+    IReadOnlyList<StockCategory> GetStockCategoryFilterChoices();
+    IReadOnlyList<ConveyorWarehouseChoice> GetReserveWarehouseChoices();
+}
+
+public readonly struct ConveyorFilterChoice
+{
+    public ConveyorFilterChoice(string id, string displayName)
+    { Id = id; DisplayName = displayName; }
+    public string Id { get; }
+    public string DisplayName { get; }
+}
+
+public readonly struct ConveyorWarehouseChoice
+{
+    public ConveyorWarehouseChoice(string destinationId, string facilityId, long maximumMassGrams)
+    { DestinationId = destinationId; FacilityId = facilityId; MaximumMassGrams = maximumMassGrams; }
+    public string DestinationId { get; }
+    public string FacilityId { get; }
+    public long MaximumMassGrams { get; }
+}
+
+public readonly struct ConveyorDestinationChoice
+{
+    public ConveyorDestinationChoice(string destinationId, string ownerFacilityId,
+        Vector2Int dropPosition, long maximumMassGrams)
+    {
+        DestinationId = destinationId;
+        OwnerFacilityId = ownerFacilityId;
+        DropPosition = dropPosition;
+        MaximumMassGrams = maximumMassGrams;
+    }
+    public string DestinationId { get; }
+    public string OwnerFacilityId { get; }
+    public Vector2Int DropPosition { get; }
+    public long MaximumMassGrams { get; }
 }
 
 public interface IConveyorPayloadTransaction

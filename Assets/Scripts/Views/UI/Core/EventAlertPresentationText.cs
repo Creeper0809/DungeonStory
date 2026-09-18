@@ -32,6 +32,20 @@ public static class EventAlertPresentationText
             lines.Add(record.Detail);
         }
 
+        if (!string.IsNullOrWhiteSpace(record.ChoiceFailureDetail))
+        {
+            lines.Add(string.Empty);
+            lines.Add($"선택 실패: {record.ChoiceFailureDetail}");
+            lines.Add("조건을 준비한 뒤 같은 선택을 다시 시도할 수 있습니다.");
+        }
+
+        if (record.IsResolved)
+        {
+            lines.Add(string.Empty);
+            lines.Add("확정 결과:");
+            lines.Add(record.ResultSummary);
+        }
+
         if (record.Choices.Count > 0)
         {
             lines.Add(string.Empty);

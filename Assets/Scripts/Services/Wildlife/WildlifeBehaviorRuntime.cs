@@ -393,27 +393,34 @@ internal sealed class WildlifeBehaviorRuntime
 
     private Vector2Int ChooseEcologyOrPredatorPosition(WildlifeActor actor, Grid grid)
     {
-        if (ecosystemRuntime != null
-            && ecosystemRuntime.TryChooseEcologyTarget(
+        if (ecosystemRuntime != null)
+        {
+            bool selected = ecosystemRuntime.TryChooseEcologyTarget(
                 actor,
                 grid,
                 wildlife,
                 GetCachedItemStacks(),
                 out Vector2Int target,
                 out WildlifeIntent intent,
-                out string reason))
-        {
-            actor.SetIntent(intent, reason);
-            if (intent == WildlifeIntent.LeaveMap)
+                out string reason);
+            if (selected)
             {
-                actor.MarkLeaving();
-            }
-            else if (intent != WildlifeIntent.HuntPrey)
-            {
-                actor.SetGrazing();
+                actor.SetIntent(intent, reason);
+                if (intent == WildlifeIntent.LeaveMap)
+                {
+                    actor.MarkLeaving();
+                }
+                else if (intent != WildlifeIntent.HuntPrey)
+                {
+                    actor.SetGrazing();
+                }
+
+                return target;
             }
 
-            return target;
+            Vector2Int fallback = ChoosePredatorPosition(actor, grid);
+            AppendEcologyFallbackReason(actor, reason);
+            return fallback;
         }
 
         return ChoosePredatorPosition(actor, grid);
@@ -434,38 +441,70 @@ internal sealed class WildlifeBehaviorRuntime
 
     private Vector2Int ChooseEcologyOrWanderPosition(WildlifeActor actor, Grid grid)
     {
-        if (ecosystemRuntime != null
-            && ecosystemRuntime.TryChooseEcologyTarget(
+        if (ecosystemRuntime != null)
+        {
+            bool selected = ecosystemRuntime.TryChooseEcologyTarget(
                 actor,
                 grid,
                 wildlife,
                 GetCachedItemStacks(),
                 out Vector2Int target,
                 out WildlifeIntent intent,
-                out string reason))
-        {
-            actor.SetIntent(intent, reason);
-            switch (intent)
+                out string reason);
+            if (selected)
             {
-                case WildlifeIntent.Forage:
-                case WildlifeIntent.Drink:
-                    actor.SetGrazing();
-                    break;
-                case WildlifeIntent.HuntPrey:
-                    actor.SetPredatorStalking();
-                    break;
-                case WildlifeIntent.LeaveMap:
-                    actor.MarkLeaving();
-                    break;
-                default:
-                    actor.SetIdle();
-                    break;
+                actor.SetIntent(intent, reason);
+                switch (intent)
+                {
+                    case WildlifeIntent.Forage:
+                    case WildlifeIntent.Drink:
+                        actor.SetGrazing();
+                        break;
+                    case WildlifeIntent.HuntPrey:
+                        actor.SetPredatorStalking();
+                        break;
+                    case WildlifeIntent.LeaveMap:
+                        actor.MarkLeaving();
+                        break;
+                    default:
+                        actor.SetIdle();
+                        break;
+                }
+
+                return target;
             }
 
-            return target;
+            Vector2Int fallback = ChooseWanderPosition(actor, grid);
+            AppendEcologyFallbackReason(actor, reason);
+            return fallback;
         }
 
         return ChooseWanderPosition(actor, grid);
+    }
+
+    private static void AppendEcologyFallbackReason(
+        WildlifeActor actor,
+        string ecologyReason)
+    {
+        if (actor == null || string.IsNullOrWhiteSpace(ecologyReason))
+        {
+            return;
+        }
+
+        string fallbackReason = actor.IntentReason;
+        if (string.Equals(fallbackReason, ecologyReason, StringComparison.Ordinal)
+            || fallbackReason.EndsWith(
+                $" — {ecologyReason}",
+                StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        actor.SetIntent(
+            actor.Intent,
+            string.IsNullOrWhiteSpace(fallbackReason)
+                ? ecologyReason
+                : $"{fallbackReason} — {ecologyReason}");
     }
 
     private Vector2Int ChooseWanderPosition(WildlifeActor actor, Grid grid)

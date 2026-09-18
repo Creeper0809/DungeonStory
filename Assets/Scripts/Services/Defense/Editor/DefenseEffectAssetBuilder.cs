@@ -10,13 +10,16 @@ public readonly struct DefenseEffectAssetSpec
         float amount,
         float duration,
         int stacks,
-        string logTag)
+        string logTag,
+        float environmentalIgnitionIntensity)
     {
         EffectType = effectType;
         Amount = Mathf.Max(0f, amount);
         Duration = Mathf.Max(0f, duration);
         Stacks = Mathf.Max(1, stacks);
         LogTag = logTag;
+        EnvironmentalIgnitionIntensity = Mathf.Clamp01(
+            environmentalIgnitionIntensity);
     }
 
     public Type EffectType { get; }
@@ -24,15 +27,23 @@ public readonly struct DefenseEffectAssetSpec
     public float Duration { get; }
     public int Stacks { get; }
     public string LogTag { get; }
+    public float EnvironmentalIgnitionIntensity { get; }
 
     public static DefenseEffectAssetSpec Create<TEffect>(
         float amount,
         float duration,
         int stacks,
-        string logTag)
+        string logTag,
+        float environmentalIgnitionIntensity = 0f)
         where TEffect : DefenseEffectSO
     {
-        return new DefenseEffectAssetSpec(typeof(TEffect), amount, duration, stacks, logTag);
+        return new DefenseEffectAssetSpec(
+            typeof(TEffect),
+            amount,
+            duration,
+            stacks,
+            logTag,
+            environmentalIgnitionIntensity);
     }
 
     public string GetAssetSuffix()
@@ -86,6 +97,16 @@ public static class DefenseEffectAssetBuilder
             }
 
             effectAsset.Configure(spec.Amount, spec.Duration, spec.Stacks, spec.LogTag);
+            if (effectAsset is DefenseBurnEffectSO burn)
+            {
+                burn.ConfigureEnvironmentalIgnition(
+                    spec.EnvironmentalIgnitionIntensity);
+            }
+            else if (spec.EnvironmentalIgnitionIntensity > 0f)
+            {
+                throw new InvalidOperationException(
+                    "Only an authored burn effect can emit environmental ignition.");
+            }
             EditorUtility.SetDirty(effectAsset);
             result[i] = effectAsset;
         }

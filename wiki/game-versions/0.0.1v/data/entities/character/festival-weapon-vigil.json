@@ -5,12 +5,30 @@
   "kind": "character",
   "relations": [
     {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-1055",
+      "target_spoiler_tier": "none",
+      "target_title": "무기로커",
+      "type": "requires"
+    },
+    {
       "amount": "12",
       "label": "필요 조건",
       "target_kind": "item",
       "target_slug": "material-charcoal",
       "target_spoiler_tier": "none",
       "target_title": "숯",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-8830",
+      "target_spoiler_tier": "none",
+      "target_title": "정비 부품함",
       "type": "requires"
     }
   ],

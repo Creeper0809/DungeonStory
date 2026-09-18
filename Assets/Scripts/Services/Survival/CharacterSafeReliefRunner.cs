@@ -510,6 +510,10 @@ internal sealed class CharacterSafeReliefRunner
             if (succeeded)
             {
                 diagnostics.SafeReliefSuccesses++;
+                if (actor.TryGetAbility(out AbilityWork work))
+                {
+                    work.NotifyRoutineNeedServiceCompleted();
+                }
             }
             else
             {

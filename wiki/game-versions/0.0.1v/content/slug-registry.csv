@@ -5,6 +5,7 @@ character,funeral-culture-beastkin,Funeral_Beastkin,0.0.1v
 character,funeral-culture-demon,Funeral_Demon,0.0.1v
 character,funeral-culture-golem,Funeral_Golem,0.0.1v
 character,funeral-culture-harpy,Funeral_Harpy,0.0.1v
+character,funeral-culture-human,Funeral_Human,0.0.1v
 character,funeral-culture-kobold,Funeral_Kobold,0.0.1v
 character,funeral-culture-myconid,Funeral_Myconid,0.0.1v
 character,funeral-culture-orc,Funeral_Orc,0.0.1v
@@ -15,6 +16,7 @@ character,life-history-beastkin,Life_Beastkin,0.0.1v
 character,life-history-demon,Life_Demon,0.0.1v
 character,life-history-golem,Life_Golem,0.0.1v
 character,life-history-harpy,Life_Harpy,0.0.1v
+character,life-history-human,Life_Human,0.0.1v
 character,life-history-kobold,Life_Kobold,0.0.1v
 character,life-history-myconid,Life_Myconid,0.0.1v
 character,life-history-orc,Life_Orc,0.0.1v
@@ -25,6 +27,7 @@ character,reproduction-beastkin,Reproduction_Beastkin,0.0.1v
 character,reproduction-demon,Reproduction_Demon,0.0.1v
 character,reproduction-golem,Reproduction_Golem,0.0.1v
 character,reproduction-harpy,Reproduction_Harpy,0.0.1v
+character,reproduction-human,Reproduction_Human,0.0.1v
 character,reproduction-kobold,Reproduction_Kobold,0.0.1v
 character,reproduction-myconid,Reproduction_Myconid,0.0.1v
 character,reproduction-orc,Reproduction_Orc,0.0.1v
@@ -56,6 +59,7 @@ character,history-workshop-artisan,공방 장인,0.0.1v
 character,background-siege-survivor,공성전 생존자,0.0.1v
 character,trait-222,과묵함,0.0.1v
 character,trait-513,과식,0.0.1v
+character,acquired-trait-module-social-bridge,관계의 다리,0.0.1v
 character,trait-219,관대한 마음,0.0.1v
 character,career-position-steward,관리인,0.0.1v
 character,ambition-become-steward,관리인의 자리,0.0.1v
@@ -146,6 +150,8 @@ character,trait-406,사교 소질,0.0.1v
 character,trait-301,사선 각성,0.0.1v
 character,trait-514,산만함,0.0.1v
 character,history-caravan-broker,상단 중개인,0.0.1v
+character,acquired-trait-module-scar-memory,상흔의 기억,0.0.1v
+character,acquired-trait-module-survival-instinct,생존 본능,0.0.1v
 character,history-mason,석공,0.0.1v
 character,trait-203,섬세한 체격,0.0.1v
 character,trait-104,성급함,0.0.1v
@@ -179,10 +185,12 @@ character,condition-age-cardiac-degeneration,심장 기능 퇴행,0.0.1v
 character,ambition-map-depths,심층의 끝,0.0.1v
 character,trait-106,싸움꾼,0.0.1v
 character,ambition-avenge-fallen,쓰러진 이의 이름,0.0.1v
+character,character-archetype-9010,아린,0.0.1v
 character,character-archetype-9005,아자라,0.0.1v
 character,ambition-raise-family,안전한 가족,0.0.1v
 character,heritable-stable-gestation,안정 임신,0.0.1v
 character,trait-202,안정된 발놀림,0.0.1v
+character,acquired-trait-module-night-vigil,야간 경계,0.0.1v
 character,trait-228,야간 체질,0.0.1v
 character,history-field-medic,야전 치료사,0.0.1v
 character,trait-239,양심 결여,0.0.1v
@@ -204,13 +212,16 @@ character,characterspecies-10,원정자,0.0.1v
 character,trait-218,원한을 품음,0.0.1v
 character,heritable-flexible-joints,유연 관절,0.0.1v
 character,trait-206,육중한 체격,0.0.1v
+character,acquired-trait-module-ritual-attunement,의례적 공명,0.0.1v
 character,proficiency-medicine,의료,0.0.1v
 character,trait-505,의료 서툼,0.0.1v
 character,trait-405,의료 소질,0.0.1v
 character,trait-213,의식 단식가,0.0.1v
 character,background-ritual-test-subject,의식 실험 생존자,0.0.1v
+character,characterspecies-11,인간,0.0.1v
 character,trait-412,인내심,0.0.1v
 character,character-archetype-1101,일반 직원,0.0.1v
+character,acquired-trait-module-work-rhythm,일의 리듬,0.0.1v
 character,trait-221,자극 추구자,0.0.1v
 character,career-position-foreman,작업반장,0.0.1v
 character,condition-age-organ-fibrosis,장기 섬유화,0.0.1v
@@ -218,6 +229,7 @@ character,heritable-regrowing-tissue,재생 조직,0.0.1v
 character,culture-demon-contract,재의 계약 문화,0.0.1v
 character,festival-ash-oath,재의 맹세일,0.0.1v
 character,heritable-cold-blood-adaptation,저온 대사 적응,0.0.1v
+character,acquired-trait-module-battle-temper,전장의 담력,0.0.1v
 character,trait-515,전투 소극적,0.0.1v
 character,trait-102,절약가,0.0.1v
 character,history-scout,정찰수,0.0.1v
@@ -265,6 +277,7 @@ character,festival-blood-lantern,혈향 등불제,0.0.1v
 character,heritable-expanded-lung,확장 폐낭,0.0.1v
 character,trait-304,황금 수확,0.0.1v
 character,trait-227,회수 전문가,0.0.1v
+character,acquired-trait-module-steady-hands,흔들림 없는 손,0.0.1v
 combat,apparel-23004,가슴 감개,0.0.1v
 combat,equipment-item-armor-leather,가죽 갑옷,0.0.1v
 combat,equipment-item-armor-leather-cap,가죽 모자,0.0.1v
@@ -422,6 +435,7 @@ event,life-event-shift-saved,교대를 구한 손,0.0.1v
 event,seasonal-winter-hungry-pack,굶주린 무리,0.0.1v
 event,practice-adventurer-return-table,귀환자의 식탁,0.0.1v
 event,faction-arc-myconid,균사정원,0.0.1v
+event,faction-contract-myconid-winter-fuel-demand,균사정원 겨울 연료 요청,0.0.1v
 event,faction-contract-myconid-crisis,균사정원 위기 대응 계약,0.0.1v
 event,faction-contract-myconid-strategic,균사정원 장기 전략 계약,0.0.1v
 event,faction-contract-myconid-supply,균사정원 정기 물자 계약,0.0.1v
@@ -430,6 +444,7 @@ event,service-incident-forbiddenmeal,금기 음식 제공,0.0.1v
 event,faction-chapter-golem-2,기억 누락 보고,0.0.1v
 event,practice-golem-memory-plaque,기억판 안치,0.0.1v
 event,faction-arc-kobold,깊은톱니 굴,0.0.1v
+event,faction-contract-kobold-winter-fuel-demand,깊은톱니 굴 겨울 연료 요청,0.0.1v
 event,faction-contract-kobold-crisis,깊은톱니 굴 위기 대응 계약,0.0.1v
 event,faction-contract-kobold-strategic,깊은톱니 굴 장기 전략 계약,0.0.1v
 event,faction-contract-kobold-supply,깊은톱니 굴 정기 물자 계약,0.0.1v
@@ -454,6 +469,7 @@ event,faction-chapter-golem-3,도구씨족의 설계권,0.0.1v
 event,faction-chapter-kobold-2,도제의 이름 없는 설계,0.0.1v
 event,life-event-apprentice-mistake,도제의 큰 실수,0.0.1v
 event,faction-arc-golem,돌맥 주조소,0.0.1v
+event,faction-contract-golem-winter-fuel-demand,돌맥 주조소 겨울 연료 요청,0.0.1v
 event,faction-contract-golem-crisis,돌맥 주조소 위기 대응 계약,0.0.1v
 event,faction-contract-golem-strategic,돌맥 주조소 장기 전략 계약,0.0.1v
 event,faction-contract-golem-supply,돌맥 주조소 정기 물자 계약,0.0.1v
@@ -461,7 +477,6 @@ event,faction-chapter-demon-3,돌맥 주조소의 담보,0.0.1v
 event,seasonal-winter-frozen-pipes,동결 배관,0.0.1v
 event,seasonal-winter-cave-flu-wave,동굴 독감 유행,0.0.1v
 event,practice-vampire-consent-cup,동의의 잔,0.0.1v
-event,seasonal-spring-nesting-season,둥지철,0.0.1v
 event,seasonal-spring-seed-exchange,떠돌이 종자상,0.0.1v
 event,seasonal-summer-mana-lightning,마나 번개,0.0.1v
 event,seasonal-summer-dry-well,마르는 수원,0.0.1v
@@ -487,11 +502,11 @@ event,ending-sealed-paradise,봉인된 낙원,0.0.1v
 event,seasonal-summer-wounded-mercenaries,부상 용병대,0.0.1v
 event,faction-chapter-demon-5,불타지 않는 조항,0.0.1v
 event,faction-arc-beastkin,붉은발톱 교역소,0.0.1v
+event,faction-contract-beastkin-winter-fuel-demand,붉은발톱 교역소 겨울 연료 요청,0.0.1v
 event,faction-contract-beastkin-crisis,붉은발톱 교역소 위기 대응 계약,0.0.1v
 event,faction-contract-beastkin-strategic,붉은발톱 교역소 장기 전략 계약,0.0.1v
 event,faction-contract-beastkin-supply,붉은발톱 교역소 정기 물자 계약,0.0.1v
 event,faction-chapter-beastkin-2,비어 가는 사냥터,0.0.1v
-event,guest-request-monster-circus,비전 생물 시연,0.0.1v
 event,ending-arcane-ascension,비전 승천,0.0.1v
 event,seasonal-autumn-spoiled-silage,사일리지 발열,0.0.1v
 event,guest-request-bodyguard-kit,사절 호위 장비,0.0.1v
@@ -533,6 +548,7 @@ event,life-event-first-forbidden-door,잠긴 문 너머,0.0.1v
 event,faction-chapter-demon-6,재 위의 새 인장,0.0.1v
 event,faction-chapter-beastkin-3,재의 계약 사냥꾼,0.0.1v
 event,faction-arc-demon,잿빛 계약정,0.0.1v
+event,faction-contract-demon-winter-fuel-demand,잿빛 계약정 겨울 연료 요청,0.0.1v
 event,faction-contract-demon-crisis,잿빛 계약정 위기 대응 계약,0.0.1v
 event,faction-contract-demon-strategic,잿빛 계약정 장기 전략 계약,0.0.1v
 event,faction-contract-demon-supply,잿빛 계약정 정기 물자 계약,0.0.1v
@@ -561,6 +577,7 @@ event,faction-chapter-harpy-3,포자구름의 하늘길,0.0.1v
 event,seasonal-spring-spore-rain,포자비,0.0.1v
 event,seasonal-summer-heat-grid,폭염 전력부하,0.0.1v
 event,faction-arc-harpy,폭풍둥지,0.0.1v
+event,faction-contract-harpy-winter-fuel-demand,폭풍둥지 겨울 연료 요청,0.0.1v
 event,faction-chapter-kobold-3,폭풍둥지 운반 특허,0.0.1v
 event,faction-contract-harpy-crisis,폭풍둥지 위기 대응 계약,0.0.1v
 event,faction-contract-harpy-strategic,폭풍둥지 장기 전략 계약,0.0.1v
@@ -569,6 +586,7 @@ event,faction-chapter-harpy-5,폭풍여왕의 거짓 노래,0.0.1v
 event,faction-chapter-beastkin-1,피 묻은 사냥깃,0.0.1v
 event,life-event-position-rivalry,"한 자리, 두 후보",0.0.1v
 event,faction-chapter-kobold-1,한 톱니 모자란 상자,0.0.1v
+event,seasonal-spring-drift-cargo,해빙 표류 화물,0.0.1v
 event,seasonal-spring-thaw-flood,해빙수 범람,0.0.1v
 event,seasonal-summer-vermin-bloom,해충 대발생,0.0.1v
 event,practice-golem-core-polish,핵 광택일,0.0.1v
@@ -875,6 +893,7 @@ facility,building-8805,의식 화로,0.0.1v
 facility,building-1039,의식초점석,0.0.1v
 facility,recipe-arcane-ritual-2,의식초점석 조율,0.0.1v
 facility,building-1022,이층침대,0.0.1v
+facility,building-9829,인공태양,0.0.1v
 facility,building-runtime-exterior-zone-0-0,입구,0.0.1v
 facility,building-runtime-exterior-zone-0-1,입구,0.0.1v
 facility,building-runtime-exterior-zone-0-3,입구,0.0.1v
@@ -967,6 +986,7 @@ facility,building-8900,탄도 시험장,0.0.1v
 facility,building-8841,탄약 압착기,0.0.1v
 facility,building-1802,탄약·촉매 보급고,0.0.1v
 facility,building-9307,탈의 칸막이,0.0.1v
+facility,building-9828,태양등,0.0.1v
 facility,building-8852,토양 검사대,0.0.1v
 facility,building-1052,통더미,0.0.1v
 facility,building-9804,통합 기반 덕트,0.0.1v
@@ -1002,21 +1022,14 @@ facility,building-1040,훈련허수아비,0.0.1v
 facility,building-1088,훈연대,0.0.1v
 facility,building-1023,휴식용소파,0.0.1v
 facility,building-8901,흑강 주조 보조로,0.0.1v
-item,facility-kit-35,1성 경비실 설치 키트,0.0.1v
 item,facility-kit-34,1성 냉기 분사구 설치 키트,0.0.1v
 item,facility-kit-31,1성 독 웅덩이 설치 키트,0.0.1v
 item,facility-kit-33,1성 번개 기둥 설치 키트,0.0.1v
 item,facility-kit-30,1성 산탄 가시 함정 설치 키트,0.0.1v
 item,facility-kit-32,1성 화염 분사구 설치 키트,0.0.1v
 item,facility-kit-53,2성 경보 코일 설치 키트,0.0.1v
-item,facility-kit-51,2성 고급 고기 식당 설치 키트,0.0.1v
 item,facility-kit-52,2성 맹독 가시 함정 설치 키트,0.0.1v
-item,facility-kit-54,2성 병영 설치 키트,0.0.1v
-item,facility-kit-50,2성 전투 식당 설치 키트,0.0.1v
-item,facility-kit-56,3성 귀족의 식당 설치 키트,0.0.1v
 item,facility-kit-57,3성 부식 냉각 함정 설치 키트,0.0.1v
-item,facility-kit-55,3성 전장의 식당 설치 키트,0.0.1v
-item,facility-kit-59,3성 전투 병영 설치 키트,0.0.1v
 item,facility-kit-58,3성 폭뢰 분사구 설치 키트,0.0.1v
 item,component-price-board,가격표 게시판,0.0.1v
 item,facility-kit-8807,가격표 게시판 설치 키트,0.0.1v
@@ -1066,12 +1079,12 @@ item,facility-kit-8849,계절력 기록대 설치 키트,0.0.1v
 item,book-seasonal-almanac,계절력 책자,0.0.1v
 item,facility-kit-8846,계측 작업대 설치 키트,0.0.1v
 item,medicine-advanced,고급 약품,0.0.1v
-item,facility-kit-11,고기 식당 설치 키트,0.0.1v
 item,food-meat-pie,고기 파이,0.0.1v
 item,facility-kit-1010,고기걸이 설치 키트,0.0.1v
 item,food-roasted-meat,고기구이,0.0.1v
 item,facility-kit-1001,고기그릴 설치 키트,0.0.1v
 item,facility-kit-9852,고속 컨베이어 설치 키트,0.0.1v
+item,surgery-prosthetic-torso,골격 보강 몸통,0.0.1v
 item,apparel-golem-functional-lining,골렘 기능성 내피,0.0.1v
 item,component-golem-core-case,골렘 핵 케이스,0.0.1v
 item,facility-kit-1209,공개 형벌 장치 설치 키트,0.0.1v
@@ -1148,6 +1161,7 @@ item,relic-faction-myconid-2,균맥 절단칼,0.0.1v
 item,medicine-mycelial-culture-pack,균사 배양 팩,0.0.1v
 item,supply-mushroom-substrate,균사 재배 배지,0.0.1v
 item,facility-kit-8813,균사 재배 선반 설치 키트,0.0.1v
+item,surgery-prosthetic-hypha-core,균핵 보철,0.0.1v
 item,resource-shade-fiber,그늘섬유,0.0.1v
 item,seed-lot-shade-fiber,그늘섬유 종자,0.0.1v
 item,yarn-shade-cloth,그늘천 원사,0.0.1v
@@ -1211,6 +1225,7 @@ item,facility-kit-9202,대협약 회당 설치 키트,0.0.1v
 item,equipment-item-shield-tower,대형 방패,0.0.1v
 item,facility-kit-1050,대형보관선반 설치 키트,0.0.1v
 item,facility-kit-1005,대형연회식탁 설치 키트,0.0.1v
+item,surgery-prosthetic-heat-sac-variant-demon-heat-sac,데몬 열낭 보강기,0.0.1v
 item,facility-kit-1620,도가니 선반 설치 키트,0.0.1v
 item,facility-kit-8861,도제 작업대 설치 키트,0.0.1v
 item,relic-faction-kobold-3,도제명판 원본,0.0.1v
@@ -1283,7 +1298,6 @@ item,material-mana-alloy,마나 합금,0.0.1v
 item,wild-carcass-mana-wisp,마나도깨비불 사체,0.0.1v
 item,medicine-vaccine-mana-pox,마나두창 백신,0.0.1v
 item,sample-antigen-mana-pox,마나두창 항원 표본,0.0.1v
-item,facility-kit-17,마력 저장소 설치 키트,0.0.1v
 item,facility-kit-1056,마력보관함 설치 키트,0.0.1v
 item,facility-kit-1036,마력수정선반 설치 키트,0.0.1v
 item,facility-kit-1037,마력저장조 설치 키트,0.0.1v
@@ -1292,6 +1306,7 @@ item,medicine-anesthetic,마취제,0.0.1v
 item,medicine-mana-core-restraint,마핵 구속구,0.0.1v
 item,medical-mana-core-case,마핵 케이스,0.0.1v
 item,facility-kit-8866,만성 관리실 설치 키트,0.0.1v
+item,item-memory-erasure-seal,망각의 인장,0.0.1v
 item,apparel-cloak,망토,0.0.1v
 item,material-malt,맥아,0.0.1v
 item,food-malt-porridge,맥아죽,0.0.1v
@@ -1328,8 +1343,6 @@ item,apparel-weapon-vigil-cloak,무기 철야 망토,0.0.1v
 item,facility-kit-1016,무기거치대 설치 키트,0.0.1v
 item,facility-kit-1055,무기로커 설치 키트,0.0.1v
 item,facility-kit-1018,무기보관함 설치 키트,0.0.1v
-item,facility-kit-5,무기상점 설치 키트,0.0.1v
-item,facility-kit-13,무기점 설치 키트,0.0.1v
 item,facility-kit-1084,무두질대 설치 키트,0.0.1v
 item,relic-faction-beastkin-2,무리뼈 호각,0.0.1v
 item,relic-faction-demon-3,무효조항 두루마리,0.0.1v
@@ -1503,7 +1516,6 @@ item,material-chain-mesh,사슬 망,0.0.1v
 item,facility-kit-8838,사슬 조립틀 설치 키트,0.0.1v
 item,apparel-keeper-coat,사육사 외투,0.0.1v
 item,feed-silage,사일리지,0.0.1v
-item,facility-kit-3,사장실 설치 키트,0.0.1v
 item,apparel-envoy-coat,사절 외투,0.0.1v
 item,facility-kit-8859,산과실 설치 키트,0.0.1v
 item,evolution-catalyst-industry-1,산업 촉매 진행 1 · 1등급,0.0.1v
@@ -1590,7 +1602,6 @@ item,component-growth-frame,성장형 장비 골격,0.0.1v
 item,facility-kit-1621,세공 도구함 설치 키트,0.0.1v
 item,facility-kit-1068,세력깃발 설치 키트,0.0.1v
 item,facility-kit-1059,세면대 설치 키트,0.0.1v
-item,facility-kit-61,세면장 설치 키트,0.0.1v
 item,facility-kit-9504,세정대 설치 키트,0.0.1v
 item,material-washed-vegetable,세척 채소,0.0.1v
 item,facility-kit-1605,세척·병입대 설치 키트,0.0.1v
@@ -1614,6 +1625,8 @@ item,facility-kit-1602,수동 발효조 설치 키트,0.0.1v
 item,facility-kit-9311,수동 방적기 설치 키트,0.0.1v
 item,facility-kit-9308,수선 접수대 설치 키트,0.0.1v
 item,craft-resin-balm,수액 연고,0.0.1v
+item,surgery-prosthetic-leg-left-variant-beastkin-sprint-joint,수인 질주 관절,0.0.1v
+item,resource-crystal-beetle-carapace,수정딱정벌레 갑각,0.0.1v
 item,wild-carcass-crystal-beetle,수정딱정벌레 사체,0.0.1v
 item,component-waterwheel-drive-shaft,수차 구동축,0.0.1v
 item,facility-kit-9811,수차 발전기 설치 키트,0.0.1v
@@ -1699,7 +1712,6 @@ item,material-young-wine,어린 포도주,0.0.1v
 item,equipment-item-weapon-estoc,에스터크,0.0.1v
 item,facility-kit-2,엘레베이터 설치 키트,0.0.1v
 item,facility-kit-8877,역학 상황판 설치 키트,0.0.1v
-item,facility-kit-16,연구실 설치 키트,0.0.1v
 item,facility-kit-1032,연구용책장 설치 키트,0.0.1v
 item,facility-kit-1030,연구책상 설치 키트,0.0.1v
 item,material-alchemical-solvent,연금 용매,0.0.1v
@@ -1731,14 +1743,18 @@ item,facility-kit-9818,오수 탱크 설치 키트,0.0.1v
 item,surgery-contaminated-tissue,오염 조직,0.0.1v
 item,survival-tainted-food,오염된 음식,0.0.1v
 item,facility-kit-1707,오크 전용 좌석 설치 키트,0.0.1v
+item,surgery-prosthetic-heart-variant-orc-combat-heart,오크 전투 심장,0.0.1v
 item,facility-kit-1603,온도 제어 발효조 설치 키트,0.0.1v
 item,supply-greenhouse-nutrient,온실 영양액,0.0.1v
 item,facility-kit-1025,옷장 설치 키트,0.0.1v
 item,facility-kit-9503,외과 수술대 설치 키트,0.0.1v
 item,apparel-surgical-apron,외과 앞치마,0.0.1v
+item,surgery-prosthetic-wing-left,왼날개 보철,0.0.1v
 item,surgery-prosthetic-leg-left,왼다리 보철,0.0.1v
+item,surgery-prosthetic-hand-left,왼손 정밀 보철,0.0.1v
 item,surgery-prosthetic-eye-left,왼쪽 눈 보철,0.0.1v
 item,surgery-prosthetic-kidney-left,왼쪽 신장 보철,0.0.1v
+item,surgery-prosthetic-night-eye-left,왼쪽 야간안 보철,0.0.1v
 item,surgery-prosthetic-lung-left,왼쪽 폐 보철,0.0.1v
 item,surgery-prosthetic-arm-left,왼팔 보철,0.0.1v
 item,research-blueprint-6102,요새화 설계도,0.0.1v
@@ -1774,8 +1790,10 @@ item,facility-kit-8805,의식 화로 설치 키트,0.0.1v
 item,facility-kit-1039,의식초점석 설치 키트,0.0.1v
 item,wild-carcass-moss-boar,이끼멧돼지 사체,0.0.1v
 item,facility-kit-1022,이층침대 설치 키트,0.0.1v
+item,surgery-prosthetic-brain-variant-human-neural-assist,인간 신경 보조기,0.0.1v
 item,dark-bone,인간형 뼈,0.0.1v
 item,dark-humanoid-corpse,인간형 사체,0.0.1v
+item,facility-kit-9829,인공태양 설치 키트,0.0.1v
 item,supply-certified-seed-kit,인증 품종 종자 꾸러미,0.0.1v
 item,material-common-wool,일반 모직,0.0.1v
 item,yarn-common-wool,일반 모직 원사,0.0.1v
@@ -1796,7 +1814,6 @@ item,facility-kit-1014,잠금진열장 설치 키트,0.0.1v
 item,apparel-sleep-top,잠옷 상의,0.0.1v
 item,apparel-sleep-bottom,잠옷 하의,0.0.1v
 item,facility-kit-1015,잡화상자 설치 키트,0.0.1v
-item,facility-kit-12,잡화점 설치 키트,0.0.1v
 item,facility-kit-1013,잡화진열선반 설치 키트,0.0.1v
 item,apparel-gloves,장갑,0.0.1v
 item,equipment-item-weapon-longsword,장검,0.0.1v
@@ -1832,7 +1849,6 @@ item,resource-ember-root,잿불뿌리,0.0.1v
 item,food-root-stew,잿불뿌리 스튜,0.0.1v
 item,seed-lot-ember-root,잿불뿌리 종자,0.0.1v
 item,wild-carcass-ash-goat,잿빛 산양 사체,0.0.1v
-item,facility-kit-10,저가 음식점 설치 키트,0.0.1v
 item,equipment-item-weapon-sniper-arquebus,저격 아쿼버스,0.0.1v
 item,material-low-fuel,저급 연료,0.0.1v
 item,medicine-vaccine-red-fever,적열병 백신,0.0.1v
@@ -1920,7 +1936,6 @@ item,facility-kit-1206,진행자 단상 설치 키트,0.0.1v
 item,wild-carcass-mire-leech,진흙거머리 사체,0.0.1v
 item,supply-nitrate-fertilizer,질산 비료,0.0.1v
 item,equipment-item-weapon-spear,창,0.0.1v
-item,facility-kit-18,창고 설치 키트,0.0.1v
 item,food-vegetable-pie,채소 파이,0.0.1v
 item,facility-kit-8801,채집 바구니 작업대 설치 키트,0.0.1v
 item,material-treated-lumber,처리 목재,0.0.1v
@@ -1966,12 +1981,14 @@ item,facility-kit-9845,컨베이어 출력기 설치 키트,0.0.1v
 item,facility-kit-9848,컨베이어 필터 설치 키트,0.0.1v
 item,facility-kit-9843,컨베이어 하향 설치 키트,0.0.1v
 item,facility-kit-9847,컨베이어 합류기 설치 키트,0.0.1v
+item,surgery-prosthetic-balance-tail-variant-kobold-tail-balance,코볼트 평형 꼬리 보강기,0.0.1v
 item,facility-kit-8900,탄도 시험장 설치 키트,0.0.1v
 item,facility-kit-8841,탄약 압착기 설치 키트,0.0.1v
 item,facility-kit-1802,탄약·촉매 보급고 설치 키트,0.0.1v
 item,material-cartridge-paper,탄약지,0.0.1v
 item,facility-kit-9307,탈의 칸막이 설치 키트,0.0.1v
 item,tool-prospecting-kit,탐광 키트,0.0.1v
+item,facility-kit-9828,태양등 설치 키트,0.0.1v
 item,resource-wool,털,0.0.1v
 item,facility-kit-8852,토양 검사대 설치 키트,0.0.1v
 item,facility-kit-1052,통더미 설치 키트,0.0.1v
@@ -1986,7 +2003,7 @@ item,equipment-item-shield-pavise,파비스,0.0.1v
 item,material-plate-blank,판금 소재판,0.0.1v
 item,facility-kit-1012,판매카운터 설치 키트,0.0.1v
 item,equipment-item-weapon-falchion,팔시온,0.0.1v
-item,facility-kit-6,패스트푸드점 설치 키트,0.0.1v
+item,surgery-prosthetic-balance-tail,평형 꼬리 보철,0.0.1v
 item,facility-kit-1097,폐기 소각로 설치 키트,0.0.1v
 item,equipment-item-armor-closed-plate-helm,폐쇄형 판금 투구,0.0.1v
 item,food-grape-syrup,포도 시럽,0.0.1v
@@ -2048,7 +2065,6 @@ item,equipment-item-weapon-matchlock-pistol,화승 권총,0.0.1v
 item,equipment-item-weapon-matchlock-long-gun,화승 장총,0.0.1v
 item,facility-kit-8840,화약 분쇄소 설치 키트,0.0.1v
 item,equipment-item-armor-powder-cuirass,화약수 흉갑,0.0.1v
-item,facility-kit-60,화장실 설치 키트,0.0.1v
 item,facility-kit-1058,화장실칸막이 설치 키트,0.0.1v
 item,drug-hallucinogenic-distillate,환각균 증류액,0.0.1v
 item,facility-kit-1503,환기덕트 설치 키트,0.0.1v
@@ -2064,10 +2080,8 @@ item,facility-kit-9814,회로 차단기 설치 키트,0.0.1v
 item,facility-kit-8869,회춘 수혈실 설치 키트,0.0.1v
 item,medical-rejuvenation-serum,회춘 혈청,0.0.1v
 item,apparel-hooded-robe,후드 로브,0.0.1v
-item,facility-kit-15,훈련장 설치 키트,0.0.1v
 item,facility-kit-1040,훈련허수아비 설치 키트,0.0.1v
 item,facility-kit-1088,훈연대 설치 키트,0.0.1v
-item,facility-kit-14,휴식방 설치 키트,0.0.1v
 item,facility-kit-1023,휴식용소파 설치 키트,0.0.1v
 item,material-blacksteel-ingot,흑강,0.0.1v
 item,equipment-item-armor-blacksteel-carapace,흑강 갑각,0.0.1v
@@ -2249,6 +2263,7 @@ recipe,recipe-advanced-medicine,고급 약품,0.0.1v
 recipe,recipe-salted-meat,고기 염지,0.0.1v
 recipe,recipe-meat-pie,고기 파이 굽기,0.0.1v
 recipe,recipe-roasted-meat,고기구이,0.0.1v
+recipe,recipe-surgery-reinforced-torso,골격 보강 몸통 조립,0.0.1v
 recipe,recipe-v22-apparel-golem-functional-lining,골렘 기능성 내피 재단,0.0.1v
 recipe,recipe-component-golem-core-case,골렘 핵 케이스,0.0.1v
 recipe,recipe-component-siege-counterweight,공성 균형추 조립품,0.0.1v
@@ -2260,6 +2275,7 @@ recipe,recipe-material-granulated-powder,과립 화약,0.0.1v
 recipe,recipe-v22-apparel-miner-workwear,광부 작업복 재단,0.0.1v
 recipe,recipe-medical-cross-lineage-medium,교차계통 안정화 배지,0.0.1v
 recipe,recipe-supply-mushroom-substrate,균사 재배 배지,0.0.1v
+recipe,recipe-surgery-hypha-core,균핵 보철 조립,0.0.1v
 recipe,recipe-cloth,그늘섬유 직조,0.0.1v
 recipe,recipe-v22-spin-powered-shade-cloth,그늘천 동력 방적,0.0.1v
 recipe,recipe-v22-spin-shade-cloth,그늘천 방적,0.0.1v
@@ -2419,6 +2435,7 @@ recipe,recipe-stuffed-mushroom,속 채운 버섯,0.0.1v
 recipe,recipe-v22-apparel-undershirt,속셔츠 재단,0.0.1v
 recipe,recipe-fang-poison,송곳니 독액,0.0.1v
 recipe,recipe-resin-balm,수액 연고,0.0.1v
+recipe,recipe-surgery-sprint-joint,수인 질주 관절 조립,0.0.1v
 recipe,recipe-component-waterwheel-drive-shaft,수차 구동축,0.0.1v
 recipe,recipe-charcoal,숯 굽기,0.0.1v
 recipe,recipe-v22-spin-powered-mire-canvas,습지 캔버스 동력 방적,0.0.1v
@@ -2431,6 +2448,7 @@ recipe,recipe-incinerate-plant,식물성 부패물 소각,0.0.1v
 recipe,recipe-supply-botanical-pesticide,식물성 살충제,0.0.1v
 recipe,recipe-compost-plant,식물성 퇴비,0.0.1v
 recipe,source-spoilage-plant,식물식 부패,0.0.1v
+recipe,recipe-surgery-brain-assist,신경 보조기 조립,0.0.1v
 recipe,recipe-dog-food-fresh,신선 개밥,0.0.1v
 recipe,recipe-fresh-curd,신선 응유식,0.0.1v
 recipe,recipe-ammo-signal-flare,신호탄,0.0.1v
@@ -2450,10 +2468,14 @@ recipe,recipe-solvent,연금 용매,0.0.1v
 recipe,recipe-v22-apparel-smoke-protection-hood,연기 방호 두건 재단,0.0.1v
 recipe,recipe-ammo-smoke-cartridge,연막 탄약,0.0.1v
 recipe,recipe-tool-banquet-cart,연회 운반 수레,0.0.1v
+recipe,recipe-surgery-heat-sac,열낭 보철 조립,0.0.1v
 recipe,recipe-salted-meat-stew,염장육 스튜,0.0.1v
 recipe,recipe-v22-apparel-ceremonial-dress,예복 드레스 재단,0.0.1v
 recipe,recipe-supply-greenhouse-nutrient,온실 영양액,0.0.1v
 recipe,recipe-v22-apparel-surgical-apron,외과 앞치마 재단,0.0.1v
+recipe,recipe-surgery-wing,왼날개 보철 조립,0.0.1v
+recipe,recipe-surgery-precision-hand,왼손 정밀 보철 조립,0.0.1v
+recipe,recipe-surgery-night-eye,왼쪽 야간안 보철 조립,0.0.1v
 recipe,recipe-material-spring-steel,용수철강,0.0.1v
 recipe,recipe-v22-apparel-raincoat,우비 재단,0.0.1v
 recipe,recipe-tool-hauling-harness,운반 멜빵,0.0.1v
@@ -2462,6 +2484,7 @@ recipe,recipe-expedition-ration-pack,원정 배급 꾸러미,0.0.1v
 recipe,recipe-loot-appraisal,원정 전리품 감정,0.0.1v
 recipe,recipe-lavish-vegan,월야 비건 만찬,0.0.1v
 recipe,recipe-moonflower-tea,월화차,0.0.1v
+recipe,recipe-surgery-pseudopods,위족 보철 조립,0.0.1v
 recipe,recipe-jerky,육포 훈연,0.0.1v
 recipe,recipe-curd,응유 만들기,0.0.1v
 recipe,recipe-v22-apparel-ritual-robe,의식 로브 재단,0.0.1v
@@ -2494,6 +2517,7 @@ recipe,recipe-medicine-vaccine-red-fever,적열병 백신,0.0.1v
 recipe,recipe-material-laminated-lumber,적층 목재,0.0.1v
 recipe,recipe-starch,전분 추출,0.0.1v
 recipe,recipe-medical-whole-body-regeneration-medium,전신 재생 배지,0.0.1v
+recipe,recipe-surgery-heart-augmentation,전투 심장 보철 조립,0.0.1v
 recipe,recipe-component-insulated-wiring,절연 배선 묶음,0.0.1v
 recipe,recipe-textile-insulating-cloth,절연 직물,0.0.1v
 recipe,recipe-medical-slime-coagulation-frame,점액 응고틀,0.0.1v
@@ -2535,12 +2559,14 @@ recipe,recipe-textile-quilted-liner,층상 충전재,0.0.1v
 recipe,recipe-v22-apparel-skirt,치마 재단,0.0.1v
 recipe,recipe-cheese,치즈 숙성,0.0.1v
 recipe,recipe-cheese-mushroom,치즈버섯찜,0.0.1v
+recipe,recipe-surgery-tail-balance-augmentation,코볼트 평형 꼬리 보강기 조립,0.0.1v
 recipe,recipe-material-cartridge-paper,탄약지,0.0.1v
 recipe,recipe-tool-prospecting-kit,탐광 키트,0.0.1v
 recipe,recipe-bedding-animal,털 깔짚,0.0.1v
 recipe,recipe-v22-apparel-tunic,튜닉 재단,0.0.1v
 recipe,recipe-medical-trauma-care-kit,트라우마 치료 꾸러미,0.0.1v
 recipe,recipe-material-plate-blank,판금 소재판,0.0.1v
+recipe,recipe-surgery-balance-tail,평형 꼬리 보철 조립,0.0.1v
 recipe,recipe-grape-syrup,포도 시럽,0.0.1v
 recipe,recipe-tool-prisoner-work-kit,포로 작업 도구,0.0.1v
 recipe,recipe-v22-apparel-spore-protection-hood,포자 방호 두건 재단,0.0.1v

@@ -14,12 +14,74 @@ public static class SurgeryContentAssetBuilder
     private const string ProcedureRoot = "Assets/Resources/SO/Medical/Procedures";
     private const string ConditionLexiconRoot = "Assets/Resources/SO/Medical/ConditionLexicons";
     private const string RecipeRoot = "Assets/Resources/SO/Economy/Recipes";
+    private const string ItemDefinitionRoot =
+        "Assets/Resources/SO/Items/Definitions";
+    private const string GameplayEffectRoot =
+        "Assets/Resources/SO/V26/Effects/Definitions";
     private const string StandardMedicineItemId = "medicine:standard";
     private const string BloodItemId = "resource:blood";
     private const string LumberItemId = "material:lumber";
     private const string ManaCrystalItemId = "resource:mana-crystal";
     private const string ProstheticAssemblyAssetPath =
         "Assets/Resources/SO/Building/Medical/M06_보철조립대.asset";
+    private const string ItemDefinitionCatalogAssetPath =
+        "Assets/Resources/SO/Content/ItemDefinitionCatalog.asset";
+    private const string DomainContentCatalogAssetPath =
+        "Assets/Resources/SO/Content/GameDomainContentCatalog.asset";
+    private static readonly string[] Wim023GeneratedPartIds =
+    {
+        "surgery:prosthetic:hypha-core",
+        "surgery:prosthetic:wing:left",
+        "surgery:prosthetic:balance-tail",
+        "surgery:prosthetic:torso",
+        "surgery:prosthetic:night-eye:left",
+        "surgery:prosthetic:heart/variant/orc-combat-heart",
+        "surgery:prosthetic:leg:left/variant/beastkin-sprint-joint",
+        "surgery:prosthetic:heat-sac/variant/demon-heat-sac",
+        "surgery:prosthetic:balance-tail/variant/kobold-tail-balance",
+        "surgery:prosthetic:brain/variant/human-neural-assist",
+        "surgery:prosthetic:hand:left"
+    };
+    private static readonly string[] Wim023RecipeIds =
+    {
+        "recipe:surgery:prosthetic-arm",
+        "recipe:surgery:prosthetic-leg",
+        "recipe:surgery:artificial-eye",
+        "recipe:surgery:pseudopods",
+        "recipe:surgery:hypha-core",
+        "recipe:surgery:wing",
+        "recipe:surgery:balance-tail",
+        "recipe:surgery:reinforced-torso",
+        "recipe:surgery:heart-augmentation",
+        "recipe:surgery:night-eye",
+        "recipe:surgery:heat-sac",
+        "recipe:surgery:precision-hand",
+        "recipe:surgery:brain-assist",
+        "recipe:surgery:sprint-joint",
+        "recipe:surgery:tail-balance-augmentation"
+    };
+    // The three pre-existing limb/eye recipes retain their authored profile;
+    // these are the twelve WIM-023 additions that must match it.
+    private static readonly string[] Wim023GeneratedRecipeIds =
+    {
+        "recipe:surgery:pseudopods",
+        "recipe:surgery:hypha-core",
+        "recipe:surgery:wing",
+        "recipe:surgery:balance-tail",
+        "recipe:surgery:reinforced-torso",
+        "recipe:surgery:heart-augmentation",
+        "recipe:surgery:night-eye",
+        "recipe:surgery:heat-sac",
+        "recipe:surgery:precision-hand",
+        "recipe:surgery:brain-assist",
+        "recipe:surgery:sprint-joint",
+        "recipe:surgery:tail-balance-augmentation"
+    };
+    private static readonly string[] Wim023GeneratedEffectFileNames =
+    {
+        "effect_character_maximum-health_multiply.asset",
+        "effect_combat_evasion-chance_add-flat.asset"
+    };
     internal const long OrganStorageMassCapacityGrams = 12_500L;
 
     private sealed class FacilitySpec
@@ -47,8 +109,10 @@ public static class SurgeryContentAssetBuilder
         public string Name;
         public string Description;
         public SurgicalProcedureKind Kind;
+        public string TargetNodeId = string.Empty;
         public string ResearchId;
         public SurgeryFacilityTag FacilityTags;
+        public int PrimaryFacilityDefinitionId;
         public float Work;
         public float Difficulty;
         public float Infection;
@@ -70,6 +134,8 @@ public static class SurgeryContentAssetBuilder
     public static void RebuildAll()
     {
         EnsureAssets();
+        GameContentCatalogAssetBuilder.ReindexItemDefinitions();
+        GameContentCatalogAssetBuilder.ReindexProductionRecipes();
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
 
@@ -88,13 +154,240 @@ public static class SurgeryContentAssetBuilder
         EnsureFolder(ProcedureRoot);
         EnsureFolder(ConditionLexiconRoot);
         EnsureFolder(RecipeRoot);
+        EnsureFolder(ItemDefinitionRoot);
 
         BuildFacilities();
         BuildAnatomyProfiles();
         BuildConditionLexicons();
         BuildProcedures();
+        BuildSpeciesSurgicalParts();
         BuildProstheticRecipes();
+        BuildAuthoredInstalledPartEffects();
         V23RecipeProcessClassAuthoring.NormalizeRecipeWorkUnder(RecipeRoot);
+    }
+
+    [MenuItem(
+        "DungeonStory/Content/WIM/Apply WIM-021-022 Medical Effects")]
+    public static void ApplyWim021022MedicalEffects()
+    {
+        const string sutureId = "procedure:emergency-suture";
+        const string transfusionId = "procedure:blood-transfusion";
+        EnsureFolder(ProcedureRoot);
+
+        ProcedureSpec[] specs = CreateProcedureSpecs()
+            .Where(spec => string.Equals(spec.Id, sutureId, StringComparison.Ordinal)
+                || string.Equals(
+                    spec.Id,
+                    transfusionId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        if (specs.Length != 2)
+        {
+            throw new InvalidOperationException(
+                "WIM-021-022 publication requires exactly two procedure specs.");
+        }
+
+        foreach (ProcedureSpec spec in specs)
+        {
+            BuildProcedure(spec);
+        }
+
+        string[] paths = specs
+            .Select(spec => $"{ProcedureRoot}/{Sanitize(spec.Id)}.asset")
+            .ToArray();
+        AssetDatabase.SaveAssets();
+        AssetDatabase.ForceReserializeAssets(
+            paths,
+            ForceReserializeAssetsOptions.ReserializeAssets);
+        AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+        ValidateWim021022MedicalEffects(paths);
+        Debug.Log(
+            "WIM-021-022 medical effects published: emergency suture and blood transfusion.");
+    }
+
+    private static void ValidateWim021022MedicalEffects(
+        IReadOnlyList<string> paths)
+    {
+        SurgicalProcedureSO[] procedures = paths
+            .Select(path =>
+                AssetDatabase.LoadAssetAtPath<SurgicalProcedureSO>(path))
+            .ToArray();
+        SurgicalProcedureSO suture = procedures.Single(procedure =>
+            procedure != null
+            && string.Equals(
+                procedure.ProcedureId,
+                "procedure:emergency-suture",
+                StringComparison.Ordinal));
+        SurgicalProcedureSO transfusion = procedures.Single(procedure =>
+            procedure != null
+            && string.Equals(
+                procedure.ProcedureId,
+                "procedure:blood-transfusion",
+                StringComparison.Ordinal));
+        HealSurgicalNodeEffect sutureHeal = suture.Effects
+            .OfType<HealSurgicalNodeEffect>()
+            .Single();
+        RecoverBloodLossEffect recovery = transfusion.Effects
+            .OfType<RecoverBloodLossEffect>()
+            .Single();
+        HealSurgicalNodeEffect transfusionHeal = transfusion.Effects
+            .OfType<HealSurgicalNodeEffect>()
+            .Single();
+        if (suture.Effects.Count != 2
+            || suture.Effects.OfType<StopSurgicalNodeBleedingEffect>().Count() != 1
+            || !Mathf.Approximately(sutureHeal.health, 8f)
+            || !Mathf.Approximately(sutureHeal.infectionReduction, 8f)
+            || transfusion.AllowsWildlife
+            || transfusion.Effects.Count != 2
+            || !Mathf.Approximately(transfusionHeal.health, 14f)
+            || !Mathf.Approximately(transfusionHeal.infectionReduction, 2f)
+            || !Mathf.Approximately(recovery.amount, 25f))
+        {
+            throw new InvalidOperationException(
+                "WIM-021-022 procedure publication validation failed.");
+        }
+    }
+
+    [MenuItem(
+        "DungeonStory/Content/WIM/Apply WIM-023 Procedure Semantics")]
+    public static void ApplyWim023ProcedureSemantics()
+    {
+        string[] targetPaths = GetWim023PublicationTargetPaths();
+        RejectDirtyWim023PublicationTargets(targetPaths);
+
+        EnsureFolder(AnatomyRoot);
+        EnsureFolder(ProcedureRoot);
+        EnsureFolder(RecipeRoot);
+        EnsureFolder(ItemDefinitionRoot);
+        EnsureFolder(GameplayEffectRoot);
+
+        BuildAnatomyAsset(AnatomyProfileDefaults.CreateAvian());
+        foreach (ProcedureSpec spec in CreateSpeciesProcedureSpecs()
+                     .Where(value => value.Family != MedicalProcedureFamily.Construct))
+        {
+            BuildProcedure(spec);
+        }
+        BuildSpeciesSurgicalParts();
+        BuildProstheticRecipes();
+        BuildAuthoredInstalledPartEffects();
+        V23RecipeProcessClassAuthoring.NormalizeRecipeWorkUnder(RecipeRoot);
+        GameContentCatalogAssetBuilder.ReindexItemDefinitions();
+        GameContentCatalogAssetBuilder.ReindexProductionRecipes();
+        AppendWim023GeneratedEffectsToDomainCatalog();
+
+        SaveWim023PublicationTargets(targetPaths);
+        AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+        ValidateBuiltContent();
+        Debug.Log(
+            "WIM-023 procedure semantics published: 24 classified procedures, "
+            + "15 installed-part procedures, 13 exact parts, 15 M06 recipes.");
+    }
+
+    private static string[] GetWim023PublicationTargetPaths()
+    {
+        AnatomyProfileDefinition avian = AnatomyProfileDefaults.CreateAvian();
+        return CreateSpeciesProcedureSpecs()
+            .Where(spec => spec.Family != MedicalProcedureFamily.Construct)
+            .Select(spec => $"{ProcedureRoot}/{Sanitize(spec.Id)}.asset")
+            .Concat(new[]
+            {
+                $"{AnatomyRoot}/{Sanitize(avian.ProfileId)}.asset",
+                ItemDefinitionCatalogAssetPath,
+                DomainContentCatalogAssetPath
+            })
+            .Concat(Wim023GeneratedPartIds.Select(
+                itemId => $"{ItemDefinitionRoot}/{Sanitize(itemId)}.asset"))
+            .Concat(Wim023RecipeIds.Select(GetRecipeAssetPath))
+            .Concat(Wim023GeneratedEffectFileNames.Select(
+                fileName => $"{GameplayEffectRoot}/{fileName}"))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    private static void RejectDirtyWim023PublicationTargets(
+        IEnumerable<string> targetPaths)
+    {
+        string[] dirtyPaths = (targetPaths ?? Array.Empty<string>())
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Where(path =>
+            {
+                UnityEngine.Object asset = AssetDatabase.LoadMainAssetAtPath(path);
+                return asset != null && EditorUtility.IsDirty(asset);
+            })
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToArray();
+        if (dirtyPaths.Length > 0)
+        {
+            throw new InvalidOperationException(
+                "WIM-023 publication refused to overwrite unsaved target assets:\n"
+                + string.Join("\n", dirtyPaths));
+        }
+    }
+
+    private static void SaveWim023PublicationTargets(
+        IEnumerable<string> targetPaths)
+    {
+        foreach (string path in (targetPaths ?? Array.Empty<string>())
+                     .Where(path => !string.IsNullOrWhiteSpace(path))
+                     .OrderBy(path => path, StringComparer.Ordinal))
+        {
+            UnityEngine.Object asset = AssetDatabase.LoadMainAssetAtPath(path);
+            if (asset != null)
+            {
+                AssetDatabase.SaveAssetIfDirty(asset);
+            }
+        }
+    }
+
+    private static void AppendWim023GeneratedEffectsToDomainCatalog()
+    {
+        GameDomainContentCatalogSO domainCatalog =
+            AssetDatabase.LoadAssetAtPath<GameDomainContentCatalogSO>(
+                DomainContentCatalogAssetPath)
+            ?? throw new InvalidOperationException(
+                "Required domain content catalog is missing at '"
+                + DomainContentCatalogAssetPath + "'.");
+        List<ScriptableObject> definitions = domainCatalog.Definitions.ToList();
+        bool changed = false;
+        foreach (string fileName in Wim023GeneratedEffectFileNames)
+        {
+            string effectPath = $"{GameplayEffectRoot}/{fileName}";
+            GameplayEffectDefinitionSO effect =
+                AssetDatabase.LoadAssetAtPath<GameplayEffectDefinitionSO>(effectPath)
+                ?? throw new InvalidOperationException(
+                    "WIM-023 domain catalog requires generated effect at '"
+                    + effectPath + "'.");
+            if (definitions.Contains(effect))
+            {
+                continue;
+            }
+
+            definitions.Add(effect);
+            changed = true;
+        }
+
+        if (changed)
+        {
+            domainCatalog.SetDefinitions(definitions);
+            EditorUtility.SetDirty(domainCatalog);
+        }
+
+        IReadOnlyList<string> errors = domainCatalog.ValidateCatalog();
+        if (errors.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "WIM-023 generated-effect domain catalog validation failed:\n"
+                + string.Join("\n", errors));
+        }
+    }
+
+    private static string GetRecipeAssetPath(string recipeId)
+    {
+        string fileName = (recipeId ?? string.Empty)
+            .Replace(':', '_')
+            .Replace('-', '_');
+        return $"{RecipeRoot}/{fileName}.asset";
     }
 
     [MenuItem(
@@ -272,6 +565,135 @@ public static class SurgeryContentAssetBuilder
         };
     }
 
+    private static void BuildSpeciesSurgicalParts()
+    {
+        EnsureSurgicalPart(
+            "surgery:prosthetic:hypha-core",
+            "균핵 보철",
+            "균사 구조와 접속하는 인공 균핵.",
+            180);
+        EnsureSurgicalPart(
+            "surgery:prosthetic:wing:left",
+            "왼날개 보철",
+            "조류형 왼날개의 비행·조작 구조를 대체하는 보철.",
+            260);
+        EnsureSurgicalPart(
+            "surgery:prosthetic:balance-tail",
+            "평형 꼬리 보철",
+            "꼬리 슬롯에 장착해 균형 기능을 대체하는 정밀 보철.",
+            240);
+        EnsureSurgicalPart(
+            "surgery:prosthetic:torso",
+            "골격 보강 몸통",
+            "몸통 슬롯에 장착하는 하중 분산 골격 보철.",
+            320);
+        EnsureSurgicalPart(
+            "surgery:prosthetic:night-eye:left",
+            "왼쪽 야간안 보철",
+            "뱀파이어 야간안 슬롯에 장착하는 인공 감각기.",
+            220);
+        EnsureSurgicalPart(
+            "surgery:prosthetic:heart/variant/orc-combat-heart",
+            "오크 전투 심장",
+            "오크 심장 슬롯에 장착하는 강화 펌프 보철.",
+            240);
+        EnsureSurgicalPart(
+            "surgery:prosthetic:leg:left/variant/beastkin-sprint-joint",
+            "수인 질주 관절",
+            "수인 왼다리 슬롯에 장착하는 질주용 관절 보철.",
+            381);
+        EnsureSurgicalPart(
+            "surgery:prosthetic:heat-sac/variant/demon-heat-sac",
+            "데몬 열낭 보강기",
+            "데몬 열낭 슬롯의 열 교환을 보조하는 인공 부품.",
+            240);
+        EnsureSurgicalPart(
+            "surgery:prosthetic:balance-tail/variant/kobold-tail-balance",
+            "코볼트 평형 꼬리 보강기",
+            "코볼트 꼬리 슬롯의 회피 균형을 보조하는 정밀 보철.",
+            300);
+        EnsureSurgicalPart(
+            "surgery:prosthetic:brain/variant/human-neural-assist",
+            "인간 신경 보조기",
+            "인간 뇌 슬롯에 장착해 직접 작업 신호를 보조하는 인공 부품.",
+            260);
+        EnsureSurgicalPart(
+            "surgery:prosthetic:hand:left",
+            "왼손 정밀 보철",
+            "코볼트 왼손 슬롯에 장착하는 정밀 작업용 보철.",
+            260);
+
+        string[] existingPartIds =
+        {
+            "surgery:prosthetic:arm:left",
+            "surgery:prosthetic:brain",
+            "surgery:prosthetic:heart",
+            "surgery:prosthetic:leg:left",
+            "surgery:prosthetic:pseudopods"
+        };
+        foreach (string itemId in existingPartIds)
+        {
+            string path = $"{ItemDefinitionRoot}/{Sanitize(itemId)}.asset";
+            if (AssetDatabase.LoadAssetAtPath<ItemDefinitionSO>(path) == null)
+            {
+                throw new InvalidOperationException(
+                    $"Required legacy surgical part is missing: {path}");
+            }
+        }
+    }
+
+    private static void EnsureSurgicalPart(
+        string itemId,
+        string displayName,
+        string description,
+        int unitPrice)
+    {
+        string path = $"{ItemDefinitionRoot}/{Sanitize(itemId)}.asset";
+        ItemDefinitionSO existing =
+            AssetDatabase.LoadAssetAtPath<ItemDefinitionSO>(path);
+        if (existing == null)
+        {
+            GenericItemDefinitionSO created =
+                ScriptableObject.CreateInstance<GenericItemDefinitionSO>();
+            created.ConfigureCore(
+                itemId,
+                displayName,
+                description,
+                StockCategory.General,
+                unitPrice,
+                1.8f,
+                1);
+            created.SetFeature(new ProductionItemFeature
+            {
+                kind = ResourceItemKind.FinishedGood,
+                ingredientTags = ResourceIngredientTag.None,
+                sharedIntermediate = false
+            });
+            AssetDatabase.CreateAsset(created, path);
+            EditorUtility.SetDirty(created);
+            return;
+        }
+
+        if (existing is not GenericItemDefinitionSO item)
+        {
+            throw new InvalidOperationException(
+                $"Surgical part path collision at '{path}' with "
+                + $"'{existing.GetType().Name}'.");
+        }
+
+        if (!string.Equals(item.ItemId, itemId, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Surgical part asset '{path}' has item ID '{item.ItemId}', expected '{itemId}'.");
+        }
+        if (!item.TryGetFeature(out ProductionItemFeature production)
+            || production.kind != ResourceItemKind.FinishedGood)
+        {
+            throw new InvalidOperationException(
+                $"Surgical part '{itemId}' must remain an authored finished good.");
+        }
+    }
+
     private static void BuildProstheticRecipes()
     {
         CreateRecipe(
@@ -313,6 +735,162 @@ public static class SurgeryContentAssetBuilder
                 new ItemAmountDefinition("medicine:advanced", 1)
             },
             SurgicalPartProductionOutputHandler.ArtificialEyeOutputId);
+        CreateRecipe(
+            9804,
+            "recipe:surgery:pseudopods",
+            "위족 보철 조립",
+            "강철 연결부와 유연 지지재를 조립해 위족 슬롯용 보철을 만든다.",
+            34f,
+            new[]
+            {
+                new ItemAmountDefinition("material:steel-ingot", 2),
+                new ItemAmountDefinition("material:lumber", 1),
+                new ItemAmountDefinition("material:cloth", 1)
+            },
+            "surgery:prosthetic:pseudopods");
+        CreateRecipe(
+            9805,
+            "recipe:surgery:hypha-core",
+            "균핵 보철 조립",
+            "금속 접속부와 목재 지지대, 고급 약품으로 인공 균핵을 만든다.",
+            34f,
+            new[]
+            {
+                new ItemAmountDefinition("material:steel-ingot", 1),
+                new ItemAmountDefinition("material:lumber", 1),
+                new ItemAmountDefinition("medicine:advanced", 1)
+            },
+            "surgery:prosthetic:hypha-core");
+        CreateRecipe(
+            9806,
+            "recipe:surgery:wing",
+            "왼날개 보철 조립",
+            "강철 관절과 목재 골조, 직물 막을 조립해 왼날개 보철을 만든다.",
+            34f,
+            new[]
+            {
+                new ItemAmountDefinition("material:steel-ingot", 2),
+                new ItemAmountDefinition("material:lumber", 1),
+                new ItemAmountDefinition("material:cloth", 1)
+            },
+            "surgery:prosthetic:wing:left");
+        CreateRecipe(
+            9807,
+            "recipe:surgery:balance-tail",
+            "평형 꼬리 보철 조립",
+            "강철 관절과 목재 골조, 가죽 완충재로 평형 꼬리 보철을 만든다.",
+            34f,
+            new[]
+            {
+                new ItemAmountDefinition("material:steel-ingot", 2),
+                new ItemAmountDefinition("material:lumber", 1),
+                new ItemAmountDefinition("material:leather", 1)
+            },
+            "surgery:prosthetic:balance-tail");
+        CreateRecipe(
+            9808,
+            "recipe:surgery:reinforced-torso",
+            "골격 보강 몸통 조립",
+            "강철 하중 골격과 목재 지지대, 직물 라이너로 몸통 보철을 만든다.",
+            34f,
+            new[]
+            {
+                new ItemAmountDefinition("material:steel-ingot", 3),
+                new ItemAmountDefinition("material:lumber", 1),
+                new ItemAmountDefinition("material:cloth", 1)
+            },
+            "surgery:prosthetic:torso");
+        CreateRecipe(
+            9809,
+            "recipe:surgery:heart-augmentation",
+            "전투 심장 보철 조립",
+            "강철 펌프 부품과 마나 결정, 고급 약품으로 전투 심장 보철을 만든다.",
+            34f,
+            new[]
+            {
+                new ItemAmountDefinition("material:steel-ingot", 2),
+                new ItemAmountDefinition("resource:mana-crystal", 1),
+                new ItemAmountDefinition("medicine:advanced", 1)
+            },
+            "surgery:prosthetic:heart/variant/orc-combat-heart");
+        CreateRecipe(
+            9810,
+            "recipe:surgery:night-eye",
+            "왼쪽 야간안 보철 조립",
+            "정밀 금속 부품과 마나 결정, 고급 약품으로 야간안 보철을 만든다.",
+            34f,
+            new[]
+            {
+                new ItemAmountDefinition("material:steel-ingot", 1),
+                new ItemAmountDefinition("resource:mana-crystal", 1),
+                new ItemAmountDefinition("medicine:advanced", 1)
+            },
+            "surgery:prosthetic:night-eye:left");
+        CreateRecipe(
+            9811,
+            "recipe:surgery:heat-sac",
+            "열낭 보철 조립",
+            "강철 열교환부와 마나 결정, 고급 약품으로 열낭 보철을 만든다.",
+            34f,
+            new[]
+            {
+                new ItemAmountDefinition("material:steel-ingot", 1),
+                new ItemAmountDefinition("resource:mana-crystal", 1),
+                new ItemAmountDefinition("medicine:advanced", 1)
+            },
+            "surgery:prosthetic:heat-sac/variant/demon-heat-sac");
+        CreateRecipe(
+            9812,
+            "recipe:surgery:precision-hand",
+            "왼손 정밀 보철 조립",
+            "강철 관절과 목재 지지대, 직물 완충재로 정밀 손 보철을 만든다.",
+            34f,
+            new[]
+            {
+                new ItemAmountDefinition("material:steel-ingot", 2),
+                new ItemAmountDefinition("material:lumber", 1),
+                new ItemAmountDefinition("material:cloth", 1)
+            },
+            "surgery:prosthetic:hand:left");
+        CreateRecipe(
+            9813,
+            "recipe:surgery:brain-assist",
+            "신경 보조기 조립",
+            "정밀 금속 부품과 마나 결정, 고급 약품으로 신경 보조기를 만든다.",
+            34f,
+            new[]
+            {
+                new ItemAmountDefinition("material:steel-ingot", 1),
+                new ItemAmountDefinition("resource:mana-crystal", 1),
+                new ItemAmountDefinition("medicine:advanced", 1)
+            },
+            "surgery:prosthetic:brain/variant/human-neural-assist");
+        CreateRecipe(
+            9814,
+            "recipe:surgery:sprint-joint",
+            "수인 질주 관절 조립",
+            "강철 하중 관절과 목재 지지대, 가죽 완충재로 질주 관절을 만든다.",
+            34f,
+            new[]
+            {
+                new ItemAmountDefinition("material:steel-ingot", 3),
+                new ItemAmountDefinition("material:lumber", 1),
+                new ItemAmountDefinition("material:leather", 1)
+            },
+            "surgery:prosthetic:leg:left/variant/beastkin-sprint-joint");
+        CreateRecipe(
+            9815,
+            "recipe:surgery:tail-balance-augmentation",
+            "코볼트 평형 꼬리 보강기 조립",
+            "강철 정밀 관절과 목재 골조, 가죽 완충재로 꼬리 보강기를 만든다.",
+            34f,
+            new[]
+            {
+                new ItemAmountDefinition("material:steel-ingot", 2),
+                new ItemAmountDefinition("material:lumber", 1),
+                new ItemAmountDefinition("material:leather", 1)
+            },
+            "surgery:prosthetic:balance-tail/variant/kobold-tail-balance");
     }
 
     private static void CreateRecipe(
@@ -324,8 +902,7 @@ public static class SurgeryContentAssetBuilder
         IEnumerable<ItemAmountDefinition> inputs,
         string outputItemId)
     {
-        string fileName = recipeId.Replace(':', '_').Replace('-', '_');
-        string path = $"{RecipeRoot}/{fileName}.asset";
+        string path = GetRecipeAssetPath(recipeId);
         ProductionRecipeSO recipe = AssetDatabase.LoadAssetAtPath<ProductionRecipeSO>(path);
         ProductionRecipeSO existing = recipe;
         float? approvedRequiredWork = recipe != null
@@ -368,6 +945,14 @@ public static class SurgeryContentAssetBuilder
                 canonicalOutputs);
             target.ConfigureFlowRole(ProductionFlowRole.Transform);
             target.ConfigureProcessClass(ProductionProcessClass.Precision);
+            if (Wim023GeneratedRecipeIds.Contains(
+                    recipeId,
+                    StringComparer.Ordinal))
+            {
+                target.ConfigureProficiency(
+                    BuiltInCharacterProficiencyIds.Crafting,
+                    recommendedRank: CharacterProficiencyRank.Technician);
+            }
             V27ReviewedProductionMassExplanationCatalog.ApplyIfReviewed(target);
             target.ConfigureBalanceWork(
                 approvedRequiredWork
@@ -529,17 +1114,6 @@ public static class SurgeryContentAssetBuilder
             });
         }
 
-        if (spec.ConsumesFuel)
-        {
-            abilities.Add(new BuildingFuelConsumerAbility
-            {
-                fuelPerRefuel = 1,
-                workSeconds = 1f,
-                warmth = 0f,
-                lightSafety = 2f
-            });
-        }
-
         if (!string.IsNullOrWhiteSpace(spec.ProductionWorkstationTag))
         {
             if (spec.ProductionOutputBufferCycleCapacity is < 2 or > 4)
@@ -681,7 +1255,7 @@ public static class SurgeryContentAssetBuilder
                     stabilityBonus = 0.35f,
                     anesthesiaItemId = SurgeryItemDefinitions.AnestheticId,
                     anesthesiaCost = 1
-                }, FacilityWorkType.Refuel, fuel: true),
+                }, FacilityWorkType.None),
             Facility("M06", 9506, "보철 조립대", 2, 165, 64, new Color32(178, 139, 72, 255),
                 new BuildingProstheticAssemblyAbility
                 {
@@ -704,7 +1278,7 @@ public static class SurgeryContentAssetBuilder
                     preservationDays = 15f,
                     fuelPerDay = 1,
                     capacity = 8
-                }, FacilityWorkType.Haul | FacilityWorkType.Refuel, stores: true, fuel: true),
+                }, FacilityWorkType.Haul, stores: true),
             Facility("M09", 9509, "순환 이식대", 3, 290, 96, new Color32(160, 69, 91, 255),
                 new BuildingTransplantSupportAbility
                 {
@@ -726,7 +1300,7 @@ public static class SurgeryContentAssetBuilder
                     rejectionReduction = 0.35f,
                     bloodCost = 0,
                     immunosuppressantCost = 1
-                }, FacilityWorkType.Refuel, fuel: true),
+                }, FacilityWorkType.None),
             Facility("M11", 9511, "격리 회복 침상", 2, 210, 70, new Color32(85, 133, 118, 255),
                 new BuildingTransplantSupportAbility
                 {
@@ -744,7 +1318,7 @@ public static class SurgeryContentAssetBuilder
                     successBonus = 0.12f,
                     minimumMutationRisk = 0.08f,
                     manaCrystalCost = 2
-                }, FacilityWorkType.Surgery | FacilityWorkType.Treat, treats: true, fuel: true),
+                }, FacilityWorkType.Surgery | FacilityWorkType.Treat, treats: true),
             Facility("M13", 9513, "룬 봉합기", 1, 280, 86, new Color32(57, 160, 182, 255),
                 new BuildingRehabilitationAbility
                 {
@@ -753,7 +1327,7 @@ public static class SurgeryContentAssetBuilder
                     primaryOperatingFacility = false,
                     runeSuture = true,
                     manaCrystalCost = 1
-                }, FacilityWorkType.Refuel, fuel: true)
+                }, FacilityWorkType.None)
         };
     }
 
@@ -937,7 +1511,7 @@ public static class SurgeryContentAssetBuilder
             spec.Name,
             spec.Description,
             spec.Kind,
-            string.Empty,
+            spec.TargetNodeId,
             spec.ResearchId,
             spec.FacilityTags,
             spec.Work,
@@ -955,7 +1529,8 @@ public static class SurgeryContentAssetBuilder
             spec.Urgency,
             spec.AnatomyFamilies,
             requirement: null,
-            speciesIds: spec.SpeciesIds);
+            speciesIds: spec.SpeciesIds,
+            primaryFacilityDefinitionId: spec.PrimaryFacilityDefinitionId);
         if (existed && !WouldChange(asset, ConfigureProcedure))
             return;
         ConfigureProcedure(asset);
@@ -972,11 +1547,15 @@ public static class SurgeryContentAssetBuilder
             Procedure("procedure:emergency-suture", "응급 봉합", "열린 상처를 닫고 출혈과 감염 위험을 낮춘다.",
                 SurgicalProcedureKind.Suture, "research:survival:medical", SurgeryFacilityTag.Emergency,
                 12f, 0.04f, 0.16f, 0.06f, false, false, true, false, true,
-                Materials(Material(medicine, 1)), Effects(new HealSurgicalNodeEffect { health = 8f, infectionReduction = 8f })),
+                Materials(Material(medicine, 1)), Effects(
+                    new HealSurgicalNodeEffect { health = 8f, infectionReduction = 8f },
+                    new StopSurgicalNodeBleedingEffect())),
             Procedure("procedure:blood-transfusion", "수혈", "혈액 제제를 투여해 급격한 혈액 손실을 완화한다.",
                 SurgicalProcedureKind.Transfusion, "research:survival:medical", SurgeryFacilityTag.Emergency,
-                10f, 0.05f, 0.12f, 0.05f, false, false, true, false, true,
-                Materials(Material(SurgeryItemDefinitions.BloodPackId, 1)), Effects(new HealSurgicalNodeEffect { health = 14f, infectionReduction = 2f })),
+                10f, 0.05f, 0.12f, 0.05f, false, false, true, false, false,
+                Materials(Material(SurgeryItemDefinitions.BloodPackId, 1)), Effects(
+                    new HealSurgicalNodeEffect { health = 14f, infectionReduction = 2f },
+                    new RecoverBloodLossEffect { amount = 25f })),
             Procedure("procedure:foreign-body-removal", "이물 제거", "상처 속 파편과 오염원을 제거한다.",
                 SurgicalProcedureKind.RemoveForeignBody, "research:survival:medical", SurgeryFacilityTag.Emergency,
                 16f, 0.08f, 0.14f, 0.1f, true, true, true, false, true,
@@ -1065,6 +1644,7 @@ public static class SurgeryContentAssetBuilder
             string description,
             SurgicalProcedureKind kind,
             string researchId,
+            int primaryFacilityDefinitionId,
             float work,
             bool anesthesia,
             AgeTreatmentEffectKind effect,
@@ -1090,6 +1670,7 @@ public static class SurgeryContentAssetBuilder
                 Effects(new ApplyAgeTreatmentEffect { treatment = effect }));
             spec.Family = MedicalProcedureFamily.Arcane;
             spec.Urgency = MedicalProcedureUrgency.Elective;
+            spec.PrimaryFacilityDefinitionId = primaryFacilityDefinitionId;
             return spec;
         }
 
@@ -1101,6 +1682,7 @@ public static class SurgeryContentAssetBuilder
                 "재생 골격과 배양액으로 노화 손상 기관을 복원한다.",
                 SurgicalProcedureKind.HealOrgan,
                 "research:medical:organ-regeneration",
+                8868,
                 96f,
                 anesthesia: true,
                 AgeTreatmentEffectKind.OrganRegeneration,
@@ -1112,6 +1694,7 @@ public static class SurgeryContentAssetBuilder
                 "회춘 혈청을 수혈해 생물학적 나이를 낮춘다.",
                 SurgicalProcedureKind.Transfusion,
                 "research:medical:blood-rejuvenation",
+                8869,
                 72f,
                 anesthesia: false,
                 AgeTreatmentEffectKind.BloodRejuvenation,
@@ -1122,6 +1705,7 @@ public static class SurgeryContentAssetBuilder
                 "룬 동면 촉매를 사용해 활동을 멈추고 노화를 늦춘다.",
                 SurgicalProcedureKind.SpeciesStabilization,
                 "research:medical:rune-hibernation",
+                8870,
                 64f,
                 anesthesia: false,
                 AgeTreatmentEffectKind.RuneHibernation,
@@ -1132,6 +1716,7 @@ public static class SurgeryContentAssetBuilder
                 "전신 재생 배지를 사용해 생물학적 나이와 초기 노화 질환을 되돌린다.",
                 SurgicalProcedureKind.ArcaneModification,
                 "research:medical:whole-body-regeneration",
+                8871,
                 180f,
                 anesthesia: true,
                 AgeTreatmentEffectKind.WholeBodyRegeneration,
@@ -1142,6 +1727,7 @@ public static class SurgeryContentAssetBuilder
                 "시간 고정 인장을 결속해 동력 공급 중 노화와 신규 노화 질환을 멈춘다.",
                 SurgicalProcedureKind.SpeciesStabilization,
                 "research:medical:temporal-stasis",
+                8872,
                 140f,
                 anesthesia: false,
                 AgeTreatmentEffectKind.TemporalStasis,
@@ -1169,7 +1755,8 @@ public static class SurgeryContentAssetBuilder
                 "medical:slime-coagulation-frame"),
             SpeciesProcedure("slime-pseudopod-reshape", "위족 재성형", MedicalProcedureFamily.Slime,
                 "research:medical:slime-bioengineering", "slime", new[] { "slime" },
-                new HealSurgicalNodeEffect { health = 30f, infectionReduction = 10f }, biological),
+                InstallPart("pseudopods", "surgery:prosthetic:pseudopods"), biological,
+                SurgicalProcedureKind.InstallProsthetic, "pseudopods"),
 
             SpeciesProcedure("myconid-hypha-binding", "균사 결속", MedicalProcedureFamily.Myconid,
                 "research:medical:mycelial-grafting", "fungal", new[] { "myconid" },
@@ -1179,11 +1766,12 @@ public static class SurgeryContentAssetBuilder
                 new HealSurgicalNodeEffect { health = 12f, infectionReduction = 28f }, medicine),
             SpeciesProcedure("myconid-core-graft", "균핵 접목", MedicalProcedureFamily.Myconid,
                 "research:medical:mycelial-grafting", "fungal", new[] { "myconid" },
-                new HealSurgicalNodeEffect { health = 32f, infectionReduction = 12f },
-                "medical:sterile-mycelium-graft"),
+                InstallPart("hypha-core", "surgery:prosthetic:hypha-core"), "medical:sterile-mycelium-graft",
+                SurgicalProcedureKind.TransplantOrgan, "hypha-core"),
             SpeciesProcedure("myconid-regrowth", "균사 재배양", MedicalProcedureFamily.Myconid,
                 "research:medical:mycelial-grafting", "fungal", new[] { "myconid" },
-                new HealSurgicalNodeEffect { health = 36f, infectionReduction = 14f }, biological),
+                InstallPart("arm:left", "surgery:prosthetic:arm:left"), biological,
+                SurgicalProcedureKind.InstallProsthetic, "arm:left"),
 
             SpeciesProcedure("harpy-air-sac-suture", "기낭 봉합", MedicalProcedureFamily.Avian,
                 "research:medical:avian-prosthetics", "avian", new[] { "harpy" },
@@ -1193,10 +1781,12 @@ public static class SurgeryContentAssetBuilder
                 new HealSurgicalNodeEffect { health = 32f, infectionReduction = 8f }, general),
             SpeciesProcedure("harpy-feather-regrowth", "깃축 재생", MedicalProcedureFamily.Avian,
                 "research:medical:avian-prosthetics", "avian", new[] { "harpy" },
-                new HealSurgicalNodeEffect { health = 20f, infectionReduction = 10f }, biological),
+                InstallPart("wing:left", "surgery:prosthetic:wing:left"), biological,
+                SurgicalProcedureKind.InstallProsthetic, "wing:left"),
             SpeciesProcedure("harpy-tail-graft", "평형 꼬리깃 이식", MedicalProcedureFamily.Avian,
                 "research:medical:avian-prosthetics", "avian", new[] { "harpy" },
-                new HealSurgicalNodeEffect { health = 28f, infectionReduction = 8f }, biological),
+                InstallPart("balance-tail", "surgery:prosthetic:balance-tail"), biological,
+                SurgicalProcedureKind.TransplantOrgan, "balance-tail"),
 
             MaintenanceProcedure("golem-coolant-refill", "냉각수 보충", "research:medical:construct-core-maintenance", 20f),
             MaintenanceProcedure("golem-body-recast", "외장 재주조", "research:medical:construct-core-maintenance", 34f),
@@ -1204,13 +1794,13 @@ public static class SurgeryContentAssetBuilder
             MaintenanceProcedure("golem-sensor-core", "감지핵 정비", "research:medical:construct-core-maintenance", 26f),
             MaintenanceProcedure("golem-power-core", "동력핵 정비", "research:medical:construct-core-maintenance", 30f),
 
-            HumanoidProcedure("orc-skeletal-reinforcement", "골격 보강", "research:medical:surgery", "orc", 28f),
-            HumanoidProcedure("orc-combat-heart", "전투 심장 강화", "research:medical:surgery", "orc", 30f),
-            HumanoidProcedure("vampire-blood-sac", "혈액낭 처치", "research:medical:bloodcraft-augmentation", "vampire", 30f, MedicalProcedureFamily.Vampiric),
-            HumanoidProcedure("vampire-night-eye", "야간안 이식", "research:medical:bloodcraft-augmentation", "vampire", 24f, MedicalProcedureFamily.Vampiric),
-            HumanoidProcedure("beastkin-tail-reconstruction", "균형 꼬리 재건", "research:medical:prosthetics", "beastkin", 28f),
-            HumanoidProcedure("beastkin-sprint-joint", "질주 관절 보강", "research:medical:prosthetics", "beastkin", 26f),
-            HumanoidProcedure(
+            InstalledHumanoidProcedure("orc-skeletal-reinforcement", "골격 보강", "research:medical:surgery", "orc", "torso", "surgery:prosthetic:torso"),
+            InstalledHumanoidProcedure("orc-combat-heart", "전투 심장 강화", "research:medical:surgery", "orc", "heart", "surgery:prosthetic:heart/variant/orc-combat-heart"),
+            HumanoidTreatmentProcedure("vampire-blood-sac", "혈액낭 처치", "research:medical:bloodcraft-augmentation", "vampire", 30f, MedicalProcedureFamily.Vampiric),
+            InstalledHumanoidProcedure("vampire-night-eye", "야간안 이식", "research:medical:bloodcraft-augmentation", "vampire", "night-eye:left", "surgery:prosthetic:night-eye:left", family: MedicalProcedureFamily.Vampiric, kind: SurgicalProcedureKind.TransplantOrgan),
+            InstalledHumanoidProcedure("beastkin-tail-reconstruction", "균형 꼬리 재건", "research:medical:prosthetics", "beastkin", "balance-tail", "surgery:prosthetic:balance-tail", kind: SurgicalProcedureKind.InstallProsthetic),
+            InstalledHumanoidProcedure("beastkin-sprint-joint", "질주 관절 보강", "research:medical:prosthetics", "beastkin", "leg:left", "surgery:prosthetic:leg:left/variant/beastkin-sprint-joint"),
+            HumanoidTreatmentProcedure(
                 "demon-mana-core-suture",
                 "마핵 봉합",
                 "research:medical:mana-core-engineering",
@@ -1218,11 +1808,11 @@ public static class SurgeryContentAssetBuilder
                 30f,
                 MedicalProcedureFamily.Demonic,
                 "medical:mana-core-case"),
-            HumanoidProcedure("demon-heat-sac", "열낭 강화", "research:medical:mana-core-engineering", "demon", 26f, MedicalProcedureFamily.Demonic),
-            HumanoidProcedure("kobold-precision-hand", "정밀 손 보철", "research:medical:prosthetics", "kobold", 24f),
-            HumanoidProcedure("kobold-tail-balance", "꼬리 평형 보강", "research:medical:prosthetics", "kobold", 22f),
-            HumanoidProcedure("human-neural-assist", "범용 신경 보조기", "research:medical:prosthetics", "human", 26f),
-            HumanoidProcedure("human-precision-prosthetic", "정밀 보철 조율", "research:medical:prosthetics", "human", 28f)
+            InstalledHumanoidProcedure("demon-heat-sac", "열낭 강화", "research:medical:mana-core-engineering", "demon", "heat-sac", "surgery:prosthetic:heat-sac/variant/demon-heat-sac", family: MedicalProcedureFamily.Demonic),
+            InstalledHumanoidProcedure("kobold-precision-hand", "정밀 손 보철", "research:medical:prosthetics", "kobold", "hand:left", "surgery:prosthetic:hand:left", kind: SurgicalProcedureKind.TransplantOrgan),
+            InstalledHumanoidProcedure("kobold-tail-balance", "꼬리 평형 보강", "research:medical:prosthetics", "kobold", "balance-tail", "surgery:prosthetic:balance-tail/variant/kobold-tail-balance"),
+            InstalledHumanoidProcedure("human-neural-assist", "범용 신경 보조기", "research:medical:prosthetics", "human", "brain", "surgery:prosthetic:brain/variant/human-neural-assist"),
+            InstalledHumanoidProcedure("human-precision-prosthetic", "정밀 보철 조율", "research:medical:prosthetics", "human", "arm:left", "surgery:prosthetic:arm:left", kind: SurgicalProcedureKind.InstallProsthetic)
         };
     }
 
@@ -1234,7 +1824,9 @@ public static class SurgeryContentAssetBuilder
         string anatomyFamily,
         string[] speciesIds,
         SurgicalProcedureEffect effect,
-        string materialId)
+        string materialId,
+        SurgicalProcedureKind kind = SurgicalProcedureKind.SpeciesStabilization,
+        string targetNodeId = "")
     {
         ProcedureSpec spec = Procedure(
             $"procedure:{suffix}", name, $"{name}을(를) 종족 해부 구조에 맞춰 시행한다.",
@@ -1243,6 +1835,8 @@ public static class SurgeryContentAssetBuilder
             34f, 0.12f, 0.08f, 0.08f, false, false, true, false, false,
             Materials(Material(materialId, 1)), Effects(effect));
         spec.Family = family;
+        spec.Kind = kind;
+        spec.TargetNodeId = targetNodeId?.Trim() ?? string.Empty;
         spec.AnatomyFamilies = new[] { anatomyFamily };
         spec.SpeciesIds = speciesIds;
         return spec;
@@ -1272,7 +1866,7 @@ public static class SurgeryContentAssetBuilder
         return spec;
     }
 
-    private static ProcedureSpec HumanoidProcedure(
+    private static ProcedureSpec HumanoidTreatmentProcedure(
         string suffix,
         string name,
         string researchId,
@@ -1287,9 +1881,207 @@ public static class SurgeryContentAssetBuilder
             string.IsNullOrWhiteSpace(materialItemId)
                 ? StandardMedicineItemId
                 : materialItemId);
-        spec.Kind = SurgicalProcedureKind.SpeciesAugmentation;
         spec.Urgency = MedicalProcedureUrgency.Elective;
         return spec;
+    }
+
+    private static ProcedureSpec InstalledHumanoidProcedure(
+        string suffix,
+        string name,
+        string researchId,
+        string speciesId,
+        string targetNodeId,
+        string requiredItemDefinitionId = "",
+        MedicalProcedureFamily family = MedicalProcedureFamily.Biological,
+        SurgicalProcedureKind kind = SurgicalProcedureKind.SpeciesAugmentation,
+        SurgicalPartKind partKind = SurgicalPartKind.Prosthetic,
+        string materialItemId = "")
+    {
+        ProcedureSpec spec = SpeciesProcedure(
+            suffix,
+            name,
+            family,
+            researchId,
+            "humanoid",
+            new[] { speciesId },
+            InstallPart(targetNodeId, requiredItemDefinitionId, partKind),
+            string.IsNullOrWhiteSpace(materialItemId)
+                ? StandardMedicineItemId
+                : materialItemId,
+            kind,
+            targetNodeId);
+        spec.Urgency = MedicalProcedureUrgency.Elective;
+        return spec;
+    }
+
+    private static InstallSurgicalPartEffect InstallPart(
+        string targetNodeId,
+        string requiredItemDefinitionId = "",
+        SurgicalPartKind partKind = SurgicalPartKind.Prosthetic)
+    {
+        if (string.IsNullOrWhiteSpace(targetNodeId))
+        {
+            throw new ArgumentException(
+                "Installed-part procedures require a target node.",
+                nameof(targetNodeId));
+        }
+
+        return new InstallSurgicalPartEffect
+        {
+            partKind = partKind,
+            requiredItemDefinitionId = requiredItemDefinitionId?.Trim()
+                ?? string.Empty,
+            efficiency = 1f
+        };
+    }
+
+    private static void BuildAuthoredInstalledPartEffects()
+    {
+        GameplayEffectDefinitionSO move = LoadRequiredEffect(
+            "effect_character_move-speed_multiply.asset");
+        GameplayEffectDefinitionSO work = LoadRequiredEffect(
+            "effect_character_work-speed_multiply.asset");
+        GameplayEffectDefinitionSO heat = LoadRequiredEffect(
+            "effect_character_heat-exposure_multiply.asset");
+        string healthPath =
+            $"{GameplayEffectRoot}/effect_character_maximum-health_multiply.asset";
+        GameplayEffectDefinitionSO health =
+            AssetDatabase.LoadAssetAtPath<GameplayEffectDefinitionSO>(healthPath);
+        if (health == null)
+        {
+            health = ScriptableObject.CreateInstance<GameplayEffectDefinitionSO>();
+            AssetDatabase.CreateAsset(health, healthPath);
+        }
+        health.Configure(
+            1170235001,
+            "effect:character:maximum-health:multiply",
+            GameplayEffectTargetIds.MaximumHealth,
+            GameplayEffectOperation.Multiply,
+            GameplayEffectProjectionPhase.Multiplicative,
+            GameplayEffectSourceKind.SurgicalPart,
+            GameplayEffectStackingPolicy.StackAll,
+            0f,
+            float.MaxValue);
+        EditorUtility.SetDirty(health);
+
+        string evasionPath =
+            $"{GameplayEffectRoot}/effect_combat_evasion-chance_add-flat.asset";
+        GameplayEffectDefinitionSO evasion =
+            AssetDatabase.LoadAssetAtPath<GameplayEffectDefinitionSO>(evasionPath);
+        if (evasion == null)
+        {
+            evasion = ScriptableObject.CreateInstance<GameplayEffectDefinitionSO>();
+            AssetDatabase.CreateAsset(evasion, evasionPath);
+        }
+        evasion.Configure(
+            1170235002,
+            "effect:combat:evasion-chance:add-flat",
+            GameplayEffectTargetIds.EvasionChance,
+            GameplayEffectOperation.AddFlat,
+            GameplayEffectProjectionPhase.BaseAdd,
+            GameplayEffectSourceKind.SurgicalPart,
+            GameplayEffectStackingPolicy.StackAll,
+            0f,
+            0.35f);
+        EditorUtility.SetDirty(evasion);
+
+        SetInstalledPartEffect(
+            "surgery_prosthetic_leg_left_variant_beastkin-sprint-joint.asset",
+            "part:beastkin-sprint-joint:move-speed",
+            move,
+            1.08f);
+        SetInstalledPartEffect(
+            "surgery_prosthetic_heart_variant_orc-combat-heart.asset",
+            "part:orc-combat-heart:maximum-health",
+            health,
+            1.10f);
+        SetInstalledPartEffect(
+            "surgery_prosthetic_brain_variant_human-neural-assist.asset",
+            "part:human-neural-assist:work-speed",
+            work,
+            1.05f);
+        SetInstalledPartEffect(
+            "surgery_prosthetic_heat-sac_variant_demon-heat-sac.asset",
+            "part:demon-heat-sac:heat-exposure",
+            heat,
+            0.80f);
+        SetInstalledPartEffect(
+            "surgery_prosthetic_balance-tail_variant_kobold-tail-balance.asset",
+            "part:kobold-tail-balance:evasion-chance",
+            evasion,
+            0.03f);
+    }
+
+    private static GameplayEffectDefinitionSO LoadRequiredEffect(
+        string fileName)
+    {
+        string path = $"{GameplayEffectRoot}/{fileName}";
+        GameplayEffectDefinitionSO effect =
+            AssetDatabase.LoadAssetAtPath<GameplayEffectDefinitionSO>(path);
+        return effect != null
+            ? effect
+            : throw new InvalidOperationException(
+                $"Required gameplay effect definition is missing: {path}");
+    }
+
+    private static void SetInstalledPartEffect(
+        string itemFileName,
+        string bindingId,
+        GameplayEffectDefinitionSO definition,
+        float value)
+    {
+        string path = $"{ItemDefinitionRoot}/{itemFileName}";
+        ItemDefinitionSO item = AssetDatabase.LoadAssetAtPath<ItemDefinitionSO>(path);
+        if (item == null)
+        {
+            throw new InvalidOperationException(
+                $"Installed-effect surgical part is missing: {path}");
+        }
+        InstalledSurgicalPartEffectItemFeature existingFeature = item
+            .GetFeatureOrDefault<InstalledSurgicalPartEffectItemFeature>();
+        List<GameplayEffectBinding> existingEffects = existingFeature?.effects;
+        List<GameplayEffectBinding> effects = existingEffects?
+            .Where(existing => existing != null
+                && !string.Equals(
+                    existing.bindingId?.Trim(),
+                    bindingId,
+                    StringComparison.Ordinal))
+            .ToList()
+            ?? new List<GameplayEffectBinding>();
+        effects.Add(new GameplayEffectBinding
+        {
+            bindingId = bindingId,
+            definition = definition,
+            value = value
+        });
+        effects = effects
+            .OrderBy(effect => effect.bindingId, StringComparer.Ordinal)
+            .ToList();
+        bool unchanged = existingEffects != null
+            && existingEffects.Count == effects.Count;
+        for (int index = 0; unchanged && index < effects.Count; index++)
+        {
+            GameplayEffectBinding current = existingEffects[index];
+            GameplayEffectBinding intended = effects[index];
+            unchanged = current != null
+                && intended != null
+                && string.Equals(
+                    current.bindingId,
+                    intended.bindingId,
+                    StringComparison.Ordinal)
+                && ReferenceEquals(current.definition, intended.definition)
+                && current.value == intended.value
+                && ReferenceEquals(current.condition, intended.condition);
+        }
+        if (unchanged)
+        {
+            return;
+        }
+        item.SetFeature(new InstalledSurgicalPartEffectItemFeature
+        {
+            effects = effects
+        });
+        EditorUtility.SetDirty(item);
     }
 
     private static ProcedureSpec Procedure(
@@ -1387,10 +2179,60 @@ public static class SurgeryContentAssetBuilder
             throw new InvalidOperationException(
                 $"Expected 180 research projects, found {research.Length}.");
         }
-        if (prostheticRecipes.Length != 3)
+        if (prostheticRecipes.Length != 15)
         {
             throw new InvalidOperationException(
-                $"Expected 3 prosthetic production recipes, found {prostheticRecipes.Length}.");
+                $"Expected 15 prosthetic production recipes, found {prostheticRecipes.Length}.");
+        }
+        ValidateWim023GeneratedRecipeProficiencies(prostheticRecipes);
+
+        HashSet<string> speciesProcedureIds = new(
+            CreateSpeciesProcedureSpecs()
+                .Where(spec => spec.Family != MedicalProcedureFamily.Construct)
+                .Select(spec => spec.Id),
+            StringComparer.Ordinal);
+        SurgicalProcedureSO[] speciesProcedures = procedures
+            .Where(procedure => speciesProcedureIds.Contains(procedure.ProcedureId))
+            .ToArray();
+        SurgicalProcedureSO[] installedSpeciesProcedures = speciesProcedures
+            .Where(procedure => procedure.TryGetInstallationEffect(out _))
+            .ToArray();
+        if (speciesProcedures.Length != 24
+            || installedSpeciesProcedures.Length != 15
+            || installedSpeciesProcedures.Count(procedure =>
+                procedure.Kind == SurgicalProcedureKind.TransplantOrgan) != 4
+            || installedSpeciesProcedures.Count(procedure =>
+                procedure.Kind == SurgicalProcedureKind.InstallProsthetic) != 5
+            || installedSpeciesProcedures.Count(procedure =>
+                procedure.Kind == SurgicalProcedureKind.SpeciesAugmentation) != 6)
+        {
+            throw new InvalidOperationException(
+                "WIM-023 species procedure classification must remain "
+                + "24 total: 9 treatment, 4 replacement, 5 prosthetic, 6 augmentation.");
+        }
+
+        ItemDefinitionSO[] itemDefinitions =
+            LoadAssets<ItemDefinitionSO>(ItemDefinitionRoot);
+        IReadOnlyDictionary<string, ItemDefinitionSO> itemById = itemDefinitions
+            .ToDictionary(item => item.ItemId, StringComparer.Ordinal);
+        ILookup<string, ProductionRecipeSO> producerByItemId = prostheticRecipes
+            .SelectMany(recipe => recipe.Outputs
+                .Where(output => output.Role == ProductionOutputRole.Main)
+                .Select(output => new { output.ItemId, Recipe = recipe }))
+            .ToLookup(value => value.ItemId, value => value.Recipe, StringComparer.Ordinal);
+        foreach (SurgicalProcedureSO procedure in installedSpeciesProcedures)
+        {
+            procedure.TryGetInstallationEffect(out InstallSurgicalPartEffect install);
+            string itemId = install.requiredItemDefinitionId?.Trim() ?? string.Empty;
+            if (!itemById.TryGetValue(itemId, out ItemDefinitionSO item)
+                || !item.TryGetFeature(out ProductionItemFeature production)
+                || production.kind != ResourceItemKind.FinishedGood
+                || producerByItemId[itemId].Count() != 1)
+            {
+                throw new InvalidOperationException(
+                    $"WIM-023 procedure '{procedure.ProcedureId}' requires one authored "
+                    + $"finished-good part and one M06 recipe for '{itemId}'.");
+            }
         }
 
         BuildingSO prostheticAssembly = buildings.SingleOrDefault(building =>
@@ -1451,6 +2293,43 @@ public static class SurgeryContentAssetBuilder
             if (!building.Abilities.Any(ability => ability is ISurgicalFacilityAbility))
             {
                 throw new InvalidOperationException($"{building.objectName}: surgical ability is missing.");
+            }
+        }
+    }
+
+    private static void ValidateWim023GeneratedRecipeProficiencies(
+        IEnumerable<ProductionRecipeSO> recipes)
+    {
+        foreach (string recipeId in Wim023GeneratedRecipeIds)
+        {
+            ProductionRecipeSO[] matches = (recipes ?? Array.Empty<ProductionRecipeSO>())
+                .Where(recipe => recipe != null
+                    && string.Equals(
+                        recipe.RecipeId,
+                        recipeId,
+                        StringComparison.Ordinal))
+                .ToArray();
+            if (matches.Length != 1)
+            {
+                throw new InvalidOperationException(
+                    $"WIM-023 generated recipe '{recipeId}' must be authored exactly once.");
+            }
+
+            ProficiencyWorkProfileAuthoring proficiency = matches[0].Proficiency;
+            if (!proficiency.IsValid
+                || !string.Equals(
+                    proficiency.Primary.Value,
+                    BuiltInCharacterProficiencyIds.Crafting.Value,
+                    StringComparison.Ordinal)
+                || proficiency.Secondary.IsValid
+                || proficiency.PrimaryWeight != 1f
+                || proficiency.CombinationMode != ProficiencyCombinationMode.PrimaryOnly
+                || proficiency.RecommendedRank != CharacterProficiencyRank.Technician
+                || proficiency.MinimumRiskRank != CharacterProficiencyRank.Apprentice)
+            {
+                throw new InvalidOperationException(
+                    $"WIM-023 generated recipe '{recipeId}' must use the canonical "
+                    + "crafting Technician proficiency profile.");
             }
         }
     }

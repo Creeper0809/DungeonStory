@@ -419,3 +419,41 @@ public sealed class ApparelMaterialProjector : IApparelMaterialProjector
         return created;
     }
 }
+
+public static class ApparelMaterialProtectionRules
+{
+    public const float MaximumTemperatureOffsetCelsius = 2f;
+    public const float MaximumExposureReductionRatio = 0.15f;
+    public const float DurabilityBandSize = 20f;
+
+    public static int ResolveDurabilityBand(float currentDurability) =>
+        Mathf.Clamp(
+            Mathf.FloorToInt(
+                Mathf.Clamp(currentDurability, 0f, 100f)
+                / DurabilityBandSize),
+            0,
+            4);
+
+    public static ThermalProtectionProfile CreateThermalProfile(
+        float totalWarmth,
+        float totalHeatResistance)
+    {
+        float warmth = Mathf.Clamp01(totalWarmth);
+        float heatResistance = Mathf.Clamp01(totalHeatResistance);
+        return new ThermalProtectionProfile
+        {
+            comfortMinimumOffset =
+                -MaximumTemperatureOffsetCelsius * warmth,
+            comfortMaximumOffset =
+                MaximumTemperatureOffsetCelsius * heatResistance,
+            safeMinimumOffset =
+                -MaximumTemperatureOffsetCelsius * warmth,
+            safeMaximumOffset =
+                MaximumTemperatureOffsetCelsius * heatResistance,
+            coldExposureMultiplier =
+                1f - MaximumExposureReductionRatio * warmth,
+            heatExposureMultiplier =
+                1f - MaximumExposureReductionRatio * heatResistance
+        };
+    }
+}

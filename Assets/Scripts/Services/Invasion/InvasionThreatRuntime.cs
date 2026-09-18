@@ -14,7 +14,10 @@ public sealed class InvasionThreatPersistenceState
         bool warningRaisedThisCycle,
         bool candidateRaisedThisCycle,
         float residualRisk,
-        InvasionThreatFactors lastFactors)
+        InvasionThreatFactors lastFactors,
+        string endlessCrisisCandidateEffectOwnerId = "",
+        string endlessCrisisDirectResponseOwnerId = "",
+        string endlessCrisisDirectResponseRuntimeId = "")
     {
         CurrentThreat = Mathf.Max(0f, currentThreat);
         SecondsSinceLastInvasion = Mathf.Max(0f, secondsSinceLastInvasion);
@@ -27,6 +30,12 @@ public sealed class InvasionThreatPersistenceState
         CandidateRaisedThisCycle = candidateRaisedThisCycle;
         ResidualRisk = Mathf.Max(0f, residualRisk);
         LastFactors = lastFactors;
+        EndlessCrisisCandidateEffectOwnerId =
+            endlessCrisisCandidateEffectOwnerId ?? string.Empty;
+        EndlessCrisisDirectResponseOwnerId =
+            endlessCrisisDirectResponseOwnerId ?? string.Empty;
+        EndlessCrisisDirectResponseRuntimeId =
+            endlessCrisisDirectResponseRuntimeId ?? string.Empty;
     }
 
     public float CurrentThreat { get; }
@@ -38,6 +47,26 @@ public sealed class InvasionThreatPersistenceState
     public bool CandidateRaisedThisCycle { get; }
     public float ResidualRisk { get; }
     public InvasionThreatFactors LastFactors { get; }
+    public string EndlessCrisisCandidateEffectOwnerId { get; }
+    public string EndlessCrisisDirectResponseOwnerId { get; }
+    public string EndlessCrisisDirectResponseRuntimeId { get; }
+}
+
+public readonly struct InvasionThreatEndlessCrisisOwnershipState
+{
+    public InvasionThreatEndlessCrisisOwnershipState(
+        string candidateEffectOwnerId,
+        string directResponseOwnerId,
+        string directResponseRuntimeId)
+    {
+        CandidateEffectOwnerId = candidateEffectOwnerId ?? string.Empty;
+        DirectResponseOwnerId = directResponseOwnerId ?? string.Empty;
+        DirectResponseRuntimeId = directResponseRuntimeId ?? string.Empty;
+    }
+
+    public string CandidateEffectOwnerId { get; }
+    public string DirectResponseOwnerId { get; }
+    public string DirectResponseRuntimeId { get; }
 }
 
 public class InvasionThreatRuntime : MonoBehaviour
@@ -55,10 +84,16 @@ public class InvasionThreatRuntime : MonoBehaviour
     private IGameEventBus gameEventBus;
     private IWorldThreatModifierQuery worldThreatModifiers;
     private IExperiencePacingRuntime experiencePacing;
+    private IEndlessCrisisQuery endlessCrisis;
+    private IEndlessCrisisCommand endlessCrisisCommands;
+    private IGameCalendar calendar;
     private IDisposable invasionStartedSubscription;
     private IDisposable invasionResolvedSubscription;
     private IDisposable operatingDayStartedSubscription;
     private IRandomStream randomStream;
+    private string endlessCrisisCandidateEffectOwnerId = string.Empty;
+    private string endlessCrisisDirectResponseOwnerId = string.Empty;
+    private string endlessCrisisDirectResponseRuntimeId = string.Empty;
 
     private InvasionThreatAggregateState State =>
         (aggregateStateStore
@@ -135,7 +170,10 @@ public class InvasionThreatRuntime : MonoBehaviour
             warningRaisedThisCycle,
             candidateRaisedThisCycle,
             residualRisk,
-            lastFactors);
+            lastFactors,
+            endlessCrisisCandidateEffectOwnerId,
+            endlessCrisisDirectResponseOwnerId,
+            endlessCrisisDirectResponseRuntimeId);
     }
 
     public void RestorePersistentState(InvasionThreatPersistenceState source)
@@ -159,6 +197,38 @@ public class InvasionThreatRuntime : MonoBehaviour
         candidateRaisedThisCycle = source.CandidateRaisedThisCycle;
         residualRisk = source.ResidualRisk;
         lastFactors = source.LastFactors;
+        RestoreEndlessCrisisOwnership(
+            source.EndlessCrisisCandidateEffectOwnerId,
+            source.EndlessCrisisDirectResponseOwnerId,
+            source.EndlessCrisisDirectResponseRuntimeId);
+    }
+
+    public InvasionThreatEndlessCrisisOwnershipState
+        CaptureEndlessCrisisOwnership() => new(
+            endlessCrisisCandidateEffectOwnerId,
+            endlessCrisisDirectResponseOwnerId,
+            endlessCrisisDirectResponseRuntimeId);
+
+    public void RestoreEndlessCrisisOwnership(
+        string candidateEffectOwnerId,
+        string directResponseOwnerId,
+        string directResponseRuntimeId)
+    {
+        candidateEffectOwnerId ??= string.Empty;
+        directResponseOwnerId ??= string.Empty;
+        directResponseRuntimeId ??= string.Empty;
+        if (candidateEffectOwnerId.Length > 0
+                && directResponseOwnerId.Length > 0
+            || (directResponseOwnerId.Length > 0)
+                != (directResponseRuntimeId.Length > 0))
+        {
+            throw new InvalidOperationException(
+                "Invasion threat cannot own both a crisis candidate and its direct response.");
+        }
+
+        endlessCrisisCandidateEffectOwnerId = candidateEffectOwnerId;
+        endlessCrisisDirectResponseOwnerId = directResponseOwnerId;
+        endlessCrisisDirectResponseRuntimeId = directResponseRuntimeId;
     }
 
     [Inject]
@@ -171,7 +241,10 @@ public class InvasionThreatRuntime : MonoBehaviour
         IRandomStreamProvider randomStreamProvider,
         IWorldThreatModifierQuery worldThreatModifiers,
         IExperiencePacingRuntime experiencePacing,
-        InvasionAggregateStateStore aggregateStateStore)
+        InvasionAggregateStateStore aggregateStateStore,
+        IEndlessCrisisQuery endlessCrisis,
+        IEndlessCrisisCommand endlessCrisisCommands,
+        IGameCalendar calendar)
     {
         this.worldSampler = worldSampler
             ?? throw new ArgumentNullException(nameof(worldSampler));
@@ -185,6 +258,12 @@ public class InvasionThreatRuntime : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.worldThreatModifiers = worldThreatModifiers;
         this.experiencePacing = experiencePacing;
+        this.endlessCrisis = endlessCrisis
+            ?? throw new ArgumentNullException(nameof(endlessCrisis));
+        this.endlessCrisisCommands = endlessCrisisCommands
+            ?? throw new ArgumentNullException(nameof(endlessCrisisCommands));
+        this.calendar = calendar
+            ?? throw new ArgumentNullException(nameof(calendar));
         this.aggregateStateStore = aggregateStateStore
             ?? throw new ArgumentNullException(nameof(aggregateStateStore));
         randomStream = (randomStreamProvider
@@ -248,7 +327,10 @@ public class InvasionThreatRuntime : MonoBehaviour
         currentThreat += InvasionThreatCalculator.CalculateRisePerSecond(
             settings,
             lastFactors,
-            RequireRunVariableReader().GetThreatRiseMultiplier() * endlessDefenseThreatMultiplier) * safeDelta;
+            RequireRunVariableReader().GetThreatRiseMultiplier()
+                * endlessDefenseThreatMultiplier
+                * endlessCrisis.GetEndlessCrisisMultiplier(
+                    EndlessCrisisAxis.Combat)) * safeDelta;
         currentThreat = Mathf.Max(0f, currentThreat);
 
         TryRaiseWarning();
@@ -294,11 +376,11 @@ public class InvasionThreatRuntime : MonoBehaviour
             settings.candidateThreshold * Mathf.Max(0.05f, thresholdMultiplier));
         lastFactors = SampleWorldFactors();
         warningRaisedThisCycle = true;
-        candidateDelayRemaining = 0f;
+        candidateDelayRemaining = -1f;
         candidateRaisedThisCycle = true;
+        TryOwnEndlessCrisisCandidate();
 
         InvasionThreatSnapshot snapshot = BuildSnapshot();
-        gameEventBus.Publish(new InvasionCandidateEvent(snapshot));
         gameEventBus.RaiseAlert(
             string.IsNullOrWhiteSpace(title) ? "침입 임박" : title,
             string.IsNullOrWhiteSpace(detail)
@@ -306,16 +388,56 @@ public class InvasionThreatRuntime : MonoBehaviour
                 : detail,
             EventAlertImportance.High,
             "침입");
+        gameEventBus.Publish(new InvasionCandidateEvent(snapshot));
         return true;
     }
 
     public void OnTriggerEvent(InvasionStartedEvent eventType)
     {
+        if (endlessCrisisCandidateEffectOwnerId.Length > 0
+            && !string.IsNullOrWhiteSpace(eventType.runtimeId))
+        {
+            string candidateOwner = endlessCrisisCandidateEffectOwnerId;
+            if (endlessCrisisCommands == null
+                || !endlessCrisisCommands.TryBeginOwnedInvasion(
+                    candidateOwner,
+                    CurrentAbsoluteDay,
+                    out string responseOwner))
+            {
+                throw new InvalidOperationException(
+                    $"Endless crisis candidate '{candidateOwner}' could not own its started invasion.");
+            }
+            endlessCrisisCandidateEffectOwnerId = string.Empty;
+            endlessCrisisDirectResponseOwnerId = responseOwner;
+            endlessCrisisDirectResponseRuntimeId = eventType.runtimeId;
+        }
         ResetAfterInvasion();
+        if (endlessCrisisCandidateEffectOwnerId.Length > 0)
+        {
+            candidateRaisedThisCycle = true;
+        }
     }
 
     public void OnTriggerEvent(InvasionResolvedEvent eventType)
     {
+        if (endlessCrisisDirectResponseOwnerId.Length > 0
+            && string.Equals(
+                endlessCrisisDirectResponseRuntimeId,
+                eventType.runtimeId,
+                StringComparison.Ordinal))
+        {
+            string responseOwner = endlessCrisisDirectResponseOwnerId;
+            if (endlessCrisisCommands == null
+                || !endlessCrisisCommands.TryResolveOwnedInvasion(
+                    responseOwner,
+                    CurrentAbsoluteDay))
+            {
+                throw new InvalidOperationException(
+                    $"Endless crisis response '{responseOwner}' could not resolve its owned invasion.");
+            }
+            endlessCrisisDirectResponseOwnerId = string.Empty;
+            endlessCrisisDirectResponseRuntimeId = string.Empty;
+        }
         residualRisk = Mathf.Max(0f, eventType.residualRisk);
         if (!eventType.defended)
         {
@@ -325,6 +447,9 @@ public class InvasionThreatRuntime : MonoBehaviour
 
     public void OnTriggerEvent(OperatingDayStartedEvent eventType)
     {
+        endlessCrisisCommands?.AdvanceEndlessCrisis(
+            Math.Max(1, eventType.day));
+        SynchronizeEndlessCrisisOwnership();
         experiencePacing?.AdvanceToDay(eventType.day);
         if (eventType.day <= PreparationEndDay)
         {
@@ -450,14 +575,16 @@ public class InvasionThreatRuntime : MonoBehaviour
             return;
         }
 
+        candidateDelayRemaining = -1f;
         candidateRaisedThisCycle = true;
+        TryOwnEndlessCrisisCandidate();
         InvasionThreatSnapshot snapshot = BuildSnapshot();
-        gameEventBus.Publish(new InvasionCandidateEvent(snapshot));
         gameEventBus.RaiseAlert(
             "침입 임박",
             InvasionThreatCalculator.BuildCandidateDetail(snapshot),
             EventAlertImportance.High,
             "침입");
+        gameEventBus.Publish(new InvasionCandidateEvent(snapshot));
     }
 
     private void ResetAfterInvasion()
@@ -470,6 +597,66 @@ public class InvasionThreatRuntime : MonoBehaviour
         warningRaisedThisCycle = false;
         candidateRaisedThisCycle = false;
         lastFactors = default;
+    }
+
+    private int CurrentAbsoluteDay => Math.Max(1, calendar.Day);
+
+    private void TryOwnEndlessCrisisCandidate()
+    {
+        if (endlessCrisisCommands == null
+            || !endlessCrisis.TryGetActiveEndlessCrisisEffectOwner(
+                EndlessCrisisAxis.Combat,
+                out string effectOwnerId)
+            || !endlessCrisisCommands.TryOwnInvasionCandidate(effectOwnerId))
+        {
+            return;
+        }
+
+        if (endlessCrisisDirectResponseOwnerId.Length > 0
+            || endlessCrisisCandidateEffectOwnerId.Length > 0
+                && !string.Equals(
+                    endlessCrisisCandidateEffectOwnerId,
+                    effectOwnerId,
+                    StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Invasion threat crisis ownership conflicts with its active candidate.");
+        }
+        endlessCrisisCandidateEffectOwnerId = effectOwnerId;
+    }
+
+    private void SynchronizeEndlessCrisisOwnership()
+    {
+        EndlessCrisisSnapshot snapshot = endlessCrisis.CurrentEndlessCrisis;
+        if (endlessCrisisCandidateEffectOwnerId.Length > 0
+            && snapshot.PendingInvasionSourceOwnerId.Length == 0)
+        {
+            endlessCrisisCandidateEffectOwnerId = string.Empty;
+        }
+        ValidateEndlessCrisisOwnershipJoin();
+    }
+
+    public void ValidateEndlessCrisisOwnershipJoin()
+    {
+        EndlessCrisisSnapshot snapshot = endlessCrisis.CurrentEndlessCrisis;
+        if (!string.Equals(
+                endlessCrisisCandidateEffectOwnerId,
+                snapshot.PendingInvasionSourceOwnerId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                endlessCrisisDirectResponseOwnerId,
+                snapshot.DirectResponseOwnerId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Invasion threat crisis ownership does not join the run milestone authority.");
+        }
+        if ((endlessCrisisDirectResponseOwnerId.Length > 0)
+            != (endlessCrisisDirectResponseRuntimeId.Length > 0))
+        {
+            throw new InvalidOperationException(
+                "Invasion threat crisis response has no exact intruder runtime join.");
+        }
     }
 
     private InvasionThreatSnapshot BuildSnapshot()

@@ -1,0 +1,25 @@
+{
+  "success": true,
+  "command": "command editor_status",
+  "data": {
+    "command": "editor_status",
+    "parameters": {},
+    "result": {
+      "status": "ready",
+      "compiling": false,
+      "domainReloadInProgress": false,
+      "playMode": "stopped",
+      "lastHeartbeat": "2026-09-15T14:44:25.1434019Z",
+      "projectPath": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory",
+      "unityVersion": "6000.3.8f1"
+    },
+    "target": {
+      "host": "127.0.0.1",
+      "port": 7800,
+      "projectPath": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory"
+    },
+    "success": true
+  },
+  "errors": [],
+  "warnings": []
+}

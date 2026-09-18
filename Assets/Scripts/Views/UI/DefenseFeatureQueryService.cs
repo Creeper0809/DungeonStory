@@ -143,7 +143,7 @@ public sealed class DefenseFeatureQueryService : IDefenseFeatureQueryService
         return new DefenseFeatureSurfaceModel
         {
             DefenseHudSummary = CreateDefenseHudSummary(intruders),
-            ThreatSummary = CreateThreatSummary(threat),
+            ThreatSummary = CreateThreatSummary(threat, intruders),
             ThreatFactors = threat != null
                 ? text.Get("ThreatFactors", threat.LatestSnapshot.factors)
                 : text.Get("ThreatUnavailable"),
@@ -204,7 +204,7 @@ public sealed class DefenseFeatureQueryService : IDefenseFeatureQueryService
             : CreateIntruderAdvanceSummary(intruder);
         string target = intruder?.CurrentPriorityTarget != null
             ? GetBuildingName(intruder.CurrentPriorityTarget)
-            : text.Get("PrimaryTargetFallback");
+            : text.Get("CommittedWarningUnknownValue");
         return new DefenseFeatureIntruderRow
         {
             Index = index,
@@ -218,6 +218,8 @@ public sealed class DefenseFeatureQueryService : IDefenseFeatureQueryService
                 intruder?.Focus ?? 0f,
                 target,
                 front)
+                + "\n"
+                + CreateCommittedWarningDetail(intruder)
         };
     }
 
@@ -389,7 +391,9 @@ public sealed class DefenseFeatureQueryService : IDefenseFeatureQueryService
                     ? text.Get("EnragedBreachSuffix")
                     : string.Empty,
                 route,
-                reason);
+                reason)
+                + "\n"
+                + CreateCommittedWarningDetail(intruder);
         }
 
         string phase = intruder.State == InvasionIntruderState.Rallying
@@ -404,7 +408,9 @@ public sealed class DefenseFeatureQueryService : IDefenseFeatureQueryService
             identified,
             route,
             awareness.KnownRisks.Count,
-            reason);
+            reason)
+            + "\n"
+            + CreateCommittedWarningDetail(intruder);
     }
 
     private string FormatOperation(InvasionOperationKind kind)
@@ -484,9 +490,11 @@ public sealed class DefenseFeatureQueryService : IDefenseFeatureQueryService
         };
     }
 
-    private string CreateThreatSummary(InvasionThreatRuntime threat)
+    private string CreateThreatSummary(
+        InvasionThreatRuntime threat,
+        IReadOnlyList<InvasionIntruderRuntime> intruders)
     {
-        return threat != null
+        string summary = threat != null
             ? text.Get(
                 "ThreatSummary",
                 threat.CurrentThreat,
@@ -496,6 +504,82 @@ public sealed class DefenseFeatureQueryService : IDefenseFeatureQueryService
                     ? "ThreatForecastPending"
                     : "ThreatForecastNone"))
             : text.Get("ThreatInformationNone");
+        InvasionIntruderRuntime intruder = intruders?
+            .FirstOrDefault(value =>
+                value != null
+                && value.TryGetCommittedWarningProjection(out _));
+        return summary
+            + "\n"
+            + CreateCommittedWarningDetail(intruder);
+    }
+
+    private string CreateCommittedWarningDetail(
+        InvasionIntruderRuntime intruder)
+    {
+        if (intruder == null
+            || !intruder.TryGetCommittedWarningProjection(
+                out InvasionCommittedWarningProjection projection))
+        {
+            return text.Get("CommittedWarningUnknown");
+        }
+
+        ScheduledInvasionOperationState operation = campaign.Operations
+            .FirstOrDefault(value => value != null
+                && string.Equals(
+                    value.operationId,
+                    projection.RaidId,
+                    StringComparison.Ordinal));
+        string entry = projection.HasEntryGeometry
+            ? projection.EntryGridPosition.ToString()
+            : text.Get("CommittedWarningUnknownValue");
+        string direction = text.Get(
+            "CommittedWarningDirection." + projection.ApproachDirection);
+        string enemyNature = !string.IsNullOrWhiteSpace(projection.EnemyNature)
+            ? projection.EnemyNature
+            : text.Get("CommittedWarningUnknownValue");
+        string objective = string.IsNullOrWhiteSpace(operation?.objectiveId)
+            ? text.Get("CommittedWarningUnknownValue")
+            : operation.objectiveId;
+        string target = intruder.CurrentPriorityTarget != null
+            ? GetBuildingName(intruder.CurrentPriorityTarget)
+            : text.Get("CommittedWarningUnknownValue");
+        return text.Get(
+            "CommittedWarningDetail",
+            entry,
+            direction,
+            CreateCommittedWarningPhase(intruder),
+            enemyNature,
+            FormatOperation(projection.OperationKind),
+            objective,
+            target);
+    }
+
+    private string CreateCommittedWarningPhase(InvasionIntruderRuntime intruder)
+    {
+        if (intruder.HasBreachedDungeonInterior)
+        {
+            return text.Get(
+                "CommittedWarningEntered",
+                FormatIntruderState(intruder.State));
+        }
+
+        if (intruder.State == InvasionIntruderState.Rallying
+            && intruder.WarningRallySecondsRemaining > 0f)
+        {
+            return text.Get(
+                "CommittedWarningRallyEstimate",
+                Mathf.CeilToInt(intruder.WarningRallySecondsRemaining));
+        }
+
+        if (intruder.State == InvasionIntruderState.Entering
+            || intruder.State == InvasionIntruderState.Rallying)
+        {
+            return text.Get("CommittedWarningEntering");
+        }
+
+        return text.Get(
+            "CommittedWarningActualPhase",
+            FormatIntruderState(intruder.State));
     }
 
     private string CreateOwnerEvacuationSummary()

@@ -14,13 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: DungeonStory.Content::SeasonalWorldEventDefinitionSO
   stableId: seasonal:summer-dry-well
   displayName: "\uB9C8\uB974\uB294 \uC218\uC6D0"
-  description: "\uAE68\uB057\uD55C \uBB3C \uC0DD\uC0B0 \uC800\uD558\uAC00 \uB18D\uC5C5\uACFC
+  description: "\uC790\uC5F0 \uC218\uC6D0 \uC7AC\uC0DD \uC800\uD558\uAC00 \uB18D\uC5C5\uACFC
     \uC190\uB2D8 \uC11C\uBE44\uC2A4\uB97C \uB3D9\uC2DC\uC5D0 \uC555\uBC15\uD55C\uB2E4."
   authoringRevision: 1
   sourceNote: V20 hand-authored seasonal world event manifest.
   season: 1
   minimumDurationDays: 3
   maximumDurationDays: 5
+  worldWaterRegenerationMultiplier: 0.95
   affectedDomainIds:
   - agriculture
   - service
@@ -33,11 +34,7 @@ MonoBehaviour:
     worldMetrics: []
     requiredFlags: []
     excludedFlags: []
-  startEffects:
-  - kind: 11
-    targetId: resource:clean-water
-    amount: 6
-    durationDays: 5
+  startEffects: []
   dailyEffects: []
   endEffects:
   - kind: 12

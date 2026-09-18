@@ -1194,7 +1194,8 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
         TrackingBuildingWorld world = new(building);
         ProductionFacilityDestructiveDrainWorldRemovalPort port = new(
             world,
-            new FixedGridTextureProvider(texture));
+            new FixedGridTextureProvider(texture),
+            new NonFuelFixtureRetirement());
         try
         {
             ProductionFacilityWorldRemovalResult applied =
@@ -1348,6 +1349,8 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
 
     private sealed class FixedApparelOrders : IApparelWorkOrderQuery
     {
+        public CraftQualityAttemptEstimate CaptureQualityEstimate(string orderId) =>
+            CraftQualityAttemptEstimate.Unavailable("Lifecycle fixture has no quality resolver.");
         internal FixedApparelOrders(params ApparelWorkOrderSaveData[] orders) =>
             Orders = orders ?? Array.Empty<ApparelWorkOrderSaveData>();
         public int Version => 3;
@@ -1886,6 +1889,19 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
         private static ProductionBillCommandResult Failed() =>
             ProductionBillCommandResult.Failed(
                 new DomainFailure(FailureCode.ProductionSupportUnavailable));
+    }
+
+    private sealed class NonFuelFixtureRetirement : ISurvivalFacilityFuelRetirement
+    {
+        public bool TryPrepareFacilityFuelRetirement(BuildableObject building, out string failureReason)
+        {
+            bool empty = building != null
+                && building.BuildingData.GetAbility<BuildingFuelConsumerAbility>() == null
+                && building.FacilityState.remainingFuelGameSeconds == 0f
+                && building.FacilityState.pendingFuel.phase == (int)FacilityFuelCommitPhase.None;
+            failureReason = empty ? string.Empty : "non-fuel fixture unexpectedly owns fuel";
+            return empty;
+        }
     }
 
     private sealed class AllowDamageRule : IBuildingDamageRulePort

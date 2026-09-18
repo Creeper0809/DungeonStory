@@ -139,7 +139,7 @@ MonoBehaviour:
         repairWorkRequired: 44
         cleanWorkRequired: 6
         researchWorkRequired: 6
-        operateWorkRequired: 10
+        operateWorkRequired: 1
         defaultWorkerPolicy:
           mode: 0
           matchMode: 0

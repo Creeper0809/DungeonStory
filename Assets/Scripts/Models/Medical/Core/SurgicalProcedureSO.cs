@@ -26,6 +26,7 @@ public sealed class SurgicalProcedureSO : ScriptableObject
     [SerializeField] private string targetNodeId = string.Empty;
     [SerializeField] private string requiredResearchId = string.Empty;
     [SerializeField] private SurgeryFacilityTag requiredFacilityTags;
+    [SerializeField, Min(0)] private int primaryFacilityDefinitionId;
     [SerializeField, Min(1f)] private float requiredWork = 20f;
     [SerializeField, Range(0f, 0.9f)] private float difficultyPenalty = 0.15f;
     [SerializeField, Range(0f, 1f)] private float baseInfectionRisk = 0.1f;
@@ -53,6 +54,17 @@ public sealed class SurgicalProcedureSO : ScriptableObject
     public string TargetNodeId => targetNodeId?.Trim() ?? string.Empty;
     public string RequiredResearchId => requiredResearchId?.Trim() ?? string.Empty;
     public SurgeryFacilityTag RequiredFacilityTags => requiredFacilityTags;
+    public int PrimaryFacilityDefinitionId => primaryFacilityDefinitionId;
+    public bool IsWholeCharacterTreatment
+    {
+        get
+        {
+            return effects != null
+                && effects.Count > 0
+                && effects.All(effect =>
+                    effect is ApplyAgeTreatmentEffect);
+        }
+    }
     public float RequiredWork => Mathf.Max(1f, requiredWork);
     public float DifficultyPenalty => Mathf.Clamp(difficultyPenalty, 0f, 0.9f);
     public float BaseInfectionRisk => Mathf.Clamp01(baseInfectionRisk);
@@ -64,6 +76,22 @@ public sealed class SurgicalProcedureSO : ScriptableObject
     public bool AllowsWildlife => allowsWildlife;
     public IReadOnlyList<SurgicalMaterialRequirement> Materials => materials;
     public IReadOnlyList<SurgicalProcedureEffect> Effects => effects;
+
+    public bool TryGetInstallationEffect(out InstallSurgicalPartEffect effect)
+    {
+        InstallSurgicalPartEffect[] authored = (effects
+                ?? new List<SurgicalProcedureEffect>())
+            .OfType<InstallSurgicalPartEffect>()
+            .ToArray();
+        if (authored.Length > 1)
+        {
+            throw new InvalidOperationException(
+                $"Procedure '{ProcedureId}' has more than one installation effect.");
+        }
+
+        effect = authored.SingleOrDefault();
+        return effect != null;
+    }
 
 #if UNITY_EDITOR
     public void Configure(
@@ -89,8 +117,15 @@ public sealed class SurgicalProcedureSO : ScriptableObject
         MedicalProcedureUrgency procedureUrgency = MedicalProcedureUrgency.Required,
         IEnumerable<string> anatomyFamilies = null,
         ProcedureOperatorRequirement requirement = null,
-        IEnumerable<string> speciesIds = null)
+        IEnumerable<string> speciesIds = null,
+        int primaryFacilityDefinitionId = 0)
     {
+        if (primaryFacilityDefinitionId < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(primaryFacilityDefinitionId));
+        }
+
         procedureId = id?.Trim() ?? string.Empty;
         displayName = label?.Trim() ?? string.Empty;
         description = details?.Trim() ?? string.Empty;
@@ -98,6 +133,7 @@ public sealed class SurgicalProcedureSO : ScriptableObject
         targetNodeId = nodeId?.Trim() ?? string.Empty;
         requiredResearchId = researchId?.Trim() ?? string.Empty;
         requiredFacilityTags = facilityTags;
+        this.primaryFacilityDefinitionId = primaryFacilityDefinitionId;
         requiredWork = Mathf.Max(1f, work);
         difficultyPenalty = Mathf.Clamp(difficulty, 0f, 0.9f);
         baseInfectionRisk = Mathf.Clamp01(infectionRisk);

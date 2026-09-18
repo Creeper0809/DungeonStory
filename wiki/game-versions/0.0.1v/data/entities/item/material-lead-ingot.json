@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "납괴는 무기, 방어구와 정밀 부품의 형태를 잡는 금속 재료다. 특히 제4주조도시산 납괴의 옆면에는 주조 순서와 식힌 시간가 얕은 홈으로 새겨져 있다.",
+  "in_game_description": "납괴는 무기, 방어구와 정밀 부품의 형태를 잡는 금속 재료다. 제4주조도시산 납괴의 옆면에는 주조 순서와 식힌 시간가 얕은 홈으로 새겨져 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

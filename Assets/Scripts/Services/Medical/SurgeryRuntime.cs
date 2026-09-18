@@ -20,6 +20,7 @@ public sealed class SurgeryRuntime :
     private readonly ISurgicalFacilityQuery facilities;
     private readonly ISurgeryRiskEvaluator riskEvaluator;
     private readonly ISurgicalPartRuntime parts;
+    private readonly ISurgicalPartReplacementRuntime replacementParts;
     private readonly ISurgeryPolicyRuntime policies;
     private readonly ISurgicalCorpseFreshnessRuntime corpseFreshness;
     private readonly ICharacterWorldQuery characters;
@@ -29,6 +30,7 @@ public sealed class SurgeryRuntime :
     private readonly IWorldItemStackRuntime items;
     private readonly ISurgeryMaterialDestinationRuntime materialDestinations;
     private readonly ISurgeryMaterialTerminalRuntime materialTerminal;
+    private readonly IFacilityBufferMassAdmissionService outputAdmission;
     private readonly ICharacterBodyHealthQuery bodyHealth;
     private readonly IAnatomyHealthRuntime anatomy;
     private readonly IWildlifeAnatomyHealthRuntime wildlifeAnatomy;
@@ -79,6 +81,10 @@ public sealed class SurgeryRuntime :
         facilities = requiredContent.Facilities;
         riskEvaluator = requiredContent.Risk;
         parts = requiredContent.Parts;
+        replacementParts = parts as ISurgicalPartReplacementRuntime
+            ?? throw new ArgumentException(
+                "Surgical part runtime lacks replacement authority.",
+                nameof(content));
         policies = requiredContent.Policies;
         anatomyProfiles = requiredContent.AnatomyProfiles;
         speciesCatalog = requiredContent.Species;
@@ -96,6 +102,7 @@ public sealed class SurgeryRuntime :
         items = requiredResources.Items;
         materialDestinations = requiredResources.MaterialDestinations;
         materialTerminal = requiredResources.MaterialTerminal;
+        outputAdmission = requiredResources.PlannedOutputAdmission;
         anatomy = requiredResources.Anatomy;
         wildlifeAnatomy = requiredResources.WildlifeAnatomy;
         workforce = requiredResources.Workforce;
@@ -145,15 +152,31 @@ public sealed class SurgeryRuntime :
             TryScheduleAutomaticEmergencySurgery();
         }
 
+        TryActivateQueuedOrders();
+
         foreach (SurgeryOrder order in orders
                      .Where(candidate => candidate != null && candidate.IsActive)
                      .ToArray())
         {
+            if (!order.OwnsMaterialAuthority)
+            {
+                continue;
+            }
             if (order.state == SurgeryOrderState.TerminalDraining)
             {
                 DriveMaterialTerminal(
                     order,
                     order.materialTerminalTargetState);
+                continue;
+            }
+            if (order.state == SurgeryOrderState.Recovering)
+            {
+                if (clock.Time >= order.recoveryUntil)
+                {
+                    DriveMaterialTerminal(
+                        order,
+                        SurgeryOrderState.Completed);
+                }
                 continue;
             }
 
@@ -178,11 +201,46 @@ public sealed class SurgeryRuntime :
                 }
             }
 
-            if (!TryResolveFacility(order.facilityId, out BuildableObject facility)
-                || !procedures.TryGet(order.procedureId, out SurgicalProcedureSO procedure))
+            bool hasFacility = TryResolveFacility(
+                order.facilityId,
+                out BuildableObject facility);
+            bool hasProcedure = procedures.TryGet(
+                order.procedureId,
+                out SurgicalProcedureSO procedure);
+            if (order.resultRolled && hasProcedure)
             {
-                BeginCancellation(order);
+                // Work, inputs, and RNG are already frozen. Only resume the
+                // commit-forward effect/consequence boundary; assigning another
+                // worker would charge labor for a result that already exists.
+                ResolveOutcome(order, procedure, facility, out _);
                 continue;
+            }
+            if (!hasFacility || !hasProcedure)
+            {
+                if (!order.resultRolled)
+                {
+                    TryBeginInternalCancellation(order);
+                }
+                else
+                {
+                    order.statusData.Set(
+                        SurgeryStatusCode.ProcedurePaused,
+                        "frozen-outcome-configuration-missing");
+                }
+                continue;
+            }
+
+            if (order.subject?.kind == SurgicalSubjectKind.Character)
+            {
+                CharacterActor patient =
+                    SurgicalSubjectResolver.FindCharacter(
+                        characters,
+                        order.subject.subjectId);
+                if (patient != null && patient.IsDead)
+                {
+                    TryBeginInternalCancellation(order);
+                    continue;
+                }
             }
 
             if (order.state == SurgeryOrderState.EnvironmentWaiting)
@@ -193,7 +251,7 @@ public sealed class SurgeryRuntime :
 
             SurgicalFacilitySnapshot facilityState = facilities.Evaluate(
                 facility,
-                procedure.RequiredFacilityTags);
+                procedure);
             if (!facilityState.IsAvailable)
             {
                 order.statusData.Set(
@@ -216,18 +274,6 @@ public sealed class SurgeryRuntime :
                     BuiltInWorkTypeIds.Surgery,
                     clearFailures: true,
                     forceInterrupt: true);
-            }
-
-            if (order.state == SurgeryOrderState.Recovering)
-            {
-                if (clock.Time >= order.recoveryUntil)
-                {
-                    DriveMaterialTerminal(
-                        order,
-                        SurgeryOrderState.Completed);
-                }
-
-                continue;
             }
 
             if (refreshMaterials)
@@ -366,7 +412,8 @@ public sealed class SurgeryRuntime :
             AnatomyNodeHealthState target = snapshot.Nodes
                 .Where(node => node != null && !node.missing)
                 .OrderByDescending(node => node.bleedingPerSecond)
-                .FirstOrDefault(node => node.bleedingPerSecond >= 0.08f);
+                .FirstOrDefault(node => node.bleedingPerSecond >=
+                    SurgeryEmergencyCauseRules.AcuteBleedingMinimum);
             string procedureId = "procedure:emergency-suture";
 
             if (target == null)
@@ -374,7 +421,8 @@ public sealed class SurgeryRuntime :
                 target = snapshot.Nodes
                     .Where(node => node != null && !node.missing)
                     .OrderByDescending(node => node.infection)
-                    .FirstOrDefault(node => node.infection >= 35f);
+                    .FirstOrDefault(node => node.infection >=
+                        SurgeryEmergencyCauseRules.AcuteInfectionMinimum);
                 procedureId = "procedure:foreign-body-removal";
             }
 
@@ -390,7 +438,10 @@ public sealed class SurgeryRuntime :
                     .OrderByDescending(node => node.infection)
                     .ThenBy(node => node.HealthRatio)
                     .FirstOrDefault(node =>
-                        node.infection >= 80f || node.HealthRatio <= 0.01f);
+                        node.infection >=
+                            SurgeryEmergencyCauseRules.CriticalInfectionMinimum
+                        || node.HealthRatio <= SurgeryEmergencyCauseRules
+                            .CriticalHealthRatioMaximum);
                 procedureId = "procedure:amputation";
             }
 
@@ -477,6 +528,7 @@ public sealed class SurgeryRuntime :
         order = orders
             .Where(candidate => candidate != null
                 && candidate.IsActive
+                && !candidate.resultRolled
                 && candidate.state is SurgeryOrderState.Anesthetizing
                     or SurgeryOrderState.Incision
                     or SurgeryOrderState.Procedure
@@ -598,9 +650,19 @@ public sealed class SurgeryRuntime :
             return false;
         }
 
+        if (!planning.ValidateSubject(
+                order.subject,
+                procedure,
+                order.targetNodeId,
+                out failure))
+        {
+            order = null;
+            return false;
+        }
+
         SurgicalFacilitySnapshot snapshot = facilities.Evaluate(
             facility,
-            procedure.RequiredFacilityTags);
+            procedure);
         if (!snapshot.IsAvailable)
         {
             order = null;
@@ -675,6 +737,18 @@ public sealed class SurgeryRuntime :
                 FailureCode.SurgeryFacilityOrProcedureMissing,
                 order.facilityId,
                 order.procedureId);
+            return false;
+        }
+
+        if (!ValidateCharacterNodeRemovalOwnership(
+                order.subject,
+                procedure,
+                order.targetNodeId,
+                out failure))
+        {
+            order.statusData.Set(
+                SurgeryStatusCode.ProcedurePaused,
+                failure.ToString());
             return false;
         }
 
@@ -788,7 +862,26 @@ public sealed class SurgeryRuntime :
             return true;
         }
 
-        order.resultRolled = true;
+        if (!planning.ValidateSubject(
+                order.subject,
+                procedure,
+                order.targetNodeId,
+                out failure))
+        {
+            order.statusData.Set(SurgeryStatusCode.ProcedurePaused);
+            return false;
+        }
+
+        if (!TryPrepareReplacementOutput(
+                order,
+                procedure,
+                facility,
+                out failure))
+        {
+            order.statusData.Set(SurgeryStatusCode.ProcedurePaused);
+            return false;
+        }
+
         completed = ResolveOutcome(order, procedure, facility, out failure);
         order.doctorId = string.Empty;
         // The clinical outcome is now final even when the physical terminal
@@ -922,6 +1015,22 @@ public sealed class SurgeryRuntime :
         {
             return false;
         }
+        if (!ValidateCharacterNodeRemovalOwnership(
+                subject,
+                procedure,
+                targetNodeId,
+                out failure))
+        {
+            return false;
+        }
+        if (!ValidateReplacementScope(
+                subject,
+                procedure,
+                targetNodeId,
+                out failure))
+        {
+            return false;
+        }
 
         if (orders.Any(candidate => candidate != null
             && candidate.IsActive
@@ -949,7 +1058,7 @@ public sealed class SurgeryRuntime :
 
             facility = facilities.Evaluate(
                 preferred,
-                procedure.RequiredFacilityTags);
+                procedure);
             if (!facility.IsAvailable)
             {
                 failure = new DomainFailure(
@@ -998,21 +1107,52 @@ public sealed class SurgeryRuntime :
                 }
                 return false;
             }
+            if (subject.kind == SurgicalSubjectKind.Wildlife
+                && parts.TryGet(
+                    selectedPartInstanceId,
+                    out SurgicalPartInstance recovered)
+                && recovered.detachedDurabilityMaximum > 0f)
+            {
+                parts.ReleaseReservation(selectedPartInstanceId, id);
+                failure = new DomainFailure(
+                    FailureCode.SurgerySubjectKindUnsupported,
+                    selectedPartInstanceId,
+                    "recovered-part-reinstall-character-only");
+                return false;
+            }
         }
 
+        bool facilityAlreadyOwned = orders.Any(candidate =>
+            candidate?.IsActive == true
+            && candidate.OwnsMaterialAuthority
+            && string.Equals(
+                candidate.facilityId,
+                facilities.GetFacilityId(facility.PrimaryFacility),
+                StringComparison.Ordinal));
+        string normalizedTargetNodeId = string.IsNullOrWhiteSpace(targetNodeId)
+            ? procedure.TargetNodeId
+            : targetNodeId.Trim();
         order = new SurgeryOrder
         {
             orderId = id,
             procedureId = procedure.ProcedureId,
+            emergencyCause = ClassifyEmergencyCause(
+                subject,
+                procedure,
+                normalizedTargetNodeId),
             subject = subject.Clone(),
-            targetNodeId = string.IsNullOrWhiteSpace(targetNodeId)
-                ? procedure.TargetNodeId
-                : targetNodeId.Trim(),
+            targetNodeId = normalizedTargetNodeId,
             selectedPartInstanceId = selectedPartInstanceId?.Trim() ?? string.Empty,
+            replacementExpectedOldPartId =
+                CapturePlannedReplacementPartId(
+                    subject,
+                    procedure,
+                    targetNodeId),
             preferredDoctorId = normalizedDoctorId,
             facilityId = facilities.GetFacilityId(facility.PrimaryFacility),
-            materialDestinationId =
-                SurgeryMaterialDestinationAuthority.BuildDestinationId(id),
+            materialDestinationId = facilityAlreadyOwned
+                ? string.Empty
+                : SurgeryMaterialDestinationAuthority.BuildDestinationId(id),
             state = SurgeryOrderState.PatientWaiting,
             requiredWork = procedure.RequiredWork,
             anesthesiaWork = procedure.RequiredWork * 0.15f,
@@ -1026,7 +1166,8 @@ public sealed class SurgeryRuntime :
             },
             createdAt = clock.Time
         };
-        if (!materialDestinations.TryClaim(
+        if (!facilityAlreadyOwned
+            && !materialDestinations.TryClaim(
                 order,
                 facility.PrimaryFacility,
                 out string claimReason))
@@ -1046,6 +1187,10 @@ public sealed class SurgeryRuntime :
         }
         orderSequence = nextOrderSequence;
         orders.Add(order);
+        if (facilityAlreadyOwned)
+        {
+            return true;
+        }
         surgeryLogistics.RequestMissingMaterials(order, facility.PrimaryFacility);
         surgeryLogistics.PrepareAdmission(order, facility.PrimaryFacility);
         // RequestMissingMaterials performs the single urgent handoff when it
@@ -1084,8 +1229,267 @@ public sealed class SurgeryRuntime :
             return true;
         }
 
+        if (order.resultRolled)
+        {
+            failure = new DomainFailure(
+                FailureCode.ProductionOutputUnavailable,
+                order.orderId,
+                "frozen-outcome-finalization-required");
+            return false;
+        }
+
+        if (order.replacementPhase ==
+            SurgicalPartReplacementPhase.OutputReserved)
+        {
+            if (!TryAbortReplacementForCancellation(
+                    order,
+                    out string abortFailure))
+            {
+                failure = new DomainFailure(
+                    FailureCode.ProductionOutputUnavailable,
+                    order.orderId,
+                    abortFailure);
+                return false;
+            }
+        }
+        else if (order.replacementPhase is
+                 SurgicalPartReplacementPhase.BodyCommitted
+                 or SurgicalPartReplacementPhase.OutputPublished
+                 or SurgicalPartReplacementPhase.Completed)
+        {
+            failure = new DomainFailure(
+                FailureCode.ProductionOutputUnavailable,
+                order.orderId,
+                "replacement-commit-forward-required");
+            return false;
+        }
+
+        if (!order.OwnsMaterialAuthority)
+        {
+            CancelQueuedOrder(order);
+            return true;
+        }
+
         BeginCancellation(order);
         return true;
+    }
+
+    private SurgeryEmergencyCause ClassifyEmergencyCause(
+        SurgicalSubjectRef subject,
+        SurgicalProcedureSO procedure,
+        string targetNodeId)
+    {
+        AnatomyHealthSnapshot snapshot;
+        if (subject?.kind == SurgicalSubjectKind.Character)
+        {
+            CharacterActor actor = SurgicalSubjectResolver.FindCharacter(
+                characters,
+                subject.subjectId);
+            if (actor == null)
+            {
+                return SurgeryEmergencyCause.None;
+            }
+            snapshot = anatomy.GetAnatomySnapshot(actor);
+        }
+        else if (subject?.kind == SurgicalSubjectKind.Wildlife)
+        {
+            WildlifeActor actor = SurgicalSubjectResolver.FindWildlife(
+                wildlife,
+                subject.subjectId);
+            if (actor == null)
+            {
+                return SurgeryEmergencyCause.None;
+            }
+            snapshot = wildlifeAnatomy.GetAnatomySnapshot(actor);
+        }
+        else
+        {
+            return SurgeryEmergencyCause.None;
+        }
+
+        AnatomyNodeHealthState node = snapshot.Nodes.FirstOrDefault(candidate =>
+            candidate != null
+            && string.Equals(
+                candidate.nodeId,
+                targetNodeId,
+                StringComparison.Ordinal));
+        AnatomyProfileDefinition profile = anatomyProfiles.TryGet(
+            snapshot.ProfileId,
+            out AnatomyProfileDefinition runtimeProfile)
+                ? runtimeProfile
+                : anatomyProfiles.GetForSpecies(subject.speciesId);
+        return node != null
+            && profile != null
+            && profile.TryGetNode(
+                targetNodeId,
+                out AnatomyNodeDefinition definition)
+                    ? SurgeryEmergencyCauseRules.Classify(
+                        procedure,
+                        node,
+                        definition)
+                    : SurgeryEmergencyCause.None;
+    }
+
+    private bool ValidateCharacterNodeRemovalOwnership(
+        SurgicalSubjectRef subject,
+        SurgicalProcedureSO procedure,
+        string targetNodeId,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        if (subject?.kind != SurgicalSubjectKind.Character
+            || procedure?.Effects?.Any(effect =>
+                effect is RemoveSurgicalNodeEffect) != true)
+        {
+            return true;
+        }
+
+        string nodeId = string.IsNullOrWhiteSpace(targetNodeId)
+            ? procedure.TargetNodeId
+            : targetNodeId.Trim();
+        CharacterActor actor = SurgicalSubjectResolver.FindCharacter(
+            characters,
+            subject.subjectId);
+        AnatomyNodeHealthState node = actor == null
+            ? null
+            : anatomy.GetAnatomySnapshot(actor).Nodes.FirstOrDefault(candidate =>
+                candidate != null
+                && string.Equals(
+                    candidate.nodeId,
+                    nodeId,
+                    StringComparison.Ordinal));
+        if (node == null || string.IsNullOrWhiteSpace(node.installedPartId))
+        {
+            return true;
+        }
+
+        failure = new DomainFailure(
+            FailureCode.SurgeryTargetNodeUnavailable,
+            nodeId,
+            "installed-part-removal-unsupported");
+        return false;
+    }
+
+    private void TryActivateQueuedOrders()
+    {
+        SurgeryOrder[] queued = orders
+            .Where(order => order?.IsActive == true
+                && order.state == SurgeryOrderState.PatientWaiting
+                && !order.HasAnyMaterialAuthority)
+            .OrderByDescending(surgeryEnvironment.GetUrgency)
+            .ThenBy(order => order.createdAt)
+            .ThenBy(order => order.orderId, StringComparer.Ordinal)
+            .ToArray();
+        foreach (IGrouping<string, SurgeryOrder> facilityQueue in queued
+                     .GroupBy(order => order.facilityId, StringComparer.Ordinal))
+        {
+            if (orders.Any(candidate => candidate?.IsActive == true
+                    && candidate.OwnsMaterialAuthority
+                    && string.Equals(
+                        candidate.facilityId,
+                        facilityQueue.Key,
+                        StringComparison.Ordinal)))
+            {
+                continue;
+            }
+
+            SurgeryOrder order = facilityQueue.First();
+            if (!TryResolveFacility(
+                    order.facilityId,
+                    out BuildableObject facility)
+                || !procedures.TryGet(
+                    order.procedureId,
+                    out SurgicalProcedureSO procedure))
+            {
+                CancelQueuedOrder(order);
+                continue;
+            }
+            SurgicalFacilitySnapshot facilityState = facilities.Evaluate(
+                facility,
+                procedure);
+            if (!facilityState.IsAvailable)
+            {
+                order.statusData.Set(
+                    SurgeryStatusCode.FacilityUnavailable,
+                    order.facilityId);
+                continue;
+            }
+            if (!string.IsNullOrWhiteSpace(order.selectedPartInstanceId)
+                && !parts.TryValidateReservationForOrder(
+                    order.selectedPartInstanceId,
+                    order.orderId,
+                    out DomainFailure reservationFailure))
+            {
+                order.statusData.Set(
+                    SurgeryStatusCode.ProcedurePaused,
+                    reservationFailure.ToString());
+                CancelQueuedOrder(order);
+                continue;
+            }
+            if (ProcedureInstallsPart(procedure)
+                && order.subject?.kind == SurgicalSubjectKind.Character
+                && !string.Equals(
+                    CapturePlannedReplacementPartId(
+                        order.subject,
+                        procedure,
+                        order.targetNodeId),
+                    order.replacementExpectedOldPartId,
+                    StringComparison.Ordinal))
+            {
+                order.statusData.Set(
+                    SurgeryStatusCode.ProcedurePaused,
+                    "replacement-expected-old-changed");
+                CancelQueuedOrder(order);
+                continue;
+            }
+
+            order.materialDestinationId =
+                SurgeryMaterialDestinationAuthority.BuildDestinationId(
+                    order.orderId);
+            if (!materialDestinations.TryClaim(
+                    order,
+                    facility,
+                    out string claimFailure))
+            {
+                ClearMaterialAuthority(order);
+                order.statusData.Set(
+                    SurgeryStatusCode.MaterialsDeliveryPending,
+                    claimFailure);
+                continue;
+            }
+
+            surgeryLogistics.RequestMissingMaterials(order, facility);
+            surgeryLogistics.PrepareAdmission(order, facility);
+            workforce.RequestOneHaulerToReplan(forceInterrupt: false);
+            workforce.RequestOneWorkerToReplanFor(
+                BuiltInWorkTypeIds.Surgery,
+                forceInterrupt: true);
+        }
+    }
+
+    private void CancelQueuedOrder(SurgeryOrder order)
+    {
+        if (order == null)
+            return;
+        if (!string.IsNullOrWhiteSpace(order.selectedPartInstanceId))
+        {
+            parts.ReleaseReservation(
+                order.selectedPartInstanceId,
+                order.orderId);
+        }
+        order.doctorId = string.Empty;
+        order.state = SurgeryOrderState.Cancelled;
+        order.statusData.Set(SurgeryStatusCode.Cancelled);
+        order.replacementExpectedOldPartId = string.Empty;
+        ClearMaterialAuthority(order);
+    }
+
+    private static void ClearMaterialAuthority(SurgeryOrder order)
+    {
+        order.materialDestinationId = string.Empty;
+        order.materialBufferCapacityGrams = 0L;
+        order.materialMassAuthorityRevision = 0L;
+        order.materialCapacityFingerprint = string.Empty;
     }
 
     public DungeonSurgerySaveData Capture()
@@ -1102,19 +1506,26 @@ public sealed class SurgeryRuntime :
         float anesthesiaEnd = order.anesthesiaWork;
         float incisionEnd = anesthesiaEnd + order.incisionWork;
         float procedureEnd = incisionEnd + order.procedureWork;
+        bool preserveEmergencyNotice = order.statusData?.code ==
+            SurgeryStatusCode.EmergencyProcedureContinuing;
         if (surgeryEnvironment.RecordClinicalStage(
             order,
             SurgeryOrderState.Anesthetizing))
         {
-            surgeryEnvironment.ApplyRisk(order, doctor, facility);
+            preserveEmergencyNotice = surgeryEnvironment.ApplyRisk(
+                order,
+                doctor,
+                facility);
         }
         if (order.completedWork < anesthesiaEnd)
         {
             order.state = SurgeryOrderState.Anesthetizing;
-            order.statusData.Set(
+            SetClinicalProgressStatus(
+                order,
                 procedure.RequiresAnesthesia
                     ? SurgeryStatusCode.AnesthesiaInProgress
-                    : SurgeryStatusCode.PatientRestraintInProgress);
+                    : SurgeryStatusCode.PatientRestraintInProgress,
+                preserveEmergencyNotice);
             return;
         }
 
@@ -1122,13 +1533,19 @@ public sealed class SurgeryRuntime :
                 order,
                 SurgeryOrderState.Incision))
         {
-            surgeryEnvironment.ApplyRisk(order, doctor, facility);
+            preserveEmergencyNotice = surgeryEnvironment.ApplyRisk(
+                order,
+                doctor,
+                facility);
         }
         order.incisionOpen = true;
         if (order.completedWork < incisionEnd)
         {
             order.state = SurgeryOrderState.Incision;
-            order.statusData.Set(SurgeryStatusCode.IncisionInProgress);
+            SetClinicalProgressStatus(
+                order,
+                SurgeryStatusCode.IncisionInProgress,
+                preserveEmergencyNotice);
             return;
         }
 
@@ -1136,12 +1553,18 @@ public sealed class SurgeryRuntime :
                 order,
                 SurgeryOrderState.Procedure))
         {
-            surgeryEnvironment.ApplyRisk(order, doctor, facility);
+            preserveEmergencyNotice = surgeryEnvironment.ApplyRisk(
+                order,
+                doctor,
+                facility);
         }
         if (order.completedWork < procedureEnd)
         {
             order.state = SurgeryOrderState.Procedure;
-            order.statusData.Set(SurgeryStatusCode.ProcedureInProgress);
+            SetClinicalProgressStatus(
+                order,
+                SurgeryStatusCode.ProcedureInProgress,
+                preserveEmergencyNotice);
             return;
         }
 
@@ -1149,10 +1572,158 @@ public sealed class SurgeryRuntime :
                 order,
                 SurgeryOrderState.Suturing))
         {
-            surgeryEnvironment.ApplyRisk(order, doctor, facility);
+            preserveEmergencyNotice = surgeryEnvironment.ApplyRisk(
+                order,
+                doctor,
+                facility);
         }
         order.state = SurgeryOrderState.Suturing;
-        order.statusData.Set(SurgeryStatusCode.SuturingInProgress);
+        SetClinicalProgressStatus(
+            order,
+            SurgeryStatusCode.SuturingInProgress,
+            preserveEmergencyNotice);
+    }
+
+    private static void SetClinicalProgressStatus(
+        SurgeryOrder order,
+        SurgeryStatusCode status,
+        bool preserveEmergencyNotice)
+    {
+        if (!preserveEmergencyNotice)
+        {
+            order.statusData.Set(status);
+        }
+    }
+
+    private bool ValidateReplacementScope(
+        SurgicalSubjectRef subject,
+        SurgicalProcedureSO procedure,
+        string targetNodeId,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        if (procedure == null
+            || subject?.kind != SurgicalSubjectKind.Wildlife
+            || !ProcedureInstallsPart(procedure))
+        {
+            return true;
+        }
+        string nodeId = string.IsNullOrWhiteSpace(targetNodeId)
+            ? procedure.TargetNodeId
+            : targetNodeId.Trim();
+        WildlifeActor animal = SurgicalSubjectResolver.FindWildlife(
+            wildlife,
+            subject.subjectId);
+        AnatomyNodeHealthState node = animal == null
+            ? null
+            : wildlifeAnatomy.GetAnatomySnapshot(animal)
+                .Nodes.FirstOrDefault(value => value != null
+                    && string.Equals(
+                        value.nodeId,
+                        nodeId,
+                        StringComparison.Ordinal));
+        if (node == null
+            || node.missing
+            || string.IsNullOrWhiteSpace(node.installedPartId))
+            return true;
+        failure = new DomainFailure(
+            FailureCode.SurgerySubjectKindUnsupported,
+            nodeId,
+            "replacement-recovery-character-only");
+        return false;
+    }
+
+    private static bool ProcedureInstallsPart(SurgicalProcedureSO procedure) =>
+        (procedure?.Effects ?? Array.Empty<SurgicalProcedureEffect>())
+        .OfType<InstallSurgicalPartEffect>()
+        .Any();
+
+    private string CapturePlannedReplacementPartId(
+        SurgicalSubjectRef subject,
+        SurgicalProcedureSO procedure,
+        string targetNodeId)
+    {
+        if (subject?.kind != SurgicalSubjectKind.Character
+            || !ProcedureInstallsPart(procedure))
+        {
+            return string.Empty;
+        }
+        string nodeId = string.IsNullOrWhiteSpace(targetNodeId)
+            ? procedure.TargetNodeId
+            : targetNodeId.Trim();
+        return anatomy.GetAnatomySnapshot(subject.subjectId).Nodes
+            .FirstOrDefault(node => node != null
+                && !node.missing
+                && string.Equals(
+                    node.nodeId,
+                    nodeId,
+                    StringComparison.Ordinal))
+            ?.installedPartId?.Trim() ?? string.Empty;
+    }
+
+    private bool TryPrepareReplacementOutput(
+        SurgeryOrder order,
+        SurgicalProcedureSO procedure,
+        BuildableObject facility,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        if (order.replacementPhase != SurgicalPartReplacementPhase.None)
+            return true;
+        if (!ProcedureInstallsPart(procedure))
+            return true;
+        if (!ValidateReplacementScope(
+                order.subject,
+                procedure,
+                order.targetNodeId,
+                out failure))
+        {
+            return false;
+        }
+        if (order.subject?.kind != SurgicalSubjectKind.Character)
+        {
+            return true;
+        }
+
+        CharacterActor character = SurgicalSubjectResolver.FindCharacter(
+            characters,
+            order.subject.subjectId);
+        AnatomyNodeHealthState current = anatomy
+            .GetAnatomySnapshot(character)
+            .Nodes.FirstOrDefault(node => node != null
+                && string.Equals(
+                    node.nodeId,
+                    order.targetNodeId,
+                    StringComparison.Ordinal));
+        if (current == null)
+        {
+            failure = new DomainFailure(
+                FailureCode.SurgeryTargetNodeMissing,
+                order.targetNodeId);
+            return false;
+        }
+        if (current.missing
+            || string.IsNullOrWhiteSpace(current.installedPartId))
+        {
+            return true;
+        }
+        if (!string.Equals(
+                current.installedPartId,
+                order.replacementExpectedOldPartId,
+                StringComparison.Ordinal))
+        {
+            failure = new DomainFailure(
+                FailureCode.SurgeryPartUnavailable,
+                order.replacementExpectedOldPartId,
+                current.installedPartId);
+            return false;
+        }
+        return replacementParts.TryReserveReplacementOutput(
+            order,
+            current,
+            facility.centerPos,
+            outputAdmission,
+            out failure);
     }
 
     private bool ResolveOutcome(
@@ -1165,31 +1736,98 @@ public sealed class SurgeryRuntime :
         CharacterActor doctor = SurgicalSubjectResolver.FindCharacter(
             characters,
             order.doctorId);
-        bool critical = procedure.Urgency == MedicalProcedureUrgency.Emergency
-            || order.risk.deathChance >= .15f
-            || order.risk.successChance <= .50f;
-        ExtremeRiskResolution extremeResolution = default;
-        bool extremeResolved = extremeTraits != null
-            && runSeedProvider != null
-            && doctor != null
-            && extremeTraits.TryResolveMiracleSurgery(
-                doctor,
-                order.orderId,
-                critical,
-                unchecked((ulong)(uint)runSeedProvider.RunSeed),
-                clock.Time,
-                out extremeResolution);
-        bool forcedMiracle = extremeResolved
-            && extremeResolution.Outcome == ExtremeRiskOutcome.Miracle;
-        bool forcedComplication = extremeResolved
-            && extremeResolution.Outcome == ExtremeRiskOutcome.Complication;
-        bool success = forcedMiracle
-            || (!forcedComplication
-                && outcomeRandom.NextFloat() <= order.risk.successChance);
-        if (success)
+        if (!order.resultRolled)
         {
-            foreach (SurgicalProcedureEffect effect in procedure.Effects)
+            IReadOnlyList<SurgicalProcedureEffect> pendingEffects =
+                procedure.Effects ?? Array.Empty<SurgicalProcedureEffect>();
+            foreach (SurgicalProcedureEffect pendingEffect in pendingEffects)
             {
+                if (pendingEffect == null
+                    || !effectHandlers.TryGetValue(
+                        pendingEffect.GetType(),
+                        out ISurgicalProcedureEffectHandler pendingHandler))
+                {
+                    failure = new DomainFailure(
+                        FailureCode.SurgeryEffectHandlerMissing,
+                        pendingEffect?.GetType().Name ?? string.Empty);
+                    order.statusData.Set(SurgeryStatusCode.ProcedurePaused);
+                    return false;
+                }
+                if (!pendingHandler.CanApply(
+                        order,
+                        pendingEffect,
+                        out failure))
+                {
+                    order.statusData.Set(SurgeryStatusCode.ProcedurePaused);
+                    return false;
+                }
+            }
+
+            bool critical = procedure.Urgency ==
+                    MedicalProcedureUrgency.Emergency
+                || order.risk.deathChance >= .15f
+                || order.risk.successChance <= .50f;
+            ExtremeRiskResolution extremeResolution = default;
+            bool extremeResolved = extremeTraits != null
+                && runSeedProvider != null
+                && doctor != null
+                && extremeTraits.TryResolveMiracleSurgery(
+                    doctor,
+                    order.orderId,
+                    critical,
+                    unchecked((ulong)(uint)runSeedProvider.RunSeed),
+                    clock.Time,
+                    out extremeResolution);
+            bool forcedMiracle = extremeResolved
+                && extremeResolution.Outcome == ExtremeRiskOutcome.Miracle;
+            bool forcedComplication = extremeResolved
+                && extremeResolution.Outcome ==
+                    ExtremeRiskOutcome.Complication;
+            order.resultSucceeded = forcedMiracle
+                || (!forcedComplication
+                    && outcomeRandom.NextFloat() <= order.risk.successChance);
+            if (!order.resultSucceeded)
+            {
+                if (forcedComplication)
+                {
+                    order.failureSeverity = SurgeryFailureSeverity.Major;
+                }
+                else
+                {
+                    float severityRoll = outcomeRandom.NextFloat();
+                    order.failureSeverity = severityRoll < 0.6f
+                        ? SurgeryFailureSeverity.Minor
+                        : severityRoll < 0.9f
+                            ? SurgeryFailureSeverity.Major
+                            : SurgeryFailureSeverity.Fatal;
+                }
+            }
+            order.resultOutcomeId = forcedMiracle
+                ? "miracle"
+                : forcedComplication
+                    ? "severe-complication"
+                    : order.resultSucceeded ? "success" : "failure";
+            order.resultRolled = true;
+        }
+
+        if (order.resultSucceeded)
+        {
+            IReadOnlyList<SurgicalProcedureEffect> effects =
+                procedure.Effects ?? Array.Empty<SurgicalProcedureEffect>();
+            if (order.resolvedEffectCount < 0
+                || order.resolvedEffectCount > effects.Count)
+            {
+                failure = new DomainFailure(
+                    FailureCode.SurgeryEffectFailed,
+                    order.orderId,
+                    "resolved-effect-count-invalid");
+                return false;
+            }
+            for (int index = order.resolvedEffectCount;
+                 index < effects.Count;
+                 index++)
+            {
+                SurgicalProcedureEffect effect = effects[index];
                 if (effect == null
                     || !effectHandlers.TryGetValue(
                         effect.GetType(),
@@ -1199,7 +1837,6 @@ public sealed class SurgeryRuntime :
                         FailureCode.SurgeryEffectHandlerMissing,
                         effect?.GetType().Name ?? string.Empty);
                     order.statusData.Set(SurgeryStatusCode.ProcedurePaused);
-                    DriveMaterialTerminal(order, SurgeryOrderState.Failed);
                     return false;
                 }
 
@@ -1210,9 +1847,9 @@ public sealed class SurgeryRuntime :
                         out failure))
                 {
                     order.statusData.Set(SurgeryStatusCode.ProcedurePaused);
-                    DriveMaterialTerminal(order, SurgeryOrderState.Failed);
                     return false;
                 }
+                order.resolvedEffectCount = index + 1;
             }
 
             order.failureSeverity = SurgeryFailureSeverity.None;
@@ -1229,26 +1866,35 @@ public sealed class SurgeryRuntime :
             order.recoveryUntil = clock.Time
                 + RecoverySeconds * Mathf.Max(0f, recoveryDurationMultiplier);
             order.statusData.Set(SurgeryStatusCode.RecoveryObservation);
-            PublishSurgeryWorkCompleted(doctor, order, procedure, forcedMiracle
-                ? "miracle"
-                : "success");
+            PublishSurgeryWorkCompleted(
+                doctor,
+                order,
+                procedure,
+                order.resultOutcomeId);
             return true;
         }
 
-        if (forcedComplication)
+        if (!replacementParts.TryAbortReplacement(
+                order,
+                outputAdmission,
+                out string abortFailure))
         {
-            order.failureSeverity = SurgeryFailureSeverity.Major;
+            order.statusData.Set(SurgeryStatusCode.ProcedurePaused);
+            failure = new DomainFailure(
+                FailureCode.ProductionOutputUnavailable,
+                order.orderId,
+                abortFailure);
+            return false;
         }
-        else
+        if (!order.outcomeConsequencesApplied)
         {
-            float severityRoll = outcomeRandom.NextFloat();
-            order.failureSeverity = severityRoll < 0.6f
-                ? SurgeryFailureSeverity.Minor
-                : severityRoll < 0.9f
-                    ? SurgeryFailureSeverity.Major
-                    : SurgeryFailureSeverity.Fatal;
+            if (!TryApplyFailureConsequences(order, out failure))
+            {
+                order.statusData.Set(SurgeryStatusCode.ProcedurePaused);
+                return false;
+            }
+            order.outcomeConsequencesApplied = true;
         }
-        ApplyFailureConsequences(order);
         order.incisionOpen = false;
         order.statusData.Set(order.failureSeverity switch
         {
@@ -1267,7 +1913,7 @@ public sealed class SurgeryRuntime :
             doctor,
             order,
             procedure,
-            forcedComplication ? "severe-complication" : "failure");
+            order.resultOutcomeId);
         return false;
     }
 
@@ -1289,8 +1935,11 @@ public sealed class SurgeryRuntime :
             Mathf.Max(0, Mathf.FloorToInt(clock.Time / GameCalendarRules.SecondsPerDay))));
     }
 
-    private void ApplyFailureConsequences(SurgeryOrder order)
+    private bool TryApplyFailureConsequences(
+        SurgeryOrder order,
+        out DomainFailure failure)
     {
+        failure = DomainFailure.None;
         CharacterActor patient = SurgicalSubjectResolver.FindCharacter(
             characters,
             order.subject?.subjectId);
@@ -1301,56 +1950,114 @@ public sealed class SurgeryRuntime :
                 order.subject?.subjectId);
             if (animal != null && animal.IsAlive)
             {
-                int damage = order.failureSeverity switch
+                if (order.outcomeConsequenceStep < 2)
                 {
-                    SurgeryFailureSeverity.Minor => Mathf.CeilToInt(animal.MaxHealth * 0.1f),
-                    SurgeryFailureSeverity.Major => Mathf.CeilToInt(animal.MaxHealth * 0.35f),
-                    SurgeryFailureSeverity.Fatal => animal.CurrentHealth,
-                    _ => 0
-                };
-                animal.ApplyDamage(damage, null);
+                    int damage = order.failureSeverity switch
+                    {
+                        SurgeryFailureSeverity.Minor =>
+                            Mathf.CeilToInt(animal.MaxHealth * 0.1f),
+                        SurgeryFailureSeverity.Major =>
+                            Mathf.CeilToInt(animal.MaxHealth * 0.35f),
+                        SurgeryFailureSeverity.Fatal => animal.CurrentHealth,
+                        _ => 0
+                    };
+                    animal.ApplyDamage(damage, null);
+                    order.outcomeConsequenceStep = 2;
+                }
+                return true;
             }
-
-            return;
+            failure = new DomainFailure(
+                FailureCode.SurgeryLivingSubjectUnavailable,
+                order.subject?.subjectId ?? string.Empty,
+                "failure-consequence-subject-missing");
+            return false;
         }
 
         switch (order.failureSeverity)
         {
             case SurgeryFailureSeverity.Minor:
-                anatomy.TryDamageNode(
-                    patient,
-                    order.targetNodeId,
-                    3f,
-                    0.08f,
-                    SurgeryStatusCode.CompletedWithMinorFailure.ToString());
-                anatomy.TryAddNodeBurden(
-                    patient,
-                    order.targetNodeId,
-                    0f,
-                    0f,
-                    order.risk.infectionChance * 20f,
-                    out _);
-                break;
+                if (order.outcomeConsequenceStep < 1)
+                {
+                    if (!anatomy.TryDamageNode(
+                            patient,
+                            order.targetNodeId,
+                            3f,
+                            0.08f,
+                            SurgeryStatusCode.CompletedWithMinorFailure
+                                .ToString()))
+                    {
+                        failure = new DomainFailure(
+                            FailureCode.SurgeryEffectFailed,
+                            order.targetNodeId,
+                            "failure-damage-not-applied");
+                        return false;
+                    }
+                    order.outcomeConsequenceStep = 1;
+                }
+                if (order.outcomeConsequenceStep < 2)
+                {
+                    if (!anatomy.TryAddNodeBurden(
+                            patient,
+                            order.targetNodeId,
+                            0f,
+                            0f,
+                            order.risk.infectionChance * 20f,
+                            out failure))
+                    {
+                        return false;
+                    }
+                    order.outcomeConsequenceStep = 2;
+                }
+                return true;
             case SurgeryFailureSeverity.Major:
-                anatomy.TryDamageNode(
-                    patient,
-                    order.targetNodeId,
-                    10f,
-                    0.25f,
-                    SurgeryStatusCode.CompletedWithMajorFailure.ToString());
-                anatomy.TryAddNodeBurden(
-                    patient,
-                    order.targetNodeId,
-                    5f,
-                    0f,
-                    order.risk.infectionChance * 35f,
-                    out _);
-                break;
+                if (order.outcomeConsequenceStep < 1)
+                {
+                    if (!anatomy.TryDamageNode(
+                            patient,
+                            order.targetNodeId,
+                            10f,
+                            0.25f,
+                            SurgeryStatusCode.CompletedWithMajorFailure
+                                .ToString()))
+                    {
+                        failure = new DomainFailure(
+                            FailureCode.SurgeryEffectFailed,
+                            order.targetNodeId,
+                            "failure-damage-not-applied");
+                        return false;
+                    }
+                    order.outcomeConsequenceStep = 1;
+                }
+                if (order.outcomeConsequenceStep < 2)
+                {
+                    if (!anatomy.TryAddNodeBurden(
+                            patient,
+                            order.targetNodeId,
+                            5f,
+                            0f,
+                            order.risk.infectionChance * 35f,
+                            out failure))
+                    {
+                        return false;
+                    }
+                    order.outcomeConsequenceStep = 2;
+                }
+                return true;
             case SurgeryFailureSeverity.Fatal:
-                patient.Die(
-                    CharacterDeathCauseCode.MedicalProcedureFailure,
-                    "surgery:fatal-procedure-failure");
-                break;
+                if (order.outcomeConsequenceStep < 2)
+                {
+                    patient.Die(
+                        CharacterDeathCauseCode.MedicalProcedureFailure,
+                        "surgery:fatal-procedure-failure");
+                    order.outcomeConsequenceStep = 2;
+                }
+                return true;
+            default:
+                failure = new DomainFailure(
+                    FailureCode.SurgeryEffectFailed,
+                    order.orderId,
+                    "failure-severity-invalid");
+                return false;
         }
     }
 
@@ -1360,10 +2067,80 @@ public sealed class SurgeryRuntime :
         {
             return;
         }
+        if (order.replacementPhase == SurgicalPartReplacementPhase.None
+            && !TryAbortReplacementForCancellation(
+                order,
+                out string replacementFailure))
+        {
+            throw new InvalidOperationException(
+                $"Could not clear surgery replacement intent for "
+                + $"'{order.orderId}': {replacementFailure}");
+        }
 
         order.statusData.Set(SurgeryStatusCode.Cancelled);
         order.doctorId = string.Empty;
         DriveMaterialTerminal(order, SurgeryOrderState.Cancelled);
+    }
+
+    private bool TryBeginInternalCancellation(SurgeryOrder order)
+    {
+        if (order == null)
+            return false;
+        if (order.resultRolled)
+        {
+            order.statusData.Set(
+                SurgeryStatusCode.ProcedurePaused,
+                "frozen-outcome-finalization-required");
+            return false;
+        }
+        if (order.replacementPhase ==
+            SurgicalPartReplacementPhase.OutputReserved)
+        {
+            if (!TryAbortReplacementForCancellation(
+                    order,
+                    out string abortFailure))
+            {
+                order.statusData.Set(
+                    SurgeryStatusCode.ProcedurePaused,
+                    abortFailure);
+                return false;
+            }
+        }
+        else if (order.replacementPhase is
+                 SurgicalPartReplacementPhase.BodyCommitted
+                 or SurgicalPartReplacementPhase.OutputPublished
+                 or SurgicalPartReplacementPhase.Completed)
+        {
+            order.statusData.Set(
+                SurgeryStatusCode.ProcedurePaused,
+                "replacement-commit-forward-required");
+            return false;
+        }
+
+        BeginCancellation(order);
+        return true;
+    }
+
+    private bool TryAbortReplacementForCancellation(
+        SurgeryOrder order,
+        out string failureReason)
+    {
+        string expectedOldPartId = order.replacementExpectedOldPartId;
+        if (!replacementParts.TryAbortReplacement(
+                order,
+                outputAdmission,
+                out failureReason))
+        {
+            return false;
+        }
+
+        // Material authority was claimed with the planned old part in its
+        // capacity fingerprint. Keep that projection stable until revoke.
+        if (order.OwnsMaterialAuthority)
+        {
+            order.replacementExpectedOldPartId = expectedOldPartId;
+        }
+        return true;
     }
 
     private bool DriveMaterialTerminal(
@@ -1412,9 +2189,21 @@ public sealed class SurgeryRuntime :
                 order.selectedPartInstanceId,
                 order.orderId);
         }
+        if (order.replacementPhase == SurgicalPartReplacementPhase.Completed
+            && !string.IsNullOrWhiteSpace(
+                order.replacementExpectedOldPartId))
+        {
+            parts.ReleaseReservation(
+                order.replacementExpectedOldPartId,
+                order.orderId);
+        }
 
         order.doctorId = string.Empty;
         order.state = terminalTarget;
+        if (order.replacementPhase == SurgicalPartReplacementPhase.None)
+        {
+            order.replacementExpectedOldPartId = string.Empty;
+        }
         switch (terminalTarget)
         {
             case SurgeryOrderState.Completed:

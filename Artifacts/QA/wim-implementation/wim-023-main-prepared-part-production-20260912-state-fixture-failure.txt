@@ -1,0 +1,17 @@
+result=FAIL
+run=third main producer attempt, after actual12recipe proficiency correction
+preparation=crafter:character:staff:1:01; M06:building:b366c76f8a534a2da1d32699bb12f8a5@(13,0)
+Actual arm production ExecuteWork completed and produced one SurgicalPartInstance with exact physical identity and production commit.
+The root test incorrectly asserted input state FacilityBuffer instead of production output state FacilityOutputBuffer.
+Same paused world readback:
+part=surgical-part:1
+item=surgery:prosthetic:arm:left
+physicalItemInstanceId=item-instance:9bdbd115f1594240907684fb7c92511d
+part.worldStackId=stack:ec147a12065345e0b84c18ecffb3081f
+stack.StackId=stack:ec147a12065345e0b84c18ecffb3081f
+stack.ItemInstanceId=item-instance:9bdbd115f1594240907684fb7c92511d
+stack.Quantity=1; State=FacilityOutputBuffer; Position=(13,0)
+DestinationId=production-output:building:b366c76f8a534a2da1d32699bb12f8a5
+sourceProductionCommitId=production-output:production-bill:1:00000001:output:recipe:surgery:prosthetic-arm/000/main/surgery:prosthetic:arm:left:surgery:prosthetic:arm:left:00000000
+Correction=one test enum value only, retain all identity/quantity/destination/position/conservation/retry/capacity assertions. No production state or output behavior change.
+This is partial observed arm production, not complete two-case test PASS or natural hauling/install evidence.

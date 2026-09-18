@@ -1,0 +1,9 @@
+{
+  "catalogHash": "sha256:38706406b7a4192ff8408d34a44c507a4b94ae308da9a82cceb3feb42545bd25",
+  "evidenceGateCount": 4,
+  "exportDirectory": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Artifacts\\Exports\\NarrativeMechanicCatalog\\20260915-v26-training-preflight-r4",
+  "humanApprovalClaimed": false,
+  "inputDigest": "sha256:fafc75af266d751b3363b36fa58ee799c5c2310aac65a3496ca97af0cdf55d59",
+  "status": "PASS",
+  "trainingEligible": false
+}

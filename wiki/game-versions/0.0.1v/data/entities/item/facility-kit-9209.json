@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "강철로 만든 신격상을 세우고 기계 신앙을 공표할 때 쓰는 설치 부품이며, 제4주조도시에서도 이 부품의 치수를 알아본다.",
+  "in_game_description": "강철로 만든 신격상을 세우고 기계 신앙을 공표할 때 쓰는 설치 부품이다. 제4주조도시의 골렘은 강철 신격상에 참여한 제작자의 기억판을 완성 순서대로 안치한다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

@@ -6,6 +6,11 @@ using UnityEngine;
 
 public interface IItemTransferService
 {
+    bool TryReleaseExactOwnedWholeStack(
+        ExactOwnedItemReleaseRequest request,
+        out PhysicalItemRelocationReceipt receipt,
+        out string failureReason);
+
     bool TryRequestItemDelivery(
         string itemId,
         int amount,
@@ -169,6 +174,50 @@ public interface IItemTransferService
     bool ReleaseQuantityReservation(
         string leaseId,
         ItemReservationReleaseReason reason);
+}
+
+internal interface IMemoryErasureSealStoredCargoReturnService
+{
+    bool TryReturnCarriedMemoryErasureSealToStoredSource(
+        CharacterActor actor,
+        CharacterCarryInventory carry,
+        string ownerOperationId,
+        out string failureReason);
+}
+
+public readonly struct ExactOwnedItemReleaseRequest
+{
+    public ExactOwnedItemReleaseRequest(
+        string stackId,
+        string itemId,
+        string itemInstanceId,
+        int quantity,
+        WorldItemStackState sourceState,
+        string ownerDestinationId,
+        string ownerDomain,
+        string operationId,
+        string reasonCode)
+    {
+        StackId = stackId ?? string.Empty;
+        ItemId = itemId ?? string.Empty;
+        ItemInstanceId = itemInstanceId ?? string.Empty;
+        Quantity = quantity;
+        SourceState = sourceState;
+        OwnerDestinationId = ownerDestinationId ?? string.Empty;
+        OwnerDomain = ownerDomain ?? string.Empty;
+        OperationId = operationId ?? string.Empty;
+        ReasonCode = reasonCode ?? string.Empty;
+    }
+
+    public string StackId { get; }
+    public string ItemId { get; }
+    public string ItemInstanceId { get; }
+    public int Quantity { get; }
+    public WorldItemStackState SourceState { get; }
+    public string OwnerDestinationId { get; }
+    public string OwnerDomain { get; }
+    public string OperationId { get; }
+    public string ReasonCode { get; }
 }
 
 public readonly struct ItemTransitDestination
@@ -522,6 +571,7 @@ public sealed class ItemTransferService :
     IReservedItemTransferService,
     IReservedRetailStockTransferService,
     ICarriedItemDropService,
+    IMemoryErasureSealStoredCargoReturnService,
     IProductionCapacityRoutingActorQuiescence
 {
     private readonly IDungeonItemCatalogProvider catalogProvider;
@@ -545,6 +595,7 @@ public sealed class ItemTransferService :
     private readonly IFacilityBufferMassAdmissionService
         facilityBufferMassAdmission;
     private readonly IPhysicalItemMassQuery physicalMass;
+    private readonly IPhysicalItemRelocationService physicalItemRelocations;
     private readonly IRetailStockPhysicalRuntime retailStockPhysical;
     private long facilityConsumptionSequence;
     private long directConsumptionSequence;
@@ -568,6 +619,7 @@ public sealed class ItemTransferService :
         IItemQuantityReservationService quantityReservations,
         IItemQuantityLeaseMutation quantityLeaseMutations,
         IBufferStackAggregationService bufferAggregation,
+        IPhysicalItemRelocationService physicalItemRelocations,
         IWarehouseMassAdmissionService warehouseMassAdmission = null,
         IRetailStockPhysicalRuntime retailStockPhysical = null,
         IFacilityBufferMassAdmissionService
@@ -605,9 +657,123 @@ public sealed class ItemTransferService :
             ?? throw new ArgumentNullException(nameof(quantityLeaseMutations));
         this.bufferAggregation = bufferAggregation
             ?? throw new ArgumentNullException(nameof(bufferAggregation));
+        this.physicalItemRelocations = physicalItemRelocations
+            ?? throw new ArgumentNullException(nameof(physicalItemRelocations));
         this.warehouseMassAdmission = warehouseMassAdmission;
         this.retailStockPhysical = retailStockPhysical;
         this.facilityBufferMassAdmission = facilityBufferMassAdmission;
+    }
+
+    [GameplayInternalOnly(
+        "Releases one exact owner-claimed whole stack to an existing legal outbound cell without changing its identity.",
+        "SurgicalPartRuntime freshness expiry only")]
+    public bool TryReleaseExactOwnedWholeStack(
+        ExactOwnedItemReleaseRequest request,
+        out PhysicalItemRelocationReceipt receipt,
+        out string failureReason)
+    {
+        receipt = default;
+        failureReason = string.Empty;
+        if (!IsCanonicalRequired(request.StackId)
+            || !IsCanonicalRequired(request.ItemId)
+            || !IsCanonicalRequired(request.ItemInstanceId)
+            || request.Quantity <= 0
+            || request.SourceState is not (WorldItemStackState.Stored
+                or WorldItemStackState.FacilityBuffer)
+            || !IsCanonicalRequired(request.OwnerDestinationId)
+            || !IsCanonicalOptional(request.OwnerDomain)
+            || !IsCanonicalRequired(request.OperationId)
+            || !IsCanonicalRequired(request.ReasonCode))
+        {
+            failureReason = "owned-item-release-invalid-request";
+            return false;
+        }
+        if (!repository.RecordsById.TryGetValue(
+                request.StackId,
+                out WorldItemStackRecord source)
+            || source == null
+            || source.quantity != request.Quantity
+            || source.reservedQuantity != 0
+            || !string.IsNullOrEmpty(source.reservedByPersistentId)
+            || source.state != request.SourceState
+            || !string.Equals(source.itemId, request.ItemId,
+                StringComparison.Ordinal)
+            || !string.Equals(source.itemInstanceId, request.ItemInstanceId,
+                StringComparison.Ordinal)
+            || !string.Equals(source.destinationId,
+                request.OwnerDestinationId, StringComparison.Ordinal)
+            || !string.IsNullOrEmpty(source.sourceStorageDestinationId)
+            || FacilityOutputExactRouteCustodyCodec.HasAnyCustody(
+                source.components))
+        {
+            failureReason = "owned-item-release-source-mismatch";
+            return false;
+        }
+
+        bool ownerMatches = request.SourceState switch
+        {
+            WorldItemStackState.Stored =>
+                request.OwnerDomain.Length == 0
+                && worldRegistry.Warehouses.Count(warehouse =>
+                    IsExactLiveWarehouseOwner(
+                        warehouse,
+                        request.OwnerDestinationId,
+                        source.position)) == 1,
+            WorldItemStackState.FacilityBuffer =>
+                request.OwnerDomain.Length > 0
+                && destinationClaims.TryGetClaim(
+                    request.OwnerDestinationId,
+                    source.position,
+                    out FacilityBufferDestinationClaim claim)
+                && claim != null
+                && claim.AnchorKind ==
+                    FacilityBufferDestinationAnchorKind.LiveFacility
+                && string.Equals(claim.OwnerDomain,
+                    request.OwnerDomain, StringComparison.Ordinal)
+                && string.Equals(claim.OwnerFacilityId,
+                    request.OwnerDestinationId, StringComparison.Ordinal),
+            _ => false
+        };
+        if (!ownerMatches)
+        {
+            failureReason = "owned-item-release-owner-mismatch";
+            return false;
+        }
+        if (!gridSystemProvider.TryGetGrid(out Grid grid)
+            || grid == null
+            || !grid.TryFindNearbyWalkablePositionOnSameFloor(
+                source.position,
+                out Vector2Int outboundPosition,
+                maxDistance: 1))
+        {
+            failureReason = "owned-item-release-outbound-cell-unavailable";
+            return false;
+        }
+
+        if (!physicalItemRelocations.TryRelocateQuantity(
+                source.stackId,
+                source.quantity,
+                outboundPosition,
+                WorldItemStackState.Loose,
+                string.Empty,
+                request.OperationId,
+                request.ReasonCode,
+                out receipt,
+                out failureReason))
+        {
+            return false;
+        }
+        if (!receipt.IsCommitted
+            || !string.Equals(receipt.SourceStackId,
+                request.StackId, StringComparison.Ordinal)
+            || !string.Equals(receipt.DestinationStackId,
+                request.StackId, StringComparison.Ordinal)
+            || receipt.Quantity != request.Quantity)
+        {
+            throw new InvalidOperationException(
+                "Exact owned-item release committed without preserving its whole-stack identity.");
+        }
+        return true;
     }
 
     [GameplayInternalOnly(
@@ -2711,6 +2877,352 @@ public sealed class ItemTransferService :
         return true;
     }
 
+    [GameplayInternalOnly(
+        "An active memory-erasure order returns its one exact carried unit to the preserved source stack and warehouse through mass admission.",
+        "WorldItemStackRuntime")]
+    public bool TryReturnCarriedMemoryErasureSealToStoredSource(
+        CharacterActor actor,
+        CharacterCarryInventory carry,
+        string ownerOperationId,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        string operationId = ownerOperationId?.Trim() ?? string.Empty;
+        if (actor == null
+            || carry == null
+            || operationId.Length == 0
+            || warehouseMassAdmission == null)
+        {
+            failureReason =
+                "memory-erasure-seal-stored-return-invalid-request";
+            return false;
+        }
+
+        string actorId = characterIdRegistry.GetOrAssignPersistentId(actor);
+        quantityReservations.ReleaseByOwner(
+            operationId,
+            ItemReservationReleaseReason.Cancelled);
+        if (quantityReservations.TryGetLeasesByOwner(
+                operationId,
+                out IReadOnlyList<ItemQuantityLease> remainingLeases)
+            && remainingLeases.Count > 0)
+        {
+            failureReason =
+                "memory-erasure-seal-stored-return-lease-still-active";
+            return false;
+        }
+        CharacterCarriedItemSaveData[] owned = carry.Items
+            .Where(value => value != null
+                && value.quantity > 0
+                && string.Equals(
+                    value.ownerOperationId,
+                    operationId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    value.itemId,
+                    MemoryErasureSealItemRules.ItemId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        if (owned.Length != 1
+            || owned[0].quantity != MemoryErasureSealItemRules.UseQuantity)
+        {
+            failureReason =
+                "memory-erasure-seal-stored-return-cargo-mismatch";
+            return false;
+        }
+
+        CharacterCarriedItemSaveData carriedMirror = owned[0];
+        string carriedStackId = carriedMirror.carriedStackId?.Trim()
+            ?? string.Empty;
+        string sourceStackId = carriedMirror.sourceStackId?.Trim()
+            ?? string.Empty;
+        if (carriedStackId.Length == 0
+            || sourceStackId.Length == 0
+            || !repository.RecordsById.TryGetValue(
+                carriedStackId,
+                out WorldItemStackRecord carried)
+            || carried == null
+            || carried.state != WorldItemStackState.Carried
+            || carried.quantity != MemoryErasureSealItemRules.UseQuantity
+            || !string.Equals(
+                carried.destinationId,
+                actorId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                carried.itemId,
+                MemoryErasureSealItemRules.ItemId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                carried.itemInstanceId,
+                carriedMirror.itemInstanceId,
+                StringComparison.Ordinal)
+            || carried.wasteOrigin != carriedMirror.wasteOrigin
+            || !Mathf.Approximately(
+                carried.contamination,
+                carriedMirror.contamination)
+            || !string.Equals(
+                ItemStackSignature.Create(
+                    carried.itemId,
+                    carried.components),
+                carriedMirror.GetStackSignature(),
+                StringComparison.Ordinal)
+            || string.IsNullOrWhiteSpace(
+                carried.sourceStorageDestinationId))
+        {
+            failureReason =
+                "memory-erasure-seal-stored-return-physical-mismatch";
+            return false;
+        }
+
+        string sourceStorageDestinationId =
+            carried.sourceStorageDestinationId.Trim();
+        IWarehouseFacility sourceWarehouse = GetWarehouses()
+            .FirstOrDefault(candidate =>
+            {
+                try
+                {
+                    return string.Equals(
+                        GetWarehouseStorageDestinationId(candidate),
+                        sourceStorageDestinationId,
+                        StringComparison.Ordinal);
+                }
+                catch (InvalidOperationException)
+                {
+                    return false;
+                }
+            });
+        Vector2Int warehousePosition =
+            ResolveWarehouseStoragePosition(sourceWarehouse);
+        Vector2Int actorPosition = ResolveActorGridPosition(actor);
+        if (!IsExactLiveWarehouseOwner(
+                sourceWarehouse,
+                sourceStorageDestinationId,
+                warehousePosition)
+            || Mathf.Abs(actorPosition.x - warehousePosition.x)
+                + Mathf.Abs(actorPosition.y - warehousePosition.y) > 1
+            || !catalogProvider.TryGetDefinition(
+                carried.itemId,
+                out DungeonItemDefinition definition)
+            || !sourceWarehouse.Inventory.Accepts(definition.StockCategory))
+        {
+            failureReason =
+                "memory-erasure-seal-stored-return-source-unavailable";
+            return false;
+        }
+
+        bool sourceIdentityTransferred = string.Equals(
+            carriedStackId,
+            sourceStackId,
+            StringComparison.Ordinal);
+        WorldItemStackRecord source = null;
+        if (!sourceIdentityTransferred
+            && (!repository.RecordsById.TryGetValue(sourceStackId, out source)
+                || source == null
+                || source.state != WorldItemStackState.Stored
+                || source.position != warehousePosition
+                || !string.Equals(
+                    source.destinationId,
+                    sourceStorageDestinationId,
+                    StringComparison.Ordinal)
+                || !string.IsNullOrEmpty(
+                    source.sourceStorageDestinationId)
+                || source.reservedQuantity != 0
+                || !string.IsNullOrEmpty(source.reservedByPersistentId)
+                || source.quantity <= 0
+                || source.quantity >= definition.MaxStack
+                || !string.Equals(
+                    source.itemId,
+                    carried.itemId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    source.itemInstanceId,
+                    carried.itemInstanceId,
+                    StringComparison.Ordinal)
+                || source.wasteOrigin != carried.wasteOrigin
+                || !Mathf.Approximately(
+                    source.contamination,
+                    carried.contamination)
+                || !string.Equals(
+                    ItemStackSignature.Create(
+                        source.itemId,
+                        source.components),
+                    ItemStackSignature.Create(
+                        carried.itemId,
+                        carried.components),
+                    StringComparison.Ordinal)))
+        {
+            failureReason =
+                "memory-erasure-seal-stored-return-source-stack-changed";
+            return false;
+        }
+
+        BuildingInstanceId warehouseId =
+            sourceWarehouse.PersistentInstanceId;
+        long capacityRevision = warehouseMassAdmission
+            .GetWarehouseCapacityRevision(warehouseId);
+        string admissionOperationId = operationId
+            + ":stored-return:"
+            + sourceStackId
+            + ":revision:"
+            + capacityRevision.ToString(
+                System.Globalization.CultureInfo.InvariantCulture);
+        ItemDefinitionId itemId = new(carried.itemId);
+        WarehouseMassAdmissionRequest request = new(
+            warehouseId,
+            admissionOperationId,
+            itemId,
+            carried.itemInstanceId,
+            ItemReservationSignature.Create(
+                carried.itemId,
+                carried.components),
+            MemoryErasureSealItemRules.UseQuantity,
+            capacityRevision,
+            warehouseMassAdmission.CatalogRevision,
+            repository.ItemStackVersion,
+            warehouseMassAdmission.PrepareMassSubject(
+                itemId,
+                carried.itemInstanceId,
+                carried.components));
+        if (!warehouseMassAdmission.TryReserve(
+                request,
+                out WarehouseMassAdmissionToken token,
+                out DomainFailure admissionFailure))
+        {
+            failureReason = admissionFailure.ToString();
+            return false;
+        }
+        if (token.AcceptedQuantity != MemoryErasureSealItemRules.UseQuantity)
+        {
+            warehouseMassAdmission.TryRelease(
+                token.TokenId,
+                WarehouseMassAdmissionReleaseReason.TransactionRollback,
+                out _);
+            failureReason =
+                "memory-erasure-seal-stored-return-admission-partial";
+            return false;
+        }
+
+        CharacterCarryInventorySaveData carryBefore = carry.Capture();
+        Vector2Int carriedPosition = carried.position;
+        WorldItemStackState carriedState = carried.state;
+        string carriedDestinationId = carried.destinationId;
+        string carriedSourceStorageDestinationId =
+            carried.sourceStorageDestinationId;
+        bool carriedHasDestinationPosition =
+            carried.hasDestinationPosition;
+        Vector2Int carriedDestinationPosition =
+            carried.destinationPosition;
+        string carriedAggregationCohortId =
+            carried.aggregationCohortId;
+        string carriedReservedByPersistentId =
+            carried.reservedByPersistentId;
+        int carriedReservedQuantity = carried.reservedQuantity;
+        bool physicalMutated = false;
+        try
+        {
+            if (!carry.TryConsumeCarriedStack(
+                    carriedStackId,
+                    MemoryErasureSealItemRules.ItemId,
+                    MemoryErasureSealItemRules.UseQuantity))
+            {
+                warehouseMassAdmission.TryRelease(
+                    token.TokenId,
+                    WarehouseMassAdmissionReleaseReason.TransactionRollback,
+                    out _);
+                failureReason =
+                    "memory-erasure-seal-stored-return-carry-debit-failed";
+                return false;
+            }
+
+            if (sourceIdentityTransferred)
+            {
+                repository.Relocate(carried, warehousePosition);
+                carried.state = WorldItemStackState.Stored;
+                carried.destinationId = sourceStorageDestinationId;
+                carried.sourceStorageDestinationId = string.Empty;
+                carried.hasDestinationPosition = false;
+                carried.destinationPosition = default;
+                carried.aggregationCohortId = string.Empty;
+                carried.reservedByPersistentId = string.Empty;
+                carried.reservedQuantity = 0;
+                repository.MarkChanged();
+            }
+            else
+            {
+                source.quantity = checked(
+                    source.quantity
+                    + MemoryErasureSealItemRules.UseQuantity);
+                repository.Remove(carried);
+            }
+            physicalMutated = true;
+            markerPresenter.RefreshAt(carriedPosition);
+            markerPresenter.RefreshAt(warehousePosition);
+
+            if (warehouseMassAdmission.TryCommit(
+                    token.TokenId,
+                    admissionOperationId + ":commit",
+                    out WarehouseMassAdmissionReceipt receipt,
+                    out admissionFailure)
+                && receipt.CommittedQuantity
+                    == MemoryErasureSealItemRules.UseQuantity)
+            {
+                return true;
+            }
+
+            failureReason = admissionFailure.IsFailure
+                ? admissionFailure.ToString()
+                : "memory-erasure-seal-stored-return-commit-invalid";
+        }
+        catch (Exception exception)
+        {
+            failureReason =
+                "memory-erasure-seal-stored-return-exception:"
+                + exception.Message;
+        }
+
+        if (physicalMutated)
+        {
+            if (sourceIdentityTransferred)
+            {
+                repository.Relocate(carried, carriedPosition);
+                carried.state = carriedState;
+                carried.destinationId = carriedDestinationId;
+                carried.sourceStorageDestinationId =
+                    carriedSourceStorageDestinationId;
+                carried.hasDestinationPosition =
+                    carriedHasDestinationPosition;
+                carried.destinationPosition =
+                    carriedDestinationPosition;
+                carried.aggregationCohortId = carriedAggregationCohortId;
+                carried.reservedByPersistentId =
+                    carriedReservedByPersistentId;
+                carried.reservedQuantity = carriedReservedQuantity;
+                repository.MarkChanged();
+            }
+            else
+            {
+                source.quantity = checked(
+                    source.quantity
+                    - MemoryErasureSealItemRules.UseQuantity);
+                repository.Add(carried);
+            }
+            markerPresenter.RefreshAt(warehousePosition);
+            markerPresenter.RefreshAt(carriedPosition);
+        }
+        carry.Restore(carryBefore);
+        if (warehouseMassAdmission.TryGetStatus(
+                token.TokenId,
+                out WarehouseMassAdmissionStatusSnapshot status)
+            && status.Status == WarehouseMassAdmissionTokenStatus.Reserved)
+        {
+            warehouseMassAdmission.TryRelease(
+                token.TokenId,
+                WarehouseMassAdmissionReleaseReason.TransactionRollback,
+                out _);
+        }
+        return false;
+    }
+
     public bool TryDepositCarriedItems(
         CharacterActor actor,
         CharacterCarryInventory inventory,
@@ -4620,6 +5132,41 @@ public sealed class ItemTransferService :
             ? building.centerPos
             : Vector2Int.zero;
     }
+
+    private static bool IsExactLiveWarehouseOwner(
+        IWarehouseFacility warehouse,
+        string expectedDestinationId,
+        Vector2Int expectedPosition)
+    {
+        if (warehouse == null
+            || !warehouse.HasWarehouseInventory
+            || warehouse.Inventory == null
+            || warehouse is BuildableObject building
+                && (building.isDestroy || building.IsGridDestroyed)
+            || ResolveWarehouseStoragePosition(warehouse) != expectedPosition)
+        {
+            return false;
+        }
+        try
+        {
+            return string.Equals(
+                WarehouseStorageIdentity.RequireDestinationId(warehouse),
+                expectedDestinationId,
+                StringComparison.Ordinal);
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
+    }
+
+    private static bool IsCanonicalRequired(string value) =>
+        !string.IsNullOrEmpty(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
+
+    private static bool IsCanonicalOptional(string value) =>
+        value != null
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
 
     private static bool IsOutboundStoredStack(WorldItemStackRecord stack)
     {

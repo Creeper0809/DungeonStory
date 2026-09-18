@@ -77,6 +77,14 @@ public sealed class DungeonAggregateReferencePreflight :
         if (saveData == null) throw new ArgumentNullException(nameof(saveData));
         if (report == null) throw new ArgumentNullException(nameof(report));
 
+        GameSessionSaveData session =
+            DungeonSaveSectionPayload.ReadOrNew<GameSessionSaveData>(
+                saveData,
+                FoundationSessionSaveSection.Id);
+        SeasonalEventWorldSaveData seasonal =
+            DungeonSaveSectionPayload.ReadOrNew<SeasonalEventWorldSaveData>(
+                saveData,
+                SeasonalWorldEventsSaveSection.Id);
         DungeonPhysicalItemSaveData items =
             DungeonSaveSectionPayload.ReadOrNew<DungeonPhysicalItemSaveData>(
                 saveData,
@@ -89,6 +97,10 @@ public sealed class DungeonAggregateReferencePreflight :
             DungeonSaveSectionPayload.ReadOrNew<CharacterNarrativeWorldSaveData>(
                 saveData,
                 CharacterNarrativeSaveSection.Id);
+        SocietyEventWorldSaveData societyEvents =
+            DungeonSaveSectionPayload.ReadOrNew<SocietyEventWorldSaveData>(
+                saveData,
+                SocietyEventsSaveSection.Id);
         ModularFacilityWorldSaveData buildings =
             DungeonSaveSectionPayload.ReadOrNew<ModularFacilityWorldSaveData>(
                 saveData,
@@ -183,8 +195,10 @@ public sealed class DungeonAggregateReferencePreflight :
             treasury);
 
         PhysicalReferenceIndex physical = ValidatePhysicalItems(items, report);
-        HashSet<string> characterIds = ValidateCharacters(characters, report);
-        AddActiveInvasionCharacterIds(invasion, characterIds, report);
+        CharacterReferenceIndex characterReferences =
+            ValidateCharacters(characters, report);
+        AddActiveInvasionCharacterIds(invasion, characterReferences, report);
+        HashSet<string> characterIds = characterReferences.KnownCharacterIds;
         BuildingReferenceIndex buildingIds = ValidateBuildings(buildings, report);
         ValidateRetailStockJoins(buildings, physical, report);
         ValidateQualityRejectedSaleJoins(
@@ -204,6 +218,12 @@ public sealed class DungeonAggregateReferencePreflight :
             physical,
             buildingIds.InstanceIds,
             report);
+        ValidateSeasonalOffenseOfferJoins(
+            session,
+            seasonal,
+            offense,
+            report);
+        ValidateOffenseArrivalResultJoins(offense, report);
         ValidateCombat(
             combat,
             characterIds,
@@ -236,9 +256,17 @@ public sealed class DungeonAggregateReferencePreflight :
             buildingIds.InstanceIds,
             physical,
             report);
+        HashSet<string> retainedDeadExpeditionActorIds =
+            ValidateRetainedDeadExpeditionActors(
+                characters,
+                offense,
+                kinshipHouseholds,
+                report);
         KinshipReferenceIndex kinship = ValidateKinshipHouseholds(
             kinshipHouseholds,
-            characterIds,
+            characterReferences.LivingCharacterIds,
+            characterReferences.ActorIds,
+            retainedDeadExpeditionActorIds,
             buildingIds.InstanceIds,
             report);
         ValidateReproduction(
@@ -261,12 +289,17 @@ public sealed class DungeonAggregateReferencePreflight :
         ValidateCareers(
             careers,
             characterIds,
+            kinship.TombstoneIds,
             buildingIds.InstanceIds,
             report);
         ValidatePsychosocial(
             psychosocial,
             characterIds,
             kinship.AllCharacterIds,
+            report);
+        ValidateObservedPromotionNarrativeJoins(
+            societyEvents,
+            characterNarrative,
             report);
         ValidateCropEcology(
             cropEcology,
@@ -283,9 +316,114 @@ public sealed class DungeonAggregateReferencePreflight :
         }
     }
 
+    private static void ValidateObservedPromotionNarrativeJoins(
+        SocietyEventWorldSaveData society,
+        CharacterNarrativeWorldSaveData narrative,
+        DungeonGameRestoreReport report)
+    {
+        const string definitionId = "life-event:quiet-promotion";
+        List<ObservedLifeEventReceiptSaveData> receipts =
+            (society?.successfulLifeEventOperations
+                ?? new List<ObservedLifeEventReceiptSaveData>())
+            .Where(value => value?.sourceKind
+                == ObservedLifeEventSourceKind.ProficiencyPromotion)
+            .ToList();
+        List<V20ActiveEventSaveData> occurrences =
+            (society?.activeEvents ?? new List<V20ActiveEventSaveData>())
+            .Concat(society?.recentResolvedEvents
+                ?? new List<V20ActiveEventSaveData>())
+            .Where(value => value != null
+                && string.Equals(
+                    value.definitionId,
+                    definitionId,
+                    StringComparison.Ordinal))
+            .ToList();
+
+        foreach (ObservedLifeEventReceiptSaveData saved in receipts)
+        {
+            if (!ObservedQuietPromotionLifeEventReceipt.TryParse(
+                    saved.canonicalPayload,
+                    out ObservedQuietPromotionLifeEventReceipt receipt)
+                || !string.Equals(
+                    saved.sourceOperationId,
+                    receipt.SourceOperationId,
+                    StringComparison.Ordinal))
+            {
+                report.AddError(
+                    "Quiet-promotion receipt has an invalid exact source payload.");
+                continue;
+            }
+
+            CharacterNarrativeSaveData[] characterMatches =
+                (narrative?.characters
+                    ?? new List<CharacterNarrativeSaveData>())
+                .Where(value => value != null
+                    && string.Equals(
+                        value.characterId,
+                        receipt.CharacterId.Value,
+                        StringComparison.Ordinal))
+                .ToArray();
+            NarrativeSkillExperienceSaveData[] proficiencyMatches =
+                characterMatches.Length == 1
+                    ? (characterMatches[0].skillExperience
+                            ?? new List<NarrativeSkillExperienceSaveData>())
+                        .Where(value => value != null
+                            && string.Equals(
+                                value.proficiencyId,
+                                receipt.ProficiencyId.Value,
+                                StringComparison.Ordinal))
+                        .ToArray()
+                    : Array.Empty<NarrativeSkillExperienceSaveData>();
+            if (characterMatches.Length != 1
+                || proficiencyMatches.Length != 1
+                || proficiencyMatches[0].lifetimeMilliExperience
+                    < receipt.AfterLifetimeMilliExperience)
+            {
+                report.AddError(
+                    $"Quiet-promotion receipt '{receipt.SourceOperationId}' has no exact character/proficiency lifetime join.");
+            }
+
+            V20ActiveEventSaveData[] occurrenceMatches = occurrences
+                .Where(value => string.Equals(
+                    value.instanceId,
+                    saved.occurrenceInstanceId,
+                    StringComparison.Ordinal))
+                .ToArray();
+            if (occurrenceMatches.Length != 1
+                || !occurrenceMatches[0].resolved
+                || !string.Equals(
+                    occurrenceMatches[0].resolutionId,
+                    "automatic",
+                    StringComparison.Ordinal)
+                || occurrenceMatches[0].participantCharacterIds == null
+                || occurrenceMatches[0].participantCharacterIds.Count != 1
+                || !string.Equals(
+                    occurrenceMatches[0].participantCharacterIds[0],
+                    receipt.CharacterId.Value,
+                    StringComparison.Ordinal))
+            {
+                report.AddError(
+                    $"Quiet-promotion receipt '{receipt.SourceOperationId}' has no exact automatic Society occurrence join.");
+            }
+        }
+
+        HashSet<string> receiptOccurrenceIds = receipts
+            .Where(value => value != null)
+            .Select(value => value.occurrenceInstanceId)
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (V20ActiveEventSaveData occurrence in occurrences)
+        {
+            if (!receiptOccurrenceIds.Contains(occurrence.instanceId))
+            {
+                report.AddError(
+                    $"Quiet-promotion occurrence '{occurrence.instanceId}' has no exact proficiency source receipt.");
+            }
+        }
+    }
+
     private static void AddActiveInvasionCharacterIds(
         DungeonInvasionSaveData invasion,
-        ISet<string> characterIds,
+        CharacterReferenceIndex characterReferences,
         DungeonGameRestoreReport report)
     {
         HashSet<string> activeIntruderIds = new(StringComparer.Ordinal);
@@ -305,11 +443,14 @@ public sealed class DungeonAggregateReferencePreflight :
                 continue;
             }
 
-            if (!characterIds.Add(characterId.Value))
+            if (!characterReferences.KnownCharacterIds.Add(characterId.Value))
             {
                 report.AddError(
                     $"Active invasion intruder character '{characterId.Value}' collides with a resident character.");
+                continue;
             }
+
+            characterReferences.LivingCharacterIds.Add(characterId.Value);
         }
     }
 
@@ -604,11 +745,11 @@ public sealed class DungeonAggregateReferencePreflight :
         }
     }
 
-    private HashSet<string> ValidateCharacters(
+    private CharacterReferenceIndex ValidateCharacters(
         DungeonCharacterWorldSaveData source,
         DungeonGameRestoreReport report)
     {
-        HashSet<string> ids = new HashSet<string>(StringComparer.Ordinal);
+        CharacterReferenceIndex result = new();
         foreach (DungeonCharacterSaveData actor in source?.actors
                      ?? new List<DungeonCharacterSaveData>())
         {
@@ -618,12 +759,21 @@ public sealed class DungeonAggregateReferencePreflight :
                 continue;
             }
 
-            RequireUniqueCharacterId(
+            if (RequireUniqueCharacterId(
                 actor.persistentId,
                 "character",
-                ids,
+                result.KnownCharacterIds,
                 report,
-                rejectDuplicate: true);
+                rejectDuplicate: true,
+                out string actorId))
+            {
+                result.ActorIds.Add(actorId);
+                if (actor.lifecycleState != CharacterLifecycleState.Despawned
+                    && actor.currentHealth > 0f)
+                {
+                    result.LivingCharacterIds.Add(actorId);
+                }
+            }
             foreach (CharacterCarriedItemSaveData carried in actor.carryInventory?.items
                          ?? new List<CharacterCarriedItemSaveData>())
             {
@@ -637,15 +787,20 @@ public sealed class DungeonAggregateReferencePreflight :
         foreach (WorldCharacterProfile profile in source?.populationProfiles
                      ?? new List<WorldCharacterProfile>())
         {
-            RequireUniqueCharacterId(
+            if (RequireUniqueCharacterId(
                 profile?.persistentId,
                 "character population profile",
-                ids,
+                result.KnownCharacterIds,
                 report,
-                rejectDuplicate: false);
+                rejectDuplicate: false,
+                out string profileId)
+                && profile.isAlive)
+            {
+                result.LivingCharacterIds.Add(profileId);
+            }
         }
 
-        return ids;
+        return result;
     }
 
     private BuildingReferenceIndex ValidateBuildings(
@@ -1020,6 +1175,198 @@ public sealed class DungeonAggregateReferencePreflight :
         }
     }
 
+    internal static void ValidateSeasonalOffenseOfferJoins(
+        GameSessionSaveData session,
+        SeasonalEventWorldSaveData seasonal,
+        DungeonOffenseAggregateSaveData offense,
+        DungeonGameRestoreReport report)
+    {
+        if (report == null)
+            throw new ArgumentNullException(nameof(report));
+
+        IReadOnlyList<V20ActiveEventSaveData> activeOccurrences =
+            seasonal?.activeEvents ?? new List<V20ActiveEventSaveData>();
+        foreach (OffenseWorldSiteStateData site in offense?.world?.sites
+                     ?? new List<OffenseWorldSiteStateData>())
+        {
+            if (site?.state != OffenseWorldSiteState.Revealed
+                || site.seasonalOffer?.IsConfigured != true)
+            {
+                continue;
+            }
+
+            OffenseSeasonalExpeditionOfferData offer = site.seasonalOffer;
+            V20ActiveEventSaveData[] matches = activeOccurrences
+                .Where(value => value?.seasonalSpecialExpedition?.configured == true
+                    && string.Equals(
+                        value.instanceId,
+                        offer.occurrenceInstanceId,
+                        StringComparison.Ordinal))
+                .Take(2)
+                .ToArray();
+            if (matches.Length != 1)
+            {
+                report.AddError(
+                    $"Revealed seasonal offer '{site.siteId}' does not join exactly one active occurrence '{offer.occurrenceInstanceId}'.");
+                continue;
+            }
+
+            V20ActiveEventSaveData occurrence = matches[0];
+            bool exactLifetime = session != null
+                && session.absoluteDay >= 1
+                && session.absoluteDay <= occurrence.deadlineAbsoluteDay
+                && occurrence.deadlineAbsoluteDay < int.MaxValue
+                && string.Equals(
+                    site.siteId,
+                    "seasonal-expedition:" + occurrence.instanceId,
+                    StringComparison.Ordinal)
+                && site.createdDay == Math.Max(
+                    1,
+                    occurrence.startedAbsoluteDay)
+                && site.expiresDay == occurrence.deadlineAbsoluteDay + 1;
+            if (!exactLifetime)
+            {
+                report.AddError(
+                    $"Revealed seasonal offer '{site.siteId}' has a stale or mismatched occurrence lifetime.");
+                continue;
+            }
+
+            try
+            {
+                SeasonalArcaneEventRules.RequireMatchingOffer(
+                    site,
+                    occurrence);
+            }
+            catch (InvalidOperationException exception)
+            {
+                report.AddError(exception.Message);
+            }
+        }
+    }
+
+    private static void ValidateOffenseArrivalResultJoins(
+        DungeonOffenseAggregateSaveData source,
+        DungeonGameRestoreReport report)
+    {
+        IReadOnlyList<OffenseReturnArrivalState> arrivals =
+            source?.returnArrivals?.arrivals
+            ?? new List<OffenseReturnArrivalState>();
+        IReadOnlyList<DungeonOffenseExpeditionResultSaveData> results =
+            source?.expedition?.resultHistory
+            ?? new List<DungeonOffenseExpeditionResultSaveData>();
+        Dictionary<string, string> arrivalOwners =
+            new(StringComparer.Ordinal);
+        Dictionary<string, int> receiptOccurrences =
+            new(StringComparer.Ordinal);
+        foreach (DungeonOffenseExpeditionResultSaveData result in results)
+        {
+            foreach (DungeonOffenseArrivalReceiptSaveData receipt in
+                     result?.arrivalReceipts
+                     ?? new List<DungeonOffenseArrivalReceiptSaveData>())
+            {
+                string receiptId = receipt?.arrivalId ?? string.Empty;
+                if (receiptId.Length == 0) continue;
+                receiptOccurrences.TryGetValue(receiptId, out int current);
+                receiptOccurrences[receiptId] = checked(current + 1);
+            }
+        }
+
+        foreach (OffenseReturnArrivalState arrival in arrivals)
+        {
+            if (arrival == null
+                || string.IsNullOrWhiteSpace(arrival.arrivalId)
+                || arrivalOwners.ContainsKey(arrival.arrivalId))
+            {
+                report.AddError(
+                    "Offense return-arrival capture contains a missing or duplicate arrival ID.");
+                continue;
+            }
+            arrivalOwners.Add(arrival.arrivalId, arrival.expeditionId);
+
+            DungeonOffenseExpeditionResultSaveData[] matchingResults = results
+                .Where(value => value != null
+                    && string.Equals(
+                        value.expeditionId,
+                        arrival.expeditionId,
+                        StringComparison.Ordinal))
+                .Take(2)
+                .ToArray();
+            DungeonOffenseExpeditionResultSaveData result =
+                matchingResults.Length == 1 ? matchingResults[0] : null;
+            DungeonOffenseArrivalReceiptSaveData[] receipts = result
+                ?.arrivalReceipts
+                ?.Where(value => value != null
+                    && string.Equals(
+                        value.arrivalId,
+                        arrival.arrivalId,
+                        StringComparison.Ordinal))
+                .ToArray()
+                ?? Array.Empty<DungeonOffenseArrivalReceiptSaveData>();
+            OffenseExpeditionArrivalResolution expectedResolution =
+                arrival.stage switch
+                {
+                    OffenseReturnArrivalStage.Secured =>
+                        OffenseExpeditionArrivalResolution.Secured,
+                    OffenseReturnArrivalStage.Escaped =>
+                        OffenseExpeditionArrivalResolution.Escaped,
+                    _ => OffenseExpeditionArrivalResolution.Pending
+                };
+            bool frozenCountsMatch = expectedResolution
+                    == OffenseExpeditionArrivalResolution.Pending
+                || receipts.Length == 1
+                    && receipts[0].materializedAmount
+                        == arrival.settledMaterializedAmount
+                    && receipts[0].securedAmount
+                        == arrival.settledSecuredAmount
+                    && receipts[0].escapedAmount
+                        == arrival.settledEscapedAmount;
+            if (matchingResults.Length != 1
+                || receipts.Length != 1
+                || !receiptOccurrences.TryGetValue(
+                    arrival.arrivalId,
+                    out int receiptOccurrence)
+                || receiptOccurrence != 1
+                || !string.Equals(
+                    receipts[0].kind,
+                    arrival.kind.ToString(),
+                    StringComparison.Ordinal)
+                || receipts[0].requestedAmount != arrival.requestedAmount
+                || receipts[0].resolution != expectedResolution
+                || !frozenCountsMatch)
+            {
+                report.AddError(
+                    $"Offense return-arrival '{arrival.arrivalId}' is torn from its committed result receipt.");
+            }
+        }
+
+        foreach (DungeonOffenseExpeditionResultSaveData result in results
+                     .Where(value => value != null))
+        {
+            foreach (DungeonOffenseArrivalReceiptSaveData receipt in
+                     result.arrivalReceipts
+                     ?? new List<DungeonOffenseArrivalReceiptSaveData>())
+            {
+                string receiptId = receipt?.arrivalId ?? string.Empty;
+                if (receipt == null
+                    || !arrivalOwners.TryGetValue(
+                        receiptId,
+                        out string ownerExpeditionId)
+                    || !string.Equals(
+                        ownerExpeditionId,
+                        result.expeditionId,
+                        StringComparison.Ordinal)
+                    || !receiptOccurrences.TryGetValue(
+                        receiptId,
+                        out int receiptOccurrence)
+                    || receiptOccurrence != 1)
+                {
+                    report.AddError(
+                        $"Offense expedition result '{result.expeditionId}' contains an orphan, foreign-owned, or duplicate return-arrival receipt '{receiptId}'.");
+                }
+            }
+        }
+    }
+
     private void ValidateOffenseReferences(
         DungeonOffenseAggregateSaveData source,
         ISet<string> characterIds,
@@ -1174,6 +1521,35 @@ public sealed class DungeonAggregateReferencePreflight :
                 characterIds,
                 $"Thrown equipment '{thrown.instanceId}' owner",
                 report);
+        }
+
+        foreach (DungeonOffenseExpeditionRunSaveData run in
+                 source?.expedition?.activeExpeditions
+                 ?? new List<DungeonOffenseExpeditionRunSaveData>())
+        {
+            foreach (DungeonOffenseEquipmentBaselineSaveData baseline in
+                     run?.equipmentBaselines
+                     ?? new List<DungeonOffenseEquipmentBaselineSaveData>())
+            {
+                if (baseline != null)
+                {
+                    if (!physical.EquipmentInstances.TryGetValue(
+                            baseline.instanceId,
+                            out CombatEquipmentInstance equipment))
+                    {
+                        report.AddError(
+                            $"Expedition '{run.expeditionId}' equipment baseline references missing equipment '{baseline.instanceId}'.");
+                    }
+                    else if (!string.Equals(
+                                 equipment.definitionId,
+                                 baseline.definitionId,
+                                 StringComparison.Ordinal))
+                    {
+                        report.AddError(
+                            $"Expedition '{run.expeditionId}' equipment baseline '{baseline.instanceId}' does not match its staged equipment definition.");
+                    }
+                }
+            }
         }
     }
 
@@ -1949,9 +2325,76 @@ public sealed class DungeonAggregateReferencePreflight :
         }
     }
 
+    private static HashSet<string> ValidateRetainedDeadExpeditionActors(
+        DungeonCharacterWorldSaveData characters,
+        DungeonOffenseAggregateSaveData offense,
+        KinshipHouseholdWorldSaveData kinshipHouseholds,
+        DungeonGameRestoreReport report)
+    {
+        HashSet<string> activeExpeditionActorIds =
+            (offense?.expedition?.activeExpeditions
+                 ?? new List<DungeonOffenseExpeditionRunSaveData>())
+            .Where(run => run != null)
+            .SelectMany(run =>
+                (run.memberPersistentIds ?? new List<string>())
+                .Concat(run.protectedRescueMemberPersistentIds
+                    ?? new List<string>()))
+            .ToHashSet(StringComparer.Ordinal);
+        HashSet<string> tombstoneIds =
+            (kinshipHouseholds?.kinship?.tombstones
+                 ?? new List<CharacterTombstoneSaveData>())
+            .Where(tombstone => tombstone != null)
+            .Select(tombstone => tombstone.characterId)
+            .ToHashSet(StringComparer.Ordinal);
+        HashSet<string> retained = new(StringComparer.Ordinal);
+
+        foreach (DungeonCharacterSaveData actor in characters?.actors
+                     ?? new List<DungeonCharacterSaveData>())
+        {
+            if (actor == null)
+            {
+                continue;
+            }
+
+            bool deadByLifecycle = actor.lifecycleState
+                == CharacterLifecycleState.Despawned;
+            bool deadByHealth = actor.currentHealth <= 0f;
+            if (!deadByLifecycle && !deadByHealth)
+            {
+                continue;
+            }
+
+            string actorId = actor.persistentId ?? string.Empty;
+            if (deadByLifecycle != deadByHealth)
+            {
+                report.AddError(
+                    $"Retained character actor '{actorId}' has inconsistent death lifecycle and health state.");
+                continue;
+            }
+            if (!activeExpeditionActorIds.Contains(actorId))
+            {
+                report.AddError(
+                    $"Dead character actor '{actorId}' has no active-expedition ownership.");
+                continue;
+            }
+            if (!tombstoneIds.Contains(actorId))
+            {
+                report.AddError(
+                    $"Active-expedition dead character '{actorId}' has no matching tombstone.");
+                continue;
+            }
+
+            retained.Add(actorId);
+        }
+
+        return retained;
+    }
+
     private static KinshipReferenceIndex ValidateKinshipHouseholds(
         KinshipHouseholdWorldSaveData source,
         ISet<string> livingCharacterIds,
+        ISet<string> actorIds,
+        ISet<string> retainedDeadExpeditionActorIds,
         ISet<string> buildingIds,
         DungeonGameRestoreReport report)
     {
@@ -1971,6 +2414,13 @@ public sealed class DungeonAggregateReferencePreflight :
             {
                 report.AddError(
                     $"Character '{tombstone.characterId}' is both living and archived as a tombstone.");
+            }
+            else if (actorIds.Contains(tombstone.characterId)
+                     && !retainedDeadExpeditionActorIds.Contains(
+                         tombstone.characterId))
+            {
+                report.AddError(
+                    $"Character '{tombstone.characterId}' retains an archived actor without exact active-expedition death ownership.");
             }
             if (!new CharacterSpeciesId(tombstone.phenotypeSpeciesId).IsValid)
             {
@@ -2287,11 +2737,20 @@ public sealed class DungeonAggregateReferencePreflight :
             {
                 continue;
             }
-            RequireReference(
-                order.patientId,
-                livingCharacterIds,
-                $"Medical order '{order.orderId}' patient",
-                report);
+            if (!CharacterMedicalSaveValidation.IsCharacterId(order.patientId))
+            {
+                report.AddError(
+                    $"Medical order '{order.orderId}' has an invalid patient ID.");
+            }
+            else if (CharacterMedicalSaveValidation
+                     .RequiresLivingPatientReference(order))
+            {
+                RequireReference(
+                    order.patientId,
+                    livingCharacterIds,
+                    $"Medical order '{order.orderId}' patient",
+                    report);
+            }
             if (!string.IsNullOrEmpty(order.treatmentFacilityId))
             {
                 RequireReference(
@@ -2350,6 +2809,7 @@ public sealed class DungeonAggregateReferencePreflight :
     private static void ValidateCareers(
         CharacterCareerWorldSaveData source,
         ISet<string> livingCharacterIds,
+        ISet<string> tombstoneCharacterIds,
         ISet<string> buildingIds,
         DungeonGameRestoreReport report)
     {
@@ -2363,7 +2823,25 @@ public sealed class DungeonAggregateReferencePreflight :
                 continue;
             }
             RequireUniqueId(career.characterId, "career character", careerIds, report);
-            RequireReference(career.characterId, livingCharacterIds, "Career character", report);
+            if (tombstoneCharacterIds.Contains(career.characterId))
+            {
+                if (career.position != CareerPositionKind.None
+                    || !string.IsNullOrEmpty(career.positionScopeId)
+                    || career.retirementScheduleStatus ==
+                        RetirementScheduleStatus.Pending)
+                {
+                    report.AddError(
+                        $"Tombstoned career character '{career.characterId}' retains an active position, scope, or retirement schedule.");
+                }
+            }
+            else
+            {
+                RequireReference(
+                    career.characterId,
+                    livingCharacterIds,
+                    "Career character",
+                    report);
+            }
             if (career.retiredWorkAbsoluteDay < 0
                 || career.retiredWorkSeconds < 0f
                 || float.IsNaN(career.retiredWorkSeconds)
@@ -2621,13 +3099,15 @@ public sealed class DungeonAggregateReferencePreflight :
         }
     }
 
-    private static void RequireUniqueCharacterId(
+    private static bool RequireUniqueCharacterId(
         string rawId,
         string kind,
         ISet<string> ids,
         DungeonGameRestoreReport report,
-        bool rejectDuplicate)
+        bool rejectDuplicate,
+        out string canonicalId)
     {
+        canonicalId = string.Empty;
         if (!CharacterV18RestoreIdentityResolver.TryResolve(
                 rawId,
                 allowLegacyCharacterIds: false,
@@ -2641,14 +3121,28 @@ public sealed class DungeonAggregateReferencePreflight :
             report.AddError(
                 $"Save contains a {kind} without an exact canonical persistent ID: "
                 + $"'{rawId ?? "<null>"}'.");
-            return;
+            return false;
         }
 
-        if (!ids.Add(characterId.Value) && rejectDuplicate)
+        canonicalId = characterId.Value;
+        if (!ids.Add(canonicalId) && rejectDuplicate)
         {
             report.AddError(
-                $"Save contains duplicate {kind} ID '{characterId.Value}'.");
+                $"Save contains duplicate {kind} ID '{canonicalId}'.");
+            return false;
         }
+
+        return true;
+    }
+
+    private sealed class CharacterReferenceIndex
+    {
+        internal HashSet<string> KnownCharacterIds { get; } =
+            new(StringComparer.Ordinal);
+        internal HashSet<string> ActorIds { get; } =
+            new(StringComparer.Ordinal);
+        internal HashSet<string> LivingCharacterIds { get; } =
+            new(StringComparer.Ordinal);
     }
 
     private sealed class PhysicalReferenceIndex

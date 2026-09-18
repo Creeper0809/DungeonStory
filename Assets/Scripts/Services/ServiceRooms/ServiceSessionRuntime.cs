@@ -120,6 +120,7 @@ public sealed class ServiceSessionRuntime :
     private readonly ServiceHubSubscriptionRegistry<BuildableObject>
         hubSubscriptions;
     private int projectedRestoreRevision;
+    private IFacilityEvolutionModifierQuery evolutionModifiers;
 
     private ServiceSessionAggregate Aggregate => aggregateRootStore.GetOrCreate(
         () => new ServiceSessionAggregate());
@@ -154,6 +155,14 @@ public sealed class ServiceSessionRuntime :
         hubSubscriptions = new ServiceHubSubscriptionRegistry<BuildableObject>(
             (hub, handler) => hub.OnBuildingDestroyed += handler,
             (hub, handler) => hub.OnBuildingDestroyed -= handler);
+    }
+
+    [VContainer.Inject]
+    public void InjectFacilityEvolutionModifiers(
+        IFacilityEvolutionModifierQuery value)
+    {
+        evolutionModifiers = value
+            ?? throw new ArgumentNullException(nameof(value));
     }
 
     public int Version => Aggregate.Version;
@@ -258,7 +267,7 @@ public sealed class ServiceSessionRuntime :
                 }
 
                 capacity += Math.Max(0, support.capacity);
-                speedMultiplier *= Math.Max(0.01f, support.workSpeedMultiplier);
+                speedMultiplier *= GetSupportSpeedMultiplier(link.Support, support);
                 revenue += support.revenueModifier;
                 satisfaction += support.satisfactionModifier;
             }
@@ -621,12 +630,17 @@ public sealed class ServiceSessionRuntime :
                 && paymentPolicy
                     == ServicePaymentPolicy.InternalStaffFree);
         float speedMultiplier = hub.Supports
-            .Select(link => link.Support?.GetServiceSupportAbility())
-            .Where(support => support != null)
+            .Select(link => new
+            {
+                Building = link.Support,
+                Ability = link.Support?.GetServiceSupportAbility()
+            })
+            .Where(value => value.Ability != null)
             .Aggregate(
                 1f,
-                (current, support) =>
-                    current * Math.Max(0.01f, support.workSpeedMultiplier));
+                (current, value) => current * GetSupportSpeedMultiplier(
+                    value.Building,
+                    value.Ability));
         float serviceSeconds = Math.Max(
             0.1f,
             modeContract.serviceSeconds > 0f
@@ -711,6 +725,19 @@ public sealed class ServiceSessionRuntime :
         }
 
         return true;
+    }
+
+    private float GetSupportSpeedMultiplier(
+        BuildableObject supportBuilding,
+        BuildingServiceSupportAbility support)
+    {
+        float authored = Math.Max(0.01f, support?.workSpeedMultiplier ?? 1f);
+        float formula = evolutionModifiers != null
+            ? evolutionModifiers.GetMultiplier(
+                supportBuilding,
+                "service.support-speed")
+            : 1f;
+        return authored * Math.Max(0.1f, formula);
     }
 
     private bool ValidateResearch(

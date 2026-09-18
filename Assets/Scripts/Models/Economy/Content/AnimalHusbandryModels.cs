@@ -167,6 +167,52 @@ public enum AnimalHusbandryStatusCode
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum AnimalProductThermalStatusCode
+{
+    Available = 0,
+    PenPositionUnavailable = 1,
+    EnvironmentalFieldUnavailable = 2
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public readonly struct AnimalProductThermalSnapshot
+{
+    public AnimalProductThermalSnapshot(
+        WildlifeInstanceId animalId,
+        Vector2Int penPosition,
+        AnimalProductThermalStatusCode statusCode,
+        float temperatureC,
+        float comfortMinimumTemperatureC,
+        float comfortMaximumTemperatureC,
+        float degreesOutsideComfort,
+        float productProgressMultiplier)
+    {
+        AnimalId = animalId;
+        PenPosition = penPosition;
+        StatusCode = statusCode;
+        TemperatureC = temperatureC;
+        ComfortMinimumTemperatureC = comfortMinimumTemperatureC;
+        ComfortMaximumTemperatureC = comfortMaximumTemperatureC;
+        DegreesOutsideComfort = Mathf.Max(0f, degreesOutsideComfort);
+        ProductProgressMultiplier = Mathf.Clamp01(productProgressMultiplier);
+    }
+
+    public WildlifeInstanceId AnimalId { get; }
+    public Vector2Int PenPosition { get; }
+    public AnimalProductThermalStatusCode StatusCode { get; }
+    public bool HasTemperature =>
+        StatusCode == AnimalProductThermalStatusCode.Available;
+    public float TemperatureC { get; }
+    public float ComfortMinimumTemperatureC { get; }
+    public float ComfortMaximumTemperatureC { get; }
+    public float DegreesOutsideComfort { get; }
+    public float ProductProgressMultiplier { get; }
+    public float ProductDelayRatio => HasTemperature
+        ? 1f - ProductProgressMultiplier
+        : 1f;
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class AnimalProductProgressState
 {
     public ItemDefinitionId ItemId { get; set; }

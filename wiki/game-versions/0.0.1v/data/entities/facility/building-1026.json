@@ -16,6 +16,6 @@
   "schema_version": 1,
   "slug": "building-1026",
   "spoiler_tier": "none",
-  "summary": "시설 동작은 BuildingEconomyAbility, BuildingEvolutionAbility, BuildingFacilityAbility, BuildingFacilityPartAbility, BuildingRoomRequirementAbility 모듈로 구성된다. 건설에는 작업량 117, 재료 처리 목재×5, 철괴×1이 필요하다.",
+  "summary": "시설 동작은 BuildingEconomyAbility, BuildingEvolutionAbility, BuildingFacilityAbility, BuildingFacilityPartAbility, BuildingRoomRequirementAbility 모듈로 구성된다. 건설에는 작업량 117 WU, 재료 처리 목재×5, 철괴×1이 필요하다.",
   "title": "영주집무책상"
 }

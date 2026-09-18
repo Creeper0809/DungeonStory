@@ -43,6 +43,7 @@ public readonly struct WeatherFrontDefinition
         int minimumDurationDays,
         int maximumDurationDays,
         float temperatureModifierC,
+        float expeditionTravelMultiplier,
         IReadOnlyList<float> seasonalWeights)
     {
         Id = id?.Trim() ?? string.Empty;
@@ -50,6 +51,7 @@ public readonly struct WeatherFrontDefinition
         MinimumDurationDays = Math.Max(1, minimumDurationDays);
         MaximumDurationDays = Math.Max(MinimumDurationDays, maximumDurationDays);
         TemperatureModifierC = temperatureModifierC;
+        ExpeditionTravelMultiplier = expeditionTravelMultiplier;
         this.seasonalWeights = Enumerable.Range(0, 4)
             .Select(index => Math.Max(
                 0f,
@@ -64,7 +66,11 @@ public readonly struct WeatherFrontDefinition
     public int MinimumDurationDays { get; }
     public int MaximumDurationDays { get; }
     public float TemperatureModifierC { get; }
+    public float ExpeditionTravelMultiplier { get; }
     public bool IsValid => Id.Length > 0
+        && !float.IsNaN(ExpeditionTravelMultiplier)
+        && !float.IsInfinity(ExpeditionTravelMultiplier)
+        && ExpeditionTravelMultiplier >= 0.1f
         && seasonalWeights != null
         && seasonalWeights.Length == 4
         && seasonalWeights.Any(value => value > 0f);

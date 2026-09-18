@@ -51,13 +51,32 @@ public static class EconomyProjectInputOwnerDebugScenarios
             FacilityBufferDestinationAnchorKind.ReservedTarget,
             string.Empty,
             new Dictionary<string, int> { ["material:lumber"] = 20 });
+        EconomyProjectInputOwnerDescriptor faction = Descriptor(
+            EconomyProjectInputOwnerAuthority.FactionContractDomain,
+            "faction-contract:qa",
+            new Vector2Int(13, 15),
+            FacilityBufferDestinationAnchorKind.ReservedTarget,
+            string.Empty,
+            new Dictionary<string, int> { ["material:stone"] = 4 });
 
         VerifyProjection(runtime, store, grand, 200L);
         VerifyProjection(runtime, store, regional, 750L);
         VerifyProjection(runtime, store, stock, 1_600L);
+        VerifyProjection(runtime, store, faction, 400L);
         VerifyCanonicalFailLoud(grand);
-        VerifyCarriedAwareRetirement(runtime, store, release, regional);
-        VerifyCurrentFormatRestore(runtime, store, grand, stock);
+        VerifyCarriedAwareRetirement(
+            runtime,
+            store,
+            release,
+            regional,
+            EconomyProjectInputOwnerAuthority.RegionalContractTerminalReason);
+        VerifyCarriedAwareRetirement(
+            runtime,
+            store,
+            release,
+            faction,
+            EconomyProjectInputOwnerAuthority.FactionContractTerminalReason);
+        VerifyCurrentFormatRestore(runtime, store, grand, stock, faction);
     }
 
     private static void VerifyProjection(
@@ -115,7 +134,8 @@ public static class EconomyProjectInputOwnerDebugScenarios
         EconomyProjectInputOwnerRuntime runtime,
         AuthorityStore store,
         RecordingRelease release,
-        EconomyProjectInputOwnerDescriptor descriptor)
+        EconomyProjectInputOwnerDescriptor descriptor,
+        string terminalReason)
     {
         store.Events.Clear();
         release.Events = store.Events;
@@ -123,7 +143,7 @@ public static class EconomyProjectInputOwnerDebugScenarios
         Require(!runtime.TryRetireDestination(
                 descriptor.OwnerDomain,
                 descriptor.DestinationId,
-                EconomyProjectInputOwnerAuthority.RegionalContractTerminalReason,
+                terminalReason,
                 out _)
             && store.Claims.Any(value =>
                 value.DestinationId == descriptor.DestinationId),
@@ -132,7 +152,7 @@ public static class EconomyProjectInputOwnerDebugScenarios
         Require(runtime.TryRetireDestination(
                 descriptor.OwnerDomain,
                 descriptor.DestinationId,
-                EconomyProjectInputOwnerAuthority.RegionalContractTerminalReason,
+                terminalReason,
                 out string failureReason),
             failureReason);
         Require(store.Events.SequenceEqual(new[] { "release", "release", "replace" }),
@@ -143,10 +163,14 @@ public static class EconomyProjectInputOwnerDebugScenarios
         EconomyProjectInputOwnerRuntime runtime,
         AuthorityStore store,
         EconomyProjectInputOwnerDescriptor grand,
-        EconomyProjectInputOwnerDescriptor stock)
+        EconomyProjectInputOwnerDescriptor stock,
+        EconomyProjectInputOwnerDescriptor faction)
     {
         EconomyProjectInputOwnerDescriptor frozenGrand = Freeze(runtime, grand);
         EconomyProjectInputOwnerDescriptor frozenStock = Freeze(runtime, stock);
+        EconomyProjectInputOwnerDescriptor frozenFaction = Freeze(
+            runtime,
+            faction);
         Require(runtime.TryReplaceForRestore(
                 grand.OwnerDomain,
                 new[] { frozenGrand },
@@ -157,11 +181,54 @@ public static class EconomyProjectInputOwnerDebugScenarios
                 new[] { frozenStock },
                 out string stockFailure),
             stockFailure);
-        Require(store.Claims.Count == 2
-            && store.Profiles.Count == 2
+        Require(runtime.TryReplaceForRestore(
+                faction.OwnerDomain,
+                new[] { frozenFaction },
+                out string factionFailure),
+            factionFailure);
+        Require(store.Claims.Count == 3
+            && store.Profiles.Count == 3
             && store.Profiles.All(value => value.MaxMassGrams > 0L),
             "Economy input-owner current-format restore join drifted.");
+
+        string authorityBeforeReject = AuthoritySignature(store);
+        EconomyProjectInputOwnerDescriptor driftedFaction = new(
+            frozenFaction.OwnerDomain,
+            frozenFaction.OwnerOperationId,
+            frozenFaction.DestinationId,
+            frozenFaction.Position,
+            frozenFaction.AnchorKind,
+            frozenFaction.OwnerFacilityId,
+            frozenFaction.Requirements,
+            frozenFaction.StoredCapacityGrams + 1L,
+            frozenFaction.StoredMassAuthorityRevision,
+            frozenFaction.StoredCapacityFingerprint);
+        Require(!runtime.TryValidateForRestore(
+                faction.OwnerDomain,
+                new[] { driftedFaction },
+                out _)
+            && !runtime.TryReplaceForRestore(
+                faction.OwnerDomain,
+                new[] { driftedFaction },
+                out _)
+            && string.Equals(
+                authorityBeforeReject,
+                AuthoritySignature(store),
+                StringComparison.Ordinal),
+            "Rejected faction input-owner restore mutated live authority.");
     }
+
+    private static string AuthoritySignature(AuthorityStore store) =>
+        string.Join(
+            "|",
+            store.Claims.Select(value =>
+                $"C:{value.OwnerDomain}:{value.DestinationId}"))
+        + "||"
+        + string.Join(
+            "|",
+            store.Profiles.Select(value =>
+                $"P:{value.OwnerDomain}:{value.DestinationId}:"
+                + value.MaxMassGrams));
 
     private static EconomyProjectInputOwnerDescriptor Freeze(
         EconomyProjectInputOwnerRuntime runtime,

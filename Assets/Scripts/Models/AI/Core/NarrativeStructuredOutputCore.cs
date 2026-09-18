@@ -71,6 +71,9 @@ public sealed class NarrativeRequestContext
 
     private readonly List<NarrativeContextEntry> facts = new();
     private readonly List<NarrativeContextEntry> motifs = new();
+    private readonly IReadOnlyList<NarrativeContextEntry> factsView;
+    private readonly IReadOnlyList<NarrativeContextEntry> motifsView;
+    private bool frozen;
 
     public NarrativeRequestContext(
         string profileId,
@@ -82,20 +85,37 @@ public sealed class NarrativeRequestContext
         CultureStyleId = (cultureStyleId ?? string.Empty).Trim();
         RequireCharacterFact = requireCharacterFact;
         RequireMotif = requireMotif;
+        factsView = facts.AsReadOnly();
+        motifsView = motifs.AsReadOnly();
     }
 
     public string ProfileId { get; }
     public string CultureStyleId { get; }
     public bool RequireCharacterFact { get; }
     public bool RequireMotif { get; }
-    public IReadOnlyList<NarrativeContextEntry> Facts => facts;
-    public IReadOnlyList<NarrativeContextEntry> Motifs => motifs;
+    public IReadOnlyList<NarrativeContextEntry> Facts => factsView;
+    public IReadOnlyList<NarrativeContextEntry> Motifs => motifsView;
+    public bool IsFrozen => frozen;
 
-    public void AddFact(string stableId, string label, int priority = 0) =>
+    public void AddFact(string stableId, string label, int priority = 0)
+    {
+        RequireMutable();
         AddUnique(facts, stableId, label, priority);
+    }
 
-    public void AddMotif(string stableId, string label, int priority = 0) =>
+    public void AddMotif(string stableId, string label, int priority = 0)
+    {
+        RequireMutable();
         AddUnique(motifs, stableId, label, priority);
+    }
+
+    public void Freeze()
+    {
+        if (frozen) return;
+        AssignReferences(facts, "F", MaximumFacts);
+        AssignReferences(motifs, "M", MaximumMotifs);
+        frozen = true;
+    }
 
     public string AppendToPrompt(string prompt)
     {
@@ -104,8 +124,11 @@ public sealed class NarrativeRequestContext
             return prompt;
         }
 
-        AssignReferences(facts, "F", MaximumFacts);
-        AssignReferences(motifs, "M", MaximumMotifs);
+        if (!frozen)
+        {
+            AssignReferences(facts, "F", MaximumFacts);
+            AssignReferences(motifs, "M", MaximumMotifs);
+        }
         StringBuilder builder = new StringBuilder((prompt?.Length ?? 0) + 2048);
         builder.AppendLine(prompt ?? string.Empty);
         builder.AppendLine();
@@ -137,9 +160,24 @@ public sealed class NarrativeRequestContext
 
     public static string ToModelPrompt(string prompt)
     {
+        bool hasPublicModelInput = NarrativePublicModelInput.ContainsMarker(prompt);
+        NarrativePublicModelInput publicModelInput = null;
+        if (hasPublicModelInput
+            && !NarrativePublicModelInput.TryParsePrompt(
+                prompt,
+                out publicModelInput))
+        {
+            throw new InvalidOperationException(
+                "Narrative prompt contains an invalid public model-input payload.");
+        }
         if (!TryParse(prompt, out NarrativeRequestContext context))
         {
             return prompt ?? string.Empty;
+        }
+        if (publicModelInput != null && !publicModelInput.MatchesRequestContext(context))
+        {
+            throw new InvalidOperationException(
+                "Narrative request references do not match the public model-input payload.");
         }
 
         int start = prompt.IndexOf(BeginMarker, StringComparison.Ordinal);
@@ -158,23 +196,40 @@ public sealed class NarrativeRequestContext
             builder.Append(motif.Reference).Append(" = ").AppendLine(motif.Label);
         }
         builder.AppendLine(StyleInstruction(context.ProfileId));
-        builder.Append(
-            "Use only the exact Fxx/Mxx tokens listed above in usedCharacterFactIds and usedMotifIds. ");
-        if (context.RequireCharacterFact)
+        if (NarrativeExactKeyContract.AllowsNarrativeReferenceKeys(context.ProfileId))
         {
-            builder.Append("At least one usedCharacterFactIds token is required. ");
+            builder.Append(
+                "Use only the exact Fxx/Mxx tokens listed above in usedCharacterFactIds and usedMotifIds. ");
+            if (context.RequireCharacterFact)
+            {
+                builder.Append("At least one usedCharacterFactIds token is required. ");
+            }
+            if (context.RequireMotif)
+            {
+                builder.Append("At least one usedMotifIds token is required. ");
+            }
+            builder.AppendLine(
+                "Do not output labels as reference values and do not invent people, events, relationships, traits, or facts.");
         }
-        if (context.RequireMotif)
+        else
         {
-            builder.Append("At least one usedMotifIds token is required. ");
+            builder.AppendLine(
+                "Use the supplied facts and motifs only to ground prose. " +
+                "Do not emit reference-tracking keys or any key outside the response schema, " +
+                "and do not invent people, events, relationships, traits, or facts.");
         }
-        builder.AppendLine(
-            "Do not output labels as reference values and do not invent people, events, relationships, traits, or facts.");
         if (suffixStart < prompt.Length)
         {
             builder.Append(prompt, suffixStart, prompt.Length - suffixStart);
         }
-        return builder.ToString();
+        string modelPrompt = builder.ToString();
+        if (hasPublicModelInput
+            && !publicModelInput.IsPreservedInPrompt(modelPrompt))
+        {
+            throw new InvalidOperationException(
+                "Narrative model prompt did not preserve its public model-input payload.");
+        }
+        return modelPrompt;
     }
 
     private static string StyleInstruction(string profileId)
@@ -185,7 +240,8 @@ public sealed class NarrativeRequestContext
             return "Style: use a strong fantasy or wuxia name grounded in one character fact and one culture motif. "
                 + "Avoid generic element-plus-weapon names and explain the personal history behind the name.";
         }
-        if (string.Equals(profileId, "FacilityEvolution", StringComparison.Ordinal))
+        if (string.Equals(profileId, "FacilityEvolution", StringComparison.Ordinal)
+            || string.Equals(profileId, "FacilityEvolutionModuleSelection", StringComparison.Ordinal))
         {
             return "Style: use a distinctive workshop legend or dungeon chronicle voice, grounded in actual use and crisis history.";
         }
@@ -252,6 +308,15 @@ public sealed class NarrativeRequestContext
             || destination.Any(value => string.Equals(
                 value.StableId, entry.StableId, StringComparison.Ordinal))) return;
         destination.Add(entry);
+    }
+
+    private void RequireMutable()
+    {
+        if (frozen)
+        {
+            throw new InvalidOperationException(
+                "A frozen narrative request context cannot be changed.");
+        }
     }
 
     private static void AssignReferences(
@@ -359,6 +424,26 @@ public sealed class NarrativeTextQualityGate : INarrativeTextQualityGate
         if (profile == null) return Reject("Narrative profile is missing.");
         if (!NarrativeRequestContext.TryParse(prompt, out NarrativeRequestContext context))
             return Reject("Narrative request context is missing.");
+        if (NarrativeExactKeyContract.IsRegisteredProfile(profile.Id))
+        {
+            if (!NarrativeExactKeyContract.TryValidateProfileResponse(
+                    profile.Id,
+                    response,
+                    out string exactJson,
+                    out string exactError))
+            {
+                return Reject(exactError);
+            }
+            if (ContainsUnknownReference(exactJson, context))
+                return Reject("Unknown inline reference.");
+            if (ContainsStableId(exactJson, context))
+                return Reject("Internal stable id leak.");
+            return new NarrativeQualityResult(
+                NarrativeQualityVerdict.SoftPass,
+                string.Empty,
+                Array.Empty<string>(),
+                Array.Empty<string>());
+        }
         if (!TryExtractObject(response, out string json, out string error)) return Reject(error);
 
         Envelope envelope;

@@ -29,6 +29,35 @@ public static class ExteriorActivityDebugScenarios
         }
     }
 
+    [MenuItem("DungeonStory/Debug/Exterior/Run Informant Carry Current Save")]
+    public static void RunInformantCarryCurrentSaveFromMenu()
+    {
+        RunInformantCarryCurrentSaveScenario(true);
+    }
+
+    public static bool RunInformantCarryCurrentSaveScenario(bool logSuccess)
+    {
+        List<string> errors = new List<string>();
+        RunScenario(
+            "playmode Informant carry and current-save ownership",
+            VerifyPlayModeIncidentAndSaveCapture,
+            errors);
+        if (errors.Count > 0)
+        {
+            Debug.LogError(
+                "Informant carry current-save scenario failed: "
+                + string.Join(", ", errors));
+            return false;
+        }
+
+        if (logSuccess)
+        {
+            Debug.Log("Informant carry current-save scenario passed.");
+        }
+
+        return true;
+    }
+
     public static bool RunAll(bool logSuccess)
     {
         List<string> errors = new List<string>();
@@ -64,7 +93,10 @@ public static class ExteriorActivityDebugScenarios
         List<string> errors = new List<string>();
         RunScenario("playmode runtime services and zones", VerifyPlayModeRuntimeServicesAndZones, errors);
         RunScenario("playmode reception work candidate", VerifyPlayModeReceptionWorkCandidate, errors);
-        RunScenario("playmode incident and save capture", VerifyPlayModeIncidentAndSaveCapture, errors);
+        RunScenario(
+            "playmode Informant carry and current-save ownership",
+            VerifyPlayModeIncidentAndSaveCapture,
+            errors);
         RunScenario(
             "playmode incident handler transition agrees with query capture restore",
             VerifyIncidentHandlerTransitionAgreement,
@@ -255,50 +287,344 @@ public static class ExteriorActivityDebugScenarios
     {
         if (!Application.isPlaying)
         {
-            return false;
+            throw new InvalidOperationException(
+                "[initialized] Informant carry current-save scenario requires Play Mode.");
         }
 
         DungeonRuntimeLifetimeScope scope = FindScope();
         if (scope == null || scope.Container == null)
         {
-            return false;
+            throw new InvalidOperationException(
+                "[initialized] Dungeon runtime scope is unavailable.");
         }
 
-        IExteriorIncidentRuntime incidentRuntime = scope.Container.Resolve<IExteriorIncidentRuntime>();
-        IExteriorActivityRuntime exteriorRuntime = scope.Container.Resolve<IExteriorActivityRuntime>();
+        ExteriorActivityRuntime exteriorRuntime =
+            scope.Container.Resolve<ExteriorActivityRuntime>();
+        IExteriorIncidentRuntime incidentRuntime = exteriorRuntime;
         IExperiencePacingRuntime pacing = scope.Container.Resolve<IExperiencePacingRuntime>();
         IDungeonGameSaveService saveService = scope.Container.Resolve<IDungeonGameSaveService>();
+        ICharacterAiWorldRegistry world =
+            scope.Container.Resolve<ICharacterAiWorldRegistry>();
+        ICharacterProficiencyQuery proficiencies =
+            scope.Container.Resolve<ICharacterProficiencyQuery>();
+        ICharacterLifeQuery life = scope.Container.Resolve<ICharacterLifeQuery>();
+        ICharacterNarrativeQuery narratives =
+            scope.Container.Resolve<ICharacterNarrativeQuery>();
+        IGameCalendar calendar = scope.Container.Resolve<IGameCalendar>();
         DungeonGameSaveData baseline = saveService.Capture();
-        bool scenarioPassed = false;
+        HashSet<string> previousIncidentIds = incidentRuntime.IncidentStates
+            .Where(state => state != null)
+            .Select(state => state.incidentId)
+            .ToHashSet(StringComparer.Ordinal);
         bool baselineRestored = false;
+        string baselineRestoreErrors = "<restore not attempted>";
         try
         {
             pacing.AdvanceToDay(Math.Max(31, pacing.CurrentDay));
             bool started = incidentRuntime.TryStartIncident(
-                ExteriorIncidentKind.Thief,
-                "수상한 그림자가 하차장 근처를 맴돕니다.");
+                ExteriorIncidentKind.Informant,
+                "정보상이 변경 교역권의 소식을 들고 왔습니다.");
+            ExteriorIncidentRuntimeState startedState = incidentRuntime
+                .IncidentStates
+                .SingleOrDefault(state => state != null
+                    && state.kind == ExteriorIncidentKind.Informant
+                    && !previousIncidentIds.Contains(state.incidentId));
+            string actorId = startedState?.actorIds?.SingleOrDefault();
+            CharacterId characterId = new(actorId);
+            CharacterActor actor = world.Characters.SingleOrDefault(candidate =>
+                candidate != null
+                && string.Equals(
+                    candidate.Identity?.PersistentId,
+                    actorId,
+                    StringComparison.Ordinal));
+            bool hasLife = characterId.IsValid && life.TryGet(characterId, out _);
+            CharacterNarrativeSnapshot narrative = null;
+            bool hasNarrative = characterId.IsValid
+                && narratives.TryGet(characterId, out narrative);
+            bool hasCanonicalProficiencies = hasNarrative
+                && narrative.Proficiencies.Count == 9;
+            bool hasFieldwork = characterId.IsValid
+                && proficiencies.TryGetProficiency(
+                    characterId,
+                    BuiltInCharacterProficiencyIds.Fieldwork,
+                    calendar.AbsoluteHour,
+                    out _);
+            if (!started
+                || startedState == null
+                || !characterId.IsValid
+                || actor == null
+                || actor.Identity.CharacterType != CharacterType.Customer
+                || !hasLife
+                || !hasCanonicalProficiencies
+                || !hasFieldwork)
+            {
+                throw new InvalidOperationException(
+                    "[initialized] Informant actor did not complete canonical incident identity, "
+                    + "Customer type, life, narrative, and fieldwork initialization. "
+                    + $"started={started}, state={startedState != null}, id={characterId.IsValid}, "
+                    + $"actor={actor != null}, life={hasLife}, narrative={hasNarrative}, "
+                    + $"proficiencies={hasCanonicalProficiencies}, fieldwork={hasFieldwork}.");
+            }
+
+            float carryCapacity = actor.CarryInventory.GetBaseCarryLimit();
+            if (!(carryCapacity > 0f)
+                || float.IsNaN(carryCapacity)
+                || float.IsInfinity(carryCapacity))
+            {
+                throw new InvalidOperationException(
+                    $"[initialized] Informant carry query returned invalid capacity {carryCapacity}.");
+            }
+
+            bool hadAbilityWork = actor.GetAbility<AbilityWork>() != null;
+            AIActionSet[] initialActionCatalogue = actor.Brain?.availableActions?
+                .Select(action => action?.actionset)
+                .ToArray();
+            if (initialActionCatalogue == null
+                || initialActionCatalogue.Length == 0
+                || initialActionCatalogue.Any(action => action == null))
+            {
+                throw new InvalidOperationException(
+                    "[initialized] Informant visitor action catalogue is missing or invalid.");
+            }
+
             DungeonExteriorActivitySaveData exterior = exteriorRuntime.Capture();
             DungeonGameSaveData save = saveService.Capture();
             DungeonExteriorActivitySaveData savedExterior =
                 DungeonSaveSectionPayload.ReadOrNew<DungeonExteriorActivitySaveData>(
                     save,
                     ExteriorActivitySaveSection.Id);
-            scenarioPassed = started
-                && exterior.zones.Count >= 7
+            DungeonCharacterWorldSaveData savedCharacters =
+                DungeonSaveSectionPayload.ReadOrNew<DungeonCharacterWorldSaveData>(
+                    save,
+                    CharacterWorldSaveSection.Id);
+            CharacterLifeWorldSaveData savedLife =
+                DungeonSaveSectionPayload.ReadOrNew<CharacterLifeWorldSaveData>(
+                    save,
+                    CharacterLifeSaveSection.Id);
+            CharacterNarrativeWorldSaveData savedNarrative =
+                DungeonSaveSectionPayload.ReadOrNew<CharacterNarrativeWorldSaveData>(
+                    save,
+                    CharacterNarrativeSaveSection.Id);
+            bool savedActor = savedCharacters.actors.Any(value => value != null
+                    && string.Equals(
+                        value.persistentId,
+                        actorId,
+                        StringComparison.Ordinal)
+                    && value.characterType == CharacterType.Customer);
+            bool savedActorLife = savedLife.characters.Any(value => value != null
+                    && string.Equals(
+                        value.characterId,
+                        actorId,
+                        StringComparison.Ordinal));
+            bool savedActorNarrative = savedNarrative.characters.Any(value => value != null
+                    && string.Equals(
+                        value.characterId,
+                        actorId,
+                        StringComparison.Ordinal));
+            bool activeJoinCaptured = exterior.zones.Count >= 7
                 && exterior.incidentStates.Count >= 1
                 && save.version == DungeonGameSaveData.CurrentVersion
                 && savedExterior.zones.Count >= 7
-                && savedExterior.incidentStates.Count >= 1;
+                && savedExterior.incidentStates.Count >= 1
+                && savedActor
+                && savedActorLife
+                && savedActorNarrative;
+            if (!activeJoinCaptured)
+            {
+                throw new InvalidOperationException(
+                    "[activeJoin] Active Informant ownership did not join exterior, character, "
+                    + "life, and narrative current-save sections. "
+                    + $"actor={savedActor}, life={savedActorLife}, "
+                    + $"narrative={savedActorNarrative}, saveVersion={save.version}.");
+            }
+
+            bool currentRestoreAttempted = saveService.TryRestore(
+                save,
+                out DungeonGameRestoreReport currentRestoreReport);
+            if (!currentRestoreAttempted || currentRestoreReport?.Success != true)
+            {
+                throw new InvalidOperationException(
+                    "[restore] Active Informant current-save restore failed. errors="
+                    + DescribeRestoreErrors(currentRestoreReport));
+            }
+
+            ExteriorIncidentRuntimeState restoredState = incidentRuntime
+                .IncidentStates
+                .SingleOrDefault(state => state != null
+                    && string.Equals(
+                        state.incidentId,
+                        startedState?.incidentId,
+                        StringComparison.Ordinal));
+            CharacterActor restoredActor = world.Characters.SingleOrDefault(candidate =>
+                candidate != null
+                && string.Equals(
+                    candidate.Identity?.PersistentId,
+                    actorId,
+                    StringComparison.Ordinal));
+            bool restoredFieldwork = proficiencies.TryGetProficiency(
+                characterId,
+                BuiltInCharacterProficiencyIds.Fieldwork,
+                calendar.AbsoluteHour,
+                out _);
+            float restoredCarryCapacity = restoredActor != null
+                ? restoredActor.CarryInventory.GetBaseCarryLimit()
+                : 0f;
+            bool restoredHasAbilityWork = restoredActor != null
+                && restoredActor.GetAbility<AbilityWork>() != null;
+            AIActionSet[] restoredActionCatalogue = restoredActor?.Brain?.availableActions?
+                .Select(action => action?.actionset)
+                .ToArray();
+            bool actionCataloguePreserved = restoredActionCatalogue != null
+                && restoredActionCatalogue.Length == initialActionCatalogue.Length
+                && restoredActionCatalogue
+                    .Select((action, index) => ReferenceEquals(
+                        action,
+                        initialActionCatalogue[index]))
+                    .All(matches => matches);
+            bool restoredCarryReady = restoredState != null
+                && !restoredState.IsTerminal
+                && restoredActor != null
+                && restoredActor.Identity.CharacterType == CharacterType.Customer
+                && restoredFieldwork
+                && restoredHasAbilityWork == hadAbilityWork
+                && actionCataloguePreserved
+                && restoredCarryCapacity > 0f
+                && !float.IsNaN(restoredCarryCapacity)
+                && !float.IsInfinity(restoredCarryCapacity)
+                && restoredState.remainingSeconds > 0f
+                && !float.IsNaN(restoredState.remainingSeconds)
+                && !float.IsInfinity(restoredState.remainingSeconds);
+            if (!restoredCarryReady)
+            {
+                throw new InvalidOperationException(
+                    "[afterRestoreCarry] Restored Informant did not retain active ownership, "
+                    + "Customer identity, fieldwork proficiency, carry capability, or timeout authority. "
+                    + $"state={restoredState != null}, actor={restoredActor != null}, "
+                    + $"fieldwork={restoredFieldwork}, workBefore={hadAbilityWork}, "
+                    + $"workAfter={restoredHasAbilityWork}, "
+                    + $"actionsPreserved={actionCataloguePreserved}, carry={restoredCarryCapacity}, "
+                    + $"remaining={restoredState?.remainingSeconds}.");
+            }
+
+            MethodInfo tickIncidents = typeof(ExteriorActivityRuntime).GetMethod(
+                "TickIncidentStates",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            if (tickIncidents == null)
+            {
+                throw new InvalidOperationException(
+                    "[terminal] Existing TickIncidentStates integration boundary was not found.");
+            }
+
+            // Focused integration tick across the restored timeout boundary; this is not a
+            // measurement of naturally elapsed incident time.
+            float timeoutTickSeconds = restoredState.remainingSeconds + 0.01f;
+            tickIncidents.Invoke(exteriorRuntime, new object[] { timeoutTickSeconds });
+
+            ExteriorIncidentRuntimeState terminalState = incidentRuntime
+                .IncidentStates
+                .SingleOrDefault(state => state != null
+                    && string.Equals(
+                        state.incidentId,
+                        startedState?.incidentId,
+                        StringComparison.Ordinal));
+            bool terminalActorRemoved = terminalState?.IsTerminal == true
+                && world.Characters.All(candidate => candidate == null
+                    || !string.Equals(
+                        candidate.Identity?.PersistentId,
+                        actorId,
+                        StringComparison.Ordinal));
+            if (!terminalActorRemoved)
+            {
+                throw new InvalidOperationException(
+                    "[terminal] Timeout integration tick did not terminalize the Informant and "
+                    + $"remove its live actor. terminal={terminalState?.IsTerminal == true}.");
+            }
+
+            DungeonGameSaveData terminalSave = saveService.Capture();
+            bool terminalLifeRemoved = !life.TryGet(characterId, out _);
+            bool terminalNarrativeRetained = narratives.TryGet(characterId, out _);
+            if (!terminalLifeRemoved || !terminalNarrativeRetained)
+            {
+                throw new InvalidOperationException(
+                    "[cleanup] Terminal Informant did not prune life while retaining durable "
+                    + $"narrative history. lifeRemoved={terminalLifeRemoved}, "
+                    + $"narrativeRetained={terminalNarrativeRetained}.");
+            }
+
+            bool terminalRestoreAttempted = saveService.TryRestore(
+                terminalSave,
+                out DungeonGameRestoreReport terminalRestoreReport);
+            if (!terminalRestoreAttempted || terminalRestoreReport?.Success != true)
+            {
+                throw new InvalidOperationException(
+                    "[cleanup] Terminal Informant current-save restore failed. errors="
+                    + DescribeRestoreErrors(terminalRestoreReport));
+            }
+
+            ExteriorIncidentRuntimeState restoredTerminalState = incidentRuntime
+                .IncidentStates
+                .SingleOrDefault(state => state != null
+                    && string.Equals(
+                        state.incidentId,
+                        startedState.incidentId,
+                        StringComparison.Ordinal));
+            bool terminalJoinRestored = restoredTerminalState?.IsTerminal == true
+                && world.Characters.All(candidate => candidate == null
+                    || !string.Equals(
+                        candidate.Identity?.PersistentId,
+                        actorId,
+                        StringComparison.Ordinal))
+                && !life.TryGet(characterId, out _)
+                && narratives.TryGet(characterId, out _);
+            if (!terminalJoinRestored)
+            {
+                throw new InvalidOperationException(
+                    "[cleanup] Restored terminal Informant retained live actor/life authority or "
+                    + "lost durable narrative history.");
+            }
         }
         finally
         {
-            baselineRestored = saveService.TryRestore(
+            try
+            {
+                bool baselineRestoreAttempted = saveService.TryRestore(
                     baseline,
-                    out DungeonGameRestoreReport restoreReport)
-                && restoreReport.Success;
+                    out DungeonGameRestoreReport baselineRestoreReport);
+                baselineRestored = baselineRestoreAttempted
+                    && baselineRestoreReport?.Success == true;
+                baselineRestoreErrors = DescribeRestoreErrors(baselineRestoreReport);
+            }
+            catch (Exception exception)
+            {
+                baselineRestoreErrors = exception.ToString();
+                Debug.LogException(exception);
+            }
+
+            if (!baselineRestored)
+            {
+                Debug.LogError(
+                    "[cleanup] Informant carry current-save baseline restore failed. errors="
+                    + baselineRestoreErrors);
+            }
         }
 
-        return scenarioPassed && baselineRestored;
+        if (!baselineRestored)
+        {
+            throw new InvalidOperationException(
+                "[cleanup] Informant carry current-save baseline restore failed. errors="
+                + baselineRestoreErrors);
+        }
+
+        return true;
+    }
+
+    private static string DescribeRestoreErrors(DungeonGameRestoreReport report)
+    {
+        return report == null
+            ? "<missing report>"
+            : report.Errors.Count == 0
+                ? "<none>"
+                : string.Join(" | ", report.Errors);
     }
 
     private static bool VerifyIncidentHandlerTransitionAgreement()

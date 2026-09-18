@@ -25,8 +25,16 @@ public interface IFacilityCandidateCache : IBuildingFacilityStateChangePort
     void Clear();
 }
 
+public interface IRuntimeWorkCandidateCache
+{
+    void PrioritizeRuntimeWorkCandidate(
+        BuildableObject building,
+        WorkTypeId workTypeId);
+}
+
 public sealed class FacilityCandidateCacheStore :
     IFacilityCandidateCache,
+    IRuntimeWorkCandidateCache,
     IBuildingFacilityStateChangePort
 {
     private sealed class GridFacilityCache
@@ -40,6 +48,8 @@ public sealed class FacilityCandidateCacheStore :
             new Dictionary<FacilityRole, IReadOnlyList<BuildableObject>>();
         public readonly Dictionary<FacilityWorkType, IReadOnlyList<BuildableObject>> CandidatesByWorkType =
             new Dictionary<FacilityWorkType, IReadOnlyList<BuildableObject>>();
+        public readonly Dictionary<FacilityWorkType, HashSet<BuildableObject>> PrioritizedRuntimeCandidatesByWorkType =
+            new Dictionary<FacilityWorkType, HashSet<BuildableObject>>();
         public readonly Dictionary<NearestCandidateKey, NearestCandidateScan> NearestCandidates =
             new Dictionary<NearestCandidateKey, NearestCandidateScan>();
     }
@@ -368,6 +378,47 @@ public sealed class FacilityCandidateCacheStore :
         }
     }
 
+    public void PrioritizeRuntimeWorkCandidate(
+        BuildableObject building,
+        WorkTypeId workTypeId)
+    {
+        if (building == null
+            || building.Grid == null
+            || building.isDestroy
+            || building is not IWorkableFacility
+            || !RuntimeWorkCapabilityUtility.Supports(building, workTypeId)
+            || !FacilityWorkTypeMap.TryGetLegacyType(
+                workTypeId,
+                out FacilityWorkType legacyType))
+        {
+            return;
+        }
+
+        EnsureIndexVersion();
+        GridFacilityCache cache = GetCache(building.Grid);
+        List<BuildableObject> candidates = GetOrCreateWorkList(
+            cache,
+            legacyType);
+        candidates.Remove(building);
+        candidates.Insert(0, building);
+        if (!cache.PrioritizedRuntimeCandidatesByWorkType.TryGetValue(
+                legacyType,
+                out HashSet<BuildableObject> prioritized))
+        {
+            prioritized = new HashSet<BuildableObject>();
+            cache.PrioritizedRuntimeCandidatesByWorkType.Add(
+                legacyType,
+                prioritized);
+        }
+        prioritized.Add(building);
+
+        unchecked
+        {
+            candidateIndexVersion++;
+        }
+        MarkDynamicStateDirty();
+    }
+
     public void Clear()
     {
         cacheByGrid.Clear();
@@ -517,9 +568,19 @@ public sealed class FacilityCandidateCacheStore :
         foreach (WorkTypeDefinition definition in FacilityWorkTypeMap.Enumerate(
                      supportedTypes))
         {
+            FacilityWorkType workType = FacilityWorkTypeMap.GetRequired(
+                definition);
+            if (cache.PrioritizedRuntimeCandidatesByWorkType.TryGetValue(
+                    workType,
+                    out HashSet<BuildableObject> prioritized)
+                && prioritized.Contains(building))
+            {
+                continue;
+            }
+
             GetOrCreateWorkList(
                 cache,
-                FacilityWorkTypeMap.GetRequired(definition)).Add(building);
+                workType).Add(building);
         }
     }
 

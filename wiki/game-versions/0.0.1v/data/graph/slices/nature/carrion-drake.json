@@ -41,6 +41,13 @@
     },
     {
       "amount": null,
+      "from": "event/seasonal-autumn-predator-descent",
+      "label": "관련",
+      "to": "nature/carrion-drake",
+      "type": "references"
+    },
+    {
+      "amount": null,
       "from": "nature/cave-hound",
       "label": "관련",
       "to": "nature/carrion-drake",

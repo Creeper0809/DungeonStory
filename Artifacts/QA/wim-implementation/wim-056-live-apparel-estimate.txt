@@ -1,0 +1,17 @@
+PASS
+main-gameplay-container=PASS
+real-create-craft=apparel:apron
+physical-source-material=material:cave-silk;quantity=2
+probability=0.073426195875175473
+actual-panel-label=PASS
+10-preview-and-render-order-stock-roll-invariant=PASS
+apparel-domain-serialized-restore-estimate-roll-stock=PASS
+apparel-restore-transient-state-and-lease-release=EXISTING_CONTRACT
+real-no-worker-versus-mythic-unreachable=PASS
+mixed-work-preview-single-new-attempt-label=PASS
+full-world-save-restore=NOT_RUN
+real-equipment-queue=weapon:dagger
+equipment-target-query-panel-order-stock-roll-invariant=PASS
+construction-real-placement-query-panel=PASS
+construction-multiline-layout=PASS
+construction-preview-order-roll-stock-invariant=PASS

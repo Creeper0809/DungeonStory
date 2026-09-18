@@ -62,5 +62,6 @@ GameplayEffectConditionDefinitionSO,stable-id,work:precision,stable-id-literal,s
 GameplayEffectConditionDefinitionSO,stable-id,work:research,stable-id-literal,models:buildings,runtime,exact-literal-consumer,Assets/Scripts/Models/Buildings/Core/CoreBuildingAbilityHandlers.cs
 GameplayEffectConditionDefinitionSO,stable-id,work:research,stable-id-literal,models:work,runtime,exact-literal-consumer,Assets/Scripts/Models/Work/WorkTypeId.cs
 GameplayEffectConditionDefinitionSO,stable-id,work:research,stable-id-literal,services:character,ai-decision,exact-literal-consumer,Assets/Scripts/Services/Character/AI/CharacterRecordTemplateBank.cs
+GameplayEffectConditionDefinitionSO,stable-id,work:research,stable-id-literal,services:character,content-loading,exact-literal-consumer,Assets/Scripts/Services/Character/Core/GameplayNarrativeSourceCatalog.cs
 GameplayEffectConditionDefinitionSO,stable-id,work:retry-after-failure,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/Ability/AbilityWork.cs
 GameplayEffectConditionDefinitionSO,stable-id,work:substitute-material,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/Ability/AbilityWork.cs

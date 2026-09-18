@@ -1,0 +1,14 @@
+baseline rawMoney=5000; rapport=0; stock=2
+PASS actual notice acceptance with no RF25: active pending, physical debit0, reward0, notice retained
+fixture authored RF25 instance=building:4a2c7cf70bb942cebcf3230176416089; anchor=(17, 1)
+fixture authored RF25 instance=building:249302827318458599b9a4e56ccfe977; anchor=(28, 1)
+delivery gameSeconds=28.20172; wallSeconds=7.057322; carried=True; arrived=False; destination=facility-input:exact:run.guest-request:event%3A2%3Aguest-request%3Asealed-archive%3Awim037-live
+PASS actual decline while carried; immediate exact stack/quantity/current-cell retained, no success reward
+PASS alive-hauler recovery into actual warehouse/old-destination cleanup; physical stock conserved; failure grievance+5 once; capture joins valid; gameSeconds=114.8293; wallSeconds=37.78246
+final stock=2; destination=facility-input:exact:run.guest-request:event%3A2%3Aguest-request%3Asealed-archive%3Awim037-live; carried=True; arrived=False
+money raw=4936; requestAdjusted=5000
+observed money transaction={"transactionId":"economy:00000001","kind":20,"sourceId":"employment","targetId":"character:staff:1:01","description":"직원 임금","amount":-32,"balanceBefore":5000,"balanceAfter":4968,"gameTime":120.6649398803711,"succeeded":true,"failureReason":""}
+observed money transaction={"transactionId":"economy:00000002","kind":20,"sourceId":"employment","targetId":"character:staff:1:02","description":"직원 임금","amount":-32,"balanceBefore":4968,"balanceAfter":4936,"gameTime":120.6649398803711,"succeeded":true,"failureReason":""}
+result=PASS
+scope=controlled authored occurrence/day2, RF25 buildings and two physical drawings; actual notice/accept, autonomous pickup then actual decline while carried, no same-frame teleport/debit, natural release/replan and terminal capture. Not death/drop-failure, natural request selection, construction cost, venue9 or six-adult balance.
+cleanup=paused disposable main Play; disk persistence disabled before owner UI; operator stops without scene/profile/save writes

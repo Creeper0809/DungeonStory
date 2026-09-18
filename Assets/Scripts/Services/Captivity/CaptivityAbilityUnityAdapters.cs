@@ -75,34 +75,54 @@ internal abstract class CaptivityAbilityUnityPort
         CaptivityAbilityAccessKind accessKind,
         out IEnumerator movement)
     {
+        return ResolveMovement(destination, accessKind, out movement)
+            == CaptivityMovementResolution.Ready;
+    }
+
+    protected CaptivityMovementResolution ResolveMovement(
+        Vector2Int destination,
+        CaptivityAbilityAccessKind accessKind,
+        out IEnumerator movement)
+    {
         movement = null;
         if (Actor.WorldRegistry == null
             || !Actor.WorldRegistry.TryGetGrid(out Grid grid))
         {
-            return false;
+            return CaptivityMovementResolution.Unreachable;
         }
 
         if (Actor.GetNowXY() == destination)
         {
             movement = EmptyMovement();
-            return true;
+            return CaptivityMovementResolution.Ready;
+        }
+        if (Actor.PathSearchBroker == null)
+        {
+            return CaptivityMovementResolution.Unreachable;
         }
 
-        Queue<GridMoveStep> path = Actor.PathSearchBroker?.GetMovePathTo(
+        GridPathRequestStatus status = Actor.PathSearchBroker.RequestMovePathTo(
             grid,
             Actor.GetNowXY(),
             destination,
+            out Queue<GridMoveStep> path,
             GridPathSearchPriority.Urgent,
             GridTraversalContext.ForCharacter(
                 CharacterPersistentIdentity.Require(Actor),
                 ToDoorAccessOverride(accessKind)));
-        if (path == null || path.Count == 0)
+        if (status == GridPathRequestStatus.Pending)
         {
-            return false;
+            return CaptivityMovementResolution.Pending;
+        }
+        if (status != GridPathRequestStatus.Reachable
+            || path == null
+            || path.Count == 0)
+        {
+            return CaptivityMovementResolution.Unreachable;
         }
 
         movement = Move.MoveByPath(path);
-        return true;
+        return CaptivityMovementResolution.Ready;
     }
 
     protected void SetActionPhase(string phase, string detail) =>
@@ -317,11 +337,11 @@ internal sealed class CaptiveEscortAbilityUnityPort :
         return found;
     }
 
-    public new bool TryCreateMovement(
+    public new CaptivityMovementResolution ResolveMovement(
         Vector2Int destination,
         CaptivityAbilityAccessKind accessKind,
         out IEnumerator movement) =>
-        base.TryCreateMovement(destination, accessKind, out movement);
+        base.ResolveMovement(destination, accessKind, out movement);
 
     public bool TryPickupReservedRestraint(
         CaptiveState state,

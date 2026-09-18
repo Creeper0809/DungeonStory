@@ -265,8 +265,8 @@ public static class StaffDutyDebugScenarios
             gridField?.SetValue(manager, world.Grid);
             instanceField?.SetValue(null, manager);
 
-            BuildableObject restFacility = world.Place("P1_RestRoom", new Vector2Int(2, 0));
-            BuildableObject hygieneFacility = world.Place("P1_Washroom", new Vector2Int(8, 0));
+            BuildableObject restFacility = world.Place("R01_간이침대", new Vector2Int(2, 0));
+            BuildableObject hygieneFacility = world.Place("H03_세면대", new Vector2Int(8, 0));
 
             staff = CreateStaff(
                 "Staff Expedition Recovery Rest",
@@ -430,7 +430,7 @@ public static class StaffDutyDebugScenarios
     private static bool VerifyEmergencyCanInterruptOffDuty()
     {
         using WorkScenarioWorld world = new WorkScenarioWorld();
-        BuildableObject damaged = world.Place("P1_RestRoom", new Vector2Int(2, 0));
+        BuildableObject damaged = world.Place("R01_간이침대", new Vector2Int(2, 0));
         damaged.SetDamaged(true);
 
         CharacterActor staff = CreateStaff("Staff Emergency", withShopping: true, withWorkAction: true);
@@ -990,7 +990,7 @@ public static class StaffDutyDebugScenarios
             gridField?.SetValue(manager, world.Grid);
             instanceField?.SetValue(null, manager);
 
-            BuildableObject damaged = world.Place("P1_RestRoom", new Vector2Int(2, 0));
+            BuildableObject damaged = world.Place("R01_간이침대", new Vector2Int(2, 0));
             damaged.SetDamaged(true);
 
             staff = CreateStaff("Staff Expedition Return", withShopping: true, withWorkAction: true);
@@ -1229,7 +1229,7 @@ public static class StaffDutyDebugScenarios
         public BuildableObject Place(string assetName, Vector2Int position)
         {
             BuildingSO buildingData = AssetDatabase.LoadAssetAtPath<BuildingSO>(
-                $"Assets/Resources/SO/Building/P1/{assetName}.asset");
+                $"Assets/Resources/SO/Building/Modular/{assetName}.asset");
             if (buildingData == null)
             {
                 throw new InvalidOperationException($"{assetName} asset not found.");

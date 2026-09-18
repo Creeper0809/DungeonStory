@@ -72,6 +72,9 @@ public sealed class DoorAccessUnityAdapter :
         return CanUse(door, context, out denialReason);
     }
 
+    [GameplayEntryPoint("DoorAccessPanelPresenter; WIM-045 actual door hold/close UI")]
+    public bool SetHeldOpen(Door door, bool held) => door != null && door.SetHeldOpen(held);
+
     public bool SetGroupAllowed(
         Door door,
         DoorAccessGroup group,

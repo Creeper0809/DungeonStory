@@ -185,6 +185,20 @@ public abstract class DungeonStrictJsonSaveSection<TPayload, TRestoreCandidate> 
             fieldNames);
     }
 
+    protected void RequireObjectArrayFieldsWhenTopLevelBooleanTrue(
+        string payloadJson,
+        string conditionFieldName,
+        string objectFieldName,
+        params string[] fieldNames)
+    {
+        DungeonStrictJsonShape.RequireObjectArraysWhenTopLevelBooleanTrue(
+            SectionId,
+            payloadJson,
+            conditionFieldName,
+            objectFieldName,
+            fieldNames);
+    }
+
     private TPayload ParsePayload(string payloadJson)
     {
         if (string.IsNullOrWhiteSpace(payloadJson))
@@ -259,6 +273,37 @@ public static class DungeonStrictJsonShape
         }
     }
 
+    public static void RequireObjectArraysWhenTopLevelBooleanTrue(
+        string sectionId,
+        string payloadJson,
+        string conditionFieldName,
+        string objectFieldName,
+        IReadOnlyCollection<string> requiredFieldNames)
+    {
+        if (string.IsNullOrWhiteSpace(conditionFieldName))
+            throw new ArgumentException(
+                "A condition field name is required.",
+                nameof(conditionFieldName));
+        if (string.IsNullOrWhiteSpace(objectFieldName))
+            throw new ArgumentException(
+                "An object field name is required.",
+                nameof(objectFieldName));
+
+        HashSet<string> required = new HashSet<string>(
+            requiredFieldNames ?? Array.Empty<string>(),
+            StringComparer.Ordinal);
+        if (required.Count == 0)
+            return;
+
+        JsonShapeReader reader = new JsonShapeReader(
+            sectionId,
+            payloadJson);
+        reader.RequireObjectArrayFieldsWhenBooleanTrue(
+            conditionFieldName,
+            objectFieldName,
+            required);
+    }
+
     private sealed class JsonShapeReader
     {
         private readonly string sectionId;
@@ -311,6 +356,154 @@ public static class DungeonStrictJsonShape
                     RequireEnd();
                     return found;
                 }
+
+                Require(',');
+                SkipWhitespace();
+            }
+        }
+
+        public void RequireObjectArrayFieldsWhenBooleanTrue(
+            string conditionFieldName,
+            string objectFieldName,
+            ISet<string> required)
+        {
+            bool conditionSeen = false;
+            bool conditionValue = false;
+            bool objectSeen = false;
+            bool objectWasJsonObject = false;
+            HashSet<string> found = new HashSet<string>(StringComparer.Ordinal);
+
+            SkipWhitespace();
+            Require('{');
+            SkipWhitespace();
+            if (!TryConsume('}'))
+            {
+                while (true)
+                {
+                    string fieldName = ReadString();
+                    SkipWhitespace();
+                    Require(':');
+                    SkipWhitespace();
+                    if (string.Equals(
+                            fieldName,
+                            conditionFieldName,
+                            StringComparison.Ordinal))
+                    {
+                        if (conditionSeen)
+                        {
+                            Fail(
+                                $"contains duplicate condition field "
+                                + $"'{conditionFieldName}'");
+                        }
+
+                        conditionSeen = true;
+                        if (Peek() == 't')
+                        {
+                            RequireLiteral("true");
+                            conditionValue = true;
+                        }
+                        else if (Peek() == 'f')
+                        {
+                            RequireLiteral("false");
+                        }
+                        else
+                        {
+                            Fail(
+                                $"field '{conditionFieldName}' must be a "
+                                + "JSON boolean");
+                        }
+                    }
+                    else if (string.Equals(
+                                 fieldName,
+                                 objectFieldName,
+                                 StringComparison.Ordinal))
+                    {
+                        if (objectSeen)
+                        {
+                            Fail(
+                                $"contains duplicate object field "
+                                + $"'{objectFieldName}'");
+                        }
+
+                        objectSeen = true;
+                        if (Peek() == '{')
+                        {
+                            objectWasJsonObject = true;
+                            found = ReadObjectArrayFields(required);
+                        }
+                        else
+                        {
+                            SkipValue();
+                        }
+                    }
+                    else
+                    {
+                        SkipValue();
+                    }
+
+                    SkipWhitespace();
+                    if (TryConsume('}'))
+                        break;
+
+                    Require(',');
+                    SkipWhitespace();
+                }
+            }
+
+            RequireEnd();
+            if (!conditionSeen || !conditionValue)
+                return;
+            if (!objectSeen || !objectWasJsonObject)
+            {
+                Fail(
+                    $"field '{objectFieldName}' must be a JSON object when "
+                    + $"'{conditionFieldName}' is true");
+            }
+
+            string[] missing = required
+                .Where(fieldName => !found.Contains(fieldName))
+                .OrderBy(fieldName => fieldName, StringComparer.Ordinal)
+                .ToArray();
+            if (missing.Length > 0)
+            {
+                Fail(
+                    $"field '{objectFieldName}' is missing required array "
+                    + $"field(s): {string.Join(", ", missing)} when "
+                    + $"'{conditionFieldName}' is true");
+            }
+        }
+
+        private HashSet<string> ReadObjectArrayFields(ISet<string> required)
+        {
+            HashSet<string> found = new HashSet<string>(StringComparer.Ordinal);
+            HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
+            Require('{');
+            SkipWhitespace();
+            if (TryConsume('}'))
+                return found;
+
+            while (true)
+            {
+                string fieldName = ReadString();
+                SkipWhitespace();
+                Require(':');
+                SkipWhitespace();
+                if (required.Contains(fieldName))
+                {
+                    if (!seen.Add(fieldName))
+                    {
+                        Fail(
+                            $"contains duplicate required field "
+                            + $"'{fieldName}'");
+                    }
+                    if (Peek() == '[')
+                        found.Add(fieldName);
+                }
+
+                SkipValue();
+                SkipWhitespace();
+                if (TryConsume('}'))
+                    return found;
 
                 Require(',');
                 SkipWhitespace();

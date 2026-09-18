@@ -1,0 +1,143 @@
+# WIM063 removal reference inventory (read-only evidence)
+
+Root verification supplement (2026-09-11): reviewed the 21-row inventory and
+the production `ModularFacilityInitialPlacementMigrator.ExpandInitialRooms`
+and `ModularFacilityWorldSaveService.TryResolveBuildingRestore`. Verified the
+food/research GUIDs directly in both scenes and GameDomainContentCatalog.
+The converter emits room boundaries as well as modular facilities; a future
+conversion must preserve those boundaries, normalization and placement order,
+not merely replace each old Building pointer with a single new module.
+Root read-only query `ModularFacilityInitialPlacementMigrator / code / limit2`
+completed exit1 (handle76507), status STALE, generated rows not returned.
+Content source digest: c0bf58be281121e368325a616449e719467c409b56d3ac38e07a8a5c922d80ec
+KB source digest: ce0b18feac3fb0dac1746fef77296c9d9ffaeab51cfbb33aeaf570f52a2c3679
+Stale failures33 during the current source-edit batch. No generator rerun;
+the source files, not stale generated facts, support this inventory.
+
+Date: 2026-09-11
+Scope: the 21 `BuildingSO.deprecatedCompatibilityAsset: 1` assets only.  This is
+an inventory, not an approval to delete.  No Unity, compile, generator, asset,
+scene, game-code, or existing-document mutation was performed; this evidence
+report is the sole file added by the investigation.
+
+## Decision evidence retained
+
+- Knowledge-base query / area: NOT_RUN.  This bounded investigation explicitly
+  prohibited a KB query and did not launch regeneration; therefore no fresh or
+  stale KB digest is claimed.
+- Actual source digest: inspected `docs/game-design/wim-implementation-plan.md`
+  section 7.2, `Artifacts/QA/wiki-system-audit-2026-09-05/species-affinity-runtime-review.md`,
+  and `Artifacts/QA/wim-implementation/wim-063-retired-supply-focused.txt`,
+  then verified the cited current assets and production symbols below.
+- `docs/game-design/wim-implementation-plan.md` section 7.2 states that the
+  affinity subset (14) and prior store reach (13) are not a deletion list; all
+  actual references must transition first.
+- `wim-063-retired-supply-focused.txt` records PASS for the retired offer and
+  purchase guards, while explicitly marking kit/catalog generation, initial
+  scene transition, missing-reference validation, and new-game deletion as
+  NOT_RUN.  That PASS is preserved; it is not deletion evidence.
+- `GameDomainContentCatalog.asset` directly references every building below.
+  `ItemDefinitionCatalog.asset` directly references every paired kit below.
+
+## Exact retired building targets
+
+`id` is the numeric `BuildingSO.id`; GUID is from that asset's `.meta`.
+All target asset/meta pairs were clean at this inspection.  Each row has the
+specified `facility-kit:<id>` asset, whose `InstallationItemFeature` points
+back to the same numeric building ID and is currently in ItemDefinitionCatalog.
+
+| id | building asset (under `Resources/SO/Building`) | building GUID | kit GUID | direct non-catalog scene ref |
+|---:|---|---|---|---|
+| 3 | LordBedroom | ca356231137cd0a4884a2a598b258e72 | b03599b68675ea3468342e2e3a37139d | GameplayScene, SampleScene |
+| 5 | WeaponStore | 183b18c5841fb7a438bab789f642e364 | ef35e4acd0b343e4fa1641b1b17b43d5 | GameplayScene, SampleScene |
+| 6 | HamburgerStore | 7f82b749e6eb74f44b5a64c0a9a9bbbd | 3b1b5d91da9061e41b85e3c0a18b04a0 | none found |
+| 10 | P1/P1_LowFoodShop | 571250d0a1eec303a9ab4d5a02ad7349 | 7b170d4b471efff429a6f6c3d5275a35 | GameplayScene, SampleScene |
+| 11 | P1/P1_MeatRestaurant | 6b9d24242759e5df88c7b99baf956d07 | 6f9bf79c9bf399544a8a18694f16f052 | GameplayScene, SampleScene |
+| 12 | P1/P1_GeneralStore | f9cc84f6917e71df2859c65b6574cb5b | 11bfc0073c8498d47a14234cc8c12908 | none found |
+| 13 | P1/P1_WeaponShop | 4b8d448691ea2d46ab09d6a266e2ccce | b9b35db7892ef034d846b84569476838 | none found |
+| 14 | P1/P1_RestRoom | 6392785b3fc4a7e458c76c6c5a33040e | 51c15f532598b2440be5a1bb9e3a91e3 | GameplayScene, SampleScene |
+| 15 | P1/P1_TrainingRoom | ee9d89a4c6a8cf58cacb01f135b944bf | 2398a3ee81fda4a43957f8358dc5f7dc | GameplayScene, SampleScene |
+| 16 | P1/P1_ResearchLab | 5e5bcfb2d2f27699482222f9a8279828 | dcb4e539791a99d41bebce361664f25e | GameplayScene, SampleScene |
+| 17 | P1/P1_ManaStorage | 445a02812ce5fa4c4b9de779a313ad0a | d9fcfd6239742594cb4b16a1301749c6 | GameplayScene, SampleScene |
+| 18 | P1/P1_Warehouse | 516f165759612e9eead3e7cfe629d1c2 | 846953a2b0c47244e8cb0372589f0d42 | GameplayScene, SampleScene |
+| 35 | P1/P1_GuardRoom | 070173726688a0a2f8ef51752e6e8abc | 4e5da361c63d0c54ab66679f1558bf38 | none found |
+| 50 | P1/P1_BattleDining | 9a2c6dc03b666e7dfaafda7edea079aa | 499ed2c313a899249b00638ea3eba6f6 | none found |
+| 51 | P1/P1_PremiumMeatRestaurant | efeb84377b5d50174a68d4b8a90d2492 | 5fe67bb9d0094714c99744b8e9359654 | none found |
+| 54 | P1/P1_Barracks | 849ccb1826db8b83a9170653bfa86dbc | f8313e5391df6db4b8bac47eaf099efb | none found |
+| 55 | P1/P1_BattlefieldDining | c325c62eb92cba1c88d42d1ed4d0d884 | 3942c4e827a220e40987a0d48984f6f4 | none found |
+| 56 | P1/P1_NobleDining | c38e35bf90fcde818a2d05320c7f8ce8 | 3c02baadcb864f746af5d23b092d06bd | none found |
+| 59 | P1/P1_WarBarracks | 7c4e856c192fef3b186c3a4028c03a31 | d0467e1ddb28cba4481128bb0d211e3d | none found |
+| 60 | P1/P1_Toilet | 0b2645948ac34704a8281fbc0a902d3c | f312a82e990ed18458a6f12f9ffca61d | none found |
+| 61 | P1/P1_Washroom | d9703987483643af93cc514c8585bba2 | 112812dc8817b3d4486ba9b7d0ac0e4a | none found |
+
+The nine scene-backed rows are the minimal authored initial-placement blockers:
+ids `3, 5, 10, 11, 14, 15, 16, 17, 18`.  Their asset GUIDs occur in both
+`Assets/Scenes/GameplayScene.unity` and `Assets/Scenes/SampleScene.unity`.
+The remaining twelve have no direct scene YAML reference in the searched
+Resources/Scenes/Prefabs set, but are still live through catalog, kit,
+migrator, and numeric restore paths; they are not safe deletion targets.
+
+## Current production reference seams
+
+1. **Runtime catalog / lookup.**  `GameDomainContentCatalog.asset` contains
+   all 21 `BuildingSO` references.  `DungeonStoryGridBuildingController`
+   `TryResolveBuildingDataById` reads `IDataCatalog.GetData<BuildingSO>()` by
+   the same numeric ID.  Removal without catalog transition makes that lookup
+   fail.
+2. **Item catalog / installation kits.**  All 21 `facility_kit_<id>.asset`
+   definitions remain directly referenced by
+   `Assets/Resources/SO/Content/ItemDefinitionCatalog.asset`; each has
+   `itemId: facility-kit:<id>` and `buildingDefinitionId: <id>`.  The current
+   builder, `GameContentCatalogAssetBuilder.EnsurePhysicalOfferDefinitions`,
+   only ensures kits for positive, non-deprecated buildings.  It does not by
+   itself prove removal of the already-indexed legacy kits.
+3. **Initial placement.**
+   `ModularFacilityInitialPlacementMigrator` has an explicit recipe keyed by
+   every one of the 21 retired asset names.  `GridBuildingRuntime`
+   `PlaceInitialBuildings` always calls `ExpandInitialRooms`; the controller
+   calls `NormalizeInitialPlacementForCurrentGrid` before both startup initial
+   placement and public `TryPlaceInitialBuildings`.  The minimal structural
+   transition is to replace the nine direct scene `InitialBuildInfo.Building`
+   references with the corresponding active modular placements, then remove
+   the now-unneeded recipes only after no supported initial-placement caller
+   supplies any retired BuildingSO.
+4. **Persisted facility world.**
+   `ModularFacilityWorldSaveData` stores numeric `buildingId`.
+   `ModularFacilityWorldSaveService.TryResolveBuildingRestore` calls
+   `findBuildingData(entry.buildingId)` and reports an error when no asset is
+   found; it does not call the initial-placement migrator.  Per the active
+   WIM063 decision, old saves are excluded and are not migrated: current new
+   runs must use active numeric IDs.  A removed, unsupported old ID remains an
+   explicit restore failure and must never silently substitute a module.
+5. **Current supply guard (already PASS).**
+   `FacilityBuildingOffer.IsValid`, `CanEnterBasicPurchase`, and
+   `IsDailyShopBuildingCandidate` reject `IsDeprecatedCompatibilityAsset`.
+   This prevents new deprecated shop exposure while retaining active locked
+   buildings; it does not remove any reference above.
+
+## Safe versus blocked status at this snapshot
+
+- **Known safe semantic state:** all 21 are blocked from daily/basic/public
+  purchase; the physical-offer builder excludes them from new kit authoring.
+  Keep the existing focused supply PASS as the regression guard.
+- **Known safe deletion targets:** none.  Every target has a direct domain
+  catalog reference, a paired live item-catalog kit, and an initial-placement
+  recipe.  Nine additionally have two direct authored scene references.
+- **Blocked group A (authoring):** ids `3,5,10,11,14,15,16,17,18` until both
+  scenes are transitioned to active module placement and validated.
+- **Blocked group B (runtime/index):** all ids in the table until the domain
+  catalog and item catalog/legacy installation-kit references transition.
+
+## Protected/dirty files observed; untouched
+
+These are live integration files and already dirty in this shared worktree:
+
+- `Assets/Resources/SO/Content/GameDomainContentCatalog.asset`
+- `Assets/Resources/SO/Content/ItemDefinitionCatalog.asset`
+- `Assets/Scripts/Controllers/Grid/DungeonStory/Building/DungeonStoryGridBuildingController.cs`
+- `Assets/Scripts/Services/FacilityShop/FacilityShopSystem.cs`
+- `Assets/Scripts/Services/Items/Editor/GameContentCatalogAssetBuilder.cs`
+
+The two placement scenes, `ModularFacilityInitialPlacementMigrator.cs`, and
+`GridBuildingRuntime.cs` were clean at inspection.  No protected file was
+modified.  This report is the sole file added by this investigation.

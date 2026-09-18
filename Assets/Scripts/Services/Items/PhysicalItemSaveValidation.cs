@@ -7,6 +7,7 @@ internal static class PhysicalItemSaveValidation
     internal const int MaxSavedStacks = 262_144;
     internal const int MaxSavedUniqueItems = 65_536;
     internal const int MaxPendingBatchDispositions = 16_384;
+    internal const int MaxPhysicalItemRelocations = 16_384;
     internal const int MaxPendingExactOutputRoutes = 16_384;
     internal const int MaxPendingProductionCustodyDrains = 4_096;
     internal const int MaxPendingProductionInputDestinationDrains = 4_096;
@@ -74,6 +75,12 @@ internal static class PhysicalItemSaveValidation
             report.AddError("Physical item payload has no pending batch-disposition list.");
             return;
         }
+        if (snapshot.physicalItemRelocations == null)
+        {
+            report.AddError(
+                "Physical item payload has no relocation journal list.");
+            return;
+        }
         if (snapshot.pendingExactOutputRoutes == null)
         {
             report.AddError("Physical item payload has no pending exact-output-route list.");
@@ -112,6 +119,12 @@ internal static class PhysicalItemSaveValidation
             report.AddError(
                 $"Physical item payload exceeds the {MaxPendingBatchDispositions}-pending-disposition limit.");
         }
+        if (snapshot.physicalItemRelocations.Count
+            > MaxPhysicalItemRelocations)
+        {
+            report.AddError(
+                $"Physical item payload exceeds the {MaxPhysicalItemRelocations}-relocation-journal limit.");
+        }
         if (snapshot.pendingExactOutputRoutes.Count > MaxPendingExactOutputRoutes)
         {
             report.AddError(
@@ -141,6 +154,9 @@ internal static class PhysicalItemSaveValidation
         ValidateStacks(snapshot.stacks, uniqueById, report, catalog);
         ValidateReservationIntents(snapshot, report);
         ValidatePendingBatchDispositions(snapshot.pendingBatchDispositions, report);
+        ValidatePhysicalItemRelocations(
+            snapshot.physicalItemRelocations,
+            report);
         ValidatePendingExactOutputRoutes(snapshot.pendingExactOutputRoutes, report);
         ValidatePendingProductionCustodyDrains(
             snapshot.pendingProductionCustodyDrains,
@@ -1588,6 +1604,122 @@ internal static class PhysicalItemSaveValidation
         }
     }
 
+    private static void ValidatePhysicalItemRelocations(
+        IReadOnlyList<PhysicalItemRelocationSaveData> values,
+        DungeonGameRestoreReport report)
+    {
+        HashSet<string> operations = new(StringComparer.Ordinal);
+        string previousOperation = string.Empty;
+        foreach (PhysicalItemRelocationSaveData value in
+                 values ?? Array.Empty<PhysicalItemRelocationSaveData>())
+        {
+            string operation = value?.operationId ?? string.Empty;
+            bool valid = value != null
+                && IsCanonicalNonEmpty(operation)
+                && IsCanonicalNonEmpty(value.reasonCode)
+                && IsLowerSha256(value.requestFingerprint)
+                && value.phase >= (int)PhysicalItemRelocationJournalPhase
+                    .DomainCommitted
+                && value.phase <= (int)PhysicalItemRelocationJournalPhase
+                    .PublishedAcknowledged
+                && IsCanonicalNonEmpty(value.sourceStackId)
+                && IsCanonicalNonEmpty(value.destinationStackId)
+                && IsCanonicalNonEmpty(value.itemDefinitionId)
+                && (string.IsNullOrEmpty(value.itemInstanceId)
+                    || IsCanonicalNonEmpty(value.itemInstanceId))
+                && value.quantity > 0
+                && value.massGrams > 0L
+                && Enum.IsDefined(
+                    typeof(WorldItemStackState),
+                    value.destinationState)
+                && (WorldItemStackState)value.destinationState
+                    is not (WorldItemStackState.Carried
+                        or WorldItemStackState.InTransit)
+                && IsCanonicalText(value.destinationId)
+                && value.outcomeOwnerRevision > 0L
+                && operations.Add(operation);
+            if (valid)
+            {
+                try
+                {
+                    PhysicalItemDispositionSourceFact displayFact =
+                        PhysicalGameplayOutcomeSaveCodec.FromSave(new
+                            PhysicalItemDispositionSourceFactSaveData
+                            {
+                                stackId = value.sourceStackId,
+                                itemDefinitionId = value.itemDefinitionId,
+                                itemInstanceId = value.itemInstanceId,
+                                quantity = value.quantity,
+                                massGrams = value.massGrams,
+                                sourceX = value.sourceX,
+                                sourceY = value.sourceY,
+                                displayText = value.displayText,
+                                displaySnapshotRevision =
+                                    value.displaySnapshotRevision,
+                                pronunciationMode = value.pronunciationMode,
+                                pronunciationValue = value.pronunciationValue,
+                                explicitFinalConsonant =
+                                    value.explicitFinalConsonant,
+                                pronunciationRevision =
+                                    value.pronunciationRevision,
+                                locale = value.locale
+                            });
+                    GameplayResultKey expected = new(
+                        value.expectedOutcomeProducerId,
+                        new GameplayOperationId(
+                            value.expectedOutcomeOperationId),
+                        value.expectedOutcomeCommitRevision,
+                        value.expectedOutcomeLocalResultIndex);
+                    valid = displayFact.IsValid
+                        && expected.IsValid
+                        && string.Equals(
+                            expected.OperationId.Value,
+                            operation,
+                            StringComparison.Ordinal)
+                        && expected.CommitRevision == 0L
+                        && expected.LocalResultIndex == 0;
+                    if (value.gameplayOutcome != null)
+                    {
+                        PhysicalGameplayOutcomeAttachment attachment =
+                            PhysicalGameplayOutcomeSaveCodec.FromSave(
+                                value.gameplayOutcome);
+                        valid &= attachment.IsValid
+                            && attachment.ResultKey.Equals(expected);
+                        if (value.phase == (int)
+                                PhysicalItemRelocationJournalPhase
+                                    .PublishedAcknowledged)
+                        {
+                            valid &= attachment.HasAcknowledgementProof;
+                        }
+                    }
+                    else if (value.phase == (int)
+                             PhysicalItemRelocationJournalPhase
+                                 .PublishedAcknowledged)
+                    {
+                        valid = false;
+                    }
+                }
+                catch (Exception)
+                {
+                    valid = false;
+                }
+            }
+            if (!valid)
+            {
+                report.AddError(
+                    $"Invalid physical relocation journal '{operation}'.");
+                continue;
+            }
+            if (previousOperation.Length > 0
+                && string.CompareOrdinal(previousOperation, operation) >= 0)
+            {
+                report.AddError(
+                    "Physical relocation journals are not in canonical operation order.");
+            }
+            previousOperation = operation;
+        }
+    }
+
     private static void ValidatePendingBatchDispositions(
         IReadOnlyList<PhysicalItemBatchDispositionSaveData> values,
         DungeonGameRestoreReport report)
@@ -1637,6 +1769,73 @@ internal static class PhysicalItemSaveValidation
                     "Pending physical batch dispositions are not in canonical operation order.");
             }
             previousOperation = operation;
+            bool hasExtendedOutcome = value.outcomeOwnerRevision > 0L
+                || value.gameplayOutcomeExpected
+                || (value.sourceFacts?.Count ?? 0) > 0
+                || value.gameplayOutcome != null;
+            List<PhysicalItemDispositionSourceFact> sourceFacts = new();
+            if (hasExtendedOutcome)
+            {
+                try
+                {
+                    sourceFacts = (value.sourceFacts
+                            ?? new List<PhysicalItemDispositionSourceFactSaveData>())
+                        .Select(PhysicalGameplayOutcomeSaveCodec.FromSave)
+                        .ToList();
+                    long factMass = 0L;
+                    int factQuantity = 0;
+                    bool expectsOutcome = value.gameplayOutcomeExpected
+                        || value.gameplayOutcome != null;
+                    bool factsValid = value.outcomeOwnerRevision > 0L
+                        && expectsOutcome
+                        && sourceFacts.Count == value.sourceStackIds.Count;
+                    for (int index = 0; index < sourceFacts.Count; index++)
+                    {
+                        PhysicalItemDispositionSourceFact fact = sourceFacts[index];
+                        factsValid &= fact.IsValid
+                            && string.Equals(
+                                fact.StackId,
+                                value.sourceStackIds[index],
+                                StringComparison.Ordinal);
+                        factQuantity = checked(factQuantity + fact.Quantity);
+                        factMass = checked(factMass + fact.MassGrams);
+                    }
+                    GameplayResultKey expectedKey = value.gameplayOutcomeExpected
+                        ? new GameplayResultKey(
+                            value.expectedOutcomeProducerId,
+                            new GameplayOperationId(
+                                value.expectedOutcomeOperationId),
+                            value.expectedOutcomeCommitRevision,
+                            value.expectedOutcomeLocalResultIndex)
+                        : PhysicalGameplayOutcomeSaveCodec.FromSave(
+                            value.gameplayOutcome).ResultKey;
+                    factsValid &= factQuantity == value.quantity
+                        && factMass == value.inputMassGrams
+                        && expectedKey.IsValid
+                        && string.Equals(
+                            expectedKey.OperationId.Value,
+                            value.operationId,
+                            StringComparison.Ordinal)
+                        && expectedKey.CommitRevision
+                            == value.outcomeOwnerRevision;
+                    if (value.gameplayOutcome != null)
+                    {
+                        PhysicalGameplayOutcomeAttachment attachment =
+                            PhysicalGameplayOutcomeSaveCodec.FromSave(
+                                value.gameplayOutcome);
+                        factsValid &= attachment.IsValid
+                            && attachment.ResultKey.Equals(expectedKey);
+                    }
+                    if (!factsValid)
+                        report.AddError(
+                            $"Pending physical batch disposition '{operation}' has an invalid exact outcome attachment.");
+                }
+                catch (Exception)
+                {
+                    report.AddError(
+                        $"Pending physical batch disposition '{operation}' has an unreadable exact outcome attachment.");
+                }
+            }
             PhysicalItemBatchDispositionReceipt reconstructed = new(
                 (PhysicalItemDispositionKind)value.kind,
                 value.operationId,
@@ -1644,7 +1843,9 @@ internal static class PhysicalItemSaveValidation
                 value.requestFingerprint,
                 value.sourceStackIds,
                 value.quantity,
-                value.inputMassGrams);
+                value.inputMassGrams,
+                value.outcomeOwnerRevision,
+                sourceFacts);
             if (!reconstructed.IsCommitted
                 || !string.Equals(
                     reconstructed.CommitId,
@@ -2034,6 +2235,14 @@ internal static class PhysicalItemSaveValidation
             }
             ValidateRecoveryDrop(stack, stackId, report);
             ValidateComponents(stack.components, $"stack '{stackId}'", report);
+            if (WildlifeHaulCargoCustodyCodec.HasAny(stack.components)
+                && !WildlifeHaulCargoCustodyCodec.TryRead(
+                    stack.components,
+                    out _))
+            {
+                report.AddError(
+                    $"Physical stack '{stackId}' has invalid wildlife-haul custody.");
+            }
 
             string instanceId = stack.itemInstanceId ?? string.Empty;
             ItemInstanceId typedInstanceId = (ItemInstanceId)instanceId;
@@ -2149,7 +2358,8 @@ internal static class PhysicalItemSaveValidation
                 out _)
             || stack.recoveryInterruptionKind is not (
                 WorldItemCarryInterruptionKind.Downed
-                or WorldItemCarryInterruptionKind.Dead)
+                or WorldItemCarryInterruptionKind.Dead
+                or WorldItemCarryInterruptionKind.Disabled)
             || !finiteTimes
             || stack.droppedAtGameTime < 0d
             || stack.recoveryDeadlineGameTime <= stack.droppedAtGameTime)

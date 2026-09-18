@@ -1,0 +1,35 @@
+{
+  "facts": [
+    {
+      "label": "최소 지속 기간",
+      "value": "3일"
+    },
+    {
+      "label": "최대 지속 기간",
+      "value": "5일"
+    },
+    {
+      "label": "종료 효과",
+      "value": "1개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "material-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "목재",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "seasonal-spring-drift-cargo",
+  "spoiler_tier": "warning",
+  "summary": "해빙수에 떠밀려온 목재 여섯 개가 외곽에 남아 있다. 기한 전 실제 운반으로 회수해야 한다.",
+  "title": "해빙 표류 화물"
+}

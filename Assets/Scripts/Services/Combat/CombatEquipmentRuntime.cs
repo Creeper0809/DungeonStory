@@ -61,6 +61,8 @@ public sealed class CombatEquipmentRuntime :
     public IReadOnlyCollection<CombatEquipmentInstance> Instances =>
         instances.Values.Select(instance => instance.Clone()).ToArray();
     public IReadOnlyList<CombatEquipmentCraftOrderSaveData> CraftQueue => crafting.Queue;
+    public CraftQualityAttemptEstimate CaptureCraftQualityEstimate(string orderId) =>
+        crafting.CaptureQualityEstimate(orderId);
     public IReadOnlyCollection<EquipmentModuleInstance> ModuleInstances =>
         moduleRuntime.Snapshots;
     public IReadOnlyList<EquipmentHistoryTransferOrder> HistoryTransferOrders =>
@@ -497,10 +499,15 @@ public sealed class CombatEquipmentRuntime :
             return false;
         }
 
-        instance.evolution = evolutionState?.Clone()
+        EquipmentEvolutionState supplied = evolutionState
             ?? new EquipmentEvolutionState();
-        CombatEquipmentStatProjector.NormalizeEvolutionPresentationState(instance.evolution);
-        PersistPhysicalState(instance);
+        EquipmentEvolutionRules.ValidateFormulaState(supplied);
+        CombatEquipmentInstance candidate = instance.Clone();
+        candidate.evolution = supplied.Clone();
+        CombatEquipmentStatProjector.NormalizeEvolutionPresentationState(candidate.evolution);
+        EquipmentEvolutionRules.ValidateFormulaState(candidate.evolution);
+        PersistPhysicalState(candidate);
+        instances[candidate.instanceId] = candidate;
         return true;
     }
 
@@ -1007,9 +1014,20 @@ public sealed class CombatEquipmentRuntime :
         string instanceId,
         out string failureReason)
     {
+        string normalizedInstanceId = instanceId?.Trim() ?? string.Empty;
+        string sourceStackId = instances.TryGetValue(
+                normalizedInstanceId,
+                out CombatEquipmentInstance instance)
+            ? instance.sourceStackId?.Trim() ?? string.Empty
+            : string.Empty;
         return loadoutRuntime.TryAssign(
             characterId,
-            instanceId,
+            normalizedInstanceId,
+            sourceStackId.Length == 0
+                ? null
+                : () => itemStackRuntime.TryAbsorbUniqueItemStack(
+                    sourceStackId,
+                    (ItemInstanceId)normalizedInstanceId),
             out failureReason);
     }
 
@@ -1400,6 +1418,12 @@ public sealed class CombatEquipmentRuntime :
         return loadoutRuntime.ConfiscateAll(characterId);
     }
 
+    public IReadOnlyList<CombatEquipmentInstance> ConfiscateAllForExpedition(
+        string characterId)
+    {
+        return loadoutRuntime.ConfiscateAllForExpedition(characterId);
+    }
+
     public bool TryMaterializeRecoveredEquipment(
         string instanceId,
         Vector2Int position,
@@ -1416,7 +1440,8 @@ public sealed class CombatEquipmentRuntime :
             return false;
         }
         if (!string.IsNullOrWhiteSpace(instance.ownerCharacterId)
-            || instance.worldState != CombatEquipmentWorldState.Loose)
+            || !string.IsNullOrWhiteSpace(instance.sourceStackId)
+            || instance.worldState != CombatEquipmentWorldState.ExpeditionPacked)
         {
             failureReason = "recovered equipment is still owned or unavailable";
             return false;
@@ -1503,7 +1528,9 @@ public sealed class CombatEquipmentRuntime :
 
         string rollbackStackId = stackId;
         stackId = string.Empty;
-        if (!itemStackRuntime.DeleteStack(rollbackStackId))
+        if (!itemStackRuntime.TryAbsorbUniqueItemStack(
+                rollbackStackId,
+                new ItemInstanceId(instance.instanceId)))
         {
             throw new InvalidOperationException(
                 $"Equipment world-drop rollback failed for stack '{rollbackStackId}'.");

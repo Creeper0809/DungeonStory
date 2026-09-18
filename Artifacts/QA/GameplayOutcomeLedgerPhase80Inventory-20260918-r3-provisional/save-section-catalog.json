@@ -1,0 +1,528 @@
+{
+  "metadata": {
+    "schema": "gameplay-outcome-ledger-producer-inventory@1",
+    "generated_date": "2026-09-18",
+    "scan_kind": "static-lexical-no-unity-execution",
+    "source_commit": "c03d2e0a1c68067de48840f3851b388483966a6e",
+    "source_branch": "codex/wim-implementation",
+    "source_dirty_entry_count": 10842,
+    "source_scan_sha256": "76cca4069d2239220061038cda4abd9f0e7d7aebc7dd0116a7c7084c5f97b4c7",
+    "source_scan_end_sha256": "8d137830940fb642a84da586c40496d5f03b2cad535e9d2b6811e43907fcaa13",
+    "source_snapshot_stable_during_scan": false,
+    "run_mode": "provisional-writers-not-frozen",
+    "completeness_claim": "withheld-source-mutated-during-scan",
+    "non_editor_cs_file_count": 2068,
+    "receipt_event_result_outcome_resolution_definition_count": 373,
+    "receipt_event_definition_count": 187,
+    "result_outcome_resolution_definition_count": 186,
+    "raw_publish_call_count": 194,
+    "raw_publish_lexical_count": 194,
+    "publish_call_capture_complete": true,
+    "resolved_publish_event_type_count": 194,
+    "unresolved_publish_event_type_count": 0,
+    "likely_game_event_bus_publish_count": 145,
+    "unknown_publish_receiver_count": 0,
+    "classification_counts": {
+      "Record": 0,
+      "NonResult": 104,
+      "needs-authority-fix": 269
+    },
+    "coverage_disposition_counts": {
+      "Record": 269,
+      "NonResult": 53,
+      "N/A": 51
+    },
+    "integration_status_counts": {
+      "excluded": 53,
+      "needs-authority-fix": 2,
+      "transaction-integration-pending": 267,
+      "connected": 0,
+      "new-phase80-infrastructure": 51
+    },
+    "unclassified_domain_definition_count": 0,
+    "phase80_implementation_infrastructure_definition_count": 51,
+    "limitations": [
+      "Lexical scan does not compile C# and cannot resolve every receiver, alias, reflection call, or delegated variable type.",
+      "Constructor use proves object creation only; it does not prove domain commit or gameplay reachability.",
+      "Save-owner candidates are domain-state owners, not proof that the receipt/event itself is persisted.",
+      "The initial pre-implementation probe found no GameplayOutcome symbols; Phase80 infrastructure created concurrently is separated by inventory_scope and is not treated as a pre-existing producer.",
+      "Coverage disposition and integration state are separate axes: semantic Record candidates remain planned/transaction-integration-pending until owner-specific joint outbox evidence exists."
+    ]
+  },
+  "save_sections": [
+    {
+      "save_section": "AnimalHusbandrySaveSection",
+      "section_id": "economy.animal-husbandry",
+      "path": "Assets/Scripts/Services/Economy/Husbandry/AnimalHusbandrySaveSection.cs",
+      "line": 6
+    },
+    {
+      "save_section": "AutomationInfrastructureSaveSection",
+      "section_id": "economy.automation",
+      "path": "Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureSaveSections.cs",
+      "line": 399
+    },
+    {
+      "save_section": "BlueprintResearchSaveSection",
+      "section_id": "research.blueprints",
+      "path": "Assets/Scripts/Services/Infrastructure/BlueprintResearchSaveSection.cs",
+      "line": 19
+    },
+    {
+      "save_section": "CalendarClimateSaveSection",
+      "section_id": "world.calendar-climate",
+      "path": "Assets/Scripts/Services/Infrastructure/Save/V19SimulationSaveSections.cs",
+      "line": 30
+    },
+    {
+      "save_section": "CaptivitySaveSection",
+      "section_id": "captivity",
+      "path": "Assets/Scripts/Services/Infrastructure/Core/Save/CaptivitySaveSection.cs",
+      "line": 6
+    },
+    {
+      "save_section": "CertifiedSeedSaveSection",
+      "section_id": "economy.certified-seeds",
+      "path": "Assets/Scripts/Services/Economy/CertifiedSeedSaveSection.cs",
+      "line": 5
+    },
+    {
+      "save_section": "CharacterBodyHealthSaveSection",
+      "section_id": "combat.body-health",
+      "path": "Assets/Scripts/Services/Combat/CombatSaveSections.cs",
+      "line": 176
+    },
+    {
+      "save_section": "CharacterCareerSaveSection",
+      "section_id": "characters.careers",
+      "path": "Assets/Scripts/Services/Infrastructure/Save/V19SimulationSaveSections.cs",
+      "line": 183
+    },
+    {
+      "save_section": "CharacterCombatCommandSaveSection",
+      "section_id": "combat.commands",
+      "path": "Assets/Scripts/Services/Combat/CombatSaveSections.cs",
+      "line": 434
+    },
+    {
+      "save_section": "CharacterConsumablesSaveSection",
+      "section_id": "survival.character-consumables",
+      "path": "Assets/Scripts/Services/Infrastructure/Core/Save/CharacterConsumablesSaveSection.cs",
+      "line": 8
+    },
+    {
+      "save_section": "CharacterEnvironmentSaveSection",
+      "section_id": "environment.exposure",
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/CharacterEnvironmentSaveSection.cs",
+      "line": 5
+    },
+    {
+      "save_section": "CharacterLifeSaveSection",
+      "section_id": "characters.life",
+      "path": "Assets/Scripts/Services/Infrastructure/Save/V19SimulationSaveSections.cs",
+      "line": 49
+    },
+    {
+      "save_section": "CharacterMedicalSaveSection",
+      "section_id": "combat.medical",
+      "path": "Assets/Scripts/Services/Combat/CombatSaveSections.cs",
+      "line": 218
+    },
+    {
+      "save_section": "CharacterNarrativeSaveSection",
+      "section_id": "characters.narrative",
+      "path": "Assets/Scripts/Services/Infrastructure/Save/V20ContentSaveSections.cs",
+      "line": 6
+    },
+    {
+      "save_section": "CharacterPsychosocialSaveSection",
+      "section_id": "characters.psychosocial",
+      "path": "Assets/Scripts/Services/Infrastructure/Save/V19SimulationSaveSections.cs",
+      "line": 208
+    },
+    {
+      "save_section": "CharacterWorldSaveSection",
+      "section_id": "characters.world",
+      "path": "Assets/Scripts/Services/Infrastructure/Save/WorldAndCharacterSaveSections.cs",
+      "line": 99
+    },
+    {
+      "save_section": "CircusSaveSection",
+      "section_id": "circus",
+      "path": "Assets/Scripts/Services/Infrastructure/Core/Save/CircusSaveSection.cs",
+      "line": 7
+    },
+    {
+      "save_section": "CodexSaveSection",
+      "section_id": "codex.entries",
+      "path": "Assets/Scripts/Models/Codex/Core/CodexSaveSection.cs",
+      "line": 22
+    },
+    {
+      "save_section": "CombatEquipmentSaveSection",
+      "section_id": "combat.equipment",
+      "path": "Assets/Scripts/Services/Combat/CombatSaveSections.cs",
+      "line": 7
+    },
+    {
+      "save_section": "CombatEquipmentTerminalDrainSaveSection",
+      "section_id": "combat.equipment-terminal-drains",
+      "path": "Assets/Scripts/Services/Economy/CombatEquipmentTerminalDrainSaveSection.cs",
+      "line": 10
+    },
+    {
+      "save_section": "ConveyorInfrastructureSaveSection",
+      "section_id": "infrastructure.conveyor",
+      "path": "Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureSaveSections.cs",
+      "line": 317
+    },
+    {
+      "save_section": "CropEcologySaveSection",
+      "section_id": "economy.crop-ecology",
+      "path": "Assets/Scripts/Services/Infrastructure/Save/V19SimulationSaveSections.cs",
+      "line": 235
+    },
+    {
+      "save_section": "CropPlotSaveSection",
+      "section_id": "economy.crop-plots",
+      "path": "Assets/Scripts/Services/Economy/CropPlotSaveSection.cs",
+      "line": 5
+    },
+    {
+      "save_section": "DarkSurvivalSaveSection",
+      "section_id": "survival.deprivation",
+      "path": "Assets/Scripts/Services/Survival/SurvivalSaveSections.cs",
+      "line": 295
+    },
+    {
+      "save_section": "DefenseFacilitySaveSection",
+      "section_id": "defense.facilities",
+      "path": "Assets/Scripts/Services/Infrastructure/Core/Save/DefenseFacilitySaveSection.cs",
+      "line": 4
+    },
+    {
+      "save_section": "DefenseTacticalSaveSection",
+      "section_id": "combat.defense-tactics",
+      "path": "Assets/Scripts/Services/Combat/CombatSaveSections.cs",
+      "line": 329
+    },
+    {
+      "save_section": "DungeonDebugSaveSection",
+      "section_id": "debug.run",
+      "path": "Assets/Scripts/Services/Debugging/DungeonDebugSaveSection.cs",
+      "line": 4
+    },
+    {
+      "save_section": "DurableFacilityEquipmentSaveSection",
+      "section_id": "items.durable-facility-equipment",
+      "path": "Assets/Scripts/Services/Items/DurableFacilityEquipmentSaveSection.cs",
+      "line": 4
+    },
+    {
+      "save_section": "EnvironmentalFieldSaveSection",
+      "section_id": "environment.field",
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalFieldSaveSection.cs",
+      "line": 7
+    },
+    {
+      "save_section": "EnvironmentalFireSaveSection",
+      "section_id": "environment.fire",
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalFireSaveSection.cs",
+      "line": 7
+    },
+    {
+      "save_section": "EquipmentEvolutionSaveSection",
+      "section_id": "combat.equipment-evolution",
+      "path": "Assets/Scripts/Services/Combat/CombatSaveSections.cs",
+      "line": 139
+    },
+    {
+      "save_section": "EquipmentMaintenanceSaveSection",
+      "section_id": "combat.equipment-maintenance",
+      "path": "Assets/Scripts/Services/Combat/CombatSaveSections.cs",
+      "line": 374
+    },
+    {
+      "save_section": "EventAlertSaveSection",
+      "section_id": "operation.event-alerts",
+      "path": "Assets/Scripts/Services/Infrastructure/OperatingDaySaveSections.cs",
+      "line": 58
+    },
+    {
+      "save_section": "ExperiencePacingSaveSection",
+      "section_id": "run.experience-pacing",
+      "path": "Assets/Scripts/Services/Run/ExperiencePacingSaveSection.cs",
+      "line": 9
+    },
+    {
+      "save_section": "ExteriorActivitySaveSection",
+      "section_id": "exterior.activities",
+      "path": "Assets/Scripts/Services/Infrastructure/Exterior/ExteriorActivitySaveSection.cs",
+      "line": 4
+    },
+    {
+      "save_section": "ExternalInfluenceSaveSection",
+      "section_id": "external.influence",
+      "path": "Assets/Scripts/Services/Infrastructure/Core/Save/ExternalInfluenceSaveSection.cs",
+      "line": 6
+    },
+    {
+      "save_section": "FacilityShopSaveSection",
+      "section_id": "facility-shop.state",
+      "path": "Assets/Scripts/Services/Infrastructure/Core/Save/FacilityShopSaveSection.cs",
+      "line": 5
+    },
+    {
+      "save_section": "FactionCampaignSaveSection",
+      "section_id": "factions.campaign",
+      "path": "Assets/Scripts/Services/Infrastructure/Save/V20ContentSaveSections.cs",
+      "line": 1366
+    },
+    {
+      "save_section": "FactionSaveSection",
+      "section_id": "world.factions",
+      "path": "Assets/Scripts/Services/Factions/FactionSaveSection.cs",
+      "line": 8
+    },
+    {
+      "save_section": "FestivalExecutionSaveSection",
+      "section_id": "festival.execution",
+      "path": "Assets/Scripts/Services/Infrastructure/Save/FestivalExecutionSaveSection.cs",
+      "line": 20
+    },
+    {
+      "save_section": "FluidInfrastructureSaveSection",
+      "section_id": "infrastructure.fluids",
+      "path": "Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureSaveSections.cs",
+      "line": 87
+    },
+    {
+      "save_section": "FoundationSessionSaveSection",
+      "section_id": "foundation.session",
+      "path": "Assets/Scripts/Services/Infrastructure/Save/V19SimulationSaveSections.cs",
+      "line": 5
+    },
+    {
+      "save_section": "GameplayOutcomeLedgerSaveSection",
+      "section_id": "world.gameplay-outcome-ledger",
+      "path": "Assets/Scripts/Services/Narrative/GameplayOutcomes/GameplayOutcomePersistence.cs",
+      "line": 1055
+    },
+    {
+      "save_section": "GrandProjectSaveSection",
+      "section_id": "economy.grand-projects",
+      "path": "Assets/Scripts/Services/Economy/Planning/GrandProjectSaveSection.cs",
+      "line": 6
+    },
+    {
+      "save_section": "InvasionSaveSection",
+      "section_id": "invasion.state",
+      "path": "Assets/Scripts/Services/Invasion/InvasionSaveSection.cs",
+      "line": 3
+    },
+    {
+      "save_section": "KinshipHouseholdSaveSection",
+      "section_id": "characters.kinship-households",
+      "path": "Assets/Scripts/Services/Infrastructure/Save/V19SimulationSaveSections.cs",
+      "line": 116
+    },
+    {
+      "save_section": "MetaProgressionSaveSection",
+      "section_id": "meta.progression",
+      "path": "Assets/Scripts/Services/Infrastructure/Core/MetaProgressionSaveSection.cs",
+      "line": 7
+    },
+    {
+      "save_section": "ModularFacilityWorldSaveSection",
+      "section_id": "world.facilities",
+      "path": "Assets/Scripts/Services/Infrastructure/Save/WorldAndCharacterSaveSections.cs",
+      "line": 4
+    },
+    {
+      "save_section": "OffenseAggregateSaveSection",
+      "section_id": "offense.aggregate",
+      "path": "Assets/Scripts/Services/Offense/OffenseSaveSections.cs",
+      "line": 8
+    },
+    {
+      "save_section": "OperatingDaySettlementSaveSection",
+      "section_id": "operation.settlement",
+      "path": "Assets/Scripts/Services/Infrastructure/OperatingDaySaveSections.cs",
+      "line": 8
+    },
+    {
+      "save_section": "PhysicalItemsSaveSection",
+      "section_id": "items.physical",
+      "path": "Assets/Scripts/Services/Items/PhysicalItemsSaveSection.cs",
+      "line": 13
+    },
+    {
+      "save_section": "PopulationHealthSaveSection",
+      "section_id": "population.epidemics",
+      "path": "Assets/Scripts/Services/Infrastructure/Save/V19SimulationSaveSections.cs",
+      "line": 160
+    },
+    {
+      "save_section": "PowerInfrastructureSaveSection",
+      "section_id": "infrastructure.power",
+      "path": "Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureSaveSections.cs",
+      "line": 6
+    },
+    {
+      "save_section": "ProductionApparelOrderTerminalDrainSaveSection",
+      "section_id": "economy.production-apparel-terminal-drains",
+      "path": "Assets/Scripts/Services/Economy/ProductionApparelOrderTerminalDrainSaveSection.cs",
+      "line": 10
+    },
+    {
+      "save_section": "ProductionBillsSaveSection",
+      "section_id": "economy.production-bills",
+      "path": "Assets/Scripts/Services/Economy/ProductionBillsSaveSection.cs",
+      "line": 7
+    },
+    {
+      "save_section": "ProductionFacilityDestructiveDrainSaveSection",
+      "section_id": "economy.production-facility-destructive-drains",
+      "path": "Assets/Scripts/Services/Economy/ProductionFacilityDestructiveDrainSaveSection.cs",
+      "line": 4
+    },
+    {
+      "save_section": "ProductionGenericBillTerminalDrainSaveSection",
+      "section_id": "economy.production-generic-bill-terminal-drains",
+      "path": "Assets/Scripts/Services/Economy/ProductionGenericBillTerminalDrainSaveSection.cs",
+      "line": 10
+    },
+    {
+      "save_section": "ProductionPreparedOutputRoutingSaveSection",
+      "section_id": "economy.production-prepared-output-routing",
+      "path": "Assets/Scripts/Services/Economy/ProductionPreparedOutputRoutingSaveSection.cs",
+      "line": 4
+    },
+    {
+      "save_section": "RandomStreamSaveSection",
+      "section_id": "foundation.random-streams",
+      "path": "Assets/Scripts/Services/Infrastructure/Core/Save/RandomStreamSaveSection.cs",
+      "line": 31
+    },
+    {
+      "save_section": "RegionalSupplyContractSaveSection",
+      "section_id": "economy.regional-contracts",
+      "path": "Assets/Scripts/Services/Economy/Planning/RegionalSupplyContractSaveSection.cs",
+      "line": 6
+    },
+    {
+      "save_section": "RegularCustomerSaveSection",
+      "section_id": "recruitment.regular-customers",
+      "path": "Assets/Scripts/Services/Infrastructure/Core/Save/RegularCustomerSaveSection.cs",
+      "line": 4
+    },
+    {
+      "save_section": "ReproductionSaveSection",
+      "section_id": "characters.reproduction",
+      "path": "Assets/Scripts/Services/Infrastructure/Save/V19SimulationSaveSections.cs",
+      "line": 136
+    },
+    {
+      "save_section": "ResourceStockPolicySaveSection",
+      "section_id": "economy.stock-policies",
+      "path": "Assets/Scripts/Services/Economy/Planning/ResourceStockPolicySaveSection.cs",
+      "line": 6
+    },
+    {
+      "save_section": "RoomEnvironmentOutcomeSaveSection",
+      "section_id": "world.room-environment-outcomes",
+      "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/EnvironmentRoomOutcomePersistence.cs",
+      "line": 41
+    },
+    {
+      "save_section": "RunFlowSaveSection",
+      "section_id": "run.flow",
+      "path": "Assets/Scripts/Services/Run/RunFlowSaveSection.cs",
+      "line": 5
+    },
+    {
+      "save_section": "RunMilestonesSaveSection",
+      "section_id": "run.milestones",
+      "path": "Assets/Scripts/Services/Infrastructure/Save/V20ContentSaveSections.cs",
+      "line": 1562
+    },
+    {
+      "save_section": "RunVariableSaveSection",
+      "section_id": "run.variables",
+      "path": "Assets/Scripts/Services/Run/RunVariableSaveSection.cs",
+      "line": 11
+    },
+    {
+      "save_section": "SeasonalWorldEventsSaveSection",
+      "section_id": "world.seasonal-events",
+      "path": "Assets/Scripts/Services/Infrastructure/Save/V20ContentSaveSections.cs",
+      "line": 34
+    },
+    {
+      "save_section": "ServiceRoomsSaveSection",
+      "section_id": "service.rooms",
+      "path": "Assets/Scripts/Services/ServiceRooms/ServiceRoomsSaveSection.cs",
+      "line": 4
+    },
+    {
+      "save_section": "SocietyEventsSaveSection",
+      "section_id": "society.events",
+      "path": "Assets/Scripts/Services/Infrastructure/Save/V20ContentSaveSections.cs",
+      "line": 130
+    },
+    {
+      "save_section": "SpeciesRuntimeSaveSection",
+      "section_id": "character.species-runtime",
+      "path": "Assets/Scripts/Services/Character/SpeciesRuntimeSaveSection.cs",
+      "line": 5
+    },
+    {
+      "save_section": "StaffDiscontentSaveSection",
+      "section_id": "characters.staff-discontent",
+      "path": "Assets/Scripts/Services/Character/Work/StaffDiscontentSaveSection.cs",
+      "line": 5
+    },
+    {
+      "save_section": "SurgerySaveSection",
+      "section_id": "medical.surgery",
+      "path": "Assets/Scripts/Services/Combat/CombatSaveSections.cs",
+      "line": 270
+    },
+    {
+      "save_section": "SurvivalResourcesSaveSection",
+      "section_id": "survival.resources",
+      "path": "Assets/Scripts/Services/Survival/SurvivalSaveSections.cs",
+      "line": 5
+    },
+    {
+      "save_section": "TreasuryEconomySaveSection",
+      "section_id": "economy.treasury",
+      "path": "Assets/Scripts/Services/Economy/Treasury/TreasuryEconomySaveSection.cs",
+      "line": 4
+    },
+    {
+      "save_section": "WasteProcessingSaveSection",
+      "section_id": "economy.waste",
+      "path": "Assets/Scripts/Services/Economy/Waste/WasteProcessingSaveSection.cs",
+      "line": 5
+    },
+    {
+      "save_section": "WildlifeSaveSection",
+      "section_id": "wildlife.population",
+      "path": "Assets/Scripts/Services/Wildlife/WildlifeSaveSection.cs",
+      "line": 4
+    },
+    {
+      "save_section": "WorkOrdersSaveSection",
+      "section_id": "work.orders",
+      "path": "Assets/Scripts/Services/Character/Work/WorkOrdersSaveSection.cs",
+      "line": 5
+    },
+    {
+      "save_section": "WorldResourceSaveSection",
+      "section_id": "economy.world-resources",
+      "path": "Assets/Scripts/Services/Economy/WorldResourceSaveSection.cs",
+      "line": 4
+    }
+  ]
+}

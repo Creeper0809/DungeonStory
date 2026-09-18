@@ -1495,6 +1495,51 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
                 yield break;
             }
 
+            SurvivalClosedLoopAssessment sixAdultAssessment =
+                V27SixAdultSurvivalLoopDebugScenarios.CapturePopulationStage(6);
+            bool closedLoopReady = sixAdultAssessment.Passed
+                && sixAdultAssessment.CropPlots > 0
+                && sixAdultAssessment.GrossFoodCoveragePermille >= 1250
+                && sixAdultAssessment.NetFoodCoveragePermille >= 1100
+                && sixAdultAssessment.GrossDrinkingWaterCoveragePermille >= 1250
+                && sixAdultAssessment.RecurringSharePermille <= 900
+                && sixAdultAssessment.SevenDayGrainUnits > 0
+                && sixAdultAssessment.SevenDayWaterUnits > 0
+                && sixAdultAssessment.RequiredStorageMassGrams > 0L
+                && sixAdultAssessment.MaximumRelevantStackMassGrams > 0L;
+            Check(closedLoopReady,
+                prefix + "_AUTHORED_CROP_WATER_STORAGE_MASS_LOOP",
+                $"passed={sixAdultAssessment.Passed};failure={sixAdultAssessment.FailureCode};"
+                + $"plots={sixAdultAssessment.CropPlots};grossFood="
+                + $"{sixAdultAssessment.GrossFoodCoveragePermille};netFood="
+                + $"{sixAdultAssessment.NetFoodCoveragePermille};grossWater="
+                + $"{sixAdultAssessment.GrossDrinkingWaterCoveragePermille};"
+                + $"recurringShare={sixAdultAssessment.RecurringSharePermille};"
+                + $"reserveGrain={sixAdultAssessment.SevenDayGrainUnits};"
+                + $"reserveWater={sixAdultAssessment.SevenDayWaterUnits};"
+                + $"storageGrams={sixAdultAssessment.RequiredStorageMassGrams};"
+                + $"maxStackGrams={sixAdultAssessment.MaximumRelevantStackMassGrams}");
+            if (!closedLoopReady)
+            {
+                yield break;
+            }
+
+            foreach (CharacterActor actor in outageActors)
+            {
+                actor.SetAiPaused(true);
+                actor.Brain?.StopCurrentActionForReplan(
+                    "v27-six-adult-apparel-integration");
+                actor.GetAbility<AbilityMove>()?.CancelActiveMovement();
+            }
+            Time.timeScale = 0f;
+            Wim003ApparelConditionRuntimeDebugScenarios.RunProtectedPlay(scope);
+            Check(true,
+                prefix + "_SIX_COHORT_REPRESENTATIVE_APPAREL_MASS_AND_RECOVERY",
+                "liveCohort=6;conditionSubject=1;allLiveActorsParticipateInAutomaticSelection=true;"
+                + "bodyHygieneCondition=true;"
+                + "laundryDryingRepair=true;partialCancel=true;"
+                + "physicalCustodyCountWeightInvariant=true");
+
             // The additional three actors contribute live population/need
             // load only. Service execution is owned by the three actors that
             // were composed through the production start-party pipeline.
@@ -1979,6 +2024,9 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
                 bool hygienePrimaryActionWindowStarted = false;
                 bool hygieneConsumerWaitingForDelivery = false;
                 BuildableObject hygieneManualWaterFixture = null;
+                string hygieneDeliveryProgressSignature = string.Empty;
+                float hygieneLastDeliveryProgressAt = float.NaN;
+                bool hygieneDeliveryStalled = false;
                 int hygienePrimaryActionPathSteps = 0;
                 float hygienePrimaryActionMoveSpeed = 0f;
                 float hygienePrimaryActionRealtimeWindow = 0f;
@@ -2004,7 +2052,48 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
                         targetActor.Brain?.StopCurrentActionForReplan(
                             "v27-six-adult-hygiene-await-manual-water");
                         serviceGameDeadline = clock.Time + DaySeconds * 2.5f;
-                        serviceRealtimeDeadline = Time.realtimeSinceStartup + 65f;
+                        // The helper is allowed to keep executing while its
+                        // reservation, route, world position or physical stack
+                        // advances. A bounded hard limit still protects the
+                        // verifier, while the no-progress gate below catches a
+                        // genuinely stalled route without cancelling a lawful
+                        // wide-dungeon delivery at an arbitrary wall-clock
+                        // instant.
+                        serviceRealtimeDeadline = Time.realtimeSinceStartup + 180f;
+                        hygieneDeliveryProgressSignature =
+                            DescribeManualWaterDeliveryProgress(
+                                serviceHelpers,
+                                items,
+                                hygieneManualWaterFixture);
+                        hygieneLastDeliveryProgressAt =
+                            Time.realtimeSinceStartup;
+                    }
+
+                    if (target == CharacterCondition.HYGIENE
+                        && hygieneConsumerWaitingForDelivery)
+                    {
+                        string progressSignature =
+                            DescribeManualWaterDeliveryProgress(
+                                serviceHelpers,
+                                items,
+                                hygieneManualWaterFixture);
+                        if (!string.Equals(
+                                progressSignature,
+                                hygieneDeliveryProgressSignature,
+                                StringComparison.Ordinal))
+                        {
+                            hygieneDeliveryProgressSignature =
+                                progressSignature;
+                            hygieneLastDeliveryProgressAt =
+                                Time.realtimeSinceStartup;
+                        }
+                        else if (!float.IsNaN(hygieneLastDeliveryProgressAt)
+                            && Time.realtimeSinceStartup
+                                - hygieneLastDeliveryProgressAt >= 30f)
+                        {
+                            hygieneDeliveryStalled = true;
+                            break;
+                        }
                     }
 
                     if (target == CharacterCondition.HYGIENE
@@ -2080,7 +2169,7 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
                         break;
                     }
 
-                    foreach (CharacterActor actor in recoveryActors.Take(3))
+                    foreach (CharacterActor actor in recoveryActors)
                     {
                         // Environmental survivability was asserted during the
                         // preceding 24-hour outage. These recovery rows are
@@ -2130,7 +2219,7 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
                         && Time.realtimeSinceStartup < terminalRealtimeDeadline
                         && GetNeed(targetActor, target) <= original + 0.5f)
                     {
-                        foreach (CharacterActor actor in recoveryActors.Take(3))
+                        foreach (CharacterActor actor in recoveryActors)
                         {
                             actor.Heal(actor.MaxHealth);
                             if (actor == targetActor)
@@ -2196,6 +2285,8 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
                     + $"hygieneDeliveryWindowStarted={hygieneDeliveryWindowStarted}:"
                     + $"hygienePrimaryActionWindowStarted={hygienePrimaryActionWindowStarted}:"
                     + $"hygieneConsumerWaitingForDelivery={hygieneConsumerWaitingForDelivery}:"
+                    + $"hygieneDeliveryStalled={hygieneDeliveryStalled}:"
+                    + $"hygieneDeliveryProgress={hygieneDeliveryProgressSignature}:"
                     + $"hygieneManualWaterFixture={hygieneManualWaterFixture?.PersistentInstanceId.Value ?? string.Empty}:"
                     + $"hygienePrimaryPathSteps={hygienePrimaryActionPathSteps}:"
                     + $"hygienePrimaryMoveSpeed={hygienePrimaryActionMoveSpeed:0.###}:"
@@ -2253,7 +2344,10 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
             Check(primaryDominance,
                 prefix + "_RESULT",
                 "liveAdults=6;outageHours=24;fallbacks=5;restore=exact;"
-                + "primitiveRecoveryPermille=0;consoleIssues=deferred-to-final-gate");
+                + "primitiveRecoveryPermille=0;"
+                + "authoredCropWaterStorageMassLoop=true;"
+                + "representativeApparelPhysicalInvariant=true;"
+                + "consoleIssues=deferred-to-final-gate");
         }
         finally
         {
@@ -4193,6 +4287,69 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
                 stack.DestinationId,
                 expectedDestination,
                 StringComparison.Ordinal)) == true;
+    }
+
+    private static string DescribeManualWaterDeliveryProgress(
+        IReadOnlyList<CharacterActor> helpers,
+        IWorldItemStackRuntime items,
+        BuildableObject fixture)
+    {
+        const string ManualWaterPrefix = "plumbing:manual-water:";
+        string expectedDestination = fixture != null
+            && fixture.PersistentInstanceId.IsValid
+                ? ManualWaterPrefix + fixture.PersistentInstanceId.Value
+                : string.Empty;
+        string stacks = items == null || expectedDestination.Length == 0
+            ? "unavailable"
+            : string.Join(",", items.GetAllStacks()
+                .Where(stack => stack != null
+                    && string.Equals(
+                        stack.DestinationId,
+                        expectedDestination,
+                        StringComparison.Ordinal))
+                .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
+                .Select(stack => $"{stack.StackId}:{stack.State}:"
+                    + $"{stack.Position}:q={stack.Quantity}:"
+                    + $"r={stack.ReservedQuantity}"));
+        if (stacks.Length == 0)
+        {
+            stacks = "none";
+        }
+
+        string actors = helpers == null
+            ? "unavailable"
+            : string.Join(",", helpers
+                .Where(actor => actor != null)
+                .OrderBy(
+                    actor => actor.Identity?.PersistentId ?? string.Empty,
+                    StringComparer.Ordinal)
+                .Select(actor =>
+                {
+                    AbilityHaul haul = actor.GetComponent<AbilityHaul>();
+                    string reservations = haul == null
+                        ? "none"
+                        : string.Join("+", haul.ActiveReservationsForDiagnostics
+                            .Where(value => string.Equals(
+                                value.DestinationId,
+                                expectedDestination,
+                                StringComparison.Ordinal))
+                            .OrderBy(value => value.StackId, StringComparer.Ordinal)
+                            .Select(value => value.StackId + ":" + value.Quantity));
+                    if (reservations.Length == 0)
+                    {
+                        reservations = "none";
+                    }
+
+                    Vector3 world = actor.transform.position;
+                    return $"{actor.Identity?.PersistentId}:grid={actor.GetNowXY()}:"
+                        + $"world={world.x:0.###}/{world.y:0.###}:"
+                        + $"active={haul?.IsHauling}:"
+                        + $"stage={haul?.CurrentExecutionStage}:"
+                        + $"heartbeat={haul?.RoutineHeartbeat}:"
+                        + $"reservations={reservations}:"
+                        + $"failure={haul?.LastFailureReason}";
+                }));
+        return "stacks=[" + stacks + "];actors=[" + actors + "]";
     }
 
     private static string DescribeServiceActorRuntime(CharacterActor actor)

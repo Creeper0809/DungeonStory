@@ -1,0 +1,7 @@
+setup=actual owner/party UI; authored P23 factory at (31, 0); no irrigation fixture or extra expansion
+[PASS] uncommitted refill owns exact claim/capacity and one physical buffer water at partial Treat
+[PASS] production demolition retires claim/capacity/intent; deposited water becomes one Loose stack at the former plot cell
+[PASS] current registered whole-world restore keeps cancellation terminal and exact physical water without reroute or duplication
+result=PASS
+scope=actual owner/party UI, registered P23, physical FacilityBuffer water, partial Treat, production demolition and registered whole-world restore; research/building/sow/environment/dry checkpoint and delivered input are controlled setup; no natural AI delivery, full crop cycle or six-adult balance claim
+cleanup=operator stops disposable Play; no scene or user persistence writes

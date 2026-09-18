@@ -71,31 +71,31 @@ public static class GridVisualDebugScenarios
             new Vector2(1f, GridBuildingTileTransformCalculator.DefaultCellTileHeight)).y;
 
         return VerifySpriteTileTransform(
-                "Assets/Resources/SO/Building/P1/P1_RestRoom.asset",
-                expectedCenterOffsetX: 0.5f,
+                "Assets/Resources/SO/Building/Modular/R01_간이침대.asset",
+                expectedCenterOffsetX: 1f,
                 expectedCenterOffsetY: expectedVisualHeight * 0.5f,
-                expectedWidth: 3f,
+                expectedWidth: 2f,
                 expectedHeight: expectedVisualHeight,
                 tilemapLocalOffset: Vector2.zero)
             && VerifySpriteTileTransform(
-                "Assets/Resources/SO/Building/P1/P1_RestRoom.asset",
-                expectedCenterOffsetX: 0.5f,
+                "Assets/Resources/SO/Building/Modular/R01_간이침대.asset",
+                expectedCenterOffsetX: 1f,
                 expectedCenterOffsetY: expectedVisualHeight * 0.5f,
-                expectedWidth: 3f,
+                expectedWidth: 2f,
                 expectedHeight: expectedVisualHeight,
                 tilemapLocalOffset: new Vector2(0f, -0.5f))
             && VerifySpriteTileTransform(
-                "Assets/Resources/SO/Building/P1/P1_ResearchLab.asset",
+                "Assets/Resources/SO/Building/Modular/Q01_연구책상.asset",
                 expectedCenterOffsetX: 1f,
                 expectedCenterOffsetY: expectedVisualHeight * 0.5f,
-                expectedWidth: 4f,
+                expectedWidth: 2f,
                 expectedHeight: expectedVisualHeight,
                 tilemapLocalOffset: new Vector2(0.5f, -0.5f))
             && VerifySpriteTileTransform(
-                "Assets/Resources/SO/Building/P1/P1_MeatRestaurant.asset",
+                "Assets/Resources/SO/Building/Modular/D02_고기그릴.asset",
                 expectedCenterOffsetX: 1f,
                 expectedCenterOffsetY: expectedVisualHeight * 0.5f,
-                expectedWidth: 4f,
+                expectedWidth: 2f,
                 expectedHeight: expectedVisualHeight,
                 tilemapLocalOffset: new Vector2(0.5f, -0.5f));
     }

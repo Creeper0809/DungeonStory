@@ -1,0 +1,50 @@
+WIM023 current-source medical batch — 2026-09-12
+STATUS: focused contracts PASS; whole WIM023 OPEN.
+
+Main project: F:/01_Programming/01_Project/02_Unity/DungeonStory
+Unity6000.3.8f1, official project-targeted Unity CLI. Both Sol production owners FROZEN; root important tests independently reviewed before execution.
+User handled the reload dialog. Main ready/stopped confirmed09:49:20Z, compile window10:11:08Z. Initial compilation produced13 root-test access/name errors; preserved in wim-023-vitals-emergency-compile-attempt1.txt. No production visibility/API relaxation. Corrected test-only reflection over existing internal boundaries and actual CharacterSurgeryUiText name; second compile completed errors0, Editor DLL10:13:50Z.
+
+Current compiled DLL SHA256:
+Assembly-CSharp 08E36C55F0B326B47B90C813600EB85FE0CFDA8D0CFC8AEA80EF8253D512500E
+Assembly-CSharp-Editor 54E4F8CE583CF20F6AA3BEA5CFD437AE2110C3CAF34F664D9E9A040E48F23E9C
+DungeonStory.Medical CEEA84EE5750993188C546C4688E5F75F8EC2FC09CC74E1C49BD70324CE17233
+
+Actual main Play results:
+1. Wim023VitalsNoHealDebugScenarios.RunFocused — PASS body authority50/100->50/110;current JSON exact+poisoned UI cache refreshed;3replace cycles no healing;clamp40;minimum1 consistent;zero remains0;invalid5 atomic;non-vitals unchanged;scope=controlled body authority, not actual installed-part lifecycle/world restore.
+2. Wim023EmergencyCauseDebugScenarios.RunFocused — PASS clinical thresholds;permission/name/forged-prosthetic no-bypass;effective urgency;unsafe wait/stable5s resume;emergency risk+localized cause;clone/current queued JSON+invalid4;scope=controlled production gates, not schedule producer/natural UI/AI surgery.
+Actual localized result: 응급 수술 계속 · 원인 급성 출혈 · 환경 위험 · 온도 45°C · 공기 20 · 조명 10
+3. SurgeryDebugScenarios.RunReplacementEffectProjectionFocused — PASS actual transfer/publication faults -> BodyCommitted projection -> current JSON ownership restore -> retry once;12 invalid joins rejected;detached anatomy/effect clones, not live UI/AI/maxHP. This accepted test was rerun only because the current replacement-finalization hook changed its execution path.
+
+Test source SHA256:
+Wim023VitalsNoHealDebugScenarios.cs 995CAAF8C8F3FFCDD1F06DEDC5879427BB8F2FFC03EEE5A268EB86C825AF7522
+Wim023EmergencyCauseDebugScenarios.cs 688C602FCD09548A01BB2DCCB154FCE386C2C60E5D402FFEC62B47C9EA4435BC
+
+Production review:
+- Sole body command validates actor/finite-positive input before GetOrCreate, applies existing min1 maximum, preserves absolute current HP with downward clamp/zero preservation, recomputes injury projection. Existing Configure/level-up ratio semantics unchanged.
+- Existing derived stats projection feeds the command via CharacterStatsVitalsService. Live callers: bounded existing body tick with installed references, missing-node install, natural-node install, replacement incoming-finalization before old-output publication. No new save/cache/scheduler/effect source.
+- Existing pending source has zero contribution before incoming finalization; any bounded-tick downward clamp remains lost HP after finalization, never healed back.
+- SurgeryOrder has one persisted typed emergencyCause. Existing Required/Emergency authored procedures plus the closed kind/ID and actual target condition classifier produce effective order urgency. Thresholds .08 bleeding,35 infection,80 critical infection/.01 health ratio retained; auto-selection priority and numerical risk/clinical values unchanged. Manual and auto TrySchedule share the final classifier; later ticks/restores never reroll/reclassify clinical cause.
+- Save validates known enum, permitted procedure pair, living subject, target definition, explicit known profile and status cause; clone/CreateState retain cause. Unknown explicit profile cannot use species fallback.
+- Automatic permission, NPC/captive status and ID substrings no longer bypass environmental waiting. Existing environmental penalties and recovery workforce requests remain; exact localized cause is displayed.
+- Unsupported Character standalone installed-part removal is rejected at scheduling before reservation/claim and at ApplyWork before fluid/material consumption, with a defensive handler check before body mutation. Biological/corpse/wildlife removal and replacement physical recovery unchanged. New standalone physical detachment/recovery was NOT implemented.
+
+Selected production SHA256:
+CharacterStats.cs A7B6F665899F8626CA19F44A956CF6916F3B0AB289C7E20FB578AA00F8660573
+CharacterStatsVitalsService.cs E12C5A8EA85A6301CB3F51DA5CF648E62C0CA840EEFDBDAE35C37BDD65FC7F87
+CharacterBodyHealthContracts.cs E4536CEB08732EE4DDD671D8061A17BA463E2489F3C088B32D24DA75403F0282
+CharacterBodyHealthStateRules.cs 4C4FFCF7BE53BBF94139C56ECEFF6F04D3861520115396ED6803CF8BEF82111B
+CharacterBodyHealthRuntime.cs C0272B79919C94227336B474B312CEDE9BF124CCA7A4AA80A98CC1ABF912F604
+SurgicalPartRuntime.cs DA14AB943FBF42E470BD208F050A2E9F954033DE047B3699F91BADD46B74529E
+SurgicalProcedureEffectHandlers.cs 1BC3BF5A84F59CCE4D175E96CE58DD8E276A09584F0A2766CB4416A460788D01
+SurgeryModels.cs 8CA595C96F58194510DC4A1D6B11FC49FD98A7031CA3A21C9945C9FE544AE783
+SurgeryAggregateState.cs AD0C9BFDDA18A0476DCB6E4AE9A24FAA72585C9548A237B790DD1EDF7A54A37F
+SurgerySaveValidation.cs CC1ED9A6CDDAFE11B07932CA11DF64B93AEBFB6B2F54A370F3D2899CDCF84973
+SurgeryRuntime.cs 64C7E71FF5373F1F902C7C7D1698F0C13395925F735F05CF7E5758325E977C4C
+SurgeryEnvironmentRuntime.cs 01417A2967A0A05935CE39A32988AD5A01BD1AF0E1356DE14CDCA1FF774A0AE0
+CharacterSurgeryUiPresentation.cs E879B15261474B3805520DF96B97F734CD13F958485B57D356E2A2461B54AA57
+
+Main boot/DI PASS; autosave/meta persistence disabled before controlled tests, clock paused. No natural UI/AI clinical surgery, actual scheduling acceptance, whole-world restored installed enhancement, or standalone-removal execution coverage claimed here. Those and authored producer publication remain WIM023/final integration work, not new completed functionality.
+Console historical8736..8748 contains13 corrected test compiler errors; retained, not cleared. Current corrected compilation/main Play/testing segment8748->8755 has new warnings/errors0/0. Main stopped/ready/no reload10:16:08Z.
+Protected6 file hashes unchanged: GameplayScene, TestResults.xml, migration marker, meta-profile, autosave, settings. No restart/user-save restore/Git push/merge.
+Original WIM39/47(83.0% item count), research0/1,wiki13/13,additional062/0632/2,FIRE0/4. Two narrowly scoped023 contract children closed; whole goal ACTIVE. One batch-end knowledge regeneration follows, not additional gameplay verification.

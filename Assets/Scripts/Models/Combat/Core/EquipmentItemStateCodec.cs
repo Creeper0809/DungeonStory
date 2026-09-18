@@ -6,7 +6,10 @@ using UnityEngine.Scripting.APIUpdating;
 
 public static class EquipmentItemStateCodec
 {
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
+    private const int LegacySchemaVersion = 3;
+    private const int ModuleSelectionFormulaVersion = 2;
+    private const int DrawbackModuleSelectionFormulaVersion = 3;
     private const string StateJsonKey = "state-json";
 
     public static ItemInstanceComponentSaveData Encode(
@@ -90,7 +93,8 @@ public static class EquipmentItemStateCodec
             error = "The item component is not combat-equipment state.";
             return false;
         }
-        if (component.schemaVersion != CurrentSchemaVersion)
+        if (component.schemaVersion != CurrentSchemaVersion
+            && component.schemaVersion != LegacySchemaVersion)
         {
             error = $"Unsupported equipment item-state schema V{component.schemaVersion}.";
             return false;
@@ -121,6 +125,17 @@ public static class EquipmentItemStateCodec
 
             restored.equipment.loadedAmmunition ??=
                 new LoadedAmmunitionBatch();
+            restored.equipment.evolution ??= new EquipmentEvolutionState();
+            if (component.schemaVersion == LegacySchemaVersion)
+            {
+                NormalizeLegacyEvolution(restored.equipment.evolution);
+            }
+            else if (!TryValidateFormulaEvolution(
+                         restored.equipment.evolution,
+                         out error))
+            {
+                return false;
+            }
             if (!Enum.IsDefined(
                     typeof(CombatEquipmentWorldState),
                     restored.equipment.worldState)
@@ -217,6 +232,265 @@ public static class EquipmentItemStateCodec
         error = string.Empty;
         return true;
     }
+
+    private static void NormalizeLegacyEvolution(EquipmentEvolutionState state)
+    {
+        state.formulaEvidence = new List<EquipmentEvolutionFormulaEvidenceRecord>();
+        state.presentationRequests = new List<EquipmentEvolutionPresentationRequest>();
+        foreach (EvolutionNode node in state.evolutionNodes ?? new List<EvolutionNode>())
+        {
+            if (node == null) continue;
+            node.formulaVersion = 0;
+            node.formulaCatalogSha256 = string.Empty;
+            node.formulaCapabilities = new List<EquipmentEvolutionFormulaCapabilityEnvelope>();
+            node.formulaBudget = 0;
+            node.calculatedCost = 0;
+            node.mechanicalDescription = string.Empty;
+            node.presentationId = string.Empty;
+            node.narrativeFlavor = string.Empty;
+            node.presentationState = EquipmentEvolutionPresentationState.Legacy;
+            node.presentationFailureCount = 0;
+        }
+    }
+
+    private static bool TryValidateFormulaEvolution(
+        EquipmentEvolutionState state,
+        out string error)
+    {
+        error = string.Empty;
+        state.formulaEvidence ??= new List<EquipmentEvolutionFormulaEvidenceRecord>();
+        state.presentationRequests ??= new List<EquipmentEvolutionPresentationRequest>();
+        state.evolutionNodes ??= new List<EvolutionNode>();
+        if (state.generation < 0
+            || float.IsNaN(state.mastery)
+            || float.IsInfinity(state.mastery)
+            || state.mastery < 0f)
+        {
+            error = "Equipment formula owner progression is invalid.";
+            return false;
+        }
+        if (state.formulaEvidence.Any(value => value == null
+                || !IsCanonical(value.evidenceId)
+                || !IsCanonical(value.eventGroupKey)
+                || !IsCanonical(value.actionKey)
+                || !IsCanonical(value.domainKey)
+                || value.relationshipKey == null
+                || !string.Equals(value.relationshipKey, value.relationshipKey.Trim(), StringComparison.Ordinal)
+                || value.originalEvent == null
+                || !string.Equals(value.evidenceId, value.originalEvent.evidenceId, StringComparison.Ordinal)
+                || !string.Equals(value.eventGroupKey, value.originalEvent.eventId, StringComparison.Ordinal)
+                || !string.Equals(value.actionKey, value.originalEvent.eventId, StringComparison.Ordinal)
+                || !string.Equals(value.domainKey, "equipment", StringComparison.Ordinal)
+                || !IsCanonical(value.originalEvent.eventId)
+                || float.IsNaN(value.originalEvent.amount)
+                || float.IsInfinity(value.originalEvent.amount)
+                || value.originalEvent.generation < 0
+                || value.originalEvent.repeatCount < 1
+                || value.originalEvent.sequence < 1L
+                || value.attainedMilestoneCount < 0
+                || value.influenceUseCount < 0
+                || double.IsNaN(value.importancePoints)
+                || double.IsInfinity(value.importancePoints)
+                || value.importancePoints < 0d)
+            || state.formulaEvidence.Select(value => value.evidenceId)
+                .Distinct(StringComparer.Ordinal).Count() != state.formulaEvidence.Count)
+        {
+            error = "Equipment formula evidence ledger is invalid.";
+            return false;
+        }
+        if (state.presentationRequests.Any(value => value == null
+                || !IsPresentationId(value.presentationId)
+                || !IsCanonical(value.nodeId)
+                || !IsCanonical(value.targetPersistentId)
+                || !IsCanonical(value.historyHash)
+                || value.attunementOwnerPersistentId == null
+                || value.reforgeOrderId == null
+                || !IsOptionalCanonical(value.attunementOwnerPersistentId)
+                || !IsOptionalCanonical(value.reforgeOrderId)
+                || string.IsNullOrEmpty(value.attunementOwnerPersistentId)
+                    == string.IsNullOrEmpty(value.reforgeOrderId)
+                || value.targetGeneration < 0
+                || float.IsNaN(value.masteryCost)
+                || float.IsInfinity(value.masteryCost)
+                || value.masteryCost < 0f
+                || value.evidenceIds == null
+                || value.evidenceIds.Count == 0
+                || value.evidenceIds.Any(id => !IsCanonical(id))
+                || value.evidenceIds.Distinct(StringComparer.Ordinal).Count()
+                    != value.evidenceIds.Count
+                || !value.evidenceIds.SequenceEqual(
+                    value.evidenceIds.OrderBy(id => id, StringComparer.Ordinal),
+                    StringComparer.Ordinal)
+                || value.failureCount < 0 || value.failureCount > 5
+                || value.state is not EquipmentEvolutionPresentationState.PresentationPending
+                    and not EquipmentEvolutionPresentationState.ModuleSelectionPending
+                    and not EquipmentEvolutionPresentationState.AwaitingNarrativeRetry
+                || (value.state is EquipmentEvolutionPresentationState.PresentationPending
+                    or EquipmentEvolutionPresentationState.ModuleSelectionPending)
+                    && value.failureCount >= 5
+                || value.state == EquipmentEvolutionPresentationState.AwaitingNarrativeRetry
+                    && value.failureCount != 5)
+            || state.presentationRequests.Select(value => value.presentationId)
+                .Distinct(StringComparer.Ordinal).Count() != state.presentationRequests.Count)
+        {
+            error = "Equipment presentation request ledger is invalid.";
+            return false;
+        }
+        EvolutionNode[] formulaNodes = state.evolutionNodes
+            .Where(value => value != null && value.formulaVersion > 0)
+            .ToArray();
+        if (formulaNodes.Select(value => value.nodeId).Distinct(StringComparer.Ordinal).Count()
+                != formulaNodes.Length
+            || formulaNodes.Select(value => value.presentationId)
+                .Distinct(StringComparer.Ordinal).Count() != formulaNodes.Length
+            || formulaNodes.Any(value => value.generation < 0
+                || value.formulaBudget < 0
+                || value.calculatedCost > value.formulaBudget
+                || !value.evidenceIds.SequenceEqual(
+                    value.evidenceIds.OrderBy(id => id, StringComparer.Ordinal),
+                    StringComparer.Ordinal)))
+        {
+            error = "Equipment formula node identity or budget is invalid.";
+            return false;
+        }
+        foreach (EvolutionNode node in state.evolutionNodes.Where(value => value != null))
+        {
+            if (node.formulaVersion == 0) continue;
+            bool unresolvedSelection = node.formulaVersion
+                    >= ModuleSelectionFormulaVersion
+                && node.moduleSelectionOffers != null
+                && node.moduleSelectionOffers.Count > 0
+                && node.presentationState is
+                    EquipmentEvolutionPresentationState.ModuleSelectionPending
+                    or EquipmentEvolutionPresentationState.AwaitingNarrativeRetry;
+            if (node.formulaVersion < 0
+                || !IsCanonical(node.nodeId)
+                || !IsOptionalCanonical(node.parentNodeId)
+                || !IsSha256(node.formulaCatalogSha256)
+                || !IsPresentationId(node.presentationId)
+                || !unresolvedSelection && string.IsNullOrWhiteSpace(node.mechanicalDescription)
+                || node.formulaBudget < 0
+                || node.calculatedCost < 0
+                || node.formulaCapabilities == null
+                || !unresolvedSelection && node.formulaCapabilities.Count < 1
+                || node.formulaCapabilities.Count > 3
+                || node.formulaCapabilities.Any(capability => capability == null
+                    || !IsCanonical(capability.capabilityId)
+                    || !IsCanonical(capability.formatterId)
+                    || !IsCanonical(capability.applicatorId)
+                    || capability.parameters == null
+                    || capability.parameters.Count != 4
+                    || capability.parameters.Any(parameter => parameter == null
+                        || !IsCanonical(parameter.parameterId))
+                    || capability.parameters.Select(parameter => parameter.parameterId)
+                        .Distinct(StringComparer.Ordinal).Count() != 4)
+                || node.formulaCapabilities.Select(value => value.capabilityId)
+                    .Distinct(StringComparer.Ordinal).Count() != node.formulaCapabilities.Count
+                || unresolvedSelection && (!string.Equals(node.moduleSelectionId,
+                        node.presentationId, StringComparison.Ordinal)
+                    || node.moduleSelectionOffers.Any(value => value == null
+                        || !IsCanonical(value.moduleId)
+                        || !Enum.IsDefined(typeof(EvolutionModuleOfferPolarity),
+                            value.polarity)
+                        || !IsCanonical(value.semanticDescription))
+                    || node.moduleSelectionOffers.Select(value => value.moduleId)
+                        .Distinct(StringComparer.Ordinal).Count()
+                        != node.moduleSelectionOffers.Count
+                    || node.formulaCapabilities.Count != 0
+                    || node.calculatedCost != 0 || node.positiveCost != 0
+                    || node.drawbackCredit != 0 || !string.IsNullOrEmpty(node.drawbackId)
+                    || !string.IsNullOrEmpty(node.mechanicalDescription))
+                || node.evidenceIds == null || node.evidenceIds.Count == 0
+                || node.evidenceIds.Any(id => !IsCanonical(id))
+                || node.evidenceIds.Distinct(StringComparer.Ordinal).Count()
+                    != node.evidenceIds.Count
+                || !string.IsNullOrEmpty(node.effectId)
+                || node.formulaVersion < DrawbackModuleSelectionFormulaVersion
+                    && !string.IsNullOrEmpty(node.burdenEffectId)
+                || node.formulaVersion >= DrawbackModuleSelectionFormulaVersion
+                    && (!string.IsNullOrEmpty(node.burdenEffectId)
+                        && (!IsCanonical(node.burdenEffectId)
+                            || node.burdenPotencyMultiplier < 1f
+                            || float.IsNaN(node.burdenPotencyMultiplier)
+                            || float.IsInfinity(node.burdenPotencyMultiplier)))
+                || (node.legalCandidateEffectIds?.Count ?? 0) != 0
+                || node.selectedCandidateIndex != -1
+                || node.evidenceIds.Any(id => state.formulaEvidence.All(value =>
+                    !string.Equals(value.evidenceId, id, StringComparison.Ordinal))))
+            {
+                error = "Equipment formula node payload is invalid.";
+                return false;
+            }
+            EquipmentEvolutionPresentationRequest request = state.presentationRequests
+                .SingleOrDefault(value => string.Equals(
+                    value.presentationId, node.presentationId, StringComparison.Ordinal));
+            bool pending = node.presentationState is
+                EquipmentEvolutionPresentationState.PresentationPending
+                or EquipmentEvolutionPresentationState.ModuleSelectionPending
+                or EquipmentEvolutionPresentationState.AwaitingNarrativeRetry;
+            if (!Enum.IsDefined(typeof(EquipmentEvolutionPresentationState), node.presentationState)
+                || node.presentationState == EquipmentEvolutionPresentationState.Legacy
+                || node.presentationFailureCount < 0
+                || node.presentationFailureCount > 5
+                || pending != (request != null)
+                || request != null && (!string.Equals(request.nodeId, node.nodeId, StringComparison.Ordinal)
+                    || request.state != node.presentationState
+                    || request.failureCount != node.presentationFailureCount
+                    || node.historical != !string.IsNullOrEmpty(request.attunementOwnerPersistentId)
+                    || node.generation != request.targetGeneration
+                    || node.historical && request.masteryCost != 0f
+                    || !node.historical && (request.masteryCost <= 0f
+                        || request.targetGeneration != state.generation + 1
+                        || state.mastery + 0.001f < request.masteryCost))
+                || node.presentationState == EquipmentEvolutionPresentationState.Ready
+                    && (!node.active || !node.mechanicallyUnlocked || !node.narrativeReady
+                        || !node.uiVisible || !node.playerVisible
+                        || !IsCanonical(node.displayName) || node.displayName.Length > 32
+                        || !IsCanonical(node.narrativeFlavor) || node.narrativeFlavor.Length > 180
+                        || !string.Equals(node.description, node.narrativeFlavor, StringComparison.Ordinal)
+                        || ContainsMechanicalNumber(node.displayName)
+                        || ContainsMechanicalNumber(node.narrativeFlavor))
+                || pending && (node.active || node.mechanicallyUnlocked || node.narrativeReady
+                    || node.uiVisible || node.playerVisible))
+            {
+                error = "Equipment formula presentation state is inconsistent.";
+                return false;
+            }
+        }
+        if (state.presentationRequests.Any(request => state.evolutionNodes.All(node => node == null
+                || node.formulaVersion <= 0
+                || !string.Equals(node.nodeId, request.nodeId, StringComparison.Ordinal))))
+        {
+            error = "Equipment presentation request has no frozen node.";
+            return false;
+        }
+        return true;
+    }
+
+    private static bool IsCanonical(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
+
+    private static bool IsOptionalCanonical(string value) =>
+        value != null && string.Equals(value, value.Trim(), StringComparison.Ordinal);
+
+    private static bool IsSha256(string value) =>
+        IsCanonical(value)
+        && value.Length == 64
+        && string.Equals(value, value.ToLowerInvariant(), StringComparison.Ordinal)
+        && value.All(Uri.IsHexDigit);
+
+    private static bool IsPresentationId(string value)
+    {
+        const string prefix = "presentation:equipment:";
+        return IsCanonical(value)
+            && value.StartsWith(prefix, StringComparison.Ordinal)
+            && IsSha256(value.Substring(prefix.Length));
+    }
+
+    private static bool ContainsMechanicalNumber(string value) =>
+        (value ?? string.Empty).Any(character =>
+            char.IsDigit(character) || character is '%' or '％');
 }
 
 [Serializable]

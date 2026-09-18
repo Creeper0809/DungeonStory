@@ -1,5 +1,11 @@
 # DungeonStory Progress
 
+## 2026-09-15 — V25 execution evidence capture and verifier correction complete
+
+Explicit user authorized direct sibling-workspace edits. Added Tools/Documentation capture runner,15 offline regressions and operation/collection notes; corrected existing verifier14→exact15 plus actual stale-combination rejection. No C#/asset/scene-file/balance changes, no MCP. SOURCE_EDIT/UNITY_VERIFY windows serialized; final Editor ready/stopped at11:33:21Z.
+
+Final export and portable bundle version20260915-v26-training-preflight-r4: actual four gates, Unity23/packet16/canonical2/independent2/offline15 PASS. Current source292, positives100/negatives15/witness6, delivery276 independently verified in NarrativeAI. Delivery c14239d3/input fafc75af/catalog38706406. r1/r2 timeouts and r3 stale-verifier failure retained, not overwritten. New natural-play inputs0; collection/teacher prose quality/training approval still pending. Original AI human approval hashes preserved, REJECT_BEFORE_DPO unchanged.
+
 ## 2026-09-03 — M06 capacity and dynamic profile disposition correction
 
 - Changed M06 output authority `3 cycles / 5,400g → 4 cycles / 7,200g` consistently across the actual BuildingSO, Surgery builder/validator, surgical contract, capacity preprojection and actual M06 PlayMode expectation.
@@ -8240,3 +8246,521 @@ Next: exact synthetic Industrial conveyor claim/profile plus payload-retention/r
   `IBuildingDestructiveLossRuntime` that validates explicit demolition and raises
   the real `DestroySelf` completion event. Full `ModularFacilityDebugScenarios.RunAll()`
   now compiles and passes with Console Warning/Error `0/0`.
+
+## 2026-09-07 — WIM045 current-source remaining-consumers focused run
+
+- `UNITY_VERIFY`; source writers `0`. Preflight main Unity state was stopped/idle
+  (`playing/paused/compiling/updating=false/false/false/false`).
+- Exactly one `RunDoorConsumersRemainingOnly()` launch: Unity execution `1`;
+  async watcher session `47204` / chunk `e6b277`; terminal artifact
+  `Artifacts/QA/wim-implementation/wim-045-door-consumers-remaining.txt`.
+- Baseline artifact `B26A1B6F...CF2A0` is stale-DLL evidence only. Watcher requires
+  a newer terminal report and does not treat timeout as verifier completion.
+- Watcher reached a new terminal artifact (not a watcher timeout): `result=FAIL`,
+  SHA-256 `8D5B021339B2CCD0199D5A1E1E1AC21ED9151D496DBB3649FA67BE61A3239064`.
+  Actor-aware restock pathing reached the entry in 4 steps but returned no terminal
+  pickup path to `(41, 0)` (`pickupSteps=0`, `pickupPath=[]`).
+- The runner object destroyed itself, but the terminal report has no `cleanup=` line;
+  exact baseline restoration is therefore not proven. Console recorded the same
+  verifier failure twice (exception plus terminal error) and no scenario warning.
+- Final main Unity state is stopped/idle (`false/false/false/false`); current Editor
+  DLL SHA-256 remains `2FFA72276...833B`. `GameplayScene*` remains dirty.
+
+## 2026-09-07 — WIM045 path/cleanup source batch frozen
+
+- Updated only the two owned Industrial Editor sources. The restock fixture now
+  chooses an authored physical shop/warehouse whose actual pickup stand has a real
+  outside-to-interior path through the production Door and manager entry.
+- Staging, pickup preflight, and return resolve the actor broker's explicit
+  Pending/Reachable/Unreachable state from the actor's actual position before the
+  unchanged production movement/work calls. Actual movement, Door denial, physical
+  source/carry/lease/operation assertions, return, and launch checks remain intact.
+- Cleanup preserves the primary scenario exception while collecting and reporting
+  secondary manual, whole-registry, FacilityBuffer-authority, and byte-validation
+  failures. It always emits one terminal `cleanup=` line.
+- Unity 6000.3.8f1 NetCore Roslyn compiled the exact Bee Editor response to a Temp
+  output with exit `0`; `git diff --check` has no whitespace errors. Frozen hashes:
+  scenario `7C1E1EE8...681F4`, verifier `07CE2221...B865`.
+- No Unity Refresh or verification was run. Main Editor DLL remains the prior
+  `2FFA7227...833B`; prior terminal FAIL report remains `8D5B0213...39064` until
+  parent closes all source writers and authorizes the single focused Unity rerun.
+
+## 2026-09-07 — WIM045 runtime Pending contract extension frozen
+
+- With root's one-file runtime authorization, changed only the restock pickup
+  segment of `WorkTaskExecutor`: typed Request/Pending continuation, live lease
+  revalidation, existing AbortWorkRun cancellation, distinct terminal failures,
+  and actual pickup-position guards before loading and physical transfer.
+- Extended the same focused WIM045 scenario to require the real production Restock
+  command to expose Pending, retain its lease, reach terminal NoPath without pickup,
+  then restart and resolve Pending-to-Reachable before Door cancellation. Both
+  terminal paths require zero carry, zero lease, and zero retail-operation residue.
+- Recompiled the exact Unity Bee Editor response with Unity 6000.3.8f1 NetCore
+  Roslyn to Temp; exit `0`. `git diff --check` also exits `0` with line-ending
+  notices only. Frozen source hashes: WorkTaskExecutor `6424719A...D2E7`, scenario
+  `BF305040...C6F6`, verifier `07CE2221...B865`.
+- Unity remained untouched: main Editor DLL is still `2FFA7227...833B`, and the
+  prior report remains `8D5B0213...39064`. The single focused Unity entry point is
+  still pending full writer freeze and root authorization.
+
+## 2026-09-07 — WIM045 Pending fixture review corrections frozen
+
+- Removed the route-length dependency from the focused fixture. It now commits the
+  real production Restock action after opening the existing broker with a zero-search
+  budget and requires `searches=0`, exactly one deferral, the typed Pending phase,
+  and live lease/operation ownership. It does not depend on wall-clock slicing.
+- The broker is not reset to an unbounded test window after that observation. The
+  normal scheduler must publish the following budget window before the same real
+  command can reach terminal NoPath or Reachable.
+- Added one independent normal Restock retry after access restoration. It observes
+  actual pickup-stand arrival, physical carry, and source withdrawal, then requires
+  exact source decrease/shop increase and final carry/lease/operation `0`.
+- The exact current Unity Bee Editor response compiled through Unity 6000.3.8f1's
+  NetCore Roslyn to a separate Temp DLL with exit `0`; the output SHA-256 is
+  `60417FBE...3FC7`, and scoped whitespace checks pass. Frozen hashes are
+  WorkTaskExecutor `6424719A...D2E7`, scenario `A0D204A7...C97F`, and verifier
+  `07CE2221...B865`.
+- Unity, Refresh, and PlayMode remain unrun for this source batch. The preserved main
+  DLL/report remain `2FFA7227...833B` and `8D5B0213...39064`.
+
+## 2026-09-10 WIM062/063 결정 및 원격 소비 교차 조사
+
+- 기존 WIM 계획7.1/7.2에 의료 생활서비스/해독 약품 배송과 폐기 시설 참조 전환 후 제거를 추가 승인0/2로 기록했다. 기존 구현30/47·연구0/1·위키13/13 완료 수는 변경하지 않았다.
+- 생존/의료 원격 소비 및 다른 도메인 조사 결과는 `Artifacts/QA/wiki-system-audit-2026-09-05/service-room-runtime-review.md`의2026-09-10 보충에만 집약했다. baseline에는 승인/밸런스 영향 기록을 추가했다.
+- Terra/xhigh 읽기 전용 독립 조사1개, READY 전 리뷰0회/완료 리뷰1회. 해독 DeliveryPending을 물류로 오인한 중간 설명은 실제 Stored Sink/ack 소스 확인 후 정정했다.
+- 게임 코드·에셋·삭제·Unity/컴파일·PlayMode·KB 재생성0. 문서 diff whitespace 검사 통과; Git의 기존 LF→CRLF 안내만 출력. 추가 구현 체크는 미완료로 유지한다.
+
+## 2026-09-13 WIM-REMAINDER-01 SOURCE_EDIT
+
+- 최신 완료 증거 반영: WIM-041 exact roster/venue/save/live AI focused PASS, 계획 7.4.1 forecast-only water shortage health attribution PASS. 원본 항목 계수는 `46/47`로 정정했고 두 검사는 관련 의존 변경이 없는 한 재실행하지 않는다.
+- WIM-040 work-accident 엄격 리뷰에서 P0 0, P1 3건을 확정했다: 비영속 currentRunId 기반 사고 ID, fire 후속 예외가 canonical injury event/alert를 누락시키는 순서, actual witness의 persistent facility/정확한 필드·건수·피해 관측 부족. Sol production 수정 진행 중이며 Unity는 READY/FROZEN까지 실행하지 않는다.
+- WIM-040 ExternalObservedOnly 생애 사건 31종은 현재 완전한 causal producer/receipt가 `0/31`임을 원본 대조로 확인했다. generic stable-ID 발행 API로 인과를 위조하지 않고 경력·연구·작업 및 가족·아동·가구 묶음의 실제 producer 최소 수정면을 병렬 설계 중이다.
+- 계획 8.4는 기존 six-adult outage 실제 경로에 authored crop/water/storage/mass 정적 gate와 대표 apparel physical custody/condition 회귀를 결합한 소스가 준비됐으나 아직 최신 컴파일·실행 전이다. 자연 6명 전체 의복 주기나 장기 농사로 과장하지 않고 대표 통합 완료선으로만 판정한다.
+
+- 네 묶음만 남기는 native goal과 파일 계획을 일치시켰다. 원본 WIM 상태는 `45/47`; 연구 `1/1`, 위키 `13/13`, WIM-062/063 `2/2`, FIRE-01 `4/4`는 이번 의존 변경이 없으면 재개방하지 않는다.
+- 7.4.1 생산 수정은 물 재고 전망의 `lastMissingWater`/`consecutiveWaterShortageDays`를 실제 sanitation/disease 위험에서 제거하고 UI/계획 데이터는 유지했다. 메인 focused attribution 검사는 높은 전망 부족만으로 위험0, 실제 rot/food 원인은 위험 증가를 요구한다. Unity 검증 대기다.
+- WIM-041 생산 수정은 explicit participant roster를 canonicalize하고 다른 주민으로 채우지 않으며 preview/schedule/start revalidation에 동일 roster를 전달한다. 메인 live witness의 최소 인원/부분 성공 모순, 저장 순서, venue roster/capacity assertion을 교정했고 담당자의 독립 read-only 재리뷰가 PASS했다. Unity 검증 대기다.
+- 8.4의 기존 6인 actual outage runner에 현재 asset-backed 작물·물·반복 WU·7일 비축·저장 질량 폐쇄 루프와 실제 6명 월드의 의복 상태/세탁/건조/수선/partial cancel/물리 질량·소유권 보존 검사를 결합했다. 대표 생육 live 증거와 함께 최신 Unity에서 확인해야 한다.
+- WIM-040 생산 구현은 Sol/xhigh 담당자가 계속 작업 중이다. 모든 작성자 READY/FROZEN 전에는 Unity를 실행하지 않는다.
+
+## 2026-09-10 마지막 기획 판정 반영
+
+- 사용자1~4 결정을 기존 WIM 계획7.4에 집약했다: 전역 유지비 전면 제거, 계절2종 실제 공급/납품, 코볼트 숨기기 설정 전용, 장소9군 기존 시설 사용. 연구1인 유지에 맞춰 과거 협업 질문도 해소 처리했다.
+- baseline 승인 기록과 기존 물류 조사에 최신 처분을 연결했다. 현재 취합한 방향 질문은 해소됐고 수치/기술 확인은 작업 잔여다. 코드·에셋·Unity 실행0, 구현 완료 체크 변경0.
+## 2026-09-13 WIM 8.4 representative six-adult closure
+
+- [x] Current-source Unity compilation completed with zero compile errors after replacing the verifier's fixed 65-second manual-water cutoff with a bounded progress-aware observation.
+- [x] The focused six-adult outage Play run passed all five primitive fallback paths, exact physical consumption/no minting, no death/Downed/breakdown, current whole-save restore, exact primary facility identity, and primary recovery 5/5 with zero primitive starts.
+- [x] The same run passed the authored crop/water/storage/mass loop and the representative six-actor apparel condition/custody/recovery invariant. Report: `Artifacts/QA/v27-six-adult-service-outage-playmode.txt`; SHA-256 `01E52176B5BF006DE727EC61093D6D6C95290F0AF3958DB09216499CEB6668EA`.
+- [ ] Original WIM remains `46/47`; WIM-040 life-event causal producers are the only original WIM item still open.
+
+## 2026-09-14 WIM-040 causal producer focused closure before scope decision
+
+- Current-source Unity compile passed with zero errors. The isolated incident/receipt suite passed (`6C81A4E2…99BA`).
+- The live WIM-044 path passed (`8D51A58B…C4FA`): a real proficiency rank crossing publishes `quiet-promotion`; a pending retiree completes a physical mentorship lesson with equipped blast/smoke PPE and an exact physical career-ledger wear transaction; `last-lesson` and both durable receipts survive whole-save restore and same-day replay without duplicate effect or wear.
+- Fixed an actual source-loss defect: irreversible `ExternalObservedOnly` receipts are no longer discarded by the daily random scheduler's category cooldown or active-event cap. Exact source idempotency/conflict, authored character recurrence and receipt↔occurrence restore validation remain fail-loud.
+- Original WIM remains `46/47`. Twenty-six authored life events have no current authoritative cause producer; `apprentice-mistake` and `last-lesson` also need a user decision on narrowing their narrative wording versus adding new rarity/reporting/frailty authorities.
+
+## 2026-09-14 WIM-040 catalog and wiki closure
+
+- 사용자 확정에 따라 원인 시스템이 없는 26개 생애 사건은 정의를 보존한 채 활성 발생에서 제외했고, 공개 위키 모델의 해당 26개 entity에만 비활성 비고를 생성했다.
+- `apprentice-mistake`와 `last-lesson` 설명을 실제 제작 손실 및 은퇴 전 PPE 착용 마지막 실습으로 축소했다. Unity current-source compile 오류0, WIM-040 focused PASS, 위키 모델2922/validation errors0, Console cursor 이후 Warning/Error0을 확인했다.
+- 원본 WIM은 `47/47`; 연구1/1·위키13/13·WIM-062/063 2/2·FIRE-01 4/4·대표6인 통합 PASS를 유지한다. Astro server build는 통과했으나 SSR `dist`에 정적 HTML이 없어 Pagefind만 실패했으며 검색 도구 후속으로 분리했다.
+
+## 2026-09-14 — V25 Narrative Mechanic Unity Handoff v3 started
+
+- Created an active native goal from the full v3 implementation prompt.
+- Read the current root `AGENTS.md`, planning workflow skill, Unity C# skill, and
+  the complete 298-line handoff prompt. Confirmed `AGENT.md` is intentionally absent.
+- Captured branch/commit and the existence of a very large dirty workspace. No
+  gameplay files, assets, Unity state, or existing user changes were modified.
+- Added phases N1-N6 to the existing root planning ledger. Current window is
+  read-only audit; Unity MCP and dungeon-player remain unused as required.
+- Official Unity CLI preflight: Unity 6000.3.8f1, status `ready`, Play Mode
+  `stopped`, compiling/domain reload `false/false`, errors/warnings `0/0`.
+  This establishes EDIT_READY for the upcoming first source batch; no Unity
+  command will run during SOURCE_EDIT.
+
+## 2026-09-14 — V25 N1 audit contract frozen
+
+- Three read-only audits closed the existing response-flow, acquired-trait/item,
+  and deterministic-export discovery surfaces. No Unity or production edits were
+  performed by the auditors.
+- Frozen the implementation contract in `findings.md`: exact-key boundary,
+  structured inference audit, single C# mechanic authorities, separate acquired
+  trait runtime/save/effect ownership, durable physical erasure join, service-only
+  UI, and no-overwrite Python-compatible export.
+- Phase N1 evidence discovery and architecture contract are complete. Player-
+  visible unresolved decisions remain explicit and do not block the independent
+  existing-contract source batch.
+
+## 2026-09-14 — V25 Narrative Mechanic Unity handoff complete
+
+- Implemented and integrated the strict CharacterSkill, FacilityEvolution,
+  EquipmentChoice/EvolutionHistory, Persona and acquired-trait response contracts,
+  including explicit typed fallback/audit outcomes and preservation of legal model
+  choices.
+- Implemented the separate acquired-trait evolution authority, all eight authored
+  modules, 3/8/20 lifecycle, automatic request/callback path, effect projection,
+  growth UI, strict whole-root save/restore and the physical memory-erasure seal.
+- Added first-boss-per-region exact-one seal awards with deterministic publication
+  reconciliation. The focused boss lifecycle scenario passed publication failure,
+  restore and duplicate-prevention cases.
+- Current-source Unity compile passed. `V25NarrativeInferenceDebugScenarios` passed
+  12/12; `CharacterProgressionDebugScenarios.RunAll(true)` and
+  `FacilityEvolutionDebugScenarios.RunAll(true)` passed. The real Stored UI →
+  confirmation → actor movement → pickup → exact consumption → selected-source
+  erase PlayMode path passed with Console errors/warnings `0/0`.
+- Rebuilt and validated the content database and knowledge base with PowerShell 7:
+  3,477 rows, 6,495 relations, acquired settings 1, acquired modules 8,
+  `failure_count=0`.
+- Final evidenced export:
+  `Artifacts/Exports/NarrativeMechanicCatalog/20260914-v25-unity-implementation-evidenced`.
+  Catalog hash `sha256:dd3fb3dc5d8458a2ff00b2e68cafb014cd9a1594980bf5329ddf165c72d5fe7b`;
+  input digest `sha256:1ae0286bd7d286052fa4de41c5ed5df008b4198a3a2434968bed8e5adb890360`.
+  All four required Unity evidence gates are present and valid. Training remains
+  false only for the exported NarrativeAI rarity-vocabulary mismatch; import and
+  downstream training remain pending outside this workspace.
+
+## 2026-09-14 — V25 export correction reopened
+
+- Reproduced two sequential importer failures against the evidenced export:
+  `character skill rarity budgets are incomplete`, then after a temporary in-memory
+  rarity alias, `acquired-trait gates/maxActive must be 3/8/20 and 3`.
+- Measured provenance and parity gaps: 29 directly referencing C# files missing from
+  manifest; parity families `CharacterSkill=2`, `AcquiredTrait=6`, remaining four
+  profiles `0`.
+- Reopened N5/N6 and added Phase N7. No gameplay state or NarrativeAI source has been
+  modified by this audit; correction will produce a new immutable export rather than
+  overwriting the invalid completion artifact.
+- Added `Tools/Documentation/verify_v25_narrative_mechanic_handoff.py` as the
+  cross-workspace completion oracle. It invokes the real NarrativeAI importer,
+  verifies every manifest hash plus the discovered acquired-trait/seal dependency
+  closure, requires accepted/rejected parity for all six profiles and rejects an
+  abbreviated CharacterSkill request packet.
+
+## 2026-09-14 — V25 cross-workspace export correction complete
+
+- Corrected catalog-v1 rarity/gate projection without changing gameplay authority,
+  expanded current-source provenance to 255 files, and added full accepted/rejected
+  request/response parity for all six narrative profiles.
+- Fresh Unity compile passed. The affected combined regression returned
+  `V25=PASS;PROGRESSION=True;OFFENSE=True`; Console errors/warnings were `0/0`.
+- The real NarrativeAI importer accepted the final immutable export with required
+  provenance `156`, evidence gates `4/4`, no policy blockers and
+  `trainingEligible=true`.
+- Final export:
+  `Artifacts/Exports/NarrativeMechanicCatalog/20260914-v25-unity-cross-workspace-final`;
+  catalog hash `sha256:8ddaa9dacb6b2de45adb5f4a503750e04195e9981697a9f307649a64c8d4e23e`;
+  input digest `sha256:ce7d9e4eae37ca834777320af783566e0970549e9db4367bd79bea61ee8bfe2b`.
+- Final verifier report:
+  `Artifacts/QA/v25-narrative-mechanic-cross-workspace-final.json` (SHA-256
+  `239C73AD3EB28D2D0C8804C60CA365897F87C3983E27D1C4E9A6A3B16F79B53B`).
+- Rebuilt the content database and knowledge base once after source freeze;
+  `failure_count=0`, content rows `3477`, relations `6495`.
+
+## 2026-09-14 — V25 100-scenario Unity export follow-up started
+
+- Classified the previous goal turn as progress: it produced and externally verified
+  the corrected catalog/parity package. The new goal is a distinct missing authority
+  export and does not invalidate that package.
+- Read the complete Unity export follow-up and AI consumer result. AI tests `41/41`
+  and existing parity `16/16` are upstream evidence only; the new 100 scenarios are
+  still absent and generation remains correctly blocked.
+- Added Phase N8.1–N8.5. Current window is read-only audit; no Unity command, gameplay
+  edit, AI-repository edit, bulk generation or training has started.
+
+## 2026-09-14 — V25 scenario authority audit and implementation batch
+
+- Completed read-only producer/validator audits for all six profiles and the current
+  NarrativeAI consumer. The existing 16 parity cases are confirmed insufficient for
+  new generation inputs.
+- Frozen the sidecar boundary: exactly 100 positive controlled fixtures, rejected
+  cases in a separate file, public fact/effect/authority/fixture provenance per row,
+  deterministic semantic IDs and an outer delivery hash manifest.
+- Central immutable scenario contracts and exporter/package integration are being
+  implemented by the designated production-code owner. AcquiredTrait and the four
+  non-skill profile sources are being implemented in disjoint new Editor files.
+- CharacterSkill live authoring currently has zero Ultimate-capable modules because
+  serialized enum values no longer match the intended defaults. The exporter will
+  not fabricate Ultimate positives; minimal gameplay-authority repair was surfaced
+  to the user while independent exporter work continues.
+- Unity has not been invoked during SOURCE_EDIT. No NarrativeAI repository file,
+  gameplay balance value or content asset has been modified by this batch yet.
+
+## 2026-09-14 — V25 actual 100-scenario capture and determinism diagnosis
+
+- Current-source Unity compilation is green and all six actual source captures now
+  compose into exactly `100` accepted positives and `13` separate negatives.
+- The live CharacterSkill authoring drift was repaired only by restoring intended
+  enum kind sets in `CharacterSkillSystemSettings.asset`; costs, effects, targets,
+  triggers and variant values were unchanged.
+- Full capture through `NarrativeMechanicCatalogUnityAssetSource` passed `100/13` in
+  `20,943 ms` using one detached Unity CLI job, avoiding duplicate 5-second eval
+  timeouts.
+- Independent package regeneration intentionally remained red: both captures had
+  input digest `sha256:197c304cb4a646b1844a26c2bfdb0d1b1a8484a23f2af4c3a1ab47edf9490a7e`
+  and equal lengths, but `scenarios_100.json`, `negative_scenarios.json`, and the
+  derived delivery manifest differed.
+- Reflection diagnostics proved the root cause is the FacilityEvolution controlled
+  fixture exporting a fresh GUID-backed `facilityPersistentId` on each capture. No
+  other delivered file differed. The source owner is applying a deterministic
+  fixture identity; export and AI import remain pending until byte identity passes.
+- A failed diagnostic compile used .NET APIs absent from Unity's profile; the
+  compatible hash diagnostic succeeded on the next attempt. No gameplay source or
+  NarrativeAI repository file was changed by that diagnostic.
+
+## 2026-09-14 — V25 authoritative 100-scenario export complete
+
+- Replaced the FacilityEvolution fixture's generated persistent GUID with a stable
+  scenario identity. The final independent package comparison passed byte-for-byte
+  at `1,966,162` bytes before the immutable v4 export was written.
+- Expanded the manifest's explicit source closure to include the CharacterSkill
+  Editor producer, runtime skill effects and FacilityEvolution service. The external
+  verifier now requires `182` current source/asset paths and the v4 manifest hashes
+  `275` files with no missing required path.
+- Strengthened the self-contained external verifier to reject incomplete per-profile
+  requests, legal candidate rows, CharacterSkill module mechanics, acquired-trait
+  rarity/milestone packets, mismatched public evidence and schema field drift. Six
+  targeted defect injections were all rejected.
+- Final Unity export:
+  `Artifacts/Exports/NarrativeMechanicCatalog/20260914-v25-authoritative-scenarios-v4`;
+  catalog hash `sha256:0f6e4be939180f679109088e0e3eba59f85cfc5851ed2e01760daef9e14fe4a6`;
+  input digest `sha256:d6326af72a5e2db0763a0a3bae9d903600232c37f094f3b4df85d57633564155`.
+- External handoff verifier PASS: accepted profiles `20/15/15/15/20/15`, positives
+  `100`, separate negatives `13`, parity coverage `16`, required provenance `182`.
+  Report: `Artifacts/QA/v25-authoritative-scenarios-v4-verification.json`.
+- NarrativeAI compatibility: the current loader accepted the v4 catalog and its
+  validators reproduced v4 parity `16/16`; the existing full Python suite passed
+  `41/41`. No NarrativeAI file or training/release state was changed.
+- `trainingEligible=false` remains a truthful export-only boundary because no fresh
+  training evidence was attached. This does not indicate an importer or contract
+  failure; `humanApprovalClaimed=false` also remains unchanged.
+
+## 2026-09-14 — V25 consumed-milestone negative follow-up started
+
+- Preserving the immutable v4 `100/13` package while adding one separately exported
+  negative case for re-requesting an erased trait's already consumed manifestation
+  milestone through the actual C# lifecycle/producer boundary.
+- Scope also corrects the README model-input contract: response witnesses and all
+  expected/internal audit state must be removed by profile-specific allowlists.
+- No gameplay rule, balance value, NarrativeAI repository file, training gate or
+  release state is authorized to change.
+- Implemented the actual manifest -> erase -> same-milestone `SubmitMilestone`
+  rejection fixture and its unused milestone-8 positive control.
+- Versioned only the negative scenario document to schemaVersion 2 so a command
+  rejected before packet construction can truthfully export zero legal candidates.
+- Corrected README guidance to prohibit raw request/responseJson leakage.
+- Final authoritative follow-up export:
+  `Artifacts/Exports/NarrativeMechanicCatalog/20260914-v25-authoritative-scenarios-v8`.
+  It preserves `100` positives, expands separate negatives `13 -> 14`, and keeps
+  catalogHash `sha256:0f6e4be939180f679109088e0e3eba59f85cfc5851ed2e01760daef9e14fe4a6`.
+- Final inputDigest is
+  `sha256:4f0bd728dc423cb65354db3c398f5f76264a7b0a7cf67ab886898642000295fe`;
+  the 275-file manifest contains the changed independent verifier exactly once.
+- Unity compile, isolated lifecycle capture, independent two-capture byte comparison,
+  delivery hashes and external consumer/verifier checks passed. Final report:
+  `Artifacts/QA/v25-authoritative-scenarios-v8-verification.json`.
+- `trainingEligible=false` and `humanApprovalClaimed=false` remain unchanged. No AI
+  generation, DPO, GGUF, release promotion, MCP registration or NarrativeAI edit ran.
+
+## 2026-09-14 — cumulative narrative continuity follow-up started
+
+- Read the current root agent rules, planning/Unity skills, planning tails, complete
+  continuity prompt/contract/manifest, audit review/results, AI public-context schema
+  and read-only validator.
+- Preserved the dirty Unity workspace and immutable v8 export. No Unity command,
+  production edit, NarrativeAI edit, model inference or export has run for N10 yet.
+- Added N10.1–N10.4. The active window is read-only source/authority audit; implementation
+  begins only after the single public-context and identity contract is frozen.
+
+## 2026-09-15 — cumulative narrative continuity implementation complete
+
+- Added one immutable public-context material shared by live requests and export for
+  CharacterSkill, AcquiredTrait, Persona, EquipmentChoice, EvolutionHistory and
+  FacilityEvolution. Projected fact identity now hashes the complete length-prefixed
+  `(domain, originalFactId, sourceSubjectId)` tuple with SHA-256; original IDs remain
+  auditable and are never truncated.
+- Equipment prompts now carry frozen readable current events, resolved public
+  participants where available, and compacted prior generations. Save/restore and
+  request/cache identity use the frozen public semantics rather than rereading a
+  changed ledger.
+- Current Unity source compiled with zero compiler errors. Focused continuity,
+  empty-ledger fallback and evolution-history checks passed; the affected full
+  CharacterProgression and V25 narrative suites passed. The pre-existing unrelated
+  packed-facility failure was not rerun as a full InstanceEvolution gate; its focused
+  narrative-continuity entry point passed. Natural PlayMode and model inference were
+  not run.
+- Final immutable export:
+  `Artifacts/Exports/NarrativeMechanicCatalog/20260915-v25-authoritative-scenarios-v12-continuity`.
+  It contains `100` accepted scenarios, `14` separate negative scenarios and `6`
+  continuity witnesses. catalogHash is
+  `sha256:0f6e4be939180f679109088e0e3eba59f85cfc5851ed2e01760daef9e14fe4a6`;
+  inputDigest is
+  `sha256:74ac0042140cfaba0b945152f9fc708fc3351c017009b99645f4a0f9a0a8383c`.
+- The external verifier passed schema/import/provenance/hash/parity validation with
+  `285` manifest files and `194` required provenance paths. Report:
+  `Artifacts/QA/v25-authoritative-scenarios-v12-continuity-verification.json`.
+- A fresh independent two-capture comparison passed byte-for-byte (`2,602,459`
+  bytes) with the same final input digest. `trainingEligible=false` and
+  `humanApprovalClaimed=false` remain unchanged; the NarrativeAI workspace was not
+  modified and its pinned import/review/training state was not advanced.
+
+## 2026-09-15 — v12 continuity audit repair started
+
+- Read the consolidated root instructions and the complete external REVIEW/results/
+  verifier. The unchanged AI adapter accepts `70/100`; failures are exactly
+  EquipmentChoice participant identity `15` and EvolutionHistory duplicate evidence
+  `15`. The existing C# mechanical witnesses remain `100/100`.
+- Opened N11 as a narrow repair. v12, NarrativeAI code/validator/pins/data/reviews,
+  gameplay mechanics and balance values are frozen. No Unity command or production
+  edit has run in this phase yet.
+## 2026-09-15 — N11 source-edit batch opened
+
+- Batch `N11-SOURCE-EDIT-1` opened after official Unity CLI reported Editor ready, compiling=false, domainReload=false, playMode=stopped.
+- Frozen repair surface: public final-model-input serialization; equipment participant resolution fixture; real prior-generation record/close/current-record fixture; affected regressions and immutable next-version export.
+- Unity and dungeon-player MCP remain prohibited for this task. No Unity verification will run until every source owner reports READY/FROZEN.
+
+- Added a Unity-workspace adapter-v2 projection verifier that imports the unchanged
+  NarrativeAI implementation without writing to that workspace. Against immutable
+  v12 it reproduces the audit baseline exactly: `70 PASS / 30 FAIL`, consisting of
+  `15` EquipmentChoice participant failures and `15` EvolutionHistory evidence-ID
+  failures. Model inference remains `NOT_RUN`.
+
+## 2026-09-15 — N11 source owners frozen
+
+- Batch `N11-SOURCE-EDIT-1` is frozen. Equipment and history fixtures now use a
+  real public `CharacterActor` resolved through the production world lookup, and
+  prior/current evidence is issued by `UsageLedgerCompactor.Record` on opposite
+  sides of an actual `CloseGeneration` call.
+- Runtime prompts now retain a canonical `publicFacts` + `publicNarrativeContext`
+  payload after `NarrativeRequestContext.ToModelPrompt`. Export serialization
+  consumes that same runtime projection and fails closed if its canonical bytes
+  differ. Audit-only original/source fact identities remain outside model input.
+- Added focused final-prompt participant/date/count/generation/target/reference and
+  runtime-to-export byte-parity assertions. Targeted C# diff checks and the local
+  adapter-verifier Python compile pass. Unity compile/export verification has not
+  started yet; model inference remains `NOT_RUN`.
+
+## 2026-09-15 — N11 continuity audit repair verified
+
+- Corrected equipment fixtures to create real public `CharacterActor` participants
+  and resolve their display names through the production world-query path. Unknown or
+  private participants still fail closed; IDs were neither removed nor assigned fake
+  names.
+- Replaced cloned prior-generation events with production `Record -> CloseGeneration
+  -> Record` fixture construction, producing distinct prior/current evidence IDs.
+- Added one canonical `publicFacts` + `publicNarrativeContext` projection shared by
+  runtime final prompts and export. Final-prompt regressions observe entity, date,
+  target, count, generation, memory/prior references and selection after the actual
+  prompt transform; audit provenance remains outside model input.
+- Updated the Unity-side handoff verifier to validate the closed model-facing fact
+  allowlist and independently recompute source-tuple/long-ID projections from the
+  separate continuity audit witness. The read-only NarrativeAI adapter was unchanged.
+- Unity recompile passed with no compiler errors. Focused V25 contracts passed `13/13`;
+  focused instance-evolution narrative continuity passed. Python verifier sources
+  compiled.
+- Immutable v14 passed the Unity-workspace handoff verifier with `100` positives,
+  `14` negatives and `6` continuity witnesses. The unchanged NarrativeAI adapter-v2
+  projection passed `100/100`, improving the external baseline from `70/100`; model
+  inference remains `NOT_RUN`.
+- Final export:
+  `Artifacts/Exports/NarrativeMechanicCatalog/20260915-v25-authoritative-scenarios-v14-continuity-audit-repair`.
+  `catalogHash=sha256:0f6e4be939180f679109088e0e3eba59f85cfc5851ed2e01760daef9e14fe4a6`,
+  `inputDigest=sha256:e8e7a55208c219555fdcb4ea6a762186fcf67e4e9b88b00c421f429637107ba8`,
+  `deliveryManifestSha256=sha256:f725d193308e92bfa9360cf5eb0cd036d97eb5b38b71f50e5afbea6355a30acc`.
+
+## 2026-09-15 — N12 history-fixture repair opened
+
+- Read root `AGENTS.md`, the complete r2 review and its `boundaries.json`. The supplied
+  immutable-v14 audit reports `12/15` history request/current generation mismatches and
+  `4` future-generation event rows while confirming the previous three repairs.
+- Frozen scope: `HistoryFixture.Create`/`CreateLedger` generation ownership, a 15-row
+  chronology regression, focused current-source verification and a create-new export.
+  Existing v14, gameplay values/policies and NarrativeAI workspace remain read-only.
+- Knowledge-base query failed closed as stale (`60` failures); no generated rows were
+  used or regenerated. Source editing has not started and no Unity command has run for
+  N12 yet.
+
+## 2026-09-15 — N12 source repair ready/frozen
+
+- The official Unity CLI reported `ready`, compilation/reload inactive and PlayMode
+  stopped before the exclusive source-edit window opened.
+- `CreateLedger` now receives the controlled current generation instead of deriving a
+  second timeline. Equipment fixtures preserve their previous generation; history
+  fixtures calculate their existing ledger generation once from `ordinal + 200` and
+  reuse it for the ledger and `EvolutionNode` (the request copies the node generation).
+- Every constructed history fixture now fails closed unless its request and all raw
+  current events match that generation and every compacted prior segment/key event is
+  strictly earlier. `CaptureScenarios` constructs all 15 positive history rows, so the
+  existing focused suite/export exercises the complete controlled fixture matrix.
+- SOURCE_EDIT is frozen. No gameplay policy, effect, budget, candidate, balance value
+  or NarrativeAI file changed. The next window is Unity compile/focused verification.
+
+## 2026-09-15 — N12 verified and exported
+
+- Official Unity CLI recompile status was `up_to_date`, `failed=false`, with no compiler
+  errors. The affected V25 contract suite passed `13/13`, including independent catalog
+  export byte equality; focused instance-evolution narrative continuity also passed.
+- Created immutable v15 without overwriting v14. The v14 delivery manifest still has
+  its original SHA-256 `f725d193...30acc`.
+- Unity-workspace handoff verification passed: delivery files `10`, source manifest
+  files `288`, schemas/catalog/provenance valid, positives `100`, negatives `14`, and
+  continuity witnesses `6`.
+- The unchanged NarrativeAI adapter-v2 projection passed `100/100` (`0` failures).
+  The unchanged mechanical response validator also accepted all `100/100` positive
+  witnesses (`0` failures).
+  Independent boundary probes preserved `30` unknown-participant rejections, `30`
+  duplicate-evidence rejections, `14` negative-input rejections, and lossless final
+  public payload projection for all `100` positives.
+- All `15` EvolutionHistory rows passed chronology: current/request mismatches `0`,
+  prior-not-strictly-earlier `0`, future-generation rows `0`.
+- Export:
+  `Artifacts/Exports/NarrativeMechanicCatalog/20260915-v25-authoritative-scenarios-v15-history-generation-repair`.
+  `catalogHash=sha256:0f6e4be939180f679109088e0e3eba59f85cfc5851ed2e01760daef9e14fe4a6`,
+  `inputDigest=sha256:2d122f17851137b66a86c2d0a75371525e324c7499555624c6046ad55949ebdf`,
+  `deliveryManifestSha256=sha256:b200b027f8868f13895321e9c0ef36d11f322f986ecf2129ca1f78c1b53c549d`.
+- `NOT_RUN`: actual model inference/quality evaluation, human approval, training,
+  DPO/GGUF, release promotion, natural PlayMode, Unity MCP/dungeon-player MCP, and
+  unrelated whole-game verification.
+
+## 2026-09-15 — N13 public effect-semantics follow-up opened
+
+- Read the root rules and planning/C# skill instructions, restored the completed v15
+  handoff state, and read the pilot result, handoff prompt/manifest, r2 intake evidence
+  and the affected prepared input read-only.
+- The pilot confirms a public contract gap rather than a proven gameplay defect:
+  `conditional_amplify` is unavoidable in the affected 12 options but only English IDs
+  and two decimal values are exported. Existing v15 continuity/chronology PASS remains
+  valid and frozen.
+- N13 will first establish actual runtime semantics and the shared live/export transport
+  boundary. No production source, AI workspace file, existing export or gameplay value
+  has been changed yet.
+
+## 2026-09-15 — N13 verified and exported
+
+- Added one fail-closed C# CharacterSkill semantics projection shared by the live model
+  candidate packet, positive/full scenario candidates and base catalog. The exact
+  response contract, gameplay behavior, authored values, legal candidates and
+  combination IDs remain unchanged.
+- Runtime-focused CharacterSkill regression passed for wounded/critical below, equal and
+  above thresholds, selected-target versus caster health, semantic mutation rejection,
+  and the intentionally unconditional defense-ultimate branch.
+- Catalog/export-focused regression passed: 24 modules, 50 variants, 202 representative
+  behavior contexts, five execution scopes, 20 CharacterSkill scenarios, 36 rules,
+  375 combinations, 0 missing semantics, and the affected second rule 12/12 complete.
+- Latest Unity compile passed. The prior full V25 bundle passed 14/14 before the base
+  catalog-only addition; after that isolated addition the affected public-semantics
+  contract and independent export byte-identity gates were rerun and passed. The final
+  raw export retains positives 100, negatives 14, continuity witnesses 6 and history 15.
+- Final immutable export:
+  `Artifacts/Exports/NarrativeMechanicCatalog/20260915-v25-authoritative-scenarios-v17-character-skill-semantics-catalog-coverage`.
+  `catalogHash=sha256:f1d1b2609548000577f6bc5020c3999189bd0d5fee6dd933d2eb68782c70e565`,
+  `inputDigest=sha256:6defec1086d319ff905773110b9f9305dcde67f34817b2e9af94c0dac470dd30`,
+  `deliveryManifestSha256=sha256:e4052870b6de961fe345a64eca93b19d2df24d4d7ba746f1c15f244bcd2c061a`.
+- `trainingEligible=false`, `humanApprovalClaimed=false`. `NOT_RUN`: PlayMode, real model
+  inference, AI workspace import/pin, training, DPO/GGUF and release promotion.
+- The one final knowledge-base rebuild completed with zero content/system validation
+  failures. Freshness lookup resolves `CharacterSkillCombinationSemantics.cs` under
+  `services:character` with content/system source digests `951673e8...dad6c` and
+  `1771f577...7f434`.

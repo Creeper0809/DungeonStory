@@ -1,6 +1,9 @@
+project_doc_max_bytes = 65536
+
 [mcp_servers.unity-mcp]
 command = 'C:\Users\vulpo\.unity\relay\relay_win.exe'
 args = ['--mcp']
+enabled = false
 
 [mcp_servers.unity-mcp.tools.Unity_ReadConsole]
 approval_mode = "approve"
@@ -20,6 +23,7 @@ approval_mode = "approve"
 [mcp_servers.dungeon-player]
 command = "python"
 args = ["F:/01_Programming/01_Project/02_Unity/DungeonStory/tools/player-automation/dungeon_player_mcp.py"]
+enabled = false
 
 [mcp_servers.dungeon-player.tools.dungeon_player_status]
 approval_mode = "approve"

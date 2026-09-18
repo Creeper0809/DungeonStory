@@ -70,6 +70,16 @@ public static class RunResultPanelFactoryDebugScenarios
             return false;
         }
 
+        CommittedRunChoiceSnapshot[] longChoiceHistory = Enumerable.Range(1, 40)
+            .Select(index => new CommittedRunChoiceSnapshot(
+                CommittedRunChoiceKind.SocietyEventChoice,
+                "society.events",
+                "life-event:retirement-request",
+                $"event:wim050:{index:D4}",
+                index % 2 == 0 ? "first" : "second",
+                $"qa:wim050:result-panel:{index:D4}",
+                index))
+            .ToArray();
         RunResultSnapshot snapshot = new RunResultSnapshot(
             ownerName: "Smoke Owner",
             endReason: "Factory Smoke",
@@ -83,10 +93,21 @@ public static class RunResultPanelFactoryDebugScenarios
             firstUnlockedRecipeCount: 5,
             offenseSuccessCount: 1,
             difficultyMultiplier: 1.25f,
-            legacyCurrency: 9);
+            legacyCurrency: 9,
+            completedMilestoneIds: new[]
+            {
+                "ending:dungeon-sovereignty",
+                "ending:truth-revealed"
+            },
+            committedChoices: longChoiceHistory);
 
         panel.Render(snapshot);
-        TMP_Text text = panel.GetComponentInChildren<TMP_Text>(true);
+        TMP_Text text = panel.transform
+            .Find("RunResultScroll/Viewport/RunResultText")
+            ?.GetComponent<TMP_Text>();
+        ScrollRect scroll = panel.GetComponentInChildren<ScrollRect>(true);
+        Button nextRun = panel.transform.Find("NextRunButton")
+            ?.GetComponent<Button>();
         Canvas canvas = panel.GetComponentInParent<Canvas>();
         bool active = panel.gameObject.activeSelf;
         bool hasText = text != null && !string.IsNullOrWhiteSpace(text.text);
@@ -94,8 +115,14 @@ public static class RunResultPanelFactoryDebugScenarios
         bool canvasConfigured = canvas != null
             && canvas.renderMode == RenderMode.ScreenSpaceOverlay
             && canvas.sortingOrder == 1000;
+        bool longHistoryScrollable = scroll != null
+            && scroll.viewport != null
+            && scroll.content == text?.rectTransform
+            && scroll.content.rect.height > scroll.viewport.rect.height
+            && Mathf.Approximately(scroll.verticalNormalizedPosition, 1f);
+        bool nextRunPreserved = nextRun != null && nextRun.interactable;
 
-        report = $"scope={(isolated ? "isolated" : scope.name)}, factoryResolved=True, serviceResolved=True, panel={panel.name}, active={active}, text={hasText}, ownerText={textContainsOwner}, canvasConfigured={canvasConfigured}, textLength={(text != null ? text.text.Length : -1)}";
+        report = $"scope={(isolated ? "isolated" : scope.name)}, factoryResolved=True, serviceResolved=True, panel={panel.name}, active={active}, text={hasText}, ownerText={textContainsOwner}, canvasConfigured={canvasConfigured}, longHistoryScrollable={longHistoryScrollable}, nextRunPreserved={nextRunPreserved}, textLength={(text != null ? text.text.Length : -1)}";
 
         if (canvas != null)
         {
@@ -106,7 +133,12 @@ public static class RunResultPanelFactoryDebugScenarios
             disposable.Dispose();
         }
 
-        return active && hasText && textContainsOwner && canvasConfigured;
+        return active
+            && hasText
+            && textContainsOwner
+            && canvasConfigured
+            && longHistoryScrollable
+            && nextRunPreserved;
     }
 
     private static IObjectResolver BuildIsolatedResolver()

@@ -1,0 +1,3 @@
+scope=offline SurgicalProcedureSO and BuildingSO authoring; no runtime selection, UI, schedule, or restore claim
+age-facility-authoring=PASS; procedures=47; age-procedures=5; other-procedures=42; buildings=370
+result=PASS

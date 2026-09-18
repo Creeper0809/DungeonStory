@@ -1,0 +1,50 @@
+{
+  "schema": "gameplay-outcome-ledger-producer-inventory@1",
+  "generated_date": "2026-09-18",
+  "scan_kind": "static-lexical-no-unity-execution",
+  "source_commit": "c03d2e0a1c68067de48840f3851b388483966a6e",
+  "source_branch": "codex/wim-implementation",
+  "source_dirty_entry_count": 10838,
+  "source_scan_sha256": "5e5a8c85978cb255850bff052b51190b863f2a79599cb9cf0233ca81524784f3",
+  "source_scan_end_sha256": "c342aa6e539d49d3ab671b74217f274abb3595e5e4ef0913b5c7060c5e939b62",
+  "source_snapshot_stable_during_scan": false,
+  "run_mode": "provisional-writers-not-frozen",
+  "completeness_claim": "withheld-source-mutated-during-scan",
+  "non_editor_cs_file_count": 2064,
+  "receipt_event_result_outcome_resolution_definition_count": 368,
+  "receipt_event_definition_count": 187,
+  "result_outcome_resolution_definition_count": 181,
+  "raw_publish_call_count": 194,
+  "raw_publish_lexical_count": 194,
+  "publish_call_capture_complete": true,
+  "resolved_publish_event_type_count": 193,
+  "unresolved_publish_event_type_count": 1,
+  "likely_game_event_bus_publish_count": 145,
+  "unknown_publish_receiver_count": 0,
+  "classification_counts": {
+    "Record": 0,
+    "NonResult": 85,
+    "needs-authority-fix": 283
+  },
+  "coverage_disposition_counts": {
+    "Record": 283,
+    "NonResult": 40,
+    "N/A": 45
+  },
+  "integration_status_counts": {
+    "excluded": 40,
+    "needs-authority-fix": 2,
+    "transaction-integration-pending": 281,
+    "connected": 0,
+    "new-phase80-infrastructure": 45
+  },
+  "unclassified_domain_definition_count": 20,
+  "phase80_implementation_infrastructure_definition_count": 45,
+  "limitations": [
+    "Lexical scan does not compile C# and cannot resolve every receiver, alias, reflection call, or delegated variable type.",
+    "Constructor use proves object creation only; it does not prove domain commit or gameplay reachability.",
+    "Save-owner candidates are domain-state owners, not proof that the receipt/event itself is persisted.",
+    "The initial pre-implementation probe found no GameplayOutcome symbols; Phase80 infrastructure created concurrently is separated by inventory_scope and is not treated as a pre-existing producer.",
+    "Coverage disposition and integration state are separate axes: semantic Record candidates remain planned/transaction-integration-pending until owner-specific joint outbox evidence exists."
+  ]
+}

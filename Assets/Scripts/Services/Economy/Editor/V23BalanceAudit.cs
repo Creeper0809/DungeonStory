@@ -881,8 +881,12 @@ public static class V23BalanceAudit
         EmbeddedWorkValueSnapshot embeddedWork,
         ICollection<string> failures)
     {
-        if (contracts.Count != 18)
-            failures.Add($"Expected 18 authored faction contracts, found {contracts.Count}.");
+        if (contracts.Count != 24)
+            failures.Add($"Expected 24 authored faction contracts, found {contracts.Count}.");
+        if (contracts.Count(contract => string.IsNullOrEmpty(contract.seasonalEventId)) != 18)
+            failures.Add("Expected 18 ordinary authored faction contracts.");
+        if (contracts.Count(contract => contract.seasonalEventId == "seasonal:winter-fuel-demand") != 6)
+            failures.Add("Expected 6 winter-fuel-demand seasonal authored faction contracts.");
 
         foreach (FactionContractDefinitionSO contract in contracts)
         {
@@ -998,8 +1002,8 @@ public static class V23BalanceAudit
         EmbeddedWorkValueSnapshot embeddedWork,
         ICollection<string> failures)
     {
-        if (requests.Count != 14)
-            failures.Add($"Expected 14 guest requests, found {requests.Count}.");
+        if (requests.Count != 13)
+            failures.Add($"Expected 13 guest requests, found {requests.Count}.");
         Dictionary<string, ItemDefinitionSO> items = itemDefinitions
             .Where(value => value != null)
             .ToDictionary(value => value.ItemId, StringComparer.Ordinal);

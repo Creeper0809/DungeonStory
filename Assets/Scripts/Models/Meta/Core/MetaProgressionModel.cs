@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -308,7 +309,9 @@ public sealed class RunResultSnapshot
         DungeonRunOutcome outcome = DungeonRunOutcome.Defeat,
         DungeonDifficulty difficulty = DungeonDifficulty.Normal,
         DungeonSurvivalPressure survivalPressure =
-            DungeonSurvivalPressure.Standard)
+            DungeonSurvivalPressure.Standard,
+        IEnumerable<string> completedMilestoneIds = null,
+        IEnumerable<CommittedRunChoiceSnapshot> committedChoices = null)
     {
         this.ownerName = ownerName ?? string.Empty;
         this.endReason = endReason ?? string.Empty;
@@ -327,6 +330,12 @@ public sealed class RunResultSnapshot
         this.difficulty = DungeonDifficultyRules.Normalize((int)difficulty);
         this.survivalPressure = DungeonSurvivalPressureRules.Normalize(
             (int)survivalPressure);
+        CommittedRunResultSnapshot history = new(
+            completedMilestoneIds,
+            committedChoices);
+        ValidateHistory(history);
+        this.completedMilestoneIds = history.CompletedMilestoneIds;
+        this.committedChoices = history.CommittedChoices;
     }
 
     public string ownerName { get; }
@@ -345,6 +354,8 @@ public sealed class RunResultSnapshot
     public DungeonRunOutcome outcome { get; }
     public DungeonDifficulty difficulty { get; }
     public DungeonSurvivalPressure survivalPressure { get; }
+    public IReadOnlyList<string> completedMilestoneIds { get; }
+    public IReadOnlyList<CommittedRunChoiceSnapshot> committedChoices { get; }
 
     public RunResultSnapshot WithLegacyCurrency(int value)
     {
@@ -364,7 +375,9 @@ public sealed class RunResultSnapshot
             value,
             outcome,
             difficulty,
-            survivalPressure);
+            survivalPressure,
+            completedMilestoneIds,
+            committedChoices);
     }
 
     public string ToDetailText()
@@ -384,6 +397,8 @@ public sealed class RunResultSnapshot
             $"최초 발견 시설: {firstDiscoveredFacilityCount}",
             $"최초 해금 조합식: {firstUnlockedRecipeCount}",
             $"오펜스 성공: {offenseSuccessCount}",
+            $"완료 이정표: {FormatIds(completedMilestoneIds)}",
+            $"주요 선택: {FormatChoices(committedChoices)}",
             $"전투 난이도: {difficulty} / 보상 배율 x{difficultyMultiplier:0.##}",
             $"생존 압박: {DungeonSurvivalPressureRules.GetDisplayName(survivalPressure)}",
             string.Empty,
@@ -392,6 +407,56 @@ public sealed class RunResultSnapshot
             "계승되지 않음: 현재 런의 돈, 재고, 배치 시설"
         });
     }
+
+    private static void ValidateHistory(CommittedRunResultSnapshot history)
+    {
+        HashSet<string> milestones = new(StringComparer.Ordinal);
+        foreach (string id in history.CompletedMilestoneIds)
+        {
+            if (!IsCanonicalRequiredId(id) || !milestones.Add(id))
+                throw new ArgumentException(
+                    "Completed milestone history contains an invalid or duplicate id.");
+        }
+
+        HashSet<string> operations = new(StringComparer.Ordinal);
+        HashSet<string> decisions = new(StringComparer.Ordinal);
+        long expectedOrdinal = 0;
+        foreach (CommittedRunChoiceSnapshot choice in history.CommittedChoices)
+        {
+            expectedOrdinal++;
+            if (!Enum.IsDefined(typeof(CommittedRunChoiceKind), choice.Kind)
+                || choice.Kind == CommittedRunChoiceKind.None
+                || !IsCanonicalRequiredId(choice.OwnerId)
+                || !IsCanonicalRequiredId(choice.DefinitionId)
+                || !IsCanonicalRequiredId(choice.InstanceId)
+                || !IsCanonicalRequiredId(choice.ChoiceId)
+                || !IsCanonicalRequiredId(choice.OperationId)
+                || choice.Ordinal != expectedOrdinal
+                || !operations.Add(choice.OperationId)
+                || !decisions.Add(
+                    $"{(int)choice.Kind}:{choice.OwnerId}:{choice.InstanceId}"))
+            {
+                throw new ArgumentException(
+                    "Committed choice history contains an invalid order, id, or duplicate decision.");
+            }
+        }
+    }
+
+    private static string FormatIds(IReadOnlyList<string> ids) =>
+        ids == null || ids.Count == 0
+            ? "없음"
+            : string.Join(", ", ids);
+
+    private static string FormatChoices(
+        IReadOnlyList<CommittedRunChoiceSnapshot> choices) =>
+        choices == null || choices.Count == 0
+            ? "없음"
+            : string.Join(", ", choices.Select(value =>
+                $"{value.OwnerId}/{value.DefinitionId}/{value.InstanceId}:{value.ChoiceId}"));
+
+    private static bool IsCanonicalRequiredId(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
 
     private static string FormatTime(float seconds)
     {

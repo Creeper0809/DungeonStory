@@ -105,7 +105,17 @@ public readonly struct FacilityEvolutionProposal
         ProposalReasons = SnapshotDictionary(proposalReasons);
         MutationTagSuggestions = EventPayloadSnapshot.Copy(mutationTagSuggestions);
         FlavorText = flavorText ?? string.Empty;
-        Confidence = Mathf.Clamp01(confidence);
+        if (float.IsNaN(confidence)
+            || float.IsInfinity(confidence)
+            || confidence < 0f
+            || confidence > 1f)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(confidence),
+                confidence,
+                "Facility evolution proposal confidence must be between 0 and 1.");
+        }
+        Confidence = confidence;
         Source = source ?? string.Empty;
         StatusMessage = statusMessage ?? string.Empty;
         RejectedHintTexts = SnapshotDictionary(rejectedHintTexts);
@@ -636,6 +646,9 @@ public sealed class FacilityEvolutionCandidate
         ProposalStatusMessage = proposalStatusMessage ?? string.Empty;
         IdentityScore = identityScore;
         RejectedHintText = rejectedHintText ?? string.Empty;
+        OrderingSource = proposed
+            ? FacilityEvolutionCandidateOrderingSource.ModelOrRuleProposal
+            : FacilityEvolutionCandidateOrderingSource.UnproposedLegalTail;
     }
 
     public FacilityEvolutionRecipeSO Recipe { get; }
@@ -648,6 +661,13 @@ public sealed class FacilityEvolutionCandidate
     public string ProposalStatusMessage { get; }
     public FacilityEvolutionIdentityScore IdentityScore { get; }
     public string RejectedHintText { get; }
+    public FacilityEvolutionCandidateOrderingSource OrderingSource { get; }
+}
+
+public enum FacilityEvolutionCandidateOrderingSource
+{
+    ModelOrRuleProposal,
+    UnproposedLegalTail
 }
 
 public static class FacilityEvolutionUtility

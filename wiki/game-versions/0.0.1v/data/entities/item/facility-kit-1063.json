@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "바닥의 물과 오수를 배관으로 흘려보내는 배수구 설치 부품이며, 므네실라의 시설과도 체결 규격이 맞는다.",
+  "in_game_description": "바닥배수구로 연기와 탁한 공기를 빼내는 환기 설비의 설치 부품이다. 므네실라의 바닥배수구에서 거른 물은 깨끗하면 초록 포자막이 피고, 오염이 남으면 검게 가라앉는다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

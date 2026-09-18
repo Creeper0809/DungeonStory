@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Narrative.Korean;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -867,8 +868,37 @@ public sealed class ResearchIdentityEventAdapter : CharacterIdentityEventAdapter
 public sealed class SocialIdentityEventAdapter : CharacterIdentityEventAdapterBase
 {
     private readonly CharacterRelationshipMemoryService memories;
-    public SocialIdentityEventAdapter(IGameEventBus events, ICharacterWorldQuery world, CharacterMoodPolicyService moods, CharacterRelationshipMemoryService memories)
-        : base(events, world, moods) => this.memories = memories;
+    private readonly CharacterIdentityStateStore states;
+    private readonly ISocialLifeOutcomeCommitter outcomes;
+    private readonly ICharacterNarrativeQuery narratives;
+    private readonly IBuildingWorldQuery buildings;
+    private readonly IRoomFacilityPolicy roomFacilityPolicy;
+
+    public SocialIdentityEventAdapter(
+        IGameEventBus events,
+        ICharacterWorldQuery world,
+        CharacterMoodPolicyService moods,
+        CharacterRelationshipMemoryService memories,
+        CharacterIdentityStateStore states,
+        ISocialLifeOutcomeCommitter outcomes,
+        ICharacterNarrativeQuery narratives,
+        IBuildingWorldQuery buildings,
+        IRoomFacilityPolicy roomFacilityPolicy)
+        : base(events, world, moods)
+    {
+        this.memories = memories
+            ?? throw new ArgumentNullException(nameof(memories));
+        this.states = states
+            ?? throw new ArgumentNullException(nameof(states));
+        this.outcomes = outcomes
+            ?? throw new ArgumentNullException(nameof(outcomes));
+        this.narratives = narratives
+            ?? throw new ArgumentNullException(nameof(narratives));
+        this.buildings = buildings
+            ?? throw new ArgumentNullException(nameof(buildings));
+        this.roomFacilityPolicy = roomFacilityPolicy
+            ?? throw new ArgumentNullException(nameof(roomFacilityPolicy));
+    }
     [GameplayInternalOnly(
         "The runtime entry-point container starts this registered identity adapter exactly once.",
         "IStartable|DungeonCharacterRegistration")]
@@ -881,6 +911,89 @@ public sealed class SocialIdentityEventAdapter : CharacterIdentityEventAdapterBa
     {
         CharacterActor instigator = Find(e.Instigator);
         CharacterActor target = Find(e.Target);
+        if (instigator == null || target == null || instigator == target)
+            throw new InvalidOperationException(
+                "Social conflict requires two live, distinct participants.");
+
+        KoreanNameSnapshot instigatorName = CaptureCharacterName(instigator);
+        KoreanNameSnapshot targetName = CaptureCharacterName(target);
+        bool hasVenue = TryResolveVisitorConflictContext(
+            e,
+            instigator,
+            target,
+            out VisitorConflictContext venue);
+        IReadOnlyList<CharacterIdentityRuntimeStateSaveData> identityBefore =
+            states.Capture();
+        CharacterMoodDeliveryTransactionSnapshot moodBefore =
+            target.Stats?.CaptureMoodDeliveryTransactionState();
+        if (!outcomes.TryReserveConflict(
+                e.OperationId,
+                e.AbsoluteDay,
+                hasVenue,
+                out ReservedSocialLifeOutcome reserved,
+                out string reserveFailure))
+            throw new InvalidOperationException(
+                "Social conflict narrative reservation failed: "
+                + reserveFailure);
+        bool committed = false;
+        PreparedSocialLifeOutcome prepared = default;
+        try
+        {
+            ApplyConflict(e, instigator, target, out float committedMoodDelta);
+            SocialConflictOutcomeReceipt receipt = new(
+                e.OperationId,
+                e.Instigator,
+                instigatorName,
+                e.Target,
+                targetName,
+                e.ConflictId,
+                e.Severity,
+                e.Origin,
+                committedMoodDelta,
+                e.AbsoluteDay,
+                hasVenue ? venue.Customer : default,
+                hasVenue ? venue.InstigatorCulture : default,
+                hasVenue ? venue.TargetCulture : default,
+                hasVenue ? venue.FacilityInstanceId : default,
+                hasVenue ? venue.FacilityName : default,
+                hasVenue ? venue.Location : default);
+            if (!outcomes.TryWriteConflict(
+                    receipt,
+                    reserved,
+                    out prepared,
+                    out string writeFailure))
+                throw new InvalidOperationException(
+                    "Social conflict narrative write failed: " + writeFailure);
+            if (!outcomes.TryCommit(prepared, out string commitFailure))
+                throw new InvalidOperationException(
+                    "Social conflict narrative commit failed: " + commitFailure);
+            committed = true;
+
+            ApplyConflictReactions(e, instigator, target);
+            if (hasVenue && committedMoodDelta < 0f)
+                Events.Publish<SocialConflictCommittedReceiptEvent>(
+                    venue.ToLegacyEvent(e));
+        }
+        catch
+        {
+            if (!committed)
+            {
+                outcomes.Cancel(prepared);
+                outcomes.Cancel(reserved);
+                states.RestoreTrustedTransactionSnapshot(identityBefore);
+                if (moodBefore != null)
+                    target.Stats?.RestoreMoodDeliveryTransactionState(moodBefore);
+            }
+            throw;
+        }
+    }
+
+    private void ApplyConflict(
+        SocialConflictEvent e,
+        CharacterActor instigator,
+        CharacterActor target,
+        out float committedMoodDelta)
+    {
         bool publicQuestion = string.Equals(
             e.ConflictId,
             "public-question",
@@ -898,7 +1011,7 @@ public sealed class SocialIdentityEventAdapter : CharacterIdentityEventAdapterBa
                 rule.eventId,
                 eventId,
                 StringComparison.Ordinal));
-        Moods.Apply(
+        committedMoodDelta = Moods.Apply(
             target,
             eventId,
             hasAuthoredMood || publicQuestion
@@ -906,7 +1019,13 @@ public sealed class SocialIdentityEventAdapter : CharacterIdentityEventAdapterBa
                 : -Mathf.Max(1f, e.Severity),
             2,
             "사회적 충돌");
+    }
 
+    private void ApplyConflictReactions(
+        SocialConflictEvent e,
+        CharacterActor instigator,
+        CharacterActor target)
+    {
         if (string.Equals(e.ConflictId, "insulted", StringComparison.Ordinal)
             && HasBehaviorTag(target, "social:answer-insult"))
         {
@@ -927,6 +1046,87 @@ public sealed class SocialIdentityEventAdapter : CharacterIdentityEventAdapterBa
         }
     }
 
+    private bool TryResolveVisitorConflictContext(
+        SocialConflictEvent source,
+        CharacterActor instigator,
+        CharacterActor target,
+        out VisitorConflictContext context)
+    {
+        context = default;
+        if (string.IsNullOrWhiteSpace(source.OperationId)
+            || instigator == null
+            || target == null
+            || instigator == target
+            || !narratives.TryGet(
+                source.Instigator,
+                out CharacterNarrativeSnapshot instigatorNarrative)
+            || !narratives.TryGet(
+                source.Target,
+                out CharacterNarrativeSnapshot targetNarrative)
+            || !instigatorNarrative.CultureId.IsValid
+            || !targetNarrative.CultureId.IsValid
+            || instigatorNarrative.CultureId.Equals(
+                targetNarrative.CultureId))
+        {
+            return false;
+        }
+
+        bool instigatorCustomer = instigator.Identity?.CharacterType
+            == CharacterType.Customer;
+        bool targetCustomer = target.Identity?.CharacterType
+            == CharacterType.Customer;
+        bool eligibleRoles = instigatorCustomer
+            && (targetCustomer || CharacterWorkRoleUtility.IsWorker(target))
+            || targetCustomer
+            && (instigatorCustomer
+                || CharacterWorkRoleUtility.IsWorker(instigator));
+        if (!eligibleRoles)
+        {
+            return false;
+        }
+
+        CharacterId customerId = targetCustomer
+            ? source.Target
+            : source.Instigator;
+        CharacterId secondCustomerId = instigatorCustomer && targetCustomer
+            ? (customerId.Equals(source.Instigator)
+                ? source.Target
+                : source.Instigator)
+            : default;
+        Vector2Int instigatorCell = instigator.GetNowXY();
+        Vector2Int targetCell = target.GetNowXY();
+        foreach (BuildableObject facility in buildings.Buildings
+                     .Where(value => value != null
+                         && value.Facility?.IsVisitorFacility == true
+                         && value.PersistentInstanceId.IsValid
+                         && value.IsActiveUser(customerId)
+                         && (!secondCustomerId.IsValid
+                             || value.IsActiveUser(secondCustomerId)))
+                     .OrderBy(
+                         value => value.PersistentInstanceId.Value,
+                         StringComparer.Ordinal))
+        {
+            FacilityRoomOperationalProfile profile =
+                roomFacilityPolicy.GetOperationalProfile(facility);
+            if (profile?.Room == null
+                || !profile.Room.ContainsCell(instigatorCell)
+                || !profile.Room.ContainsCell(targetCell))
+            {
+                continue;
+            }
+
+            context = new VisitorConflictContext(
+                customerId,
+                instigatorNarrative.CultureId,
+                targetNarrative.CultureId,
+                facility.PersistentInstanceId,
+                CaptureFacilityName(facility),
+                new CoreGridCell(targetCell.x, targetCell.y));
+            return true;
+        }
+        return false;
+    }
+
     private static bool HasBehaviorTag(CharacterActor actor, string behaviorTag) =>
         (actor?.Progression?.ResolveSelectedTraits()
             ?? Array.Empty<CharacterTraitSO>())
@@ -940,9 +1140,146 @@ public sealed class SocialIdentityEventAdapter : CharacterIdentityEventAdapterBa
             StringComparison.Ordinal));
     private void OnApology(ApologyEvent e)
     {
+        CharacterActor offender = Find(e.Offender);
         CharacterActor recipient = Find(e.Recipient);
-        if (memories.TryForgive(recipient, Find(e.Offender), e.OffenseId, e.RestitutionProvided))
-            Moods.Apply(recipient, "social:sincere-apology", 0f, 2, "진정한 사과");
+        if (offender == null || recipient == null || offender == recipient)
+            throw new InvalidOperationException(
+                "Apology requires two live, distinct participants.");
+        KoreanNameSnapshot offenderName = CaptureCharacterName(offender);
+        KoreanNameSnapshot recipientName = CaptureCharacterName(recipient);
+        IReadOnlyList<CharacterIdentityRuntimeStateSaveData> identityBefore =
+            states.Capture();
+        CharacterMoodDeliveryTransactionSnapshot moodBefore =
+            recipient.Stats?.CaptureMoodDeliveryTransactionState();
+        if (!outcomes.TryReserveApology(
+                e.OperationId,
+                e.AbsoluteDay,
+                out ReservedSocialLifeOutcome reserved,
+                out string reserveFailure))
+            throw new InvalidOperationException(
+                "Apology narrative reservation failed: " + reserveFailure);
+        bool committed = false;
+        PreparedSocialLifeOutcome prepared = default;
+        try
+        {
+            if (!memories.TryForgive(
+                    recipient,
+                    offender,
+                    e.OffenseId,
+                    e.RestitutionProvided))
+                throw new InvalidOperationException(
+                    "Apology no longer matches a forgivable relationship memory.");
+            float moodDelta = Moods.Apply(
+                recipient,
+                "social:sincere-apology",
+                0f,
+                2,
+                "진정한 사과");
+            ApologyOutcomeReceipt receipt = new(
+                e.OperationId,
+                e.Offender,
+                offenderName,
+                e.Recipient,
+                recipientName,
+                e.OffenseId,
+                e.RestitutionProvided,
+                moodDelta,
+                e.AbsoluteDay);
+            if (!outcomes.TryWriteApology(
+                    receipt,
+                    reserved,
+                    out prepared,
+                    out string writeFailure))
+                throw new InvalidOperationException(
+                    "Apology narrative write failed: " + writeFailure);
+            if (!outcomes.TryCommit(prepared, out string commitFailure))
+                throw new InvalidOperationException(
+                    "Apology narrative commit failed: " + commitFailure);
+            committed = true;
+        }
+        catch
+        {
+            if (!committed)
+            {
+                outcomes.Cancel(prepared);
+                outcomes.Cancel(reserved);
+                states.RestoreTrustedTransactionSnapshot(identityBefore);
+                if (moodBefore != null)
+                    recipient.Stats?.RestoreMoodDeliveryTransactionState(moodBefore);
+            }
+            throw;
+        }
+    }
+
+    private static KoreanNameSnapshot CaptureCharacterName(CharacterActor actor)
+    {
+        string display = actor?.Identity?.DisplayName?.Trim() ?? string.Empty;
+        CharacterId id = actor?.Identity?.TypedPersistentId ?? default;
+        if (!id.IsValid || display.Length == 0)
+            throw new InvalidOperationException(
+                "A stable character id and historical display name are required.");
+        string revision =
+            "social-life-character-v1:" + id.Value + ":" + display;
+        return new KoreanNameSnapshot(
+            display,
+            revision,
+            KoreanPronunciationHint.AutoHangulDisplay(revision),
+            "ko-KR");
+    }
+
+    private static KoreanNameSnapshot CaptureFacilityName(BuildableObject facility)
+    {
+        string display = facility?.BuildingData?.objectName?.Trim()
+            ?? string.Empty;
+        BuildingInstanceId id = facility?.PersistentInstanceId ?? default;
+        if (!id.IsValid || display.Length == 0)
+            throw new InvalidOperationException(
+                "A stable facility id and historical display name are required.");
+        string revision =
+            "social-life-facility-v1:" + id.Value + ":" + display;
+        return new KoreanNameSnapshot(
+            display,
+            revision,
+            KoreanPronunciationHint.AutoHangulDisplay(revision),
+            "ko-KR");
+    }
+
+    private readonly struct VisitorConflictContext
+    {
+        public VisitorConflictContext(
+            CharacterId customer,
+            SpeciesCultureId instigatorCulture,
+            SpeciesCultureId targetCulture,
+            BuildingInstanceId facilityInstanceId,
+            KoreanNameSnapshot facilityName,
+            CoreGridCell location)
+        {
+            Customer = customer;
+            InstigatorCulture = instigatorCulture;
+            TargetCulture = targetCulture;
+            FacilityInstanceId = facilityInstanceId;
+            FacilityName = facilityName;
+            Location = location;
+        }
+
+        public CharacterId Customer { get; }
+        public SpeciesCultureId InstigatorCulture { get; }
+        public SpeciesCultureId TargetCulture { get; }
+        public BuildingInstanceId FacilityInstanceId { get; }
+        public KoreanNameSnapshot FacilityName { get; }
+        public CoreGridCell Location { get; }
+
+        public SocialConflictCommittedReceiptEvent ToLegacyEvent(
+            SocialConflictEvent source) => new(
+            source.OperationId,
+            source.Instigator,
+            source.Target,
+            Customer,
+            InstigatorCulture,
+            TargetCulture,
+            FacilityInstanceId,
+            Location,
+            Math.Max(1, source.AbsoluteDay));
     }
 }
 

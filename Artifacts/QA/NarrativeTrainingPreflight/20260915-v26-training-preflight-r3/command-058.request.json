@@ -1,0 +1,15 @@
+{
+  "arguments": [
+    "C:\\Users\\vulpo\\AppData\\Local\\Microsoft\\WindowsApps\\unity.EXE",
+    "command",
+    "eval",
+    "--project-path",
+    "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory",
+    "--format",
+    "json",
+    "--detach",
+    "--code",
+    "var r = NarrativeMechanicCatalogExporter.Export(\n            new NarrativeMechanicCatalogUnityAssetSource(),\n            new NarrativeMechanicCatalogExportRequest(\"20260915-v26-training-preflight-r3\", false, new NarrativeMechanicCatalogTestEvidence(\"sha256:a59bf71fb10cdb4e643f073cfe2eb95c918645107666ae8e5b1af4843e51f79d\", new NarrativeMechanicCatalogEvidenceGate[] { new NarrativeMechanicCatalogEvidenceGate(\"canonical-json-python-parity\",true,\"sha256:a59bf71fb10cdb4e643f073cfe2eb95c918645107666ae8e5b1af4843e51f79d\",\"Artifacts/QA/NarrativeTrainingPreflight/20260915-v26-training-preflight-r3/canonical-json-python-parity.json\",\"sha256:f19676bc6d5777263e776eadb0f4283e1f90bf9cbdb65b9331c31e0c9bac715e\",\"Actual execution; see hashed artifact and raw command records.\"),new NarrativeMechanicCatalogEvidenceGate(\"catalog-byte-determinism\",true,\"sha256:a59bf71fb10cdb4e643f073cfe2eb95c918645107666ae8e5b1af4843e51f79d\",\"Artifacts/QA/NarrativeTrainingPreflight/20260915-v26-training-preflight-r3/catalog-byte-determinism.json\",\"sha256:dabb06c4e3a341eab18607d0308795646a89290ea8198225385b6082e5f2631d\",\"Actual execution; see hashed artifact and raw command records.\"),new NarrativeMechanicCatalogEvidenceGate(\"packet-parity\",true,\"sha256:a59bf71fb10cdb4e643f073cfe2eb95c918645107666ae8e5b1af4843e51f79d\",\"Artifacts/QA/NarrativeTrainingPreflight/20260915-v26-training-preflight-r3/packet-parity.json\",\"sha256:ac5deeb9d57a65871874121159349762c9eea6d21e6e9a4c42ee89a1b1f64df3\",\"Actual execution; see hashed artifact and raw command records.\"),new NarrativeMechanicCatalogEvidenceGate(\"v25-focused-unity-regression\",true,\"sha256:a59bf71fb10cdb4e643f073cfe2eb95c918645107666ae8e5b1af4843e51f79d\",\"Artifacts/QA/NarrativeTrainingPreflight/20260915-v26-training-preflight-r3/v25-focused-unity-regression.json\",\"sha256:9b1b434745bb3f394b84465b4bda76816e681f59eab53ca72bfa06866bcc3033\",\"Actual execution; see hashed artifact and raw command records.\") })));\n            return new { directory = r.DirectoryPath, inputDigest = r.InputDigest,\n                catalogHash = r.CatalogHash, trainingEligible = r.TrainingEligible };"
+  ],
+  "cwd": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory"
+}

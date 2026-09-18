@@ -14,6 +14,102 @@ public enum CropPlotPhase
     Blocked = 7
 }
 
+public enum CropCycleWaterSupplyStatus
+{
+    None = 0,
+    AwaitingCycleSupply = 1,
+    SuppliedForCurrentCycle = 2,
+    NotRequired = 3
+}
+
+public enum CropPlotWaterStatus
+{
+    NotRequired = 0,
+    Sufficient = 1,
+    Low = 2,
+    Empty = 3,
+    WaitingForDelivery = 4,
+    ReadyForWork = 5,
+    Working = 6,
+    InputCommitted = 7,
+    OutcomePublished = 8
+}
+
+public enum CropWaterRefillPhase
+{
+    None = 0,
+    WaitingForDelivery = 1,
+    ReadyForWork = 2,
+    Working = 3,
+    InputCommitted = 4,
+    OutcomePublished = 5
+}
+
+public static class CropWaterRules
+{
+    public const float InitialWaterQuantity = 1f;
+    public const float WaterCapacity = 2f;
+    public const int RefillQuantity = 1;
+    public const float RainConsumptionMultiplier = 0.5f;
+
+    public static float ResolveDailyDemand(
+        CropDefinitionSO crop,
+        BuildingCropPlotAbility ability)
+    {
+        if (crop == null) throw new ArgumentNullException(nameof(crop));
+        if (ability == null) throw new ArgumentNullException(nameof(ability));
+        if (!float.IsFinite(crop.DailyWater)
+            || crop.DailyWater < 0f
+            || !float.IsFinite(ability.WaterMultiplier)
+            || ability.WaterMultiplier <= 0f)
+        {
+            throw new InvalidOperationException(
+                "Crop water authoring requires finite non-negative demand and a positive plot multiplier.");
+        }
+        return crop.DailyWater * ability.WaterMultiplier;
+    }
+
+    public static float ResolveHourlyConsumption(
+        CropDefinitionSO crop,
+        BuildingCropPlotAbility ability,
+        SurvivalWeatherType weather)
+    {
+        if (!Enum.IsDefined(typeof(SurvivalWeatherType), weather))
+            throw new ArgumentOutOfRangeException(nameof(weather));
+        float weatherMultiplier = weather is SurvivalWeatherType.Rain
+            or SurvivalWeatherType.Storm
+                ? RainConsumptionMultiplier
+                : 1f;
+        return ResolveDailyDemand(crop, ability) / 24f * weatherMultiplier;
+    }
+
+    public static float ResolveGrowthMultiplier(
+        float currentWater,
+        float dailyDemand)
+    {
+        if (!float.IsFinite(currentWater)
+            || currentWater < 0f
+            || !float.IsFinite(dailyDemand)
+            || dailyDemand < 0f)
+            throw new ArgumentOutOfRangeException(nameof(currentWater));
+        return dailyDemand <= 0f
+            ? 1f
+            : Mathf.Clamp01(currentWater / dailyDemand);
+    }
+
+    public static float RequireRefillWork(BuildableObject building)
+    {
+        BuildingWorkAmountAbility work = building?.BuildingData?
+            .GetAbility<BuildingWorkAmountAbility>();
+        if (work == null
+            || !float.IsFinite(work.operateWorkRequired)
+            || work.operateWorkRequired < 0.1f)
+            throw new InvalidOperationException(
+                "Crop water refill requires authored facility operate work.");
+        return work.operateWorkRequired;
+    }
+}
+
 public readonly struct CropPlotWorkSnapshot
 {
     public CropPlotWorkSnapshot(
@@ -66,6 +162,31 @@ public sealed class CropPlotSnapshot
         new Dictionary<string, int>();
     public IReadOnlyDictionary<string, int> DeliveredMaterials { get; set; } =
         new Dictionary<string, int>();
+    public CropCycleWaterSupplyStatus CycleWaterSupplyStatus { get; set; }
+    public int CycleWaterQuantity { get; set; }
+    public CropPlotWaterStatus WaterStatus { get; set; }
+    public float CurrentWater { get; set; }
+    public float WaterCapacity { get; set; }
+    public float WaterDemandPerDay { get; set; }
+    public float WaterGrowthMultiplier { get; set; } = 1f;
+    public CropGrowthTemperatureStatus TemperatureStatus { get; set; }
+    public float CurrentTemperatureC { get; set; }
+    public float MinimumTemperatureC { get; set; }
+    public float MaximumTemperatureC { get; set; }
+    public CropGrowthLightStatus LightStatus { get; set; }
+    public float CurrentLight { get; set; }
+    public float LightStopThreshold { get; set; }
+    public float LightSufficientThreshold { get; set; }
+    public float LightGrowthMultiplier { get; set; } = 1f;
+    public CropWaterRefillPhase WaterRefillPhase { get; set; }
+    public string WaterRefillDestinationId { get; set; } = string.Empty;
+    public int WaterRefillDeliveredQuantity { get; set; }
+    public float WaterRefillRequiredWork { get; set; }
+    public float WaterRefillCompletedWork { get; set; }
+    public string WaterRefillFailureReason { get; set; } = string.Empty;
+    public CropIrrigationStatus IrrigationStatus { get; set; }
+    public string IrrigationFacilityId { get; set; } = string.Empty;
+    public string IrrigationReason { get; set; } = string.Empty;
     public string BlockedReason { get; set; } = string.Empty;
     public string GoldenHarvestHarvesterId { get; set; } = string.Empty;
     public int GoldenHarvestAttemptSequence { get; set; }
@@ -86,6 +207,13 @@ public sealed class CropPlotSnapshot
     public int PestLureNextAllowedDay { get; set; }
     public int BotanicalPesticideNextAllowedDay { get; set; }
     public int FungicideNextAllowedDay { get; set; }
+    public bool HasSeasonalPrimaryYieldDamage { get; set; }
+    public string SeasonalDamageSourceEventInstanceId { get; set; } =
+        string.Empty;
+    public int SeasonalPrimaryBatchLossPercent { get; set; }
+    public int FrozenPrimaryQuantityBeforeSeasonalLoss { get; set; }
+    public int FrozenPrimarySeasonalLossQuantity { get; set; }
+    public int FrozenPrimaryQuantityAfterSeasonalLoss { get; set; }
 }
 
 public readonly struct CropPlotVisualState
@@ -136,6 +264,10 @@ public sealed class CropPlotSaveData
     public CropPhysicalCommitSaveData pendingSow = new();
     public string pendingCycleCorrelationId = string.Empty;
     public CropCycleExecutionReceiptSaveData cycleExecutionReceipt = new();
+    public float currentWater;
+    public float waterCapacity = CropWaterRules.WaterCapacity;
+    public int nextWaterRefillOperationSequence;
+    public CropWaterRefillSaveData waterRefill = new();
     public int nextTreatmentOperationSequence;
     public int pestLureNextAllowedDay;
     public int botanicalPesticideNextAllowedDay;
@@ -143,6 +275,77 @@ public sealed class CropPlotSaveData
     public CropTreatmentOrderSaveData treatment = new();
     public int nextHarvestOperationSequence;
     public CropHarvestOutputSaveData pendingHarvest = new();
+    public CropSeasonalYieldDamageSaveData seasonalYieldDamage = new();
+}
+
+[Serializable]
+public sealed class CropSeasonalYieldDamageSaveData
+{
+    public string sourceEventInstanceId = string.Empty;
+    public string sourceDefinitionId = string.Empty;
+    public int sourceStartedAbsoluteDay;
+    public string cropId = string.Empty;
+    public int sowOperationSequence;
+    public int primaryBatchLossPercent;
+
+    public bool IsEmpty => string.IsNullOrEmpty(sourceEventInstanceId)
+        && string.IsNullOrEmpty(sourceDefinitionId)
+        && sourceStartedAbsoluteDay == 0
+        && string.IsNullOrEmpty(cropId)
+        && sowOperationSequence == 0
+        && primaryBatchLossPercent == 0;
+
+    public CropSeasonalYieldDamageSaveData DeepClone() => new()
+    {
+        sourceEventInstanceId = sourceEventInstanceId ?? string.Empty,
+        sourceDefinitionId = sourceDefinitionId ?? string.Empty,
+        sourceStartedAbsoluteDay = sourceStartedAbsoluteDay,
+        cropId = cropId ?? string.Empty,
+        sowOperationSequence = sowOperationSequence,
+        primaryBatchLossPercent = primaryBatchLossPercent
+    };
+}
+
+[Serializable]
+public sealed class CropWaterRefillSaveData
+{
+    public CropWaterRefillPhase phase;
+    public int operationSequence;
+    public string operationId = string.Empty;
+    public string reasonCode = string.Empty;
+    public string destinationId = string.Empty;
+    public string itemId = string.Empty;
+    public int quantity;
+    public float requiredWork;
+    public float completedWork;
+    public string commitId = string.Empty;
+    public int inputQuantity;
+    public long inputMassGrams;
+    public string requestFingerprint = string.Empty;
+    public string physicalRequestFingerprint = string.Empty;
+    public List<string> sourceStackIds = new();
+    public string failureReason = string.Empty;
+
+    public CropWaterRefillSaveData DeepClone() => new()
+    {
+        phase = phase,
+        operationSequence = operationSequence,
+        operationId = operationId ?? string.Empty,
+        reasonCode = reasonCode ?? string.Empty,
+        destinationId = destinationId ?? string.Empty,
+        itemId = itemId ?? string.Empty,
+        quantity = quantity,
+        requiredWork = requiredWork,
+        completedWork = completedWork,
+        commitId = commitId ?? string.Empty,
+        inputQuantity = inputQuantity,
+        inputMassGrams = inputMassGrams,
+        requestFingerprint = requestFingerprint ?? string.Empty,
+        physicalRequestFingerprint = physicalRequestFingerprint ?? string.Empty,
+        sourceStackIds = new List<string>(
+            sourceStackIds ?? new List<string>()),
+        failureReason = failureReason ?? string.Empty
+    };
 }
 
 [Serializable]
@@ -321,6 +524,11 @@ public sealed class CropHarvestOutputSaveData
     public SeedLotState returnedSeedLot;
     public int maximumHarvestQuantity;
     public int maximumSeedQuantity;
+    public string seasonalDamageSourceEventInstanceId = string.Empty;
+    public string seasonalDamageSourceDefinitionId = string.Empty;
+    public int seasonalPrimaryBatchLossPercent;
+    public int primaryQuantityBeforeSeasonalLoss;
+    public int seasonalPrimaryLossQuantity;
     public ProductionOutputCapabilitySaveData harvestCapability = new();
     public ProductionOutputCapabilitySaveData seedCapability = new();
     public ProductionDomainOutputPublicationSaveData outputPublication = new();
@@ -358,6 +566,14 @@ public sealed class CropHarvestOutputSaveData
         returnedSeedLot = returnedSeedLot?.Clone(),
         maximumHarvestQuantity = maximumHarvestQuantity,
         maximumSeedQuantity = maximumSeedQuantity,
+        seasonalDamageSourceEventInstanceId =
+            seasonalDamageSourceEventInstanceId ?? string.Empty,
+        seasonalDamageSourceDefinitionId =
+            seasonalDamageSourceDefinitionId ?? string.Empty,
+        seasonalPrimaryBatchLossPercent = seasonalPrimaryBatchLossPercent,
+        primaryQuantityBeforeSeasonalLoss =
+            primaryQuantityBeforeSeasonalLoss,
+        seasonalPrimaryLossQuantity = seasonalPrimaryLossQuantity,
         harvestCapability = harvestCapability?.Clone()
             ?? new ProductionOutputCapabilitySaveData(),
         seedCapability = seedCapability?.Clone()
@@ -540,10 +756,11 @@ public sealed class CropPhysicalCommitSaveData
 [Serializable]
 public sealed class DungeonCropPlotSaveData
 {
-    public const int CurrentVersion = 11;
+    public const int CurrentVersion = 13;
 
     public int version = CurrentVersion;
     public List<CropPlotSaveData> plots = new List<CropPlotSaveData>();
+    public List<string> handledSeasonalStartInstanceIds = new List<string>();
 }
 
 public interface ICropPlotRuntime

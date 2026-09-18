@@ -54,6 +54,7 @@ public static class IndustrialPowerFuelOutboxContractProbe
         ElectricalNetworkRuntime first = new(
             topology,
             new FixedGridSystemProvider(building.Grid),
+            new RestoreWorldCandidateIndex(),
             clock,
             items,
             physicalFuel,
@@ -61,7 +62,8 @@ public static class IndustrialPowerFuelOutboxContractProbe
             firstStore,
             firstBufferLifecycle,
             firstBufferLifecycle,
-            firstBufferLifecycle);
+            firstBufferLifecycle,
+            NeutralSeasonalEventQuery.Instance);
 
         DungeonPowerInfrastructureSaveData pending = first.Capture();
         FacilityBufferCapacityProfile firstCapacity =
@@ -100,6 +102,7 @@ public static class IndustrialPowerFuelOutboxContractProbe
         ElectricalNetworkRuntime restored = new(
             restoredTopology,
             new FixedGridSystemProvider(building.Grid),
+            new RestoreWorldCandidateIndex(),
             clock,
             items,
             physicalFuel,
@@ -107,7 +110,8 @@ public static class IndustrialPowerFuelOutboxContractProbe
             restoredStore,
             restoredBufferLifecycle,
             restoredBufferLifecycle,
-            restoredBufferLifecycle);
+            restoredBufferLifecycle,
+            NeutralSeasonalEventQuery.Instance);
         restored.Restore(restored.PrepareRestore(pending));
         FacilityBufferCapacityProfile restoredCapacity =
             restoredBufferLifecycle.RequireSingleProfile();

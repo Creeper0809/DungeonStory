@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "권위 시설과 계약 납품에 쓰는 고가 장식이다. 밀로세아 가도를 건너온 금 장식은 검문소마다 무게를 다시 재고, 마지막 확인값을 작은 색실 꼬리표에 남긴다.",
+  "in_game_description": "권위 시설과 계약 납품에 쓰는 고가 장식이다. 밀로세아 가도를 지난 금 장식 묶음에는 마지막 검문소의 색실이 하나씩 더해진다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

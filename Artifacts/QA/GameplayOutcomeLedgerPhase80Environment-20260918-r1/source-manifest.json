@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "state": "BLOCKED_FROZEN",
+  "humanApprovalClaimed": false,
+  "hashAlgorithm": "SHA-256",
+  "unityExecuted": false,
+  "cliBuildExecuted": false,
+  "mcpUsed": false,
+  "files": [
+    { "path": "Assets/Scripts/Models/Species/Core/PopulationHealthDomain.cs", "sha256": "23057ddda41c6932d04d65a827c797ff0ae094faaa5e948d6b372fb7400f0563" },
+    { "path": "Assets/Scripts/Services/Character/Ability/AbilityWork.cs", "sha256": "08e8ab820c843d3872220012f7335a3f488bbddb97db2873c53bccbfb8ce7a69" },
+    { "path": "Assets/Scripts/Services/Character/PopulationHealthRuntime.cs", "sha256": "c65d9b7ab4d9a4eb8dec240f4648424aa56c9c072b75f72c65b3c448647ec518" },
+    { "path": "Assets/Scripts/Services/Character/SpeciesRuntime.cs", "sha256": "32cfd9e992cf1aab1f34ba7e59316758d7d30f7477f698bf29ca187462034185" },
+    { "path": "Assets/Scripts/Services/Character/Work/WorkTaskExecutor.cs", "sha256": "36ecf4083cfb9029123ebe0b63a3c4cb32bad99303cf8f0c8e92ab4616e758c5" },
+    { "path": "Assets/Scripts/Services/Economy/CropPlotRuntime.cs", "sha256": "51fcd85d9d06637655fe8edf2bb6b90d11196ffb89809cb566dfefe9642c004e" },
+    { "path": "Assets/Scripts/Services/Infrastructure/Rooms/RoomEnvironmentExperienceAdapter.cs", "sha256": "697f39a6e1d4cb4d2ab944ce98c50dba2c0d3536a94bcba22ce07fe39f5b43a1" },
+    { "path": "Assets/Scripts/Services/Wildlife/WildlifeDiseaseVectorRuntime.cs", "sha256": "0f1bd2a474e3c48b882fb6307ae628d1950d0036a11532163a0689bd029c8bd9" },
+    { "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/EnvironmentGameplayOutcomeBridge.cs", "sha256": "63f9dea1ff8b6bdd8c4077d63df79dd8f2c3e2553330cc3474e3af0c3054db8b" },
+    { "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/EnvironmentOutcomeAdapters.cs", "sha256": "66e379ada46124abccf2ef463f1dc174bd9a41f2bbb67555d7fc200bf690b8f4" },
+    { "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/EnvironmentOutcomeDescriptors.cs", "sha256": "0785f8adfed311c729170902ba6fb85f4cc749c61cc4226d7438ff3ccc199383" },
+    { "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/EnvironmentOutcomeReceiptFactory.cs", "sha256": "a6d46f48b63e1520cdbd0bf0d09207ae2eb9dc854007de03d40e14fe93c85023" },
+    { "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/EnvironmentOutcomeReceipts.cs", "sha256": "ec2984ea6adbbd6a861050a44c264435ad675f21fcf5462f363fd5cce89b53d7" },
+    { "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/EnvironmentOutcomeRegistration.cs", "sha256": "c1907e8f6d5c82cd1c345814cb45a6d50b22da51db3ccbbb2fced14a0cf06e38" },
+    { "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/EnvironmentRoomOutcomePersistence.cs", "sha256": "1470c98b95027a30d65a35623d2200452d7fed76621c50e2deb2500c9c712ef0" },
+    { "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonAiRegistration.cs", "sha256": "c99190c6de42560a2303273705412f69d2a2550b4154be466086df36a27df4f5", "sharedMutable": true },
+    { "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonCharacterRegistration.cs", "sha256": "a884a56ca8cdab353aa27da057436f5cfb367ab8e5b5d6c3773ec43dcf0d4fa3", "sharedMutable": true },
+    { "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonSaveRegistration.cs", "sha256": "5ee9c6133a42a5375c855abd78b2788e2f0a3d7492b6fc8ada80ae5543babbad", "sharedMutable": true }
+  ],
+  "unityMeta": [
+    { "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment.meta", "guid": "a764174ee3464cbda3f5fb5e617a5961", "sha256": "fc53654839a175c2ebf08e5b0fb4ed6375c0e3530740458bce4d3a7dc6ea98e9" },
+    { "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/EnvironmentGameplayOutcomeBridge.cs.meta", "guid": "1f462520979844968d3b8e7568ad6493", "sha256": "d6402d547a7227e796493ca755063412d10b0a946f863f8aabd8075cb21f1316" },
+    { "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/EnvironmentOutcomeAdapters.cs.meta", "guid": "71d90369f48b4b3c9823cc802ab44af3", "sha256": "c924b3e2807fc792403c113d6d65ac6a01ef4111b2cf607d1f103379dd4a44a2" },
+    { "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/EnvironmentOutcomeDescriptors.cs.meta", "guid": "4f7d00c40412473db9eddd7634ea52db", "sha256": "3b479a09d70f9071627da45c90044165f1fadba3481a9ed7fe974668f693fb64" },
+    { "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/EnvironmentOutcomeReceiptFactory.cs.meta", "guid": "3c2b78aa08d64a8499cac8ce7aecc653", "sha256": "59caad085bd7219b7e66b504712a817bdbd9970d241810864fa9b7f34f730e30" },
+    { "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/EnvironmentOutcomeReceipts.cs.meta", "guid": "4f871c2ab5c84200b13d64f125859f5c", "sha256": "e8a47ee5df160f8e0cfe5605e3c13644bf1e8f4add0c570cc41ae74724e721ba" },
+    { "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/EnvironmentOutcomeRegistration.cs.meta", "guid": "1255dc696d194c5a80f5ca6f0a8f8aec", "sha256": "c3c4d0641c17ef067da66cbb02b2f44ad1e5212d2c59ed42eb4dfe2408c5522d" },
+    { "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/EnvironmentRoomOutcomePersistence.cs.meta", "guid": "4452dd52c2ba4267a27282332757dba6", "sha256": "9bf00fe5041b1c65f6eb80dbb5a4d232f550413582009eaf2b046a9c5acc8e9d" }
+  ]
+}

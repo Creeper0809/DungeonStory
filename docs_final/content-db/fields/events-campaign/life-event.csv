@@ -2,15 +2,18 @@
 LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,m_Name,life-event_apprentice-mistake,,,explicit-serialized
 LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,stableId,life-event:apprentice-mistake,,,explicit-serialized
 LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,displayName,도제의 큰 실수,,,explicit-serialized
-LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,description,도제가 귀한 중간재 한 묶음을 망치고 보고를 망설인다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,description,도제가 실제 제작에서 손실을 냈다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,category,1,LifeEventCategory,Apprenticeship,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,riskTier,1,ExperienceEventRiskTier,Recoverable,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,riskReason,작성된 선택에 기분 -4가 있다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,automatic,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,responseDeadlineDays,3,,,explicit-serialized
 LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,cooldownDays,90,,,explicit-serialized
 LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:apprentice-mistake,life-event:apprentice-mistake,triggerRequirements.research,[],,,explicit-serialized
@@ -57,11 +60,14 @@ LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,descript
 LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,category,3,LifeEventCategory,Career,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,riskTier,0,ExperienceEventRiskTier,None,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,riskReason,작성된 선택에 불리한 게임플레이 효과가 없고 야망 진행 또는 관계 증가만 있다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,automatic,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,responseDeadlineDays,3,,,explicit-serialized
 LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,cooldownDays,90,,,explicit-serialized
 LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:captains-test,life-event:captains-test,triggerRequirements.research,[],,,explicit-serialized
@@ -108,11 +114,14 @@ LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,desc
 LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,category,0,LifeEventCategory,Childhood,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,riskTier,1,ExperienceEventRiskTier,Recoverable,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,riskReason,작성된 선택에 작업 지연 1일이 있다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,automatic,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,responseDeadlineDays,3,,,explicit-serialized
 LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,cooldownDays,90,,,explicit-serialized
 LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:childhood-bully,life-event:childhood-bully,triggerRequirements.research,[],,,explicit-serialized
@@ -159,11 +168,14 @@ LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,desc
 LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,category,3,LifeEventCategory,Career,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,riskTier,1,ExperienceEventRiskTier,Recoverable,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,riskReason,작성된 선택에 세력 신뢰 -6이 있다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,automatic,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,responseDeadlineDays,3,,,explicit-serialized
 LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,cooldownDays,90,,,explicit-serialized
 LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:clinic-shortage,life-event:clinic-shortage,triggerRequirements.research,[],,,explicit-serialized
@@ -210,11 +222,14 @@ LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,
 LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,category,2,LifeEventCategory,Partnership Family,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,riskTier,0,ExperienceEventRiskTier,None,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,riskReason,작성된 선택에 불리한 게임플레이 효과가 없고 기분 또는 관계 증가만 있다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,automatic,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,responseDeadlineDays,3,,,explicit-serialized
 LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,cooldownDays,90,,,explicit-serialized
 LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:cultural-petition,life-event:cultural-petition,triggerRequirements.research,[],,,explicit-serialized
@@ -261,11 +276,14 @@ LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-frien
 LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,category,0,LifeEventCategory,Childhood,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,riskTier,1,ExperienceEventRiskTier,Recoverable,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,riskReason,작성된 선택에 기분 -3이 있다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,automatic,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,responseDeadlineDays,3,,,explicit-serialized
 LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,cooldownDays,90,,,explicit-serialized
 LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:dangerous-friendship,life-event:dangerous-friendship,triggerRequirements.research,[],,,explicit-serialized
@@ -312,11 +330,14 @@ LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,desc
 LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,category,3,LifeEventCategory,Career,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,riskTier,1,ExperienceEventRiskTier,Recoverable,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,riskReason,작성된 선택에 작업 지연 2일이 있다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,automatic,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,responseDeadlineDays,3,,,explicit-serialized
 LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,cooldownDays,90,,,explicit-serialized
 LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:disputed-thesis,life-event:disputed-thesis,triggerRequirements.research,[],,,explicit-serialized
@@ -363,11 +384,14 @@ LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,descri
 LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,category,4,LifeEventCategory,Elder Retirement,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,riskTier,0,ExperienceEventRiskTier,None,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,riskReason,작성된 자동 결과에 불리한 게임플레이 효과가 없다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,automatic,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,responseDeadlineDays,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,cooldownDays,45,,,explicit-serialized
 LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:elder-birthday,life-event:elder-birthday,triggerRequirements.research,[],,,explicit-serialized
@@ -388,11 +412,14 @@ LifeEventDefinitionSO|life-event:family-room,life-event:family-room,description,
 LifeEventDefinitionSO|life-event:family-room,life-event:family-room,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:family-room,life-event:family-room,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:family-room,life-event:family-room,category,2,LifeEventCategory,Partnership Family,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,riskTier,0,ExperienceEventRiskTier,None,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,riskReason,작성된 선택에 불리한 게임플레이 효과가 없고 관계 또는 기분 증가만 있다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:family-room,life-event:family-room,automatic,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:family-room,life-event:family-room,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:family-room,life-event:family-room,responseDeadlineDays,3,,,explicit-serialized
 LifeEventDefinitionSO|life-event:family-room,life-event:family-room,cooldownDays,90,,,explicit-serialized
 LifeEventDefinitionSO|life-event:family-room,life-event:family-room,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:family-room,life-event:family-room,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:family-room,life-event:family-room,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:family-room,life-event:family-room,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:family-room,life-event:family-room,triggerRequirements.research,[],,,explicit-serialized
@@ -439,11 +466,14 @@ LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden
 LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,category,0,LifeEventCategory,Childhood,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,riskTier,1,ExperienceEventRiskTier,Recoverable,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,riskReason,작성된 선택에 기분 -2가 있다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,automatic,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,responseDeadlineDays,3,,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,cooldownDays,90,,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-forbidden-door,life-event:first-forbidden-door,triggerRequirements.research,[],,,explicit-serialized
@@ -490,11 +520,14 @@ LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,de
 LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,category,0,LifeEventCategory,Childhood,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,riskTier,0,ExperienceEventRiskTier,None,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,riskReason,작성된 자동 결과에 불리한 게임플레이 효과가 없다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,automatic,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,responseDeadlineDays,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,cooldownDays,45,,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-lost-tooth,life-event:first-lost-tooth,triggerRequirements.research,[],,,explicit-serialized
@@ -515,11 +548,14 @@ LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,desc
 LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,category,1,LifeEventCategory,Apprenticeship,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,riskTier,0,ExperienceEventRiskTier,None,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,riskReason,작성된 자동 결과에 불리한 게임플레이 효과가 없다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,automatic,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,responseDeadlineDays,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,cooldownDays,45,,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:first-safe-task,life-event:first-safe-task,triggerRequirements.research,[],,,explicit-serialized
@@ -540,11 +576,14 @@ LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-questio
 LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,category,0,LifeEventCategory,Childhood,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,riskTier,2,ExperienceEventRiskTier,Serious,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,riskReason,작성된 선택의 트라우마 +3이 지속된다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,automatic,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,responseDeadlineDays,3,,,explicit-serialized
 LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,cooldownDays,90,,,explicit-serialized
 LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:foundling-question,life-event:foundling-question,triggerRequirements.research,[],,,explicit-serialized
@@ -591,11 +630,14 @@ LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,description,
 LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,category,5,LifeEventCategory,Death Legacy,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,riskTier,0,ExperienceEventRiskTier,None,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,riskReason,작성된 자동 결과에 불리한 게임플레이 효과가 없다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,automatic,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,responseDeadlineDays,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,cooldownDays,45,,,explicit-serialized
 LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:grave-visit,life-event:grave-visit,triggerRequirements.research,[],,,explicit-serialized
@@ -616,11 +658,14 @@ LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,descript
 LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,category,2,LifeEventCategory,Partnership Family,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,riskTier,0,ExperienceEventRiskTier,None,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,riskReason,작성된 선택에 불리한 게임플레이 효과가 없고 관계 증가 또는 체력 회복만 있다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,automatic,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,responseDeadlineDays,3,,,explicit-serialized
 LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,cooldownDays,90,,,explicit-serialized
 LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:guardian-oath,life-event:guardian-oath,triggerRequirements.research,[],,,explicit-serialized
@@ -667,11 +712,14 @@ LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,descri
 LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,category,2,LifeEventCategory,Partnership Family,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,riskTier,0,ExperienceEventRiskTier,None,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,riskReason,작성된 자동 결과에 불리한 게임플레이 효과가 없다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,automatic,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,responseDeadlineDays,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,cooldownDays,45,,,explicit-serialized
 LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:household-meal,life-event:household-meal,triggerRequirements.research,[],,,explicit-serialized
@@ -692,11 +740,14 @@ LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,descri
 LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,category,2,LifeEventCategory,Partnership Family,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,riskTier,1,ExperienceEventRiskTier,Recoverable,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,riskReason,작성된 선택에 세력 원한 8이 있다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,automatic,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,responseDeadlineDays,3,,,explicit-serialized
 LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,cooldownDays,90,,,explicit-serialized
 LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:inherited-debt,life-event:inherited-debt,triggerRequirements.research,[],,,explicit-serialized
@@ -743,11 +794,14 @@ LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,descri
 LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,category,5,LifeEventCategory,Death Legacy,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,riskTier,0,ExperienceEventRiskTier,None,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,riskReason,작성된 선택에 불리한 게임플레이 효과가 없고 트라우마 -8만 있다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,automatic,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,responseDeadlineDays,3,,,explicit-serialized
 LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,cooldownDays,90,,,explicit-serialized
 LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,triggerRequirements.research,[],,,explicit-serialized
@@ -790,15 +844,18 @@ LifeEventDefinitionSO|life-event:killer-sighted,life-event:killer-sighted,automa
 LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,m_Name,life-event_last-lesson,,,explicit-serialized
 LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,stableId,life-event:last-lesson,,,explicit-serialized
 LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,displayName,마지막 수업,,,explicit-serialized
-LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,description,쇠약해진 스승이 위험을 감수하고 마지막 실습을 열려 한다.,,,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,description,은퇴를 앞둔 스승이 PPE를 착용하고 마지막 실습을 했다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,category,4,LifeEventCategory,Elder Retirement,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,riskTier,2,ExperienceEventRiskTier,Serious,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,riskReason,작성된 선택에 비치명 체력 피해 -5가 있다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,automatic,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,responseDeadlineDays,3,,,explicit-serialized
 LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,cooldownDays,90,,,explicit-serialized
 LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:last-lesson,life-event:last-lesson,triggerRequirements.research,[],,,explicit-serialized
@@ -845,11 +902,14 @@ LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,descript
 LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,category,5,LifeEventCategory,Death Legacy,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,riskTier,0,ExperienceEventRiskTier,None,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,riskReason,작성된 선택에 불리한 게임플레이 효과가 없고 관계 증가 또는 WorldFlag만 있다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,automatic,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,responseDeadlineDays,3,,,explicit-serialized
 LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,cooldownDays,90,,,explicit-serialized
 LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:lineage-relic,life-event:lineage-relic,triggerRequirements.research,[],,,explicit-serialized
@@ -896,11 +956,14 @@ LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-c
 LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,category,1,LifeEventCategory,Apprenticeship,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,riskTier,0,ExperienceEventRiskTier,None,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,riskReason,작성된 선택에 불리한 게임플레이 효과가 없고 야망 진행 또는 경험치 증가만 있다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,automatic,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,responseDeadlineDays,3,,,explicit-serialized
 LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,cooldownDays,90,,,explicit-serialized
 LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:masterpiece-commission,life-event:masterpiece-commission,triggerRequirements.research,[],,,explicit-serialized
@@ -947,11 +1010,14 @@ LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,descriptio
 LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,category,1,LifeEventCategory,Apprenticeship,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,riskTier,1,ExperienceEventRiskTier,Recoverable,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,riskReason,작성된 선택에 기분 -3이 있다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,automatic,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,responseDeadlineDays,3,,,explicit-serialized
 LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,cooldownDays,90,,,explicit-serialized
 LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:mentor-favor,life-event:mentor-favor,triggerRequirements.research,[],,,explicit-serialized
@@ -998,11 +1064,14 @@ LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,desc
 LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,category,2,LifeEventCategory,Partnership Family,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,riskTier,0,ExperienceEventRiskTier,None,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,riskReason,작성된 자동 결과에 불리한 게임플레이 효과가 없다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,automatic,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,responseDeadlineDays,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,cooldownDays,45,,,explicit-serialized
 LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:newborn-welcome,life-event:newborn-welcome,triggerRequirements.research,[],,,explicit-serialized
@@ -1023,11 +1092,14 @@ LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,de
 LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,category,3,LifeEventCategory,Career,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,riskTier,0,ExperienceEventRiskTier,None,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,riskReason,작성된 선택에 불리한 게임플레이 효과가 없고 경험치 또는 관계 증가만 있다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,automatic,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,responseDeadlineDays,3,,,explicit-serialized
 LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,cooldownDays,90,,,explicit-serialized
 LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:position-rivalry,life-event:position-rivalry,triggerRequirements.research,[],,,explicit-serialized
@@ -1074,11 +1146,14 @@ LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,desc
 LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,category,3,LifeEventCategory,Career,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,riskTier,0,ExperienceEventRiskTier,None,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,riskReason,작성된 자동 결과에 불리한 게임플레이 효과가 없다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,automatic,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,responseDeadlineDays,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,cooldownDays,45,,,explicit-serialized
 LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:quiet-promotion,life-event:quiet-promotion,triggerRequirements.research,[],,,explicit-serialized
@@ -1099,11 +1174,14 @@ LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,descript
 LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,category,4,LifeEventCategory,Elder Retirement,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,riskTier,0,ExperienceEventRiskTier,None,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,riskReason,작성된 자동 결과에 불리한 게임플레이 효과가 없다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,automatic,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,responseDeadlineDays,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,cooldownDays,45,,,explicit-serialized
 LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:retiree-story,life-event:retiree-story,triggerRequirements.research,[],,,explicit-serialized
@@ -1124,11 +1202,14 @@ LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-reques
 LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,category,4,LifeEventCategory,Elder Retirement,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,riskTier,2,ExperienceEventRiskTier,Serious,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,riskReason,작성된 선택이 은퇴 일정을 설정해 경력 종료를 만든다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,automatic,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,responseDeadlineDays,3,,,explicit-serialized
 LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,cooldownDays,90,,,explicit-serialized
 LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,occurrencePolicy,1,LifeEventOccurrencePolicy,Daily Cadence,explicit-serialized
 LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,triggerRequirements.research,[],,,explicit-serialized
@@ -1152,6 +1233,10 @@ LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-reques
 LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.0.effects.0.targetId,life-event:retirement-request,,,explicit-serialized
 LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.0.effects.0.amount,6,,,explicit-serialized
 LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.0.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.0.effects.1.kind,18,V20ContentEffectKind,Retirement Schedule,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.0.effects.1.targetId,life-event:retirement-request,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.0.effects.1.amount,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.0.effects.1.durationDays,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.choiceId,second,,,explicit-serialized
 LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.title,한 계절 더 현장을 부탁한다,,,explicit-serialized
 LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.outcomeText,한 계절 더 현장을 부탁한다,,,explicit-serialized
@@ -1163,10 +1248,10 @@ LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-reques
 LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.requirements.worldMetrics,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.requirements.requiredFlags,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.requirements.excludedFlags,[],,,explicit-serialized
-LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.effects.0.kind,13,V20ContentEffectKind,WorkDelayDays (작업 지연),explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.effects.0.kind,18,V20ContentEffectKind,Retirement Schedule,explicit-serialized
 LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.effects.0.targetId,life-event:retirement-request,,,explicit-serialized
-LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.effects.0.amount,-2,,,explicit-serialized
-LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.effects.0.durationDays,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.effects.0.amount,0,,,explicit-serialized
+LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,choices.1.effects.0.durationDays,30,,,explicit-serialized
 LifeEventDefinitionSO|life-event:retirement-request,life-event:retirement-request,automaticEffects,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,m_Name,life-event_shared-lullaby,,,explicit-serialized
 LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,stableId,life-event:shared-lullaby,,,explicit-serialized
@@ -1175,11 +1260,14 @@ LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,descri
 LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,category,0,LifeEventCategory,Childhood,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,riskTier,0,ExperienceEventRiskTier,None,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,riskReason,작성된 자동 결과에 불리한 게임플레이 효과가 없다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,automatic,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,responseDeadlineDays,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,cooldownDays,45,,,explicit-serialized
 LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:shared-lullaby,life-event:shared-lullaby,triggerRequirements.research,[],,,explicit-serialized
@@ -1200,11 +1288,14 @@ LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,description,
 LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,category,3,LifeEventCategory,Career,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,riskTier,0,ExperienceEventRiskTier,None,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,riskReason,작성된 자동 결과에 불리한 게임플레이 효과가 없다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,automatic,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,responseDeadlineDays,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,cooldownDays,45,,,explicit-serialized
 LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:shift-saved,life-event:shift-saved,triggerRequirements.research,[],,,explicit-serialized
@@ -1225,11 +1316,14 @@ LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,descript
 LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,category,1,LifeEventCategory,Apprenticeship,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,riskTier,0,ExperienceEventRiskTier,None,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,riskReason,작성된 선택에 불리한 게임플레이 효과가 없고 관계 증가 또는 WorldFlag만 있다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,automatic,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,responseDeadlineDays,3,,,explicit-serialized
 LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,cooldownDays,90,,,explicit-serialized
 LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:stolen-design,life-event:stolen-design,triggerRequirements.research,[],,,explicit-serialized
@@ -1276,11 +1370,14 @@ LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,de
 LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,category,5,LifeEventCategory,Death Legacy,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,riskTier,0,ExperienceEventRiskTier,None,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,riskReason,작성된 자동 결과에 불리한 게임플레이 효과가 없다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,automatic,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,responseDeadlineDays,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,cooldownDays,45,,,explicit-serialized
 LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:story-compressed,life-event:story-compressed,triggerRequirements.research,[],,,explicit-serialized
@@ -1301,11 +1398,14 @@ LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,de
 LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,authoringRevision,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,category,1,LifeEventCategory,Apprenticeship,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,riskTier,0,ExperienceEventRiskTier,None,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,riskReason,작성된 자동 결과에 불리한 게임플레이 효과가 없다.,,,explicit-serialized
 LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,automatic,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,emergency,0,,,explicit-serialized
 LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,responseDeadlineDays,1,,,explicit-serialized
 LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,cooldownDays,45,,,explicit-serialized
 LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,frequencyRule,1,LifeEventFrequencyRule,Once Per Character,explicit-serialized
+LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,occurrencePolicy,0,LifeEventOccurrencePolicy,External Observed Only,explicit-serialized
 LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,triggerRequirements.items,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,triggerRequirements.facilities,[],,,explicit-serialized
 LifeEventDefinitionSO|life-event:tool-inheritance,life-event:tool-inheritance,triggerRequirements.research,[],,,explicit-serialized

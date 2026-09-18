@@ -1,0 +1,4 @@
+WIM009 early-frost rules/authoring
+scope=real content catalog plus isolated generic daily-event selection; no climate runtime, crop growth, save, AI, UI, or expedition claim
+result=PASS
+passed=2; seasonal=28; earlyFrost=1; otherWeatherFrontRequirements=0; coldSnapFront=1; duration=2-4

@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "의식 중 시선과 마나를 한곳에 모으도록 세우는 초점석 설치 부품이며, 하르나크에서도 이 부품의 치수를 알아본다.",
+  "in_game_description": "의식초점석에서 주민이 쉬거나 기본 욕구를 해결하도록 꾸린 설치 부품이다. 하르나크의 의식초점석은 뿔, 날개와 꼬리가 눌리지 않도록 주민이 실제로 쉬는 자세를 보고 치수를 고친다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

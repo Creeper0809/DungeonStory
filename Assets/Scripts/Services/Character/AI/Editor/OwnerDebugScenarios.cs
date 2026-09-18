@@ -265,7 +265,7 @@ public static class OwnerDebugScenarios
             InitializeCharacter(character, ownerData);
 
             BuildingSO labData = AssetDatabase.LoadAssetAtPath<BuildingSO>(
-                "Assets/Resources/SO/Building/P1/P1_ResearchLab.asset");
+                "Assets/Resources/SO/Building/Modular/Q01_연구책상.asset");
             labObject = new GameObject("Research Lab Priority Target");
             Facility lab = labObject.AddComponent<Facility>();
             CharacterAiEditorTestDependencies.Inject(lab, researchRuntime);

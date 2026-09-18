@@ -1223,6 +1223,106 @@ MonoBehaviour:
     m_Key: CharacterSummary.Combat.Quality.Mythic
     m_Metadata:
       m_Items: []
+  - m_Id: 11639073331826688
+    m_Key: CharacterSummary.Health.Button.MealQuality
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11639073369575424
+    m_Key: CharacterSummary.Health.MealQuality.Decent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11639073369575425
+    m_Key: CharacterSummary.Health.MealQuality.Fine
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11639073369575426
+    m_Key: CharacterSummary.Health.MealQuality.Inherit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11639073369575427
+    m_Key: CharacterSummary.Health.MealQuality.Lavish
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11639073369575428
+    m_Key: CharacterSummary.Health.MealQuality.Poor
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11639073369575429
+    m_Key: CharacterSummary.Health.MealQuality.Simple
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11786158018482176
+    m_Key: CharacterSummary.Health.Consumables.ToxicityRow
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11786158060425216
+    m_Key: CharacterSummary.Health.Consumables.ToxicityTreatment.Available
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11786158060425217
+    m_Key: CharacterSummary.Health.Consumables.ToxicityTreatment.NotNeeded
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11786158060425218
+    m_Key: CharacterSummary.Health.Consumables.ToxicityTreatment.Pending
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11786158060425219
+    m_Key: CharacterSummary.Health.Consumables.ToxicityTreatment.Unauthored
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11786158060425220
+    m_Key: CharacterSummary.Health.Consumables.ToxicityTreatment.Unavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13255717342760960
+    m_Key: CharacterSummary.Health.Consumables.TreatmentSupply.Kind.Detox
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13255717409869824
+    m_Key: CharacterSummary.Health.Consumables.TreatmentSupply.Kind.Standard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13255717409869825
+    m_Key: CharacterSummary.Health.Consumables.TreatmentSupply.Row
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13255717409869826
+    m_Key: CharacterSummary.Health.Consumables.TreatmentSupply.State.AwaitingRequest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13255717409869827
+    m_Key: CharacterSummary.Health.Consumables.TreatmentSupply.State.CapacityUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13255717409869828
+    m_Key: CharacterSummary.Health.Consumables.TreatmentSupply.State.InTransit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13255717409869829
+    m_Key: CharacterSummary.Health.Consumables.TreatmentSupply.State.NoPath
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13255717409869830
+    m_Key: CharacterSummary.Health.Consumables.TreatmentSupply.State.Processing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13255717409869831
+    m_Key: CharacterSummary.Health.Consumables.TreatmentSupply.State.Ready
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13255717409869832
+    m_Key: CharacterSummary.Health.Consumables.TreatmentSupply.State.Requested
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13255717409869833
+    m_Key: CharacterSummary.Health.Consumables.TreatmentSupply.State.StockMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13255717409869834
+    m_Key: CharacterSummary.Status.LightAdaptation.Row
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

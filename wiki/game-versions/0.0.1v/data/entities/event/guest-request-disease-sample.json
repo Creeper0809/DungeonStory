@@ -21,6 +21,15 @@
       "target_spoiler_tier": "none",
       "target_title": "동굴 독감 항원 표본",
       "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-8876",
+      "target_spoiler_tier": "none",
+      "target_title": "백신 연구실",
+      "type": "requires"
     }
   ],
   "schema_version": 1,

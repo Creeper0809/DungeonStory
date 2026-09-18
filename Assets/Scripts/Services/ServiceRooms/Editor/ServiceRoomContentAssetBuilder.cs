@@ -85,6 +85,12 @@ public static class ServiceRoomContentAssetBuilder
         PatchExistingSupport("S02", "service-retail-display",
             new[] { "service:display" }, new[] { "service:retail" },
             ServiceSupportModifierType.Revenue, 0, revenue: 2);
+        // S03 physically replaces S02 in the secure-display evolution. It
+        // retains the required retail-display feature under its own support
+        // identity, so a replacement cannot silently disable the existing hub.
+        PatchExistingSupport("S03", "service-retail-secure-display",
+            new[] { "service:display" }, new[] { "service:retail" },
+            ServiceSupportModifierType.Security, 0, revenue: 2);
 
         foreach (SupportSpec spec in CreateSupportSpecs())
         {

@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
 using VContainer;
@@ -54,6 +56,21 @@ public static class SurgeryDebugScenarios
         Run(
             "surgery_material_sink_join",
             VerifyMaterialSinkJoin,
+            lines,
+            errors);
+        Run(
+            "replacement_physical_save_join",
+            VerifyReplacementPhysicalSaveJoin,
+            lines,
+            errors);
+        Run(
+            "replacement_runtime_transaction",
+            VerifyReplacementRuntimeTransaction,
+            lines,
+            errors);
+        Run(
+            "surgery_facility_single_owner_save_join",
+            VerifySurgeryFacilitySingleOwnerSaveJoin,
             lines,
             errors);
         Run("strict_v6_payload", VerifyStrictV6Payload, lines, errors);
@@ -404,7 +421,7 @@ public static class SurgeryDebugScenarios
                 "recipe:surgery:",
                 StringComparison.Ordinal))
             .ToArray();
-        Require(recipes.Length == 3, $"expected 3 prosthetic recipes, got {recipes.Length}");
+        Require(recipes.Length == 15, $"expected 15 prosthetic recipes, got {recipes.Length}");
         Require(
             recipes.All(recipe =>
                 recipe.WorkTypeId == BuiltInWorkTypeIds.Craft
@@ -416,7 +433,7 @@ public static class SurgeryDebugScenarios
                 && recipe.Inputs.Count > 0
                 && recipe.Outputs.Count == 1),
             "prosthetic recipes did not use exact m06 work, materials, and a unique output");
-        return "three prosthetic recipes use the exact m06 workstation, physical inputs, and cumulative craft work";
+        return "fifteen prosthetic recipes use the exact m06 workstation, physical inputs, and cumulative craft work";
     }
 
     private static string VerifyRiskFormula()
@@ -500,6 +517,8 @@ public static class SurgeryDebugScenarios
         SurgicalPartInstance part = new SurgicalPartInstance
         {
             partInstanceId = "surgical-part:test",
+            itemDefinitionId = "medical:organ-eye-left",
+            physicalItemInstanceId = "item-instance:surgery-test",
             kind = SurgicalPartKind.NaturalOrgan,
             nodeId = "eye:left",
             displayName = "룬사슴의 눈",
@@ -628,6 +647,8 @@ public static class SurgeryDebugScenarios
         var pending = new SurgicalPartInstance
         {
             partInstanceId = partId,
+            itemDefinitionId = "material:lumber",
+            physicalItemInstanceId = "item-instance:surgery-outbox",
             kind = SurgicalPartKind.Prosthetic,
             nodeId = "heart",
             displayName = "outbox contract part",
@@ -747,6 +768,1087 @@ public static class SurgeryDebugScenarios
         return "physical pending receipt survives the crash boundary, mismatched commit is atomic, restore finalizes and acknowledges exactly once";
     }
 
+    private static string VerifyReplacementPhysicalSaveJoin()
+    {
+        const string orderId = "surgery:1";
+        const string oldPartId = "surgical-part:1";
+        const string incomingPartId = "surgical-part:2";
+        const string subjectId = "character:replacement-fixture";
+        const string nodeId = "heart";
+        const string itemId = "medical:prosthetic-heart";
+        const string physicalId = "item-instance:replacement-old";
+        const string stackId = "stack:replacement-old";
+        const long mass = 1000L;
+        string operationId = SurgicalPartReplacementIdentity
+            .FormatOperationId(orderId);
+        string commitId = SurgicalPartReplacementIdentity
+            .FormatBatchCommitId(orderId);
+        string plannedHash = new string('b', 64);
+        SurgicalPartInstance previous = new()
+        {
+            partInstanceId = oldPartId,
+            itemDefinitionId = itemId,
+            physicalItemInstanceId = physicalId,
+            kind = SurgicalPartKind.Prosthetic,
+            nodeId = nodeId,
+            displayName = "recovered heart",
+            quality = 0.8f,
+            worldStackId = stackId,
+            reservedOrderId = orderId,
+            detachedDurabilityCurrent = 32f,
+            detachedDurabilityMaximum = 80f,
+            recoveryOperationId = operationId,
+            recoveryOrderId = orderId,
+            recoveryCommitId = commitId
+        };
+        SurgicalPartInstance incoming = new()
+        {
+            partInstanceId = incomingPartId,
+            itemDefinitionId = "medical:prosthetic-heart",
+            physicalItemInstanceId = "item-instance:replacement-incoming",
+            kind = SurgicalPartKind.Prosthetic,
+            nodeId = nodeId,
+            displayName = "incoming heart",
+            quality = 1f,
+            installed = true,
+            installedSubjectId = subjectId,
+            installationOrderId = orderId,
+            installationOperationId =
+                SurgicalPartInstallationIdentity.FormatOperationId(
+                    orderId,
+                    incomingPartId),
+            installationCommitId =
+                "physical-batch-disposition:1:"
+                + SurgicalPartInstallationIdentity.FormatOperationId(
+                    orderId,
+                    incomingPartId)
+                + ":1:1000",
+            installationSourceStackId = "stack:replacement-incoming",
+            installationSubjectId = subjectId
+        };
+        SurgeryOrder order = new()
+        {
+            orderId = orderId,
+            procedureId = "procedure:prosthetic-installation",
+            subject = new SurgicalSubjectRef
+            {
+                kind = SurgicalSubjectKind.Character,
+                subjectId = subjectId
+            },
+            targetNodeId = nodeId,
+            selectedPartInstanceId = incomingPartId,
+            facilityId = "facility:replacement",
+            materialDestinationId = "surgery-materials:" + orderId,
+            materialBufferCapacityGrams = 3000L,
+            materialMassAuthorityRevision = 1L,
+            state = SurgeryOrderState.Recovering,
+            resultRolled = true,
+            resultSucceeded = true,
+            resultOutcomeId = "success",
+            resolvedEffectCount = 1,
+            replacementPhase = SurgicalPartReplacementPhase.Completed,
+            replacementOperationId = operationId,
+            replacementExpectedOldPartId = oldPartId,
+            replacementIncomingPartId = incomingPartId,
+            replacementAdmissionTokenId = "planned-output:replacement",
+            replacementPublicationOperationId =
+                SurgicalPartReplacementIdentity.FormatPublicationOperationId(
+                    orderId),
+            replacementReservationAttempt = 1,
+            replacementBatchCommitId = commitId,
+            replacementOutcomeFingerprint = string.Empty,
+            replacementPlannedOutputFingerprint = plannedHash,
+            replacementOutputStackId = stackId,
+            replacementOutputItemInstanceId = physicalId,
+            replacementOutputMassGrams = mass,
+            replacementDetachedCurrentHealth = 32f,
+            replacementDetachedMaxHealth = 80f
+        };
+        order.replacementOutcomeFingerprint =
+            SurgicalPartProductionOutputCrossAggregateSaveValidation
+                .CreateReplacementOutcomeFingerprintForEditor(previous, order);
+        order.materialCapacityFingerprint =
+            SurgeryMaterialCapacityFingerprint.Create(order);
+        IReadOnlyList<ItemInstanceComponentSaveData> components =
+            SurgicalPartProductionOutputCrossAggregateSaveValidation
+                .CreateReplacementPhysicalComponentsForEditor(
+                    previous,
+                    order,
+                    mass);
+        DungeonPhysicalItemSaveData physical = new()
+        {
+            stacks = new List<WorldItemStackSaveData>
+            {
+                new()
+                {
+                    stackId = stackId,
+                    itemInstanceId = physicalId,
+                    itemId = itemId,
+                    quantity = 1,
+                    state = WorldItemStackState.FacilityOutputBuffer,
+                    destinationId = order.materialDestinationId,
+                    components = components.Select(value => value.Clone())
+                        .ToList()
+                }
+            }
+        };
+        DungeonSurgerySaveData surgery = new()
+        {
+            orders = new List<SurgeryOrder> { order },
+            parts = new List<SurgicalPartInstance> { previous, incoming }
+        };
+        DungeonCharacterBodyHealthSaveData body = new()
+        {
+            characters = new List<CharacterBodyHealthState>
+            {
+                new()
+                {
+                    characterId = subjectId,
+                    anatomyNodes = new List<AnatomyNodeHealthState>
+                    {
+                        new()
+                        {
+                            nodeId = nodeId,
+                            maxHealth = 80f,
+                            currentHealth = 28f,
+                            installedPartId = incomingPartId,
+                            installedPartKind = SurgicalPartKind.Prosthetic
+                        }
+                    }
+                }
+            }
+        };
+        surgery.orderSequence = 1;
+        surgery.partSequence = 2;
+        ResourceSurgicalProcedureCatalog procedures = new(
+            LoadAssets<SurgicalProcedureSO>(
+                "Assets/Resources/SO/Medical/Procedures"));
+        ResourceAnatomyProfileCatalog anatomyProfiles = new(
+            LoadAssets<AnatomyProfileSO>(
+                "Assets/Resources/SO/Medical/Anatomy"));
+        DungeonGameRestoreReport saveReport = new();
+        SurgerySaveValidation.Validate(
+            surgery,
+            procedures,
+            anatomyProfiles,
+            saveReport);
+        Require(saveReport.Success,
+            "prosthetic replacement receipt failed surgery save validation: "
+                + string.Join(" | ", saveReport.Errors));
+        SurgicalPartProductionOutputCrossAggregateSaveValidation
+            .ValidatePartOwnership(physical, surgery, body);
+        body.characters[0].anatomyNodes[0].installedPartId = oldPartId;
+        bool rejected = false;
+        try
+        {
+            SurgicalPartProductionOutputCrossAggregateSaveValidation
+                .ValidatePartOwnership(physical, surgery, body);
+        }
+        catch (InvalidOperationException)
+        {
+            rejected = true;
+        }
+        Require(rejected,
+            "replacement save join accepted a mismatched body owner");
+        return "replacement receipt joins old physical identity, recovered durability, and incoming body owner";
+    }
+
+    private static string VerifyReplacementRuntimeTransaction()
+    {
+        VerifyReplacementCasRejectionPreservesIncomingPhysical();
+        VerifyReplacementHealthCasRefreshReservesAfterRestore();
+        VerifyReplacementPublicationFailureRestoresSameOperation();
+        VerifyReplacementNaturalOrganBodyCommittedFreshnessReplay();
+        return "real replacement runtime rejects stale CAS input loss, persists pending refreshed output admission, and replays post-CAS publication or natural-organ transfer without rerolling work";
+    }
+
+    // Root-owned focused integration witness. Real part/output transactions and
+    // save joins; controlled anatomy adapter and temporary effect-bearing clones.
+    // This is not a live UI/AI installation or authored enhancement balance test.
+    public static string RunReplacementEffectProjectionFocused()
+    {
+        var profile = AssetDatabase.LoadAssetAtPath<AnatomyProfileSO>(
+            "Assets/Resources/SO/Medical/Anatomy/anatomy_humanoid.asset");
+        Require(profile != null, "Replacement projection requires the authored humanoid profile.");
+        var profiles = new ResourceAnatomyProfileCatalog(new[] { profile });
+        var originals = Resources.LoadAll<ItemDefinitionSO>(ItemDefinitionSO.UnifiedResourcePath);
+        var clones = new List<ItemDefinitionSO>();
+        var effect = ScriptableObject.CreateInstance<GameplayEffectDefinitionSO>();
+        try
+        {
+            effect.Configure(900001, "effect:qa:replacement-work", GameplayEffectTargetIds.WorkSpeed,
+                GameplayEffectOperation.Multiply, GameplayEffectProjectionPhase.Multiplicative,
+                GameplayEffectSourceKind.SurgicalPart, GameplayEffectStackingPolicy.StackAll, 0f, 10f);
+            foreach (string itemId in new[] { "surgery:prosthetic:heart", "surgery:organ:heart" })
+            {
+                var original = originals.Single(value => value.ItemId == itemId);
+                var clone = UnityEngine.Object.Instantiate(original);
+                clones.Add(clone);
+                clone.SetFeature(new InstalledSurgicalPartEffectItemFeature
+                {
+                    effects = new List<GameplayEffectBinding>
+                    {
+                        new() { bindingId = "qa:replacement-work", definition = effect, value = 1.2f }
+                    }
+                });
+            }
+            var effectCatalog = new ResourceItemDefinitionCatalog(clones);
+            Require(effectCatalog.Validate().Count == 0, "Temporary effect definitions are invalid.");
+
+            foreach (bool incomingTransferFault in new[] { true, false })
+            {
+                var kind = incomingTransferFault ? SurgicalPartKind.NaturalOrgan : SurgicalPartKind.Prosthetic;
+                using var fixture = new ReplacementRuntimeFixture(kind, 60f, incomingTransferFault);
+                fixture.Anatomy.ProjectionProfileId = "anatomy:humanoid";
+                var source = new CharacterSurgicalPartGameplayEffectSourceQuery(
+                    () => fixture.Runtime, effectCatalog, fixture.Anatomy, profiles, fixture.OrderDemand);
+                AssertProjected(fixture.PreviousPart.partInstanceId, 1.08f);
+                Require(TryReserveReplacementRuntime(fixture.Runtime, fixture.Order, fixture.Anatomy.Node,
+                    fixture.OutputPosition, fixture.Admission, out DomainFailure reserveFailure),
+                    "Projection fixture reserve failed: " + reserveFailure);
+                var publication = new FailOnceReplacementPublication(fixture.Publication)
+                {
+                    FailPublishOnce = !incomingTransferFault
+                };
+                Require(!TryCommitReplacementRuntime(fixture.Runtime, fixture.Order, fixture.Actor,
+                    kind, 1f, fixture.Anatomy, fixture.Admission, publication, out DomainFailure pendingFailure)
+                    && pendingFailure.IsFailure
+                    && fixture.Order.replacementPhase == SurgicalPartReplacementPhase.BodyCommitted
+                    && fixture.Anatomy.ReplaceCallCount == 1
+                    && fixture.IncomingPart.installed == !incomingTransferFault,
+                    "Fault did not reach the expected actual BodyCommitted boundary: " + pendingFailure);
+                string expectedSource = incomingTransferFault ? null : fixture.IncomingPart.partInstanceId;
+                AssertProjected(expectedSource, 1.07f);
+                fixture.CaptureValidateCrossJoinAndRestore(profiles);
+                AssertProjected(expectedSource, 1.07f);
+
+                // Invalid ownership must not be hidden by the legitimate pending state.
+                string subject = fixture.Order.subject.subjectId, node = fixture.Order.targetNodeId;
+                string oldPart = fixture.Order.replacementExpectedOldPartId;
+                Reject(() => fixture.Order.subject.subjectId = "character:qa:wrong",
+                    () => fixture.Order.subject.subjectId = subject);
+                Reject(() => fixture.Order.targetNodeId = "arm:left", () => fixture.Order.targetNodeId = node);
+                Reject(() => fixture.Order.replacementExpectedOldPartId = "surgical-part:qa:wrong",
+                    () => fixture.Order.replacementExpectedOldPartId = oldPart);
+                Reject(() => fixture.Order.replacementPhase = SurgicalPartReplacementPhase.OutputReserved,
+                    () => fixture.Order.replacementPhase = SurgicalPartReplacementPhase.BodyCommitted);
+                Reject(() => fixture.Order.state = SurgeryOrderState.Completed,
+                    () => fixture.Order.state = SurgeryOrderState.Procedure);
+                var duplicate = JsonUtility.FromJson<SurgeryOrder>(JsonUtility.ToJson(fixture.Order));
+                duplicate.orderId = "surgery:qa:duplicate";
+                Reject(() => fixture.MutableOrders.Add(duplicate), () => fixture.MutableOrders.Remove(duplicate));
+                AssertProjected(expectedSource, 1.07f);
+
+                Require(TryCommitReplacementRuntime(fixture.Runtime, fixture.Order, fixture.Actor,
+                    kind, 1f, fixture.Anatomy, fixture.Admission, publication, out DomainFailure retryFailure)
+                    && !retryFailure.IsFailure
+                    && fixture.Order.replacementPhase == SurgicalPartReplacementPhase.Completed
+                    && fixture.Anatomy.ReplaceCallCount == 1
+                    && fixture.Repository.GetEditorTestQuantity(fixture.IncomingStackId) == 0
+                    && fixture.Publication.CaptureEditorTestSnapshot().Stacks.Count == 1,
+                    "Projection retry changed the transaction result: " + retryFailure);
+                AssertProjected(fixture.IncomingPart.partInstanceId, 1.07f);
+                // Controlled coordinator boundary: SurgeryRuntime advances this
+                // only after the real replacement command returned successfully.
+                // The detached part-runtime fixture does not run that coordinator.
+                fixture.Order.resolvedEffectCount = 1;
+                fixture.CaptureValidateCrossJoinAndRestore(profiles);
+                AssertProjected(fixture.IncomingPart.partInstanceId, 1.07f);
+
+                void AssertProjected(string expectedId, float expectedValue)
+                {
+                    string before = fixture.CaptureProjectionStateJson();
+                    var projected = source.GetInstalledPartSources(fixture.Actor);
+                    Require(projected.Count == (expectedId == null ? 0 : 1), "Pending projection duplicated or lost an effect.");
+                    if (expectedId != null)
+                    {
+                        Require(projected[0].SourceRef.SourceId == expectedId && projected[0].Effects.Count == 1,
+                            "Projection used the detached old part or wrong incoming effect.");
+                        Require(Mathf.Abs(projected[0].Effects[0].value - expectedValue) < 0.00001f,
+                            "Health/efficiency or item quality was applied incorrectly.");
+                    }
+                    Require(fixture.CaptureProjectionStateJson() == before, "Effect query mutated surgery/body/physical ownership.");
+                }
+
+                void Reject(Action corrupt, Action restore)
+                {
+                    corrupt();
+                    try
+                    {
+                        string before = fixture.CaptureProjectionStateJson();
+                        bool rejected = false;
+                        try { source.GetInstalledPartSources(fixture.Actor); }
+                        catch (InvalidOperationException) { rejected = true; }
+                        Require(rejected, "Projection accepted an unrelated, inactive, duplicate or mismatched pending owner.");
+                        Require(fixture.CaptureProjectionStateJson() == before,
+                            "Rejected effect query mutated surgery/body/physical ownership.");
+                    }
+                    finally { restore(); }
+                }
+            }
+            return "PASS actual transfer/publication faults -> BodyCommitted projection -> current JSON ownership restore -> retry once; 12 invalid joins rejected; detached anatomy/effect clones, not live UI/AI/maxHP";
+        }
+        finally
+        {
+            foreach (var clone in clones) UnityEngine.Object.DestroyImmediate(clone);
+            UnityEngine.Object.DestroyImmediate(effect);
+        }
+    }
+
+    // Root-owned authored projection witness. Scratch installed records and a
+    // controlled anatomy adapter are not a live species surgery or save preflight.
+    public static string RunAuthoredInstalledEffectCompositionFocused()
+    {
+        using var fixture = new ReplacementRuntimeFixture();
+        var items = new ResourceItemDefinitionCatalog(Resources.LoadAll<ItemDefinitionSO>(ItemDefinitionSO.UnifiedResourcePath));
+        var profiles = new ResourceAnatomyProfileCatalog(LoadAssets<AnatomyProfileSO>("Assets/Resources/SO/Medical/Anatomy"));
+        var procedures = Resources.LoadAll<SurgicalProcedureSO>(SurgicalProcedureSO.ResourcePath);
+        var cases = new[]
+        {
+            ("beastkin-sprint-joint", "anatomy:beastkin", "leg:left", GameplayEffectTargetIds.MoveSpeed, 1f, 1.0392304845f, 1.0198039027f),
+            ("demon-heat-sac", "anatomy:demon", "heat-sac", GameplayEffectTargetIds.HeatExposure, 1f, .80f, .90f),
+            ("orc-combat-heart", "anatomy:orc", "heart", GameplayEffectTargetIds.MaximumHealth, 100f, 110f, 105f),
+            ("kobold-tail-balance", "anatomy:kobold", "balance-tail", GameplayEffectTargetIds.EvasionChance, .10f, .13f, .115f),
+            ("human-neural-assist", "anatomy:humanoid", "brain", GameplayEffectTargetIds.WorkSpeed, 1f, 1.05f, 1.025f)
+        };
+        var lines = new List<string>();
+        foreach (var test in cases)
+        {
+            var procedure = procedures.Single(x => x.ProcedureId == "procedure:" + test.Item1);
+            Require(procedure.TryGetInstallationEffect(out var installation), "Authored installation missing: " + test.Item1);
+            Require(profiles.TryGet(test.Item2, out var profile) && profile.TryGetNode(test.Item3, out _),
+                "Authored anatomy node missing: " + test.Item2 + "/" + test.Item3);
+            var parts = new List<SurgicalPartInstance>();
+            var nodes = new List<AnatomyNodeHealthState>();
+            Add(test.Item3);
+            var runtime = CreateReplacementProxy<ISurgicalPartRuntime>((method, _) => method.Name == "get_Parts"
+                ? parts : throw new InvalidOperationException("Unexpected part query: " + method.Name));
+            var anatomy = CreateReplacementProxy<IAnatomyHealthRuntime>((method, _) => method.Name == "GetAnatomySnapshot"
+                ? new AnatomyHealthSnapshot(test.Item2, nodes, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f)
+                : throw new InvalidOperationException("Unexpected anatomy mutation/query: " + method.Name));
+            var demand = CreateReplacementProxy<ISurgeryOrderDemandQuery>((method, _) => method.Name == "get_ActiveOrders"
+                ? Array.Empty<SurgeryOrder>() : throw new InvalidOperationException("Unexpected order query: " + method.Name));
+            var query = new CharacterSurgicalPartGameplayEffectSourceQuery(() => runtime, items, anatomy, profiles, demand);
+
+            Check(test.Item6, "full authored single slot");
+            parts[0].quality = nodes[0].installedPartEfficiency = .5f;
+            Check(test.Item7, "quality once");
+            parts[0].quality = nodes[0].installedPartEfficiency = 1f;
+            nodes[0].currentHealth = 5f;
+            Check(test.Item7, "condition once");
+            nodes[0].currentHealth = 0f;
+            Check(test.Item5, "nonfunctional neutral");
+            nodes[0].currentHealth = 10f;
+
+            if (test.Item1 == "beastkin-sprint-joint")
+            {
+                Add("leg:right"); // Same authored left intrinsic part is pair-compatible.
+                Check(1.08f, "complete paired set, not1.1664");
+                foreach (var node in nodes) node.installedPartEfficiency = .5f;
+                foreach (var part in parts) part.quality = .5f;
+                Check(1.04f, "equal half-strength pair");
+                nodes[0].installedPartEfficiency = parts[0].quality = 1f;
+                Check(1.0598113033f, "mixed strengths sqrt1.08*sqrt1.04");
+                nodes[1].installedPartEfficiency = parts[1].quality = 1f;
+                var before = CaptureScratch();
+                parts = parts.Select(x => JsonUtility.FromJson<SurgicalPartInstance>(JsonUtility.ToJson(x))).ToList();
+                nodes = nodes.Select(x => JsonUtility.FromJson<AnatomyNodeHealthState>(JsonUtility.ToJson(x))).ToList();
+                Require(CaptureScratch() == before, "Scratch component JSON roundtrip changed state.");
+                Check(1.08f, "scratch JSON projection replay");
+                nodes[1].installedPartId = string.Empty;
+                parts[1].installed = false;
+                parts[1].installedSubjectId = string.Empty;
+                Check(1.0392304845f, "removed right does not strengthen left");
+                parts[0].itemDefinitionId = "surgery:prosthetic:leg:left";
+                Check(1f, "ordinary prosthetic gets no enhancement");
+            }
+            else
+            {
+                parts[0].installed = false;
+                parts[0].installedSubjectId = string.Empty;
+                nodes[0].installedPartId = string.Empty;
+                Check(test.Item5, "detached physical part contributes zero");
+            }
+            lines.Add(test.Item1 + "=PASS");
+
+            void Add(string targetNode)
+            {
+                string partId = "surgical-part:qa:composition:" + parts.Count;
+                parts.Add(new SurgicalPartInstance { partInstanceId = partId, itemDefinitionId = installation.requiredItemDefinitionId,
+                    nodeId = test.Item3, kind = installation.partKind, installed = true,
+                    installedSubjectId = fixture.Actor.Identity.PersistentId, quality = 1f });
+                nodes.Add(new AnatomyNodeHealthState { nodeId = targetNode, maxHealth = 10f, currentHealth = 10f,
+                    installedPartId = partId, installedPartKind = installation.partKind, installedPartEfficiency = 1f });
+            }
+            string CaptureScratch() => string.Join("|", parts.Select(x => JsonUtility.ToJson(x)))
+                + "/" + string.Join("|", nodes.Select(x => JsonUtility.ToJson(x)));
+            void Check(float expected, string label)
+            {
+                string before = CaptureScratch();
+                var sources = query.GetInstalledPartSources(fixture.Actor);
+                float actual = CharacterGameplayEffectProjector.Resolve(test.Item4, test.Item5, sources).Value;
+                Require(Mathf.Abs(actual - expected) < .0001f,
+                    test.Item1 + " / " + label + ": expected=" + expected + "; actual=" + actual);
+                Require(before == CaptureScratch(), "Projection mutated source records: " + label);
+            }
+        }
+        return "PASS actual authored5 effect definitions; " + string.Join("; ", lines)
+            + "; source/target projection only, scratch ownership/anatomy/JSON; NOT live species eligibility, whole-save or uncontrolled balance";
+    }
+
+    // Pass the actual main-scene DI service. This is display projection, not an
+    // installation command, species-admission or natural modal-click witness.
+    public static string RunAuthoredPartPreviewFocused(CharacterSurgeryWindowService service)
+    {
+        Require(service != null, "Actual main surgery window service is required.");
+        var labelMethod = typeof(CharacterSurgeryWindowService).GetMethod("GetPartLabel",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Require(labelMethod != null, "Production part-label projection is missing.");
+        var bodyMethod = typeof(CharacterSurgeryWindowService).GetMethod("AppendSelectedPartPreview",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Require(bodyMethod != null, "Selected-part body disclosure is missing.");
+        var profiles = new ResourceAnatomyProfileCatalog(LoadAssets<AnatomyProfileSO>("Assets/Resources/SO/Medical/Anatomy"));
+        var pairedProfile = profiles.GetForSpecies("Beastkin");
+        Require(pairedProfile.TryGetNode("leg:left", out var pairedNode), "Authored Beastkin leg missing.");
+        var scratchSubject = new SurgeryPlanningSubject { Subject = new SurgicalSubjectRef {
+            subjectId = "character:qa:preview", speciesId = "Beastkin", anatomyProfileId = "anatomy:beastkin" }, Nodes = pairedProfile.Nodes };
+        var cases = new[]
+        {
+            ("beastkin-sprint-joint", "이동", "×1.08"),
+            ("demon-heat-sac", "열기", "×0.8"),
+            ("orc-combat-heart", "체력", "×1.1"),
+            ("kobold-tail-balance", "회피", "+0.03"),
+            ("human-neural-assist", "작업", "×1.05")
+        };
+        var procedures = Resources.LoadAll<SurgicalProcedureSO>(SurgicalProcedureSO.ResourcePath);
+        var labels = new List<string>();
+        var priorCulture = System.Globalization.CultureInfo.CurrentCulture;
+        try
+        {
+            System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+            foreach (var test in cases)
+            {
+                var procedure = procedures.Single(x => x.ProcedureId == "procedure:" + test.Item1);
+                Require(procedure.TryGetInstallationEffect(out var installation), "Installation definition missing.");
+                var part = new SurgicalPartInstance { partInstanceId = "surgical-part:qa:preview",
+                    itemDefinitionId = installation.requiredItemDefinitionId, displayName = procedure.DisplayName,
+                    kind = installation.partKind, quality = .5f };
+                string before = JsonUtility.ToJson(part);
+                string label = (string)labelMethod.Invoke(service, new object[] { part });
+                Require(label.Contains(test.Item2) && label.Contains(test.Item3)
+                    && label.Contains("기준 품질") && label.Contains("완성 구성") && label.Contains("0.50"),
+                    "Authored baseline/quality/target meaning missing for " + test.Item1 + ": " + label);
+                Require(before == JsonUtility.ToJson(part), "Preview mutated the scratch part.");
+                Require(label == (string)labelMethod.Invoke(service, new object[] { part }),
+                    "Repeated read changed preview meaning.");
+                if (test.Item1 == "beastkin-sprint-joint")
+                {
+                    part.nodeId = "leg:left";
+                    string body = PreviewBody(part);
+                    Require(body.Contains("×1.08") && body.Contains("슬롯 2개")
+                        && body.Contains("전체 보너스가 적용되지 않습니다") && body.Contains("0.50"),
+                        "Paired baseline/single-slot/quality distinction missing from body: " + body);
+                }
+                labels.Add(label);
+            }
+            var ordinary = new SurgicalPartInstance { partInstanceId = "surgical-part:qa:ordinary-preview",
+                itemDefinitionId = "surgery:prosthetic:leg:left", nodeId = "leg:left", displayName = "ordinary", kind = SurgicalPartKind.Prosthetic, quality = .5f };
+            string ordinaryLabel = (string)labelMethod.Invoke(service, new object[] { ordinary });
+            Require(!ordinaryLabel.Contains("완성 구성"), "Ordinary prosthetic leaked enhancement preview.");
+            Require(!PreviewBody(ordinary).Contains("완성 구성"), "Ordinary details leaked enhancement baseline wording.");
+            ordinary.itemDefinitionId = "qa:missing:surgical-preview";
+            bool missingRejected = false;
+            try { labelMethod.Invoke(service, new object[] { ordinary }); }
+            catch (System.Reflection.TargetInvocationException error)
+            { missingRejected = error.InnerException is InvalidOperationException || error.InnerException is KeyNotFoundException; }
+            Require(missingRejected, "Missing physical definition was silently previewed.");
+        }
+        finally { System.Globalization.CultureInfo.CurrentCulture = priorCulture; }
+        return "PASS main DI service and authored5 preview labels, baseline/quality distinction, stable nonmutating reads, ordinary neutral, missing definition rejected; "
+            + string.Join(" | ", labels) + "; scope=display projection with scratch parts, NOT actual modal input or installation";
+
+        string PreviewBody(SurgicalPartInstance part)
+        {
+            string before = JsonUtility.ToJson(part);
+            var text = new System.Text.StringBuilder();
+            bodyMethod.Invoke(service, new object[] { text, scratchSubject, pairedNode, part });
+            Require(JsonUtility.ToJson(part) == before, "Details projection mutated the scratch part.");
+            return text.ToString();
+        }
+    }
+
+    private static void VerifyReplacementCasRejectionPreservesIncomingPhysical()
+    {
+        using ReplacementRuntimeFixture fixture = new();
+        SurgeryOrder order = fixture.Order;
+        Require(
+            TryReserveReplacementRuntime(
+                fixture.Runtime,
+                order,
+                fixture.Anatomy.Node,
+                fixture.OutputPosition,
+                fixture.Admission,
+                out DomainFailure reserveFailure)
+            && !reserveFailure.IsFailure
+            && order.replacementPhase ==
+                SurgicalPartReplacementPhase.OutputReserved,
+            "replacement runtime could not reserve its output before the CAS rejection fixture: "
+            + reserveFailure);
+
+        string admissionTokenId = order.replacementAdmissionTokenId;
+        fixture.Anatomy.ForceInstalledPartForCasRace("surgical-part:race");
+        Require(
+            !TryCommitReplacementRuntime(
+                fixture.Runtime,
+                order,
+                fixture.Actor,
+                SurgicalPartKind.Prosthetic,
+                1f,
+                fixture.Anatomy,
+                fixture.Admission,
+                fixture.Publication,
+                out DomainFailure failure)
+            && failure.IsFailure
+            && order.replacementPhase ==
+                SurgicalPartReplacementPhase.OutputReserved
+            && fixture.IncomingPart.installed == false
+            && fixture.IncomingPart.reservedOrderId == order.orderId
+            && fixture.IncomingPart.worldStackId == fixture.IncomingStackId
+            && fixture.Repository.GetEditorTestQuantity(
+                fixture.IncomingStackId) == 1
+            && fixture.Repository.GetEditorPendingBatchDispositionCount() == 0
+            && string.Equals(
+                order.replacementAdmissionTokenId,
+                admissionTokenId,
+                StringComparison.Ordinal)
+            && fixture.Admission.TryValidatePlannedOutputReservation(
+                fixture.GetReplacementToken(),
+                out _,
+                out _),
+            "replacement body CAS rejection consumed its incoming physical item or reservation");
+    }
+
+    private static void VerifyReplacementPublicationFailureRestoresSameOperation()
+    {
+        using ReplacementRuntimeFixture fixture = new();
+        SurgeryOrder order = fixture.Order;
+        Require(
+            TryReserveReplacementRuntime(
+                fixture.Runtime,
+                order,
+                fixture.Anatomy.Node,
+                fixture.OutputPosition,
+                fixture.Admission,
+                out DomainFailure reserveFailure)
+            && !reserveFailure.IsFailure
+            && order.replacementPhase ==
+                SurgicalPartReplacementPhase.OutputReserved,
+            "replacement runtime did not enter OutputReserved: " + reserveFailure);
+
+        string frozenOperationId = order.replacementOperationId;
+        string frozenPublicationId = order.replacementPublicationOperationId;
+        string frozenBatchCommitId = order.replacementBatchCommitId;
+        string frozenAdmissionTokenId = order.replacementAdmissionTokenId;
+        string frozenOutcomeFingerprint = order.replacementOutcomeFingerprint;
+        string frozenPlannedFingerprint = order.replacementPlannedOutputFingerprint;
+        FailOnceReplacementPublication publishFailure = new(
+            fixture.Publication)
+        {
+            FailPublishOnce = true
+        };
+        Require(
+            !TryCommitReplacementRuntime(
+                fixture.Runtime,
+                order,
+                fixture.Actor,
+                SurgicalPartKind.Prosthetic,
+                1f,
+                fixture.Anatomy,
+                fixture.Admission,
+                publishFailure,
+                out DomainFailure publicationFailure)
+            && publicationFailure.IsFailure
+            && order.replacementPhase ==
+                SurgicalPartReplacementPhase.BodyCommitted
+            && fixture.Anatomy.ReplaceCallCount == 1
+            && fixture.Anatomy.Node.installedPartId
+                == fixture.IncomingPart.partInstanceId
+            && fixture.IncomingPart.installed
+            && fixture.Repository.GetEditorTestQuantity(
+                fixture.IncomingStackId) == 0
+            && fixture.Publication.CaptureEditorTestSnapshot().Stacks.Count == 0,
+            "post-CAS replacement publication failure did not retain the body-committed retry state");
+
+        DungeonSurgerySaveData persisted = fixture.CaptureValidateCrossJoinAndRestore();
+        order = fixture.Order;
+        Require(
+            order.replacementPhase == SurgicalPartReplacementPhase.BodyCommitted
+            && string.Equals(
+                order.replacementOperationId,
+                frozenOperationId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                order.replacementPublicationOperationId,
+                frozenPublicationId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                order.replacementBatchCommitId,
+                frozenBatchCommitId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                order.replacementOutcomeFingerprint,
+                frozenOutcomeFingerprint,
+                StringComparison.Ordinal)
+            && string.Equals(
+                order.replacementPlannedOutputFingerprint,
+                frozenPlannedFingerprint,
+                StringComparison.Ordinal)
+            && string.Equals(
+                persisted.orders.Single(candidate => string.Equals(
+                    candidate.orderId,
+                    order.orderId,
+                    StringComparison.Ordinal)).replacementOutcomeFingerprint,
+                frozenOutcomeFingerprint,
+                StringComparison.Ordinal),
+            "replacement save/restore changed the frozen operation or outcome fingerprint");
+
+        fixture.ReconstructOutputServices(
+            out FacilityBufferMassAdmissionService restoredAdmission,
+            out FacilityBufferPlannedOutputPublicationService restoredPublication);
+        Require(
+            !restoredAdmission.TryGetPlannedOutputToken(
+                frozenAdmissionTokenId,
+                out _,
+                out _),
+            "replacement fixture carried its pre-restore admission token into a fresh service");
+
+        FailOnceReplacementPublication acknowledgementFailure = new(
+            restoredPublication)
+        {
+            FailAcknowledgementOnce = true
+        };
+        InstallSurgicalPartEffectHandler replacementHandler =
+            fixture.CreateReplacementEffectHandler(
+                restoredAdmission,
+                acknowledgementFailure);
+        InstallSurgicalPartEffect installEffect = new()
+        {
+            partKind = SurgicalPartKind.Prosthetic,
+            efficiency = 1f
+        };
+        Require(
+            !replacementHandler.Apply(
+                order,
+                installEffect,
+                null,
+                out DomainFailure acknowledgementResult)
+            && acknowledgementResult.IsFailure
+            && order.replacementPhase ==
+                SurgicalPartReplacementPhase.OutputPublished
+            && fixture.Anatomy.ReplaceCallCount == 1
+            && restoredPublication.CaptureEditorTestSnapshot().Stacks.Count == 1
+            && restoredAdmission.TryGetPlannedOutputToken(
+                order.replacementAdmissionTokenId,
+                out _,
+                out FacilityBufferMassAdmissionTokenStatus restoredTokenStatus)
+            && restoredTokenStatus == FacilityBufferMassAdmissionTokenStatus.Routed,
+            "replacement runtime did not retain OutputPublished after the exact publication acknowledgement fault");
+
+        string reconstructedAdmissionTokenId = order.replacementAdmissionTokenId;
+
+        Require(
+            replacementHandler.Apply(
+                order,
+                installEffect,
+                null,
+                out DomainFailure retryFailure)
+            && !retryFailure.IsFailure
+            && order.replacementPhase ==
+                SurgicalPartReplacementPhase.Completed
+            && fixture.Anatomy.ReplaceCallCount == 1
+            && restoredPublication.CaptureEditorTestSnapshot().Stacks.Count == 1
+            && string.Equals(
+                order.replacementOperationId,
+                frozenOperationId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                order.replacementPublicationOperationId,
+                frozenPublicationId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                order.replacementBatchCommitId,
+                frozenBatchCommitId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                order.replacementAdmissionTokenId,
+                reconstructedAdmissionTokenId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                order.replacementOutcomeFingerprint,
+                frozenOutcomeFingerprint,
+                StringComparison.Ordinal)
+            && string.Equals(
+                order.replacementPlannedOutputFingerprint,
+                frozenPlannedFingerprint,
+                StringComparison.Ordinal),
+            "replacement retry did not complete the same frozen operation: "
+            + retryFailure);
+
+        // The runtime owns the phase transition. The effect handler advances
+        // this count only after the command returns successfully.
+        order.resolvedEffectCount = 1;
+        fixture.CaptureValidateCrossJoinAndRestore();
+    }
+
+    private static void VerifyReplacementHealthCasRefreshReservesAfterRestore()
+    {
+        using ReplacementRuntimeFixture fixture = new();
+        SurgeryOrder order = fixture.Order;
+        Require(
+            TryReserveReplacementRuntime(
+                fixture.Runtime,
+                order,
+                fixture.Anatomy.Node,
+                fixture.OutputPosition,
+                fixture.Admission,
+                out DomainFailure reserveFailure)
+            && !reserveFailure.IsFailure,
+            "replacement refresh fixture could not reserve its initial output: "
+            + reserveFailure);
+
+        string frozenOperationId = order.replacementOperationId;
+        string frozenBatchCommitId = order.replacementBatchCommitId;
+        string expectedOldPartId = order.replacementExpectedOldPartId;
+        string incomingPartId = order.replacementIncomingPartId;
+        int initialAttempt = order.replacementReservationAttempt;
+        string refreshedPublicationId = SurgicalPartReplacementIdentity
+            .FormatPublicationOperationId(order.orderId, initialAttempt + 1);
+        fixture.Anatomy.SetCurrentHealthForReplacementRefresh(24f);
+        bool failNextReservation = true;
+        IFacilityBufferMassAdmissionService reserveFailureAdmission =
+            CreateReplacementProxy<IFacilityBufferMassAdmissionService>(
+                (method, arguments) =>
+                {
+                    if (failNextReservation
+                        && method.Name == "TryReservePlannedOutput")
+                    {
+                        failNextReservation = false;
+                        arguments[1] = default(FacilityBufferPlannedOutputToken);
+                        arguments[2] = FacilityBufferMassAdmissionFailureCode
+                            .CapacityUnavailable;
+                        arguments[3] = "qa-replacement-refresh-reservation-failure";
+                        return false;
+                    }
+
+                    return method.Invoke(fixture.Admission, arguments);
+                });
+        Require(
+            !TryCommitReplacementRuntime(
+                fixture.Runtime,
+                order,
+                fixture.Actor,
+                SurgicalPartKind.Prosthetic,
+                1f,
+                fixture.Anatomy,
+                reserveFailureAdmission,
+                fixture.Publication,
+                out DomainFailure refreshFailure)
+            && refreshFailure.IsFailure
+            && !failNextReservation
+            && order.replacementPhase ==
+                SurgicalPartReplacementPhase.OutputReservationPending
+            && order.replacementReservationAttempt == initialAttempt + 1
+            && string.Equals(
+                order.replacementOperationId,
+                frozenOperationId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                order.replacementBatchCommitId,
+                frozenBatchCommitId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                order.replacementPublicationOperationId,
+                refreshedPublicationId,
+                StringComparison.Ordinal)
+            && string.Equals(order.replacementExpectedOldPartId, expectedOldPartId,
+                StringComparison.Ordinal)
+            && string.Equals(order.replacementIncomingPartId, incomingPartId,
+                StringComparison.Ordinal)
+            && order.replacementOutputX == fixture.OutputPosition.x
+            && order.replacementOutputY == fixture.OutputPosition.y
+            && order.replacementDetachedCurrentHealth == 24f
+            && order.replacementDetachedMaxHealth == 80f
+            && string.IsNullOrEmpty(order.replacementAdmissionTokenId)
+            && string.IsNullOrEmpty(order.replacementOutcomeFingerprint)
+            && string.IsNullOrEmpty(order.replacementPlannedOutputFingerprint)
+            && string.IsNullOrEmpty(order.replacementOutputStackId)
+            && string.IsNullOrEmpty(order.replacementOutputItemInstanceId)
+            && order.replacementOutputMassGrams == 0L
+            && order.resultRolled
+            && order.resultSucceeded
+            && order.resultOutcomeId == "success"
+            && order.resolvedEffectCount == 0
+            && fixture.Anatomy.ReplaceCallCount == 1
+            && fixture.Repository.GetEditorTestQuantity(
+                fixture.IncomingStackId) == 1,
+            "health-CAS refresh did not preserve a reservation-pending replacement intent");
+
+        DungeonSurgerySaveData persisted =
+            fixture.CaptureValidateCrossJoinAndRestore();
+        order = fixture.Order;
+        Require(
+            persisted.orders.Single(candidate => string.Equals(
+                candidate.orderId,
+                order.orderId,
+                StringComparison.Ordinal)).replacementPhase ==
+                SurgicalPartReplacementPhase.OutputReservationPending
+            && order.replacementPhase ==
+                SurgicalPartReplacementPhase.OutputReservationPending
+            && string.Equals(
+                order.replacementOperationId,
+                frozenOperationId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                order.replacementBatchCommitId,
+                frozenBatchCommitId,
+                StringComparison.Ordinal)
+            && order.replacementReservationAttempt == initialAttempt + 1
+            && string.Equals(
+                order.replacementPublicationOperationId,
+                refreshedPublicationId,
+                StringComparison.Ordinal)
+            && string.IsNullOrEmpty(order.replacementAdmissionTokenId)
+            && string.IsNullOrEmpty(order.replacementOutcomeFingerprint)
+            && string.IsNullOrEmpty(order.replacementPlannedOutputFingerprint),
+            "replacement save/restore changed its reservation-pending intent");
+
+        fixture.ReconstructOutputServices(
+            out FacilityBufferMassAdmissionService restoredAdmission,
+            out FacilityBufferPlannedOutputPublicationService restoredPublication);
+        InstallSurgicalPartEffectHandler replacementHandler =
+            fixture.CreateReplacementEffectHandler(
+                restoredAdmission,
+                restoredPublication);
+        InstallSurgicalPartEffect installEffect = new()
+        {
+            partKind = SurgicalPartKind.Prosthetic,
+            efficiency = 1f
+        };
+        Require(
+            replacementHandler.Apply(
+                order,
+                installEffect,
+                null,
+                out DomainFailure retryFailure)
+            && !retryFailure.IsFailure
+            && order.replacementPhase ==
+                SurgicalPartReplacementPhase.Completed
+            && order.replacementReservationAttempt == initialAttempt + 1
+            && string.Equals(
+                order.replacementOperationId,
+                frozenOperationId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                order.replacementBatchCommitId,
+                frozenBatchCommitId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                order.replacementPublicationOperationId,
+                refreshedPublicationId,
+                StringComparison.Ordinal)
+            && order.resultRolled
+            && order.resultSucceeded
+            && order.resultOutcomeId == "success"
+            && order.resolvedEffectCount == 0
+            && fixture.Anatomy.ReplaceCallCount == 2
+            && fixture.Repository.GetEditorTestQuantity(
+                fixture.IncomingStackId) == 0,
+            "reservation-pending replacement did not re-reserve and complete through the effect command: "
+            + retryFailure);
+
+        order.resolvedEffectCount = 1;
+        fixture.CaptureValidateCrossJoinAndRestore();
+    }
+
+    private static void VerifyReplacementNaturalOrganBodyCommittedFreshnessReplay()
+    {
+        InstallSurgicalPartEffect installEffect = new()
+        {
+            partKind = SurgicalPartKind.NaturalOrgan,
+            efficiency = 1f
+        };
+        using (ReplacementRuntimeFixture preCas = new(
+                   SurgicalPartKind.NaturalOrgan,
+                   incomingFreshnessSeconds: 60f))
+        {
+            Require(
+                TryReserveReplacementRuntime(
+                    preCas.Runtime,
+                    preCas.Order,
+                    preCas.Anatomy.Node,
+                    preCas.OutputPosition,
+                    preCas.Admission,
+                    out DomainFailure preCasReserveFailure)
+                && !preCasReserveFailure.IsFailure,
+                "natural-organ pre-CAS fixture could not reserve output: "
+                + preCasReserveFailure);
+            preCas.IncomingPart.freshnessSeconds = 0f;
+            InstallSurgicalPartEffectHandler preCasHandler =
+                preCas.CreateReplacementEffectHandler(
+                    preCas.Admission,
+                    preCas.Publication);
+            Require(
+                !preCasHandler.Apply(
+                    preCas.Order,
+                    installEffect,
+                    null,
+                    out DomainFailure staleFailure)
+                && staleFailure.IsFailure
+                && preCas.Order.replacementPhase ==
+                    SurgicalPartReplacementPhase.OutputReserved
+                && preCas.Anatomy.ReplaceCallCount == 0
+                && preCas.Repository.GetEditorTestQuantity(
+                    preCas.IncomingStackId) == 1,
+                "pre-CAS stale natural organ was accepted or consumed");
+        }
+
+        using ReplacementRuntimeFixture fixture = new(
+            SurgicalPartKind.NaturalOrgan,
+            incomingFreshnessSeconds: 60f,
+            failFirstIncomingTransfer: true);
+        SurgeryOrder order = fixture.Order;
+        Require(
+            TryReserveReplacementRuntime(
+                fixture.Runtime,
+                order,
+                fixture.Anatomy.Node,
+                fixture.OutputPosition,
+                fixture.Admission,
+                out DomainFailure reserveFailure)
+            && !reserveFailure.IsFailure,
+            "natural-organ transfer replay fixture could not reserve output: "
+            + reserveFailure);
+        string frozenOperationId = order.replacementOperationId;
+        string frozenPublicationId = order.replacementPublicationOperationId;
+        string frozenBatchCommitId = order.replacementBatchCommitId;
+        InstallSurgicalPartEffectHandler replacementHandler =
+            fixture.CreateReplacementEffectHandler(
+                fixture.Admission,
+                fixture.Publication);
+        Require(
+            !replacementHandler.Apply(
+                order,
+                installEffect,
+                null,
+                out DomainFailure transferFailure)
+            && transferFailure.IsFailure
+            && order.replacementPhase ==
+                SurgicalPartReplacementPhase.BodyCommitted
+            && fixture.Anatomy.ReplaceCallCount == 1
+            && !fixture.IncomingPart.installed
+            && string.IsNullOrEmpty(fixture.IncomingPart.installationOrderId)
+            && string.IsNullOrEmpty(fixture.IncomingPart.installationOperationId)
+            && string.IsNullOrEmpty(fixture.IncomingPart.installationCommitId)
+            && string.IsNullOrEmpty(fixture.IncomingPart.installationSourceStackId)
+            && string.IsNullOrEmpty(fixture.IncomingPart.installationSubjectId)
+            && fixture.Repository.GetEditorTestQuantity(
+                fixture.IncomingStackId) == 1,
+            "post-CAS natural-organ transfer fault did not leave a clean replayable body commit");
+
+        fixture.Runtime.TickFreshness(120f);
+        Require(
+            order.replacementPhase ==
+                SurgicalPartReplacementPhase.BodyCommitted
+            && string.Equals(
+                order.replacementIncomingPartId,
+                fixture.IncomingPart.partInstanceId,
+                StringComparison.Ordinal)
+            && fixture.IncomingPart.worldStackId == fixture.IncomingStackId
+            && fixture.Repository.GetEditorTestQuantity(
+                fixture.IncomingStackId) == 1
+            && fixture.IncomingPart.freshnessSeconds == 60f,
+            "freshness ticking expired the exact BodyCommitted natural-organ transfer input");
+
+        fixture.CaptureValidateCrossJoinAndRestore();
+        order = fixture.Order;
+        fixture.IncomingPart.freshnessSeconds = 0f;
+        Require(
+            replacementHandler.Apply(
+                order,
+                installEffect,
+                null,
+                out DomainFailure retryFailure)
+            && !retryFailure.IsFailure
+            && order.replacementPhase ==
+                SurgicalPartReplacementPhase.Completed
+            && fixture.Anatomy.ReplaceCallCount == 1
+            && fixture.IncomingPart.installed
+            && fixture.Repository.GetEditorTestQuantity(
+                fixture.IncomingStackId) == 0
+            && string.Equals(
+                order.replacementOperationId,
+                frozenOperationId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                order.replacementPublicationOperationId,
+                frozenPublicationId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                order.replacementBatchCommitId,
+                frozenBatchCommitId,
+                StringComparison.Ordinal),
+            "BodyCommitted stale natural organ did not replay its same transfer: "
+            + retryFailure);
+
+        order.resolvedEffectCount = 1;
+        fixture.CaptureValidateCrossJoinAndRestore();
+    }
+
+    private static string VerifySurgeryFacilitySingleOwnerSaveJoin()
+    {
+        SurgeryOrder owner = new()
+        {
+            orderId = "surgery:1",
+            facilityId = "facility:single-owner",
+            materialDestinationId = "surgery-materials:surgery:1",
+            materialBufferCapacityGrams = 1000L,
+            materialMassAuthorityRevision = 1L,
+            materialCapacityFingerprint = new string('b', 64),
+            state = SurgeryOrderState.PatientWaiting
+        };
+        SurgeryOrder queued = new()
+        {
+            orderId = "surgery:2",
+            facilityId = owner.facilityId,
+            state = SurgeryOrderState.PatientWaiting
+        };
+        DungeonPhysicalItemSaveData physical = new();
+        DungeonCharacterBodyHealthSaveData body = new();
+        DungeonSurgerySaveData surgery = new()
+        {
+            orders = new List<SurgeryOrder> { owner, queued }
+        };
+        SurgicalPartProductionOutputCrossAggregateSaveValidation
+            .ValidatePartOwnership(physical, surgery, body);
+        queued.materialDestinationId = "surgery-materials:surgery:2";
+        queued.materialBufferCapacityGrams = 1000L;
+        queued.materialMassAuthorityRevision = 1L;
+        queued.materialCapacityFingerprint = new string('c', 64);
+        bool rejected = false;
+        try
+        {
+            SurgicalPartProductionOutputCrossAggregateSaveValidation
+                .ValidatePartOwnership(physical, surgery, body);
+        }
+        catch (InvalidOperationException)
+        {
+            rejected = true;
+        }
+        Require(rejected,
+            "save join accepted two active material owners for one facility");
+        return "one facility keeps one material authority while later surgery remains an empty queued owner";
+    }
+
     private static string VerifyStrictV6Payload()
     {
         ResourceSurgicalProcedureCatalog procedures = new(
@@ -823,11 +1925,13 @@ public static class SurgeryDebugScenarios
                 kind = SurgicalSubjectKind.Character,
                 subjectId = "character:contract-patient"
             },
-            state = SurgeryOrderState.Completed
+            state = SurgeryOrderState.Cancelled
         });
         canonicalNumericIds.parts.Add(new SurgicalPartInstance
         {
             partInstanceId = "surgical-part:1",
+            itemDefinitionId = "medical:organ-heart",
+            physicalItemInstanceId = "item-instance:surgery-contract",
             kind = SurgicalPartKind.NaturalOrgan,
             nodeId = "heart",
             displayName = "contract organ"
@@ -842,6 +1946,55 @@ public static class SurgeryDebugScenarios
             canonicalNumericReport.Success,
             "canonical positive surgery IDs were rejected: "
                 + string.Join(" | ", canonicalNumericReport.Errors));
+
+        DungeonSurgerySaveData unrolledCancelled = CloneSaveData(
+            canonicalNumericIds);
+        unrolledCancelled.orders[0].state = SurgeryOrderState.Cancelled;
+        DungeonGameRestoreReport unrolledCancelledReport = new();
+        SurgerySaveValidation.Validate(
+            unrolledCancelled,
+            procedures,
+            anatomyProfiles,
+            unrolledCancelledReport);
+        Require(
+            unrolledCancelledReport.Success,
+            "unrolled cancelled surgery was rejected: "
+                + string.Join(" | ", unrolledCancelledReport.Errors));
+
+        DungeonSurgerySaveData unrolledFailed = CloneSaveData(
+            canonicalNumericIds);
+        unrolledFailed.orders[0].state = SurgeryOrderState.Failed;
+        DungeonGameRestoreReport unrolledFailedReport = new();
+        SurgerySaveValidation.Validate(
+            unrolledFailed,
+            procedures,
+            anatomyProfiles,
+            unrolledFailedReport);
+        Require(
+            !unrolledFailedReport.Success
+            && unrolledFailedReport.Errors.Any(error => error.Contains(
+                "Unrolled surgery order 'surgery:1' entered a clinical failure state.",
+                StringComparison.Ordinal)),
+            "unrolled failed surgery was not rejected by outcome validation");
+
+        DungeonSurgerySaveData unrolledTerminalFailed = CloneSaveData(
+            canonicalNumericIds);
+        unrolledTerminalFailed.orders[0].state =
+            SurgeryOrderState.TerminalDraining;
+        unrolledTerminalFailed.orders[0].materialTerminalTargetState =
+            SurgeryOrderState.Failed;
+        DungeonGameRestoreReport unrolledTerminalFailedReport = new();
+        SurgerySaveValidation.Validate(
+            unrolledTerminalFailed,
+            procedures,
+            anatomyProfiles,
+            unrolledTerminalFailedReport);
+        Require(
+            !unrolledTerminalFailedReport.Success
+            && unrolledTerminalFailedReport.Errors.Any(error => error.Contains(
+                "Unrolled surgery order 'surgery:1' entered a clinical failure state.",
+                StringComparison.Ordinal)),
+            "unrolled terminal-to-failed surgery was not rejected by outcome validation");
 
         foreach (string malformedOrderId in new[]
                  {
@@ -896,7 +2049,7 @@ public static class SurgeryDebugScenarios
             anatomyProfiles,
             "duplicate subject policy");
 
-        return "strict V6 accepts canonical state and rejects legacy, unknown status, missing, sequence, duplicate, and noncanonical numeric ID corruption";
+        return "strict V6 accepts canonical cancellation and rejects legacy, unrolled clinical failure, unknown status, missing, sequence, duplicate, and noncanonical numeric ID corruption";
     }
 
     private static string VerifyMaterialSinkJoin()
@@ -1019,7 +2172,7 @@ public static class SurgeryDebugScenarios
                         kind = SurgicalSubjectKind.Character,
                         subjectId = "character:sequence-limit-patient"
                     },
-                    state = SurgeryOrderState.Completed
+                    state = SurgeryOrderState.Cancelled
                 }
             },
             parts = new List<SurgicalPartInstance>
@@ -1027,6 +2180,9 @@ public static class SurgeryDebugScenarios
                 new()
                 {
                     partInstanceId = maximumPartId,
+                    itemDefinitionId = "medical:organ-heart",
+                    physicalItemInstanceId =
+                        "item-instance:surgery-sequence-limit",
                     kind = SurgicalPartKind.NaturalOrgan,
                     nodeId = "heart",
                     displayName = "sequence limit organ"
@@ -1160,6 +2316,1020 @@ public static class SurgeryDebugScenarios
             !report.Success && report.Errors.Count > 0,
             $"{caseName} was accepted");
     }
+
+    private static bool TryReserveReplacementRuntime(
+        SurgicalPartRuntime runtime,
+        SurgeryOrder order,
+        AnatomyNodeHealthState node,
+        Vector2Int outputPosition,
+        IFacilityBufferMassAdmissionService admission,
+        out DomainFailure failure)
+    {
+        object[] arguments =
+        {
+            order,
+            node,
+            outputPosition,
+            admission,
+            DomainFailure.None
+        };
+        bool succeeded = (bool)InvokeReplacementRuntime(
+            runtime,
+            "TryReserveReplacementOutput",
+            arguments);
+        failure = arguments[4] is DomainFailure result
+            ? result
+            : DomainFailure.None;
+        return succeeded;
+    }
+
+    private static bool TryCommitReplacementRuntime(
+        SurgicalPartRuntime runtime,
+        SurgeryOrder order,
+        CharacterActor actor,
+        SurgicalPartKind kind,
+        float efficiency,
+        IAnatomyHealthRuntime anatomy,
+        IFacilityBufferMassAdmissionService admission,
+        IFacilityBufferPlannedOutputPublicationService publication,
+        out DomainFailure failure)
+    {
+        object[] arguments =
+        {
+            order,
+            actor,
+            kind,
+            efficiency,
+            anatomy,
+            admission,
+            publication,
+            DomainFailure.None
+        };
+        bool succeeded = (bool)InvokeReplacementRuntime(
+            runtime,
+            "TryCommitReplacement",
+            arguments);
+        failure = arguments[7] is DomainFailure result
+            ? result
+            : DomainFailure.None;
+        return succeeded;
+    }
+
+    private static object InvokeReplacementRuntime(
+        SurgicalPartRuntime runtime,
+        string methodName,
+        object[] arguments)
+    {
+        MethodInfo method = typeof(SurgicalPartRuntime)
+            .GetMethods(BindingFlags.Instance | BindingFlags.NonPublic)
+            .Single(candidate => candidate.Name.EndsWith(
+                "." + methodName,
+                StringComparison.Ordinal));
+        try
+        {
+            return method.Invoke(runtime, arguments);
+        }
+        catch (TargetInvocationException exception)
+        {
+            throw new InvalidOperationException(
+                "Replacement runtime invocation failed: " + methodName,
+                exception.InnerException ?? exception);
+        }
+    }
+
+    private sealed class ReplacementRuntimeFixture : IDisposable
+    {
+        private const string PreviousInstallationOrderId = "surgery:1";
+        internal const string OrderId = "surgery:2";
+        internal const string SubjectId = "character:replacement-runtime";
+        private const string FacilityId = "facility:replacement-runtime";
+        private const string DestinationId = "surgery-materials:surgery:2";
+        private const string NodeId = "heart";
+        private const string ProstheticItemId = "surgery:prosthetic:heart";
+        private const string NaturalOrganItemId = "surgery:organ:heart";
+        private const string PreviousPartId = "surgical-part:1";
+        private const string IncomingPartId = "surgical-part:2";
+        private const string PreviousPhysicalId =
+            "item-instance:replacement-runtime-old";
+        private const string IncomingPhysicalId =
+            "item-instance:replacement-runtime-incoming";
+
+        private readonly GameObject actorObject;
+        private readonly SurgeryAggregateStateStore stateStore;
+        private readonly IDungeonItemCatalogProvider catalog;
+        private readonly IPhysicalItemMassQuery mass;
+        private readonly WorldItemQueryService query;
+
+        internal ReplacementRuntimeFixture(
+            SurgicalPartKind incomingKind = SurgicalPartKind.Prosthetic,
+            float incomingFreshnessSeconds = 0f,
+            bool failFirstIncomingTransfer = false)
+        {
+            IItemDefinitionCatalog itemDefinitions =
+                new ResourceItemDefinitionCatalog(
+                    Resources.LoadAll<ItemDefinitionSO>(
+                        ItemDefinitionSO.UnifiedResourcePath));
+            catalog =
+                new ResourceDungeonItemCatalogProvider(itemDefinitions);
+            mass = new PhysicalItemMassQuery(catalog);
+            Repository = new WorldItemRepository(
+                new GuidPersistentIdGenerator(),
+                new DungeonRuntimeAggregateRootStore());
+            query = new WorldItemQueryService(
+                catalog,
+                mass,
+                Repository,
+                EditorNullItemMarkerPresenter.Instance);
+            BatchDispositions = new PhysicalItemBatchDispositionService(
+                Repository,
+                mass,
+                EditorNullItemMarkerPresenter.Instance);
+            FailOnceReplacementBatchDisposition incomingTransferFault =
+                failFirstIncomingTransfer
+                    ? new FailOnceReplacementBatchDisposition(
+                        BatchDispositions)
+                    : null;
+            IPhysicalItemBatchDispositionService runtimeBatchDispositions =
+                BatchDispositions;
+            if (incomingTransferFault != null)
+            {
+                runtimeBatchDispositions = incomingTransferFault;
+            }
+            string incomingItemId = incomingKind == SurgicalPartKind.NaturalOrgan
+                ? NaturalOrganItemId
+                : ProstheticItemId;
+            OutputPosition = new Vector2Int(17, 8);
+            FacilityBufferDestinationClaimRegistry claims = new();
+            Admission = CreateOutputAdmission(claims);
+            Publication = new FacilityBufferPlannedOutputPublicationService(
+                Repository,
+                catalog,
+                mass,
+                Admission);
+            stateStore = new SurgeryAggregateStateStore(
+                new DungeonRuntimeAggregateRootStore());
+            IWorldItemStackRuntime items = CreateReplacementProxy<
+                IWorldItemStackRuntime>((method, _) => method.Name
+                    == "GetAllStacks"
+                    ? query.GetAllStacks()
+                    : DefaultReplacementValue(method.ReturnType));
+            IBuildingWorldQuery buildings = CreateReplacementProxy<
+                IBuildingWorldQuery>((method, _) => method.Name
+                    == "get_Buildings"
+                    ? Array.Empty<BuildableObject>()
+                    : DefaultReplacementValue(method.ReturnType));
+            ISurgicalFacilityQuery facilities = CreateReplacementProxy<
+                ISurgicalFacilityQuery>((method, _) =>
+                DefaultReplacementValue(method.ReturnType));
+            IEnvironmentalFieldQuery environment = CreateReplacementProxy<
+                IEnvironmentalFieldQuery>((method, _) =>
+                DefaultReplacementValue(method.ReturnType));
+            IAnatomyProfileCatalog profiles = CreateReplacementProxy<
+                IAnatomyProfileCatalog>((method, _) =>
+                DefaultReplacementValue(method.ReturnType));
+            IGameClock clock = CreateReplacementProxy<IGameClock>((method, _) =>
+                DefaultReplacementValue(method.ReturnType));
+            Runtime = new SurgicalPartRuntime(
+                items,
+                CreateReplacementProxy<IItemTransferService>((method, _) =>
+                    DefaultReplacementValue(method.ReturnType)),
+                buildings,
+                facilities,
+                environment,
+                profiles,
+                clock,
+                stateStore,
+                runtimeBatchDispositions,
+                new PhysicalItemTransformService(
+                    Repository,
+                    new WorldItemSpawner(
+                        catalog,
+                        Repository,
+                        EditorNullItemMarkerPresenter.Instance),
+                    mass,
+                    catalog,
+                    EditorNullItemMarkerPresenter.Instance),
+                itemDefinitions,
+                mass,
+                claims,
+                Admission,
+                new FacilityBufferDestinationLifecycleService(
+                    claims,
+                    claims,
+                    Admission,
+                    Admission),
+                ReplacementNoopRelease.Instance);
+
+            actorObject = CharacterAiPlanDebugFixtures.CreateActorObject(
+                "Surgery Replacement Runtime Fixture");
+            Actor = actorObject.GetComponent<CharacterActor>();
+            Require(
+                Actor != null && Actor.Identity != null,
+                "replacement fixture could not construct a character actor identity");
+            Actor.Identity.SetPersistentId(SubjectId);
+            Anatomy = new ReplacementAnatomyRuntime(
+                NodeId,
+                PreviousPartId);
+            IncomingStackId = WorldItemRepositoryEditorAccess.AddStack(
+                Repository,
+                incomingItemId,
+                1,
+                WorldItemStackState.Loose,
+                position: new Vector2Int(16, 8),
+                itemInstanceId: IncomingPhysicalId);
+            string previousStackId = WorldItemRepositoryEditorAccess.AddStack(
+                Repository,
+                ProstheticItemId,
+                1,
+                WorldItemStackState.Loose,
+                position: new Vector2Int(15, 8),
+                itemInstanceId: PreviousPhysicalId);
+            stateStore.State.PartSequence = 2;
+            stateStore.State.OrderSequence = 2;
+            stateStore.State.Parts.Add(new SurgicalPartInstance
+            {
+                partInstanceId = PreviousPartId,
+                itemDefinitionId = ProstheticItemId,
+                physicalItemInstanceId = PreviousPhysicalId,
+                kind = SurgicalPartKind.Prosthetic,
+                nodeId = NodeId,
+                displayName = "replacement fixture old heart",
+                quality = 0.8f,
+                worldStackId = previousStackId,
+                reservedOrderId = PreviousInstallationOrderId
+            });
+            stateStore.State.Parts.Add(new SurgicalPartInstance
+            {
+                partInstanceId = IncomingPartId,
+                itemDefinitionId = incomingItemId,
+                physicalItemInstanceId = IncomingPhysicalId,
+                kind = incomingKind,
+                nodeId = NodeId,
+                displayName = "replacement fixture incoming heart",
+                quality = 1f,
+                freshnessSeconds = incomingFreshnessSeconds,
+                worldStackId = IncomingStackId,
+                reservedOrderId = OrderId
+            });
+            stateStore.State.Orders.Add(new SurgeryOrder
+            {
+                orderId = PreviousInstallationOrderId,
+                procedureId = "procedure:prosthetic-installation",
+                subject = new SurgicalSubjectRef
+                {
+                    kind = SurgicalSubjectKind.Character,
+                    subjectId = SubjectId
+                },
+                targetNodeId = NodeId,
+                selectedPartInstanceId = PreviousPartId,
+                state = SurgeryOrderState.Completed,
+                resultRolled = true,
+                resultSucceeded = true,
+                resultOutcomeId = "success",
+                resolvedEffectCount = 1
+            });
+            Require(
+                Runtime.TryConsumeForInstallation(
+                    PreviousPartId,
+                    PreviousInstallationOrderId,
+                    SubjectId,
+                    out SurgicalPartInstance installedPrevious,
+                    out DomainFailure previousInstallationFailure)
+                && !previousInstallationFailure.IsFailure
+                && installedPrevious.installed
+                && string.Equals(
+                    installedPrevious.installedSubjectId,
+                    SubjectId,
+                    StringComparison.Ordinal)
+                && Repository.GetEditorTestQuantity(previousStackId) == 0,
+                "replacement fixture could not create its historical installation receipt: "
+                + previousInstallationFailure);
+            if (incomingTransferFault != null)
+            {
+                incomingTransferFault.FailTransferPendingOnce = true;
+            }
+            SurgeryOrder order = new()
+            {
+                orderId = OrderId,
+                procedureId = "procedure:prosthetic-installation",
+                subject = new SurgicalSubjectRef
+                {
+                    kind = SurgicalSubjectKind.Character,
+                    subjectId = SubjectId
+                },
+                targetNodeId = NodeId,
+                selectedPartInstanceId = IncomingPartId,
+                replacementExpectedOldPartId = PreviousPartId,
+                facilityId = FacilityId,
+                materialDestinationId = DestinationId,
+                materialBufferCapacityGrams = 300000L,
+                materialMassAuthorityRevision = mass.AuthorityRevision,
+                state = SurgeryOrderState.Procedure,
+                resultRolled = true,
+                resultSucceeded = true,
+                resultOutcomeId = "success",
+                resolvedEffectCount = 0
+            };
+            order.materialCapacityFingerprint =
+                SurgeryMaterialCapacityFingerprint.Create(order);
+            stateStore.State.Orders.Add(order);
+        }
+
+        internal SurgicalPartRuntime Runtime { get; }
+        internal ISurgeryOrderDemandQuery OrderDemand => stateStore;
+        internal List<SurgeryOrder> MutableOrders => stateStore.State.Orders;
+        internal string CaptureProjectionStateJson() =>
+            JsonUtility.ToJson(new SurgeryPersistence(stateStore).Capture()) + "|"
+            + JsonUtility.ToJson(CaptureBodySave()) + "|" + JsonUtility.ToJson(CapturePhysicalSave());
+        internal CharacterActor Actor { get; }
+        internal ReplacementAnatomyRuntime Anatomy { get; }
+        internal WorldItemRepository Repository { get; }
+        internal PhysicalItemBatchDispositionService BatchDispositions { get; }
+        internal FacilityBufferMassAdmissionService Admission { get; }
+        internal FacilityBufferPlannedOutputPublicationService Publication { get; }
+        internal Vector2Int OutputPosition { get; }
+        internal string IncomingStackId { get; }
+        internal SurgeryOrder Order => stateStore.State.Orders.Single(
+            order => string.Equals(
+                order.orderId,
+                OrderId,
+                StringComparison.Ordinal));
+        internal SurgicalPartInstance PreviousPart => stateStore.State.Parts.Single(
+            part => part.partInstanceId == PreviousPartId);
+        internal SurgicalPartInstance IncomingPart => stateStore.State.Parts.Single(
+            part => part.partInstanceId == IncomingPartId);
+
+        internal FacilityBufferPlannedOutputToken GetReplacementToken()
+        {
+            Require(
+                Admission.TryGetPlannedOutputToken(
+                    Order.replacementAdmissionTokenId,
+                    out FacilityBufferPlannedOutputToken token,
+                    out FacilityBufferMassAdmissionTokenStatus status)
+                && status != FacilityBufferMassAdmissionTokenStatus.Released,
+                "replacement fixture lost its planned output reservation");
+            return token;
+        }
+
+        internal void ReconstructOutputServices(
+            out FacilityBufferMassAdmissionService admission,
+            out FacilityBufferPlannedOutputPublicationService publication)
+        {
+            FacilityBufferDestinationClaimRegistry claims = new();
+            admission = CreateOutputAdmission(claims);
+            publication = new FacilityBufferPlannedOutputPublicationService(
+                Repository,
+                catalog,
+                mass,
+                admission);
+        }
+
+        internal InstallSurgicalPartEffectHandler
+            CreateReplacementEffectHandler(
+                IFacilityBufferMassAdmissionService admission,
+                IFacilityBufferPlannedOutputPublicationService publication)
+        {
+            ICharacterWorldQuery characters = CreateReplacementProxy<
+                ICharacterWorldQuery>((method, _) => method.Name
+                    == "get_Characters"
+                    ? new[] { Actor }
+                    : DefaultReplacementValue(method.ReturnType));
+            IWildlifeWorldQuery wildlife = CreateReplacementProxy<
+                IWildlifeWorldQuery>((method, _) => method.Name
+                    == "get_Wildlife"
+                    ? Array.Empty<WildlifeActor>()
+                    : DefaultReplacementValue(method.ReturnType));
+            IWildlifeAnatomyHealthRuntime wildlifeAnatomy =
+                CreateReplacementProxy<IWildlifeAnatomyHealthRuntime>(
+                    (method, _) => DefaultReplacementValue(
+                        method.ReturnType));
+            return new InstallSurgicalPartEffectHandler(
+                characters,
+                wildlife,
+                Anatomy,
+                wildlifeAnatomy,
+                Runtime,
+                admission,
+                publication);
+        }
+
+        internal DungeonSurgerySaveData CaptureValidateCrossJoinAndRestore(
+            IAnatomyProfileCatalog authoredProfiles = null)
+        {
+            DungeonSurgerySaveData surgery = JsonUtility.FromJson<
+                DungeonSurgerySaveData>(JsonUtility.ToJson(
+                new SurgeryPersistence(stateStore).Capture()));
+            DungeonGameRestoreReport report = new();
+            SurgerySaveValidation.Validate(
+                surgery,
+                new ResourceSurgicalProcedureCatalog(
+                    LoadAssets<SurgicalProcedureSO>(
+                        "Assets/Resources/SO/Medical/Procedures")),
+                new ResourceAnatomyProfileCatalog(
+                    LoadAssets<AnatomyProfileSO>(
+                        "Assets/Resources/SO/Medical/Anatomy")),
+                report);
+            Require(
+                report.Success,
+                "replacement runtime save rejected its current phase: "
+                + string.Join(" | ", report.Errors));
+            DungeonPhysicalItemSaveData physical = JsonUtility.FromJson<
+                DungeonPhysicalItemSaveData>(JsonUtility.ToJson(
+                CapturePhysicalSave()));
+            DungeonCharacterBodyHealthSaveData body = JsonUtility.FromJson<
+                DungeonCharacterBodyHealthSaveData>(JsonUtility.ToJson(
+                CaptureBodySave()));
+            if (authoredProfiles != null)
+                SurgicalPartProductionOutputCrossAggregateSaveValidation
+                    .ValidatePartOwnership(physical, surgery, body, authoredProfiles);
+            else
+                SurgicalPartProductionOutputCrossAggregateSaveValidation
+                    .ValidatePartOwnership(physical, surgery, body);
+            stateStore.Replace(SurgerySaveValidation.CreateState(surgery));
+            return surgery;
+        }
+
+        public void Dispose()
+        {
+            if (actorObject != null)
+            {
+                UnityEngine.Object.DestroyImmediate(actorObject);
+            }
+        }
+
+        private FacilityBufferMassAdmissionService CreateOutputAdmission(
+            FacilityBufferDestinationClaimRegistry claims)
+        {
+            FacilityBufferMassAdmissionService admission = new(
+                claims,
+                new ReplacementEmptyOccupancy(),
+                mass);
+            Require(
+                claims.TryClaim(
+                    new FacilityBufferDestinationClaim(
+                        DestinationId,
+                        OutputPosition,
+                        SurgeryMaterialDestinationAuthority.OwnerDomain,
+                        OrderId,
+                        FacilityId,
+                        FacilityBufferDestinationAnchorKind.LiveFacility),
+                    out _,
+                    out string claimFailure),
+                "replacement fixture could not claim its output destination: "
+                + claimFailure);
+            Require(
+                admission.TryReplaceOwnedProfiles(
+                    SurgeryMaterialDestinationAuthority.OwnerDomain,
+                    new[]
+                    {
+                        new FacilityBufferCapacityProfile(
+                            DestinationId,
+                            OutputPosition,
+                            SurgeryMaterialDestinationAuthority.OwnerDomain,
+                            OrderId,
+                            FacilityId,
+                            new PhysicalMassGrams(300000L),
+                            SurgeryMaterialDestinationAuthority
+                                .InputBufferCapacitySchemaRevision)
+                    },
+                    out _,
+                    out string capacityFailure),
+                "replacement fixture could not publish its output capacity: "
+                + capacityFailure);
+            return admission;
+        }
+
+        private DungeonPhysicalItemSaveData CapturePhysicalSave()
+        {
+            DungeonPhysicalItemSaveData physical = new();
+            SurgeryOrder order = Order;
+            SurgicalPartInstance incoming = IncomingPart;
+            if (order.replacementPhase is
+                    SurgicalPartReplacementPhase.OutputReservationPending
+                    or SurgicalPartReplacementPhase.OutputReserved
+                    or SurgicalPartReplacementPhase.BodyCommitted
+                && !incoming.installed)
+            {
+                WorldItemStackSnapshot stack = query.GetAllStacks()
+                    .SingleOrDefault(value => value != null
+                        && string.Equals(
+                            value.StackId,
+                            incoming.worldStackId,
+                            StringComparison.Ordinal));
+                if (stack != null)
+                {
+                    physical.stacks.Add(new WorldItemStackSaveData
+                    {
+                        stackId = stack.StackId,
+                        itemInstanceId = stack.ItemInstanceId,
+                        itemId = stack.ItemId,
+                        quantity = stack.Quantity,
+                        state = stack.State,
+                        gridX = stack.Position.x,
+                        gridY = stack.Position.y,
+                        destinationId = stack.DestinationId,
+                        sourceStorageDestinationId =
+                            stack.SourceStorageDestinationId,
+                        components = stack.Components
+                            .Select(component => component.Clone())
+                            .ToList()
+                    });
+                }
+                return physical;
+            }
+            if (order.replacementPhase is not
+                    (SurgicalPartReplacementPhase.OutputPublished
+                    or SurgicalPartReplacementPhase.Completed))
+            {
+                return physical;
+            }
+
+            SurgicalPartInstance previous = PreviousPart;
+            physical.stacks.Add(new WorldItemStackSaveData
+            {
+                stackId = order.replacementOutputStackId,
+                itemInstanceId = order.replacementOutputItemInstanceId,
+                itemId = previous.itemDefinitionId,
+                quantity = 1,
+                state = WorldItemStackState.FacilityOutputBuffer,
+                destinationId = order.materialDestinationId,
+                gridX = order.replacementOutputX,
+                gridY = order.replacementOutputY,
+                components =
+                    SurgicalPartProductionOutputCrossAggregateSaveValidation
+                        .CreateReplacementPhysicalComponentsForEditor(
+                            previous,
+                            order,
+                            order.replacementOutputMassGrams)
+                        .Select(component => component.Clone())
+                        .ToList()
+            });
+            return physical;
+        }
+
+        private DungeonCharacterBodyHealthSaveData CaptureBodySave() => new()
+        {
+            characters = new List<CharacterBodyHealthState>
+            {
+                new()
+                {
+                    characterId = SubjectId,
+                    anatomyProfileId = Anatomy.ProjectionProfileId,
+                    anatomyNodes = new List<AnatomyNodeHealthState>
+                    {
+                        ReplacementAnatomyRuntime.CloneNode(Anatomy.Node)
+                    }
+                }
+            }
+        };
+    }
+
+    private sealed class ReplacementAnatomyRuntime : IAnatomyHealthRuntime
+    {
+        internal ReplacementAnatomyRuntime(string nodeId, string installedPartId)
+        {
+            Node = new AnatomyNodeHealthState
+            {
+                nodeId = nodeId,
+                maxHealth = 80f,
+                currentHealth = 32f,
+                installedPartId = installedPartId,
+                installedPartKind = SurgicalPartKind.Prosthetic,
+                installedPartEfficiency = 1f
+            };
+        }
+
+        internal AnatomyNodeHealthState Node { get; }
+        internal string ProjectionProfileId { get; set; } = "replacement-runtime";
+        internal int ReplaceCallCount { get; private set; }
+
+        internal void ForceInstalledPartForCasRace(string partId) =>
+            Node.installedPartId = partId;
+
+        internal void SetCurrentHealthForReplacementRefresh(float value) =>
+            Node.currentHealth = value;
+
+        public AnatomyHealthSnapshot GetAnatomySnapshot(CharacterActor actor) =>
+            CreateSnapshot();
+
+        public AnatomyHealthSnapshot GetAnatomySnapshot(string characterId) =>
+            CreateSnapshot();
+
+        public bool TryDamageNode(
+            CharacterActor actor,
+            string nodeId,
+            float damage,
+            float bleeding,
+            string reason) => false;
+
+        public bool TryDamageNodeWithCause(
+            CharacterActor actor,
+            string nodeId,
+            float damage,
+            float bleeding,
+            CharacterDeathCauseCode deathCause,
+            string reasonCode) => false;
+
+        public bool TryHealNode(
+            CharacterActor actor,
+            string nodeId,
+            float health,
+            float infectionReduction) => false;
+
+        public bool TryStopBleeding(
+            CharacterActor actor,
+            string nodeId,
+            out DomainFailure failure)
+        {
+            failure = new DomainFailure(FailureCode.SurgeryTargetNodeMissing, nodeId);
+            return false;
+        }
+
+        public PartRecoveryPolicy GetRecoveryPolicy(
+            CharacterActor actor,
+            string nodeId) => PartRecoveryPolicy.ReplacementOnly;
+
+        public bool CanRecoverNaturally(CharacterActor actor, string nodeId) =>
+            false;
+
+        public bool TryMaintainNode(
+            CharacterActor actor,
+            string nodeId,
+            float durability,
+            float contaminationReduction,
+            out DomainFailure failure)
+        {
+            failure = new DomainFailure(FailureCode.SurgeryTargetNodeMissing, nodeId);
+            return false;
+        }
+
+        public bool TryRemoveNode(
+            CharacterActor actor,
+            string nodeId,
+            out AnatomyNodeHealthState removedNode,
+            out DomainFailure failure)
+        {
+            removedNode = null;
+            failure = new DomainFailure(FailureCode.SurgeryTargetNodeMissing, nodeId);
+            return false;
+        }
+
+        public bool TryInstallPart(
+            CharacterActor actor,
+            string nodeId,
+            string partInstanceId,
+            SurgicalPartKind partKind,
+            float efficiency,
+            float restoredCurrentHealth,
+            bool preserveRestoredHealth,
+            out DomainFailure failure)
+        {
+            failure = new DomainFailure(FailureCode.SurgeryTargetNodeMissing, nodeId);
+            return false;
+        }
+
+        public bool TryReplaceNodePart(
+            CharacterActor actor,
+            string nodeId,
+            string expectedPartInstanceId,
+            float expectedCurrentHealth,
+            float expectedMaxHealth,
+            string partInstanceId,
+            SurgicalPartKind partKind,
+            float efficiency,
+            float restoredCurrentHealth,
+            bool preserveRestoredHealth,
+            out AnatomyNodeHealthState replacedNode,
+            out DomainFailure failure)
+        {
+            ReplaceCallCount++;
+            replacedNode = null;
+            if (!string.Equals(Node.nodeId, nodeId, StringComparison.Ordinal)
+                || !string.Equals(
+                    Node.installedPartId,
+                    expectedPartInstanceId,
+                    StringComparison.Ordinal)
+                || Node.currentHealth != expectedCurrentHealth
+                || Node.maxHealth != expectedMaxHealth)
+            {
+                failure = new DomainFailure(
+                    FailureCode.SurgeryPartUnavailable,
+                    expectedPartInstanceId,
+                    Node.installedPartId);
+                return false;
+            }
+
+            replacedNode = CloneNode(Node);
+            Node.missing = false;
+            Node.installedPartId = partInstanceId;
+            Node.installedPartKind = partKind;
+            Node.installedPartEfficiency = Mathf.Clamp(efficiency, 0.1f, 1.75f);
+            Node.currentHealth = preserveRestoredHealth
+                ? Mathf.Clamp(restoredCurrentHealth, 0f, Node.maxHealth)
+                : Mathf.Max(1f, Node.maxHealth * 0.35f);
+            failure = DomainFailure.None;
+            return true;
+        }
+
+        public bool TryAddNodeBurden(
+            CharacterActor actor,
+            string nodeId,
+            float rejection,
+            float mutation,
+            float infection,
+            out DomainFailure failure)
+        {
+            failure = new DomainFailure(FailureCode.SurgeryTargetNodeMissing, nodeId);
+            return false;
+        }
+
+        public bool TryReduceNodeBurden(
+            CharacterActor actor,
+            string nodeId,
+            float rejection,
+            float mutation,
+            float infection,
+            out DomainFailure failure)
+        {
+            failure = new DomainFailure(FailureCode.SurgeryTargetNodeMissing, nodeId);
+            return false;
+        }
+
+        internal static AnatomyNodeHealthState CloneNode(
+            AnatomyNodeHealthState source) => new()
+        {
+            nodeId = source.nodeId,
+            maxHealth = source.maxHealth,
+            currentHealth = source.currentHealth,
+            bleedingPerSecond = source.bleedingPerSecond,
+            infection = source.infection,
+            missing = source.missing,
+            installedPartId = source.installedPartId,
+            installedPartKind = source.installedPartKind,
+            installedPartEfficiency = source.installedPartEfficiency,
+            rejectionBurden = source.rejectionBurden,
+            mutationBurden = source.mutationBurden,
+            moduleBonus = source.moduleBonus,
+            recoveryPolicy = source.recoveryPolicy
+        };
+
+        private AnatomyHealthSnapshot CreateSnapshot() => new(
+            ProjectionProfileId,
+            new[] { Node },
+            1f,
+            1f,
+            1f,
+            1f,
+            1f,
+            1f,
+            1f,
+            1f,
+            1f,
+            1f,
+            1f,
+            1f,
+            1f,
+            1f);
+    }
+
+    private sealed class FailOnceReplacementBatchDisposition :
+        IPhysicalItemBatchDispositionService
+    {
+        private readonly IPhysicalItemBatchDispositionService inner;
+
+        internal FailOnceReplacementBatchDisposition(
+            IPhysicalItemBatchDispositionService inner) =>
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+
+        internal bool FailTransferPendingOnce { get; set; }
+
+        public bool TryCommit(
+            IReadOnlyList<PhysicalItemTransformInput> inputs,
+            PhysicalItemDispositionKind kind,
+            string operationId,
+            string reasonCode,
+            out PhysicalItemBatchDispositionReceipt receipt,
+            out string failureReason) => inner.TryCommit(
+            inputs,
+            kind,
+            operationId,
+            reasonCode,
+            out receipt,
+            out failureReason);
+
+        public bool TryCommitPending(
+            IReadOnlyList<PhysicalItemTransformInput> inputs,
+            PhysicalItemDispositionKind kind,
+            string operationId,
+            string reasonCode,
+            out PhysicalItemBatchDispositionReceipt receipt,
+            out string failureReason)
+        {
+            if (FailTransferPendingOnce
+                && kind == PhysicalItemDispositionKind.Transfer)
+            {
+                FailTransferPendingOnce = false;
+                receipt = default;
+                failureReason = "qa-replacement-natural-transfer-failure";
+                return false;
+            }
+
+            return inner.TryCommitPending(
+                inputs,
+                kind,
+                operationId,
+                reasonCode,
+                out receipt,
+                out failureReason);
+        }
+
+        public bool Acknowledge(string commitId, out string failureReason) =>
+            inner.Acknowledge(commitId, out failureReason);
+
+        public bool TryGetPending(
+            string operationId,
+            out PhysicalItemBatchDispositionReceipt receipt) =>
+            inner.TryGetPending(operationId, out receipt);
+    }
+
+    private sealed class FailOnceReplacementPublication :
+        IFacilityBufferPlannedOutputPublicationService
+    {
+        private readonly IFacilityBufferPlannedOutputPublicationService inner;
+
+        internal FailOnceReplacementPublication(
+            IFacilityBufferPlannedOutputPublicationService inner) =>
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+
+        internal bool FailPublishOnce { get; set; }
+        internal bool FailAcknowledgementOnce { get; set; }
+
+        public bool TryPublishFullBatch(
+            FacilityBufferPlannedOutputToken token,
+            out FacilityBufferPlannedOutputPublicationReceipt receipt,
+            out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+            out string failureReason)
+        {
+            if (FailPublishOnce)
+            {
+                FailPublishOnce = false;
+                receipt = default;
+                failureCode = FacilityBufferPlannedOutputPublicationFailureCode
+                    .RepositoryTransactionFailed;
+                failureReason = "qa-replacement-publication-failure";
+                return false;
+            }
+
+            return inner.TryPublishFullBatch(
+                token,
+                out receipt,
+                out failureCode,
+                out failureReason);
+        }
+
+        public bool TryRollbackPublishedBatch(
+            FacilityBufferPlannedOutputPublicationReceipt receipt,
+            out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+            out string failureReason) => inner.TryRollbackPublishedBatch(
+            receipt,
+            out failureCode,
+            out failureReason);
+
+        public bool TryAcknowledgePublishedBatch(
+            FacilityBufferPlannedOutputPublicationReceipt receipt,
+            out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+            out string failureReason)
+        {
+            if (FailAcknowledgementOnce)
+            {
+                FailAcknowledgementOnce = false;
+                failureCode = FacilityBufferPlannedOutputPublicationFailureCode
+                    .RepositoryTransactionFailed;
+                failureReason = "qa-replacement-acknowledgement-failure";
+                return false;
+            }
+
+            return inner.TryAcknowledgePublishedBatch(
+                receipt,
+                out failureCode,
+                out failureReason);
+        }
+
+        public bool TryAcknowledgeAndReleasePublishedBatch(
+            FacilityBufferPlannedOutputPublicationReceipt receipt,
+            FacilityBufferAcknowledgedOutputReleaseTarget target,
+            out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+            out string failureReason) => inner.TryAcknowledgeAndReleasePublishedBatch(
+            receipt,
+            target,
+            out failureCode,
+            out failureReason);
+
+        public bool TryRollbackRestoreCandidate(
+            FacilityBufferPlannedOutputRestoreBatchSnapshot candidate,
+            out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+            out string failureReason) => inner.TryRollbackRestoreCandidate(
+            candidate,
+            out failureCode,
+            out failureReason);
+
+        public bool TryAcknowledgeRestoreCandidate(
+            FacilityBufferPlannedOutputRestoreBatchSnapshot candidate,
+            out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+            out string failureReason) => inner.TryAcknowledgeRestoreCandidate(
+            candidate,
+            out failureCode,
+            out failureReason);
+
+        public bool TryAcknowledgeAndReleaseRestoreCandidate(
+            FacilityBufferPlannedOutputRestoreBatchSnapshot candidate,
+            FacilityBufferAcknowledgedOutputReleaseTarget target,
+            out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+            out string failureReason) =>
+            inner.TryAcknowledgeAndReleaseRestoreCandidate(
+                candidate,
+                target,
+                out failureCode,
+                out failureReason);
+
+        public bool TryCapturePendingBatch(
+            string batchCommitId,
+            out FacilityBufferPlannedOutputRestoreBatchSnapshot candidate,
+            out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+            out string failureReason) => inner.TryCapturePendingBatch(
+            batchCommitId,
+            out candidate,
+            out failureCode,
+            out failureReason);
+
+        public bool TryCaptureBatch(
+            string batchCommitId,
+            bool allowAcknowledged,
+            out FacilityBufferPlannedOutputRestoreBatchSnapshot candidate,
+            out bool acknowledged,
+            out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+            out string failureReason) => inner.TryCaptureBatch(
+            batchCommitId,
+            allowAcknowledged,
+            out candidate,
+            out acknowledged,
+            out failureCode,
+            out failureReason);
+    }
+
+    private sealed class ReplacementEmptyOccupancy :
+        IFacilityBufferPhysicalOccupancyQuery
+    {
+        public FacilityBufferPhysicalOccupancySnapshot Capture(
+            string destinationId) => new(0L, 0L);
+
+        public bool TryCaptureExactLot(
+            IReadOnlyList<FacilityBufferMassLotSlice> slices,
+            out FacilityBufferExactLotSnapshot lot,
+            out string failureReason)
+        {
+            lot = default;
+            failureReason = "replacement-fixture-no-exact-lot";
+            return false;
+        }
+    }
+
+    private sealed class ReplacementNoopRelease :
+        IFacilityBufferDestinationReleaseService
+    {
+        internal static readonly ReplacementNoopRelease Instance = new();
+
+        public bool TryReleaseAtOwnerPosition(
+            string destinationId,
+            Vector2Int ownerPosition,
+            string reasonCode,
+            out int releasedQuantity,
+            out string failureReason)
+        {
+            releasedQuantity = 0;
+            failureReason = "replacement-fixture-no-release";
+            return false;
+        }
+    }
+
+    private static T CreateReplacementProxy<T>(
+        Func<MethodInfo, object[], object> handler)
+        where T : class
+    {
+        T proxy = DispatchProxy.Create<
+            T,
+            OrganPreservationRestoreJoinFixture.ConfigurableDispatchProxy>();
+        ((OrganPreservationRestoreJoinFixture.ConfigurableDispatchProxy)(object)
+                proxy)
+            .Handler = handler;
+        return proxy;
+    }
+
+    private static object DefaultReplacementValue(Type type) => type == typeof(void)
+        ? null
+        : type != null && type.IsValueType
+            ? Activator.CreateInstance(type)
+            : null;
 
     private sealed class IsolatedSurgerySaveSection :
         IDungeonSaveSection,

@@ -14,6 +14,15 @@
   "kind": "event",
   "relations": [
     {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-8883",
+      "target_spoiler_tier": "none",
+      "target_title": "가족실 칸막이",
+      "type": "requires"
+    },
+    {
       "amount": "12",
       "label": "필요 조건",
       "target_kind": "item",

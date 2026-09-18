@@ -4,6 +4,7 @@
 
 | 안정 ID | 이름 | 전략적 역할 | 비용·위험 | 런타임 상태 | 수명주기 | 역참조 | 구현 권위 |
 |---|---|---|---|---|---|---:|---|
+| `sample:antigen:blood-wasting` | 혈액소모병 항원 표본 | 재고 범주 1에서 외부 거래와 가격 형성, 병원체 연구 시료, 생산망의 입력·출력, 연구에 따른 사용 시점 제한 역할을 맡는다. | unitPrice=20 | catalog-registered-static-consumer | active-authored | 1 | [V3I64_혈액소모병_항원_표본.asset](../../../../../Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I64_혈액소모병_항원_표본.asset) |
 | `sample:antigen:cave-flu` | 동굴 독감 항원 표본 | 재고 범주 1에서 외부 거래와 가격 형성, 병원체 연구 시료, 생산망의 입력·출력, 연구에 따른 사용 시점 제한 역할을 맡는다. | unitPrice=20 | catalog-registered-static-consumer | active-authored | 2 | [V3I59_동굴_독감_항원_표본.asset](../../../../../Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I59_동굴_독감_항원_표본.asset) |
 | `sample:antigen:gut-rot` | 장부패증 항원 표본 | 재고 범주 1에서 외부 거래와 가격 형성, 병원체 연구 시료, 생산망의 입력·출력, 연구에 따른 사용 시점 제한 역할을 맡는다. | unitPrice=20 | catalog-registered-static-consumer | active-authored | 1 | [V3I61_장부패증_항원_표본.asset](../../../../../Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I61_장부패증_항원_표본.asset) |
 | `sample:antigen:mana-pox` | 마나두창 항원 표본 | 재고 범주 1에서 외부 거래와 가격 형성, 병원체 연구 시료, 생산망의 입력·출력, 연구에 따른 사용 시점 제한 역할을 맡는다. | unitPrice=25 | catalog-registered-static-consumer | active-authored | 1 | [V3I63_마나두창_항원_표본.asset](../../../../../Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I63_마나두창_항원_표본.asset) |

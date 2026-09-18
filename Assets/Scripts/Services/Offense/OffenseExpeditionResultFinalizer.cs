@@ -28,6 +28,9 @@ public sealed class OffenseExpeditionResultFinalizer :
     private readonly IGameEventBus gameEventBus;
     private readonly CharacterIdentityEventPublisher identityEvents;
     private readonly IGameClock gameClock;
+    private readonly IOffenseReturnArrivalRuntime arrivals;
+    private readonly IV27EmbeddedWorkValueProjectionQuery workValues;
+    private readonly IOffenseWorldSimulation world;
 
     public OffenseExpeditionResultFinalizer(
         OffenseSceneRuntimeReferences offenseRuntimes,
@@ -35,7 +38,10 @@ public sealed class OffenseExpeditionResultFinalizer :
         IGameEventBus gameEventBus,
         IOffenseCampaignCommands campaign,
         CharacterIdentityEventPublisher identityEvents = null,
-        IGameClock gameClock = null)
+        IGameClock gameClock = null,
+        IOffenseReturnArrivalRuntime arrivals = null,
+        IV27EmbeddedWorkValueProjectionQuery workValues = null,
+        IOffenseWorldSimulation world = null)
     {
         offenseRuntimes = offenseRuntimes
             ?? throw new ArgumentNullException(nameof(offenseRuntimes));
@@ -53,6 +59,9 @@ public sealed class OffenseExpeditionResultFinalizer :
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.identityEvents = identityEvents;
         this.gameClock = gameClock;
+        this.arrivals = arrivals;
+        this.workValues = workValues;
+        this.world = world;
     }
 
     public OffenseExpeditionResult Finalize(
@@ -80,10 +89,36 @@ public sealed class OffenseExpeditionResultFinalizer :
             IReadOnlyList<OffenseRewardGrantResult> grantedRewards =
                 rewards.ApplyExpeditionRewards(expedition, result);
             result = result.WithGrantedRewards(grantedRewards);
+            OffenseExpeditionItemReceipt[] physicalRewards = result.grantedRewards
+                .Where(value => value?.success == true)
+                .SelectMany(value => value.physicalItems)
+                .GroupBy(value => value.itemId, StringComparer.Ordinal)
+                .Select(group => new OffenseExpeditionItemReceipt(
+                    OffenseExpeditionItemReceiptKind.RewardGranted,
+                    group.Key,
+                    group.Sum(value => value.quantity),
+                    string.Empty,
+                    0f,
+                    OffenseExpeditionRun.CreateValuation(
+                        workValues,
+                        group.Key,
+                        group.Sum(value => value.quantity))))
+                .ToArray();
+            result = result.WithAdditionalItemReceipts(physicalRewards);
+            if (arrivals != null)
+            {
+                result = result.WithArrivalReceipts(
+                    arrivals.GetSettlementReceipts(expedition.ExpeditionId));
+            }
             gameEventBus.Publish(new OffenseRewardGrantedEvent(
                 result,
                 result.grantedRewards));
         }
+
+        if (expedition.UsesWorldTravel
+            && !string.IsNullOrWhiteSpace(
+                expedition.Target.seasonalOccurrenceInstanceId))
+            world?.TryResolveSite(expedition.WorldSiteId);
 
         resultHistory.Insert(0, result);
         if (resultHistory.Count > MaxResultHistory)

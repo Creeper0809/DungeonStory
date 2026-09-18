@@ -35,6 +35,9 @@ public sealed class WildlifeActor :
     private IRandomStreamProvider randomStreamProvider;
     private IRandomStream randomStream;
     private IDoorAccessQuery doorAccessQuery;
+    private IWildlifeHaulLifecycleSink haulLifecycle;
+    private float managedCargoMoveSpeedMultiplier = 1f;
+    private bool suppressHaulUnavailableNotification;
     private WildlifeActorRestoreLifecycle restoreLifecycle;
     private float Now => gameClock != null ? gameClock.Time : 0f;
     private WildlifeVisualPresentation Visual =>
@@ -52,6 +55,8 @@ public sealed class WildlifeActor :
     public int CurrentHealth { get; private set; }
     public WildlifeState State { get; private set; } = WildlifeState.Idle;
     public Vector2Int GridPosition => gridPosition;
+    public bool OccupiesDoorPassage(Door door) => door != null && door.Grid == grid && isMoving
+        && (door.ContainsCell(gridPosition) || door.ContainsCell(moveSourceGridPosition));
     public bool HuntDesignated { get; private set; }
     public bool PriorityHunt { get; private set; }
     public string ReservedByPersistentId { get; private set; } = string.Empty;
@@ -121,7 +126,8 @@ public sealed class WildlifeActor :
         ICharacterAiWorldRegistry worldRegistry,
         IGameClock gameClock,
         IRandomStreamProvider randomStreamProvider,
-        IDoorAccessQuery doorAccessQuery)
+        IDoorAccessQuery doorAccessQuery,
+        IWildlifeHaulLifecycleSink haulLifecycle = null)
     {
         this.pathSearchBroker = pathSearchBroker
             ?? throw new System.ArgumentNullException(nameof(pathSearchBroker));
@@ -133,6 +139,20 @@ public sealed class WildlifeActor :
             ?? throw new System.ArgumentNullException(nameof(randomStreamProvider));
         this.doorAccessQuery = doorAccessQuery
             ?? throw new System.ArgumentNullException(nameof(doorAccessQuery));
+        this.haulLifecycle = haulLifecycle;
+    }
+
+    public void SetManagedCargoLoad(float moveSpeedMultiplier)
+    {
+        if (float.IsNaN(moveSpeedMultiplier)
+            || float.IsInfinity(moveSpeedMultiplier)
+            || moveSpeedMultiplier <= 0f
+            || moveSpeedMultiplier > 1f)
+        {
+            throw new System.ArgumentOutOfRangeException(
+                nameof(moveSpeedMultiplier));
+        }
+        managedCargoMoveSpeedMultiplier = moveSpeedMultiplier;
     }
 
     public void Initialize(
@@ -260,30 +280,57 @@ public sealed class WildlifeActor :
 
     public bool TrySetManagedCaptivePath(Vector2Int targetPosition, float now)
     {
+        return RequestManagedCaptivePath(targetPosition, now)
+            == GridPathRequestStatus.Reachable;
+    }
+
+    public GridPathRequestStatus RequestManagedCaptivePath(
+        Vector2Int targetPosition,
+        float now)
+    {
         if (grid == null
             || !IsAlive
-            || State != WildlifeState.Captured
-            || isMoving)
+            || State != WildlifeState.Captured)
         {
-            return false;
+            return GridPathRequestStatus.Unreachable;
+        }
+        if (isMoving)
+        {
+            if (managedCaptiveTarget == targetPosition)
+            {
+                return GridPathRequestStatus.Reachable;
+            }
+
+            activePath.Clear();
+            managedCaptiveTarget = targetPosition;
+            return GridPathRequestStatus.Pending;
         }
 
         if (targetPosition == gridPosition)
         {
             managedCaptiveTarget = targetPosition;
             managedCaptiveMovement = false;
-            return true;
+            return GridPathRequestStatus.Reachable;
         }
 
-        Queue<GridMoveStep> path = pathSearchBroker?.GetMovePathTo(
+        if (pathSearchBroker == null)
+        {
+            return GridPathRequestStatus.Unreachable;
+        }
+        GridPathRequestStatus request = pathSearchBroker.RequestMovePathTo(
             grid,
             gridPosition,
             targetPosition,
+            out Queue<GridMoveStep> path,
             GridPathSearchPriority.Urgent,
             GridTraversalContext.ForWildlife(WildlifeId));
+        if (request != GridPathRequestStatus.Reachable)
+        {
+            return request;
+        }
         if (path == null || path.Count == 0)
         {
-            return false;
+            return GridPathRequestStatus.Unreachable;
         }
 
         activePath = path;
@@ -292,7 +339,7 @@ public sealed class WildlifeActor :
         managedCaptiveMovement = true;
         nextPathRebuildAt = now + 0.5f;
         StartNextMoveStep();
-        return true;
+        return GridPathRequestStatus.Reachable;
     }
 
     public void SetHuntDesignation(bool designated, bool priority)
@@ -349,7 +396,15 @@ public sealed class WildlifeActor :
 
     public int ApplyDamage(int damage, CharacterActor hunter)
     {
+        bool wasCaptured = IsAlive && State == WildlifeState.Captured;
         int applied = Mathf.Clamp(damage, 0, CurrentHealth);
+        bool isLethal = applied > 0 && applied >= CurrentHealth;
+        if (isLethal)
+        {
+            haulLifecycle?.OnWildlifeUnavailable(
+                this,
+                WorldItemCarryInterruptionKind.Dead);
+        }
         CurrentHealth -= applied;
         NaturalCondition.AddFear(Mathf.Max(1f, applied) * FearSensitivity);
         nextPathRebuildAt = Now;
@@ -363,6 +418,10 @@ public sealed class WildlifeActor :
             State = WildlifeState.Dead;
             worldRegistry?.UnregisterWildlife(this);
             Unregister();
+        }
+        else if (wasCaptured)
+        {
+            State = WildlifeState.Captured;
         }
         else if (Aggression > 0.65f && hunter != null)
         {
@@ -781,8 +840,22 @@ public sealed class WildlifeActor :
         Unregister();
     }
 
+    private void OnDisable()
+    {
+        if (!suppressHaulUnavailableNotification
+            && !IsDetachedRestoreCandidate
+            && IsAlive)
+        {
+            haulLifecycle?.OnWildlifeUnavailable(
+                this,
+                WorldItemCarryInterruptionKind.Disabled);
+        }
+    }
+
     public void PrepareForDespawn()
     {
+        suppressHaulUnavailableNotification = true;
+        managedCargoMoveSpeedMultiplier = 1f;
         isMoving = false;
         activePath?.Clear();
         Visual.RestorePose();
@@ -843,7 +916,9 @@ public sealed class WildlifeActor :
         }
 
         GridMoveStep step = activePath.Dequeue();
-        if (grid == null || !CanMoveTo(step.To))
+        if (grid == null || !CanMoveTo(step.To)
+            || (grid.GetGridCell(step.To)?.GetOccupant(GridLayer.Building) is Door door
+                && !door.TryOpenForTraversal(GridTraversalContext.ForWildlife(WildlifeId), doorAccessQuery, out _)))
         {
             isMoving = false;
             activePath.Clear();
@@ -935,7 +1010,8 @@ public sealed class WildlifeActor :
             return;
         }
 
-        float speed = species != null ? species.MoveSpeed : 1f;
+        float speed = (species != null ? species.MoveSpeed : 1f)
+            * managedCargoMoveSpeedMultiplier;
         float duration = Mathf.Max(0.12f, 0.45f / Mathf.Max(0.1f, speed));
         moveProgress += deltaTime / duration;
         float normalized = Mathf.Clamp01(moveProgress);

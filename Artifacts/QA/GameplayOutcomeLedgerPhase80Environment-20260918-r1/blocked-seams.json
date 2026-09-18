@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "blockedCount": 4,
+  "humanApprovalClaimed": false,
+  "blocked": [
+    {
+      "type": "CertifiedSeedPlanExecutionReceipt",
+      "owner": "CertifiedSeedRuntime.TryComplete/TryFinalizePublishedOutput",
+      "mutation": "IProductionDomainOutputPublicationService.EnsureCommitted",
+      "save": "CertifiedSeedOrderSaveData.outputPublication",
+      "requiredSeam": "prepared gameplay participant attachment committed with output publication; acknowledgement must precede order removal"
+    },
+    {
+      "type": "EnvironmentalFireFuelLossReceipt",
+      "owner": "EnvironmentalFireRuntime.TryIgnite",
+      "mutation": "physical fuel disposition then fire-state mutation",
+      "save": "EnvironmentalFireSaveSection plus physical disposition pending row",
+      "requiredSeam": "frozen IPhysicalItemBatchDispositionOutcomeParticipant and fire-state rollback/attachment"
+    },
+    {
+      "type": "EnvironmentalFireWaterReceipt",
+      "owner": "EnvironmentalFireRuntime.TryApplySuppression/ApplySuppressionContribution",
+      "mutation": "physical water disposition then fire-intensity mutation",
+      "save": "EnvironmentalFireSaveSection plus physical disposition pending row",
+      "requiredSeam": "frozen IPhysicalItemBatchDispositionOutcomeParticipant and fire-state rollback/attachment"
+    },
+    {
+      "type": "SpeciesIncidentTriggeredEvent",
+      "owner": "HarpyGaleCommotionHandler/CharacterSpeciesRuntime.TryTriggerIncident",
+      "mutation": "IPhysicalItemRelocationService.TryRelocateQuantity",
+      "save": "wildlife/world-item repository plus CharacterSpeciesSaveSection",
+      "requiredSeam": "reversible prepared physical relocation attachment with rollback or canonical acknowledged replay"
+    }
+  ]
+}

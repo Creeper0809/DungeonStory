@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "잡화상자에 재고를 모아 두고 반출 순서를 관리하도록 만든 설치 부품이며, 라카쉬 세갈래길에서도 이 부품의 치수를 알아본다.",
+  "in_game_description": "잡화상자에 재고를 모아 두고 반출 순서를 관리하도록 만든 설치 부품이다. 라카쉬 세갈래길의 잡화상자 가격판에는 동전 옆에 운반과 길 안내로 값을 치르는 빈칸이 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

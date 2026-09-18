@@ -20,23 +20,36 @@ MonoBehaviour:
   authoringRevision: 1
   sourceNote: V20 hand-authored faction/service manifest.
   kind: 5
+  riskTier: 1
+  riskReason: 실패 결과가 세력 원한 5를 추가한다.
   deadlineDays: 8
   serviceRequirements:
     items:
     - itemDefinitionId: component:engineering-drawing
       amount: 2
       consume: 1
-    facilities:
-    - buildingDefinitionId: building:prototype-laboratory
-      capabilityId: 
-      minimumCount: 1
-      mustBeOperational: 1
+    facilities: []
     research: []
     characters: []
     factions: []
     worldMetrics: []
     requiredFlags: []
     excludedFlags: []
+  venueRequirements:
+    anchor:
+      exactBuildingDefinitionIds:
+      - building:8825
+      facilityRoles: 0
+    requiredRoomFacilityRoles: 0
+    requiredRoomFacilities: []
+    minimumSeats: 0
+    minimumTables: 0
+    minimumServiceCapacity: 0
+    minimumEventCells: 1
+    minimumVacantBeds: 0
+    requireResidentHeadroom: 0
+    requireWetBath: 0
+    requireEmergencySurgeryFacility: 0
   successEffects:
   - kind: 9
     targetId: guest-service

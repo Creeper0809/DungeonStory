@@ -60,6 +60,8 @@ MonoBehaviour:
     - rid: 7737211921440178912
     - rid: 7737211921440178913
     - rid: 7737212199327498374
+    - rid: 7737212199327498375
+    - rid: 7737212199327498376
   width: 2
   height: 1
   layer: 1
@@ -158,3 +160,18 @@ MonoBehaviour:
         workSpeedMultiplier: 1
         satisfactionModifier: 0
         revenueModifier: 2
+    - rid: 7737212199327498375
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 2
+          capacity: 1
+          useDuration: 1.5
+          requiredWorkers: 1
+          supportedWorkTypes: 7
+          disabledWhenDamaged: 1
+    - rid: 7737212199327498376
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
+      data:
+        abilityId: BuildingRoomRequirementAbility

@@ -26,12 +26,16 @@ internal sealed class ConveyorPersistenceAdapter :
     private readonly ConveyorItemGateway items;
     private readonly IGameClock clock;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly IDungeonItemCatalogProvider itemCatalog;
+    private readonly IResourceEconomyContentCatalog materialCatalog;
 
     public ConveyorPersistenceAdapter(
         IConveyorRestoreProjection projection,
         ConveyorItemGateway items,
         IGameClock clock,
-        DungeonRuntimeAggregateRootStore aggregateRootStore)
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IDungeonItemCatalogProvider itemCatalog,
+        IResourceEconomyContentCatalog materialCatalog)
     {
         this.projection = projection
             ?? throw new ArgumentNullException(nameof(projection));
@@ -39,6 +43,8 @@ internal sealed class ConveyorPersistenceAdapter :
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.itemCatalog = itemCatalog ?? throw new ArgumentNullException(nameof(itemCatalog));
+        this.materialCatalog = materialCatalog ?? throw new ArgumentNullException(nameof(materialCatalog));
     }
 
     public DungeonConveyorInfrastructureSaveData Capture()
@@ -58,6 +64,24 @@ internal sealed class ConveyorPersistenceAdapter :
         DungeonConveyorInfrastructureSaveData snapshot)
     {
         IndustrialInfrastructureSaveValidation.RequireValid(snapshot);
+        foreach (var node in snapshot.nodes)
+        {
+            var filter = node.filter;
+            if (filter.itemIds == null || filter.materialIds == null || filter.stockCategories == null)
+                throw new InvalidOperationException("CONVEYOR_FILTER_RESTORE_INVALID: " + node.buildingInstanceId);
+            var criteria = new ConveyorFilterCriteria
+            {
+                itemIds = filter.itemIds,
+                stockCategories = filter.stockCategories.Select(value => (StockCategory)value).ToList(),
+                materialIds = filter.materialIds,
+                minimumQuality = (CombatEquipmentQuality)filter.minimumQuality,
+                maximumQuality = (CombatEquipmentQuality)filter.maximumQuality,
+                minimumFreshness01 = filter.minimumFreshness01,
+                maximumFreshness01 = filter.maximumFreshness01
+            };
+            if (!ConveyorPayloadAdmissionPolicy.IsValidCriteria(criteria, itemCatalog, materialCatalog))
+                throw new InvalidOperationException("CONVEYOR_FILTER_RESTORE_INVALID: " + node.buildingInstanceId);
+        }
         return ConveyorPersistence.Restore(snapshot, clock.Time);
     }
 

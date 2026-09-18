@@ -27,6 +27,7 @@ MonoBehaviour:
   targetNodeId: 
   requiredResearchId: research:medical:whole-body-regeneration
   requiredFacilityTags: 8192
+  primaryFacilityDefinitionId: 8871
   requiredWork: 180
   difficultyPenalty: 0.16
   baseInfectionRisk: 0.1

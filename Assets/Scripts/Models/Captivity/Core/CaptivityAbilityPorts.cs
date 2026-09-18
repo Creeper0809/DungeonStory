@@ -9,6 +9,13 @@ public enum CaptivityAbilityAccessKind
     CaptiveEscape
 }
 
+public enum CaptivityMovementResolution
+{
+    Unreachable = 0,
+    Pending = 1,
+    Ready = 2
+}
+
 public enum WildlifeDeliveryStandResolution
 {
     Failed = 0,
@@ -44,7 +51,7 @@ public interface ICaptiveEscortAbilityPort
         out Vector2Int subjectPosition,
         out string subjectDisplayName,
         out string failureReason);
-    bool TryCreateMovement(
+    CaptivityMovementResolution ResolveMovement(
         Vector2Int destination,
         CaptivityAbilityAccessKind accessKind,
         out IEnumerator movement);

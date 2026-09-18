@@ -214,6 +214,59 @@ public sealed class OwnerEvacuationSaveSnapshot
     public int targetY;
     public bool usedAdministrationRoom;
     public string statusText = string.Empty;
+    public ResidentEvacuationZoneSaveData residentZone =
+        new ResidentEvacuationZoneSaveData();
+    public List<ResidentEvacuationParticipantSaveData> residentParticipants =
+        new List<ResidentEvacuationParticipantSaveData>();
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum ResidentEvacuationZoneStatus
+{
+    None = 0,
+    Active = 1,
+    LostByTopology = 2
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum ResidentEvacuationParticipantStatus
+{
+    PendingRoute = 0,
+    Moving = 1,
+    Holding = 2,
+    PreemptedEmergency = 3,
+    Unreachable = 4,
+    NoCapacity = 5
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class ResidentEvacuationRoomCellSpanSaveData
+{
+    public int y;
+    public int startX;
+    public int length;
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class ResidentEvacuationZoneSaveData
+{
+    public ResidentEvacuationZoneStatus status;
+    public int anchorX;
+    public int anchorY;
+    public List<ResidentEvacuationRoomCellSpanSaveData> cellSpans =
+        new List<ResidentEvacuationRoomCellSpanSaveData>();
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class ResidentEvacuationParticipantSaveData
+{
+    public string characterId = string.Empty;
+    public ResidentEvacuationParticipantStatus status;
+    public int targetX;
+    public int targetY;
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]

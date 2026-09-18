@@ -4,6 +4,9 @@ public static class EconomyProjectInputOwnerAuthority
 {
     public const string GrandProjectDomain = "economy.grand-project";
     public const string RegionalContractDomain = "economy.regional-contract";
+    public const string FactionContractDomain = "run.faction-contract";
+    public const string GuestRequestDomain = "run.guest-request";
+    public const string FestivalDomain = "run.festival";
     public const string StockPolicyDomain = "economy.stock-policy";
     public const long CapacitySchemaRevision = 1L;
 
@@ -15,6 +18,14 @@ public static class EconomyProjectInputOwnerAuthority
         "grand-project-input-facility-lost";
     public const string RegionalContractTerminalReason =
         "regional-contract-input-terminal";
+    public const string FactionContractTerminalReason =
+        "faction-contract-input-terminal";
+    public const string GuestRequestTerminalReason =
+        "guest-request-input-terminal";
+    public const string FestivalTerminalReason =
+        "festival-input-terminal";
+    public const string GuestRequestReplanReason =
+        "guest-request-input-replan";
     public const string StockPolicyDisabledReason =
         "stock-policy-input-disabled";
     public const string StockPolicySaleCompletedReason =
@@ -25,6 +36,15 @@ public static class EconomyProjectInputOwnerAuthority
 
     public static string BuildRegionalContractDestinationId(string contractId) =>
         BuildDestinationId(RegionalContractDomain, contractId);
+
+    public static string BuildFactionContractDestinationId(string contractId) =>
+        BuildDestinationId(FactionContractDomain, contractId);
+
+    public static string BuildGuestRequestDestinationId(string instanceId) =>
+        BuildDestinationId(GuestRequestDomain, instanceId);
+
+    public static string BuildFestivalDestinationId(string occurrenceId) =>
+        BuildDestinationId(FestivalDomain, occurrenceId);
 
     public static string BuildStockPolicyDestinationId(string itemId) =>
         BuildDestinationId(StockPolicyDomain, itemId);
@@ -43,6 +63,12 @@ public static class EconomyProjectInputOwnerAuthority
     public static bool IsSupportedDomain(string ownerDomain) =>
         string.Equals(ownerDomain, GrandProjectDomain, StringComparison.Ordinal)
         || string.Equals(ownerDomain, RegionalContractDomain,
+            StringComparison.Ordinal)
+        || string.Equals(ownerDomain, FactionContractDomain,
+            StringComparison.Ordinal)
+        || string.Equals(ownerDomain, GuestRequestDomain,
+            StringComparison.Ordinal)
+        || string.Equals(ownerDomain, FestivalDomain,
             StringComparison.Ordinal)
         || string.Equals(ownerDomain, StockPolicyDomain,
             StringComparison.Ordinal);

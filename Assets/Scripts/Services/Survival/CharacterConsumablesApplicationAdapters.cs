@@ -22,6 +22,7 @@ public sealed class CharacterConsumablesApplicationPorts :
     private readonly ICharacterNarrativeCatalog narrativeCatalog;
     private readonly ICharacterRitualFastingQuery ritualFastingQuery;
     private readonly ICharacterRitualFastingCommand ritualFastingCommand;
+    private readonly ICharacterBodyHealthCommand bodyHealthCommands;
     private readonly IItemQuantityReservationService quantityReservations;
     private readonly IReservedItemTransferService reservedTransfers;
     private readonly IReservedPhysicalItemBatchDispositionService
@@ -50,7 +51,8 @@ public sealed class CharacterConsumablesApplicationPorts :
         IRestoreWorldCandidateQuery restoreWorldCandidates = null,
         IReservedPhysicalItemBatchDispositionService reservedBatchDispositions = null,
         IPhysicalItemBatchDispositionService batchDispositions = null,
-        IPackagedLotTareDispositionService tareDispositions = null)
+        IPackagedLotTareDispositionService tareDispositions = null,
+        ICharacterBodyHealthCommand bodyHealthCommands = null)
     {
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         this.items = items ?? throw new ArgumentNullException(nameof(items));
@@ -64,6 +66,7 @@ public sealed class CharacterConsumablesApplicationPorts :
         this.narrativeCatalog = narrativeCatalog;
         this.ritualFastingQuery = ritualFastingQuery;
         this.ritualFastingCommand = ritualFastingCommand;
+        this.bodyHealthCommands = bodyHealthCommands;
         this.quantityReservations = quantityReservations;
         this.reservedTransfers = reservedTransfers;
         this.reservedBatchDispositions = reservedBatchDispositions;
@@ -461,6 +464,29 @@ public sealed class CharacterConsumablesApplicationPorts :
     public void ApplyDamage(CharacterId id, float amount, string reason) =>
         RequireActor(id).ApplyDamage(amount, reason);
 
+    public void ApplyContaminatedMealDamage(
+        CharacterId id,
+        float amount,
+        string reason)
+    {
+        CharacterActor actor = RequireActor(id);
+        if (bodyHealthCommands == null)
+        {
+            actor.ApplyDamage(amount, reason);
+            return;
+        }
+
+        // Ingested harm is systemic core damage. Route it through the canonical
+        // localized body command so anatomy, aggregate vitals, Downed and death
+        // are published in one synchronous authority boundary.
+        bodyHealthCommands.ApplyLocalizedDamage(
+            actor,
+            CombatBodyPart.Torso,
+            amount,
+            reason,
+            allowDeath: true);
+    }
+
     public void RecordNeedNarrative(
         CharacterId id,
         string factId,
@@ -485,6 +511,22 @@ public sealed class CharacterConsumablesApplicationPorts :
         catalog.All
             .Where(item => item != null && item.TryGetFeature(out SubstanceItemFeature _))
             .Select(ToSubstanceSnapshot)
+            .OrderBy(item => item.Id.Value, StringComparer.Ordinal)
+            .ToArray();
+
+    public IReadOnlyList<CharacterDetoxMedicineDefinitionSnapshot> GetDetoxMedicines() =>
+        catalog.All
+            .Where(item => item != null
+                && item.TryGetFeature(out MedicineItemFeature medicine)
+                && IsFinitePositive(medicine.detoxReduction))
+            .Select(item =>
+            {
+                item.TryGetFeature(out MedicineItemFeature medicine);
+                return new CharacterDetoxMedicineDefinitionSnapshot(
+                    (ConsumableItemDefinitionId)item.ItemId,
+                    item.DisplayName,
+                    medicine.detoxReduction);
+            })
             .OrderBy(item => item.Id.Value, StringComparer.Ordinal)
             .ToArray();
 
@@ -526,6 +568,26 @@ public sealed class CharacterConsumablesApplicationPorts :
             }
         }
         substance = default;
+        return false;
+    }
+
+    public bool TryResolveDetoxMedicine(
+        ConsumableItemDefinitionId id,
+        out CharacterDetoxMedicineDefinitionSnapshot medicine)
+    {
+        if (id.IsValid
+            && catalog.TryGet((ItemDefinitionId)id.Value, out ItemDefinitionSO item)
+            && item != null
+            && item.TryGetFeature(out MedicineItemFeature feature)
+            && IsFinitePositive(feature.detoxReduction))
+        {
+            medicine = new CharacterDetoxMedicineDefinitionSnapshot(
+                id,
+                item.DisplayName,
+                feature.detoxReduction);
+            return true;
+        }
+        medicine = default;
         return false;
     }
 
@@ -595,14 +657,18 @@ public sealed class CharacterConsumablesApplicationPorts :
                 stack.ItemId,
                 quantity))
             return false;
-        if (!items.TryCommitPhysicalDisposition(
+        string operationId =
+            $"character-consumable:{characterId.Value}:{stackId.Value}:{quantity}";
+        bool physicalCommitted = batchDispositions
+                is ICarriedPhysicalItemBatchDispositionService carried
+            && carried.TryCommitCarriedSinkPending(
                 stackId.Value,
                 quantity,
-                PhysicalItemDispositionKind.Sink,
-                $"character-consumable:{characterId.Value}:{stackId.Value}:{quantity}",
+                operationId,
                 "character-carried-consumable-consumed",
                 out _,
-                out _))
+                out _);
+        if (!physicalCommitted)
         {
             carry.Restore(carryBefore);
             return false;
@@ -950,6 +1016,89 @@ public sealed class CharacterConsumablesApplicationPorts :
             "substance",
             out failureReason);
 
+    public bool TryCommitDetoxConsumptionPending(
+        ConsumableOperationId operationId,
+        ItemStackId stackId,
+        out CharacterDetoxPhysicalCommitSnapshot commit,
+        out string failureReason)
+    {
+        commit = default;
+        if (batchDispositions == null)
+        {
+            failureReason = "detox-pending-service-missing";
+            return false;
+        }
+        if (TryGetPendingDetoxConsumption(operationId, out commit))
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+        WorldItemStackSnapshot stack = items.GetAllStacks().FirstOrDefault(value =>
+            value != null
+            && string.Equals(value.StackId, stackId.Value, StringComparison.Ordinal));
+        if (stack == null
+            || stack.State != WorldItemStackState.FacilityBuffer
+            || stack.AvailableQuantity < 1
+            || stack.ReservedQuantity != 0
+            || !string.IsNullOrEmpty(stack.ReservedByPersistentId)
+            || stack.Forbidden
+            || !CharacterConsumablesInputDestinationIdentity
+                .IsDestinationForKind(
+                    stack.DestinationId,
+                    CharacterConsumablesInputKind.MedicalTreatment))
+        {
+            failureReason = "detox-facility-buffer-source-missing";
+            return false;
+        }
+        if (!batchDispositions.TryCommitPending(
+                new[] { new PhysicalItemTransformInput(stackId.Value, 1) },
+                PhysicalItemDispositionKind.Sink,
+                operationId.Value,
+                CharacterConsumablesRuntime.DetoxPhysicalSinkReason,
+                out PhysicalItemBatchDispositionReceipt receipt,
+                out failureReason))
+        {
+            return false;
+        }
+        commit = ToDetoxCommit(receipt);
+        return true;
+    }
+
+    public bool TryGetPendingDetoxConsumption(
+        ConsumableOperationId operationId,
+        out CharacterDetoxPhysicalCommitSnapshot commit)
+    {
+        commit = default;
+        if (batchDispositions == null
+            || !batchDispositions.TryGetPending(
+                operationId.Value,
+                out PhysicalItemBatchDispositionReceipt receipt)
+            || receipt.Kind != PhysicalItemDispositionKind.Sink
+            || !string.Equals(
+                receipt.ReasonCode,
+                CharacterConsumablesRuntime.DetoxPhysicalSinkReason,
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+        commit = ToDetoxCommit(receipt);
+        return true;
+    }
+
+    public bool TryAcknowledgeDetoxConsumption(
+        CharacterId characterId,
+        ConsumableItemDefinitionId itemId,
+        int quantity,
+        string commitId,
+        out string failureReason) =>
+        TryPublishTareAndAcknowledge(
+            characterId,
+            itemId,
+            quantity,
+            commitId,
+            "detox",
+            out failureReason);
+
     private bool TryPublishTareAndAcknowledge(
         CharacterId characterId,
         ConsumableItemDefinitionId itemId,
@@ -1013,6 +1162,18 @@ public sealed class CharacterConsumablesApplicationPorts :
         receipt.SourceStackIds,
         receipt.Quantity,
         receipt.InputMassGrams);
+
+    private static CharacterDetoxPhysicalCommitSnapshot ToDetoxCommit(
+        PhysicalItemBatchDispositionReceipt receipt) => new(
+        receipt.OperationId,
+        receipt.ReasonCode,
+        receipt.CommitId,
+        receipt.SourceStackIds,
+        receipt.Quantity,
+        receipt.InputMassGrams);
+
+    private static bool IsFinitePositive(float value) =>
+        !float.IsNaN(value) && !float.IsInfinity(value) && value > 0f;
 
     public void ReleaseMealQuantity(string leaseId)
     {
@@ -1177,6 +1338,9 @@ public sealed class CharacterConsumablesApplicationPorts :
                 feature.moodEffect,
                 feature.workSpeedEffect,
                 feature.combatEffect,
+                feature.fatigueAccumulationReduction,
+                feature.researchSpeedEffect,
+                feature.suppressesPerceivedPain,
                 feature.durationSeconds,
                 (item as ResourceItemDefinitionSO)?.RequiredResearchId
                     ?? string.Empty));
@@ -1220,6 +1384,13 @@ public sealed class CharacterConsumablesCompatibilityAdapter :
 
     public void SetPolicy(CharacterActor actor, CharacterDietPolicyKind policy) =>
         runtime.SetDietPolicy(GetCharacterId(actor), policy);
+
+    public CharacterMealQualityLimit GetMealQualityLimit(CharacterActor actor) =>
+        runtime.GetMealQualityLimit(GetCharacterId(actor));
+
+    [GameplayEntryPoint("CharacterSummaryHealthPresenter.CycleMealQualityLimit; WimMealQualityPlayModeVerifier")]
+    public void SetMealQualityLimit(CharacterActor actor, CharacterMealQualityLimit qualityLimit) =>
+        runtime.SetMealQualityLimit(GetCharacterId(actor), qualityLimit);
 
     public bool IsAllowed(CharacterActor actor, ResourceItemDefinitionSO meal) =>
         meal != null && runtime.IsMealAllowed(
@@ -1394,6 +1565,14 @@ public sealed class CharacterConsumablesCompatibilityAdapter :
         runtime.GetWorkSpeedMultiplier(GetCharacterId(actor));
     public float GetCombatMultiplier(CharacterActor actor) =>
         runtime.GetCombatMultiplier(GetCharacterId(actor));
+    public float GetFatigueAccumulationMultiplier(CharacterActor actor) =>
+        runtime.GetFatigueAccumulationMultiplier(GetCharacterId(actor));
+    public float GetResearchSpeedMultiplier(CharacterActor actor) =>
+        runtime.GetResearchSpeedMultiplier(GetCharacterId(actor));
+    public bool SuppressesPerceivedPain(CharacterActor actor) =>
+        runtime.SuppressesPerceivedPain(GetCharacterId(actor));
+    public CharacterToxicityStatus GetToxicityStatus(CharacterActor actor) =>
+        runtime.GetToxicityStatus(GetCharacterId(actor));
     public void Tick() => runtime.Tick();
 
     private static CharacterId GetCharacterId(CharacterActor actor) =>

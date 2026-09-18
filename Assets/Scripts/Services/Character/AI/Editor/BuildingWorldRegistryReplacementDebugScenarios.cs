@@ -163,7 +163,7 @@ public static class BuildingWorldRegistryReplacementDebugScenarios
     private static void VerifyWarehouseProjection()
     {
         BuildingSO definition = AssetDatabase.LoadAssetAtPath<BuildingSO>(
-            "Assets/Resources/SO/Building/P1/P1_Warehouse.asset");
+            "Assets/Resources/SO/Building/Modular/L01_대형보관선반.asset");
         Require(definition != null,
             "Warehouse replacement fixture definition is missing.");
         ICharacterAiWorldRegistry world = CharacterAiEditorTestDependencies.WorldRegistry;
@@ -242,7 +242,7 @@ public static class BuildingWorldRegistryReplacementDebugScenarios
     private static void VerifyRetailProjection()
     {
         BuildingSO definition = AssetDatabase.LoadAssetAtPath<BuildingSO>(
-            "Assets/Resources/SO/Building/P1/P1_GeneralStore.asset");
+            "Assets/Resources/SO/Building/Modular/S01_판매카운터.asset");
         Require(definition != null,
             "Retail replacement fixture definition is missing.");
         ICharacterAiWorldRegistry world = CharacterAiEditorTestDependencies.WorldRegistry;

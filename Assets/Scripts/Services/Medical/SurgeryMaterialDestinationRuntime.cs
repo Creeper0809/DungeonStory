@@ -152,7 +152,8 @@ public sealed class SurgeryMaterialDestinationRuntime :
     {
         failureReason = string.Empty;
         SurgeryOrder[] active = (orders ?? Array.Empty<SurgeryOrder>())
-            .Where(value => value?.IsActive == true)
+            .Where(value => value?.IsActive == true
+                && value.OwnsMaterialAuthority)
             .OrderBy(value => value.orderId, StringComparer.Ordinal)
             .ToArray();
         IReadOnlyDictionary<string, Vector2Int> positions = facilityPositions
@@ -333,6 +334,34 @@ public sealed class SurgeryMaterialDestinationRuntime :
                     + massQuery.GetQuantityMass(
                         (ItemDefinitionId)stack.ItemId,
                         subject,
+                        1).Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(
+                    order.replacementExpectedOldPartId))
+            {
+                if (!parts.TryGet(
+                        order.replacementExpectedOldPartId,
+                        out SurgicalPartInstance previous)
+                    || !previous.installed
+                    || string.IsNullOrWhiteSpace(previous.itemDefinitionId)
+                    || string.IsNullOrWhiteSpace(
+                        previous.physicalItemInstanceId))
+                {
+                    failureReason =
+                        "surgery-material-capacity-replacement-part-missing";
+                    return false;
+                }
+                PhysicalItemMassSubject previousSubject =
+                    PhysicalItemMassSubjectAdapter.Create(
+                        massQuery,
+                        (ItemDefinitionId)previous.itemDefinitionId,
+                        previous.physicalItemInstanceId,
+                        Array.Empty<ItemInstanceComponentSaveData>());
+                capacityGrams = checked(capacityGrams
+                    + massQuery.GetQuantityMass(
+                        (ItemDefinitionId)previous.itemDefinitionId,
+                        previousSubject,
                         1).Value);
             }
         }

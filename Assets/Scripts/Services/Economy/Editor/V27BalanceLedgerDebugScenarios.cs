@@ -69,6 +69,8 @@ public static class V27BalanceLedgerDebugScenarios
         passed.Add("PASS V27_APPROVAL_EXACT_KEY_EXPIRY");
         VerifyApprovalOnlyDerivedItemRows();
         passed.Add("PASS V27_APPROVAL_ONLY_DERIVED_ITEM_NO_ASSET_PATCH");
+        VerifyWim053EmbeddedWorkValueProjectionCodec();
+        passed.Add("PASS WIM053_EWU_PROJECTION_CODEC_ROUNDTRIP");
         VerifyRuntimeLaborAuthority();
         passed.Add("PASS V27_VERTICAL_SLICE_RUNTIME_WORK_SCALE");
         passed.Add("PASS V27_VERTICAL_SLICE_AUTHORITY_ALIGNMENT");
@@ -253,6 +255,51 @@ public static class V27BalanceLedgerDebugScenarios
         Require(!V27BalanceAssetApplication.IsApprovalOnlyLedgerRecord(
                 malformedFactory.Freeze().Records.Single()),
             "malformed derived row escaped the exact approval-only contract");
+    }
+
+    private static void VerifyWim053EmbeddedWorkValueProjectionCodec()
+    {
+        V27EmbeddedWorkValueProjectionPayload payload =
+            new V27EmbeddedWorkValueProjectionPayload
+            {
+                schema = V27EmbeddedWorkValueProjectionCodec.Schema,
+                generatorVersion = V27EmbeddedWorkValueProjectionCodec
+                    .ApprovedGeneratorVersion,
+                ledgerCsvSha256 = new string('a', 64),
+                sourceDigest = new string('b', 64),
+                basisId = V27EmbeddedWorkValueProjectionPublisher.SettlementBasisId,
+                itemCount = 2,
+                items = new List<V27EmbeddedWorkValueProjectionRow>
+                {
+                    new V27EmbeddedWorkValueProjectionRow
+                    {
+                        itemId = "item:alpha",
+                        acquisitionMilliEwu = 1300L,
+                        recoverableMilliEwu = 900L,
+                        selectedSourceId = "recipe:alpha"
+                    },
+                    new V27EmbeddedWorkValueProjectionRow
+                    {
+                        itemId = "item:zeta",
+                        acquisitionMilliEwu = 2000L,
+                        recoverableMilliEwu = 1000L,
+                        selectedSourceId = "external:zeta"
+                    }
+                }
+            };
+        string json = V27EmbeddedWorkValueProjectionPublisher
+            .SerializeCanonicalPayload(payload);
+        IReadOnlyDictionary<string, V27EmbeddedWorkValueProjection> values =
+            V27EmbeddedWorkValueProjectionCodec.Parse(json, out string basisId);
+        Require(string.Equals(
+                    basisId,
+                    V27EmbeddedWorkValueProjectionPublisher.SettlementBasisId,
+                    StringComparison.Ordinal)
+                && values.Count == payload.itemCount
+                && values["item:alpha"].AcquisitionMilliEwu == 1300L
+                && values["item:alpha"].RecoverableMilliEwu == 900L
+                && values["item:zeta"].SelectedSourceId == "external:zeta",
+            "WIM053 EWU projection codec round trip drifted");
     }
 
     private static void VerifyCanonicalCaptureAndOrdering()

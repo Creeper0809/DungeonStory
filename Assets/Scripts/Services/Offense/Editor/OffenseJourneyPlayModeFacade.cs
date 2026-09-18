@@ -14,7 +14,7 @@ using UnityEngine.UI;
 using VContainer;
 
 [InitializeOnLoad]
-public static class OffenseJourneyPlayModeFacade
+public static partial class OffenseJourneyPlayModeFacade
 {
     public const string ReportPath =
         "Artifacts/QA/offense-journey-playmode.txt";
@@ -289,13 +289,15 @@ public static class OffenseJourneyPlayModeFacade
             scope.Container.Resolve<IOffenseBattleDirector>();
         IOffenseTravelRuntime travel =
             scope.Container.Resolve<IOffenseTravelRuntime>();
+        IOffenseReturnArrivalRuntime returnArrivals =
+            scope.Container.Resolve<IOffenseReturnArrivalRuntime>();
         IGameEventBus events = scope.Container.Resolve<IGameEventBus>();
         OffenseRewardRuntime rewards =
             UnityEngine.Object.FindFirstObjectByType<OffenseRewardRuntime>();
         if (expeditions == null || panels == null || world == null
             || targets == null || decisions == null || battle == null
             || director == null || travel == null || events == null
-            || rewards == null)
+            || rewards == null || returnArrivals == null)
         {
             complete?.Invoke("FAIL: strategic offense authorities are missing.");
             yield break;
@@ -801,6 +803,69 @@ public static class OffenseJourneyPlayModeFacade
                 + $"failed={result.grantedRewards?.Count(grant => grant == null || !grant.success) ?? -1}");
             yield break;
         }
+        Dictionary<string, int> expectedConsumption = expedition.ConsumedSupplies
+            .ToDictionary(
+                pair => OffenseSupplyCatalog.GetPhysicalItemId(pair.Key),
+                pair => pair.Value,
+                StringComparer.Ordinal);
+        Dictionary<string, int> recordedConsumption = result.itemReceipts
+            .Where(receipt => receipt != null
+                && receipt.kind == OffenseExpeditionItemReceiptKind.SupplyConsumed)
+            .GroupBy(receipt => receipt.itemId, StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Sum(receipt => receipt.quantity),
+                StringComparer.Ordinal);
+        if (expectedConsumption.Count != recordedConsumption.Count
+            || expectedConsumption.Any(pair =>
+                !recordedConsumption.TryGetValue(pair.Key, out int amount)
+                || amount != pair.Value))
+        {
+            complete?.Invoke("FAIL: strategic settlement consumption receipt mismatch. "
+                + $"expected={string.Join(",", expectedConsumption.Select(pair => $"{pair.Key}:{pair.Value}"))}; "
+                + $"actual={string.Join(",", recordedConsumption.Select(pair => $"{pair.Key}:{pair.Value}"))}");
+            yield break;
+        }
+        IReadOnlyList<OffenseExpeditionArrivalReceipt> liveArrivals =
+            returnArrivals.GetSettlementReceipts(expeditionId);
+        string expectedArrivals = string.Join("|", liveArrivals
+            .Select(DescribeArrivalReceipt));
+        string recordedArrivals = string.Join("|", result.arrivalReceipts
+            .Select(DescribeArrivalReceipt));
+        if (!ArrivalReceiptsMatch(liveArrivals, result.arrivalReceipts))
+        {
+            complete?.Invoke("FAIL: strategic settlement arrival receipt mismatch. "
+                + $"expected={expectedArrivals}; actual={recordedArrivals}");
+            yield break;
+        }
+        int rewardAuthorityBeforeRequery = GetRewardAuthorityTotal(rewards.State);
+        string grantsBeforeRequery = string.Join("|", result.grantedRewards
+            .Select(grant => $"{grant.category}:{grant.requestedAmount}:"
+                + $"{grant.grantedAmount}:{grant.success}"));
+        yield return null;
+        result = expeditions.ResultHistory.FirstOrDefault(candidate =>
+            candidate != null
+            && string.Equals(
+                candidate.expeditionId,
+                expeditionId,
+                StringComparison.Ordinal));
+        string grantsAfterRequery = string.Join("|", result?.grantedRewards
+            .Select(grant => $"{grant.category}:{grant.requestedAmount}:"
+                + $"{grant.grantedAmount}:{grant.success}")
+            ?? Array.Empty<string>());
+        int rewardAuthorityAfterRequery = GetRewardAuthorityTotal(rewards.State);
+        if (result == null
+            || rewardAuthorityAfterRequery != rewardAuthorityBeforeRequery
+            || !string.Equals(
+                grantsBeforeRequery,
+                grantsAfterRequery,
+                StringComparison.Ordinal))
+        {
+            complete?.Invoke("FAIL: settlement requery changed reward receipts or reapplied rewards. "
+                + $"authority={rewardAuthorityBeforeRequery}->{rewardAuthorityAfterRequery}; "
+                + $"grants={grantsBeforeRequery}->{grantsAfterRequery}");
+            yield break;
+        }
         int rewardAuthorityAfter = GetRewardAuthorityTotal(rewards.State);
         if (rewardEvents != 1
             || !string.Equals(
@@ -856,7 +921,10 @@ public static class OffenseJourneyPlayModeFacade
         AddEvidence(evidence, "STRATEGIC_REWARD_HISTORY",
             $"history={historyBefore}->{expeditions.ResultHistory.Count}; "
             + $"grants={result.grantedRewards.Count}; rewardEvents={rewardEvents}; "
-            + $"authority={rewardAuthorityBefore}->{rewardAuthorityAfter}; grown={grown}");
+            + $"authority={rewardAuthorityBefore}->{rewardAuthorityAfter}; grown={grown}; "
+            + $"itemReceipts={result.itemReceipts.Count}; "
+            + $"treatments={result.treatmentReceipts.Count}; "
+            + $"arrivals={result.arrivalReceipts.Count}");
         AddEvidence(evidence, "STRATEGIC_OWNERSHIP_CLEAN",
             $"expedition={expeditionId}; active=False; memberLeaks=0; "
             + "travel=False; decision=False; director=False; battle=False");
@@ -874,6 +942,39 @@ public static class OffenseJourneyPlayModeFacade
             + state.AcquiredBlueprintIds.Count;
     }
 
+    private static string DescribeArrivalReceipt(
+        OffenseExpeditionArrivalReceipt receipt) => receipt == null
+        ? "null"
+        : $"{receipt.arrivalId}:{receipt.kind}:{receipt.requestedAmount}:"
+            + $"{receipt.materializedAmount}:{receipt.securedAmount}:"
+            + $"{receipt.escapedAmount}:{receipt.resolution}";
+
+    private static bool ArrivalReceiptsMatch(
+        IReadOnlyList<OffenseExpeditionArrivalReceipt> live,
+        IReadOnlyList<OffenseExpeditionArrivalReceipt> recorded)
+    {
+        Dictionary<string, OffenseExpeditionArrivalReceipt> recordedById =
+            (recorded ?? Array.Empty<OffenseExpeditionArrivalReceipt>())
+            .Where(value => value != null)
+            .ToDictionary(value => value.arrivalId, StringComparer.Ordinal);
+        return live != null
+            && live.Count == recordedById.Count
+            && live.All(current => current != null
+                && recordedById.TryGetValue(
+                    current.arrivalId,
+                    out OffenseExpeditionArrivalReceipt snapshot)
+                && string.Equals(
+                    current.kind,
+                    snapshot.kind,
+                    StringComparison.Ordinal)
+                && current.requestedAmount == snapshot.requestedAmount
+                && current.resolution == snapshot.resolution
+                && (current.resolution == OffenseExpeditionArrivalResolution.Pending
+                    || current.materializedAmount == snapshot.materializedAmount
+                        && current.securedAmount == snapshot.securedAmount
+                        && current.escapedAmount == snapshot.escapedAmount));
+    }
+
     private static bool EnsureExpeditionResearchPrerequisite(
         DungeonRuntimeLifetimeScope scope,
         out string evidence,
@@ -881,11 +982,11 @@ public static class OffenseJourneyPlayModeFacade
     {
         evidence = string.Empty;
         failure = string.Empty;
-        IDungeonSaveSectionRegistry sections =
-            scope?.Container?.Resolve<IDungeonSaveSectionRegistry>();
+        IDungeonGameSaveService saves =
+            scope?.Container?.Resolve<IDungeonGameSaveService>();
         IBlueprintResearchStateService researchState =
             scope?.Container?.Resolve<IBlueprintResearchStateService>();
-        if (sections == null || researchState == null)
+        if (saves == null || researchState == null)
         {
             failure = "official research save/state authority is missing.";
             return false;
@@ -897,8 +998,8 @@ public static class OffenseJourneyPlayModeFacade
             return true;
         }
 
-        List<DungeonSaveSectionEnvelope> snapshot = sections.CaptureAll();
-        DungeonSaveSectionEnvelope envelope = snapshot.FirstOrDefault(value =>
+        DungeonGameSaveData snapshot = saves.Capture();
+        DungeonSaveSectionEnvelope envelope = snapshot.sections.FirstOrDefault(value =>
             value != null
             && string.Equals(
                 value.sectionId,
@@ -940,8 +1041,8 @@ public static class OffenseJourneyPlayModeFacade
             research.activeProjectId = string.Empty;
         }
         envelope.payloadJson = JsonUtility.ToJson(research);
-        DungeonGameRestoreReport report = new DungeonGameRestoreReport();
-        if (!sections.RestoreAll(snapshot, report) || !report.Success)
+        if (!saves.TryRestore(snapshot, out DungeonGameRestoreReport report)
+            || !report.Success)
         {
             failure = "official research prerequisite restore failed: "
                 + string.Join(" | ", report.Errors);
@@ -952,7 +1053,7 @@ public static class OffenseJourneyPlayModeFacade
             failure = "official research state did not publish expedition access.";
             return false;
         }
-        evidence = "save-registry:"
+        evidence = "save-service:"
             + OffenseExpeditionAccessRules.RequiredResearchId;
         return true;
     }

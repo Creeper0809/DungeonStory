@@ -208,6 +208,7 @@ public sealed class OffenseExpeditionLaunchService
             OffenseRouteGenerator.Create(target),
             supplies,
             preparation);
+        expedition.CaptureEquipmentBaseline(domain.Equipment);
         if (isStrategicSite)
         {
             expedition.BeginWorldTravel(target.id);
@@ -294,6 +295,9 @@ public sealed class OffenseExpeditionLaunchService
                 return false;
             }
 
+            if (!domain.Targets.TryCommitLaunch(target.id))
+                throw new InvalidOperationException(
+                    $"Strategic offer '{target.id}' changed after departure committed.");
             commitExpedition(expedition);
             domain.Targets.RegisterRescueDispatch(
                 isRescue,
@@ -354,6 +358,19 @@ public sealed class OffenseExpeditionLaunchService
             departedMembers.Add(member);
         }
 
+        if (!domain.Targets.TryCommitLaunch(target.id))
+        {
+            foreach (CharacterActor departed in departedMembers)
+                departed.EndExpedition(alive: true);
+            infrastructure.StrategicTravel?.TryRemove(expeditionId);
+            RefundFieldFunds(
+                infrastructure.GameMoney,
+                expeditionId,
+                allocatedFieldFunds);
+            message = "원정 기회가 출발 확정 전에 만료되었습니다.";
+            expedition = null;
+            return false;
+        }
         commitExpedition(expedition);
         domain.Targets.RegisterRescueDispatch(
             isRescue,

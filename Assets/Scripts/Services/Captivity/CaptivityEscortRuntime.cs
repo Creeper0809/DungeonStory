@@ -75,6 +75,17 @@ internal sealed class CaptivityEscortRuntime :
             failureReason = "호송 예약이 유효하지 않습니다.";
             return false;
         }
+        if (!state.IsInCustody
+            || subject.IsDead
+            || !subject.isActiveAndEnabled
+            || subject.CurrentLifecycleState == CharacterLifecycleState.Despawned
+            || carrier.IsDead
+            || !carrier.isActiveAndEnabled
+            || carrier.CurrentLifecycleState != CharacterLifecycleState.Active)
+        {
+            failureReason = "호송 대상이나 담당자가 더 이상 유효하지 않습니다.";
+            return false;
+        }
 
         return true;
     }
@@ -279,7 +290,6 @@ internal sealed class CaptivityEscortRuntime :
         state.restraintStackId = string.Empty;
         state.restraintItemId = string.Empty;
         state.restraintQuantity = 0;
-        state.health = EstimateHealth(subject);
         state.nextSecurityCheckAt = gameClock.Time + 5f;
         state.lastResult = "감방 수용 완료";
         actors.Recalculate(state);
@@ -295,14 +305,13 @@ internal sealed class CaptivityEscortRuntime :
             return;
         }
 
-        if (subject != null)
+        bool restoredRecordedCarry = RestoreParent(state.captiveId, subject);
+        if (restoredRecordedCarry
+            && subject != null
+            && carrier != null)
         {
-            RestoreParent(state.captiveId, subject);
-            if (carrier != null)
-            {
-                subject.transform.position = carrier.transform.position;
-                state.capturePosition = carrier.GetNowXY();
-            }
+            subject.transform.position = carrier.transform.position;
+            state.capturePosition = carrier.GetNowXY();
         }
 
         if (!string.IsNullOrWhiteSpace(state.restraintStackId))
@@ -343,30 +352,22 @@ internal sealed class CaptivityEscortRuntime :
         }
     }
 
-    private void RestoreParent(string captiveId, CharacterActor actor)
+    private bool RestoreParent(string captiveId, CharacterActor actor)
     {
-        if (actor == null)
+        string normalizedId = captiveId ?? string.Empty;
+        if (!carriedParents.TryGetValue(normalizedId, out Transform parent))
         {
-            return;
+            return false;
         }
 
-        carriedParents.TryGetValue(captiveId ?? string.Empty, out Transform parent);
-        carriedParents.Remove(captiveId ?? string.Empty);
-        actor.transform.SetParent(parent, worldPositionStays: true);
-    }
-
-    private static float EstimateHealth(CharacterActor actor)
-    {
-        if (actor?.Stats == null)
+        carriedParents.Remove(normalizedId);
+        if (actor != null)
         {
-            return 0f;
+            actor.transform.SetParent(parent, worldPositionStays: true);
         }
-
-        return Mathf.Clamp(
-            actor.Stats.CurrentHealth / Mathf.Max(1f, actor.Stats.MaxHealth) * 100f,
-            0f,
-            100f);
+        return true;
     }
+
 }
 
 internal static class CaptivityDurableToolRuntime

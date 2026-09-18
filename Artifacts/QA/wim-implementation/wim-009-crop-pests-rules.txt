@@ -1,0 +1,3 @@
+WIM009 crop-primary-batch-loss rules/authoring
+scope=pure output rule plus real seasonal asset inspection; no crop runtime, save, AI, or UI claim
+PASS cases=16; assets=28; verminLoss=10; otherLoss=0; duration=3-5

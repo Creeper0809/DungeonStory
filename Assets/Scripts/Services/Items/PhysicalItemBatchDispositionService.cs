@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Narrative.Korean;
 using VContainer;
 
 public readonly struct PhysicalItemBatchDispositionReceipt
@@ -14,6 +15,29 @@ public readonly struct PhysicalItemBatchDispositionReceipt
         IReadOnlyList<string> sourceStackIds,
         int quantity,
         long inputMassGrams)
+        : this(
+            kind,
+            operationId,
+            reasonCode,
+            requestFingerprint,
+            sourceStackIds,
+            quantity,
+            inputMassGrams,
+            0L,
+            Array.Empty<PhysicalItemDispositionSourceFact>())
+    {
+    }
+
+    internal PhysicalItemBatchDispositionReceipt(
+        PhysicalItemDispositionKind kind,
+        string operationId,
+        string reasonCode,
+        string requestFingerprint,
+        IReadOnlyList<string> sourceStackIds,
+        int quantity,
+        long inputMassGrams,
+        long ownerRevision,
+        IReadOnlyList<PhysicalItemDispositionSourceFact> sourceFacts)
     {
         Kind = kind;
         OperationId = operationId;
@@ -22,6 +46,9 @@ public readonly struct PhysicalItemBatchDispositionReceipt
         SourceStackIds = (sourceStackIds ?? Array.Empty<string>()).ToArray();
         Quantity = quantity;
         InputMassGrams = inputMassGrams;
+        OwnerRevision = ownerRevision;
+        SourceFacts = (sourceFacts
+            ?? Array.Empty<PhysicalItemDispositionSourceFact>()).ToArray();
         CommitId = $"physical-batch-disposition:{(int)kind}:{operationId}:{quantity}:{inputMassGrams}";
     }
 
@@ -32,6 +59,8 @@ public readonly struct PhysicalItemBatchDispositionReceipt
     public IReadOnlyList<string> SourceStackIds { get; }
     public int Quantity { get; }
     public long InputMassGrams { get; }
+    public long OwnerRevision { get; }
+    public IReadOnlyList<PhysicalItemDispositionSourceFact> SourceFacts { get; }
     public string CommitId { get; }
     public bool IsCommitted => Kind is PhysicalItemDispositionKind.Transfer
             or PhysicalItemDispositionKind.Sink
@@ -108,6 +137,42 @@ public interface ICarriedPhysicalItemBatchDispositionService
         out string failureReason);
 }
 
+public interface IOutcomeAwareReservedPhysicalItemBatchDispositionService
+{
+    bool TryCommitReservedSinkPending(
+        string leaseId,
+        int quantity,
+        string operationId,
+        string reasonCode,
+        IPhysicalItemBatchDispositionOutcomeParticipant outcomeParticipant,
+        out PhysicalItemBatchDispositionReceipt receipt,
+        out string failureReason);
+}
+
+/// <summary>
+/// Short-lived in-process rollback handle for a carried terminal Sink. The
+/// handle is deliberately not a second inventory authority: it only retains
+/// the exact repository mutation until the owning domain publishes or rejects
+/// its state transition in the same synchronous call.
+/// </summary>
+public interface IReversiblePhysicalItemDisposition
+{
+    PhysicalItemBatchDispositionReceipt Receipt { get; }
+    bool TryRollback(out string failureReason);
+    bool TryAcknowledge(out string failureReason);
+}
+
+public interface IReversibleCarriedPhysicalItemBatchDispositionService
+{
+    bool TryCommitCarriedSinkReversible(
+        string stackId,
+        int quantity,
+        string operationId,
+        string reasonCode,
+        out IReversiblePhysicalItemDisposition transaction,
+        out string failureReason);
+}
+
 /// <summary>
 /// Synchronous all-or-nothing custody transfer or terminal Sink across several
 /// world stacks. Mass-changing work is deliberately excluded and must use the
@@ -115,19 +180,44 @@ public interface ICarriedPhysicalItemBatchDispositionService
 /// </summary>
 public sealed class PhysicalItemBatchDispositionService :
     IPhysicalItemBatchDispositionService,
+    IOutcomeAwarePhysicalItemBatchDispositionService,
     IReservedPhysicalItemBatchDispositionService,
-    ICarriedPhysicalItemBatchDispositionService
+    IOutcomeAwareReservedPhysicalItemBatchDispositionService,
+    ICarriedPhysicalItemBatchDispositionService,
+    IReversibleCarriedPhysicalItemBatchDispositionService
 {
     private readonly WorldItemRepository repository;
     private readonly IPhysicalItemMassQuery massQuery;
     private readonly IItemMarkerPresenter markers;
     private readonly ItemQuantityReservationService quantityReservations;
+    private readonly IDungeonItemCatalogProvider itemCatalog;
+    private readonly IDefaultPhysicalItemBatchDispositionOutcomeParticipant
+        defaultOutcomeParticipant;
+    private readonly IGameplayOutcomeDiagnosticsQuery outcomeDiagnostics;
+    private readonly IGameplayOutcomeRecorder outcomeRecorder;
 
     public PhysicalItemBatchDispositionService(
         WorldItemRepository repository,
         IPhysicalItemMassQuery massQuery,
         IItemMarkerPresenter markers)
-        : this(repository, massQuery, markers, null)
+        : this(repository, massQuery, markers, null, null, null, null, null)
+    {
+    }
+
+    public PhysicalItemBatchDispositionService(
+        WorldItemRepository repository,
+        IPhysicalItemMassQuery massQuery,
+        IItemMarkerPresenter markers,
+        ItemQuantityReservationService quantityReservations)
+        : this(
+            repository,
+            massQuery,
+            markers,
+            quantityReservations,
+            null,
+            null,
+            null,
+            null)
     {
     }
 
@@ -136,12 +226,21 @@ public sealed class PhysicalItemBatchDispositionService :
         WorldItemRepository repository,
         IPhysicalItemMassQuery massQuery,
         IItemMarkerPresenter markers,
-        ItemQuantityReservationService quantityReservations)
+        ItemQuantityReservationService quantityReservations,
+        IDungeonItemCatalogProvider itemCatalog,
+        IDefaultPhysicalItemBatchDispositionOutcomeParticipant
+            defaultOutcomeParticipant,
+        IGameplayOutcomeDiagnosticsQuery outcomeDiagnostics,
+        IGameplayOutcomeRecorder outcomeRecorder)
     {
         this.repository = repository ?? throw new ArgumentNullException(nameof(repository));
         this.massQuery = massQuery ?? throw new ArgumentNullException(nameof(massQuery));
         this.markers = markers ?? throw new ArgumentNullException(nameof(markers));
         this.quantityReservations = quantityReservations;
+        this.itemCatalog = itemCatalog;
+        this.defaultOutcomeParticipant = defaultOutcomeParticipant;
+        this.outcomeDiagnostics = outcomeDiagnostics;
+        this.outcomeRecorder = outcomeRecorder;
     }
 
     [GameplayInternalOnly(
@@ -159,6 +258,27 @@ public sealed class PhysicalItemBatchDispositionService :
         PhysicalItemDispositionKind.Sink,
         operationId,
         reasonCode,
+        defaultOutcomeParticipant,
+        out receipt,
+        out failureReason);
+
+    [GameplayInternalOnly(
+        "A domain-owned exact lease may terminally consume its reserved physical quantity with a domain-specific outcome participant.",
+        "Registered reserved-Sink owners that require an exact typed gameplay outcome only")]
+    public bool TryCommitReservedSinkPending(
+        string leaseId,
+        int quantity,
+        string operationId,
+        string reasonCode,
+        IPhysicalItemBatchDispositionOutcomeParticipant outcomeParticipant,
+        out PhysicalItemBatchDispositionReceipt receipt,
+        out string failureReason) => TryCommitReservedPending(
+        leaseId,
+        quantity,
+        PhysicalItemDispositionKind.Sink,
+        operationId,
+        reasonCode,
+        outcomeParticipant,
         out receipt,
         out failureReason);
 
@@ -177,6 +297,7 @@ public sealed class PhysicalItemBatchDispositionService :
         PhysicalItemDispositionKind.Transfer,
         operationId,
         reasonCode,
+        defaultOutcomeParticipant,
         out receipt,
         out failureReason);
 
@@ -186,6 +307,7 @@ public sealed class PhysicalItemBatchDispositionService :
         PhysicalItemDispositionKind kind,
         string operationId,
         string reasonCode,
+        IPhysicalItemBatchDispositionOutcomeParticipant outcomeParticipant,
         out PhysicalItemBatchDispositionReceipt receipt,
         out string failureReason)
     {
@@ -229,6 +351,15 @@ public sealed class PhysicalItemBatchDispositionService :
                 failureReason =
                     "physical-reserved-disposition-operation-conflict:"
                     + operation;
+                return false;
+            }
+            if (!TryPrepareCanonicalReplay(
+                    receipt,
+                    existing,
+                    outcomeParticipant,
+                    out failureReason))
+            {
+                receipt = default;
                 return false;
             }
             return receipt.IsCommitted;
@@ -292,6 +423,8 @@ public sealed class PhysicalItemBatchDispositionService :
         }
 
         long inputMassGrams = 0L;
+        List<PhysicalItemDispositionSourceFact> sourceFacts =
+            new(mutations.Count);
         foreach (SourceMutation mutation in mutations)
         {
             WorldItemStackRecord source = mutation.Record;
@@ -301,11 +434,21 @@ public sealed class PhysicalItemBatchDispositionService :
                     (ItemDefinitionId)source.itemId,
                     source.itemInstanceId,
                     source.components);
-            inputMassGrams = checked(inputMassGrams
-                + massQuery.GetQuantityMass(
-                    (ItemDefinitionId)source.itemId,
-                    subject,
-                    mutation.Quantity).Value);
+            long sourceMassGrams = massQuery.GetQuantityMass(
+                (ItemDefinitionId)source.itemId,
+                subject,
+                mutation.Quantity).Value;
+            inputMassGrams = checked(inputMassGrams + sourceMassGrams);
+            if (!TryCreateSourceFact(
+                    source,
+                    mutation.Quantity,
+                    sourceMassGrams,
+                    outcomeParticipant != null,
+                    out PhysicalItemDispositionSourceFact sourceFact,
+                    out failureReason))
+                return false;
+            if (sourceFact.IsValid)
+                sourceFacts.Add(sourceFact);
         }
 
         string requestFingerprint = CreateRequestFingerprint(
@@ -315,6 +458,8 @@ public sealed class PhysicalItemBatchDispositionService :
                     value.Record.stackId,
                     value.Quantity))
                 .ToArray());
+        long ownerRevision = checked(
+            (long)repository.ItemStackVersion + 2L + mutations.Count);
         receipt = new PhysicalItemBatchDispositionReceipt(
             kind,
             operation,
@@ -325,7 +470,22 @@ public sealed class PhysicalItemBatchDispositionService :
                 .OrderBy(value => value, StringComparer.Ordinal)
                 .ToArray(),
             quantity,
-            inputMassGrams);
+            inputMassGrams,
+            ownerRevision,
+            sourceFacts);
+        IPreparedPhysicalItemGameplayOutcome preparedOutcome = null;
+        if (outcomeParticipant != null
+            && !outcomeParticipant.TryPrepare(
+                receipt,
+                ownerRevision,
+                out preparedOutcome,
+                out failureReason))
+        {
+            receipt = default;
+            return false;
+        }
+        GameplayResultKey expectedOutcomeKey = preparedOutcome?.ResultKey
+            ?? default;
         repository.AddPendingBatchDisposition(
             new PhysicalItemBatchDispositionSaveData
             {
@@ -336,7 +496,22 @@ public sealed class PhysicalItemBatchDispositionService :
                 sourceStackIds = receipt.SourceStackIds.ToList(),
                 quantity = quantity,
                 inputMassGrams = inputMassGrams,
-                commitId = receipt.CommitId
+                commitId = receipt.CommitId,
+                outcomeOwnerRevision = preparedOutcome != null
+                    ? ownerRevision
+                    : 0L,
+                gameplayOutcomeExpected = preparedOutcome != null,
+                expectedOutcomeProducerId = expectedOutcomeKey.ProducerId,
+                expectedOutcomeOperationId =
+                    expectedOutcomeKey.OperationId.Value,
+                expectedOutcomeCommitRevision =
+                    expectedOutcomeKey.CommitRevision,
+                expectedOutcomeLocalResultIndex =
+                    expectedOutcomeKey.LocalResultIndex,
+                sourceFacts = receipt.SourceFacts
+                    .Select((PhysicalItemDispositionSourceFact value) =>
+                        PhysicalGameplayOutcomeSaveCodec.ToSave(value))
+                    .ToList()
             });
 
         ItemQuantityLease leaseSnapshot = lease.Clone();
@@ -346,6 +521,7 @@ public sealed class PhysicalItemBatchDispositionService :
                 out _,
                 out DomainFailure consumeFailure))
         {
+            preparedOutcome?.Cancel();
             repository.AcknowledgePendingBatchDisposition(receipt.CommitId);
             receipt = default;
             failureReason =
@@ -354,6 +530,7 @@ public sealed class PhysicalItemBatchDispositionService :
             return false;
         }
 
+        bool gameplayOutcomeCommitted = false;
         try
         {
             foreach (SourceMutation mutation in mutations)
@@ -369,16 +546,59 @@ public sealed class PhysicalItemBatchDispositionService :
                     repository.MarkChanged();
                 }
             }
-            foreach (UnityEngine.Vector2Int position in mutations
-                         .Select(value => value.Record.position)
-                         .Distinct())
+            if (repository.ItemStackVersion != ownerRevision)
             {
-                markers.RefreshAt(position);
+                throw new InvalidOperationException(
+                    "physical-reserved-owner-revision-mismatch");
             }
-            return true;
+            if (preparedOutcome != null)
+            {
+                bool outcomeCallSucceeded = preparedOutcome.TryCommit(
+                    ownerRevision,
+                    out PhysicalGameplayOutcomeAttachment attachment,
+                    out bool canonicalCommitted,
+                    out failureReason);
+                gameplayOutcomeCommitted = canonicalCommitted;
+                if (!outcomeCallSucceeded && !canonicalCommitted)
+                {
+                    throw new InvalidOperationException(
+                        failureReason.Length > 0
+                            ? failureReason
+                            : "physical-reserved-outcome-commit-failed");
+                }
+                if (attachment.IsValid)
+                {
+                    if (!repository.TryAttachPendingBatchDispositionOutcome(
+                            receipt.CommitId,
+                            PhysicalGameplayOutcomeSaveCodec.ToSave(attachment)))
+                    {
+                        failureReason =
+                            "physical-reserved-outcome-attachment-pending";
+                    }
+                }
+                else if (canonicalCommitted)
+                {
+                    // The canonical ledger row is already durable. Keep both
+                    // the physical mutation and its pending join row so the
+                    // exact expected result key can be reconciled later.
+                    failureReason = failureReason.Length > 0
+                        ? failureReason
+                        : "physical-reserved-outcome-identity-pending";
+                }
+            }
         }
         catch (Exception exception)
         {
+            gameplayOutcomeCommitted |= HasCanonicalCommittedOutcome(
+                preparedOutcome);
+            if (gameplayOutcomeCommitted)
+            {
+                failureReason =
+                    "physical-reserved-outcome-reconciliation-pending:"
+                    + exception.Message;
+                return true;
+            }
+            preparedOutcome?.Cancel();
             Rollback(mutations);
             quantityReservations
                 .RestoreLeaseSnapshotForFailedPhysicalCommit(leaseSnapshot);
@@ -395,6 +615,20 @@ public sealed class PhysicalItemBatchDispositionService :
                 + exception.Message;
             return false;
         }
+        try
+        {
+            foreach (UnityEngine.Vector2Int position in mutations
+                         .Select(value => value.Record.position)
+                         .Distinct())
+                markers.RefreshAt(position);
+        }
+        catch (Exception exception)
+        {
+            UnityEngine.Debug.LogError(
+                "Reserved physical disposition marker refresh failed after its authoritative transaction committed: "
+                + exception);
+        }
+        return true;
     }
 
     public bool TryCommit(
@@ -417,8 +651,12 @@ public sealed class PhysicalItemBatchDispositionService :
         }
         if (!Acknowledge(receipt.CommitId, out failureReason))
         {
-            throw new InvalidOperationException(
-                $"Physical disposition '{receipt.CommitId}' committed but could not be acknowledged: {failureReason}");
+            // TryCommitPending crossing its commit point is authoritative.
+            // Any later delivery, identity attachment, or acknowledgement
+            // failure must retain the joint pending row and report durable
+            // success; returning false would invite an owner to replay domain
+            // effects that have already committed.
+            return true;
         }
         return true;
     }
@@ -437,9 +675,27 @@ public sealed class PhysicalItemBatchDispositionService :
             operationId,
             reasonCode,
             requiredSourceState: null,
+            defaultOutcomeParticipant,
             out receipt,
             out failureReason);
     }
+
+    public bool TryCommitPending(
+        IReadOnlyList<PhysicalItemTransformInput> inputs,
+        PhysicalItemDispositionKind kind,
+        string operationId,
+        string reasonCode,
+        IPhysicalItemBatchDispositionOutcomeParticipant outcomeParticipant,
+        out PhysicalItemBatchDispositionReceipt receipt,
+        out string failureReason) => TryCommitPendingCore(
+        inputs,
+        kind,
+        operationId,
+        reasonCode,
+        requiredSourceState: null,
+        outcomeParticipant,
+        out receipt,
+        out failureReason);
 
     public bool TryCommitCarriedSinkPending(
         string stackId,
@@ -453,8 +709,52 @@ public sealed class PhysicalItemBatchDispositionService :
         operationId,
         reasonCode,
         WorldItemStackState.Carried,
+        defaultOutcomeParticipant,
         out receipt,
         out failureReason);
+
+    [GameplayInternalOnly(
+        "A cross-aggregate owner may retain one exact carried Sink mutation until its synchronous domain commit finishes.",
+        "MemoryErasureSealTransactionService")]
+    public bool TryCommitCarriedSinkReversible(
+        string stackId,
+        int quantity,
+        string operationId,
+        string reasonCode,
+        out IReversiblePhysicalItemDisposition transaction,
+        out string failureReason)
+    {
+        transaction = null;
+        if (!TryCommitPendingCore(
+                new[] { new PhysicalItemTransformInput(stackId, quantity) },
+                PhysicalItemDispositionKind.Sink,
+                operationId,
+                reasonCode,
+                WorldItemStackState.Carried,
+                // This receipt is an intermediate half of a larger owner
+                // transaction. The owner publishes its terminal outcome only
+                // after it accepts the rollback handle; committing the default
+                // item outcome here would make TryRollback split domain and
+                // ledger state.
+                null,
+                out PhysicalItemBatchDispositionReceipt receipt,
+                out failureReason,
+                out List<SourceMutation> mutations,
+                out bool replayed))
+        {
+            return false;
+        }
+        if (replayed)
+        {
+            failureReason =
+                "physical-reversible-disposition-pending-replay-requires-owner-recovery:"
+                + operationId;
+            return false;
+        }
+
+        transaction = new ReversibleDisposition(this, receipt, mutations);
+        return true;
+    }
 
     private bool TryCommitPendingCore(
         IReadOnlyList<PhysicalItemTransformInput> inputs,
@@ -462,11 +762,39 @@ public sealed class PhysicalItemBatchDispositionService :
         string operationId,
         string reasonCode,
         WorldItemStackState? requiredSourceState,
+        IPhysicalItemBatchDispositionOutcomeParticipant outcomeParticipant,
         out PhysicalItemBatchDispositionReceipt receipt,
         out string failureReason)
     {
+        return TryCommitPendingCore(
+            inputs,
+            kind,
+            operationId,
+            reasonCode,
+            requiredSourceState,
+            outcomeParticipant,
+            out receipt,
+            out failureReason,
+            out _,
+            out _);
+    }
+
+    private bool TryCommitPendingCore(
+        IReadOnlyList<PhysicalItemTransformInput> inputs,
+        PhysicalItemDispositionKind kind,
+        string operationId,
+        string reasonCode,
+        WorldItemStackState? requiredSourceState,
+        IPhysicalItemBatchDispositionOutcomeParticipant outcomeParticipant,
+        out PhysicalItemBatchDispositionReceipt receipt,
+        out string failureReason,
+        out List<SourceMutation> committedMutations,
+        out bool replayed)
+    {
         receipt = default;
         failureReason = string.Empty;
+        committedMutations = null;
+        replayed = false;
         string operation = operationId ?? string.Empty;
         string reason = reasonCode ?? string.Empty;
         PhysicalItemTransformInput[] requested = (inputs
@@ -505,10 +833,22 @@ public sealed class PhysicalItemBatchDispositionService :
                 return false;
             }
             receipt = RestoreReceipt(pending);
+            if (!TryPrepareCanonicalReplay(
+                    receipt,
+                    pending,
+                    outcomeParticipant,
+                    out failureReason))
+            {
+                receipt = default;
+                return false;
+            }
+            replayed = true;
             return receipt.IsCommitted;
         }
 
         List<SourceMutation> mutations = new(requested.Length);
+        List<PhysicalItemDispositionSourceFact> sourceFacts =
+            new(requested.Length);
         long inputMassGrams = 0L;
         int inputQuantity = 0;
         foreach (PhysicalItemTransformInput input in requested)
@@ -543,14 +883,29 @@ public sealed class PhysicalItemBatchDispositionService :
                 (ItemDefinitionId)source.itemId,
                 source.itemInstanceId,
                 source.components);
-            inputMassGrams = checked(inputMassGrams + massQuery.GetQuantityMass(
+            long sourceMassGrams = massQuery.GetQuantityMass(
                 (ItemDefinitionId)source.itemId,
                 subject,
-                input.Quantity).Value);
+                input.Quantity).Value;
+            inputMassGrams = checked(inputMassGrams + sourceMassGrams);
             inputQuantity = checked(inputQuantity + input.Quantity);
             mutations.Add(new SourceMutation(source, input.Quantity));
+            if (!TryCreateSourceFact(
+                    source,
+                    input.Quantity,
+                    sourceMassGrams,
+                    outcomeParticipant != null,
+                    out PhysicalItemDispositionSourceFact sourceFact,
+                    out failureReason))
+            {
+                return false;
+            }
+            if (sourceFact.IsValid)
+                sourceFacts.Add(sourceFact);
         }
 
+        long ownerRevision = checked(
+            (long)repository.ItemStackVersion + 1L + mutations.Count);
         receipt = new PhysicalItemBatchDispositionReceipt(
             kind,
             operation,
@@ -558,7 +913,22 @@ public sealed class PhysicalItemBatchDispositionService :
             requestFingerprint,
             mutations.Select(mutation => mutation.Record.stackId).ToArray(),
             inputQuantity,
-            inputMassGrams);
+            inputMassGrams,
+            ownerRevision,
+            sourceFacts);
+        IPreparedPhysicalItemGameplayOutcome preparedOutcome = null;
+        if (outcomeParticipant != null
+            && !outcomeParticipant.TryPrepare(
+                receipt,
+                ownerRevision,
+                out preparedOutcome,
+                out failureReason))
+        {
+            receipt = default;
+            return false;
+        }
+        GameplayResultKey expectedOutcomeKey = preparedOutcome?.ResultKey
+            ?? default;
         repository.AddPendingBatchDisposition(new PhysicalItemBatchDispositionSaveData
         {
             kind = (int)kind,
@@ -568,9 +938,22 @@ public sealed class PhysicalItemBatchDispositionService :
             sourceStackIds = receipt.SourceStackIds.ToList(),
             quantity = receipt.Quantity,
             inputMassGrams = receipt.InputMassGrams,
-            commitId = receipt.CommitId
+            commitId = receipt.CommitId,
+            outcomeOwnerRevision = preparedOutcome != null
+                ? ownerRevision
+                : 0L,
+            gameplayOutcomeExpected = preparedOutcome != null,
+            expectedOutcomeProducerId = expectedOutcomeKey.ProducerId,
+            expectedOutcomeOperationId = expectedOutcomeKey.OperationId.Value,
+            expectedOutcomeCommitRevision = expectedOutcomeKey.CommitRevision,
+            expectedOutcomeLocalResultIndex = expectedOutcomeKey.LocalResultIndex,
+            sourceFacts = receipt.SourceFacts
+                .Select((PhysicalItemDispositionSourceFact value) =>
+                    PhysicalGameplayOutcomeSaveCodec.ToSave(value))
+                .ToList()
         });
 
+        bool gameplayOutcomeCommitted = false;
         try
         {
             foreach (SourceMutation mutation in mutations)
@@ -587,15 +970,60 @@ public sealed class PhysicalItemBatchDispositionService :
                     repository.MarkChanged();
                 }
             }
-            foreach (UnityEngine.Vector2Int position in mutations
-                         .Select(mutation => mutation.Record.position)
-                         .Distinct())
+            if (repository.ItemStackVersion != ownerRevision)
             {
-                markers.RefreshAt(position);
+                throw new InvalidOperationException(
+                    "physical-batch-owner-revision-mismatch");
+            }
+            if (preparedOutcome != null)
+            {
+                bool outcomeCallSucceeded = preparedOutcome.TryCommit(
+                    ownerRevision,
+                    out PhysicalGameplayOutcomeAttachment attachment,
+                    out bool canonicalCommitted,
+                    out failureReason);
+                gameplayOutcomeCommitted = canonicalCommitted;
+                if (!outcomeCallSucceeded && !canonicalCommitted)
+                {
+                    throw new InvalidOperationException(
+                        failureReason.Length > 0
+                            ? failureReason
+                            : "physical-gameplay-outcome-commit-failed");
+                }
+                if (attachment.IsValid)
+                {
+                    if (!repository.TryAttachPendingBatchDispositionOutcome(
+                            receipt.CommitId,
+                            PhysicalGameplayOutcomeSaveCodec.ToSave(attachment)))
+                    {
+                        failureReason =
+                            "physical-gameplay-outcome-attachment-pending";
+                    }
+                }
+                else if (canonicalCommitted)
+                {
+                    // Never roll the physical domain back after the ledger
+                    // commit point. The pending row contains the exact result
+                    // key and remains the durable reconciliation marker.
+                    failureReason = failureReason.Length > 0
+                        ? failureReason
+                        : "physical-gameplay-outcome-identity-pending";
+                }
             }
         }
         catch (Exception exception)
         {
+            gameplayOutcomeCommitted |= HasCanonicalCommittedOutcome(
+                preparedOutcome);
+            if (gameplayOutcomeCommitted)
+            {
+                committedMutations = mutations;
+                failureReason =
+                    "physical-gameplay-outcome-reconciliation-pending:"
+                    + exception.Message;
+                return true;
+            }
+            preparedOutcome?.Cancel();
             Rollback(mutations);
             if (!repository.AcknowledgePendingBatchDisposition(receipt.CommitId))
             {
@@ -608,7 +1036,48 @@ public sealed class PhysicalItemBatchDispositionService :
                 + exception.Message;
             return false;
         }
+        try
+        {
+            foreach (UnityEngine.Vector2Int position in mutations
+                         .Select(mutation => mutation.Record.position)
+                         .Distinct())
+                markers.RefreshAt(position);
+        }
+        catch (Exception exception)
+        {
+            UnityEngine.Debug.LogError(
+                "Physical disposition marker refresh failed after its authoritative transaction committed: "
+                + exception);
+        }
+        committedMutations = mutations;
         return true;
+    }
+
+    private bool HasCanonicalCommittedOutcome(
+        IPreparedPhysicalItemGameplayOutcome prepared)
+    {
+        if (prepared == null || outcomeDiagnostics == null)
+            return false;
+        try
+        {
+            return outcomeDiagnostics.TryGetResultIdentity(
+                    prepared.ResultKey,
+                    out GameplayOutcomeReplayIdentity identity)
+                && identity.ResultKey.Equals(prepared.ResultKey)
+                && identity.State is >= GameplayOutcomeReplayState.Committed
+                    and <= GameplayOutcomeReplayState.Forgotten
+                && identity.HasCanonicalPayloadHash;
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            UnityEngine.Debug.LogError(
+                "Physical outcome commit-phase reconciliation failed: "
+                + exception);
+            return false;
+        }
     }
 
     public bool Acknowledge(string commitId, out string failureReason)
@@ -620,10 +1089,114 @@ public sealed class PhysicalItemBatchDispositionService :
             failureReason = "physical-batch-disposition-ack-invalid";
             return false;
         }
+        if (repository.TryGetPendingBatchDispositionByCommitId(
+                canonical,
+                out PhysicalItemBatchDispositionSaveData pending)
+            && (pending.gameplayOutcomeExpected
+                || pending.gameplayOutcome != null))
+        {
+            if (outcomeDiagnostics == null)
+            {
+                failureReason =
+                    "physical-batch-disposition-outcome-diagnostics-unavailable";
+                return false;
+            }
+            outcomeRecorder?.RetryPendingDeliveries(1);
+            if (pending.gameplayOutcome == null
+                && !TryReconcilePendingOutcomeAttachment(
+                    pending,
+                    out failureReason))
+            {
+                return false;
+            }
+            PhysicalGameplayOutcomeAttachment attachment;
+            try
+            {
+                attachment = PhysicalGameplayOutcomeSaveCodec.FromSave(
+                    pending.gameplayOutcome);
+            }
+            catch (Exception)
+            {
+                failureReason =
+                    "physical-batch-disposition-outcome-attachment-invalid";
+                return false;
+            }
+            if (!attachment.IsValid
+                || !outcomeDiagnostics.TryGetResultIdentity(
+                    attachment.ResultKey,
+                    out GameplayOutcomeReplayIdentity identity)
+                || !identity.ResultKey.Equals(attachment.ResultKey)
+                || !identity.OutcomeId.Equals(attachment.OutcomeId)
+                || identity.State is < GameplayOutcomeReplayState
+                        .PublishedAcknowledged
+                    or > GameplayOutcomeReplayState.Forgotten
+                || !string.Equals(
+                    identity.CanonicalPayloadHash,
+                    attachment.CanonicalPayloadHash,
+                    StringComparison.Ordinal))
+            {
+                failureReason =
+                    "physical-batch-disposition-outcome-not-acknowledged";
+                return false;
+            }
+        }
         // Acknowledgement is deliberately idempotent. The durable consumer may
         // replay it after restore when the previous acknowledgement already
         // completed immediately before the save boundary.
         repository.AcknowledgePendingBatchDisposition(canonical);
+        return true;
+    }
+
+    private bool TryReconcilePendingOutcomeAttachment(
+        PhysicalItemBatchDispositionSaveData pending,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (pending == null
+            || !pending.gameplayOutcomeExpected
+            || !GameplayOutcomeStableIdSyntax.IsValid(
+                pending.expectedOutcomeProducerId)
+            || !GameplayOutcomeStableIdSyntax.IsValid(
+                pending.expectedOutcomeOperationId)
+            || pending.expectedOutcomeCommitRevision < 0L
+            || pending.expectedOutcomeLocalResultIndex < 0)
+        {
+            failureReason =
+                "physical-batch-disposition-expected-outcome-key-invalid";
+            return false;
+        }
+        GameplayResultKey expected = new(
+            pending.expectedOutcomeProducerId,
+            new GameplayOperationId(pending.expectedOutcomeOperationId),
+            pending.expectedOutcomeCommitRevision,
+            pending.expectedOutcomeLocalResultIndex);
+        if (!outcomeDiagnostics.TryGetResultIdentity(
+                expected,
+                out GameplayOutcomeReplayIdentity identity)
+            || !identity.ResultKey.Equals(expected)
+            || identity.State is < GameplayOutcomeReplayState.Committed
+                or > GameplayOutcomeReplayState.Forgotten)
+        {
+            failureReason =
+                "physical-batch-disposition-outcome-identity-pending";
+            return false;
+        }
+        PhysicalGameplayOutcomeAttachment attachment = new(
+            identity.ResultKey,
+            identity.OutcomeId,
+            identity.State,
+            identity.CanonicalPayloadHash);
+        if (!attachment.IsValid
+            || !repository.TryAttachPendingBatchDispositionOutcome(
+                pending.commitId,
+                PhysicalGameplayOutcomeSaveCodec.ToSave(attachment)))
+        {
+            failureReason =
+                "physical-batch-disposition-outcome-attachment-pending";
+            return false;
+        }
+        pending.gameplayOutcome = PhysicalGameplayOutcomeSaveCodec.ToSave(
+            attachment);
         return true;
     }
 
@@ -661,7 +1234,117 @@ public sealed class PhysicalItemBatchDispositionService :
         pending.requestFingerprint,
         pending.sourceStackIds,
         pending.quantity,
-        pending.inputMassGrams);
+        pending.inputMassGrams,
+        pending.outcomeOwnerRevision,
+        (pending.sourceFacts
+                ?? new List<PhysicalItemDispositionSourceFactSaveData>())
+            .Select(PhysicalGameplayOutcomeSaveCodec.FromSave)
+            .ToArray());
+
+    private bool TryCreateSourceFact(
+        WorldItemStackRecord source,
+        int quantity,
+        long massGrams,
+        bool required,
+        out PhysicalItemDispositionSourceFact fact,
+        out string failureReason)
+    {
+        fact = default;
+        failureReason = string.Empty;
+        if (!required && itemCatalog == null)
+            return true;
+        if (source == null
+            || itemCatalog == null
+            || !itemCatalog.TryGetDefinition(
+                source.itemId,
+                out DungeonItemDefinition definition)
+            || definition == null)
+        {
+            failureReason =
+                "physical-disposition-item-definition-snapshot-unavailable:"
+                + (source?.itemId ?? string.Empty);
+            return false;
+        }
+        fact = new PhysicalItemDispositionSourceFact(
+            source.stackId,
+            source.itemId,
+            source.itemInstanceId,
+            quantity,
+            massGrams,
+            source.position,
+            new KoreanNameSnapshot(
+                definition.DisplayName,
+                "item-definition:" + source.itemId + ":v1",
+                KoreanPronunciationHint.AutoHangulDisplay(
+                    "item-definition-pronunciation-v1"),
+                "ko-KR"));
+        if (fact.IsValid)
+            return true;
+        failureReason = "physical-disposition-source-fact-invalid:"
+            + source.stackId;
+        return false;
+    }
+
+    private static bool TryPrepareCanonicalReplay(
+        in PhysicalItemBatchDispositionReceipt receipt,
+        PhysicalItemBatchDispositionSaveData pending,
+        IPhysicalItemBatchDispositionOutcomeParticipant participant,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (participant == null)
+            return true;
+        if (pending == null || !pending.gameplayOutcomeExpected)
+        {
+            failureReason =
+                "physical-disposition-replay-outcome-expectation-missing";
+            return false;
+        }
+        GameplayResultKey expected;
+        try
+        {
+            expected = new GameplayResultKey(
+                pending.expectedOutcomeProducerId,
+                new GameplayOperationId(pending.expectedOutcomeOperationId),
+                pending.expectedOutcomeCommitRevision,
+                pending.expectedOutcomeLocalResultIndex);
+        }
+        catch (Exception)
+        {
+            failureReason =
+                "physical-disposition-replay-expected-key-invalid";
+            return false;
+        }
+        if (!participant.TryPrepare(
+                receipt,
+                pending.outcomeOwnerRevision,
+                out IPreparedPhysicalItemGameplayOutcome prepared,
+                out failureReason))
+            return false;
+        bool exact = prepared != null
+            && prepared.IsCanonicalReplay
+            && prepared.ResultKey.Equals(expected);
+        if (exact && pending.gameplayOutcome != null)
+        {
+            try
+            {
+                PhysicalGameplayOutcomeAttachment attachment =
+                    PhysicalGameplayOutcomeSaveCodec.FromSave(
+                        pending.gameplayOutcome);
+                exact = attachment.IsValid
+                    && attachment.ResultKey.Equals(expected);
+            }
+            catch (Exception)
+            {
+                exact = false;
+            }
+        }
+        prepared?.Cancel();
+        if (exact)
+            return true;
+        failureReason = "physical-disposition-replay-payload-conflict";
+        return false;
+    }
 
     private void Rollback(IReadOnlyList<SourceMutation> mutations)
     {
@@ -695,5 +1378,103 @@ public sealed class PhysicalItemBatchDispositionService :
         internal int Quantity { get; }
         internal int OriginalQuantity { get; }
         internal bool Removed { get; set; }
+    }
+
+    private sealed class ReversibleDisposition :
+        IReversiblePhysicalItemDisposition
+    {
+        private readonly PhysicalItemBatchDispositionService owner;
+        private readonly IReadOnlyList<SourceMutation> mutations;
+        private bool terminal;
+
+        internal ReversibleDisposition(
+            PhysicalItemBatchDispositionService owner,
+            PhysicalItemBatchDispositionReceipt receipt,
+            IReadOnlyList<SourceMutation> mutations)
+        {
+            this.owner = owner
+                ?? throw new ArgumentNullException(nameof(owner));
+            Receipt = receipt;
+            this.mutations = mutations
+                ?? throw new ArgumentNullException(nameof(mutations));
+        }
+
+        public PhysicalItemBatchDispositionReceipt Receipt { get; }
+
+        [GameplayInternalOnly(
+            "Rejecting the paired domain state restores the exact carried world-stack mutation.",
+            "MemoryErasureSealTransactionService")]
+        public bool TryRollback(out string failureReason)
+        {
+            failureReason = string.Empty;
+            if (terminal)
+            {
+                failureReason = "physical-reversible-disposition-already-terminal";
+                return false;
+            }
+
+            bool receiptRemoved;
+            try
+            {
+                owner.Rollback(mutations);
+                receiptRemoved = owner.repository.AcknowledgePendingBatchDisposition(
+                    Receipt.CommitId);
+                terminal = true;
+            }
+            catch (Exception exception)
+            {
+                failureReason =
+                    "physical-reversible-disposition-rollback-failed:"
+                    + exception.Message;
+                return false;
+            }
+
+            try
+            {
+                foreach (UnityEngine.Vector2Int position in mutations
+                             .Select(value => value.Record.position)
+                             .Distinct())
+                {
+                    owner.markers.RefreshAt(position);
+                }
+            }
+            catch (Exception exception)
+            {
+                // Marker presentation is not item authority. Once the exact
+                // repository mutation and pending receipt are restored, a UI
+                // refresh exception must not suppress the carry rollback.
+                UnityEngine.Debug.LogError(
+                    "Physical reversible disposition marker refresh failed after exact rollback: "
+                    + exception);
+            }
+            if (!receiptRemoved)
+            {
+                UnityEngine.Debug.LogWarning(
+                    "Physical reversible disposition restored its exact source while the pending receipt was already absent: "
+                    + Receipt.CommitId);
+            }
+            return true;
+        }
+
+        [GameplayInternalOnly(
+            "The paired domain state committed, so the durable pending Sink receipt may retire.",
+            "MemoryErasureSealTransactionService")]
+        public bool TryAcknowledge(out string failureReason)
+        {
+            if (terminal)
+            {
+                failureReason =
+                    "physical-reversible-disposition-already-terminal";
+                return false;
+            }
+            bool acknowledged = owner.Acknowledge(
+                Receipt.CommitId,
+                out failureReason);
+            if (acknowledged)
+            {
+                terminal = true;
+            }
+            return acknowledged;
+        }
     }
 }

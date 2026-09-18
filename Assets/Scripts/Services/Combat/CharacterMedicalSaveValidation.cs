@@ -67,6 +67,8 @@ public static class CharacterMedicalSaveValidation
                     order.statusCode)
                 || order.statusCode == CharacterMedicalStatusCode.Unknown
                 || order.statusParameters == null
+                || order.societyResponseOperationId == null
+                || order.societyResponseReceiptId == null
                 || order.rescuerId == null
                 || order.treatmentFacilityId == null
                 || order.treatmentItemId == null
@@ -92,6 +94,20 @@ public static class CharacterMedicalSaveValidation
             {
                 report.AddError(
                     $"Medical order '{orderId}' contains invalid status parameters.");
+            }
+
+            bool hasSocietyResponse =
+                order.societyResponseOperationId.Length > 0;
+            if (hasSocietyResponse
+                    && !IsCanonicalRequired(
+                        order.societyResponseOperationId)
+                || order.societyResponseReceiptId.Length > 0
+                    && (!hasSocietyResponse
+                        || !IsCanonicalRequired(
+                            order.societyResponseReceiptId)))
+            {
+                report.AddError(
+                    $"Medical order '{orderId}' has invalid Society response provenance.");
             }
 
             highestSequence = Math.Max(highestSequence, sequence);
@@ -342,12 +358,61 @@ public static class CharacterMedicalSaveValidation
                 StringComparison.Ordinal);
     }
 
-    private static bool IsCharacterId(string value)
+    internal static bool IsCharacterId(string value)
     {
         string raw = value ?? string.Empty;
         CharacterId id = (CharacterId)raw;
         return id.IsValid
             && string.Equals(id.Value, raw, StringComparison.Ordinal);
+    }
+
+    internal static bool RequiresLivingPatientReference(
+        CharacterMedicalOrder order)
+    {
+        if (order == null)
+        {
+            return true;
+        }
+        if (!order.IsActive)
+        {
+            return false;
+        }
+        if (order.state !=
+                CharacterMedicalOrderState.MaterialDestinationDraining
+            || order.treatmentDestinationDrainJoins == null
+            || order.treatmentDestinationDrainJoins.Count >
+                CharacterMedicalSupplyDestinationDrainValidation
+                    .MaximumJoinsPerOrder)
+        {
+            return true;
+        }
+
+        CharacterMedicalSupplyDestinationDrainJoinData activeDrain = null;
+        int activeDrainCount = 0;
+        foreach (CharacterMedicalSupplyDestinationDrainJoinData join in
+                 order.treatmentDestinationDrainJoins)
+        {
+            if (!CharacterMedicalSupplyDestinationDrainValidation
+                    .TryValidateJoin(order, join, out _))
+            {
+                return true;
+            }
+            if (join.phase == CharacterMedicalSupplyDestinationDrainPhase
+                    .ClosedAwaitingCheckpointGc)
+            {
+                continue;
+            }
+
+            activeDrain = join;
+            activeDrainCount++;
+            if (activeDrainCount > 1)
+            {
+                return true;
+            }
+        }
+
+        return activeDrainCount != 1
+            || activeDrain.targetState != CharacterMedicalOrderState.Cancelled;
     }
 
     private static bool IsBuildingInstanceId(string value)

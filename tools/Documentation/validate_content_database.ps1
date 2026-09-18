@@ -123,16 +123,46 @@ foreach ($row in $content) {
 }
 
 $enumChecks = @(
-    @{ Path = "fields/items/generic-item.csv"; Field = "stockCategory"; Expected = 710 },
-    @{ Path = "fields/characters-traits/character-trait.csv"; Field = "polarity"; Expected = 113 },
-    @{ Path = "fields/characters-traits/character-trait.csv"; Field = "selectionRarity"; Expected = 113 },
-    @{ Path = "fields/research-effects/research-project.csv"; Field = "field"; Expected = 180 },
-    @{ Path = "fields/production-facilities/building.csv"; Field = "category"; Expected = 419 }
+    @{ Path = "fields/items/generic-item.csv"; ContentType = "GenericItemDefinitionSO"; Field = "stockCategory" },
+    @{ Path = "fields/characters-traits/character-trait.csv"; ContentType = "CharacterTraitSO"; Field = "polarity" },
+    @{ Path = "fields/characters-traits/character-trait.csv"; ContentType = "CharacterTraitSO"; Field = "selectionRarity" },
+    @{ Path = "fields/research-effects/research-project.csv"; ContentType = "ResearchProjectSO"; Field = "field" },
+    @{ Path = "fields/production-facilities/building.csv"; ContentType = "BuildingSO"; Field = "category" }
 )
 foreach ($check in $enumChecks) {
+    $expectedRecordKeys = @(
+        $content |
+            Where-Object content_type -eq $check.ContentType |
+            Select-Object -ExpandProperty record_key
+    )
+    $expectedKeySet = @{}
+    foreach ($recordKey in $expectedRecordKeys) {
+        $expectedKeySet[$recordKey] = $true
+    }
+
     $rows = @(
         Import-Csv (Join-Path $root $check.Path) |
             Where-Object field_path -eq $check.Field
+    )
+    $rowsByRecordKey = @{}
+    foreach ($row in $rows) {
+        if ($rowsByRecordKey.ContainsKey($row.record_key)) {
+            $rowsByRecordKey[$row.record_key] = @($rowsByRecordKey[$row.record_key]) + $row
+        } else {
+            $rowsByRecordKey[$row.record_key] = @($row)
+        }
+    }
+    $missingKeys = @(
+        $expectedKeySet.Keys |
+            Where-Object { -not $rowsByRecordKey.ContainsKey($_) }
+    )
+    $duplicateKeys = @(
+        $rowsByRecordKey.Keys |
+            Where-Object { @($rowsByRecordKey[$_]).Count -ne 1 }
+    )
+    $unknownKeys = @(
+        $rowsByRecordKey.Keys |
+            Where-Object { -not $expectedKeySet.ContainsKey($_) }
     )
     $bad = @(
         $rows | Where-Object {
@@ -141,8 +171,13 @@ foreach ($check in $enumChecks) {
             [string]::IsNullOrWhiteSpace($_.value_origin)
         }
     )
-    if ($rows.Count -ne $check.Expected -or $bad.Count -gt 0) {
-        $errors += "enum:$($check.Path):$($check.Field):$($rows.Count):$($bad.Count)"
+    if (
+        $missingKeys.Count -gt 0 -or
+        $duplicateKeys.Count -gt 0 -or
+        $unknownKeys.Count -gt 0 -or
+        $bad.Count -gt 0
+    ) {
+        $errors += "enum:$($check.Path):$($check.Field):expected=$($expectedKeySet.Count):actual=$($rows.Count):missing=$($missingKeys.Count):duplicate=$($duplicateKeys.Count):unknown=$($unknownKeys.Count):bad=$($bad.Count)"
     }
 }
 

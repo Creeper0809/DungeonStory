@@ -314,6 +314,13 @@ internal sealed class DungeonRuntimeAggregateRoot
             ?? throw new ArgumentNullException(nameof(state));
     }
 
+    internal void ReplacePrepared(object state)
+    {
+        object prepared = state
+            ?? throw new ArgumentNullException(nameof(state));
+        states[prepared.GetType()] = prepared;
+    }
+
     internal DungeonRuntimeAggregateRoot ShallowCopy()
     {
         return new DungeonRuntimeAggregateRoot(
@@ -377,6 +384,39 @@ public sealed class DungeonRuntimeAggregateRootStore
         candidate.Replace(writable);
         candidateOwnedTypes.Add(typeof(T));
         return writable;
+    }
+
+    /// <summary>
+    /// Publishes an already validated gameplay replacement set by overlaying it
+    /// on the latest live root and swapping the root pointer once. This is not a
+    /// restore-staging API: callers must finish fallible external effects before
+    /// invoking it and may not provide two replacements for the same state type.
+    /// </summary>
+    public void PublishPreparedReplacements(params object[] preparedStates)
+    {
+        if (candidate != null)
+        {
+            throw new InvalidOperationException(
+                "Gameplay aggregate publication is unavailable during restore staging.");
+        }
+        if (preparedStates == null || preparedStates.Length == 0
+            || preparedStates.Any(value => value == null))
+        {
+            throw new ArgumentException(
+                "Gameplay aggregate publication requires prepared states.",
+                nameof(preparedStates));
+        }
+        Type[] types = preparedStates.Select(value => value.GetType()).ToArray();
+        if (types.Distinct().Count() != types.Length)
+        {
+            throw new InvalidOperationException(
+                "Gameplay aggregate publication contains duplicate state types.");
+        }
+
+        DungeonRuntimeAggregateRoot next = live.ShallowCopy();
+        foreach (object prepared in preparedStates)
+            next.ReplacePrepared(prepared);
+        live = next;
     }
 
     internal void BeginRestoreStaging()

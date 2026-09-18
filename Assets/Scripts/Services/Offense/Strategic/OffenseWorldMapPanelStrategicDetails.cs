@@ -65,6 +65,30 @@ public partial class OffenseWorldMapPanel
                     + "선택 중 거점이 만료되어 상세와 결제를 닫았습니다.";
             }
 
+            if (site.seasonalOffer?.IsConfigured == true)
+            {
+                OffenseSeasonalExpeditionOfferData offer = site.seasonalOffer;
+                string rewards = string.Join(
+                    ", ",
+                    offer.physicalRewards
+                        .Where(value => value != null)
+                        .Select(value =>
+                            $"{value.displayLabel} x{value.exactQuantity}"));
+                return $"{site.displayName}\n"
+                    + $"{offer.description}\n"
+                    + $"출발 기한: Day {offer.offerDeadlineAbsoluteDay}"
+                    + $" · {Mathf.Max(0, offer.offerDeadlineAbsoluteDay - strategicWorld.WorldDay + 1)}일 남음\n"
+                    + $"지역: {site.regionId} · 거리: {distance}칸\n"
+                    + $"예상 위험도: {offer.recommendedDanger:0.#}\n"
+                    + $"권장 전투력: {offer.recommendedPower:0.#}"
+                    + $" · 필요 인력: {offer.requiredMembers}\n"
+                    + $"확정 조우: {offer.encounterPreviewText}\n"
+                    + $"성공 귀환 보상: {rewards}\n"
+                    + $"조우 전리품: {offer.encounterRewardPreviewText}\n"
+                    + "출발 후에는 제안 기한이 지나도 확정된 조우와 보상이 유지됩니다.\n"
+                    + "무시: 비용 없음";
+            }
+
             return $"{site.displayName}\n"
                 + strategicNarrativeText.GetRequired(
                     InGameNarrativeTextKind.ExpeditionSite,
@@ -89,7 +113,8 @@ public partial class OffenseWorldMapPanel
                 selectedWorldSiteId,
                 out OffenseWorldSiteStateData site)
             || site == null
-            || !site.IsActive)
+            || !site.IsActive
+            || site.seasonalOffer?.IsConfigured == true)
         {
             return;
         }
@@ -292,6 +317,7 @@ public partial class OffenseWorldMapPanel
     {
         showStrategicFactionSurface = true;
         pendingStrategicBetrayalFactionId = string.Empty;
+        dismissedStrategicFactionContractId = string.Empty;
         RenderStrategic();
     }
 
@@ -396,6 +422,7 @@ public partial class OffenseWorldMapPanel
                     selectedStrategicFactionId = captured.factionId;
                     selectedStrategicHumanBranchId = string.Empty;
                     pendingStrategicBetrayalFactionId = string.Empty;
+                    dismissedStrategicFactionContractId = string.Empty;
                     strategicStatus = string.Empty;
                     RenderStrategic();
                 });
@@ -412,6 +439,7 @@ public partial class OffenseWorldMapPanel
                     selectedStrategicHumanBranchId = captured.branchId;
                     selectedStrategicFactionId = string.Empty;
                     pendingStrategicBetrayalFactionId = string.Empty;
+                    dismissedStrategicFactionContractId = string.Empty;
                     strategicStatus = string.Empty;
                     RenderStrategic();
                 },
@@ -448,6 +476,7 @@ public partial class OffenseWorldMapPanel
 
     private void RenderStrategicFactionCommands(DungeonFactionState faction)
     {
+        RenderAuthoredFactionContractCommands(faction.factionId);
         AddRightButton(
             "호의 물자 50 전달",
             () =>
@@ -571,7 +600,133 @@ public partial class OffenseWorldMapPanel
             + $"해금 계약: {(string.IsNullOrWhiteSpace(contracts) ? "없음" : contracts)}\n"
             + $"협상 봉쇄 종료: Day {faction.negotiationBlockedUntilDay}\n"
             + $"지원군 손실: 사망 {faction.reinforcementDeaths} · 장비 {faction.equipmentLosses}\n"
-            + $"복구 배상 요구: {faction.restitutionRequiredValue}";
+            + $"복구 배상 요구: {faction.restitutionRequiredValue}\n"
+            + BuildAuthoredFactionContractDetail(faction.factionId);
+    }
+
+    private void RenderAuthoredFactionContractCommands(string factionId)
+    {
+        if (strategicFactionContracts == null
+            || strategicFactionContractActions == null)
+            return;
+        if (!string.IsNullOrWhiteSpace(dismissedStrategicFactionContractId))
+        {
+            AddRightButton(
+                "닫은 계약 제안 다시 보기",
+                () =>
+                {
+                    dismissedStrategicFactionContractId = string.Empty;
+                    strategicStatus = "닫았던 계약 제안을 다시 표시합니다.";
+                    RenderStrategic();
+                });
+        }
+        foreach (FactionContractView contract in strategicFactionContracts
+                     .GetContracts(factionId)
+                     .Where(value => !string.Equals(
+                         value.ContractId,
+                         dismissedStrategicFactionContractId,
+                         StringComparison.Ordinal)))
+        {
+            FactionContractView captured = contract;
+            if (captured.CanAccept)
+            {
+                AddRightButton(
+                    $"계약 수락 · {captured.DisplayName}",
+                    () =>
+                    {
+                        string actionId = captured.AcceptActionId;
+                        if (strategicFactionContractActions.TryDispatch(
+                                actionId,
+                                out DomainFailure failure))
+                        {
+                            dismissedStrategicFactionContractId = string.Empty;
+                            strategicStatus =
+                                $"{captured.DisplayName} 계약을 수락했습니다.";
+                        }
+                        else
+                        {
+                            strategicStatus = strategicFailureLocalizer
+                                .Localize(failure);
+                        }
+                        RenderStrategic();
+                    },
+                    new Color(0.18f, 0.34f, 0.25f, 1f));
+            }
+            if (!captured.IsActive
+                && !captured.IsCompleted
+                && !captured.IsFailed)
+            {
+                AddRightButton(
+                    $"제안 닫기 · {captured.DisplayName}",
+                    () =>
+                    {
+                        dismissedStrategicFactionContractId =
+                            captured.ContractId;
+                        strategicStatus =
+                            "제안 표시만 닫았습니다. 불이익이 없으며 다시 열어 수락할 수 있습니다.";
+                        RenderStrategic();
+                    });
+            }
+        }
+    }
+
+    private string BuildAuthoredFactionContractDetail(string factionId)
+    {
+        if (strategicFactionContracts == null)
+            return "작성 계약: 사용할 수 없음";
+        FactionContractView[] contracts = strategicFactionContracts
+            .GetContracts(factionId)
+            .Where(value => !string.Equals(
+                value.ContractId,
+                dismissedStrategicFactionContractId,
+                StringComparison.Ordinal))
+            .ToArray();
+        if (contracts.Length == 0)
+            return "작성 계약: 현재 표시를 닫았습니다.";
+        return "작성 계약\n" + string.Join(
+            "\n",
+            contracts.Select(contract =>
+            {
+                string state = contract.IsActive
+                    ? $"진행 중 · Day {contract.DeadlineAbsoluteDay}"
+                    : contract.IsCompleted
+                        ? "완료"
+                        : contract.IsFailed
+                            ? "실패"
+                            : contract.CanAccept
+                                ? "수락 가능"
+                                : contract.DisabledReason;
+                string progress = contract.Items.Count == 0
+                    ? "비물자 조건"
+                    : string.Join(
+                        ", ",
+                        contract.Items.Select(item =>
+                            $"{item.DisplayName} 필요 {item.Required}"
+                            + $" / 배정 {item.Assigned}"
+                            + $" / 운반 {item.Hauling}"
+                            + $" / 도착 {item.Arrived}"
+                            + $" / 인도 {item.Delivered}"));
+                string failure = string.IsNullOrWhiteSpace(
+                        contract.StatusReason)
+                    ? string.Empty
+                    : $" · 사유 {contract.StatusReason}";
+                string deadline = contract.IsActive
+                    ? $"Day {contract.DeadlineAbsoluteDay}"
+                    : $"수락 후 {contract.DeadlineDays}일";
+                string conditions = string.Join(
+                    ", ",
+                    contract.CompletionConditions);
+                string rewards = string.Join(", ", contract.SuccessEffects);
+                string failureCosts = string.Join(", ", contract.FailureEffects);
+                return $"- {contract.DisplayName} [{contract.Kind}] · {state}\n"
+                    + $"  {contract.Description}\n"
+                    + $"  기한 {deadline}\n"
+                    + $"  완료 조건: {conditions}\n"
+                    + $"  보상: {rewards}\n"
+                    + $"  실패 비용: {failureCosts}\n"
+                    + $"  수락 판정: {contract.EligibilityReason}\n"
+                    + $"  {progress}{failure}";
+            }));
     }
 
     private string BuildStrategicHumanBranchDetail(

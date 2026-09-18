@@ -14,7 +14,9 @@ using UnityEngine;
 public sealed class EnvironmentalWorkwearProductionOutputHandler :
     IProductionOutputHandler,
     IDomainFailureProductionOutputHandler,
-    IIdempotentProductionOutputHandler
+    IIdempotentProductionOutputHandler,
+    IProductionCraftQualityCeilingCapability,
+    IProductionDeterministicCraftQualityCapability
 {
     public const string HandlerCapabilityId =
         "production-output:environmental-workwear";
@@ -77,8 +79,16 @@ public sealed class EnvironmentalWorkwearProductionOutputHandler :
     public int ComponentCodecVersion => HandlerComponentCodecVersion;
     public bool SupportsAutomaticSelection => true;
 
+    public float ApplyCraftQualityCeiling(float qualityModifier, float maximumScore) =>
+        EnvironmentalWorkwearProductionOutputSemantics.ApplyCraftQualityCeiling(
+            qualityModifier, maximumScore);
+
     public bool CanHandle(string itemId) =>
         apparelCatalog.TryGetByItemId(itemId, out _);
+
+    public int ResolveCraftQualityTier(float qualityModifier, float maximumScore) =>
+        (int)EnvironmentalWorkwearProductionOutputSemantics.ResolveCraftsmanship(
+            ApplyCraftQualityCeiling(qualityModifier, maximumScore));
 
     public bool TryProduce(
         ProductionOutputContext context,

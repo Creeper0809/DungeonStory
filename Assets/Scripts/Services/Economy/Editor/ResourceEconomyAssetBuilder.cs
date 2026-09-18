@@ -85,6 +85,103 @@ public static class ResourceEconomyAssetBuilder
         }
     }
 
+    [MenuItem("Tools/DungeonStory/Economy/WIM036/Apply Substance Specific Effects")]
+    public static void ApplyWim036SubstanceSpecificEffects()
+    {
+        string[] itemIds =
+        {
+            "drug:vitality-tonic",
+            "drug:mana-awakener",
+            "drug:dreamleaf-analgesic"
+        };
+        ResourceItemDefinitionSO[] items = itemIds.Select(itemId =>
+        {
+            string path = $"{ItemRoot}/{Sanitize(itemId)}.asset";
+            ResourceItemDefinitionSO item = AssetDatabase
+                .LoadAssetAtPath<ResourceItemDefinitionSO>(path);
+            if (item == null
+                || !string.Equals(item.ItemId, itemId, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "WIM036 requires its existing authored item asset: " + path);
+            }
+            if (!item.TryGetFeature(out SubstanceItemFeature feature)
+                || !MatchesWim036LegacyOrApproved(itemId, feature))
+            {
+                throw new InvalidOperationException(
+                    "WIM036 target has unexpected existing substance authoring: "
+                    + itemId);
+            }
+            return item;
+        }).ToArray();
+
+        int changed = 0;
+        foreach (ResourceItemDefinitionSO item in items)
+        {
+            SubstanceItemFeature feature = item
+                .GetFeatureOrDefault<SubstanceItemFeature>();
+            (float fatigue, float research, bool suppressPain) = item.ItemId switch
+            {
+                "drug:vitality-tonic" => (0.12f, 0f, false),
+                "drug:mana-awakener" => (0f, 0.18f, false),
+                "drug:dreamleaf-analgesic" => (0f, 0f, true),
+                _ => throw new InvalidOperationException(
+                    "Unexpected WIM036 item: " + item.ItemId)
+            };
+            bool differs = !Mathf.Approximately(feature.workSpeedEffect, 0f)
+                || !Mathf.Approximately(
+                    feature.fatigueAccumulationReduction,
+                    fatigue)
+                || !Mathf.Approximately(feature.researchSpeedEffect, research)
+                || feature.suppressesPerceivedPain != suppressPain;
+            if (!differs)
+                continue;
+
+            feature.workSpeedEffect = 0f;
+            feature.fatigueAccumulationReduction = fatigue;
+            feature.researchSpeedEffect = research;
+            feature.suppressesPerceivedPain = suppressPain;
+            EditorUtility.SetDirty(item);
+            AssetDatabase.SaveAssetIfDirty(item);
+            changed++;
+        }
+
+        Debug.Log(
+            "WIM036 substance-specific effects authored for exactly 3 existing "
+            + $"drug assets; changed={changed}.");
+    }
+
+    private static bool MatchesWim036LegacyOrApproved(
+        string itemId,
+        SubstanceItemFeature feature) => itemId switch
+        {
+            "drug:vitality-tonic" =>
+                MatchesSubstance(feature,
+                    "substance:vitality-tonic", SubstanceUseClass.NonAddictive,
+                    0f, 0.006f, 0f, 0f, 2f, 0.12f, 0f, 150f)
+                || MatchesSubstance(feature,
+                    "substance:vitality-tonic", SubstanceUseClass.NonAddictive,
+                    0f, 0.006f, 0f, 0f, 2f, 0f, 0f, 150f,
+                    fatigueAccumulationReduction: 0.12f),
+            "drug:mana-awakener" =>
+                MatchesSubstance(feature,
+                    "substance:mana-awakener", SubstanceUseClass.Addictive,
+                    0.11f, 0.05f, 0.16f, 0.025f, 2f, 0.18f, 0.08f, 180f)
+                || MatchesSubstance(feature,
+                    "substance:mana-awakener", SubstanceUseClass.Addictive,
+                    0.11f, 0.05f, 0.16f, 0.025f, 2f, 0f, 0.08f, 180f,
+                    researchSpeedEffect: 0.18f),
+            "drug:dreamleaf-analgesic" =>
+                MatchesSubstance(feature,
+                    "substance:dreamleaf-analgesic", SubstanceUseClass.Addictive,
+                    0.08f, 0.02f, 0.12f, 0.02f, 4f, 0.05f, -0.03f, 240f)
+                || MatchesSubstance(feature,
+                    "substance:dreamleaf-analgesic", SubstanceUseClass.Addictive,
+                    0.08f, 0.02f, 0.12f, 0.02f, 4f, 0f, -0.03f, 240f,
+                    suppressesPerceivedPain: true),
+            _ => false
+        };
+
     private static RecipeAuthoringBaseline[] CaptureRecipeAuthoringBaselines()
     {
         return AssetDatabase.FindAssets(
@@ -696,16 +793,19 @@ public static class ResourceEconomyAssetBuilder
                 0f, 0.002f, 0f, 0f, 3f, 0.04f, 0f, 180f),
             "drug:vitality-tonic" => MatchesSubstance(feature,
                 "substance:vitality-tonic", SubstanceUseClass.NonAddictive,
-                0f, 0.006f, 0f, 0f, 2f, 0.12f, 0f, 150f),
+                0f, 0.006f, 0f, 0f, 2f, 0f, 0f, 150f,
+                fatigueAccumulationReduction: 0.12f),
             "drug:dreamleaf-analgesic" => MatchesSubstance(feature,
                 "substance:dreamleaf-analgesic", SubstanceUseClass.Addictive,
-                0.08f, 0.02f, 0.12f, 0.02f, 4f, 0.05f, -0.03f, 240f),
+                0.08f, 0.02f, 0.12f, 0.02f, 4f, 0f, -0.03f, 240f,
+                suppressesPerceivedPain: true),
             "drug:blood-stimulant" => MatchesSubstance(feature,
                 "substance:blood-stimulant", SubstanceUseClass.Addictive,
                 0.14f, 0.06f, 0.18f, 0.03f, 1f, 0.16f, 0.20f, 150f),
             "drug:mana-awakener" => MatchesSubstance(feature,
                 "substance:mana-awakener", SubstanceUseClass.Addictive,
-                0.11f, 0.05f, 0.16f, 0.025f, 2f, 0.18f, 0.08f, 180f),
+                0.11f, 0.05f, 0.16f, 0.025f, 2f, 0f, 0.08f, 180f,
+                researchSpeedEffect: 0.18f),
             "drug:night-wine" => MatchesSubstance(feature,
                 "substance:night-wine", SubstanceUseClass.Recreational,
                 0.04f, 0.025f, 0.08f, 0.015f, 7f, -0.04f, -0.04f, 240f),
@@ -727,7 +827,10 @@ public static class ResourceEconomyAssetBuilder
         float mood,
         float work,
         float combat,
-        float duration) =>
+        float duration,
+        float fatigueAccumulationReduction = 0f,
+        float researchSpeedEffect = 0f,
+        bool suppressesPerceivedPain = false) =>
         feature != null
         && string.Equals(feature.substanceId, id, StringComparison.Ordinal)
         && feature.useClass == useClass
@@ -738,6 +841,11 @@ public static class ResourceEconomyAssetBuilder
         && Mathf.Approximately(feature.moodEffect, mood)
         && Mathf.Approximately(feature.workSpeedEffect, work)
         && Mathf.Approximately(feature.combatEffect, combat)
+        && Mathf.Approximately(
+            feature.fatigueAccumulationReduction,
+            fatigueAccumulationReduction)
+        && Mathf.Approximately(feature.researchSpeedEffect, researchSpeedEffect)
+        && feature.suppressesPerceivedPain == suppressesPerceivedPain
         && Mathf.Approximately(feature.durationSeconds, duration);
 
     private static ProductionRecipeSO[] BuildRecipes()
@@ -1018,14 +1126,14 @@ public static class ResourceEconomyAssetBuilder
     {
         CropSpec[] specs =
         {
-            C("crop:twilight-grain", "황혼곡", "resource:twilight-grain", "research:agriculture:field", 36, 3, 6, 0.35f, 6, true, 4, 30),
-            C("crop:ember-root", "잿불뿌리", "resource:ember-root", "research:agriculture:field", 42, 4, 7, 0.25f, 5, true, 2, 28),
-            C("crop:night-grape", "밤포도", "resource:night-grape", "research:agriculture:irrigation", 54, 5, 8, 0.5f, 5, true, 8, 32),
-            C("crop:cave-mushroom", "동굴버섯", "resource:cave-mushroom", "research:agriculture:gathering", 28, 3, 5, 0.2f, 5, true, 3, 26),
-            C("crop:bloodleaf", "혈엽", "resource:bloodleaf", "research:pharmacology:herbalism", 46, 4, 7, 0.35f, 4, true, 8, 30),
-            C("crop:moonflower", "월화", "resource:moonflower", "research:pharmacology:herbalism", 60, 5, 9, 0.4f, 3, true, 5, 24),
-            C("crop:dreamleaf", "몽엽", "resource:dreamleaf", "research:pharmacology:anesthesia", 52, 5, 8, 0.3f, 4, true, 6, 26),
-            C("crop:shade-fiber", "그늘섬유", "resource:shade-fiber", "research:textile:fiber", 40, 4, 7, 0.3f, 6, true, 5, 30)
+            C("crop:twilight-grain", "황혼곡", "resource:twilight-grain", "research:agriculture:field", 36, 3, 6, 0.35f, 6, true, 4, 30, CropLightProfile.High),
+            C("crop:ember-root", "잿불뿌리", "resource:ember-root", "research:agriculture:field", 42, 4, 7, 0.25f, 5, true, 2, 28, CropLightProfile.High),
+            C("crop:night-grape", "밤포도", "resource:night-grape", "research:agriculture:irrigation", 54, 5, 8, 0.5f, 5, true, 8, 32, CropLightProfile.Shade),
+            C("crop:cave-mushroom", "동굴버섯", "resource:cave-mushroom", "research:agriculture:gathering", 28, 3, 5, 0.2f, 5, true, 3, 26, CropLightProfile.LightIndependent),
+            C("crop:bloodleaf", "혈엽", "resource:bloodleaf", "research:pharmacology:herbalism", 46, 4, 7, 0.35f, 4, true, 8, 30, CropLightProfile.Medium),
+            C("crop:moonflower", "월화", "resource:moonflower", "research:pharmacology:herbalism", 60, 5, 9, 0.4f, 3, true, 5, 24, CropLightProfile.Shade),
+            C("crop:dreamleaf", "몽엽", "resource:dreamleaf", "research:pharmacology:anesthesia", 52, 5, 8, 0.3f, 4, true, 6, 26, CropLightProfile.Shade),
+            C("crop:shade-fiber", "그늘섬유", "resource:shade-fiber", "research:textile:fiber", 40, 4, 7, 0.3f, 6, true, 5, 30, CropLightProfile.Shade)
         };
 
         return specs.Select((spec, index) =>
@@ -1045,6 +1153,7 @@ public static class ResourceEconomyAssetBuilder
                 spec.Yield,
                 spec.Indoor,
                 new Vector2(spec.MinTemperature, spec.MaxTemperature));
+            asset.ConfigureLightProfile(spec.LightProfile);
             EditorUtility.SetDirty(asset);
             return asset;
         }).ToArray();
@@ -1099,11 +1208,13 @@ public static class ResourceEconomyAssetBuilder
                 break;
             case "drug:vitality-tonic":
                 item.ConfigureSubstance("substance:vitality-tonic", SubstanceUseClass.NonAddictive,
-                    0f, 0.006f, 0f, 0f, 2f, 0.12f, 0f, 150f);
+                    0f, 0.006f, 0f, 0f, 2f, 0f, 0f, 150f,
+                    fatigueAccumulationReduction: 0.12f);
                 break;
             case "drug:dreamleaf-analgesic":
                 item.ConfigureSubstance("substance:dreamleaf-analgesic", SubstanceUseClass.Addictive,
-                    0.08f, 0.02f, 0.12f, 0.02f, 4f, 0.05f, -0.03f, 240f);
+                    0.08f, 0.02f, 0.12f, 0.02f, 4f, 0f, -0.03f, 240f,
+                    suppressesPerceivedPain: true);
                 break;
             case "drug:blood-stimulant":
                 item.ConfigureSubstance("substance:blood-stimulant", SubstanceUseClass.Addictive,
@@ -1111,7 +1222,8 @@ public static class ResourceEconomyAssetBuilder
                 break;
             case "drug:mana-awakener":
                 item.ConfigureSubstance("substance:mana-awakener", SubstanceUseClass.Addictive,
-                    0.11f, 0.05f, 0.16f, 0.025f, 2f, 0.18f, 0.08f, 180f);
+                    0.11f, 0.05f, 0.16f, 0.025f, 2f, 0f, 0.08f, 180f,
+                    researchSpeedEffect: 0.18f);
                 break;
             case "drug:night-wine":
                 item.ConfigureSubstance("substance:night-wine", SubstanceUseClass.Recreational,
@@ -1523,9 +1635,10 @@ public static class ResourceEconomyAssetBuilder
         int yield,
         bool indoor,
         float minTemperature,
-        float maxTemperature)
+        float maxTemperature,
+        CropLightProfile lightProfile)
     {
-        return new CropSpec(id, name, itemId, researchId, hours, sow, harvest, water, yield, indoor, minTemperature, maxTemperature);
+        return new CropSpec(id, name, itemId, researchId, hours, sow, harvest, water, yield, indoor, minTemperature, maxTemperature, lightProfile);
     }
 
     private static MaterialSpec M(
@@ -1682,11 +1795,12 @@ public static class ResourceEconomyAssetBuilder
 
     private sealed class CropSpec
     {
-        public CropSpec(string id, string name, string itemId, string researchId, float growthHours, float sowWork, float harvestWork, float water, int yield, bool indoor, float minTemperature, float maxTemperature)
+        public CropSpec(string id, string name, string itemId, string researchId, float growthHours, float sowWork, float harvestWork, float water, int yield, bool indoor, float minTemperature, float maxTemperature, CropLightProfile lightProfile)
         {
             Id = id; Name = name; ItemId = itemId; ResearchId = researchId; GrowthHours = growthHours;
             SowWork = sowWork; HarvestWork = harvestWork; Water = water; Yield = yield; Indoor = indoor;
             MinTemperature = minTemperature; MaxTemperature = maxTemperature;
+            LightProfile = lightProfile;
         }
         public string Id { get; }
         public string Name { get; }
@@ -1700,6 +1814,7 @@ public static class ResourceEconomyAssetBuilder
         public bool Indoor { get; }
         public float MinTemperature { get; }
         public float MaxTemperature { get; }
+        public CropLightProfile LightProfile { get; }
     }
 
     private sealed class MaterialSpec

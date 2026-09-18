@@ -19,23 +19,35 @@ MonoBehaviour:
   authoringRevision: 1
   sourceNote: V20 hand-authored faction/service manifest.
   kind: 2
+  riskTier: 1
+  riskReason: 실패 결과가 세력 원한 5를 추가한다.
   deadlineDays: 5
   serviceRequirements:
     items:
     - itemDefinitionId: material:charcoal
       amount: 12
       consume: 1
-    facilities:
-    - buildingDefinitionId: building:faction-audience-hall
-      capabilityId: 
-      minimumCount: 1
-      mustBeOperational: 1
+    facilities: []
     research: []
     characters: []
     factions: []
     worldMetrics: []
     requiredFlags: []
     excludedFlags: []
+  venueRequirements:
+    anchor:
+      exactBuildingDefinitionIds: []
+      facilityRoles: 2048
+    requiredRoomFacilityRoles: 2048
+    requiredRoomFacilities: []
+    minimumSeats: 0
+    minimumTables: 0
+    minimumServiceCapacity: 0
+    minimumEventCells: 3
+    minimumVacantBeds: 0
+    requireResidentHeadroom: 0
+    requireWetBath: 0
+    requireEmergencySurgeryFacility: 0
   successEffects:
   - kind: 9
     targetId: guest-service

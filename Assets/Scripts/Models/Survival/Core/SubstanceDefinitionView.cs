@@ -28,6 +28,9 @@ public sealed class SubstanceDefinitionView
         float moodEffect,
         float workSpeedEffect,
         float combatEffect,
+        float fatigueAccumulationReduction,
+        float researchSpeedEffect,
+        bool suppressesPerceivedPain,
         float durationSeconds,
         string requiredResearchId)
     {
@@ -44,6 +47,10 @@ public sealed class SubstanceDefinitionView
         MoodEffect = moodEffect;
         WorkSpeedEffect = workSpeedEffect;
         CombatEffect = combatEffect;
+        FatigueAccumulationReduction = Clamp01(
+            fatigueAccumulationReduction);
+        ResearchSpeedEffect = Math.Max(0f, researchSpeedEffect);
+        SuppressesPerceivedPain = suppressesPerceivedPain;
         DurationSeconds = Math.Max(1f, durationSeconds);
         RequiredResearchId = requiredResearchId?.Trim() ?? string.Empty;
     }
@@ -59,6 +66,9 @@ public sealed class SubstanceDefinitionView
     public float MoodEffect { get; }
     public float WorkSpeedEffect { get; }
     public float CombatEffect { get; }
+    public float FatigueAccumulationReduction { get; }
+    public float ResearchSpeedEffect { get; }
+    public bool SuppressesPerceivedPain { get; }
     public float DurationSeconds { get; }
     public string RequiredResearchId { get; }
 

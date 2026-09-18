@@ -1,0 +1,26 @@
+origin=36,0
+placedBuildings=35
+powerRawRoute=REJECTED:facility_buffer_managed_route_required
+powerFuelCarriedRestore=350g
+power=32/10
+powerFuelRoute=exact-stack-admission-ai-haul
+cleanWater=0.896
+wastewater=0.45
+focused-belt-power=building:23f5e14b37e34a0cad5b79e857b1c2d4;(40, 0);network=power:8692e4e7;powered=True;demand=0.5;supplied=1;fault=0;heat=0
+focused-belt-power=building:b58a4867886449c7bcb8fd7bbfac0e29;(41, 0);network=power:8692e4e7;powered=True;demand=0.5;supplied=1;fault=0;heat=0
+focused-belt-power=building:37af58e88fd74d86b903a87519601c3f;(42, 0);network=power:8692e4e7;powered=True;demand=0.5;supplied=1;fault=0;heat=0
+focused-belt-power=building:3054cff03d90460584f7aa723754cf1c;(43, 0);network=power:8692e4e7;powered=True;demand=0.5;supplied=1;fault=0;heat=0
+focused-belt-power=building:24b4cb52303146e0a6a74e48094742d2;(44, 0);network=power:8692e4e7;powered=True;demand=0.5;supplied=1;fault=0;heat=0
+focused-belt-power=building:0498289a34e84389908ef1b11a642f59;(45, 0);network=power:8692e4e7;powered=True;demand=0.5;supplied=1;fault=0;heat=0
+focused-belt-power=building:d8bcbc7a613f41f0acb8e40582c71912;(46, 0);network=power:8692e4e7;powered=True;demand=0.5;supplied=1;fault=0;heat=0
+destination-main-EventSystem-input-output-and-serialized-restore=PASS
+destination-choices-exact-profile-and-invalid-command-atomic=PASS
+transit-during-travel=content:80->86;reservation:0->0;position:(40, 0)->(40, 0);signature:material:lumber::->material:lumber::
+blockedPayload=conveyor-payload:00000001;capacityGrams=2400;state=InTransit;retry=retained
+in-transit-destination-clear-no-ground-drop-and-resume=PASS
+destination-owner-removal-retained-no-route=PASS
+normalPayload=conveyor-payload:00000001;distance=10;capacityGrams=3600;admission=exact-owner-profile
+authored-generator-owner-main-UI-conveyor-physical-fuel-delivery=PASS
+mode=conveyor-destination-only
+cleanup=exact-except-meta-elapsed-float-rounding-under-0.00001s
+result=PASS

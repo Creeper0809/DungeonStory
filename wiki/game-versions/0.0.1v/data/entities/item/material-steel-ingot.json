@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "고급 무기와 방어구에 쓰는 강한 금속이다. 특히 크릭 제7굴산 강철은 품질이 좋고, 표면에 일곱 톱니 자국과 되녹인 횟수가 찍혀 있다.",
+  "in_game_description": "고급 무기와 방어구에 쓰는 강한 금속이다. 크릭 제7굴산 강철에는 일곱 톱니 자국과 되녹인 횟수가 찍혀 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

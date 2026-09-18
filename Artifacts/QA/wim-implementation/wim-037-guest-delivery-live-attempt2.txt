@@ -1,0 +1,16 @@
+baseline rawMoney=5000; rapport=0; stock=2
+PASS actual notice acceptance with no RF25: active pending, physical debit0, reward0, notice retained
+fixture authored RF25 instance=building:af8641e7374f42d4b948f2600977283b; anchor=(17, 1)
+fixture authored RF25 instance=building:aef7410184fd45cd8c0e8be03f90f8d2; anchor=(28, 1)
+delivery gameSeconds=38.20589; wallSeconds=9.581631; carried=True; arrived=True; destination=facility-input:exact:run.guest-request:event%3A2%3Aguest-request%3Asealed-archive%3Awim037-live
+PASS actual AI pickup/move/arrival and physical commit=physical-batch-disposition:1:guest-request-transfer:event%3A2%3Aguest-request%3Asealed-archive%3Awim037-live:2:1800
+PASS Society candidate rejected: foreign occurrence destination
+PASS Society candidate rejected: committed receipt without active input owner
+final stock=0; destination=facility-input:exact:run.guest-request:event%3A2%3Aguest-request%3Asealed-archive%3Awim037-live; carried=True; arrived=True
+money raw=5000; requestAdjusted=5000
+result=FAIL
+System.InvalidOperationException: Orphan incoming physical request receipt accepted or failed restore mutated live owners.
+  at Wim037GuestDeliveryLiveRunner+<Run>d__33.MoveNext () [0x01269] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Run\Editor\Wim037GuestDeliveryLiveRunner.cs:307 
+  at Wim037GuestDeliveryLiveRunner+<Observe>d__32.MoveNext () [0x0004b] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Run\Editor\Wim037GuestDeliveryLiveRunner.cs:82 
+scope=controlled authored occurrence/day2, RF25 buildings and two physical drawings; actual EventSystem notice/accept, autonomous haul, terminal reward and current whole save. Not natural request selection, construction cost, venue9 authoring, onsite work or six-adult balance.
+cleanup=paused disposable main Play; disk persistence disabled before owner UI; operator stops without scene/profile/save writes

@@ -1,0 +1,733 @@
+{
+  "head": "c03d2e0a1c68067de48840f3851b388483966a6e",
+  "scope": "Selected authored fields in all 22 MedicineItemFeature / 10 BuildingMedicalAbility Resources assets. GenericItemDefinitionSO is excluded from ResourceEconomyContentCatalog's ordinary treatment list. Not gameplay execution.",
+  "medicineCount": 22,
+  "featureInjuryEnabledCount": 13,
+  "ordinaryInjuryEligibleCount": 7,
+  "facilityCount": 10,
+  "authoredScalarCount": 140,
+  "medicines": [
+    {
+      "id": "medicine:antiseptic",
+      "source": "Assets/Resources/SO/Economy/Items/medicine_antiseptic.asset",
+      "sourceHash": "608CD7379373EE35E6A4BD81DDA27576C66CB0EC576561684F2D43106E7DBE59",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medicine-antiseptic.json",
+      "wikiHash": "5F3378A8A5C7D7F0C70C0209AA92478444292A38628D638F13E2EBEFEAA968F1",
+      "values": {
+        "supportsInjuryTreatment": 1,
+        "treatmentPotency": 0.82,
+        "infectionReduction": 16,
+        "detoxReduction": 0,
+        "painReduction": 2
+      },
+      "factLabels": [
+        "무게",
+        "한 칸 적재",
+        "기준 가격"
+      ],
+      "summary": "감염 위험을 낮추는 외용 약품.",
+      "scriptGuid": "05066ab4c677e98479a259133da49fde",
+      "definitionClass": "Assembly-CSharp::ResourceItemDefinitionSO",
+      "kind": 3,
+      "stockCategory": 5,
+      "ordinaryInjuryCandidate": true
+    },
+    {
+      "id": "medicine:antidote",
+      "source": "Assets/Resources/SO/Economy/Items/medicine_antidote.asset",
+      "sourceHash": "304606F4DD8455FFEC5184F00E5E1958E18BAC4991CA560026B1D3964DEB3096",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medicine-antidote.json",
+      "wikiHash": "40AEECADF105311ED45968C55352490352F118E48F06868325D00B1E665FFCA6",
+      "values": {
+        "supportsInjuryTreatment": 0,
+        "treatmentPotency": 0.6,
+        "infectionReduction": 2,
+        "detoxReduction": 30,
+        "painReduction": 0
+      },
+      "factLabels": [
+        "무게",
+        "한 칸 적재",
+        "기준 가격"
+      ],
+      "summary": "독소와 과다 복용 증상을 완화한다.",
+      "scriptGuid": "05066ab4c677e98479a259133da49fde",
+      "definitionClass": "Assembly-CSharp::ResourceItemDefinitionSO",
+      "kind": 3,
+      "stockCategory": 5,
+      "ordinaryInjuryCandidate": false
+    },
+    {
+      "id": "medicine:anesthetic",
+      "source": "Assets/Resources/SO/Economy/Items/medicine_anesthetic.asset",
+      "sourceHash": "77F478AB3A1D45BBE31A57EAC67F2705D057ADD7B0A44F9C17653AB26FEABCFE",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medicine-anesthetic.json",
+      "wikiHash": "0ABE6802180DA7C290B43E6F57CA0DD1DB763D422808C6DC024D31A90AB89875",
+      "values": {
+        "supportsInjuryTreatment": 0,
+        "treatmentPotency": 0.75,
+        "infectionReduction": 0,
+        "detoxReduction": 0,
+        "painReduction": 35
+      },
+      "factLabels": [
+        "무게",
+        "한 칸 적재",
+        "기준 가격"
+      ],
+      "summary": "수술과 중상 치료의 고통을 낮춘다.",
+      "scriptGuid": "05066ab4c677e98479a259133da49fde",
+      "definitionClass": "Assembly-CSharp::ResourceItemDefinitionSO",
+      "kind": 3,
+      "stockCategory": 5,
+      "ordinaryInjuryCandidate": false
+    },
+    {
+      "id": "medicine:advanced",
+      "source": "Assets/Resources/SO/Economy/Items/medicine_advanced.asset",
+      "sourceHash": "480613FA4D1A023F0969150495ADAD1B8736F69F5D66C921F16D270E6C7C5CBF",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medicine-advanced.json",
+      "wikiHash": "A39A7BA1EA32B59F0FA2EFCBBA188BA2D9DB5A772F37D018CA53AB04A6BF2F24",
+      "values": {
+        "supportsInjuryTreatment": 1,
+        "treatmentPotency": 1.35,
+        "infectionReduction": 14,
+        "detoxReduction": 8,
+        "painReduction": 12
+      },
+      "factLabels": [
+        "무게",
+        "한 칸 적재",
+        "기준 가격"
+      ],
+      "summary": "마나와 월화를 안정화한 고급 치료제.",
+      "scriptGuid": "05066ab4c677e98479a259133da49fde",
+      "definitionClass": "Assembly-CSharp::ResourceItemDefinitionSO",
+      "kind": 3,
+      "stockCategory": 5,
+      "ordinaryInjuryCandidate": true
+    },
+    {
+      "id": "medicine:standard",
+      "source": "Assets/Resources/SO/Economy/Items/medicine_standard.asset",
+      "sourceHash": "93DCF883C1E9D3D6411353BE786BC8368BC95B9DC636491C7292F30BF7E47B44",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medicine-standard.json",
+      "wikiHash": "CA02CED2CFB655FA848C81BB4C7561B3D9F1033DFC69105C7E41B056DA801BD0",
+      "values": {
+        "supportsInjuryTreatment": 1,
+        "treatmentPotency": 1,
+        "infectionReduction": 8,
+        "detoxReduction": 2,
+        "painReduction": 8
+      },
+      "factLabels": [
+        "무게",
+        "한 칸 적재",
+        "기준 가격"
+      ],
+      "summary": "치료 효율과 회복 속도를 높이는 약품.",
+      "scriptGuid": "05066ab4c677e98479a259133da49fde",
+      "definitionClass": "Assembly-CSharp::ResourceItemDefinitionSO",
+      "kind": 3,
+      "stockCategory": 5,
+      "ordinaryInjuryCandidate": true
+    },
+    {
+      "id": "medicine:herbal-poultice",
+      "source": "Assets/Resources/SO/Economy/Items/medicine_herbal_poultice.asset",
+      "sourceHash": "E2AEFDB76F4832916842F7DE826925B105B00169C95D4CA94D485CD7E2D4B193",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medicine-herbal-poultice.json",
+      "wikiHash": "8C1B462C934FC83312FB0AD4B63423658DEDF43C7509772CBCF54974935A4AB3",
+      "values": {
+        "supportsInjuryTreatment": 1,
+        "treatmentPotency": 0.72,
+        "infectionReduction": 2,
+        "detoxReduction": 0,
+        "painReduction": 4
+      },
+      "factLabels": [
+        "무게",
+        "한 칸 적재",
+        "기준 가격"
+      ],
+      "summary": "가벼운 부상에 쓰는 기본 약품.",
+      "scriptGuid": "05066ab4c677e98479a259133da49fde",
+      "definitionClass": "Assembly-CSharp::ResourceItemDefinitionSO",
+      "kind": 3,
+      "stockCategory": 5,
+      "ordinaryInjuryCandidate": true
+    },
+    {
+      "id": "medical:regenerative-medium",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I122_재생_배양액.asset",
+      "sourceHash": "14F8C0849B4D44FA048A9DD6AFC621EED6D6D090CC561B69969EF5B6DDF71F1E",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medical-regenerative-medium.json",
+      "wikiHash": "08D546DB8A3E82A42E1DE4578938195F6725BA48E9633E46D684F22FBBE87A39",
+      "values": {
+        "supportsInjuryTreatment": 1,
+        "treatmentPotency": 0.7,
+        "infectionReduction": 6,
+        "detoxReduction": 0,
+        "painReduction": 4
+      },
+      "factLabels": [
+        "무게",
+        "한 칸 적재",
+        "기준 가격"
+      ],
+      "summary": "분기형 생산망의 재생 배양액.",
+      "scriptGuid": "05066ab4c677e98479a259133da49fde",
+      "definitionClass": "DungeonStory.Economy::ResourceItemDefinitionSO",
+      "kind": 3,
+      "stockCategory": 5,
+      "ordinaryInjuryCandidate": true
+    },
+    {
+      "id": "medical:sterile-bandage",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I22_무균_붕대.asset",
+      "sourceHash": "88B520C417E0C14D0EA291C886C0DF0E7F7F3212E532FA7AAC46157E0CC87314",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medical-sterile-bandage.json",
+      "wikiHash": "D070CAD9DEE466C6CB3586D09B5D9235728ADE5B7836A70AAEA2CC91319D631B",
+      "values": {
+        "supportsInjuryTreatment": 1,
+        "treatmentPotency": 0.85,
+        "infectionReduction": 10,
+        "detoxReduction": 0,
+        "painReduction": 8
+      },
+      "factLabels": [
+        "무게",
+        "한 칸 적재",
+        "기준 가격"
+      ],
+      "summary": "분기형 생산망의 무균 붕대.",
+      "scriptGuid": "05066ab4c677e98479a259133da49fde",
+      "definitionClass": "Assembly-CSharp::ResourceItemDefinitionSO",
+      "kind": 3,
+      "stockCategory": 5,
+      "ordinaryInjuryCandidate": true
+    },
+    {
+      "id": "medicine:vaccine:red-fever",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I67_적열병_백신.asset",
+      "sourceHash": "263D38140312475381E2275D1E29B830DFFC79DBFF24FD1CD219EB6F2F7A2B80",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medicine-vaccine-red-fever.json",
+      "wikiHash": "8BA8CB153F2BD81A399E13BA42C1F82E95E0DDBF6343834650FF897AE27509B0",
+      "values": {
+        "supportsInjuryTreatment": 0,
+        "treatmentPotency": 0.1,
+        "infectionReduction": 0,
+        "detoxReduction": 0,
+        "painReduction": 0
+      },
+      "factLabels": [
+        "무게",
+        "한 칸 적재",
+        "기준 가격"
+      ],
+      "summary": "분기형 생산망의 적열병 백신.",
+      "scriptGuid": "05066ab4c677e98479a259133da49fde",
+      "definitionClass": "DungeonStory.Economy::ResourceItemDefinitionSO",
+      "kind": 3,
+      "stockCategory": 5,
+      "ordinaryInjuryCandidate": false
+    },
+    {
+      "id": "medicine:vaccine:cave-flu",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I66_동굴_독감_백신.asset",
+      "sourceHash": "11B18B65AD24D470A3BF0CC0A67882564BB6086A864F5F34D5834587E325FB73",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medicine-vaccine-cave-flu.json",
+      "wikiHash": "84EEAF099637B49D73265F66A83DFC35EF1CA4532A9489DFC50EC6A75EC2CF41",
+      "values": {
+        "supportsInjuryTreatment": 0,
+        "treatmentPotency": 0.1,
+        "infectionReduction": 0,
+        "detoxReduction": 0,
+        "painReduction": 0
+      },
+      "factLabels": [
+        "무게",
+        "한 칸 적재",
+        "기준 가격"
+      ],
+      "summary": "분기형 생산망의 동굴 독감 백신.",
+      "scriptGuid": "05066ab4c677e98479a259133da49fde",
+      "definitionClass": "DungeonStory.Economy::ResourceItemDefinitionSO",
+      "kind": 3,
+      "stockCategory": 5,
+      "ordinaryInjuryCandidate": false
+    },
+    {
+      "id": "medicine:vaccine:slime-blight",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I72_점액역병_백신.asset",
+      "sourceHash": "2C7EA5D25087F4ED6CAE735FC21A8956915B03C27FF76147330D39DD50D12471",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medicine-vaccine-slime-blight.json",
+      "wikiHash": "FEAA9BC9A7DFECFA2CB12FFCA014DB9504CA8781610FD75DFE096C78C3021672",
+      "values": {
+        "supportsInjuryTreatment": 0,
+        "treatmentPotency": 0.1,
+        "infectionReduction": 0,
+        "detoxReduction": 0,
+        "painReduction": 0
+      },
+      "factLabels": [
+        "무게",
+        "한 칸 적재",
+        "기준 가격"
+      ],
+      "summary": "분기형 생산망의 점액역병 백신.",
+      "scriptGuid": "05066ab4c677e98479a259133da49fde",
+      "definitionClass": "DungeonStory.Economy::ResourceItemDefinitionSO",
+      "kind": 3,
+      "stockCategory": 5,
+      "ordinaryInjuryCandidate": false
+    },
+    {
+      "id": "medicine:vaccine:blood-wasting",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I71_혈액소모병_백신.asset",
+      "sourceHash": "B9B0E55916D64D4E48A1947373FD5875B47ACF88258C302FF9CFED99A00C052B",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medicine-vaccine-blood-wasting.json",
+      "wikiHash": "3DD339E1DB3100EB5C20E523AE8FA169EF88C5F1853A045C340DD8C475AB205B",
+      "values": {
+        "supportsInjuryTreatment": 0,
+        "treatmentPotency": 0.1,
+        "infectionReduction": 0,
+        "detoxReduction": 0,
+        "painReduction": 0
+      },
+      "factLabels": [
+        "무게",
+        "한 칸 적재",
+        "기준 가격"
+      ],
+      "summary": "분기형 생산망의 혈액소모병 백신.",
+      "scriptGuid": "05066ab4c677e98479a259133da49fde",
+      "definitionClass": "DungeonStory.Economy::ResourceItemDefinitionSO",
+      "kind": 3,
+      "stockCategory": 5,
+      "ordinaryInjuryCandidate": false
+    },
+    {
+      "id": "medicine:vaccine:mana-pox",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I70_마나두창_백신.asset",
+      "sourceHash": "A740E6C61578E36F6C0DA36442AB3B7593C94E5E86BEB49EB4B43DBC96774E42",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medicine-vaccine-mana-pox.json",
+      "wikiHash": "59E6EDEA735DCE7BB322C66798619769AEF7AAE63F968CF4631ACC7870025176",
+      "values": {
+        "supportsInjuryTreatment": 0,
+        "treatmentPotency": 0.1,
+        "infectionReduction": 0,
+        "detoxReduction": 0,
+        "painReduction": 0
+      },
+      "factLabels": [
+        "무게",
+        "한 칸 적재",
+        "기준 가격"
+      ],
+      "summary": "분기형 생산망의 마나두창 백신.",
+      "scriptGuid": "05066ab4c677e98479a259133da49fde",
+      "definitionClass": "DungeonStory.Economy::ResourceItemDefinitionSO",
+      "kind": 3,
+      "stockCategory": 5,
+      "ordinaryInjuryCandidate": false
+    },
+    {
+      "id": "medicine:vaccine:spore-lung",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I69_포자폐증_백신.asset",
+      "sourceHash": "CFEA9C98F4DE38D25A3F7BA7E7828280B708D8B391E45B657EFFEACADB0D7583",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medicine-vaccine-spore-lung.json",
+      "wikiHash": "7DF065314DF270CD9EB3591AB6D8A2796C962403789D90CDBDCD8DB63677F1A9",
+      "values": {
+        "supportsInjuryTreatment": 0,
+        "treatmentPotency": 0.1,
+        "infectionReduction": 0,
+        "detoxReduction": 0,
+        "painReduction": 0
+      },
+      "factLabels": [
+        "무게",
+        "한 칸 적재",
+        "기준 가격"
+      ],
+      "summary": "분기형 생산망의 포자폐증 백신.",
+      "scriptGuid": "05066ab4c677e98479a259133da49fde",
+      "definitionClass": "DungeonStory.Economy::ResourceItemDefinitionSO",
+      "kind": 3,
+      "stockCategory": 5,
+      "ordinaryInjuryCandidate": false
+    },
+    {
+      "id": "medicine:vaccine:gut-rot",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I68_장부패증_백신.asset",
+      "sourceHash": "B6F2BC8C16B5F99BA366F4EA14B3C84E2F0B177F938DC987464D5E233B1A2CDF",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medicine-vaccine-gut-rot.json",
+      "wikiHash": "7202D488FC87F871B7277ABF24B747BAD154B5DFD24A5C75441D879883A718EF",
+      "values": {
+        "supportsInjuryTreatment": 0,
+        "treatmentPotency": 0.1,
+        "infectionReduction": 0,
+        "detoxReduction": 0,
+        "painReduction": 0
+      },
+      "factLabels": [
+        "무게",
+        "한 칸 적재",
+        "기준 가격"
+      ],
+      "summary": "분기형 생산망의 장부패증 백신.",
+      "scriptGuid": "05066ab4c677e98479a259133da49fde",
+      "definitionClass": "DungeonStory.Economy::ResourceItemDefinitionSO",
+      "kind": 3,
+      "stockCategory": 5,
+      "ordinaryInjuryCandidate": false
+    },
+    {
+      "id": "medicine:field-emergency-kit",
+      "source": "Assets/Resources/SO/Items/Definitions/medicine_field_emergency_kit.asset",
+      "sourceHash": "0518C4945B9963A2F62812CD8BD24DFF6B761B7EE916A42E0167A7E6A44EB817",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medicine-field-emergency-kit.json",
+      "wikiHash": "039E55CDFF68F2D635227F721FB07B05331FE00EA1E5066DC48F75EB5B7EDFDE",
+      "values": {
+        "supportsInjuryTreatment": 1,
+        "treatmentPotency": 1,
+        "infectionReduction": 0,
+        "detoxReduction": 0,
+        "painReduction": 0
+      },
+      "factLabels": [
+        "무게",
+        "한 칸 적재",
+        "기준 가격"
+      ],
+      "summary": "생물형 부위를 귀환 가능한 수준으로 가고정한다.",
+      "scriptGuid": "4cb4b1f490bee1344a1002cabb362d7a",
+      "definitionClass": "Assembly-CSharp::GenericItemDefinitionSO",
+      "kind": 3,
+      "stockCategory": 5,
+      "ordinaryInjuryCandidate": false
+    },
+    {
+      "id": "medicine:blood-seal-kit",
+      "source": "Assets/Resources/SO/Items/Definitions/medicine_blood_seal_kit.asset",
+      "sourceHash": "9BB5C08DB1DF7FBA2508159CE53616E21CE52C83F439FE95B8D9E857DB0305E4",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medicine-blood-seal-kit.json",
+      "wikiHash": "703FEB50DFCAECAC510BD9BA4713FCF598DFCC7DA1ADE2F8A01F71F144E91BA9",
+      "values": {
+        "supportsInjuryTreatment": 1,
+        "treatmentPotency": 1,
+        "infectionReduction": 0,
+        "detoxReduction": 0,
+        "painReduction": 0
+      },
+      "factLabels": [
+        "무게",
+        "한 칸 적재",
+        "기준 가격"
+      ],
+      "summary": "뱀파이어 혈액낭과 혈로를 임시 봉합한다.",
+      "scriptGuid": "4cb4b1f490bee1344a1002cabb362d7a",
+      "definitionClass": "Assembly-CSharp::GenericItemDefinitionSO",
+      "kind": 3,
+      "stockCategory": 5,
+      "ordinaryInjuryCandidate": false
+    },
+    {
+      "id": "medicine:disinfectant",
+      "source": "Assets/Resources/SO/Items/Definitions/medicine_disinfectant.asset",
+      "sourceHash": "EEB8BCE81348410988B9CA8F4E282B0E0C2258D53FEF677E3ABB5ED6B41E1F9D",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medicine-disinfectant.json",
+      "wikiHash": "1113E6D21D4E3CC43D2376274E54B25C850D70F9BF2D0853A41B726B55FD739E",
+      "values": {
+        "supportsInjuryTreatment": 1,
+        "treatmentPotency": 1,
+        "infectionReduction": 0,
+        "detoxReduction": 0,
+        "painReduction": 0
+      },
+      "factLabels": [
+        "무게",
+        "한 칸 적재",
+        "기준 가격"
+      ],
+      "summary": "수술실 세정과 감염 억제에 쓰는 약품",
+      "scriptGuid": "4cb4b1f490bee1344a1002cabb362d7a",
+      "definitionClass": "Assembly-CSharp::GenericItemDefinitionSO",
+      "kind": 3,
+      "stockCategory": 5,
+      "ordinaryInjuryCandidate": false
+    },
+    {
+      "id": "medicine:immunosuppressant",
+      "source": "Assets/Resources/SO/Items/Definitions/medicine_immunosuppressant.asset",
+      "sourceHash": "6ED3A6E3D503543D35524897D9CD1A2D1BC4BFE66B2D27FFA5BA0DD1BC426EF5",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medicine-immunosuppressant.json",
+      "wikiHash": "91570F5E76BBDCB609CFCCF5B19482D3B61209DFA379DBB4B415C50C8E16C1F6",
+      "values": {
+        "supportsInjuryTreatment": 1,
+        "treatmentPotency": 1,
+        "infectionReduction": 0,
+        "detoxReduction": 0,
+        "painReduction": 0
+      },
+      "factLabels": [
+        "무게",
+        "한 칸 적재",
+        "기준 가격"
+      ],
+      "summary": "이종 장기 거부 반응을 낮추지만 감염 저항도 낮춘다.",
+      "scriptGuid": "4cb4b1f490bee1344a1002cabb362d7a",
+      "definitionClass": "Assembly-CSharp::GenericItemDefinitionSO",
+      "kind": 3,
+      "stockCategory": 5,
+      "ordinaryInjuryCandidate": false
+    },
+    {
+      "id": "medicine:rune-slime-patch",
+      "source": "Assets/Resources/SO/Items/Definitions/medicine_rune_slime_patch.asset",
+      "sourceHash": "01126D95CA082B5AEB78EE805C9078E7A3489E557235F4D878293C71FE3AF95F",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medicine-rune-slime-patch.json",
+      "wikiHash": "82DB31DD25AD0D2F863A71F25F7639BE7EA05BE140686BD797326D641A1706C4",
+      "values": {
+        "supportsInjuryTreatment": 1,
+        "treatmentPotency": 1,
+        "infectionReduction": 0,
+        "detoxReduction": 0,
+        "painReduction": 0
+      },
+      "factLabels": [
+        "무게",
+        "한 칸 적재",
+        "기준 가격"
+      ],
+      "summary": "슬라임 외막과 응집핵의 누출을 임시 봉합한다.",
+      "scriptGuid": "4cb4b1f490bee1344a1002cabb362d7a",
+      "definitionClass": "Assembly-CSharp::GenericItemDefinitionSO",
+      "kind": 3,
+      "stockCategory": 5,
+      "ordinaryInjuryCandidate": false
+    },
+    {
+      "id": "medicine:mycelial-culture-pack",
+      "source": "Assets/Resources/SO/Items/Definitions/medicine_mycelial_culture_pack.asset",
+      "sourceHash": "586DEC9FA38DB74ABA0A0783FDDC9CD00F18D897A5619C7AB571D48320E9AB39",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medicine-mycelial-culture-pack.json",
+      "wikiHash": "63C51E062F7B47CC55A03A919BFD6EF367DA59FBF4873549A7DB33F8E908E41C",
+      "values": {
+        "supportsInjuryTreatment": 1,
+        "treatmentPotency": 1,
+        "infectionReduction": 0,
+        "detoxReduction": 0,
+        "painReduction": 0
+      },
+      "factLabels": [
+        "무게",
+        "한 칸 적재",
+        "기준 가격"
+      ],
+      "summary": "손상된 균사 연결을 귀환 전까지 유지한다.",
+      "scriptGuid": "05066ab4c677e98479a259133da49fde",
+      "definitionClass": "Assembly-CSharp::ResourceItemDefinitionSO",
+      "kind": 3,
+      "stockCategory": 5,
+      "ordinaryInjuryCandidate": true
+    },
+    {
+      "id": "medicine:wing-splint-kit",
+      "source": "Assets/Resources/SO/Items/Definitions/medicine_wing_splint_kit.asset",
+      "sourceHash": "CB3BB8F8A5AC967DE481EB3E97B5EA01A051FC13643DE05C47177F064AD30213",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medicine-wing-splint-kit.json",
+      "wikiHash": "21A3CD20757E6BD8BAF0AF15775FCC54DADE2C36DF9FC019E4D84971CDC6E94E",
+      "values": {
+        "supportsInjuryTreatment": 1,
+        "treatmentPotency": 1,
+        "infectionReduction": 0,
+        "detoxReduction": 0,
+        "painReduction": 0
+      },
+      "factLabels": [
+        "무게",
+        "한 칸 적재",
+        "기준 가격"
+      ],
+      "summary": "파손된 날개와 꼬리깃을 운반 가능한 상태로 고정한다.",
+      "scriptGuid": "4cb4b1f490bee1344a1002cabb362d7a",
+      "definitionClass": "Assembly-CSharp::GenericItemDefinitionSO",
+      "kind": 3,
+      "stockCategory": 5,
+      "ordinaryInjuryCandidate": false
+    }
+  ],
+  "facilities": [
+    {
+      "id": "building:9512",
+      "source": "Assets/Resources/SO/Building/Medical/M12_비전개조대.asset",
+      "sourceHash": "97B5865E446DC259B38A9B56AE77519196467184241EDB9CC0492D32B9952A43",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-9512.json",
+      "wikiHash": "B98154D756B4D83F4664E3DCC35BDB2600EC1824CE3B1255E7EF53D1142063D1",
+      "values": {
+        "workSeconds": 1.8,
+        "severityReduction": 0.4,
+        "requiresMedicine": 1
+      },
+      "factLabels": [
+        "분류",
+        "크기"
+      ],
+      "summary": "시설의 고유 역할은 연료 소비, 내부 공정 재고, 진료와 치료이다. 건설에는 작업량 1422, 재료 룬 도체×20이 필요하다."
+    },
+    {
+      "id": "building:9511",
+      "source": "Assets/Resources/SO/Building/Medical/M11_격리회복침상.asset",
+      "sourceHash": "64FE9A2BF72ED8BFA5096FA1FDAE3D698D78C2F5C13B07A8B391AA9202A53F51",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-9511.json",
+      "wikiHash": "591AC27C4CC71767B6C3E4A65B0983774FEFE121DFAEE75F414A96BF63265900",
+      "values": {
+        "workSeconds": 1.8,
+        "severityReduction": 0.65,
+        "requiresMedicine": 1
+      },
+      "factLabels": [
+        "분류",
+        "크기"
+      ],
+      "summary": "시설의 고유 역할은 내부 공정 재고, 진료와 치료이다. 건설에는 작업량 855, 재료 강철×8이 필요하다."
+    },
+    {
+      "id": "building:9509",
+      "source": "Assets/Resources/SO/Building/Medical/M09_순환이식대.asset",
+      "sourceHash": "07E2C3F2A0D0C9AEBEBDC091C9895B9041733AAC6B7B97E20A5268BFDCF21CAB",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-9509.json",
+      "wikiHash": "A4471620218EF3CC9D8A767F8E7D39920CCF0181F9AA6D6370956BD9FED6CEB6",
+      "values": {
+        "workSeconds": 1.8,
+        "severityReduction": 0.4,
+        "requiresMedicine": 1
+      },
+      "factLabels": [
+        "분류",
+        "크기"
+      ],
+      "summary": "시설의 고유 역할은 내부 공정 재고, 진료와 치료이다. 건설에는 작업량 1053, 재료 강철×11이 필요하다."
+    },
+    {
+      "id": "building:9507",
+      "source": "Assets/Resources/SO/Building/Medical/M07_재활보조대.asset",
+      "sourceHash": "2D75AAC398D9777D9243F1BADE67B46BE13A06EBA8692DCD1C224DEDA9C7DE7A",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-9507.json",
+      "wikiHash": "2A8AC9CC897C7EA96CF91598693625CC895A45FA28E76F83CAF764808C06BEB7",
+      "values": {
+        "workSeconds": 1.8,
+        "severityReduction": 0.4,
+        "requiresMedicine": 1
+      },
+      "factLabels": [
+        "분류",
+        "크기"
+      ],
+      "summary": "시설의 고유 역할은 내부 공정 재고, 진료와 치료이다. 건설에는 작업량 637, 재료 강철×6이 필요하다."
+    },
+    {
+      "id": "building:9503",
+      "source": "Assets/Resources/SO/Building/Medical/M03_외과수술대.asset",
+      "sourceHash": "909F11CB578F3AC23EF36716AFA6C2CD06F8288055F54E37F289BDEC377B22CB",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-9503.json",
+      "wikiHash": "BD98AC1549EFD3C964480A8CA29A96111E37D242C416683BE0AC2815AAAE4FCA",
+      "values": {
+        "workSeconds": 1.8,
+        "severityReduction": 0.4,
+        "requiresMedicine": 1
+      },
+      "factLabels": [
+        "분류",
+        "크기"
+      ],
+      "summary": "시설의 고유 역할은 내부 공정 재고, 진료와 치료이다. 건설에는 작업량 971, 재료 목재×11이 필요하다."
+    },
+    {
+      "id": "building:9501",
+      "source": "Assets/Resources/SO/Building/Medical/M01_응급처치대.asset",
+      "sourceHash": "797439E591B8702995EA05B6C656ECBE42B266D7E1189A021AFE373AA679C1FC",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-9501.json",
+      "wikiHash": "DCDE135AEDD4652B8E4ED859B81067C1E10C8B05FA6B73BD036F2FC195D12341",
+      "values": {
+        "workSeconds": 1.8,
+        "severityReduction": 0.4,
+        "requiresMedicine": 1
+      },
+      "factLabels": [
+        "분류",
+        "크기"
+      ],
+      "summary": "시설의 고유 역할은 내부 공정 재고, 진료와 치료이다. 건설에는 작업량 809, 재료 목재×5이 필요하다."
+    },
+    {
+      "id": "building:1022",
+      "source": "Assets/Resources/SO/Building/Modular/R03_이층침대.asset",
+      "sourceHash": "C0D66C5D9106FA2784BDEDFC4D8AC3632E3F41EE27DBC9F1965A7082F5B81F24",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1022.json",
+      "wikiHash": "8D2C7A7C5E63107DA84F4AC533951A6C0638A3103A9BA250FFA8AFF6120A8FC6",
+      "values": {
+        "workSeconds": 1.3,
+        "severityReduction": 0.3,
+        "requiresMedicine": 1
+      },
+      "factLabels": [
+        "분류",
+        "크기"
+      ],
+      "summary": "시설의 고유 역할은 원정대 회복, 진료와 치료, 욕구 회복이다. 건설에는 작업량 672, 재료 목재×12, 천×8, 철괴×3이 필요하다."
+    },
+    {
+      "id": "building:1021",
+      "source": "Assets/Resources/SO/Building/Modular/R02_정식침대.asset",
+      "sourceHash": "2EE20E60368763F2F74FF68D2D5E0BC653BC1E69D78226E44CD00CABD4DEDE15",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1021.json",
+      "wikiHash": "8A35621100DBDCD5AF3A0AD7F9CDD018E77402A487139F718F6E3CF85EC1F253",
+      "values": {
+        "workSeconds": 1.2,
+        "severityReduction": 0.38,
+        "requiresMedicine": 1
+      },
+      "factLabels": [
+        "분류",
+        "크기"
+      ],
+      "summary": "시설의 고유 역할은 원정대 회복, 진료와 치료, 욕구 회복이다. 건설에는 작업량 751, 재료 목재×8, 천×5이 필요하다."
+    },
+    {
+      "id": "building:1020",
+      "source": "Assets/Resources/SO/Building/Modular/R01_간이침대.asset",
+      "sourceHash": "4B467CE129D9ABC9A7986A7F565A2E747CDC6D79C2E2A63F586D9A636C16987C",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1020.json",
+      "wikiHash": "AFDEF0CA17619B0843D9CE81F17BE81B682EF90B843AEAA9FAC8685E7B90230D",
+      "values": {
+        "workSeconds": 1.4,
+        "severityReduction": 0.22,
+        "requiresMedicine": 1
+      },
+      "factLabels": [
+        "분류",
+        "크기"
+      ],
+      "summary": "시설의 고유 역할은 원정대 회복, 진료와 치료, 욕구 회복이다. 건설에는 작업량 751, 재료 목재×8, 천×5이 필요하다."
+    },
+    {
+      "id": "building:1060",
+      "source": "Assets/Resources/SO/Building/Modular/H04_목욕통.asset",
+      "sourceHash": "06C7FE2427D7654FD04BAA70294AF2E917D1C9A185EE12E39DCD335EAF52D8F0",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/facility/building-1060.json",
+      "wikiHash": "DF88AE775DD02EEA2D81A39C4FCFC16C56DFAFBC668073C9BF896C5D24DCFBC1",
+      "values": {
+        "workSeconds": 1.1,
+        "severityReduction": 0.28,
+        "requiresMedicine": 0
+      },
+      "factLabels": [
+        "분류",
+        "크기"
+      ],
+      "summary": "시설의 고유 역할은 원정대 회복, 진료와 치료, 욕구 회복, 환기, 용수 취수이다. 건설에는 작업량 637, 재료 처리 목재×9, 철괴×5, 석재 블록×2이 필요하다."
+    }
+  ]
+}

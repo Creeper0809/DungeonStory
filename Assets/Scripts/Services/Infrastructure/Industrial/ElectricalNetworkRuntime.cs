@@ -13,6 +13,7 @@ internal sealed class ElectricalNodeState
     public float Heat;
     public float Fault;
     public bool BreakerTripped;
+    public bool ConnectionEnabled = true;
     public bool Powered;
     public float SuppliedFraction;
     public int NextFuelOperationSequence = 1;
@@ -24,6 +25,9 @@ internal sealed class ElectricalNetworkSummaryState
     public float ProductionPerSecond;
     public float DemandPerSecond;
     public float SuppliedPerSecond;
+    public float NominalAvailableSourcePerSecond;
+    public float AvailableSourcePerSecond;
+    public SeasonalPowerCapacityContribution CapacityContribution;
     public bool Tripped;
 }
 
@@ -60,6 +64,7 @@ internal sealed class ElectricalNetworkRuntime :
 
     private readonly IIndustrialInfrastructureTopologyRuntime topologyRuntime;
     private readonly IGridSystemProvider gridSystemProvider;
+    private readonly IRestoreWorldCandidateQuery restoreWorldCandidates;
     private readonly IGameClock clock;
     private readonly IWorldItemStackRuntime items;
     private readonly IPhysicalFacilityItemSinkGateway physicalFuel;
@@ -69,6 +74,7 @@ internal sealed class ElectricalNetworkRuntime :
     private readonly IFacilityBufferDestinationClaimQuery bufferClaims;
     private readonly IFacilityBufferDestinationReleaseService bufferRelease;
     private readonly IMilestoneGameplayModifierQuery milestoneModifiers;
+    private readonly ISeasonalEventQuery seasonalEvents;
     private readonly Dictionary<string, float> nextFuelRequestAt =
         new Dictionary<string, float>(StringComparer.Ordinal);
     private readonly Dictionary<string, ElectricalNetworkSummaryState>
@@ -77,6 +83,10 @@ internal sealed class ElectricalNetworkRuntime :
                 StringComparer.Ordinal);
     private readonly List<ElectricalConsumerEntry> consumerScratch =
         new List<ElectricalConsumerEntry>(64);
+    private readonly Dictionary<string, IReadOnlyList<IndustrialNodeDescriptor>> activeNetworks =
+        new Dictionary<string, IReadOnlyList<IndustrialNodeDescriptor>>(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> activeNetworkByNode =
+        new Dictionary<string, string>(StringComparer.Ordinal);
     private IReadOnlyList<PowerNetworkSnapshot> networks =
         Array.Empty<PowerNetworkSnapshot>();
     private float accumulated;
@@ -87,6 +97,7 @@ internal sealed class ElectricalNetworkRuntime :
     private int projectedGridStructuralVersion = int.MinValue;
     private IndustrialNodeDescriptor[] projectedLivePowerNodes =
         Array.Empty<IndustrialNodeDescriptor>();
+    private SeasonalPowerCapacityContribution projectedCapacityContribution;
 
     private ElectricalNetworkAggregateState State =>
         aggregateRootStore.GetOrCreateWritable(
@@ -98,6 +109,7 @@ internal sealed class ElectricalNetworkRuntime :
     public ElectricalNetworkRuntime(
         IIndustrialInfrastructureTopologyRuntime topologyRuntime,
         IGridSystemProvider gridSystemProvider,
+        IRestoreWorldCandidateQuery restoreWorldCandidates,
         IGameClock clock,
         IWorldItemStackRuntime items,
         IPhysicalFacilityItemSinkGateway physicalFuel,
@@ -106,12 +118,15 @@ internal sealed class ElectricalNetworkRuntime :
         IFacilityBufferDestinationLifecycleCommand bufferLifecycle,
         IFacilityBufferDestinationClaimQuery bufferClaims,
         IFacilityBufferDestinationReleaseService bufferRelease,
+        ISeasonalEventQuery seasonalEvents,
         IMilestoneGameplayModifierQuery milestoneModifiers = null)
     {
         this.topologyRuntime = topologyRuntime
             ?? throw new ArgumentNullException(nameof(topologyRuntime));
         this.gridSystemProvider = gridSystemProvider
             ?? throw new ArgumentNullException(nameof(gridSystemProvider));
+        this.restoreWorldCandidates = restoreWorldCandidates
+            ?? throw new ArgumentNullException(nameof(restoreWorldCandidates));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.physicalFuel = physicalFuel
@@ -126,6 +141,8 @@ internal sealed class ElectricalNetworkRuntime :
             ?? throw new ArgumentNullException(nameof(bufferClaims));
         this.bufferRelease = bufferRelease
             ?? throw new ArgumentNullException(nameof(bufferRelease));
+        this.seasonalEvents = seasonalEvents
+            ?? throw new ArgumentNullException(nameof(seasonalEvents));
         this.milestoneModifiers = milestoneModifiers
             ?? NeutralMilestoneGameplayModifierQuery.Instance;
         projectedRestoreRevision =
@@ -192,6 +209,18 @@ internal sealed class ElectricalNetworkRuntime :
             state,
             ResolvePowerNetworkId(nodeId));
         return true;
+    }
+
+    [GameplayEntryPoint("Main industrial connection card; WIM-013 power connection scenario")]
+    public InfrastructureCommandResult SetConnectionEnabled(BuildableObject building, bool enabled)
+    {
+        EnsureTopology();
+        if (!TryResolve(building, out _, out IndustrialNodeDescriptor node)
+            || !HasPowerConnection(node))
+            return InfrastructureCommandResult.Failed(FailureCode.PowerConsumerUnavailable);
+        EnsureState(node).ConnectionEnabled = enabled;
+        EvaluateNetworks(0f);
+        return InfrastructureCommandResult.Success();
     }
 
     public InfrastructureCommandResult SetPriority(
@@ -268,6 +297,7 @@ internal sealed class ElectricalNetworkRuntime :
                 .Select(pair => new PowerNodeSaveData
                 {
                     buildingInstanceId = pair.Key,
+                    connectionState = pair.Value.ConnectionEnabled ? 1 : 2,
                     priority = (int)pair.Value.Priority,
                     storedPower = pair.Value.StoredPower,
                     fuelSeconds = pair.Value.FuelSeconds,
@@ -315,6 +345,7 @@ internal sealed class ElectricalNetworkRuntime :
                 Heat = Mathf.Max(0f, saved.heat),
                 Fault = Mathf.Clamp(saved.fault, 0f, 100f),
                 BreakerTripped = saved.breakerTripped,
+                ConnectionEnabled = saved.connectionState == 1,
                 NextFuelOperationSequence = saved.nextFuelOperationSequence,
                 PendingFuel = saved.pendingFuel?.Clone()
                     ?? new PowerFuelCommitSaveData()
@@ -339,9 +370,11 @@ internal sealed class ElectricalNetworkRuntime :
             // restore candidates so carried fuel can rebind at participant 225.
             topologyRuntime.MarkDirty();
             IndustrialTopologySnapshot stagingTopology = topologyRuntime.Current;
+            if (!restoreWorldCandidates.TryGetGrid(out Grid candidateGrid))
+                throw new InvalidOperationException("POWER_RESTORE_CANDIDATE_GRID_UNAVAILABLE");
             PublishFuelBufferAuthorities(CaptureLivePowerNodes(
                 stagingTopology,
-                RequireLiveGridForPowerProjection()));
+                candidateGrid));
         }
         else
         {
@@ -363,8 +396,15 @@ internal sealed class ElectricalNetworkRuntime :
         bool topologyChanged = topology.SourceVersion != topologyVersion;
         bool automationChanged =
             automationPowerDemand.Version != automationPowerVersion;
+        SeasonalPowerCapacityContribution currentCapacityContribution =
+            seasonalEvents.GetPowerCapacityContribution();
+        bool seasonalCapacityChanged = !SameCapacityContribution(
+            projectedCapacityContribution,
+            currentCapacityContribution);
         bool liveProjectionChanged = topologyChanged || gridProjectionChanged;
-        if (!liveProjectionChanged && !automationChanged)
+        if (!liveProjectionChanged
+            && !automationChanged
+            && !seasonalCapacityChanged)
         {
             return;
         }
@@ -713,42 +753,19 @@ internal sealed class ElectricalNetworkRuntime :
 
     private void EvaluateNetworks(float deltaTime)
     {
-        IndustrialTopologySnapshot topology = topologyRuntime.Current;
-        if (!topology.NodeDescriptorsByNetwork.TryGetValue(
-                UtilityChannel.Power,
-                out Dictionary<
-                    string,
-                    IReadOnlyList<IndustrialNodeDescriptor>> grouped))
-        {
-            networkSummaries.Clear();
-            networks = Array.Empty<PowerNetworkSnapshot>();
-            return;
-        }
-
-        HashSet<string> liveNodeIds = projectedLivePowerNodes
-            .Select(node => node.NodeId)
-            .ToHashSet(StringComparer.Ordinal);
-        HashSet<string> evaluatedNetworkIds = new(StringComparer.Ordinal);
-        foreach (KeyValuePair<
-                     string,
-                     IReadOnlyList<IndustrialNodeDescriptor>> network
-                 in grouped)
-        {
-            IndustrialNodeDescriptor[] liveNodes = network.Value
-                .Where(node => node != null && liveNodeIds.Contains(node.NodeId))
-                .OrderBy(node => node.NodeId, StringComparer.Ordinal)
-                .ToArray();
-            if (liveNodes.Length == 0)
-                continue;
-            evaluatedNetworkIds.Add(network.Key);
+        RebuildActiveNetworks();
+        SeasonalPowerCapacityContribution capacityContribution =
+            seasonalEvents.GetPowerCapacityContribution();
+        projectedCapacityContribution = capacityContribution;
+        foreach (var network in activeNetworks.OrderBy(pair => pair.Key, StringComparer.Ordinal))
             EvaluateNetwork(
                 network.Key,
-                liveNodes,
-                deltaTime);
-        }
+                network.Value,
+                deltaTime,
+                capacityContribution);
 
         foreach (string staleNetworkId in networkSummaries.Keys
-                     .Where(value => !evaluatedNetworkIds.Contains(value))
+                     .Where(value => !activeNetworks.ContainsKey(value))
                      .ToArray())
         {
             networkSummaries.Remove(staleNetworkId);
@@ -757,11 +774,45 @@ internal sealed class ElectricalNetworkRuntime :
         Touch();
     }
 
+    private void RebuildActiveNetworks()
+    {
+        activeNetworks.Clear();
+        activeNetworkByNode.Clear();
+        if (projectedLivePowerNodes.Length == 0) return;
+        var live = projectedLivePowerNodes.ToDictionary(node => node.NodeId, StringComparer.Ordinal);
+        var neighbors = topologyRuntime.Current.UtilityNeighbors[UtilityChannel.Power];
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var node in projectedLivePowerNodes.OrderBy(value => value.NodeId, StringComparer.Ordinal))
+        {
+            if (!visited.Add(node.NodeId)) continue;
+            var component = new List<string>();
+            var queue = new Queue<string>();
+            queue.Enqueue(node.NodeId);
+            while (queue.Count > 0)
+            {
+                string current = queue.Dequeue();
+                component.Add(current);
+                if (!EnsureState(live[current]).ConnectionEnabled) continue;
+                foreach (string other in neighbors[current])
+                    if (live.TryGetValue(other, out var next) && EnsureState(next).ConnectionEnabled
+                        && visited.Add(other)) queue.Enqueue(other);
+            }
+            component.Sort(StringComparer.Ordinal);
+            string id = IndustrialInfrastructureTopologyBuilder.CreateNetworkId("Power", component);
+            activeNetworks.Add(id, component.Select(key => live[key]).ToArray());
+            foreach (string key in component) activeNetworkByNode.Add(key, id);
+        }
+    }
+
     private void EvaluateNetwork(
         string networkId,
         IReadOnlyList<IndustrialNodeDescriptor> nodes,
-        float deltaTime)
+        float deltaTime,
+        SeasonalPowerCapacityContribution capacityContribution)
     {
+        float capacityMultiplier = capacityContribution.IsActive
+            ? capacityContribution.AvailableSupplyMultiplier
+            : 1f;
         bool tripped = false;
         for (int index = 0; index < nodes.Count; index++)
         {
@@ -775,7 +826,23 @@ internal sealed class ElectricalNetworkRuntime :
             }
         }
 
+        var indices = new Dictionary<string, int>(StringComparer.Ordinal);
+        var capacities = new double[nodes.Count];
+        for (int index = 0; index < nodes.Count; index++)
+        {
+            indices.Add(nodes[index].NodeId, index);
+            capacities[index] = ResolveThroughput(nodes[index]);
+        }
+        var flow = new ElectricalFlowAllocator(capacities);
+        var neighbors = topologyRuntime.Current.UtilityNeighbors[UtilityChannel.Power];
+        for (int index = 0; index < nodes.Count; index++)
+            foreach (string adjacent in neighbors[nodes[index].NodeId])
+                if (indices.TryGetValue(adjacent, out int other) && other > index)
+                    flow.Connect(index, other);
+
         float production = 0f;
+        float nominalAvailableSource = 0f;
+        float availableSource = 0f;
         for (int index = 0; index < nodes.Count; index++)
         {
             IndustrialNodeDescriptor node = nodes[index];
@@ -784,14 +851,20 @@ internal sealed class ElectricalNetworkRuntime :
                     .GetAbility<BuildingPowerProducerAbility>();
             if (producer == null
                 || tripped
+                || !EnsureState(node).ConnectionEnabled
                 || !CanProduce(node, producer, deltaTime))
             {
                 continue;
             }
 
             ElectricalNodeState state = EnsureState(node);
-            production += Mathf.Max(0f, producer.productionPerSecond)
+            float nominalRate = Mathf.Max(0f, producer.productionPerSecond)
                 * Mathf.Clamp01(1f - state.Fault / 125f);
+            float rate = nominalRate * capacityMultiplier;
+            nominalAvailableSource += nominalRate;
+            availableSource += rate;
+            production += rate;
+            flow.AddSource(index, rate, false);
         }
 
         consumerScratch.Clear();
@@ -816,10 +889,22 @@ internal sealed class ElectricalNetworkRuntime :
             demand += ResolveDemand(consumer.Node, consumer.Ability);
         }
 
-        float dischargeRate = tripped
-            ? 0f
-            : ResolveDischargeRate(nodes, deltaTime, demand - production);
-        float available = tripped ? 0f : production + dischargeRate;
+        var batteries = new List<(int Index, int Handle, BuildingPowerStorageAbility Ability, float Efficiency)>();
+        // A read/command evaluation previews the next normal tick, without changing energy.
+        float energyWindow = deltaTime > 0 ? deltaTime : TickInterval;
+        for (int index = 0; index < nodes.Count; index++)
+        {
+            var storage = nodes[index].Building.BuildingData.GetAbility<BuildingPowerStorageAbility>();
+            if (storage == null || tripped || !EnsureState(nodes[index]).ConnectionEnabled) continue;
+            float efficiency = ResolveStorageEfficiency(storage);
+            float nominalRate = Mathf.Min(EnsureState(nodes[index]).StoredPower / energyWindow,
+                Mathf.Max(0f, storage.transferPerSecond)) * efficiency;
+            float rate = nominalRate * capacityMultiplier;
+            nominalAvailableSource += nominalRate;
+            availableSource += rate;
+            int handle = flow.AddSource(index, rate, true);
+            batteries.Add((index, handle, storage, efficiency));
+        }
         float supplied = 0f;
         for (int index = 0; index < consumerScratch.Count; index++)
         {
@@ -828,17 +913,42 @@ internal sealed class ElectricalNetworkRuntime :
             BuildingPowerConsumerAbility ability = consumer.Ability;
             ElectricalNodeState state = EnsureState(node);
             float requested = ResolveDemand(node, ability);
-            float granted = Mathf.Min(requested, Mathf.Max(0f, available));
+            float granted = (float)flow.Allocate(indices[node.NodeId], requested,
+                Mathf.Clamp01(ability.minimumSupplyFraction));
             float fraction = requested <= 0.001f ? 1f : granted / requested;
             state.SuppliedFraction = fraction;
-            state.Powered = fraction + 0.001f
+            state.Powered = !tripped && state.ConnectionEnabled && fraction + 0.001f
                 >= Mathf.Clamp01(ability.minimumSupplyFraction);
             if (state.Powered)
             {
-                available -= granted;
                 supplied += granted;
             }
         }
+
+        float dischargeRate = 0;
+        foreach (var battery in batteries)
+        {
+            float output = (float)flow.UsedSource(battery.Handle);
+            dischargeRate += output;
+            if (deltaTime > 0 && output > 0 && battery.Efficiency > 0)
+            {
+                var state = EnsureState(nodes[battery.Index]);
+                state.StoredPower = Mathf.Max(0, state.StoredPower - output * deltaTime / battery.Efficiency);
+            }
+            flow.StopSource(battery.Handle);
+        }
+        if (deltaTime > 0)
+            foreach (var battery in batteries)
+            {
+                if (flow.UsedSource(battery.Handle) > 0 || battery.Efficiency <= 0) continue;
+                var state = EnsureState(nodes[battery.Index]);
+                float room = Mathf.Max(0, battery.Ability.capacity - state.StoredPower);
+                float requested = Mathf.Min(room / (deltaTime * battery.Efficiency),
+                    Mathf.Max(0, battery.Ability.transferPerSecond));
+                float input = (float)flow.Allocate(battery.Index, requested, 0);
+                state.StoredPower = Mathf.Min(battery.Ability.capacity,
+                    state.StoredPower + input * deltaTime * battery.Efficiency);
+            }
 
         for (int index = 0; index < nodes.Count; index++)
         {
@@ -850,13 +960,11 @@ internal sealed class ElectricalNetworkRuntime :
             }
 
             ElectricalNodeState state = EnsureState(node);
-            state.Powered = !tripped && production + dischargeRate > 0.001f;
+            state.Powered = !tripped && state.ConnectionEnabled && production + dischargeRate > 0.001f;
             state.SuppliedFraction = state.Powered ? 1f : 0f;
         }
 
-        float excess = Mathf.Max(0f, production - supplied);
-        ChargeStorage(nodes, excess, deltaTime);
-        UpdateOverload(nodes, production, demand, deltaTime);
+        UpdateOverload(nodes, production + dischargeRate, demand, deltaTime);
 
         if (!networkSummaries.TryGetValue(
                 networkId,
@@ -869,6 +977,9 @@ internal sealed class ElectricalNetworkRuntime :
         summary.ProductionPerSecond = production;
         summary.DemandPerSecond = demand;
         summary.SuppliedPerSecond = supplied;
+        summary.NominalAvailableSourcePerSecond = nominalAvailableSource;
+        summary.AvailableSourcePerSecond = availableSource;
+        summary.CapacityContribution = capacityContribution;
         summary.Tripped = tripped;
     }
 
@@ -885,16 +996,7 @@ internal sealed class ElectricalNetworkRuntime :
 
     private void RefreshSnapshots()
     {
-        IndustrialTopologySnapshot topology = topologyRuntime.Current;
-        if (!topology.NodeDescriptorsByNetwork.TryGetValue(
-                UtilityChannel.Power,
-                out Dictionary<
-                    string,
-                    IReadOnlyList<IndustrialNodeDescriptor>> grouped))
-        {
-            networks = Array.Empty<PowerNetworkSnapshot>();
-            return;
-        }
+        var grouped = activeNetworks;
 
         List<PowerNetworkSnapshot> snapshots =
             new List<PowerNetworkSnapshot>(grouped.Count);
@@ -924,6 +1026,9 @@ internal sealed class ElectricalNetworkRuntime :
             networkSummaries.TryGetValue(
                 network.Key,
                 out ElectricalNetworkSummaryState summary);
+            SeasonalPowerCapacityContribution capacityContribution =
+                summary?.CapacityContribution
+                ?? SeasonalPowerCapacityContribution.None;
             snapshots.Add(new PowerNetworkSnapshot
             {
                 NetworkId = network.Key,
@@ -931,6 +1036,25 @@ internal sealed class ElectricalNetworkRuntime :
                     summary?.ProductionPerSecond ?? 0f,
                 DemandPerSecond = summary?.DemandPerSecond ?? 0f,
                 SuppliedPerSecond = summary?.SuppliedPerSecond ?? 0f,
+                NominalAvailableSourcePerSecond =
+                    summary?.NominalAvailableSourcePerSecond ?? 0f,
+                AvailableSourcePerSecond =
+                    summary?.AvailableSourcePerSecond ?? 0f,
+                AvailableSourceMultiplier =
+                    capacityContribution.IsActive
+                        ? capacityContribution.AvailableSupplyMultiplier
+                        : 1f,
+                CapacitySourceOccurrenceInstanceId =
+                    capacityContribution.OccurrenceInstanceId
+                    ?? string.Empty,
+                CapacitySourceDefinitionId =
+                    capacityContribution.DefinitionId
+                    ?? string.Empty,
+                CapacitySourceDisplayName =
+                    capacityContribution.DisplayName
+                    ?? string.Empty,
+                CapacitySourceRemainingDays =
+                    capacityContribution.RemainingDays,
                 StoredPower = storedPower,
                 StorageCapacity = storageCapacity,
                 Tripped = summary?.Tripped ?? false,
@@ -1162,98 +1286,23 @@ internal sealed class ElectricalNetworkRuntime :
         state.PendingFuel = new PowerFuelCommitSaveData();
     }
 
-    private float ResolveDischargeRate(
-        IReadOnlyList<IndustrialNodeDescriptor> nodes,
-        float deltaTime,
-        float requestedRate)
-    {
-        if (requestedRate <= 0f || deltaTime <= 0f)
-        {
-            return 0f;
-        }
-
-        float remainingEnergy = requestedRate * deltaTime;
-        float suppliedEnergy = 0f;
-        foreach (IndustrialNodeDescriptor node in nodes)
-        {
-            BuildingPowerStorageAbility storage =
-                node.Building.BuildingData
-                    .GetAbility<BuildingPowerStorageAbility>();
-            if (storage == null)
-            {
-                continue;
-            }
-
-            ElectricalNodeState state = EnsureState(node);
-            float available = Mathf.Min(
-                state.StoredPower,
-                storage.transferPerSecond * deltaTime);
-            float removed = Mathf.Min(available, remainingEnergy);
-            state.StoredPower -= removed;
-            remainingEnergy -= removed;
-            suppliedEnergy += removed * ResolveStorageEfficiency(storage);
-            if (remainingEnergy <= 0.001f)
-            {
-                break;
-            }
-        }
-
-        return suppliedEnergy / deltaTime;
-    }
-
-    private void ChargeStorage(
-        IReadOnlyList<IndustrialNodeDescriptor> nodes,
-        float excessRate,
-        float deltaTime)
-    {
-        if (excessRate <= 0f || deltaTime <= 0f)
-        {
-            return;
-        }
-
-        float energy = excessRate * deltaTime;
-        foreach (IndustrialNodeDescriptor node in nodes)
-        {
-            BuildingPowerStorageAbility storage =
-                node.Building.BuildingData
-                    .GetAbility<BuildingPowerStorageAbility>();
-            if (storage == null)
-            {
-                continue;
-            }
-
-            ElectricalNodeState state = EnsureState(node);
-            float room = Mathf.Max(0f, storage.capacity - state.StoredPower);
-            float input = Mathf.Min(
-                energy,
-                storage.transferPerSecond * deltaTime);
-            float stored = Mathf.Min(
-                room,
-                input * ResolveStorageEfficiency(storage));
-            state.StoredPower += stored;
-            energy -= input;
-            if (energy <= 0.001f)
-            {
-                break;
-            }
-        }
-    }
-
     private void UpdateOverload(
         IReadOnlyList<IndustrialNodeDescriptor> nodes,
         float production,
         float demand,
         float deltaTime)
     {
-        float capacity = Mathf.Max(0.01f, production);
-        float ratio = demand / capacity;
+        // Missing fuel / disconnected supply is an outage, not electrical
+        // overload. In particular, do not divide idle demand by a fake 0.01W.
+        bool energized = production > 0.001f;
+        float ratio = energized ? demand / production : 0f;
         foreach (IndustrialNodeDescriptor node in nodes)
         {
             ElectricalNodeState state = EnsureState(node);
             state.Heat = ratio > 1f
                 ? state.Heat + (ratio - 1f) * 18f * deltaTime
                 : Mathf.Max(0f, state.Heat - 8f * deltaTime);
-            if (state.Heat > 75f)
+            if (energized && state.Heat > 75f)
             {
                 state.Fault = Mathf.Clamp(
                     state.Fault + (state.Heat - 75f) * 0.02f * deltaTime,
@@ -1293,6 +1342,8 @@ internal sealed class ElectricalNetworkRuntime :
                     .GetAbility<BuildingPowerConsumerAbility>();
             state = new ElectricalNodeState
             {
+                ConnectionEnabled = !HasPowerConnection(node)
+                    || node.Building.BuildingData.GetAbility<BuildingUtilityConnectionAbility>().normallyOpen,
                 Priority = consumer?.priority ?? PowerPriority.Production
             };
             states[node.NodeId] = state;
@@ -1322,15 +1373,23 @@ internal sealed class ElectricalNetworkRuntime :
         return false;
     }
 
-    private string ResolvePowerNetworkId(string nodeId)
+    private string ResolvePowerNetworkId(string nodeId) =>
+        activeNetworkByNode.TryGetValue(nodeId, out string id) ? id : string.Empty;
+
+    private static bool HasPowerConnection(IndustrialNodeDescriptor node)
     {
-        IndustrialTopologySnapshot topology = topologyRuntime.Current;
-        return topology.NetworkByNode.TryGetValue(
-                UtilityChannel.Power,
-                out Dictionary<string, string> networkByNode)
-            && networkByNode.TryGetValue(nodeId, out string networkId)
-                ? networkId
-                : string.Empty;
+        var connection = node.Building.BuildingData.GetAbility<BuildingUtilityConnectionAbility>();
+        return connection != null && (connection.channels & UtilityChannel.Power) != 0;
+    }
+
+    private double ResolveThroughput(IndustrialNodeDescriptor node)
+    {
+        if (!EnsureState(node).ConnectionEnabled) return 0;
+        if (!HasPowerConnection(node)) return 1e30;
+        float capacity = node.Building.BuildingData.GetAbility<BuildingUtilityConnectionAbility>().maxThroughput;
+        if (float.IsNaN(capacity) || float.IsInfinity(capacity) || capacity <= 0)
+            throw new InvalidOperationException($"Invalid power throughput on {node.NodeId}.");
+        return capacity;
     }
 
     private PowerNodeSnapshot CreateNodeSnapshot(
@@ -1352,6 +1411,10 @@ internal sealed class ElectricalNetworkRuntime :
             Priority = state.Priority,
             Powered = state.Powered,
             BreakerTripped = state.BreakerTripped,
+            HasControllableConnection = HasPowerConnection(node),
+            ConnectionEnabled = state.ConnectionEnabled,
+            MaximumThroughput = HasPowerConnection(node)
+                ? data.GetAbility<BuildingUtilityConnectionAbility>().maxThroughput : 0,
             ProductionPerSecond = producer?.productionPerSecond ?? 0f,
             DemandPerSecond = consumer == null
                 ? 0f
@@ -1389,6 +1452,18 @@ internal sealed class ElectricalNetworkRuntime :
         }
     }
 
+    private static bool SameCapacityContribution(
+        SeasonalPowerCapacityContribution left,
+        SeasonalPowerCapacityContribution right) =>
+        left.IsActive == right.IsActive
+        && string.Equals(
+            left.OccurrenceInstanceId,
+            right.OccurrenceInstanceId,
+            StringComparison.Ordinal)
+        && left.RemainingDays == right.RemainingDays
+        && left.AvailableSupplyMultiplier
+            == right.AvailableSupplyMultiplier;
+
     private void EnsureRestoreProjectionCurrent()
     {
         int revision = aggregateRootStore.PublishedRestoreRevision;
@@ -1408,10 +1483,14 @@ internal sealed class ElectricalNetworkRuntime :
         projectedGrid = null;
         projectedGridStructuralVersion = int.MinValue;
         projectedLivePowerNodes = Array.Empty<IndustrialNodeDescriptor>();
+        projectedCapacityContribution =
+            SeasonalPowerCapacityContribution.None;
         accumulated = 0f;
         nextFuelRequestAt.Clear();
         networkSummaries.Clear();
         consumerScratch.Clear();
+        activeNetworks.Clear();
+        activeNetworkByNode.Clear();
         networks = Array.Empty<PowerNetworkSnapshot>();
     }
 }

@@ -8,6 +8,63 @@ using UnityEngine;
 
 public static class EnvironmentalWorkwearPlannedOutputDebugScenarios
 {
+    public static string RunWim006QualityFocused()
+    {
+        CraftContributionSaveData[] manual =
+        {
+            new() { characterId = "character:wim-006-worker", contributedWork = 10f, relevantSkill = 90f }
+        };
+        Require(ProductionAutomaticQualityRules.ResolveScoreCeiling(75f, 10f, manual) == 100f,
+            "Manual/powered-assist work was capped.");
+        manual[0].contributedWork = 4f;
+        Require(ProductionAutomaticQualityRules.ResolveScoreCeiling(75f, 10f, manual) == 75f,
+            "Mixed work lost its automatic cap.");
+        manual[0].contributedWork = 9.5f;
+        Require(ProductionAutomaticQualityRules.ResolveScoreCeiling(75f, 10f, manual) == 75f,
+            "Last manual worker removed prior automatic participation.");
+        Require(ProductionAutomaticQualityRules.ResolveScoreCeiling(75f, 10f,
+                Array.Empty<CraftContributionSaveData>()) == 75f,
+            "Automatic work was uncapped.");
+        // Prepare and finish share one durable contribution total, although stage progress resets.
+        CraftContributionAccumulator passive = new();
+        passive.Add("character:wim-006-worker", 8f, 90f);
+        passive = new CraftContributionAccumulator(passive.Capture());
+        passive.Add("character:wim-006-finisher", 2f, 50f);
+        Require(ProductionAutomaticQualityRules.ResolveScoreCeiling(75f, 10f, passive.Capture()) == 100f,
+            "Restored manual passive cycle was misclassified as automatic.");
+
+        int boundaryCases = 0;
+        foreach (float score in new[] { 50f, 54.99f, 55f, 69.99f, 70f, 75f, 82.99f, 83f, 90f, 100f })
+        {
+            using Fixture fixture = new();
+            float modifier = fixture.Handler.ApplyCraftQualityCeiling(1f, score);
+            ProductionResolvedOutputSaveData frozen = new() { qualityModifier = modifier, workerQuality = 1.25f };
+            frozen = JsonUtility.FromJson<ProductionResolvedOutputSaveData>(JsonUtility.ToJson(frozen));
+            ProductionOutputContext context = fixture.CreateContext(1,
+                "production-output:qa:workwear:wim006", qualityModifier: frozen.qualityModifier);
+            Require(fixture.Handler.TryProduceIdempotent(context, out DomainFailure failure),
+                "Capped physical output failed: " + Format(failure));
+            Require(ReadApparel(fixture.Query.GetAllStacks().Single()).craftsmanshipQuality
+                == DeterministicCraftQualityResolver.FromScore(score), "Cap score/physical grade mismatch.");
+            // Retry uses the frozen output; a different current cap must not reroll/rewrite it.
+            _ = fixture.Handler.ApplyCraftQualityCeiling(1f, 50f);
+            Require(fixture.Handler.TryProduceIdempotent(context, out failure)
+                && fixture.Query.GetAllStacks().Count == 1, "Frozen output replay duplicated or changed output.");
+            Require(ReadApparel(fixture.Query.GetAllStacks().Single()).craftsmanshipQuality
+                == DeterministicCraftQualityResolver.FromScore(score), "Replay changed frozen grade.");
+            Require(frozen.workerQuality == 1.25f, "Craft ceiling altered independent worker quality.");
+            Require(fixture.Handler.TryAcknowledge(context.CommitId, out failure),
+                "Capped output acknowledgement failed: " + Format(failure));
+            Require(fixture.Handler.ApplyCraftQualityCeiling(0f, score) == 0f,
+                "Ceiling raised a low-quality result.");
+            boundaryCases++;
+        }
+        RunAll();
+        return "craft-score-boundaries=" + boundaryCases
+            + ";manual-assist-mixed=PASS;passive-contribution-restore=PASS;physical-grade=PASS"
+            + ";frozen-replay=PASS;independent-worker-quality=PASS;output-capacity-regression=PASS";
+    }
+
     [MenuItem("DungeonStory/V27/Physical Mass/Verify Workwear Planned Output")]
     public static void RunAll()
     {

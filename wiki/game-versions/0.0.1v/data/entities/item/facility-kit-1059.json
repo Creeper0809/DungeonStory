@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "물을 받아 손과 얼굴을 씻고 생활 오염을 줄이는 세면대 설치 부품이며, 므네실라에서도 이 부품의 치수를 알아본다.",
+  "in_game_description": "세면대로 연기와 탁한 공기를 빼내는 환기 설비의 설치 부품이다. 므네실라의 세면대에서 거른 물은 깨끗하면 초록 포자막이 피고, 오염이 남으면 검게 가라앉는다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

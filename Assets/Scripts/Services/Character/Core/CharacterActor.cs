@@ -899,8 +899,6 @@ public class CharacterActor : SerializedMonoBehaviour,
         RuntimeStats != null ? RuntimeStats.GetWorkPreferenceScore(workTypeId) : 0.5f;
     public float GetFacilityPreferenceScore(FacilityRole roles) =>
         RuntimeStats != null ? RuntimeStats.GetFacilityPreferenceScore(roles) : 0.5f;
-    public float GetAccidentChanceMultiplier() =>
-        RuntimeStats != null ? RuntimeStats.GetAccidentChanceMultiplier() : 1f;
     public CharacterSpeciesIncidentType GetIncidentType() => RuntimeStats != null
         ? RuntimeStats.GetIncidentType()
         : CharacterSpeciesIncidentType.None;

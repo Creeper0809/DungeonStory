@@ -10,6 +10,13 @@ internal sealed class EditorEquipmentPhysicalItemGatewayProxy :
     public bool FailNextAcknowledgement { get; set; }
     public int AcknowledgementAttempts { get; private set; }
     public int SuccessfulAcknowledgements { get; private set; }
+    public bool FailNextAbsorption { get; set; }
+    public int AbsorptionAttempts { get; private set; }
+    public bool FailNextUniqueSpawn { get; set; }
+    public bool HideNextSpawnFromLookup { get; set; }
+    public int UniqueSpawnAttempts { get; private set; }
+    public int HiddenSpawnLookupCount { get; private set; }
+    private string hiddenSpawnStackId;
 
     public void Attach(IEquipmentPhysicalItemGateway target)
     {
@@ -56,18 +63,42 @@ internal sealed class EditorEquipmentPhysicalItemGatewayProxy :
         Vector2Int position,
         WorldItemStackState state,
         string destinationId,
-        out string stackId) => Target.SpawnExistingUniqueItemAt(
+        out string stackId)
+    {
+        UniqueSpawnAttempts++;
+        if (FailNextUniqueSpawn)
+        {
+            FailNextUniqueSpawn = false;
+            stackId = string.Empty;
+            return false;
+        }
+        bool spawned = Target.SpawnExistingUniqueItemAt(
             itemId,
             itemInstanceId,
             position,
             state,
             destinationId,
             out stackId);
+        if (spawned && HideNextSpawnFromLookup)
+        {
+            HideNextSpawnFromLookup = false;
+            hiddenSpawnStackId = stackId;
+        }
+        return spawned;
+    }
 
     public bool TryAbsorbUniqueItemStack(
         string stackId,
-        ItemInstanceId expectedInstanceId) =>
-        Target.TryAbsorbUniqueItemStack(stackId, expectedInstanceId);
+        ItemInstanceId expectedInstanceId)
+    {
+        AbsorptionAttempts++;
+        if (FailNextAbsorption)
+        {
+            FailNextAbsorption = false;
+            return false;
+        }
+        return Target.TryAbsorbUniqueItemStack(stackId, expectedInstanceId);
+    }
 
     public bool TryRequestItemDelivery(
         string itemId,
@@ -83,8 +114,21 @@ internal sealed class EditorEquipmentPhysicalItemGatewayProxy :
             out requested,
             out failureReason);
 
-    public IReadOnlyList<WorldItemStackSnapshot> GetAllStacks() =>
-        Target.GetAllStacks();
+    public IReadOnlyList<WorldItemStackSnapshot> GetAllStacks()
+    {
+        IReadOnlyList<WorldItemStackSnapshot> stacks = Target.GetAllStacks();
+        if (string.IsNullOrEmpty(hiddenSpawnStackId))
+            return stacks;
+        string hidden = hiddenSpawnStackId;
+        hiddenSpawnStackId = null;
+        var visible = new List<WorldItemStackSnapshot>();
+        foreach (WorldItemStackSnapshot stack in stacks)
+            if (stack.StackId != hidden)
+                visible.Add(stack);
+            else
+                HiddenSpawnLookupCount++;
+        return visible;
+    }
 
     public bool TryConsumeFacilityItemBuffer(
         string destinationId,

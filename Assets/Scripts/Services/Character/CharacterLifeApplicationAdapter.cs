@@ -283,6 +283,7 @@ public sealed class CharacterDeathPopulationAdapter : IStartable, IDisposable
     private readonly IHouseholdService households;
     private readonly IReproductionService reproduction;
     private readonly IGriefTraumaService grief;
+    private readonly ICareerService careers;
     private readonly IGameEventBus events;
     private IDisposable deathSubscription;
     private IDisposable dayEndedSubscription;
@@ -295,6 +296,7 @@ public sealed class CharacterDeathPopulationAdapter : IStartable, IDisposable
         IHouseholdService households,
         IReproductionService reproduction,
         IGriefTraumaService grief,
+        ICareerService careers,
         IGameEventBus events)
     {
         this.world = world ?? throw new ArgumentNullException(nameof(world));
@@ -307,6 +309,7 @@ public sealed class CharacterDeathPopulationAdapter : IStartable, IDisposable
         this.reproduction = reproduction
             ?? throw new ArgumentNullException(nameof(reproduction));
         this.grief = grief ?? throw new ArgumentNullException(nameof(grief));
+        this.careers = careers ?? throw new ArgumentNullException(nameof(careers));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
     }
 
@@ -327,6 +330,9 @@ public sealed class CharacterDeathPopulationAdapter : IStartable, IDisposable
     private void OnDeath(CharacterDeathEvent gameEvent)
     {
         CharacterLifeDeathRecord death = gameEvent.ToLifeRecord();
+        careers.CancelRetirementByDeath(
+            death.CharacterId,
+            death.AbsoluteDay);
         CharacterActor deceasedActor = FindActor(death.CharacterId);
         reproduction.NotifyCarrierDeath(death.CharacterId, death.AbsoluteDay);
 

@@ -165,8 +165,17 @@ public static class ModularFacilityRuntimeEffects
     public static int ApplyWorkCompleted(
         IBuildingVisitorPort actor,
         BuildableObject building,
-        WorkTypeId workTypeId)
+        WorkTypeId workTypeId,
+        float approvedWork)
     {
+        if (float.IsNaN(approvedWork)
+            || float.IsInfinity(approvedWork)
+            || approvedWork < 0f)
+        {
+            throw new System.ArgumentOutOfRangeException(
+                nameof(approvedWork),
+                "Building work completion requires finite nonnegative approved work.");
+        }
         if (building?.BuildingData == null || !workTypeId.IsValid)
         {
             return 0;
@@ -181,7 +190,8 @@ public static class ModularFacilityRuntimeEffects
         return building.AbilityRuntimeDispatcher.ApplyWorkCompleted(
             actor,
             building,
-            workTypeId);
+            workTypeId,
+            approvedWork);
     }
 
     public static int ApplyProduction(

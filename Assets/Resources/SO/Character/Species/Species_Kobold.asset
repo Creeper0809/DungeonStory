@@ -90,16 +90,14 @@ MonoBehaviour:
   incident:
     incidentId: species-incident:kobold-parts-hoarding
     displayName: "\uBD80\uD488 \uC0AC\uC7AC\uAE30"
-    description: "\uBD88\uB9CC\uC774 \uCEE4\uC9C0\uBA74 \uC2E4\uC81C \uAE08\uC18D
-      \uBD80\uD488\uACFC \uD0C4\uC57D\uC744 \uC740\uB2C9 \uC2A4\uD0DD\uC73C\uB85C
-      \uC62E\uAE34\uB2E4."
+    description: "\uBD88\uB9CC\uC774 \uCEE4\uC9C0\uBA74 \uBD80\uD488\uC744 \uBAA8\uC73C\uB824\uB294
+      \uC131\uD5A5\uC774 \uB450\uB4DC\uB7EC\uC9C4\uB2E4."
     mitigatingRoles: 1088
     triggerTags:
     - discontent
     - species-specific
   incidentName: "\uBD80\uD488 \uC0AC\uC7AC\uAE30"
-  incidentDescription: "\uBD88\uB9CC\uC774 \uCEE4\uC9C0\uBA74 \uC2E4\uC81C \uAE08\uC18D
-    \uBD80\uD488\uACFC \uD0C4\uC57D\uC744 \uC740\uB2C9 \uC2A4\uD0DD\uC73C\uB85C \uC62E\uAE34\uB2E4."
+  incidentDescription: "\uBD88\uB9CC\uC774 \uCEE4\uC9C0\uBA74 \uBD80\uD488\uC744 \uBAA8\uC73C\uB824\uB294 \uC131\uD5A5\uC774 \uB450\uB4DC\uB7EC\uC9C4\uB2E4."
   incidentMitigatingRoles: 1088
   combatPassive:
     passiveId: species-passive:kobold

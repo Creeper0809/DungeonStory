@@ -61,7 +61,6 @@ MonoBehaviour:
     - rid: 1014
     - rid: 7737211857806557859
     - rid: 1015
-    - rid: 1016
     - rid: 1017
   width: 1
   height: 1
@@ -97,7 +96,7 @@ MonoBehaviour:
         abilityId: BuildingEconomyAbility
         constructionValue: 0
         constructionCost: 280
-        maintenance: 2
+        maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
     - rid: 1012
@@ -108,8 +107,8 @@ MonoBehaviour:
           roles: 4096
           capacity: 1
           useDuration: 1.5
-          requiredWorkers: 1
-          supportedWorkTypes: 65536
+          requiredWorkers: 0
+          supportedWorkTypes: 0
           disabledWhenDamaged: 1
     - rid: 1013
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
@@ -133,14 +132,6 @@ MonoBehaviour:
           - m13
           scores: []
           metrics: []
-    - rid: 1016
-      type: {class: BuildingFuelConsumerAbility, ns: , asm: DungeonStory.Survival}
-      data:
-        abilityId: BuildingFuelConsumerAbility
-        fuelPerRefuel: 1
-        workSeconds: 1
-        warmth: 0
-        lightSafety: 2
     - rid: 1017
       type: {class: BuildingRehabilitationAbility, ns: , asm: DungeonStory.Medical}
       data:

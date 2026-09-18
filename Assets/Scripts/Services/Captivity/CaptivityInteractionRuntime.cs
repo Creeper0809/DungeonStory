@@ -12,6 +12,10 @@ internal sealed class CaptivityInteractionRuntime
     private readonly CaptivityActorAccess actors;
     private readonly CaptivityActorRuntimeLookup actorRuntime;
     private readonly CaptivityInteractionRegistry interactions;
+    private readonly CaptivityInterrogationInformationRuntime
+        interrogationInformation;
+    private readonly ICharacterBodyHealthQuery bodyHealthQuery;
+    private readonly ICharacterBodyHealthCommand bodyHealthCommands;
     private readonly IWorldItemStackRuntime itemRuntime;
     private readonly ICaptivityInteractionMaterialRuntime materials;
     private readonly TryGetCaptiveHousing tryGetHousing;
@@ -20,6 +24,9 @@ internal sealed class CaptivityInteractionRuntime
         CaptivityActorAccess actors,
         CaptivityActorRuntimeLookup actorRuntime,
         CaptivityInteractionRegistry interactions,
+        CaptivityInterrogationInformationRuntime interrogationInformation,
+        ICharacterBodyHealthQuery bodyHealthQuery,
+        ICharacterBodyHealthCommand bodyHealthCommands,
         IWorldItemStackRuntime itemRuntime,
         ICaptivityInteractionMaterialRuntime materials,
         TryGetCaptiveHousing tryGetHousing)
@@ -28,6 +35,12 @@ internal sealed class CaptivityInteractionRuntime
         this.actorRuntime = actorRuntime
             ?? throw new ArgumentNullException(nameof(actorRuntime));
         this.interactions = interactions ?? throw new ArgumentNullException(nameof(interactions));
+        this.interrogationInformation = interrogationInformation
+            ?? throw new ArgumentNullException(nameof(interrogationInformation));
+        this.bodyHealthQuery = bodyHealthQuery
+            ?? throw new ArgumentNullException(nameof(bodyHealthQuery));
+        this.bodyHealthCommands = bodyHealthCommands
+            ?? throw new ArgumentNullException(nameof(bodyHealthCommands));
         this.itemRuntime = itemRuntime ?? throw new ArgumentNullException(nameof(itemRuntime));
         this.materials = materials ?? throw new ArgumentNullException(nameof(materials));
         this.tryGetHousing = tryGetHousing ?? throw new ArgumentNullException(nameof(tryGetHousing));
@@ -48,6 +61,23 @@ internal sealed class CaptivityInteractionRuntime
             || !interactions.TryGet(interactionId, out ICaptivityInteractionHandler handler))
         {
             failureReason = "포로 또는 상호작용을 찾을 수 없습니다.";
+            return false;
+        }
+
+        if (state.interrogationTerminal == null)
+        {
+            throw new InvalidOperationException(
+                $"Captive '{state.captiveId}' is missing interrogation terminal state.");
+        }
+        if (state.interrogationTerminal.HasPendingPublication)
+        {
+            failureReason = "이전 심문 결과를 전달하는 중입니다.";
+            return false;
+        }
+        if (handler.Kind == CaptiveInteractionKind.Interrogation
+            && state.interrogationAttemptSequence == int.MaxValue)
+        {
+            failureReason = "포로 심문 시도 번호가 한계에 도달했습니다.";
             return false;
         }
 
@@ -82,6 +112,13 @@ internal sealed class CaptivityInteractionRuntime
         state.reservedWardenId = CaptivityActorAccess.RequireCharacterId(
             warden?.Identity?.PersistentId);
         state.currentInteractionId = handler.InteractionId;
+        state.currentInterrogationAttemptId = 0;
+        if (handler.Kind == CaptiveInteractionKind.Interrogation)
+        {
+            state.interrogationAttemptSequence++;
+            state.currentInterrogationAttemptId =
+                state.interrogationAttemptSequence;
+        }
         state.interactionMaterialDestinationId = materialDestinationId;
         state.interactionMaterialsConsumed = handler.MaterialRequirements.Count == 0;
         state.completedInteractionWork = 0f;
@@ -129,6 +166,12 @@ internal sealed class CaptivityInteractionRuntime
             return false;
         }
 
+        if (IsFrozenCurrentInterrogation(state))
+        {
+            TryCompleteFrozenInterrogation(state, out status);
+            return true;
+        }
+
         if (!state.interactionMaterialsConsumed)
         {
             if (!materials.TryCommitSink(
@@ -171,8 +214,35 @@ internal sealed class CaptivityInteractionRuntime
             return false;
         }
 
-        ApplyResult(state, handler.Execute(context));
+        CaptivityInterrogationTerminalState interrogationOutcome =
+            handler.Kind == CaptiveInteractionKind.Interrogation
+                ? interrogationInformation.FreezeOutcome(
+                    state,
+                    actors.States)
+                : null;
+        CaptivityInteractionResult result = handler.Execute(context);
+        if (interrogationOutcome != null && result.Success)
+        {
+            // Persist the decision before applying any one-shot captive effects.
+            // If a later publication callback throws, the next advance/tick can
+            // only retry this frozen outcome and cannot execute the handler again.
+            state.interrogationTerminal = interrogationOutcome;
+        }
+        bool subjectDied = ApplyResult(
+            state,
+            subject,
+            handler,
+            result);
         status = state.lastResult;
+        if (subjectDied)
+        {
+            return true;
+        }
+        if (interrogationOutcome != null && result.Success)
+        {
+            TryCompleteFrozenInterrogation(state, out status);
+            return true;
+        }
         state.status = CaptivityStatus.Confined;
         Clear(state);
         return true;
@@ -219,14 +289,46 @@ internal sealed class CaptivityInteractionRuntime
         }
     }
 
-    private void ApplyResult(
+    public void HandleSubjectDeath(CaptiveState state)
+    {
+        if (state == null)
+        {
+            return;
+        }
+
+        ReleaseMaterials(state);
+        ClearInteractionState(state);
+    }
+
+    public void RetryPendingInterrogationPublications(
+        IEnumerable<CaptiveState> states)
+    {
+        foreach (CaptiveState state in states ?? Array.Empty<CaptiveState>())
+        {
+            CaptivityInterrogationTerminalState terminal =
+                state?.interrogationTerminal;
+            if (terminal == null
+                || !terminal.HasOutcome
+                || (!terminal.HasPendingPublication
+                    && !IsFrozenCurrentInterrogation(state)))
+            {
+                continue;
+            }
+
+            TryCompleteFrozenInterrogation(state, out _);
+        }
+    }
+
+    private bool ApplyResult(
         CaptiveState state,
+        CharacterActor subject,
+        ICaptivityInteractionHandler handler,
         CaptivityInteractionResult result)
     {
         if (!result.Success)
         {
             state.lastResult = result.Message;
-            return;
+            return false;
         }
 
         state.will = ClampStat(state.will + result.WillDelta);
@@ -234,8 +336,11 @@ internal sealed class CaptivityInteractionRuntime
         state.trust = ClampStat(state.trust + result.TrustDelta);
         state.grudge = ClampStat(state.grudge + result.GrudgeDelta);
         state.corruption = ClampStat(state.corruption + result.CorruptionDelta);
-        state.health = ClampStat(state.health + result.HealthDelta);
         state.lastResult = result.Message;
+
+        // Successful extraction output is settled before the body command. If
+        // that command kills the subject synchronously, the authored result is
+        // still published exactly once while all later captive-state work stops.
         if (!string.IsNullOrWhiteSpace(result.OutputItemId)
             && result.OutputAmount > 0)
         {
@@ -248,18 +353,101 @@ internal sealed class CaptivityInteractionRuntime
                 out _);
         }
 
+        if (handler.BodyDamage.HasDamage)
+        {
+            CharacterVitalsSnapshot vitals = bodyHealthQuery.GetVitals(subject);
+            CaptivityBodyDamageProjection damage = handler.BodyDamage.Project(
+                vitals.CurrentHealth,
+                vitals.MaximumHealth);
+            bodyHealthCommands.ApplyLegacyDamageWithCause(
+                subject,
+                damage.DamageAmount,
+                CharacterDeathCauseCode.Unknown,
+                $"captivity-interaction:{handler.InteractionId}",
+                allowDeath: true);
+            if (subject.IsDead || state.status == CaptivityStatus.Dead)
+            {
+                return true;
+            }
+        }
+
         actors.Recalculate(state);
+        return false;
     }
 
     private void Clear(CaptiveState state)
     {
         ReleaseMaterials(state);
+        ClearInteractionState(state);
+    }
+
+    private static void ClearInteractionState(CaptiveState state)
+    {
         state.reservedWardenId = string.Empty;
         state.currentInteractionId = string.Empty;
+        state.currentInterrogationAttemptId = 0;
         state.interactionMaterialDestinationId = string.Empty;
         state.interactionMaterialsConsumed = false;
         state.completedInteractionWork = 0f;
         state.requiredInteractionWork = 0f;
+    }
+
+    private bool TryCompleteFrozenInterrogation(
+        CaptiveState state,
+        out string status)
+    {
+        CaptivityInterrogationTerminalState terminal =
+            state?.interrogationTerminal;
+        string resultTitle = CaptivityInterrogationInformationRuntime
+            .GetResultTitle(terminal);
+        if (!interrogationInformation.TryPublish(
+                state?.captiveId,
+                terminal,
+                out string publicationFailure))
+        {
+            status = resultTitle + " · 결과 전달 재시도 대기";
+            state.lastResult = status;
+            if (!string.IsNullOrWhiteSpace(publicationFailure))
+            {
+                status += $" ({publicationFailure})";
+            }
+            return false;
+        }
+
+        state.lastResult = resultTitle;
+        if (!IsFrozenCurrentInterrogation(state))
+        {
+            status = state.lastResult;
+            return true;
+        }
+
+        try
+        {
+            Clear(state);
+            state.status = CaptivityStatus.Confined;
+            status = state.lastResult;
+            return true;
+        }
+        catch (Exception exception)
+        {
+            status = resultTitle + " · 작업 종결 재시도 대기"
+                + $" ({exception.Message})";
+            state.lastResult = status;
+            return false;
+        }
+    }
+
+    private static bool IsFrozenCurrentInterrogation(CaptiveState state)
+    {
+        return state != null
+            && state.status == CaptivityStatus.Interaction
+            && string.Equals(
+                state.currentInteractionId,
+                CaptivityInterrogationAttemptIdentity.InteractionId,
+                StringComparison.Ordinal)
+            && state.currentInterrogationAttemptId > 0
+            && state.interrogationTerminal?.attemptId
+                == state.currentInterrogationAttemptId;
     }
 
     private static float ClampStat(float value)

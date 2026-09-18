@@ -1,0 +1,85 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cb1545c617046a479f6260685aafe1a, type: 3}
+  m_Name: 51_travel_fog_guide
+  m_EditorClassIdentifier: Assembly-CSharp::OffenseDecisionCardSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 170350
+  cardId: travel_fog_guide
+  stage: 0
+  title: "안개 속 길잡이"
+  situation: "짙은 안개 속에서 이 길을 안다는 낯선 길잡이가 모습을 드러냅니다."
+  requiredWorldTags:
+  - weather:fog
+  choices:
+  - choiceId: left
+    label: "길잡이를 고용한다"
+    description: "현장 자금 100을 지불해 안전한 길과 주변 지형 정보를 얻습니다."
+    requiredTag: 
+    transformedLabel: 
+    transformedDescription: 
+    directionLabel: "현장 자금 -100·노출 -10·정찰 +1"
+    severity: 1
+    mayStartCombat: 0
+    mayCauseInjury: 0
+    mayMoveExpedition: 0
+    effects:
+    - rid: 7170170000000000053
+    - rid: 7170170000000000054
+    - rid: 7170170000000000055
+  - choiceId: right
+    label: "직접 길을 찾는다"
+    description: "한 시간 반을 들여 표식을 대조하지만 흔적이 더 드러납니다."
+    requiredTag: 
+    transformedLabel: 
+    transformedDescription: 
+    directionLabel: "대기 1.5시간·노출 +8"
+    severity: 1
+    mayStartCombat: 0
+    mayCauseInjury: 0
+    mayMoveExpedition: 0
+    effects:
+    - rid: 7170170000000000056
+    - rid: 7170170000000000057
+  references:
+    version: 2
+    RefIds:
+    - rid: 7170170000000000053
+      type: {class: OffenseGoldDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        amount: -100
+        bribe: 
+    - rid: 7170170000000000054
+      type: {class: OffenseExposureDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        amount: -10
+    - rid: 7170170000000000055
+      type: {class: OffenseReconDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        revealCount: 1
+    - rid: 7170170000000000056
+      type: {class: OffenseTimeDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        elapsedHours: 1.5
+    - rid: 7170170000000000057
+      type: {class: OffenseExposureDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        amount: 8
+

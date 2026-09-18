@@ -73,21 +73,26 @@ public interface IProductionFacilityDestructiveDrainWorldRemovalPort
 }
 
 /// <summary>
-/// Exact persistent-ID world removal primitive. Participant and destination
-/// effects are outside this boundary and are never rolled back here.
+/// Exact persistent-ID world removal primitive. Facility-local fuel input
+/// retirement must close before grid mutation; durable production participant
+/// effects remain outside this boundary and are never rolled back here.
 /// </summary>
 public sealed class ProductionFacilityDestructiveDrainWorldRemovalPort :
     IProductionFacilityDestructiveDrainWorldRemovalPort
 {
     private readonly IBuildingWorldQuery world;
     private readonly IGridTextureProvider textures;
+    private readonly ISurvivalFacilityFuelRetirement facilityFuelRetirement;
 
     public ProductionFacilityDestructiveDrainWorldRemovalPort(
         IBuildingWorldQuery world,
-        IGridTextureProvider textures)
+        IGridTextureProvider textures,
+        ISurvivalFacilityFuelRetirement facilityFuelRetirement)
     {
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.textures = textures ?? throw new ArgumentNullException(nameof(textures));
+        this.facilityFuelRetirement = facilityFuelRetirement
+            ?? throw new ArgumentNullException(nameof(facilityFuelRetirement));
     }
 
     public ProductionFacilityWorldRemovalResult TryEnsureRemoved(
@@ -131,7 +136,25 @@ public sealed class ProductionFacilityDestructiveDrainWorldRemovalPort :
         {
             return Conflict(
                 "production-destructive-world-removal-world-invalid:"
-                + facilityId.Value);
+                    + facilityId.Value);
+        }
+
+        try
+        {
+            if (!facilityFuelRetirement.TryPrepareFacilityFuelRetirement(
+                    facility,
+                    out string fuelRetirementFailure))
+            {
+                return Deferred(
+                    "production-destructive-world-removal-fuel-retirement-deferred:"
+                    + fuelRetirementFailure);
+            }
+        }
+        catch (Exception exception)
+        {
+            return Conflict(
+                "production-destructive-world-removal-fuel-retirement-failed:"
+                + exception.GetType().Name + ":" + exception.Message);
         }
 
         GridLayer layer = ResolveRegisteredLayer(facility);

@@ -15,6 +15,13 @@ public sealed class CropTreatmentOwnerValidationSnapshot
     public CropTreatmentOrderSaveData Owner { get; set; }
 }
 
+public sealed class CropWaterRefillOwnerValidationSnapshot
+{
+    public string PlotId { get; set; } = string.Empty;
+    public int NextOperationSequence { get; set; }
+    public CropWaterRefillSaveData Owner { get; set; }
+}
+
 public sealed class CropHarvestOwnerValidationSnapshot
 {
     public string PlotId { get; set; } = string.Empty;
@@ -196,6 +203,9 @@ public sealed class CropPhysicalRestoreGuard :
             certifiedSeeds.PhysicalOrders,
             physicalCandidates);
         ValidateTreatmentOwnerSet(
+            plots.PhysicalTransactionStates,
+            physicalCandidates);
+        ValidateWaterRefillOwnerSet(
             plots.PhysicalTransactionStates,
             physicalCandidates);
         ValidateEcologyEnvelopes(
@@ -558,6 +568,131 @@ public sealed class CropPhysicalRestoreGuard :
             });
         }
         ValidateTreatmentOwnerSnapshots(snapshots, query);
+    }
+
+    internal static void ValidateWaterRefillOwnerSet(
+        IReadOnlyCollection<CropPlotState> plots,
+        IPhysicalItemRestoreCandidateQuery query)
+    {
+        List<CropWaterRefillOwnerValidationSnapshot> snapshots = new();
+        foreach (CropPlotState plot in plots ?? Array.Empty<CropPlotState>())
+        {
+            if (plot == null) continue;
+            snapshots.Add(new CropWaterRefillOwnerValidationSnapshot
+            {
+                PlotId = plot.PlotId.Value,
+                NextOperationSequence = plot.NextWaterRefillOperationSequence,
+                Owner = plot.WaterRefill
+            });
+        }
+        ValidateWaterRefillOwnerSnapshots(snapshots, query);
+    }
+
+    public static void ValidateWaterRefillOwnerSnapshots(
+        IReadOnlyCollection<CropWaterRefillOwnerValidationSnapshot> snapshots,
+        IPhysicalItemRestoreCandidateQuery query)
+    {
+        Dictionary<string, CropWaterRefillSaveData> owners =
+            new(StringComparer.Ordinal);
+        foreach (CropWaterRefillOwnerValidationSnapshot snapshot in
+                 snapshots ?? Array.Empty<CropWaterRefillOwnerValidationSnapshot>())
+        {
+            CropWaterRefillSaveData owner = snapshot?.Owner;
+            if (owner == null
+                || owner.phase is CropWaterRefillPhase.None
+                    or CropWaterRefillPhase.WaitingForDelivery
+                    or CropWaterRefillPhase.ReadyForWork
+                    or CropWaterRefillPhase.Working)
+                continue;
+            string expected = CropPlotRuntime.FormatWaterRefillOperationId(
+                (BuildingInstanceId)snapshot.PlotId,
+                snapshot.NextOperationSequence);
+            if (owner.phase is not CropWaterRefillPhase.InputCommitted
+                    and not CropWaterRefillPhase.OutcomePublished
+                || !string.Equals(
+                    owner.operationId,
+                    expected,
+                    StringComparison.Ordinal)
+                || !owners.TryAdd(owner.operationId, owner))
+                throw new InvalidOperationException(
+                    "Crop water-refill owner is invalid or duplicated: "
+                    + (owner.operationId ?? string.Empty));
+        }
+
+        if (query == null || !query.IsCandidateAvailable)
+        {
+            if (owners.Count == 0) return;
+            throw new InvalidOperationException(
+                "Crop water-refill restore requires the incoming item candidate.");
+        }
+        foreach (CropWaterRefillSaveData owner in owners.Values)
+        {
+            string[] sources = (owner.sourceStackIds ?? new List<string>())
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToArray();
+            bool exactOwnerProvenance = owner.sourceStackIds != null
+                && owner.sourceStackIds.Count > 0
+                && owner.sourceStackIds.All(value =>
+                    !string.IsNullOrWhiteSpace(value)
+                    && string.Equals(
+                        value,
+                        value.Trim(),
+                        StringComparison.Ordinal))
+                && owner.sourceStackIds.Distinct(StringComparer.Ordinal).Count()
+                    == owner.sourceStackIds.Count
+                && owner.sourceStackIds.SequenceEqual(
+                    sources,
+                    StringComparer.Ordinal)
+                && !string.IsNullOrWhiteSpace(owner.commitId)
+                && !string.IsNullOrWhiteSpace(
+                    owner.physicalRequestFingerprint)
+                && owner.inputQuantity > 0
+                && owner.inputMassGrams > 0L;
+            if (!exactOwnerProvenance
+                || !query.TryGetPendingBatchDisposition(
+                    owner.operationId,
+                    out PhysicalItemRestoreCandidateDispositionSnapshot receipt)
+                || receipt.Kind != PhysicalItemDispositionKind.Transfer
+                || !string.Equals(
+                    receipt.OperationId,
+                    owner.operationId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    receipt.ReasonCode,
+                    ProductionItemGateway.WipInputPhysicalReasonCode,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    receipt.CommitId,
+                    owner.commitId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    receipt.RequestFingerprint,
+                    owner.physicalRequestFingerprint,
+                    StringComparison.Ordinal)
+                || receipt.Quantity != owner.inputQuantity
+                || receipt.InputMassGrams != owner.inputMassGrams
+                || !receipt.SourceStackIds.SequenceEqual(
+                    sources,
+                    StringComparer.Ordinal))
+                throw new InvalidOperationException(
+                    "Crop water-refill owner has no exact incoming receipt: "
+                    + owner.operationId);
+        }
+
+        foreach (PhysicalItemRestoreCandidateDispositionSnapshot receipt in
+                 query.PendingBatchDispositions
+                 ?? Array.Empty<PhysicalItemRestoreCandidateDispositionSnapshot>())
+        {
+            if (receipt?.OperationId == null
+                || !receipt.OperationId.StartsWith(
+                    CropPlotRuntime.WaterRefillOperationPrefix,
+                    StringComparison.Ordinal))
+                continue;
+            if (!owners.ContainsKey(receipt.OperationId))
+                throw new InvalidOperationException(
+                    "Incoming crop water-refill receipt has no domain owner: "
+                    + receipt.OperationId);
+        }
     }
 
     public static void ValidateTreatmentOwnerSnapshots(

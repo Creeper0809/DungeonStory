@@ -62,6 +62,9 @@ MonoBehaviour:
         toleranceGain: 0
         withdrawalPerHour: 0
         moodEffect: 2
-        workSpeedEffect: 0.12
+        workSpeedEffect: 0
         combatEffect: 0
+        fatigueAccumulationReduction: 0.12
+        researchSpeedEffect: 0
+        suppressesPerceivedPain: 0
         durationSeconds: 150

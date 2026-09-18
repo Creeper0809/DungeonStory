@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "식물성 단백질과 약효 성분을 가진 균류이다. 므네실라에서는 동굴버섯의 갓은 음식과 약재로 쓰고, 질긴 밑동은 잘게 찢어 다음 재배상에 섞는다.",
+  "in_game_description": "식물성 단백질과 약효 성분을 가진 균류이다. 므네실라에서는 동굴버섯 찌꺼기까지 버리지 않는다. 물기를 빼면 공동 정원의 다음 흙이 된다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

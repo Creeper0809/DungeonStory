@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public sealed class CharacterEnvironmentSaveSection :
     DungeonStrictJsonSaveSection<
@@ -110,6 +111,7 @@ public static class CharacterEnvironmentSaveValidation
             || payload.exposures == null
             || payload.equippedWorkwear == null
             || payload.equippedApparel == null
+            || payload.apparelPolicies == null
             || payload.apparelWorkOrders == null
             || payload.apparelWorkOrderTerminalStates == null)
         {
@@ -212,7 +214,132 @@ public static class CharacterEnvironmentSaveValidation
             }
             previousApparelKey = key;
         }
+
+        HashSet<CharacterId> apparelCharacters = new(
+            payload.equippedApparel
+                .Where(value => value != null)
+                .Select(value => new CharacterId(value.characterId)));
+        HashSet<CharacterId> policyCharacters = new();
+        previousCharacterId = null;
+        foreach (CharacterApparelPolicySaveData policy in payload.apparelPolicies)
+        {
+            string rawCharacterId = policy?.characterId ?? string.Empty;
+            CharacterId characterId = new(rawCharacterId);
+            if (policy == null
+                || !IsCanonical(characterId, rawCharacterId)
+                || previousCharacterId != null
+                    && string.CompareOrdinal(previousCharacterId, rawCharacterId) >= 0
+                || !policyCharacters.Add(characterId)
+                || !Enum.IsDefined(
+                    typeof(ApparelSelectionPurpose),
+                    policy.purpose)
+                || policy.directPreferences == null)
+            {
+                report.AddError(
+                    "Character apparel policies contain a null, non-canonical, duplicate, unordered, or invalid row.");
+                continue;
+            }
+            previousCharacterId = rawCharacterId;
+
+            string previousPreferenceKey = null;
+            foreach (ApparelDirectPreferenceSaveData preference in
+                         policy.directPreferences)
+            {
+                string rawItemId = preference?.itemInstanceId ?? string.Empty;
+                ItemInstanceId itemId = (ItemInstanceId)rawItemId;
+                string key = preference == null
+                    ? string.Empty
+                    : $"{(int)preference.purpose:D2}\u001f{(int)preference.layer:D2}\u001f{preference.occupiedPoints:D10}\u001f{rawItemId}";
+                if (preference == null
+                    || !Enum.IsDefined(
+                        typeof(ApparelSelectionPurpose),
+                        preference.purpose)
+                    || !Enum.IsDefined(typeof(ApparelLayer), preference.layer)
+                    || preference.occupiedPoints == 0u
+                    || !itemId.IsValid
+                    || !string.Equals(
+                        itemId.Value,
+                        rawItemId,
+                        StringComparison.Ordinal)
+                    || previousPreferenceKey != null
+                        && string.CompareOrdinal(previousPreferenceKey, key) >= 0)
+                {
+                    report.AddError(
+                        $"Character apparel policy '{rawCharacterId}' contains an invalid or unordered direct preference.");
+                    continue;
+                }
+                previousPreferenceKey = key;
+            }
+
+            ApparelTemporaryOverrideSaveData temporary = policy.temporaryOverride;
+            if (!policy.hasTemporaryOverride)
+            {
+                if (!IsEmptyTemporaryOverrideCarrier(temporary))
+                {
+                    report.AddError(
+                        $"Character apparel policy '{rawCharacterId}' contains temporary override data without presence authority.");
+                }
+                continue;
+            }
+            ItemInstanceId overrideId =
+                (ItemInstanceId)temporary?.itemInstanceId;
+            if (temporary == null
+                || !overrideId.IsValid
+                || !string.Equals(
+                    overrideId.Value,
+                    temporary.itemInstanceId,
+                    StringComparison.Ordinal)
+                || string.IsNullOrWhiteSpace(temporary.source)
+                || temporary.displaced == null
+                || !apparelItems.Contains(overrideId))
+            {
+                report.AddError(
+                    $"Character apparel policy '{rawCharacterId}' contains an invalid temporary override.");
+                continue;
+            }
+            string previousDisplacedKey = null;
+            HashSet<ItemInstanceId> displacedIds = new();
+            foreach (EquippedApparelSaveData displaced in temporary.displaced)
+            {
+                string rawItemId = displaced?.itemInstanceId ?? string.Empty;
+                ItemInstanceId itemId = (ItemInstanceId)rawItemId;
+                string key = displaced == null
+                    ? string.Empty
+                    : $"{(int)displaced.layer:D2}\u001f{displaced.occupiedPoints:D10}\u001f{rawItemId}";
+                if (displaced == null
+                    || !string.Equals(
+                        displaced.characterId,
+                        rawCharacterId,
+                        StringComparison.Ordinal)
+                    || !itemId.IsValid
+                    || !string.Equals(itemId.Value, rawItemId, StringComparison.Ordinal)
+                    || string.IsNullOrWhiteSpace(displaced.apparelDefinitionId)
+                    || !Enum.IsDefined(typeof(ApparelLayer), displaced.layer)
+                    || displaced.occupiedPoints == 0u
+                    || previousDisplacedKey != null
+                        && string.CompareOrdinal(previousDisplacedKey, key) >= 0
+                    || !displacedIds.Add(itemId))
+                {
+                    report.AddError(
+                        $"Character apparel policy '{rawCharacterId}' contains an invalid temporary displaced item.");
+                    continue;
+                }
+                previousDisplacedKey = key;
+            }
+        }
+        if (!apparelCharacters.IsSubsetOf(policyCharacters))
+        {
+            report.AddError(
+                "Every equipped-apparel character requires one current-format apparel policy row.");
+        }
     }
+
+    private static bool IsEmptyTemporaryOverrideCarrier(
+        ApparelTemporaryOverrideSaveData value) =>
+        value == null
+        || string.IsNullOrEmpty(value.itemInstanceId)
+        && string.IsNullOrEmpty(value.source)
+        && (value.displaced == null || value.displaced.Length == 0);
 
     private static bool IsCanonical(CharacterId id, string raw) =>
         id.IsValid

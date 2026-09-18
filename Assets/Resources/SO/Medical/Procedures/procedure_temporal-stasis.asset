@@ -28,6 +28,7 @@ MonoBehaviour:
   targetNodeId: 
   requiredResearchId: research:medical:temporal-stasis
   requiredFacilityTags: 8192
+  primaryFacilityDefinitionId: 8872
   requiredWork: 140
   difficultyPenalty: 0.16
   baseInfectionRisk: 0.02

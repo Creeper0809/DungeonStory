@@ -42,6 +42,65 @@ internal sealed class BuildableObjectStateAndCapabilityController
         markDynamicStateDirty();
     }
 
+    internal FacilityRuntimeState ReplaceFuelState(
+        FacilityRuntimeState state,
+        float remainingFuelGameSeconds,
+        int nextFuelOperationSequence,
+        FacilityFuelCommitState pendingFuel)
+    {
+        if (state == null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
+        if (float.IsNaN(remainingFuelGameSeconds)
+            || float.IsInfinity(remainingFuelGameSeconds)
+            || remainingFuelGameSeconds < 0f
+            || nextFuelOperationSequence <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(remainingFuelGameSeconds),
+                "Facility fuel state requires finite nonnegative seconds and a positive sequence.");
+        }
+
+        FacilityRuntimeState candidate = state.Clone();
+        candidate.remainingFuelGameSeconds = remainingFuelGameSeconds;
+        candidate.nextFuelOperationSequence = nextFuelOperationSequence;
+        candidate.pendingFuel = pendingFuel?.Clone() ?? new FacilityFuelCommitState();
+        if (!candidate.IsValid(out string error))
+        {
+            throw new InvalidOperationException(
+                $"Facility fuel state mutation rejected: {error}");
+        }
+        return candidate;
+    }
+
+    internal float ConsumeFuelGameSeconds(
+        FacilityRuntimeState state,
+        float requestedSeconds)
+    {
+        if (state == null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
+        if (float.IsNaN(requestedSeconds)
+            || float.IsInfinity(requestedSeconds)
+            || requestedSeconds < 0f)
+        {
+            throw new ArgumentOutOfRangeException(nameof(requestedSeconds));
+        }
+
+        float consumed = Mathf.Min(state.remainingFuelGameSeconds, requestedSeconds);
+        if (consumed <= 0f)
+        {
+            return 0f;
+        }
+        state.remainingFuelGameSeconds = Mathf.Max(
+            0f,
+            state.remainingFuelGameSeconds - consumed);
+        markDynamicStateDirty();
+        return consumed;
+    }
+
     internal IReadOnlyList<IBuildingStateModule> GetStateModules()
     {
         List<IBuildingStateModule> modules = new(runtimeStateModules);

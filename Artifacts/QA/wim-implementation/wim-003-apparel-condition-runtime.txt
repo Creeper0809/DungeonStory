@@ -1,0 +1,9 @@
+scope=main-protected-play;real-start-party-physical-items-and-apparel-aggregate
+controlled=weather/time/grid-exposure;authored-daily-QA-sources-cover-party-and-one-spare;manual-starter-equip
+body-hygiene/contact/work/rain/material-drying/wear=PASS
+real-layer-coverage/entrance-shelter/stored-state-invariance=PASS
+batch-rollback/retry/current-physical-roundtrip/custody-and-count=PASS
+automatic-retain/no-spare-preservation/replacement/direct-preference=PASS
+actual-service-recovery/partial-work-cancel/no-early-recovery=PASS;controlled-facility-readiness
+not-covered=natural-weather-wait;natural-AI-laundry;whole-world-restore;6-adult-economy
+result=PASS

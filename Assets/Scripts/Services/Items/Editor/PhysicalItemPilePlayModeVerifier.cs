@@ -108,7 +108,7 @@ public static class PhysicalItemPilePlayModeVerifier
 public sealed class PhysicalItemPilePlayModeVerificationRunner : MonoBehaviour
 {
     private const string PreservedRationItemId = "food:preserved-ration";
-    private const string DaggerItemId = "equipment-item:weapon:dagger";
+    private const string BoltItemId = "ammo:bolt";
     private const string ManaCrystalItemId = "resource:mana-crystal";
     private const string LumberItemId = "material:lumber";
 
@@ -241,6 +241,10 @@ public sealed class PhysicalItemPilePlayModeVerificationRunner : MonoBehaviour
 
         yield return VerifyCharacterPriority(camera, characterSummary);
         yield return VerifyAltItemSelection();
+        yield return VerifyMemoryErasureSealStoredUse(
+            scope,
+            grid,
+            itemPanel);
 
         Finish();
     }
@@ -264,7 +268,7 @@ public sealed class PhysicalItemPilePlayModeVerificationRunner : MonoBehaviour
     private void SpawnPile(IWorldItemStackRuntime itemRuntime, Vector2Int position)
     {
         SpawnItem(itemRuntime, PreservedRationItemId, 12, position);
-        SpawnItem(itemRuntime, DaggerItemId, 4, position);
+        SpawnItem(itemRuntime, BoltItemId, 4, position);
         SpawnItem(itemRuntime, ManaCrystalItemId, 2, position);
     }
 
@@ -404,6 +408,391 @@ public sealed class PhysicalItemPilePlayModeVerificationRunner : MonoBehaviour
             $"itemPanel={IsItemPanelOpen()}; rows={FindStackRowButtons().Length}");
         yield return CaptureScreen(PhysicalItemPilePlayModeVerifier.AltCapturePath);
         automationInput.ReleaseKey(KeyCode.LeftAlt);
+    }
+
+    private IEnumerator VerifyMemoryErasureSealStoredUse(
+        DungeonRuntimeLifetimeScope scope,
+        Grid grid,
+        ItemPileInfoPanel itemPanel)
+    {
+        CloseKnownPopups();
+        yield return null;
+
+        IMemoryErasureSealCommandService commands =
+            Resolve<IMemoryErasureSealCommandService>(scope);
+        IGameContentDefinitionSource content =
+            Resolve<IGameContentDefinitionSource>(scope);
+        ICharacterWorldQuery characters = Resolve<ICharacterWorldQuery>(scope);
+        IWarehouseWorldQuery warehouseWorld =
+            Resolve<IWarehouseWorldQuery>(scope);
+        Check(commands != null,
+            "MEMORY_SEAL_COMMAND_READY",
+            commands != null ? "command service resolved" : "missing");
+        Check(content != null,
+            "MEMORY_SEAL_CONTENT_READY",
+            content != null ? "content source resolved" : "missing");
+        Check(characters != null,
+            "MEMORY_SEAL_CHARACTER_WORLD_READY",
+            characters != null ? "character world resolved" : "missing");
+        Check(warehouseWorld != null,
+            "MEMORY_SEAL_WAREHOUSE_WORLD_READY",
+            warehouseWorld != null ? "warehouse world resolved" : "missing");
+        if (commands == null
+            || content == null
+            || characters == null
+            || warehouseWorld == null)
+        {
+            yield break;
+        }
+
+        CharacterActor actor = characters.Characters
+            .Where(IsMemorySealActorEligible)
+            .Where(value => !value.Progression
+                .CaptureAcquiredTraitState().HasPersistentData)
+            .SelectMany(value => warehouseWorld.Warehouses
+                .OfType<Facility>()
+                .Where(warehouse => warehouse != null
+                    && !warehouse.isDestroy
+                    && !warehouse.IsGridDestroyed
+                    && warehouse.HasWarehouseInventory
+                    && warehouse.Inventory != null)
+                .Select(warehouse => new
+                {
+                    Actor = value,
+                    Warehouse = warehouse,
+                    Distance = Manhattan(
+                        value.GetNowXY(),
+                        warehouse.centerPos)
+                }))
+            .Where(candidate => candidate.Distance >= 3)
+            .OrderBy(candidate => candidate.Distance)
+            .ThenBy(candidate =>
+                candidate.Actor.Identity?.PersistentId,
+                StringComparer.Ordinal)
+            .Select(candidate => candidate.Actor)
+            .FirstOrDefault();
+        Facility warehouseBuilding = actor == null
+            ? null
+            : warehouseWorld.Warehouses
+                .OfType<Facility>()
+                .Where(warehouse => warehouse != null
+                    && !warehouse.isDestroy
+                    && !warehouse.IsGridDestroyed
+                    && warehouse.HasWarehouseInventory
+                    && warehouse.Inventory != null
+                    && Manhattan(actor.GetNowXY(), warehouse.centerPos) >= 3)
+                .OrderBy(warehouse =>
+                    Manhattan(actor.GetNowXY(), warehouse.centerPos))
+                .ThenBy(warehouse =>
+                    warehouse.PersistentInstanceId.Value,
+                    StringComparer.Ordinal)
+                .FirstOrDefault();
+        Check(actor != null && warehouseBuilding != null,
+            "MEMORY_SEAL_ACTOR_WAREHOUSE_PAIR",
+            actor != null && warehouseBuilding != null
+                ? $"actor={actor.Identity?.PersistentId}; warehouse="
+                    + warehouseBuilding.PersistentInstanceId.Value
+                : "no empty-progression active actor and live warehouse pair at distance >=3");
+        if (actor == null || warehouseBuilding == null)
+        {
+            yield break;
+        }
+
+        WorldItemStackSnapshot[] preexistingSeals = itemRuntime.GetAllStacks()
+            .Where(stack => stack != null
+                && stack.State == WorldItemStackState.Stored
+                && string.Equals(
+                    stack.ItemId,
+                    MemoryErasureSealItemRules.ItemId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        Check(preexistingSeals.Length == 0,
+            "MEMORY_SEAL_NO_PREEXISTING_STORED_SOURCE",
+            $"storedSealCount={preexistingSeals.Length}");
+        if (preexistingSeals.Length != 0)
+        {
+            yield break;
+        }
+
+        CharacterAcquiredTraitSettingsSO settings =
+            content.RequireSingle<CharacterAcquiredTraitSettingsSO>();
+        CharacterAcquiredTraitModuleSO[] modules = content
+            .GetAll<CharacterAcquiredTraitModuleSO>()
+            .Where(value => value != null)
+            .OrderBy(value => value.ModuleId, StringComparer.Ordinal)
+            .ToArray();
+        CharacterAcquiredTraitModuleSO module = modules.FirstOrDefault();
+        Check(settings != null && module != null,
+            "MEMORY_SEAL_AUTHORED_TRAIT_READY",
+            settings != null && module != null
+                ? $"module={module.ModuleId}"
+                : "authored settings or module missing");
+        if (settings == null || module == null)
+        {
+            yield break;
+        }
+
+        string traitInstanceId = "acquired-trait-instance:qa:stored-use";
+        string[] evidence =
+        {
+            "qa:stored-use:a",
+            "qa:stored-use:b",
+            "qa:stored-use:c"
+        };
+        CharacterNarrativeDomain domain = module.DomainAffinities[0];
+        foreach (string factId in evidence)
+        {
+            actor.Progression.NarrativeLedger.Record(
+                domain,
+                factId,
+                "target:qa:stored-use",
+                "completed");
+        }
+        CharacterAcquiredTraitAggregateState seeded = new()
+        {
+            revision = 1,
+            processedMilestones = new List<int> { 3 },
+            instances = new List<CharacterAcquiredTraitInstanceState>
+            {
+                new()
+                {
+                    instanceId = traitInstanceId,
+                    combinationId = CharacterAcquiredTraitCombinationIdentity
+                        .Build(new[] { module.ModuleId }),
+                    moduleIds = new List<string> { module.ModuleId },
+                    displayName = module.DisplayName,
+                    description = module.Description,
+                    narrativeReason = "실제 창고 사용 경로 검증용 후천 특성",
+                    evidenceFactIds = evidence.OrderBy(
+                        value => value,
+                        StringComparer.Ordinal).ToList(),
+                    manifestationMilestone = 3,
+                    originatingRequestId = "request:qa:stored-use",
+                    originatingRequestKey = "request-key:qa:stored-use",
+                    candidatePacketHash = NarrativeInferenceHash
+                        .ComputeSha256Utf8("packet:qa:stored-use"),
+                    selectionAuditId = "audit:qa:stored-use",
+                    acceptedRevision = 1,
+                    erasedAt = CharacterAcquiredTraitInstanceState
+                        .NotErasedAtAbsoluteHour
+                }
+            },
+            pendingRequests = new List<CharacterAcquiredTraitPendingRequestState>()
+        };
+        bool seededTrait = actor.Progression.TryCommitAcquiredTraitState(
+            seeded,
+            expectedRevision: 0,
+            settings,
+            modules,
+            out IReadOnlyList<CharacterAcquiredTraitValidationIssue> issues);
+        Check(seededTrait,
+            "MEMORY_SEAL_TRAIT_SEEDED",
+            seededTrait
+                ? traitInstanceId
+                : string.Join(" | ", issues.Select(issue => issue.Message)));
+        if (!seededTrait)
+        {
+            yield break;
+        }
+
+        int ledgerFactCount = actor.Progression.NarrativeLedger.facts.Count;
+        int[] processedMilestones = seeded.processedMilestones.ToArray();
+        Vector2Int actorBeforeCommand = actor.GetNowXY();
+        Vector2Int warehousePosition = warehouseBuilding.centerPos;
+        string warehouseDestinationId;
+        try
+        {
+            warehouseDestinationId = WarehouseStorageIdentity
+                .RequireDestinationId(warehouseBuilding);
+        }
+        catch (Exception exception)
+        {
+            Check(false,
+                "MEMORY_SEAL_WAREHOUSE_ID",
+                exception.Message);
+            yield break;
+        }
+
+        HashSet<string> stackIdsBefore = itemRuntime.GetAllStacks()
+            .Where(stack => stack != null)
+            .Select(stack => stack.StackId)
+            .ToHashSet(StringComparer.Ordinal);
+        bool spawned = itemRuntime.SpawnItemAt(
+            MemoryErasureSealItemRules.ItemId,
+            MemoryErasureSealItemRules.UseQuantity,
+            warehousePosition,
+            WorldItemStackState.Stored,
+            warehouseDestinationId,
+            out int spawnedAmount);
+        WorldItemStackSnapshot source = itemRuntime
+            .GetStacksAt(warehousePosition, includeStored: true)
+            .SingleOrDefault(stack => stack != null
+                && !stackIdsBefore.Contains(stack.StackId)
+                && stack.State == WorldItemStackState.Stored
+                && string.Equals(
+                    stack.ItemId,
+                    MemoryErasureSealItemRules.ItemId,
+                    StringComparison.Ordinal));
+        Check(spawned
+                && spawnedAmount == MemoryErasureSealItemRules.UseQuantity
+                && source != null,
+            "MEMORY_SEAL_STORED_SOURCE_CREATED",
+            $"spawned={spawnedAmount}; source={source?.StackId ?? "<none>"}; "
+                + $"warehouse={warehouseDestinationId}");
+        if (source == null)
+        {
+            yield break;
+        }
+        createdStackIds.Add(source.StackId);
+
+        bool storedVisibilityBefore = itemRuntime.StoredItemMarkersVisible;
+        if (!storedVisibilityBefore)
+        {
+            yield return ClickUiButton(
+                FindVisibleButtonByName("ItemStackViewToggle"),
+                "show stored items for memory seal");
+        }
+        itemPanel.OnTriggerEvent(
+            new InfoFeedEvent(new ItemPileInfoTarget(warehousePosition)));
+        yield return null;
+        yield return ClickUiButton(
+            FindVisibleButtonByName("StackRow_" + source.StackId),
+            "stored memory seal row");
+        yield return ClickUiButton(
+            FindVisibleButtonByLabel("사용"),
+            "stored memory seal use action");
+        yield return ClickUiButton(
+            FindVisibleButtonByName(
+                "MemoryErasureSealTarget_"
+                + actor.Identity.PersistentId),
+            "memory seal target");
+        yield return ClickUiButton(
+            FindVisibleButtonByName(
+                "MemoryErasureSealTrait_" + traitInstanceId),
+            "memory seal acquired trait");
+
+        WorldItemStackSnapshot beforeConfirmation = itemRuntime
+            .GetStacksAt(warehousePosition, includeStored: true)
+            .SingleOrDefault(stack => string.Equals(
+                stack.StackId,
+                source.StackId,
+                StringComparison.Ordinal));
+        Check(VisibleTextsContain("기억 소거 확인")
+                && beforeConfirmation != null
+                && beforeConfirmation.State == WorldItemStackState.Stored
+                && beforeConfirmation.AvailableQuantity == 1
+                && beforeConfirmation.ReservedQuantity == 0
+                && actor.GetNowXY() == actorBeforeCommand,
+            "MEMORY_SEAL_CONFIRMATION_IS_NON_MUTATING",
+            beforeConfirmation != null
+                ? $"state={beforeConfirmation.State}; available="
+                    + beforeConfirmation.AvailableQuantity
+                    + $"; reserved={beforeConfirmation.ReservedQuantity}; "
+                    + $"actor={actor.GetNowXY()}"
+                : "source stack missing before confirmation");
+
+        string targetCharacterId = actor.BuildingCharacterId.Value;
+        List<MemoryErasureSealOrderStage> observedStages = new();
+        bool completed = false;
+        MemoryErasureSealUseResult completion = default;
+        void OnOrderChanged(MemoryErasureSealOrderSnapshot order)
+        {
+            if (string.Equals(
+                    order.TargetCharacterId,
+                    targetCharacterId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    order.TraitInstanceId,
+                    traitInstanceId,
+                    StringComparison.Ordinal))
+            {
+                observedStages.Add(order.Stage);
+            }
+        }
+        void OnUseCompleted(MemoryErasureSealUseResult result)
+        {
+            if (string.Equals(
+                    result.TargetCharacterId,
+                    targetCharacterId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    result.TraitInstanceId,
+                    traitInstanceId,
+                    StringComparison.Ordinal))
+            {
+                completion = result;
+                completed = true;
+            }
+        }
+
+        commands.OrderChanged += OnOrderChanged;
+        commands.UseCompleted += OnUseCompleted;
+        yield return ClickUiButton(
+            FindVisibleButtonByName("MemoryErasureSealConfirm"),
+            "confirm memory seal use");
+        Time.timeScale = 4f;
+        float deadline = Time.realtimeSinceStartup + 15f;
+        while (!completed && Time.realtimeSinceStartup < deadline)
+        {
+            yield return null;
+        }
+        Time.timeScale = 0f;
+        commands.OrderChanged -= OnOrderChanged;
+        commands.UseCompleted -= OnUseCompleted;
+
+        CharacterAcquiredTraitAggregateState after = actor.Progression
+            .CaptureAcquiredTraitState();
+        bool erased = after.TryGetInstance(
+                traitInstanceId,
+                out CharacterAcquiredTraitInstanceState erasedTrait)
+            && erasedTrait.erased;
+        bool sourceGone = itemRuntime.GetAllStacks().All(stack =>
+            stack == null
+            || !string.Equals(
+                stack.StackId,
+                source.StackId,
+                StringComparison.Ordinal));
+        bool operationCargoGone = actor.CarryInventory == null
+            || actor.CarryInventory.Items.All(item => item == null
+                || !string.Equals(
+                    item.ownerOperationId,
+                    completion.OperationId,
+                    StringComparison.Ordinal));
+        MemoryErasureSealOrderStage[] expectedStages =
+        {
+            MemoryErasureSealOrderStage.Reserved,
+            MemoryErasureSealOrderStage.MovingToWarehouse,
+            MemoryErasureSealOrderStage.Carrying,
+            MemoryErasureSealOrderStage.Applying
+        };
+        Check(completed
+                && completion.Status == MemoryErasureSealUseStatus.Succeeded
+                && ContainsInOrder(observedStages, expectedStages)
+                && !commands.TryGetActiveOrder(actor, out _)
+                && sourceGone
+                && operationCargoGone
+                && erased
+                && after.processedMilestones.SequenceEqual(
+                    processedMilestones)
+                && actor.Progression.NarrativeLedger.facts.Count
+                    == ledgerFactCount
+                && actor.GetNowXY() != actorBeforeCommand
+                && VisibleTextsContain("기억 소거 결과")
+                && VisibleTextsContain("소거 완료"),
+            "MEMORY_SEAL_STORED_UI_MOVEMENT_TRANSACTION",
+            $"completed={completed}; status={completion.Status}; stages="
+                + string.Join(",", observedStages)
+                + $"; sourceGone={sourceGone}; cargoGone={operationCargoGone}; "
+                + $"erased={erased}; start={actorBeforeCommand}; "
+                + $"end={actor.GetNowXY()}; text={GetVisibleTextSample()}");
+
+        CloseKnownPopups();
+        if (itemRuntime.StoredItemMarkersVisible != storedVisibilityBefore)
+        {
+            yield return ClickUiButton(
+                FindVisibleButtonByName("ItemStackViewToggle"),
+                "restore stored item visibility");
+        }
     }
 
     private IEnumerator EnsurePlayableRun()
@@ -579,10 +968,59 @@ public sealed class PhysicalItemPilePlayModeVerificationRunner : MonoBehaviour
             yield break;
         }
 
-        byte[] bytes = capture.EncodeToPNG();
-        File.WriteAllBytes(path, bytes);
-        Check(bytes.Length > 1000, "SCREEN_CAPTURE_NONBLANK", $"{path}; bytes={bytes.Length}");
-        Destroy(capture);
+        try
+        {
+            byte[] bytes = capture.EncodeToPNG();
+            bool written = TryWriteCapture(path, bytes, out string writtenPath, out string failure);
+            Check(written, "SCREEN_CAPTURE_WRITE", failure);
+            if (written)
+            {
+                report.Add($"SCREEN_CAPTURE_PATH={writtenPath}");
+                Check(bytes.Length > 1000, "SCREEN_CAPTURE_NONBLANK", $"{writtenPath}; bytes={bytes.Length}");
+            }
+        }
+        finally
+        {
+            Destroy(capture);
+        }
+    }
+
+    private static bool TryWriteCapture(
+        string requestedPath,
+        byte[] bytes,
+        out string writtenPath,
+        out string failure)
+    {
+        Exception lastFailure = null;
+        string directory = Path.GetDirectoryName(requestedPath) ?? string.Empty;
+        string fileName = Path.GetFileNameWithoutExtension(requestedPath);
+        string extension = Path.GetExtension(requestedPath);
+
+        for (int attempt = 0; attempt <= 8; attempt++)
+        {
+            string candidate = attempt == 0
+                ? requestedPath
+                : Path.Combine(directory, $"{fileName}-retry-{attempt}{extension}");
+            try
+            {
+                File.WriteAllBytes(candidate, bytes);
+                writtenPath = candidate;
+                failure = string.Empty;
+                return true;
+            }
+            catch (IOException exception)
+            {
+                lastFailure = exception;
+            }
+            catch (UnauthorizedAccessException exception)
+            {
+                lastFailure = exception;
+            }
+        }
+
+        writtenPath = string.Empty;
+        failure = $"{requestedPath}; {lastFailure?.GetType().Name}: {lastFailure?.Message}";
+        return false;
     }
 
     private void CloseKnownPopups()
@@ -652,6 +1090,21 @@ public sealed class PhysicalItemPilePlayModeVerificationRunner : MonoBehaviour
                 && string.Equals(button.name, name, StringComparison.Ordinal));
     }
 
+    private static Button FindVisibleButtonByLabel(string label)
+    {
+        return Resources.FindObjectsOfTypeAll<Button>()
+            .FirstOrDefault(button => button != null
+                && button.gameObject.scene.IsValid()
+                && button.gameObject.activeInHierarchy
+                && button.interactable
+                && button.GetComponentsInChildren<TMP_Text>(true)
+                    .Any(text => text != null
+                        && string.Equals(
+                            text.text,
+                            label,
+                            StringComparison.Ordinal)));
+    }
+
     private static Button FindSceneButton(string name)
     {
         return Resources.FindObjectsOfTypeAll<Button>()
@@ -710,6 +1163,46 @@ public sealed class PhysicalItemPilePlayModeVerificationRunner : MonoBehaviour
                 && !actor.IsDead
                 && actor.GetComponentsInChildren<Collider2D>(true)
                     .Any(collider => collider != null && collider.enabled));
+    }
+
+    private static bool IsMemorySealActorEligible(CharacterActor actor) =>
+        actor != null
+        && actor.isActiveAndEnabled
+        && actor.gameObject.activeInHierarchy
+        && !actor.IsDead
+        && actor.CurrentLifecycleState == CharacterLifecycleState.Active
+        && actor.Progression != null
+        && actor.Identity != null
+        && !string.IsNullOrWhiteSpace(actor.Identity.PersistentId)
+        && actor.Brain != null
+        && actor.PathSearchBroker != null
+        && actor.GetAbility<AbilityMove>() != null;
+
+    private static int Manhattan(Vector2Int left, Vector2Int right) =>
+        Mathf.Abs(left.x - right.x) + Mathf.Abs(left.y - right.y);
+
+    private static bool ContainsInOrder<T>(
+        IReadOnlyList<T> actual,
+        IReadOnlyList<T> expected)
+    {
+        if (actual == null || expected == null)
+        {
+            return false;
+        }
+
+        int expectedIndex = 0;
+        for (int index = 0;
+             index < actual.Count && expectedIndex < expected.Count;
+             index++)
+        {
+            if (EqualityComparer<T>.Default.Equals(
+                    actual[index],
+                    expected[expectedIndex]))
+            {
+                expectedIndex++;
+            }
+        }
+        return expectedIndex == expected.Count;
     }
 
     private static bool IsCharacterPanelOpen(CharacterSummaryInfo characterSummary)

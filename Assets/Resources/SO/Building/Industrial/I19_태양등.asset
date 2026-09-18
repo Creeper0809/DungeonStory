@@ -1,0 +1,153 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 319e562edb6800049aa5db86683c9031, type: 3}
+  m_Name: "I19_\uD0DC\uC591\uB4F1"
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: tiles
+      Entry: 6
+      Data: 
+    - Name: OnBuildCondition
+      Entry: 6
+      Data: 
+  id: 9828
+  objectName: "\uD0DC\uC591\uB4F1"
+  sprite: {fileID: 21300000, guid: a4ac9cca53bbf4f47a1065b70a72f457, type: 3}
+  icon: {fileID: 21300000, guid: a4ac9cca53bbf4f47a1065b70a72f457, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  deprecatedCompatibilityAsset: 0
+  useClassification: 0
+  researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
+  abilityModules:
+    items:
+    - rid: 2763484101997495103
+    - rid: 2763484101997495104
+    - rid: 2763484101997495105
+    - rid: 2763484101997495106
+    - rid: 2763484101997495107
+    - rid: 2763484101997495108
+    - rid: 2763484101997495109
+  width: 1
+  height: 1
+  layer: 1
+  category: 7
+  horizontalDraggable: 0
+  verticalDraggable: 0
+  runtimeArchetype: 0
+  movementAnchorOffset: {x: 0, y: 0}
+  movementTravelTime: 2
+  facilityAnchors:
+    slots: []
+  unlocked: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 2763484101997495103
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
+      data:
+        abilityId: BuildingFacilityPartAbility
+        code: I19
+    - rid: 2763484101997495104
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
+      data:
+        abilityId: BuildingEconomyAbility
+        constructionValue: 95
+        constructionCost: 0
+        maintenance: 0
+        unlockPhase: 3
+        demolitionRefundRate: 0.5
+    - rid: 2763484101997495105
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionProjectScale: 0
+        constructionWorkRequired: 720
+        repairWorkRequired: 216
+        cleanWorkRequired: 28
+        researchWorkRequired: 6
+        operateWorkRequired: 0
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
+        constructionMaterials:
+        - itemId: material:stone-block
+          amount: 4
+        - itemId: material:iron-ingot
+          amount: 4
+        - itemId: material:cloth
+          amount: 2
+        - itemId: component:insulated-wiring
+          amount: 4
+    - rid: 2763484101997495106
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 1
+        maxThroughput: 4
+        normallyOpen: 1
+    - rid: 2763484101997495107
+      type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingPowerConsumerAbility
+        demandPerSecond: 4
+        priority: 3
+        minimumSupplyFraction: 1
+    - rid: 2763484101997495108
+      type: {class: BuildingLightingAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingLightingAbility
+        settings: {fileID: 0}
+        intensity: 1
+        radius: 9
+    - rid: 2763484101997495109
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 0
+          capacity: 1
+          useDuration: 1
+          requiredWorkers: 0
+          supportedWorkTypes: 4
+          disabledWhenDamaged: 1

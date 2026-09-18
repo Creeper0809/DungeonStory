@@ -126,8 +126,8 @@ public static class CombatEquipmentMaterialDebugScenarios
             "blacksteel penetration multiplier mismatch");
         Require(blacksteelStats.MaxDurability > ironStats.MaxDurability,
             "blacksteel durability must exceed iron");
-        Require(goldStats.Weight > ironStats.Weight,
-            "gold equipment must be heavier than iron");
+        Require(Approximately(goldStats.Weight, ironStats.Weight),
+            "Material presentation must not override the canonical physical item mass (WIM-020)");
         Require(goldStats.ValueMultiplier > blacksteelStats.ValueMultiplier,
             "gold value must exceed blacksteel");
         Require(blacksteelStats.DisplayName.Contains("흑강", StringComparison.Ordinal),
@@ -341,23 +341,54 @@ public static class CombatEquipmentMaterialDebugScenarios
                 new ResourceItemDefinitionCatalog(
                     new ResourceGameContentCatalog(
                         new UnityGameContentRootLoader())));
+        int registryResolveCount = 0;
+        CombatEquipmentPhysicalStateWriter writer =
+            new CombatEquipmentPhysicalStateWriter(
+                new WorldItemRepository(
+                    new GuidPersistentIdGenerator(),
+                    new DungeonRuntimeAggregateRootStore()),
+                UnavailableEquipmentPhysicalItemGateway.Instance,
+                () =>
+                {
+                    registryResolveCount++;
+                    return registry;
+                });
+        Require(
+            registryResolveCount == 0,
+            "equipment physical-state writer resolved output capabilities in its constructor");
 
         ProductionOutputCapabilityDescriptor equipment =
-            registry.CaptureDeclaredDescriptor(
+            writer.CaptureOutputCapability(
                 CombatEquipmentCraftOutputCapability.OutputLineId,
                 PhysicalItemIds.ForEquipment("weapon:longsword"),
                 ProductionOutputCapabilityIds.CombatEquipmentCraft);
+        Require(
+            registryResolveCount == 1,
+            "first equipment output did not resolve capabilities exactly once");
         ProductionOutputCapabilityDescriptor ammunition =
-            registry.CaptureDeclaredDescriptor(
+            writer.CaptureOutputCapability(
                 CombatAmmunitionCraftOutputCapability.OutputLineId,
                 CombatItemDefinitions.ArrowItemId,
                 ProductionOutputCapabilityIds.CombatAmmunitionCraft);
         Require(
-            registry.TryValidateExact(equipment, out _, out _),
+            writer.TryValidateOutputCapability(
+                ProductionOutputCapabilitySaveData.Freeze(equipment),
+                out _),
             "combat equipment output capability did not validate exactly");
         Require(
-            registry.TryValidateExact(ammunition, out _, out _),
+            writer.TryValidateOutputCapability(
+                ProductionOutputCapabilitySaveData.Freeze(ammunition),
+                out _),
             "combat ammunition output capability did not validate exactly");
+
+        int beforeInvalidValidation = registryResolveCount;
+        Require(
+            !writer.TryValidateOutputCapability(
+                null,
+                out DomainFailure missingFailure)
+            && missingFailure.IsFailure
+            && registryResolveCount == beforeInvalidValidation,
+            "missing frozen output capability did not reject before registry resolution");
 
         ProductionOutputCapabilityDescriptor drifted = new(
             ammunition.OutputLineId,
@@ -368,10 +399,13 @@ public static class CombatEquipmentMaterialDebugScenarios
             ammunition.ComponentCodecVersion + 1,
             ammunition.Fingerprint);
         Require(
-            !registry.TryValidateExact(drifted, out _, out DomainFailure failure)
+            !writer.TryValidateOutputCapability(
+                ProductionOutputCapabilitySaveData.Freeze(drifted),
+                out DomainFailure failure)
                 && failure.IsFailure,
             "combat ammunition output capability codec drift was accepted");
-        return $"equipment={equipment.CapabilityId}; ammunition={ammunition.CapabilityId}; driftRejected=true";
+        return $"equipment={equipment.CapabilityId}; ammunition={ammunition.CapabilityId}; "
+            + $"registryResolves={registryResolveCount}; driftRejected=true";
     }
 
     private static BuildingSO CreateFacilityData(int id)

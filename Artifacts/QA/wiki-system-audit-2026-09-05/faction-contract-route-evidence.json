@@ -1,0 +1,298 @@
+{
+  "scope": "authored faction contracts and faction route services",
+  "kind": "static-source-and-authoring-census-not-Unity-execution",
+  "head": "c03d2e0a1c68067de48840f3851b388483966a6e",
+  "knowledgeBase": {
+    "status": "stale",
+    "failures": 2429,
+    "returnedRows": 0,
+    "query": "FactionContractRuntime authored contract trade support retail sale tax debt treasury",
+    "areas": [
+      "code",
+      "content",
+      "authority",
+      "persistence"
+    ],
+    "contentDigest": "76cce09a76ded556dc74ac400c571e92136f17f86fc3697dfb9eb30dca669871",
+    "systemDigest": "74d85480f35dc5704306579326fa8f38e3bb5841f0dbaab8e697f4be25522a06"
+  },
+  "authoredContracts": {
+    "assets": 18,
+    "wikiPages": 18,
+    "uniqueIds": 18,
+    "kinds": [
+      {
+        "kind": "0",
+        "count": 6,
+        "deadlines": [
+          20
+        ]
+      },
+      {
+        "kind": "1",
+        "count": 6,
+        "deadlines": [
+          7
+        ]
+      },
+      {
+        "kind": "2",
+        "count": 6,
+        "deadlines": [
+          45
+        ]
+      }
+    ],
+    "wikiFacts": 36,
+    "wikiRelations": 18,
+    "requirementAmountMismatches": 0,
+    "nonEditorActionIdProducerCallsites": 0,
+    "editorDirectRuntimeCallsites": 2
+  },
+  "factionRoutes": {
+    "factions": 6,
+    "tradePolicies": [
+      "faction-economy:paid-market-purchase"
+    ],
+    "supplyPolicies": [
+      "faction-economy:alliance-benefit"
+    ],
+    "tradeCargoLines": 18,
+    "supplyCargoLines": 18,
+    "tradeCooldowns": [
+      7,
+      16,
+      22,
+      23,
+      25,
+      27
+    ],
+    "supplyCooldowns": [
+      20,
+      22,
+      38,
+      49,
+      84,
+      99
+    ],
+    "reinforcementCooldowns": [
+      10
+    ]
+  },
+  "sources": [
+    {
+      "path": "Assets/Resources/SO/Factions/Dungeons/Faction_Beastkin_RedPawPost.asset",
+      "sha256": "1726E4574889C78EEAD8F88B3DA0E28D3A705A6B99E6A9D5C431074D0C91B1C8"
+    },
+    {
+      "path": "Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset",
+      "sha256": "0DF58EA84E7B1B4093E309FB272CB7EC1DADB2F4626D5AE03A19AB868BDA27A8"
+    },
+    {
+      "path": "Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset",
+      "sha256": "F77E181B8F675C8D32C78C089B56EE9EAC7FA99A7797E28FC89213FCA0170ABB"
+    },
+    {
+      "path": "Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset",
+      "sha256": "C272913CA59379E0D1E2748AE471F6D50A54F7521CFCF731788C93EAD116C7BC"
+    },
+    {
+      "path": "Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset",
+      "sha256": "8B9B403B10A726330037A9E7595CF3F80033A38635E452EBA7A6514C4F8DCF2A"
+    },
+    {
+      "path": "Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset",
+      "sha256": "E92492905F183FD9166D85514B47B0ACA0AFA81563DBA27B6585950A5582FA52"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/Factions/Contracts/contract_beastkin_crisis.asset",
+      "sha256": "3F73F4FFBCDAC35AB07A3EC8B15DE62E6666441796D09FB8C909CB781B03F9F1"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/Factions/Contracts/contract_beastkin_strategic.asset",
+      "sha256": "CE566CA06E29DC71572B53A2B2E7BD03306A7F6F5F86D0CC4D4AFE789832EEDD"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/Factions/Contracts/contract_beastkin_supply.asset",
+      "sha256": "64496716E05C29300FCD9096D558217E021AD9A5D9B8ED6B42A872D08AA683B7"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/Factions/Contracts/contract_demon_crisis.asset",
+      "sha256": "8E56EBC7E1B3970E8E19D38F9E6B5627E974D8093BD13176727BCB8A445AF185"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/Factions/Contracts/contract_demon_strategic.asset",
+      "sha256": "06553224E2F95DB60244358345550DD9B2CF48B45174423AE91AC2B487E5FBBF"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/Factions/Contracts/contract_demon_supply.asset",
+      "sha256": "6AB202DBD659D1C1ADF99ED814844CF5D8D052A208D6035CB49302A85C182181"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/Factions/Contracts/contract_golem_crisis.asset",
+      "sha256": "7583AC26BF0CD90244AABF25316C5FC3BD8A0A1C1413783C086E1B404093926E"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/Factions/Contracts/contract_golem_strategic.asset",
+      "sha256": "645B64276076C9EF3D7CB174317335D856242A28EDA0A02740C475A0562CE45B"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/Factions/Contracts/contract_golem_supply.asset",
+      "sha256": "208A2F3BED706213B97A44C2BC14E0246909674563110F7D79C820DA9B1DB5A2"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/Factions/Contracts/contract_harpy_crisis.asset",
+      "sha256": "7CF97E1AAD9BFC4A17B0BB963C84EF3B1DA4856F57D8F2E76A67AD24490E7A05"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/Factions/Contracts/contract_harpy_strategic.asset",
+      "sha256": "28A05516538DE7417D65515CDD185824C0DA4AA1E74F6AD4DC4A904172812222"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/Factions/Contracts/contract_harpy_supply.asset",
+      "sha256": "9FD370B56402311A12B2D20774F9D3D9E0A51CBC43C5DB7F658A77AD3198172B"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/Factions/Contracts/contract_kobold_crisis.asset",
+      "sha256": "CC5F6AA8D037958A1929858D2C01A8FB7A6C0BE1C18D4B2F2D50A567E39173FE"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/Factions/Contracts/contract_kobold_strategic.asset",
+      "sha256": "9F917E8E61506E6F2807119D6AB84E15636F79E950A6779B6B0BBB0B6457FA18"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/Factions/Contracts/contract_kobold_supply.asset",
+      "sha256": "C63F6707BDAC2D4CC0D07F727A7DEBA1603E11F8D0423F85664EFB93FFE6F58A"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/Factions/Contracts/contract_myconid_crisis.asset",
+      "sha256": "705B56268E2477C181BDD70CD4E26A5A931B48E78FA04E473030852D2757E784"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/Factions/Contracts/contract_myconid_strategic.asset",
+      "sha256": "95421FF5E291B3B24791E604D0A29701746E319B5F395BACF7EC08BA0D4BC990"
+    },
+    {
+      "path": "Assets/Resources/SO/V20/Factions/Contracts/contract_myconid_supply.asset",
+      "sha256": "55C423E9C066E856B4A01B6904EFCD4754C9D6DCCF2B2337735F5C8C450F8D08"
+    },
+    {
+      "path": "Assets/Scripts/Content/FactionContractDefinitionSO.cs",
+      "sha256": "3E2E82492E4CEE9E4F17EAF02B65C6CC16DE019DA007025EEF2B1FF0283D230C"
+    },
+    {
+      "path": "Assets/Scripts/Content/V20AuthoredContentContracts.cs",
+      "sha256": "4323ECDE25AA0A307621E46472849AAEEF83CC0D7F54BED7C8F50E3A1D07452A"
+    },
+    {
+      "path": "Assets/Scripts/Models/Factions/Core/DungeonFactionDefinitionSO.cs",
+      "sha256": "E6B83C6D3B0E66E11B0E6A0A1009BF15A58BA4D9DE5542A289D218E208528937"
+    },
+    {
+      "path": "Assets/Scripts/Services/Factions/FactionRouteEconomicPolicy.cs",
+      "sha256": "9CEDA9355506F6528ADA9ED9DD3B0AA5632A2DEA5CB922D9467129B1F911746E"
+    },
+    {
+      "path": "Assets/Scripts/Services/Factions/FactionRuntime.cs",
+      "sha256": "CD53B869E4791B1B5F4C6BBE7E52D7DCCD40BB08CF7A04AF9EE5E81A0DEE4FB8"
+    },
+    {
+      "path": "Assets/Scripts/Services/Offense/Strategic/OffenseWorldMapPanelStrategicDetails.cs",
+      "sha256": "F3939275FBBF922895181D54486F6EF339C45409EFDCA430AFBA3DC4A6F0881B"
+    },
+    {
+      "path": "Assets/Scripts/Services/Run/V20CampaignRuntime.cs",
+      "sha256": "30E12B6482144B873B0FE9868C9E5E9F065C91651B6097C2248073F32A539C3C"
+    },
+    {
+      "path": "Assets/Scripts/Services/Run/V20ContentResolutionService.cs",
+      "sha256": "BEF15F462D70D2E4CDBD531613752B99E40F765C099153DAC41F9BBAA68D731F"
+    },
+    {
+      "path": "Assets/Scripts/Services/Run/V20MilestoneWorldSnapshotProjector.cs",
+      "sha256": "3E52EE3DE3DBF7DCF61F2B0F4B0DC344CD6DF1B8078E43037542EE68702F439A"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/factions-contracts-and-prisoners.md",
+      "sha256": "4FDA0736DB9540E03E3E3B60BC67E35609C7CE563EA841B01FCBD34C2453F72A"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/faction-contract-beastkin-crisis.json",
+      "sha256": "CEBFB1A1A73D5866767922B274AE644718BFBCF61B52715E57F90F870D6B87F1"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/faction-contract-beastkin-strategic.json",
+      "sha256": "232DA0B549CB6C50EB45EC32803937E61C465A433C58E0466768CECCA75EACA9"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/faction-contract-beastkin-supply.json",
+      "sha256": "0EEE3EB09309FB63913E10E84D41392E4D05B4644243B759809378124DDAE619"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/faction-contract-demon-crisis.json",
+      "sha256": "C82312054D734B716B7AF195B31F1A13862B24AD589E4D2BCBF6E37175DB2949"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/faction-contract-demon-strategic.json",
+      "sha256": "A2BBBAF4C2F5EACBA5A6C9FCF2725C62D76B3ECA4247D7210C7DC85C8A15759C"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/faction-contract-demon-supply.json",
+      "sha256": "B66901E5F40A0F56CA5D208C9D62873BA366F794E23774D753003133B50D854A"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/faction-contract-golem-crisis.json",
+      "sha256": "9D989919321F6F68697C39C2E595DB7DC7FF936886AA7447DC405E5C93DD9CB6"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/faction-contract-golem-strategic.json",
+      "sha256": "67EBF2E22A098450F208523EE572532FB7AFBEECDC8092207742AA50E802E953"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/faction-contract-golem-supply.json",
+      "sha256": "327D4D2E3A1795A087359E560B3B345B39A24F308AE942EE24B8A80431503E63"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/faction-contract-harpy-crisis.json",
+      "sha256": "D4433D5CD70AA68F2A675A0CF6773F7584E4011D36D33B5A54F2BAC9C56B1736"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/faction-contract-harpy-strategic.json",
+      "sha256": "ED425874236AFB0F8289F1610AE68143C9C5521CFFCBFB6B392232264004CE79"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/faction-contract-harpy-supply.json",
+      "sha256": "B46B6361C1C39E9B8F2B30EB7F48628AA7618010F12889840AAD624AEAE169D7"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/faction-contract-kobold-crisis.json",
+      "sha256": "1705E5FF6D9F55C2494FECC439E2FA31650B8538479C61D93F71B5E88D1A55B2"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/faction-contract-kobold-strategic.json",
+      "sha256": "2531DCE3DA176C0B885C8C732BAA4DA0AC00305594473A387701CDAF203B5337"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/faction-contract-kobold-supply.json",
+      "sha256": "1EEEBCD904342CC409D6DE525833B8D632A36C71D161F143FC41E39FB671C6B3"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/faction-contract-myconid-crisis.json",
+      "sha256": "E95ACB7C0F4986852407BC52E58DCD5A035EE76369F427C1AAB2C31ECC4790DE"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/faction-contract-myconid-strategic.json",
+      "sha256": "68E5F5220D23B9ED085085FD90BFB08BBD3B10A521C2BBCE7FDA7A98A93A8D45"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/event/faction-contract-myconid-supply.json",
+      "sha256": "9FBA3479C9928F8A6DB64397158DB9B033062B401F6308651F02EDD4DD867C70"
+    }
+  ],
+  "limitations": [
+    "Static reverse-search can prove found callsites, but a zero result is not a PlayMode reproduction.",
+    "Wiki page counts and scalar joins do not prove all prose semantics are correct.",
+    "No actual UI click, contract lifecycle, route arrival, or save round-trip was executed.",
+    "Authored contracts, faction route services, and regional supply contracts are separate systems."
+  ]
+}

@@ -1,0 +1,2174 @@
+{
+  "status": "partial-static-audit",
+  "count": 47,
+  "workMismatch": 0,
+  "effectCountMismatch": 0,
+  "rows": [
+    {
+      "id": "procedure:amputation",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_amputation.asset",
+      "sourceSha": "89F82374225B2B64DDAD242F09AF096AFC29D5F4E599B828E2C4418D022934DE",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-amputation.json",
+      "wikiSha": "92F9FB1E793F0D4DA5FB2086F2663921F062759523028DE98EC0929F3406D16E",
+      "title": "괴사 부위 절단",
+      "authored": {
+        "family": "0",
+        "requiredResearchId": "research:medical:surgery",
+        "baseBleedingRisk": "0.24",
+        "baseInfectionRisk": "0.12",
+        "procedureId": "procedure:amputation",
+        "requiresRestraintForUnwilling": "1",
+        "urgency": "2",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.18",
+        "requiredWork": "38",
+        "kind": "4",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "1",
+        "requiredFacilityTags": "28",
+        "requiresAnesthesia": "1",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "RemoveSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "38"
+        },
+        {
+          "label": "필요 연구",
+          "value": "외과술"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "회복할 수 없는 부위를 제거해 감염 확산을 막는다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:arcane-modification",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_arcane-modification.asset",
+      "sourceSha": "A7D123658723A794CDB5DEB1DDAB861586E3BE11AAEC6F2D243306E8C17ED749",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-arcane-modification.json",
+      "wikiSha": "AD00E6DD2C0E7AB26845B860068E0618275B92B084215C0B8F103986CB6D21DE",
+      "title": "이형 개조",
+      "authored": {
+        "family": "0",
+        "requiredResearchId": "research:medical:aberrant-augmentation",
+        "baseBleedingRisk": "0.24",
+        "baseInfectionRisk": "0.18",
+        "procedureId": "procedure:arcane-modification",
+        "requiresRestraintForUnwilling": "1",
+        "urgency": "2",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.32",
+        "requiredWork": "88",
+        "kind": "9",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "6160",
+        "requiresAnesthesia": "1",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "InstallSurgicalPartEffect",
+        "ApplySurgicalBurdenEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "88"
+        },
+        {
+          "label": "필요 연구",
+          "value": "이형 개조"
+        },
+        {
+          "label": "효과",
+          "value": "2개"
+        }
+      ],
+      "wikiSummary": "비전 기관을 결합해 신체의 한계를 넘기지만 돌연변이 부담을 남긴다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:beastkin-sprint-joint",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_beastkin-sprint-joint.asset",
+      "sourceSha": "4999F27EC9779A8569A7076D4D3E88F70816704EC478419D8CAADBA7DB1ACED9",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-beastkin-sprint-joint.json",
+      "wikiSha": "9B60C63A05E6868841A479C4C817CF577995A7FE6D4B1FB4F227172FB79FDB93",
+      "title": "질주 관절 보강",
+      "authored": {
+        "family": "0",
+        "requiredResearchId": "research:medical:prosthetics",
+        "baseBleedingRisk": "0.08",
+        "baseInfectionRisk": "0.08",
+        "procedureId": "procedure:beastkin-sprint-joint",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "1",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.12",
+        "requiredWork": "34",
+        "kind": "13",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "12",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "34"
+        },
+        {
+          "label": "필요 연구",
+          "value": "보철 공학"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "질주 관절 보강을(를) 종족 해부 구조에 맞춰 시행한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:beastkin-tail-reconstruction",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_beastkin-tail-reconstruction.asset",
+      "sourceSha": "09DA7D2A3D5F8E2ED7B08448920D56424B9F218F8427FD4C143DE4E368A977F7",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-beastkin-tail-reconstruction.json",
+      "wikiSha": "CDC4270C330365F3E4ADB1235DD52FE6D3C37468EF17CADFEB407AB9A4041B77",
+      "title": "균형 꼬리 재건",
+      "authored": {
+        "family": "0",
+        "requiredResearchId": "research:medical:prosthetics",
+        "baseBleedingRisk": "0.08",
+        "baseInfectionRisk": "0.08",
+        "procedureId": "procedure:beastkin-tail-reconstruction",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "1",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.12",
+        "requiredWork": "34",
+        "kind": "13",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "12",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "34"
+        },
+        {
+          "label": "필요 연구",
+          "value": "보철 공학"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "균형 꼬리 재건을(를) 종족 해부 구조에 맞춰 시행한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:blood-rejuvenation",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_blood-rejuvenation.asset",
+      "sourceSha": "13E80013B87B4FA56DE3E5AA2992E439CA08A224910D94199602A45520288298",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-blood-rejuvenation.json",
+      "wikiSha": "B50CFCEC808EB90861E5B40FB1E4CD6DFA806EB2B499B810686734A9776B703A",
+      "title": "혈액 회춘",
+      "authored": {
+        "family": "7",
+        "requiredResearchId": "research:medical:blood-rejuvenation",
+        "baseBleedingRisk": "0",
+        "baseInfectionRisk": "0.02",
+        "procedureId": "procedure:blood-rejuvenation",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "1",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.16",
+        "requiredWork": "72",
+        "kind": "1",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "8192",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "ApplyAgeTreatmentEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "72"
+        },
+        {
+          "label": "필요 연구",
+          "value": "혈액 회춘"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "회춘 혈청을 수혈해 생물학적 나이를 낮춘다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:blood-transfusion",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_blood-transfusion.asset",
+      "sourceSha": "731C537E18DE62B9E1D39872AEE737BC551D7CDFF294351EA738747CA24599E8",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-blood-transfusion.json",
+      "wikiSha": "4EAFF61DE15F174215CDBB787D0FE58F326356EB3DB573A5BFEAAC5B6A7462D9",
+      "title": "수혈",
+      "authored": {
+        "family": "0",
+        "requiredResearchId": "research:survival:medical",
+        "baseBleedingRisk": "0.05",
+        "baseInfectionRisk": "0.12",
+        "procedureId": "procedure:blood-transfusion",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "2",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.05",
+        "requiredWork": "10",
+        "kind": "1",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "1",
+        "requiredFacilityTags": "1",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "10"
+        },
+        {
+          "label": "필요 연구",
+          "value": "의료 회복"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "혈액 제제를 투여해 급격한 혈액 손실을 완화한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:corpse-organ-extraction",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_corpse-organ-extraction.asset",
+      "sourceSha": "930E6835A2E14C01CED31E52C7C8B927CD58F00A4C2050BF19C2C143BE465009",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-corpse-organ-extraction.json",
+      "wikiSha": "52EC5A5B4F46DD95801246CC928B64A9DBBFFAABC62AB820B42E78F281B63D93",
+      "title": "사체 장기 적출",
+      "authored": {
+        "family": "0",
+        "requiredResearchId": "research:medical:anatomy",
+        "baseBleedingRisk": "0",
+        "baseInfectionRisk": "0",
+        "procedureId": "procedure:corpse-organ-extraction",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "2",
+        "allowsLivingSubject": "0",
+        "difficultyPenalty": "0.08",
+        "requiredWork": "26",
+        "kind": "5",
+        "allowsCorpseSubject": "1",
+        "allowsWildlife": "1",
+        "requiredFacilityTags": "2",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "RemoveSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "26"
+        },
+        {
+          "label": "필요 연구",
+          "value": "해부학"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "신선한 사체에서 손상되지 않은 기관을 분리한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:demon-heat-sac",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_demon-heat-sac.asset",
+      "sourceSha": "5D5122E11AD8AB1FC0AD3B964B29363F5CFCBE3F95750A42E68F794A549FAEE9",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-demon-heat-sac.json",
+      "wikiSha": "0137B9F293DACE8E2CD25002721D5F26E364627FF4B97BF8E9533C2EC7093CB2",
+      "title": "열낭 강화",
+      "authored": {
+        "family": "6",
+        "requiredResearchId": "research:medical:mana-core-engineering",
+        "baseBleedingRisk": "0.08",
+        "baseInfectionRisk": "0.08",
+        "procedureId": "procedure:demon-heat-sac",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "1",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.12",
+        "requiredWork": "34",
+        "kind": "13",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "12",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "34"
+        },
+        {
+          "label": "필요 연구",
+          "value": "마핵 공학"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "열낭 강화을(를) 종족 해부 구조에 맞춰 시행한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:demon-mana-core-suture",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_demon-mana-core-suture.asset",
+      "sourceSha": "D1F2B23AB2EA32FE4D7E4B06F20B5E3DF274895925657FF14975C71C1224C61D",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-demon-mana-core-suture.json",
+      "wikiSha": "587CD96639B3A2666335CE2137FD9D7A8A493DE626B48CC8DADD4E8AD0BEE4CE",
+      "title": "마핵 봉합",
+      "authored": {
+        "family": "6",
+        "requiredResearchId": "research:medical:mana-core-engineering",
+        "baseBleedingRisk": "0.08",
+        "baseInfectionRisk": "0.08",
+        "procedureId": "procedure:demon-mana-core-suture",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "1",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.12",
+        "requiredWork": "34",
+        "kind": "13",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "12",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "34"
+        },
+        {
+          "label": "필요 연구",
+          "value": "마핵 공학"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "마핵 봉합을(를) 종족 해부 구조에 맞춰 시행한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:emergency-suture",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_emergency-suture.asset",
+      "sourceSha": "81396D0CEE9D3475B97040A22366F96B414E2A816D16A4FFF88D7E612A380575",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-emergency-suture.json",
+      "wikiSha": "C12DA44CBAB58B2E4E050AB0D06CF7E65BFD5C1DB04EEF968FF0B30B9CCE9584",
+      "title": "응급 봉합",
+      "authored": {
+        "family": "0",
+        "requiredResearchId": "research:survival:medical",
+        "baseBleedingRisk": "0.06",
+        "baseInfectionRisk": "0.16",
+        "procedureId": "procedure:emergency-suture",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "2",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.04",
+        "requiredWork": "12",
+        "kind": "0",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "1",
+        "requiredFacilityTags": "1",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "12"
+        },
+        {
+          "label": "필요 연구",
+          "value": "의료 회복"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "열린 상처를 닫고 출혈과 감염 위험을 낮춘다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:foreign-body-removal",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_foreign-body-removal.asset",
+      "sourceSha": "B28D03EF6AF7772AC5D6C4CE6BA914E2E63A6F5498CDCEC62C62478D77145067",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-foreign-body-removal.json",
+      "wikiSha": "816923864B453E0F9DA93B5B6DFC32C1E1954CA5D983399E9330B988CCD00CE8",
+      "title": "이물 제거",
+      "authored": {
+        "family": "0",
+        "requiredResearchId": "research:survival:medical",
+        "baseBleedingRisk": "0.1",
+        "baseInfectionRisk": "0.14",
+        "procedureId": "procedure:foreign-body-removal",
+        "requiresRestraintForUnwilling": "1",
+        "urgency": "2",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.08",
+        "requiredWork": "16",
+        "kind": "2",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "1",
+        "requiredFacilityTags": "1",
+        "requiresAnesthesia": "1",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "16"
+        },
+        {
+          "label": "필요 연구",
+          "value": "의료 회복"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "상처 속 파편과 오염원을 제거한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:golem-body-recast",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_golem-body-recast.asset",
+      "sourceSha": "8EF64CAEBECA9DAAEB525A8257517B74168CEFEEDB280B6DB340F2B6B42857FC",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-golem-body-recast.json",
+      "wikiSha": "35D17AD15CED7CCD9FBDF10C2463F3FF3C591FCB09CF2DA79BCDCC0EBDFF243F",
+      "title": "외장 재주조",
+      "authored": {
+        "family": "4",
+        "requiredResearchId": "research:medical:construct-core-maintenance",
+        "baseBleedingRisk": "0",
+        "baseInfectionRisk": "0",
+        "procedureId": "procedure:golem-body-recast",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "0",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.04",
+        "requiredWork": "26",
+        "kind": "11",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "32",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "MaintainSurgicalPartEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "26"
+        },
+        {
+          "label": "필요 연구",
+          "value": "구성체 핵 정비"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "외장 재주조 후 시험 가동으로 파츠 내구도를 복구한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:golem-coolant-refill",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_golem-coolant-refill.asset",
+      "sourceSha": "EE9AA7126CA294C02C8FB8EEA956D43DA953098B6E8C91AD369CA6F6ABF29428",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-golem-coolant-refill.json",
+      "wikiSha": "503F276F1AEA26BD3B813A1FC3D7D6A5FE5B0B623B6D98F023682262FEDB43D0",
+      "title": "냉각수 보충",
+      "authored": {
+        "family": "4",
+        "requiredResearchId": "research:medical:construct-core-maintenance",
+        "baseBleedingRisk": "0",
+        "baseInfectionRisk": "0",
+        "procedureId": "procedure:golem-coolant-refill",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "0",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.04",
+        "requiredWork": "26",
+        "kind": "11",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "32",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "MaintainSurgicalPartEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "26"
+        },
+        {
+          "label": "필요 연구",
+          "value": "구성체 핵 정비"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "냉각수 보충 후 시험 가동으로 파츠 내구도를 복구한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:golem-power-core",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_golem-power-core.asset",
+      "sourceSha": "46F0BA99811E630B87CE206843DF3AFEEBBC068E358590C1B8BADCD2E6EDBF85",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-golem-power-core.json",
+      "wikiSha": "3D2004483993D051F0E7FAB4A09347192F5942E9580CBF3815D3B6DDD744E82B",
+      "title": "동력핵 정비",
+      "authored": {
+        "family": "4",
+        "requiredResearchId": "research:medical:construct-core-maintenance",
+        "baseBleedingRisk": "0",
+        "baseInfectionRisk": "0",
+        "procedureId": "procedure:golem-power-core",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "0",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.04",
+        "requiredWork": "26",
+        "kind": "11",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "32",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "MaintainSurgicalPartEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "26"
+        },
+        {
+          "label": "필요 연구",
+          "value": "구성체 핵 정비"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "동력핵 정비 후 시험 가동으로 파츠 내구도를 복구한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:golem-sensor-core",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_golem-sensor-core.asset",
+      "sourceSha": "16EB0CED82A7F809CA4B34548CF24619276A576FBC783F33B6308B2D017EADC9",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-golem-sensor-core.json",
+      "wikiSha": "AC0BE66B7C2FBB081BB7493E7940440D8D9BBD91940FECDE083A6DBBD2B0FEE3",
+      "title": "감지핵 정비",
+      "authored": {
+        "family": "4",
+        "requiredResearchId": "research:medical:construct-core-maintenance",
+        "baseBleedingRisk": "0",
+        "baseInfectionRisk": "0",
+        "procedureId": "procedure:golem-sensor-core",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "0",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.04",
+        "requiredWork": "26",
+        "kind": "11",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "32",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "MaintainSurgicalPartEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "26"
+        },
+        {
+          "label": "필요 연구",
+          "value": "구성체 핵 정비"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "감지핵 정비 후 시험 가동으로 파츠 내구도를 복구한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:golem-servo-alignment",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_golem-servo-alignment.asset",
+      "sourceSha": "E79C824F60C5DE8F8ADE932A075D36195232AF2EE65B5F3AFA8BF30D2313C521",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-golem-servo-alignment.json",
+      "wikiSha": "7CDAC2A403E570992C67A120BFE3E3054D84BDCE4D49211E089E2EA88F632FD5",
+      "title": "서보 정렬",
+      "authored": {
+        "family": "4",
+        "requiredResearchId": "research:medical:construct-core-maintenance",
+        "baseBleedingRisk": "0",
+        "baseInfectionRisk": "0",
+        "procedureId": "procedure:golem-servo-alignment",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "0",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.04",
+        "requiredWork": "26",
+        "kind": "11",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "32",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "MaintainSurgicalPartEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "26"
+        },
+        {
+          "label": "필요 연구",
+          "value": "구성체 핵 정비"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "서보 정렬 후 시험 가동으로 파츠 내구도를 복구한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:harpy-air-sac-suture",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_harpy-air-sac-suture.asset",
+      "sourceSha": "36C40711BB43D03D0C92AA21B28A58774B75E9ED42F338DB22E403FF153BF5C4",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-harpy-air-sac-suture.json",
+      "wikiSha": "2CCDA269F9D5F84CCBE6B9EC99DF92F87AB253CE0709F349F55CEBE1B6B1A370",
+      "title": "기낭 봉합",
+      "authored": {
+        "family": "3",
+        "requiredResearchId": "research:medical:avian-prosthetics",
+        "baseBleedingRisk": "0.08",
+        "baseInfectionRisk": "0.08",
+        "procedureId": "procedure:harpy-air-sac-suture",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "2",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.12",
+        "requiredWork": "34",
+        "kind": "12",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "12",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "34"
+        },
+        {
+          "label": "필요 연구",
+          "value": "조류 보철학"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "기낭 봉합을(를) 종족 해부 구조에 맞춰 시행한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:harpy-feather-regrowth",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_harpy-feather-regrowth.asset",
+      "sourceSha": "09AB8233EFF06A9BDF82991229D93DB2B9799B0D1FCC836D562941A040971397",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-harpy-feather-regrowth.json",
+      "wikiSha": "6795A3F505BB49A2920F7A613BA46F53229248BD0BAB5A63ABE13364D228FCEE",
+      "title": "깃축 재생",
+      "authored": {
+        "family": "3",
+        "requiredResearchId": "research:medical:avian-prosthetics",
+        "baseBleedingRisk": "0.08",
+        "baseInfectionRisk": "0.08",
+        "procedureId": "procedure:harpy-feather-regrowth",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "2",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.12",
+        "requiredWork": "34",
+        "kind": "12",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "12",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "34"
+        },
+        {
+          "label": "필요 연구",
+          "value": "조류 보철학"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "깃축 재생을(를) 종족 해부 구조에 맞춰 시행한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:harpy-tail-graft",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_harpy-tail-graft.asset",
+      "sourceSha": "4EF18CDAD4F25A402D0F18C0C7A29F0B779062DE42E62F3AB5F2098A9A818248",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-harpy-tail-graft.json",
+      "wikiSha": "9B32E05986C07842CE4FB5DDDF0BB504A976C115D81CA6BB4ED298ACE262823B",
+      "title": "평형 꼬리깃 이식",
+      "authored": {
+        "family": "3",
+        "requiredResearchId": "research:medical:avian-prosthetics",
+        "baseBleedingRisk": "0.08",
+        "baseInfectionRisk": "0.08",
+        "procedureId": "procedure:harpy-tail-graft",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "2",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.12",
+        "requiredWork": "34",
+        "kind": "12",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "12",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "34"
+        },
+        {
+          "label": "필요 연구",
+          "value": "조류 보철학"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "평형 꼬리깃 이식을(를) 종족 해부 구조에 맞춰 시행한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:harpy-wing-fixation",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_harpy-wing-fixation.asset",
+      "sourceSha": "139C08FAD5658180E86F20EFB051233BBBA334B970981A300AEC738D42F3557D",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-harpy-wing-fixation.json",
+      "wikiSha": "A14140D56E0C9D5AA695F8451F13421969E7C007DCD9528EE9EF4BACEEE90C2E",
+      "title": "날개 고정",
+      "authored": {
+        "family": "3",
+        "requiredResearchId": "research:medical:avian-prosthetics",
+        "baseBleedingRisk": "0.08",
+        "baseInfectionRisk": "0.08",
+        "procedureId": "procedure:harpy-wing-fixation",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "2",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.12",
+        "requiredWork": "34",
+        "kind": "12",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "12",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "34"
+        },
+        {
+          "label": "필요 연구",
+          "value": "조류 보철학"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "날개 고정을(를) 종족 해부 구조에 맞춰 시행한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:human-neural-assist",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_human-neural-assist.asset",
+      "sourceSha": "B9B65F9EF5B93E04EB7E782EEA4A7D85C54D1A7C5ADAC5C262255321FFAFB18A",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-human-neural-assist.json",
+      "wikiSha": "43C0D060F97FB3FE7800DA22FF5455CCA6E7B6853D8D83DE32562D9D5F660692",
+      "title": "범용 신경 보조기",
+      "authored": {
+        "family": "0",
+        "requiredResearchId": "research:medical:prosthetics",
+        "baseBleedingRisk": "0.08",
+        "baseInfectionRisk": "0.08",
+        "procedureId": "procedure:human-neural-assist",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "1",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.12",
+        "requiredWork": "34",
+        "kind": "13",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "12",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "34"
+        },
+        {
+          "label": "필요 연구",
+          "value": "보철 공학"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "범용 신경 보조기을(를) 종족 해부 구조에 맞춰 시행한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:human-precision-prosthetic",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_human-precision-prosthetic.asset",
+      "sourceSha": "896C201943139F724F0B071EFC7F7801821DFBDCEA5C8D1824D8DD9245F1F8D5",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-human-precision-prosthetic.json",
+      "wikiSha": "CA29E016FBBECBD1F62200AE888CD0487763B3A9C2AFE466E024554D0A5A2F7F",
+      "title": "정밀 보철 조율",
+      "authored": {
+        "family": "0",
+        "requiredResearchId": "research:medical:prosthetics",
+        "baseBleedingRisk": "0.08",
+        "baseInfectionRisk": "0.08",
+        "procedureId": "procedure:human-precision-prosthetic",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "1",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.12",
+        "requiredWork": "34",
+        "kind": "13",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "12",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "34"
+        },
+        {
+          "label": "필요 연구",
+          "value": "보철 공학"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "정밀 보철 조율을(를) 종족 해부 구조에 맞춰 시행한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:implant-installation",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_implant-installation.asset",
+      "sourceSha": "E5C7F6B47374F2BFCD1B30C96772E84061AD570E4C3F1583520DF193E47DD6FF",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-implant-installation.json",
+      "wikiSha": "10EBAC14649AEBE796CDB85ADF32831FA320911C220274974980F5E6D67268DC",
+      "title": "인공 안구 설치",
+      "authored": {
+        "family": "0",
+        "requiredResearchId": "research:medical:prosthetics",
+        "baseBleedingRisk": "0.18",
+        "baseInfectionRisk": "0.12",
+        "procedureId": "procedure:implant-installation",
+        "requiresRestraintForUnwilling": "1",
+        "urgency": "2",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.18",
+        "requiredWork": "50",
+        "kind": "8",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "28",
+        "requiresAnesthesia": "1",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "InstallSurgicalPartEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "50"
+        },
+        {
+          "label": "필요 연구",
+          "value": "보철 공학"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "감각 기관에 정밀 임플란트를 연결한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:kobold-precision-hand",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_kobold-precision-hand.asset",
+      "sourceSha": "955080E02315B69B9C00450CD9927C9E9BD6FBAC35CF536045ADF67AC492655A",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-kobold-precision-hand.json",
+      "wikiSha": "7A4041E1C8C600C50959C0E321E1913459B2F6A62BFFA68B59F9CE75B2C64B12",
+      "title": "정밀 손 보철",
+      "authored": {
+        "family": "0",
+        "requiredResearchId": "research:medical:prosthetics",
+        "baseBleedingRisk": "0.08",
+        "baseInfectionRisk": "0.08",
+        "procedureId": "procedure:kobold-precision-hand",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "1",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.12",
+        "requiredWork": "34",
+        "kind": "13",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "12",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "34"
+        },
+        {
+          "label": "필요 연구",
+          "value": "보철 공학"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "정밀 손 보철을(를) 종족 해부 구조에 맞춰 시행한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:kobold-tail-balance",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_kobold-tail-balance.asset",
+      "sourceSha": "BCD7F0B07D2093B9C2698DDA91B451E86B13B0E7AEA99B56B48A87D3DF1AB7B2",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-kobold-tail-balance.json",
+      "wikiSha": "A3C4BC62DE13E417A9E0EDB9DB86EA89D6EBBA02D317AE99017B23AC595CD96A",
+      "title": "꼬리 평형 보강",
+      "authored": {
+        "family": "0",
+        "requiredResearchId": "research:medical:prosthetics",
+        "baseBleedingRisk": "0.08",
+        "baseInfectionRisk": "0.08",
+        "procedureId": "procedure:kobold-tail-balance",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "1",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.12",
+        "requiredWork": "34",
+        "kind": "13",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "12",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "34"
+        },
+        {
+          "label": "필요 연구",
+          "value": "보철 공학"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "꼬리 평형 보강을(를) 종족 해부 구조에 맞춰 시행한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:live-organ-extraction",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_live-organ-extraction.asset",
+      "sourceSha": "5E25B8109EFEE6ABD6F56D6BD9FFF1CAA4DF41BCE65390762C728FAAFA8F9DB7",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-live-organ-extraction.json",
+      "wikiSha": "25766D6A7DBE8284D351F64F48608A4ACDD219A1FE8EA11EF0EFABED2AF775D9",
+      "title": "생체 장기 적출",
+      "authored": {
+        "family": "0",
+        "requiredResearchId": "research:medical:surgery",
+        "baseBleedingRisk": "0.3",
+        "baseInfectionRisk": "0.16",
+        "procedureId": "procedure:live-organ-extraction",
+        "requiresRestraintForUnwilling": "1",
+        "urgency": "2",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.25",
+        "requiredWork": "42",
+        "kind": "5",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "1",
+        "requiredFacilityTags": "28",
+        "requiresAnesthesia": "1",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "RemoveSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "42"
+        },
+        {
+          "label": "필요 연구",
+          "value": "외과술"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "살아 있는 대상에게서 기관을 적출한다. 대체 기관이 없으면 치명적일 수 있다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:myconid-core-graft",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_myconid-core-graft.asset",
+      "sourceSha": "72465BEC78361128F0CB8C2B6068A2FEAECFF8021EB287C701FE97AE48B034A9",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-myconid-core-graft.json",
+      "wikiSha": "9D2C8E5896447684D1B09F520B6A496B179B29B2E6E6A48BC203173BC580DE74",
+      "title": "균핵 접목",
+      "authored": {
+        "family": "2",
+        "requiredResearchId": "research:medical:mycelial-grafting",
+        "baseBleedingRisk": "0.08",
+        "baseInfectionRisk": "0.08",
+        "procedureId": "procedure:myconid-core-graft",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "2",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.12",
+        "requiredWork": "34",
+        "kind": "12",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "12",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "34"
+        },
+        {
+          "label": "필요 연구",
+          "value": "균사 접목학"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "균핵 접목을(를) 종족 해부 구조에 맞춰 시행한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:myconid-hypha-binding",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_myconid-hypha-binding.asset",
+      "sourceSha": "B0C6599E7D13290092563232AB6B88246B471FA99AB8D16C8AF2638206AC308E",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-myconid-hypha-binding.json",
+      "wikiSha": "4503AD89A15F393E73AB9AFBBDF5449D96FC1D13F537C397109526F46F9B89B6",
+      "title": "균사 결속",
+      "authored": {
+        "family": "2",
+        "requiredResearchId": "research:medical:mycelial-grafting",
+        "baseBleedingRisk": "0.08",
+        "baseInfectionRisk": "0.08",
+        "procedureId": "procedure:myconid-hypha-binding",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "2",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.12",
+        "requiredWork": "34",
+        "kind": "12",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "12",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "34"
+        },
+        {
+          "label": "필요 연구",
+          "value": "균사 접목학"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "균사 결속을(를) 종족 해부 구조에 맞춰 시행한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:myconid-regrowth",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_myconid-regrowth.asset",
+      "sourceSha": "96B484E7FA3B1FC0A6E4C2318F0544C5DC46EC7ABFB1FAA492183E617618BC94",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-myconid-regrowth.json",
+      "wikiSha": "451421B024456B1511623F7ECF107337907B4FB2F667BF97A50A0F69564268F6",
+      "title": "균사 재배양",
+      "authored": {
+        "family": "2",
+        "requiredResearchId": "research:medical:mycelial-grafting",
+        "baseBleedingRisk": "0.08",
+        "baseInfectionRisk": "0.08",
+        "procedureId": "procedure:myconid-regrowth",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "2",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.12",
+        "requiredWork": "34",
+        "kind": "12",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "12",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "34"
+        },
+        {
+          "label": "필요 연구",
+          "value": "균사 접목학"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "균사 재배양을(를) 종족 해부 구조에 맞춰 시행한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:myconid-spore-cleaning",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_myconid-spore-cleaning.asset",
+      "sourceSha": "D55871C1DF34CA9DDE2AF33C3D91BEFA1FAFBCF76E57C2F5FBD65722E78CE381",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-myconid-spore-cleaning.json",
+      "wikiSha": "A969F8823841162E40456BC600EAA74B6470B6C91864331C67A27F22509156E3",
+      "title": "포자낭 세정",
+      "authored": {
+        "family": "2",
+        "requiredResearchId": "research:medical:mycelial-grafting",
+        "baseBleedingRisk": "0.08",
+        "baseInfectionRisk": "0.08",
+        "procedureId": "procedure:myconid-spore-cleaning",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "2",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.12",
+        "requiredWork": "34",
+        "kind": "12",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "12",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "34"
+        },
+        {
+          "label": "필요 연구",
+          "value": "균사 접목학"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "포자낭 세정을(를) 종족 해부 구조에 맞춰 시행한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:natural-organ-transplant",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_natural-organ-transplant.asset",
+      "sourceSha": "15E6EF9BB9B9FADCC732B819DEBF006C37605611FA7451880A1AA27EA9939954",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-natural-organ-transplant.json",
+      "wikiSha": "D05353C261C6F707ED2DC22557C551AAD0568488021B65C07C8E9282244C6B62",
+      "title": "장기 이식",
+      "authored": {
+        "family": "0",
+        "requiredResearchId": "research:medical:xenotransplant",
+        "baseBleedingRisk": "0.22",
+        "baseInfectionRisk": "0.14",
+        "procedureId": "procedure:natural-organ-transplant",
+        "requiresRestraintForUnwilling": "1",
+        "urgency": "2",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.2",
+        "requiredWork": "58",
+        "kind": "6",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "280",
+        "requiresAnesthesia": "1",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "InstallSurgicalPartEffect",
+        "ApplySurgicalBurdenEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "58"
+        },
+        {
+          "label": "필요 연구",
+          "value": "이종 이식"
+        },
+        {
+          "label": "효과",
+          "value": "2개"
+        }
+      ],
+      "wikiSummary": "결손되거나 손상된 기관을 보존 장기로 교체한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:orc-combat-heart",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_orc-combat-heart.asset",
+      "sourceSha": "4D74914EFC38C2F9A5065CA31AF7FC180788E99DBB4F0656EAA8E745D15512B5",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-orc-combat-heart.json",
+      "wikiSha": "C0EC8B93831781226AA706ED8CFBEE4EEB1030D6F7E9090DBCC496678EBEFFB4",
+      "title": "전투 심장 강화",
+      "authored": {
+        "family": "0",
+        "requiredResearchId": "research:medical:surgery",
+        "baseBleedingRisk": "0.08",
+        "baseInfectionRisk": "0.08",
+        "procedureId": "procedure:orc-combat-heart",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "1",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.12",
+        "requiredWork": "34",
+        "kind": "13",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "12",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "34"
+        },
+        {
+          "label": "필요 연구",
+          "value": "외과술"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "전투 심장 강화을(를) 종족 해부 구조에 맞춰 시행한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:orc-skeletal-reinforcement",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_orc-skeletal-reinforcement.asset",
+      "sourceSha": "20CE6841573383C26F78AF1D6DB8DDC2A42014BDE1E707C8C6E19DA9022B0785",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-orc-skeletal-reinforcement.json",
+      "wikiSha": "0DD66292DCBF41EED56707CB1A7E8CC269A1069518BB82394F9403FE37C3BB80",
+      "title": "골격 보강",
+      "authored": {
+        "family": "0",
+        "requiredResearchId": "research:medical:surgery",
+        "baseBleedingRisk": "0.08",
+        "baseInfectionRisk": "0.08",
+        "procedureId": "procedure:orc-skeletal-reinforcement",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "1",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.12",
+        "requiredWork": "34",
+        "kind": "13",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "12",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "34"
+        },
+        {
+          "label": "필요 연구",
+          "value": "외과술"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "골격 보강을(를) 종족 해부 구조에 맞춰 시행한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:organ-regeneration",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_organ-regeneration.asset",
+      "sourceSha": "35A615FA2507BDCF6FE7D4CAB171C0AD00E881FE16198A5FD67D16306F7778C3",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-organ-regeneration.json",
+      "wikiSha": "E1226DACFB0B83FD02CDBC9767849C4A1C762F80238B8A4313AC7B6478A00E4E",
+      "title": "장기 재생",
+      "authored": {
+        "family": "7",
+        "requiredResearchId": "research:medical:organ-regeneration",
+        "baseBleedingRisk": "0.08",
+        "baseInfectionRisk": "0.1",
+        "procedureId": "procedure:organ-regeneration",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "1",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.16",
+        "requiredWork": "96",
+        "kind": "3",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "8192",
+        "requiresAnesthesia": "1",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "ApplyAgeTreatmentEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "96"
+        },
+        {
+          "label": "필요 연구",
+          "value": "장기 재생"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "재생 골격과 배양액으로 노화 손상 기관을 복원한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:organ-repair",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_organ-repair.asset",
+      "sourceSha": "9AF3049CAD806891D06416ED4258F1D7094C897A779438606EC6B7A1685A1561",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-organ-repair.json",
+      "wikiSha": "E26E877DCE2D696017BB65C7260EDCA5CFB0CBDBC3B2E1BEC995D65D2DCC1800",
+      "title": "장기 봉합",
+      "authored": {
+        "family": "0",
+        "requiredResearchId": "research:medical:surgery",
+        "baseBleedingRisk": "0.14",
+        "baseInfectionRisk": "0.1",
+        "procedureId": "procedure:organ-repair",
+        "requiresRestraintForUnwilling": "1",
+        "urgency": "2",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.14",
+        "requiredWork": "34",
+        "kind": "3",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "1",
+        "requiredFacilityTags": "28",
+        "requiresAnesthesia": "1",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "34"
+        },
+        {
+          "label": "필요 연구",
+          "value": "외과술"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "손상된 기관을 절개해 직접 복원한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:prosthetic-installation",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_prosthetic-installation.asset",
+      "sourceSha": "732865B2EA68356C6A3F5A51483F63B507C72CA2E3AF730B54F9858570B9D558",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-prosthetic-installation.json",
+      "wikiSha": "E7958BF39AEB66F85823E98068A6B9E56894117E77377CABC845F9156F2584C9",
+      "title": "보철 설치",
+      "authored": {
+        "family": "0",
+        "requiredResearchId": "research:medical:prosthetics",
+        "baseBleedingRisk": "0.16",
+        "baseInfectionRisk": "0.1",
+        "procedureId": "procedure:prosthetic-installation",
+        "requiresRestraintForUnwilling": "1",
+        "urgency": "2",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.14",
+        "requiredWork": "44",
+        "kind": "7",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "28",
+        "requiresAnesthesia": "1",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "InstallSurgicalPartEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "44"
+        },
+        {
+          "label": "필요 연구",
+          "value": "보철 공학"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "결손 부위에 제작된 보철을 결합한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:rehabilitation",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_rehabilitation.asset",
+      "sourceSha": "C41CB82EF783D3FA3BB2000F34356699E1D3B73195268CF4FD5BCB56BB63C852",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-rehabilitation.json",
+      "wikiSha": "C8DCAEF85295F07B4EFA35EDFF40E76DD8CC1B059F4BA070D265168826779681",
+      "title": "보철 재활",
+      "authored": {
+        "family": "0",
+        "requiredResearchId": "research:medical:prosthetics",
+        "baseBleedingRisk": "0.02",
+        "baseInfectionRisk": "0.04",
+        "procedureId": "procedure:rehabilitation",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "2",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.03",
+        "requiredWork": "30",
+        "kind": "10",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "64",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect",
+        "ReduceSurgicalBurdenEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "30"
+        },
+        {
+          "label": "필요 연구",
+          "value": "보철 공학"
+        },
+        {
+          "label": "효과",
+          "value": "2개"
+        }
+      ],
+      "wikiSummary": "보철 적응 훈련과 상처 관리를 통해 움직임과 조작 능력을 회복한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:rune-hibernation",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_rune-hibernation.asset",
+      "sourceSha": "A64AB32471886E27FAEA846F6D4ED288676CA8F26590AD8D9CDCE4EAFA173567",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-rune-hibernation.json",
+      "wikiSha": "E0FBD57AD2DE7D79ACCB170AF297440E2016FD211DBEF95CD719A674C60B0F6B",
+      "title": "룬 동면",
+      "authored": {
+        "family": "7",
+        "requiredResearchId": "research:medical:rune-hibernation",
+        "baseBleedingRisk": "0",
+        "baseInfectionRisk": "0.02",
+        "procedureId": "procedure:rune-hibernation",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "1",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.16",
+        "requiredWork": "64",
+        "kind": "12",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "8192",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "ApplyAgeTreatmentEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "64"
+        },
+        {
+          "label": "필요 연구",
+          "value": "룬 동면"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "룬 동면 촉매를 사용해 활동을 멈추고 노화를 늦춘다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:slime-core-stabilization",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_slime-core-stabilization.asset",
+      "sourceSha": "8F89E67D0FD5E43D6522603B704D6FF03C837B45BA61B1FFB9230BB393A10C23",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-slime-core-stabilization.json",
+      "wikiSha": "90499C06AF5572EB601D25B0787850DDE11256517B094DD2BB3764C37C65B5BE",
+      "title": "응집핵 안정화",
+      "authored": {
+        "family": "1",
+        "requiredResearchId": "research:medical:slime-bioengineering",
+        "baseBleedingRisk": "0.08",
+        "baseInfectionRisk": "0.08",
+        "procedureId": "procedure:slime-core-stabilization",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "2",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.12",
+        "requiredWork": "34",
+        "kind": "12",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "12",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "34"
+        },
+        {
+          "label": "필요 연구",
+          "value": "점액 생체공학"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "응집핵 안정화을(를) 종족 해부 구조에 맞춰 시행한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:slime-membrane-suture",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_slime-membrane-suture.asset",
+      "sourceSha": "FB329E74C861B9B7567BFBD7E4107DA1A476832598991B95992C680B0E78FA57",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-slime-membrane-suture.json",
+      "wikiSha": "B0EB1BBC52C31B3EA35C386F02F7A3A00A08ACDAA592CF2BF65037C70B2D62C4",
+      "title": "외피 봉합",
+      "authored": {
+        "family": "1",
+        "requiredResearchId": "research:medical:slime-bioengineering",
+        "baseBleedingRisk": "0.08",
+        "baseInfectionRisk": "0.08",
+        "procedureId": "procedure:slime-membrane-suture",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "2",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.12",
+        "requiredWork": "34",
+        "kind": "12",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "12",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "34"
+        },
+        {
+          "label": "필요 연구",
+          "value": "점액 생체공학"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "외피 봉합을(를) 종족 해부 구조에 맞춰 시행한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:slime-pseudopod-reshape",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_slime-pseudopod-reshape.asset",
+      "sourceSha": "1913C03FF2196591A8E4282157A3BC0D93DF29C326AEAACB6CAF4C971D25ADDC",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-slime-pseudopod-reshape.json",
+      "wikiSha": "CB6A839F95321BC256404DDA3B68705861854F0574EBA80358CCEC4196DBD0C7",
+      "title": "위족 재성형",
+      "authored": {
+        "family": "1",
+        "requiredResearchId": "research:medical:slime-bioengineering",
+        "baseBleedingRisk": "0.08",
+        "baseInfectionRisk": "0.08",
+        "procedureId": "procedure:slime-pseudopod-reshape",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "2",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.12",
+        "requiredWork": "34",
+        "kind": "12",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "12",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "34"
+        },
+        {
+          "label": "필요 연구",
+          "value": "점액 생체공학"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "위족 재성형을(를) 종족 해부 구조에 맞춰 시행한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:slime-replenishment",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_slime-replenishment.asset",
+      "sourceSha": "44AFDD2F83157CFE56231548C0C46B3265193C0D16B4A0B623B722461932DAB6",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-slime-replenishment.json",
+      "wikiSha": "E5FE859876AFACA61FC564527C5BC7C59D3BE64B6F4A697A4D8D15F0B3350086",
+      "title": "점액 보충",
+      "authored": {
+        "family": "1",
+        "requiredResearchId": "research:medical:slime-bioengineering",
+        "baseBleedingRisk": "0.08",
+        "baseInfectionRisk": "0.08",
+        "procedureId": "procedure:slime-replenishment",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "2",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.12",
+        "requiredWork": "34",
+        "kind": "12",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "12",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "34"
+        },
+        {
+          "label": "필요 연구",
+          "value": "점액 생체공학"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "점액 보충을(를) 종족 해부 구조에 맞춰 시행한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:temporal-stasis",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_temporal-stasis.asset",
+      "sourceSha": "270E8FE6DB1DC88564C080B925BC1E5740C4643AF85471D0628F030158755627",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-temporal-stasis.json",
+      "wikiSha": "C28D700A0767E57991941502BA1730AA167CBDDE1DD57976443BD9DEC5A6931B",
+      "title": "시간 고정",
+      "authored": {
+        "family": "7",
+        "requiredResearchId": "research:medical:temporal-stasis",
+        "baseBleedingRisk": "0",
+        "baseInfectionRisk": "0.02",
+        "procedureId": "procedure:temporal-stasis",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "1",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.16",
+        "requiredWork": "140",
+        "kind": "12",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "8192",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "ApplyAgeTreatmentEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "140"
+        },
+        {
+          "label": "필요 연구",
+          "value": "시간 고정"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "시간 고정 인장을 결속해 동력 공급 중 노화와 신규 노화 질환을 멈춘다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:vampire-blood-sac",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_vampire-blood-sac.asset",
+      "sourceSha": "7A3EC2D38DE167122E899B1E15A768B5AE93C2DDF0BE6C305D0A883066CEDE79",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-vampire-blood-sac.json",
+      "wikiSha": "E97A7E4069E3B96A3390F2A131D06CFD38F103C350AC204425626E409E0F7BF6",
+      "title": "혈액낭 처치",
+      "authored": {
+        "family": "5",
+        "requiredResearchId": "research:medical:bloodcraft-augmentation",
+        "baseBleedingRisk": "0.08",
+        "baseInfectionRisk": "0.08",
+        "procedureId": "procedure:vampire-blood-sac",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "1",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.12",
+        "requiredWork": "34",
+        "kind": "13",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "12",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "34"
+        },
+        {
+          "label": "필요 연구",
+          "value": "혈술 개조"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "혈액낭 처치을(를) 종족 해부 구조에 맞춰 시행한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:vampire-night-eye",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_vampire-night-eye.asset",
+      "sourceSha": "2C46FA86772A6A767FE1049469E5E08399E3A67DF65AF0B8926DF81B5E6D940C",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-vampire-night-eye.json",
+      "wikiSha": "D687778F7D5E0C836E21DD007C49E6DE8877AF0315373A9B5350252DFCA44530",
+      "title": "야간안 이식",
+      "authored": {
+        "family": "5",
+        "requiredResearchId": "research:medical:bloodcraft-augmentation",
+        "baseBleedingRisk": "0.08",
+        "baseInfectionRisk": "0.08",
+        "procedureId": "procedure:vampire-night-eye",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "1",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.12",
+        "requiredWork": "34",
+        "kind": "13",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "12",
+        "requiresAnesthesia": "0",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "HealSurgicalNodeEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "34"
+        },
+        {
+          "label": "필요 연구",
+          "value": "혈술 개조"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "야간안 이식을(를) 종족 해부 구조에 맞춰 시행한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:whole-body-regeneration",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_whole-body-regeneration.asset",
+      "sourceSha": "9FCDEFBFB4E85968002E0DC6CD9D8958F647D9CA1C2EA99426C1AE2074BE5D05",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-whole-body-regeneration.json",
+      "wikiSha": "1D87156A7ED5B762822720F124CDC49ECE6B1013BDCA3B8FC35EAFDE977B33C8",
+      "title": "전신 재생",
+      "authored": {
+        "family": "7",
+        "requiredResearchId": "research:medical:whole-body-regeneration",
+        "baseBleedingRisk": "0.08",
+        "baseInfectionRisk": "0.1",
+        "procedureId": "procedure:whole-body-regeneration",
+        "requiresRestraintForUnwilling": "0",
+        "urgency": "1",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.16",
+        "requiredWork": "180",
+        "kind": "9",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "8192",
+        "requiresAnesthesia": "1",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "ApplyAgeTreatmentEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "180"
+        },
+        {
+          "label": "필요 연구",
+          "value": "전신 재생"
+        },
+        {
+          "label": "효과",
+          "value": "1개"
+        }
+      ],
+      "wikiSummary": "전신 재생 배지를 사용해 생물학적 나이와 초기 노화 질환을 되돌린다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    },
+    {
+      "id": "procedure:xenograft",
+      "source": "Assets/Resources/SO/Medical/Procedures/procedure_xenograft.asset",
+      "sourceSha": "5762F5D6E7ED89DC35C93B61883F9365256B29597F8CC8F4E603D9345921F3CD",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/medical/procedure-xenograft.json",
+      "wikiSha": "0B441DE21EDD3C85E6270A07E943111DCF453ABA98C74A7302F2C4654F780E2F",
+      "title": "이종 장기 이식",
+      "authored": {
+        "family": "0",
+        "requiredResearchId": "research:medical:xenotransplant",
+        "baseBleedingRisk": "0.28",
+        "baseInfectionRisk": "0.18",
+        "procedureId": "procedure:xenograft",
+        "requiresRestraintForUnwilling": "1",
+        "urgency": "2",
+        "allowsLivingSubject": "1",
+        "difficultyPenalty": "0.28",
+        "requiredWork": "72",
+        "kind": "6",
+        "allowsCorpseSubject": "0",
+        "allowsWildlife": "0",
+        "requiredFacilityTags": "792",
+        "requiresAnesthesia": "1",
+        "targetNodeId": ""
+      },
+      "effectTypes": [
+        "InstallSurgicalPartEffect",
+        "ApplySurgicalBurdenEffect"
+      ],
+      "wikiFacts": [
+        {
+          "label": "필요 작업",
+          "value": "72"
+        },
+        {
+          "label": "필요 연구",
+          "value": "이종 이식"
+        },
+        {
+          "label": "효과",
+          "value": "2개"
+        }
+      ],
+      "wikiSummary": "다른 종의 장기를 이식하고 초기 거부 반응을 억제한다.",
+      "workMatches": true,
+      "effectCountMatches": true
+    }
+  ]
+}

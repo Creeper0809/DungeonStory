@@ -5,6 +5,14 @@
     "spoiler_tier": "none",
     "title": "위족 보철"
   },
-  "edges": [],
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-pseudopods",
+      "label": "생산·해금",
+      "to": "item/surgery-prosthetic-pseudopods",
+      "type": "produces-or-unlocks"
+    }
+  ],
   "schema_version": 1
 }

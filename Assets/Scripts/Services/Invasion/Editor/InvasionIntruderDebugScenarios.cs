@@ -1071,7 +1071,7 @@ public static class InvasionIntruderDebugScenarios
     private static bool VerifyFacilityDamage()
     {
         using IntruderScenarioWorld world = new IntruderScenarioWorld(10);
-        BuildableObject facility = world.Place("P1_LowFoodShop", new Vector2Int(2, 0));
+        BuildableObject facility = world.Place("S01_판매카운터", new Vector2Int(2, 0));
         BuildableObject secondFacility = world.Place("Q01_연구책상", new Vector2Int(5, 0));
         CharacterActor intruder = world.CreateIntruder(new Vector2Int(1, 0));
         InvasionIntruderRuntime runtime = intruder.gameObject.AddComponent<InvasionIntruderRuntime>();
@@ -1100,7 +1100,7 @@ public static class InvasionIntruderDebugScenarios
     private static bool VerifyPatternDamagePreference()
     {
         using IntruderScenarioWorld world = new IntruderScenarioWorld(10);
-        BuildableObject facility = world.Place("P1_LowFoodShop", new Vector2Int(2, 0));
+        BuildableObject facility = world.Place("S01_판매카운터", new Vector2Int(2, 0));
         BuildableObject defense = world.Place("P1_SpikeTrap", new Vector2Int(6, 0));
 
         bool breakerIgnoredFacility = !InvasionFacilityDamageResolver.TryFindDamageTarget(

@@ -335,7 +335,16 @@ public sealed class CharacterSummaryCombatPresenter
             0.05f,
             0.95f);
         float baseMeleeHit = Mathf.Clamp(0.72f + (melee + dexterity) * 0.018f, 0.1f, 0.95f);
-        float baseEvasion = Mathf.Clamp(0.02f + evasion * 0.01f + move * 0.003f, 0f, 0.35f);
+        float evasionChanceBonus = performance is ICharacterGameplayEffectValueQuery effects
+            ? effects.ProjectGameplayEffectValue(
+                actor,
+                GameplayEffectTargetIds.EvasionChance,
+                0f).Value
+            : 0f;
+        float baseEvasion = Mathf.Clamp(
+            0.02f + evasion * 0.01f + move * 0.003f + evasionChanceBonus,
+            0f,
+            0.35f);
 
         StringBuilder builder = new StringBuilder(1536);
         builder.AppendLine(CharacterSummaryCombatTextFormatter.Get(

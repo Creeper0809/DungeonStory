@@ -2,7 +2,7 @@
 
 인물·특성 영역의 작성 콘텐츠 유형이다.
 
-총 10개 항목이며, 비교군은 실제 대체 가능성을 검토하기 위한 후보군이다.
+총 11개 항목이며, 비교군은 실제 대체 가능성을 검토하기 위한 후보군이다.
 
 ## 데이터
 
@@ -18,6 +18,7 @@
 | `life-history:demon` | Life_Demon | 인물·특성 영역의 SpeciesLifeHistorySO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [Life_Demon.asset](../../../../../Assets/Resources/SO/Population/Life/Life_Demon.asset) |
 | `life-history:golem` | Life_Golem | 인물·특성 영역의 SpeciesLifeHistorySO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [Life_Golem.asset](../../../../../Assets/Resources/SO/Population/Life/Life_Golem.asset) |
 | `life-history:harpy` | Life_Harpy | 인물·특성 영역의 SpeciesLifeHistorySO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [Life_Harpy.asset](../../../../../Assets/Resources/SO/Population/Life/Life_Harpy.asset) |
+| `life-history:human` | Life_Human | 인물·특성 영역의 SpeciesLifeHistorySO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [Life_Human.asset](../../../../../Assets/Resources/SO/Population/Life/Life_Human.asset) |
 | `life-history:kobold` | Life_Kobold | 인물·특성 영역의 SpeciesLifeHistorySO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [Life_Kobold.asset](../../../../../Assets/Resources/SO/Population/Life/Life_Kobold.asset) |
 | `life-history:myconid` | Life_Myconid | 인물·특성 영역의 SpeciesLifeHistorySO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [Life_Myconid.asset](../../../../../Assets/Resources/SO/Population/Life/Life_Myconid.asset) |
 | `life-history:orc` | Life_Orc | 인물·특성 영역의 SpeciesLifeHistorySO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [Life_Orc.asset](../../../../../Assets/Resources/SO/Population/Life/Life_Orc.asset) |

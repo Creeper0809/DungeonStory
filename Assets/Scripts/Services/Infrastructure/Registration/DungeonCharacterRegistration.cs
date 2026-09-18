@@ -13,6 +13,9 @@ public static class DungeonCharacterRegistration
             throw new ArgumentNullException(nameof(builder));
         }
 
+        builder.RegisterSocialLifeGameplayOutcomeBridges();
+        builder.RegisterEnvironmentGameplayOutcomeBridges();
+
         builder.RegisterInstance(runtimeReferences
             ?? throw new ArgumentNullException(nameof(runtimeReferences)));
         builder.Register<ExperiencePacingApplicationAdapter>(
@@ -61,28 +64,57 @@ public static class DungeonCharacterRegistration
             .AsSelf()
             .As<IV20CampaignPersistence>()
             .As<IRunMilestoneQuery>()
+            .As<ICommittedRunResultQuery>()
             .As<IMilestoneGameplayModifierQuery>()
             .As<IRunMilestoneCommand>()
             .As<ISeasonalEventQuery>()
+            .As<ISeasonalWildlifeArrivalCommand>()
             .As<ISocietyEventQuery>()
             .As<IContentWorkDelayQuery>()
             .As<IContentWorkDelayCommand>()
+            .As<IGuestRequestDeliveryStateCommand>()
+            .As<ISocietyObservedMealIncidentCommand>()
+            .As<ISocietyIncidentOwnedCharacterIdQuery>()
             .As<IFactionCampaignQuery>()
             .As<IFactionCampaignCommand>()
-            .As<IEndlessCrisisCommand>();
+            .As<IFactionCampaignDeliveryCommand>()
+            .As<IEndlessCrisisCommand>()
+            .As<IEndlessCrisisQuery>();
         builder.Register<FacilityCapabilityQuery>(Lifetime.Singleton)
             .As<IFacilityCapabilityQuery>();
+        builder.Register<SocietyVenueQuery>(Lifetime.Singleton)
+            .As<ISocietyVenueQuery>();
         builder.Register<ContentRequirementEvaluator>(Lifetime.Singleton)
             .As<IContentRequirementEvaluator>();
         builder.Register<V20ContentResolutionService>(Lifetime.Singleton)
-            .As<IContentResolutionService>();
+            .AsSelf()
+            .As<IContentResolutionService>()
+            .As<IObservedCareerLifeEventCommand>()
+            .As<IFactionContractDeliveryQuery>()
+            .As<IFactionContractDeliveryResolutionCommand>()
+            .As<IDungeonSaveCaptureGuard>();
+        builder.RegisterEntryPoint<ObservedProficiencyPromotionApplicationAdapter>(
+            Lifetime.Singleton);
         builder.Register<V21ContentAlertChoiceActionDispatcher>(Lifetime.Singleton)
-            .As<DungeonStory.Operation.IEventAlertChoiceActionDispatcher>();
+            .As<DungeonStory.Operation.IEventAlertChoiceActionDispatcher>()
+            .As<DungeonStory.Operation.IEventAlertChoiceActionDispositionDispatcher>();
+        builder.Register<FactionContractWorldMapServices>(Lifetime.Singleton);
         builder.Register<V20MilestoneWorldSnapshotProjector>(Lifetime.Singleton)
             .AsSelf()
             .As<IV20MilestoneWorldSnapshotQuery>();
         builder.RegisterEntryPoint<V20CampaignApplicationAdapter>(
+                Lifetime.Singleton)
+            .As<IV20DailyEvaluationDiagnostic>()
+            .As<IV20ObservedMealIncidentDiagnostic>();
+        builder.RegisterEntryPoint<SeasonalWildlifeVisitorApplicationAdapter>(
             Lifetime.Singleton);
+        builder.RegisterEntryPoint<FestivalVenueAlertApplicationAdapter>(
+            Lifetime.Singleton);
+        builder.RegisterEntryPoint<FactionContractDeliveryApplicationAdapter>(
+            Lifetime.Singleton);
+        builder.RegisterEntryPoint<GuestRequestDeliveryRuntime>(
+                Lifetime.Singleton)
+            .As<IGuestRequestDeliveryQuery>();
         builder.Register<ResourceCharacterSpeciesCatalog>(Lifetime.Singleton)
             .As<ICharacterSpeciesCatalog>()
             .As<ICharacterSpeciesDefinitionCatalog>()
@@ -133,11 +165,16 @@ public static class DungeonCharacterRegistration
             .As<IPsychosocialPersistence>();
         builder.Register<FestivalDefinitionCatalog>(Lifetime.Singleton)
             .As<IFestivalDefinitionCatalog>();
+        builder.Register<FestivalExecutionRuntime>(Lifetime.Singleton)
+            .As<IFestivalCommand>()
+            .As<IFestivalExecutionQuery>()
+            .As<IFestivalExecutionDriver>()
+            .As<IFestivalExecutionPersistence>()
+            .As<IDungeonRestoreTransactionParticipant>();
         builder.Register<CareerPositionDefinitionCatalog>(Lifetime.Singleton)
             .As<ICareerPositionDefinitionCatalog>();
         builder.Register<FuneralFestivalRuntime>(Lifetime.Singleton)
             .As<IFuneralFestivalService>()
-            .As<IFestivalCommand>()
             .As<ISocialCareCommand>();
         builder.Register<CharacterIdentityStateStore>(Lifetime.Singleton);
         builder.Register<CharacterIdentityRuleRouter>(Lifetime.Singleton);
@@ -197,7 +234,8 @@ public static class DungeonCharacterRegistration
             .As<IPopulationHealthService>()
             .As<IPopulationHealthQuery>()
             .As<IDiseaseSymptomEffectQuery>()
-            .As<IPopulationHealthPersistence>();
+            .As<IPopulationHealthPersistence>()
+            .As<IPopulationHealthMutationTransaction>();
         builder.Register<PhysicalVaccinationRuntime>(Lifetime.Singleton)
             .As<IPhysicalVaccinationService>()
             .As<IPhysicalVaccinationRecovery>();
@@ -251,6 +289,12 @@ public static class DungeonCharacterRegistration
             .As<IBuildingWorkforceReplanPort>();
         builder.Register<LocalLlmRuntimeProvider>(Lifetime.Singleton)
             .As<ILocalLlmRuntimeProvider>();
+        builder.RegisterEntryPoint<CharacterAcquiredTraitManifestationRuntime>(
+                Lifetime.Singleton)
+            .AsSelf()
+            .As<ICharacterAcquiredTraitManifestationDiagnostics>();
+        builder.RegisterEntryPoint<CharacterAcquiredTraitSpecialReactionRuntime>(
+            Lifetime.Singleton);
         builder.Register<ResourceCharacterSkillSystemSettingsProvider>(Lifetime.Singleton)
             .As<ICharacterSkillSystemSettingsProvider>();
         builder.Register<CharacterProgressionProfileProjector>(

@@ -80,7 +80,7 @@ public static class PriorityCommandDebugScenarios
     {
         using CommandScenarioWorld world = new CommandScenarioWorld();
         CharacterActor actor = CreateCharacter("Owner_Orc");
-        BuildableObject restRoom = world.Place("P1_RestRoom", new Vector2Int(2, 0));
+        BuildableObject restRoom = world.Place("R01_간이침대", new Vector2Int(2, 0));
         restRoom.SetDamaged(true);
 
         bool valid = WorkCommandResolver.TryResolveFacilityCommand(CharacterActor.From(actor), restRoom, out WorkTypeId workTypeId, out _)
@@ -94,7 +94,7 @@ public static class PriorityCommandDebugScenarios
     {
         using CommandScenarioWorld world = new CommandScenarioWorld();
         CharacterActor actor = CreateCharacter("Owner_Slime");
-        BuildableObject shop = world.Place("P1_LowFoodShop", new Vector2Int(2, 0));
+        BuildableObject shop = world.Place("S01_판매카운터", new Vector2Int(2, 0));
         ClearShopStock(shop);
 
         bool valid = WorkCommandResolver.TryResolveFacilityCommand(CharacterActor.From(actor), shop, out WorkTypeId workTypeId, out _)
@@ -108,7 +108,7 @@ public static class PriorityCommandDebugScenarios
     {
         using CommandScenarioWorld world = new CommandScenarioWorld();
         CharacterActor actor = CreateCharacter("Owner_Vampire");
-        BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(2, 0));
+        BuildableObject lab = world.Place("Q01_연구책상", new Vector2Int(2, 0));
 
         bool valid = WorkCommandResolver.TryResolveFacilityCommand(CharacterActor.From(actor), lab, out WorkTypeId workTypeId, out _)
             && workTypeId == BuiltInWorkTypeIds.Research;
@@ -122,9 +122,9 @@ public static class PriorityCommandDebugScenarios
         using CommandScenarioWorld world = new CommandScenarioWorld();
         CharacterActor actor = CreateCharacter("Owner_Slime");
         AbilityWork work = actor.GetAbility<AbilityWork>();
-        BuildableObject shop = world.Place("P1_LowFoodShop", new Vector2Int(2, 0));
+        BuildableObject shop = world.Place("S01_판매카운터", new Vector2Int(2, 0));
         IWarehouseFacility warehouse =
-            world.Place("P1_Warehouse", new Vector2Int(8, 0))
+            world.Place("L01_대형보관선반", new Vector2Int(8, 0))
                 as IWarehouseFacility;
         ClearShopStock(shop);
         warehouse?.Inventory.SeedPhysicalStockForTest(StockCategory.Food, 5);
@@ -148,7 +148,7 @@ public static class PriorityCommandDebugScenarios
         using CommandScenarioWorld world = new CommandScenarioWorld(12, 5);
         CharacterActor actor = CreateCharacter("Owner_Vampire");
         AbilityWork work = actor.GetAbility<AbilityWork>();
-        BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(10, 0));
+        BuildableObject lab = world.Place("Q01_연구책상", new Vector2Int(10, 0));
 
         GridPathSearchResult search = world.Grid.SearchPath(Vector2Int.zero);
         bool valid = !work.TrySetPriorityWorkTarget(lab, BuiltInWorkTypeIds.Research, search, out string errorMessage)
@@ -164,7 +164,7 @@ public static class PriorityCommandDebugScenarios
         using CommandScenarioWorld world = new CommandScenarioWorld();
         CharacterActor actor = CreateCharacter("Owner_Orc");
         actor.transform.position = world.Grid.GetWorldPos(Vector2Int.zero);
-        BuildableObject destination = world.Place("P1_LowFoodShop", new Vector2Int(4, 0));
+        BuildableObject destination = world.Place("S01_판매카운터", new Vector2Int(4, 0));
         CharacterActor intruder = CreateIntruder("Intruder_Breakthrough", world.Grid.GetWorldPos(new Vector2Int(4, 0)));
         AbilityWork work = actor.GetAbility<AbilityWork>();
         GridPathSearchResult search = world.Grid.SearchPath(Vector2Int.zero);
@@ -265,7 +265,7 @@ public static class PriorityCommandDebugScenarios
         public BuildableObject Place(string assetName, Vector2Int position)
         {
             BuildingSO buildingData = AssetDatabase.LoadAssetAtPath<BuildingSO>(
-                $"Assets/Resources/SO/Building/P1/{assetName}.asset");
+                $"Assets/Resources/SO/Building/Modular/{assetName}.asset");
             GridBuildingFactory factory = new GridBuildingFactory();
             BuildableObject building = factory.Create(Grid, buildingData, position);
             objects.Add(building.gameObject);

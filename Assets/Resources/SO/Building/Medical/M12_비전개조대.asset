@@ -62,7 +62,6 @@ MonoBehaviour:
     - rid: 7737211857806557843
     - rid: 1006
     - rid: 1007
-    - rid: 1008
     - rid: 1009
     - rid: 1020
     - rid: 1021
@@ -100,7 +99,7 @@ MonoBehaviour:
         abilityId: BuildingEconomyAbility
         constructionValue: 0
         constructionCost: 420
-        maintenance: 2
+        maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
     - rid: 1003
@@ -143,14 +142,6 @@ MonoBehaviour:
         workSeconds: 1.8
         severityReduction: 0.4
         requiresMedicine: 1
-    - rid: 1008
-      type: {class: BuildingFuelConsumerAbility, ns: , asm: DungeonStory.Survival}
-      data:
-        abilityId: BuildingFuelConsumerAbility
-        fuelPerRefuel: 1
-        workSeconds: 1
-        warmth: 0
-        lightSafety: 2
     - rid: 1009
       type: {class: BuildingArcaneSurgeryAbility, ns: , asm: DungeonStory.Medical}
       data:

@@ -18,6 +18,7 @@ MonoBehaviour:
   minimumDurationDays: 1
   maximumDurationDays: 3
   temperatureModifierC: -2
+  expeditionTravelMultiplier: 1.15
   springWeight: 15
   summerWeight: 8
   autumnWeight: 20

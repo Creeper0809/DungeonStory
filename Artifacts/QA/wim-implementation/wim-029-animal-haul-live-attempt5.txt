@@ -1,0 +1,17 @@
+prepared=authored pen building:d5cab2eef0c6419a80a5e1ebcc210ddc; pet=wild:9; penCell=(18, 1); hp=10; actual owner alternatives=3; hunger=0.2387451; thirst=0.2259266
+haulPreparation=30 authored ore/36000g at (18, 0); existing stock forbidden=39; actual warehouse(s)=5; human AI paused; no virtual cargo/source reservation injection
+PASS autonomousPickup op=haul:wild:9:000000000001; source=stack:f8676d3a04384689b3af359959b9e019; cargo=stack:20e722dff0224c2d87b1ac1ad40a67fc; quantity=10; grams=12000; actor/cargoCell=(18, 0); destination=warehouse:building:8e4a694c38c14edbb0c8fc8835437514
+PASS carriedWholeRegistry role/cargo/route/physical stock exact
+PASS remoteDelivery rejected before mutation; reason=독립 운반 화물이 확정된 배송 접근 칸에 도착하지 않았습니다.
+PASS futureOperation preflight rejected; reason=Physical wildlife-haul cargo 'stack:20e722dff0224c2d87b1ac1ad40a67fc' has invalid or duplicate custody. | Circus wildlife haul role 'wild:9' has an unallocated or future operation identity. | Circus wildlife haul role 'wild:9' has an orphan or unexpected cargo join.
+PASS dualConveyorWildlifeOwner preflight rejected; reason=Conveyor payload 'haul:wild:9:000000000001' cannot dual-own wildlife-haul cargo 'stack:20e722dff0224c2d87b1ac1ad40a67fc'.
+PASS invalidCargoWholeRegistry rejected, live role/stock unchanged; reason=Cargo-owned wildlife haul lot 'stack:20e722dff0224c2d87b1ac1ad40a67fc' has no exact Circus role owner. | Circus wildlife haul role 'wild:9' has an orphan or unexpected cargo join.
+PASS actualDelivery then clear; destination delta=10; remaining role/custody=0
+PASS controlledDeath physicalDrop=(19, 0); quantity=10; operation=haul:wild:9:000000000002; deadline=21.4632434844971; dead role/custody=0; ore conserved=30
+pet=wild:9; petCell=(19, 0); petHP=0; hunger=0.2589128; thirst=0.2534281; intent=독립 운반 픽업 이동; owner=character:staff:1:01; ownerCell=(19, 0); gameTime=6.489722
+result=FAIL
+System.InvalidOperationException: Recovery drop whole restore failed: Failed to stage section 'invasion.state': Invasion world candidate is invalid: An owner evacuation restore candidate is already prepared.
+  at Wim029CompanionLiveRunner+<ObserveHaul>d__34.MoveNext () [0x01780] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Captivity\Editor\Wim029CompanionLiveRunner.cs:649 
+  at Wim029CompanionLiveRunner+<Observe>d__30.MoveNext () [0x00051] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Captivity\Editor\Wim029CompanionLiveRunner.cs:79 
+scope=authored pen/domestic goat and physical ore are controlled preparation; other stock forbidden and human AI paused. Actual role UI, autonomous exact-lot pickup/movement/delivery, carried current save and public lethal interruption. Not natural birth/capture, facility-output hauling, forced drop-failure recovery, hauling throughput balance or six-adult certification.
+cleanup=paused disposable main Play, operator stops; disk persistence disabled before owner UI; original environment restored

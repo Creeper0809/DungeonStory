@@ -16,6 +16,6 @@
   "schema_version": 1,
   "slug": "building-9815",
   "spoiler_tier": "none",
-  "summary": "시설 동작은 BuildingCircuitBreakerAbility, BuildingEconomyAbility, BuildingFacilityAbility, BuildingFacilityPartAbility, BuildingWorkAmountAbility 모듈로 구성된다. 건설에는 작업량 117, 재료 석재 블록×8, 강철×6, 기계 부품×3, 정밀 부품×1이 필요하다.",
+  "summary": "시설 동작은 BuildingCircuitBreakerAbility, BuildingEconomyAbility, BuildingFacilityAbility, BuildingFacilityPartAbility, BuildingWorkAmountAbility 모듈로 구성된다. 건설에는 작업량 117 WU, 재료 석재 블록×8, 강철×6, 기계 부품×3, 정밀 부품×1이 필요하다.",
   "title": "변압 제어반"
 }

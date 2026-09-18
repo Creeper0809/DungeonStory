@@ -1,5 +1,6 @@
 ﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
 DefenseBurnEffectSO|asset:P1_FireVent_2_Burn,asset:P1_FireVent_2_Burn,m_Name,P1_FireVent_2_Burn,,,explicit-serialized
+DefenseBurnEffectSO|asset:P1_FireVent_2_Burn,asset:P1_FireVent_2_Burn,environmentalIgnitionIntensity,0.25,,,explicit-serialized
 DefenseBurnEffectSO|asset:P1_FireVent_2_Burn,asset:P1_FireVent_2_Burn,amount,2,,,explicit-serialized
 DefenseBurnEffectSO|asset:P1_FireVent_2_Burn,asset:P1_FireVent_2_Burn,duration,5,,,explicit-serialized
 DefenseBurnEffectSO|asset:P1_FireVent_2_Burn,asset:P1_FireVent_2_Burn,stacks,1,,,explicit-serialized

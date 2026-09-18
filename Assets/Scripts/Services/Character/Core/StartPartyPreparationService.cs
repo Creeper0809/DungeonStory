@@ -72,6 +72,10 @@ public interface IStartPartyPreparationService
     bool TryFullReroll(int memberIndex, out string message);
     bool TryPartialReroll(int memberIndex, StartPartyRerollGroup group, out string message);
     bool TryChooseFirstActive(int memberIndex, int candidateIndex, out string message);
+    bool TryGetCandidateLivingSummary(
+        int memberIndex,
+        out StartPartyCandidateLivingSummary summary,
+        out string message);
     bool TryCreatePreparedSnapshot(
         DungeonDifficulty difficulty,
         int runSeed,
@@ -101,6 +105,8 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
     private readonly IRunCharacterCatalog characterCatalog;
     private readonly IGameContentCatalog content;
     private readonly ICharacterRuntimeProfileFactory runtimeProfileFactory;
+    private readonly ICharacterNeedDefinitionCatalog needDefinitionCatalog;
+    private readonly IStartingOwnerTraitCountBonusQuery ownerTraitCountBonusQuery;
     private readonly List<StartPartyMemberPreparation> members = new List<StartPartyMemberPreparation>(7);
     private readonly IReadOnlyList<StartPartyMemberPreparation> membersView;
     private readonly IRandomStream random;
@@ -111,6 +117,7 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
     private AgeConditionDefinitionSO[] ageConditions;
     private CharacterSpeciesSO[] speciesDefinitions;
     private int seedSerial;
+    private int capturedOwnerTraitCountBonus;
 
     public bool IsPreparing { get; private set; }
     public StartPartyPreparationPhase Phase { get; private set; } = StartPartyPreparationPhase.OwnerSelect;
@@ -128,7 +135,9 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         IRunCharacterCatalog characterCatalog,
         IGameContentCatalog content,
         IRandomStreamProvider randomStreams,
-        ICharacterRuntimeProfileFactory runtimeProfileFactory)
+        ICharacterRuntimeProfileFactory runtimeProfileFactory,
+        ICharacterNeedDefinitionCatalog needDefinitionCatalog,
+        IStartingOwnerTraitCountBonusQuery ownerTraitCountBonusQuery)
     {
         this.skillGenerationService = skillGenerationService
             ?? throw new ArgumentNullException(nameof(skillGenerationService));
@@ -139,6 +148,10 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         this.content = content ?? throw new ArgumentNullException(nameof(content));
         this.runtimeProfileFactory = runtimeProfileFactory
             ?? throw new ArgumentNullException(nameof(runtimeProfileFactory));
+        this.needDefinitionCatalog = needDefinitionCatalog
+            ?? throw new ArgumentNullException(nameof(needDefinitionCatalog));
+        this.ownerTraitCountBonusQuery = ownerTraitCountBonusQuery
+            ?? throw new ArgumentNullException(nameof(ownerTraitCountBonusQuery));
         random = (randomStreams ?? throw new ArgumentNullException(nameof(randomStreams)))
             .Get("character:start-party-preparation");
         membersView = members.AsReadOnly();
@@ -164,7 +177,24 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
             return false;
         }
 
+        if (!ownerTraitCountBonusQuery.TryGetStartingOwnerTraitCountBonus(
+                out int ownerTraitCountBonus,
+                out string bonusFailure))
+        {
+            message = "사장 특성 계승 강화 정보를 읽을 수 없습니다: "
+                + bonusFailure;
+            return false;
+        }
+
+        if (ownerTraitCountBonus is < 0 or > 1)
+        {
+            message = "사장 특성 계승 강화 값이 허용 범위를 벗어났습니다: "
+                + ownerTraitCountBonus;
+            return false;
+        }
+
         Cancel();
+        capturedOwnerTraitCountBonus = ownerTraitCountBonus;
         traitPool ??= content.GetAll<CharacterTraitSO>()
             .Where(trait => trait != null)
             .OrderBy(trait => trait.id)
@@ -218,7 +248,10 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
             return false;
         }
 
-        CharacterPreparedIdentity identity = RollIdentity(member.CharacterData, member.Index);
+        CharacterPreparedIdentity identity = RollIdentity(
+            member.CharacterData,
+            member.Index,
+            GetTraitCountBonus(member));
         member.proficiencySeed = NextSeed(member);
         CharacterPotentialGrade potential = CharacterGrowthRules.RollPotential(settingsProvider.Settings, random);
         ReplaceCurrentProgression(member, identity, potential);
@@ -252,7 +285,10 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
                 member.IdentityRerollsRemaining--;
                 ReplaceCurrentProgression(
                     member,
-                    RollIdentity(member.CharacterData, member.Index),
+                    RollIdentity(
+                        member.CharacterData,
+                        member.Index,
+                        GetTraitCountBonus(member)),
                     member.Progression.PotentialGrade);
                 message = $"{member.RoleLabel} 정체성을 다시 굴렸습니다.";
                 break;
@@ -314,6 +350,34 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
             out message);
         Changed?.Invoke();
         return selected;
+    }
+
+    public bool TryGetCandidateLivingSummary(
+        int memberIndex,
+        out StartPartyCandidateLivingSummary summary,
+        out string message)
+    {
+        summary = default;
+        if (!TryGetMember(memberIndex, out StartPartyMemberPreparation member, out message))
+        {
+            return false;
+        }
+
+        try
+        {
+            summary = StartPartyCandidateLivingSummaryProjector.Create(
+                member,
+                ageConditions,
+                runtimeProfileFactory,
+                needDefinitionCatalog);
+            message = string.Empty;
+            return true;
+        }
+        catch (Exception exception)
+        {
+            message = $"{member.RosterLabel}의 생활 정보를 구성하지 못했습니다: {exception.Message}";
+            return false;
+        }
     }
 
     public bool TrySwapWithReserve(int selectedMemberIndex, int reserveMemberIndex, out string message)
@@ -408,6 +472,7 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         members.Clear();
         IsPreparing = false;
         Phase = StartPartyPreparationPhase.OwnerSelect;
+        capturedOwnerTraitCountBonus = 0;
         Changed?.Invoke();
     }
 
@@ -434,7 +499,10 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
             CharacterData = data,
             SlotProfile = CharacterSkillSlotProfile.For(data, isOwner)
         };
-        CharacterPreparedIdentity identity = RollIdentity(data, index);
+        CharacterPreparedIdentity identity = RollIdentity(
+            data,
+            index,
+            isOwner ? capturedOwnerTraitCountBonus : 0);
         member.proficiencySeed = NextSeed(member);
         ReplaceCurrentProgression(
             member,
@@ -562,7 +630,8 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
             autoChooseDrafts: false,
             startingProficiencySeed: member.proficiencySeed,
             startingProfile: identity.startingProfile,
-            preparedStartingProficiencies: identity.startingProficiencies);
+            preparedStartingProficiencies: identity.startingProficiencies,
+            maximumTraitCount: 4 + GetTraitCountBonus(member));
         EnsureGeneratedStartingSkills(member, progression);
     }
 
@@ -580,30 +649,15 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
             progression,
             CharacterSkillKind.Active,
             1);
-        EnsurePreparedDraftCandidates(member, progression, activeDraft, 1);
-        if (!activeDraft.permanentlyChosen)
-        {
-            progression.OnDraftReady(activeDraft);
-            int selectedIndex = Mathf.Clamp(
-                ChoosePreparedActiveCandidate(progression, activeDraft),
-                0,
-                Mathf.Max(0, activeDraft.candidates.Count - 1));
-            progression.TryChooseActiveSkill(
-                activeDraft.unlockLevel,
-                selectedIndex,
-                confirmed: true,
-                out _);
-        }
+        if (!activeDraft.permanentlyChosen && !activeDraft.isReady)
+            skillGenerationService.RequestDraft(progression, activeDraft);
 
         CharacterSkillDraft passiveDraft = EnsurePreparedDraft(
             progression,
             CharacterSkillKind.Passive,
             1);
-        EnsurePreparedDraftCandidates(member, progression, passiveDraft, 1);
-        if (!passiveDraft.permanentlyChosen)
-        {
-            progression.OnDraftReady(passiveDraft);
-        }
+        if (!passiveDraft.permanentlyChosen && !passiveDraft.isReady)
+            skillGenerationService.RequestDraft(progression, passiveDraft);
     }
 
     private CharacterSkillDraft EnsurePreparedDraft(
@@ -628,299 +682,6 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         return draft;
     }
 
-    private void EnsurePreparedDraftCandidates(
-        StartPartyMemberPreparation member,
-        CharacterProgression progression,
-        CharacterSkillDraft draft,
-        int candidateCount)
-    {
-        if (draft == null)
-        {
-            return;
-        }
-
-        int count = Mathf.Max(1, candidateCount);
-        if (draft.isReady && draft.candidates != null && draft.candidates.Count >= count)
-        {
-            draft.requestSubmitted = false;
-            progression.MarkGenerationRequestCompleted(draft.requestKey);
-            return;
-        }
-
-        draft.candidates = new List<CharacterSkillInstance>(count);
-        for (int i = 0; i < count; i++)
-        {
-            draft.candidates.Add(CreatePreparedSkill(member, progression, draft, i));
-        }
-
-        draft.isReady = true;
-        draft.requestSubmitted = false;
-        progression.MarkGenerationRequestCompleted(draft.requestKey);
-    }
-
-    private CharacterSkillInstance CreatePreparedSkill(
-        StartPartyMemberPreparation member,
-        CharacterProgression progression,
-        CharacterSkillDraft draft,
-        int candidateIndex)
-    {
-        CharacterSkillCandidateRule rule = draft.rules != null && draft.rules.Count > 0
-            ? draft.rules[Mathf.Clamp(candidateIndex, 0, draft.rules.Count - 1)]
-            : CreateFallbackRule(draft.kind);
-        List<CharacterSkillModuleSelection> modules = ResolvePreparedModules(rule, draft.kind, candidateIndex);
-        CharacterSkillFormationRules.Resolve(
-            rule.target,
-            modules,
-            out OffenseFormationMask usableFrom,
-            out OffenseFormationMask targetPositions);
-
-        string characterName = !string.IsNullOrWhiteSpace(progression.GrowthState.displayName)
-            ? progression.GrowthState.displayName.Trim()
-            : ResolveMemberName(member);
-        string moduleId = modules.FirstOrDefault()?.moduleId ?? string.Empty;
-        string displayName = BuildPreparedSkillName(draft.kind, moduleId);
-        string description = BuildPreparedSkillDescription(characterName, draft.kind, moduleId, rule);
-        string reason = BuildPreparedSkillReason(characterName, draft.kind);
-        return new CharacterSkillInstance
-        {
-            id = $"{draft.requestKey}:prepared:{candidateIndex}",
-            displayName = displayName,
-            description = description,
-            narrativeReason = reason,
-            kind = draft.kind,
-            rarity = rule.rarity,
-            trigger = rule.trigger,
-            target = rule.target,
-            ultimateDomain = CharacterUltimateDomain.None,
-            cooldownTurns = draft.kind == CharacterSkillKind.Active ? 1 : 0,
-            usableFrom = usableFrom,
-            targetPositions = targetPositions,
-            modules = modules,
-            requestKey = draft.requestKey
-        };
-    }
-
-    private CharacterSkillCandidateRule CreateFallbackRule(CharacterSkillKind kind)
-    {
-        CharacterSkillTarget target = kind == CharacterSkillKind.Active
-            ? CharacterSkillTarget.Enemy
-            : CharacterSkillTarget.Self;
-        CharacterSkillTrigger trigger = kind == CharacterSkillKind.Active
-            ? CharacterSkillTrigger.ManualCombat
-            : CharacterSkillTrigger.WorkStarted;
-        CharacterSkillCandidateRule rule = new CharacterSkillCandidateRule
-        {
-            rarity = kind == CharacterSkillKind.Active
-                ? CharacterSkillRarity.Common
-                : CharacterSkillRarity.Advanced,
-            budget = settingsProvider.Settings.GetBudget(kind == CharacterSkillKind.Active
-                ? CharacterSkillRarity.Common
-                : CharacterSkillRarity.Advanced),
-            trigger = trigger,
-            target = target
-        };
-        foreach (CharacterSkillModuleRule module in settingsProvider.Settings.Modules
-            .Where(module => module != null
-                && module.Allows(kind, trigger, target)
-                && CharacterSkillValidation.IsTargetCompatible(module.id, target)
-                && !CharacterSkillValidation.WouldSelfTrigger(module.id, trigger)))
-        {
-            rule.allowedModuleIds.Add(module.id);
-            foreach (CharacterSkillNumericVariant variant in module.variants ?? new List<CharacterSkillNumericVariant>())
-            {
-                if (variant != null && variant.cost <= rule.budget)
-                {
-                    rule.allowedVariantIds.Add(variant.id);
-                }
-            }
-        }
-
-        CharacterSkillFormationRules.Resolve(
-            target,
-            Array.Empty<CharacterSkillModuleSelection>(),
-            out rule.usableFrom,
-            out rule.targetPositions);
-        return rule;
-    }
-
-    private List<CharacterSkillModuleSelection> ResolvePreparedModules(
-        CharacterSkillCandidateRule rule,
-        CharacterSkillKind kind,
-        int candidateIndex)
-    {
-        List<CharacterSkillAllowedCombination> combinations =
-            CharacterSkillCombinationCatalog.Build(rule, settingsProvider.Settings, kind);
-        if (combinations.Count > 0)
-        {
-            return combinations[Mathf.Abs(candidateIndex) % combinations.Count]
-                .Modules
-                .Where(module => module != null)
-                .Select(module => module.Clone())
-                .ToList();
-        }
-
-        CharacterSkillModuleRule selectedModule = settingsProvider.Settings.Modules
-            .Where(module => module != null
-                && rule.allowedModuleIds.Contains(module.id, StringComparer.Ordinal)
-                && module.Allows(kind, rule.trigger, rule.target))
-            .OrderBy(module => PreferredPreparedModuleOrder(module.id, kind))
-            .ThenBy(module => module.id, StringComparer.Ordinal)
-            .FirstOrDefault();
-        CharacterSkillNumericVariant selectedVariant = selectedModule?.variants
-            .Where(variant => variant != null
-                && rule.allowedVariantIds.Contains(variant.id, StringComparer.Ordinal)
-                && variant.cost <= rule.budget)
-            .OrderBy(variant => variant.cost)
-            .FirstOrDefault();
-        if (selectedModule != null && selectedVariant != null)
-        {
-            return new List<CharacterSkillModuleSelection>
-            {
-                new CharacterSkillModuleSelection
-                {
-                    moduleId = selectedModule.id,
-                    variantId = selectedVariant.id
-                }
-            };
-        }
-
-        return new List<CharacterSkillModuleSelection>
-        {
-            new CharacterSkillModuleSelection
-            {
-                moduleId = kind == CharacterSkillKind.Active ? "damage" : "work_speed",
-                variantId = kind == CharacterSkillKind.Active ? "light" : "small"
-            }
-        };
-    }
-
-    private static int PreferredPreparedModuleOrder(string moduleId, CharacterSkillKind kind)
-    {
-        if (kind == CharacterSkillKind.Active)
-        {
-            return moduleId switch
-            {
-                "damage" => 0,
-                "delay" => 1,
-                "guard" => 2,
-                "heal" => 3,
-                _ => 10
-            };
-        }
-
-        return moduleId switch
-        {
-            "work_speed" => 0,
-            "research" => 1,
-            "mood" => 2,
-            "cleaning" => 3,
-            "repair" => 4,
-            _ => 10
-        };
-    }
-
-    private static int ChoosePreparedActiveCandidate(
-        CharacterProgression progression,
-        CharacterSkillDraft draft)
-    {
-        if (draft?.candidates == null || draft.candidates.Count == 0)
-        {
-            return 0;
-        }
-
-        int bestIndex = 0;
-        float bestScore = float.MinValue;
-        for (int i = 0; i < draft.candidates.Count; i++)
-        {
-            CharacterSkillInstance candidate = draft.candidates[i];
-            float score = candidate != null ? (int)candidate.rarity * 100f : 0f;
-            foreach (CharacterSkillModuleSelection module in candidate?.modules ?? new List<CharacterSkillModuleSelection>())
-            {
-                score += 1f;
-            }
-
-            if (score > bestScore)
-            {
-                bestScore = score;
-                bestIndex = i;
-            }
-        }
-
-        return bestIndex;
-    }
-
-    private static string BuildPreparedSkillName(CharacterSkillKind kind, string moduleId)
-    {
-        if (kind == CharacterSkillKind.Passive)
-        {
-            return moduleId switch
-            {
-                "research" => "연구 습관",
-                "mood" => "가벼운 숨",
-                "cleaning" => "정돈 감각",
-                "repair" => "손끝 수리",
-                _ => "부지런함"
-            };
-        }
-
-        return moduleId switch
-        {
-            "delay" => "흐름 끊기",
-            "guard" => "앞막기",
-            "heal" => "응급 손길",
-            "dot" => "깊은 상처",
-            _ => "첫 일격"
-        };
-    }
-
-    private static string BuildPreparedSkillDescription(
-        string characterName,
-        CharacterSkillKind kind,
-        string moduleId,
-        CharacterSkillCandidateRule rule)
-    {
-        string name = string.IsNullOrWhiteSpace(characterName) ? "이 인물" : characterName;
-        if (kind == CharacterSkillKind.Passive)
-        {
-            return moduleId switch
-            {
-                "research" => $"{name}은 작업을 마칠 때 연구 정리를 조금 더 잘한다.",
-                "mood" => $"{name}은 일이 풀릴 때 짧은 기분 회복을 얻는다.",
-                "cleaning" => $"{name}은 작업 사이에 주변을 조금 더 말끔히 둔다.",
-                "repair" => $"{name}은 손상된 시설을 다룰 때 수리 감각이 붙는다.",
-                _ => $"{name}은 일을 시작할 때 작업 흐름을 조금 더 빨리 잡는다."
-            };
-        }
-
-        return rule.target switch
-        {
-            CharacterSkillTarget.Self => $"{name}은 전투 중 자신을 가다듬는 초기 전술을 쓴다.",
-            CharacterSkillTarget.Ally => $"{name}은 전투 중 아군 하나를 짧게 지원한다.",
-            _ => $"{name}은 전투 중 적 하나를 겨냥하는 기본 전술을 쓴다."
-        };
-    }
-
-    private static string BuildPreparedSkillReason(string characterName, CharacterSkillKind kind)
-    {
-        string name = string.IsNullOrWhiteSpace(characterName) ? "이 인물" : characterName;
-        return kind == CharacterSkillKind.Passive
-            ? $"{name}의 출신과 성향이 초반 습관으로 굳어졌다."
-            : $"{name}의 첫 전투 감각이 초기 액티브로 자리 잡았다.";
-    }
-
-    private static string ResolveMemberName(StartPartyMemberPreparation member)
-    {
-        string preparedName = member?.Progression?.GrowthState?.displayName;
-        if (!string.IsNullOrWhiteSpace(preparedName))
-        {
-            return preparedName;
-        }
-
-        return member?.CharacterData != null
-            ? member.CharacterData.characterName
-            : "인물";
-    }
-
     private GameObject CreatePreviewObject(string objectName, out CharacterProgression progression)
     {
         GameObject preview = new GameObject(objectName);
@@ -936,13 +697,18 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         return preview;
     }
 
-    private CharacterPreparedIdentity RollIdentity(CharacterSO data, int memberIndex)
+    private CharacterPreparedIdentity RollIdentity(
+        CharacterSO data,
+        int memberIndex,
+        int traitCountBonus)
     {
         List<int> traitIds = CharacterTraitSelectionRules.Select(
                 traitPool,
                 settingsProvider.Settings.traitConflicts,
                 random,
-                data?.SpeciesTag)
+                data?.SpeciesTag,
+                maximumCount: 4 + traitCountBonus,
+                traitCountBonus: traitCountBonus)
             .ToList();
 
         string baseName = GivenNames[random.NextInt(0, GivenNames.Length)];
@@ -1099,5 +865,12 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
             new CharacterStartingProfileState();
         public List<CharacterStartingProficiencyExperience>
             startingProficiencies = new();
+    }
+
+    private int GetTraitCountBonus(StartPartyMemberPreparation member)
+    {
+        return member != null && member.IsOwner
+            ? capturedOwnerTraitCountBonus
+            : 0;
     }
 }

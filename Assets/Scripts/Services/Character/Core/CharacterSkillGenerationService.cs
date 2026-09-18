@@ -5,6 +5,7 @@ using System.Text;
 using DungeonStory.Foundation;
 using Unity.Profiling;
 using UnityEngine;
+using VContainer;
 using VContainer.Unity;
 
 public interface ICharacterSkillGenerationService
@@ -39,30 +40,101 @@ public interface ICharacterSkillGenerationDiagnostics
     bool IsProviderCircuitOpen { get; }
     float ProviderCircuitCooldownRemainingSeconds { get; }
     int ProviderCircuitTripCount { get; }
+    NarrativeInferenceAuditRecord? LastInferenceAudit { get; }
 }
 
 [Serializable]
 public sealed class CharacterSkillGenerationResponseDto : ILlmJsonPayload
 {
-    public List<CharacterSkillCandidateResponseDto> candidates = new List<CharacterSkillCandidateResponseDto>();
-    public string[] usedMotifIds = Array.Empty<string>();
-    public string[] usedCharacterFactIds = Array.Empty<string>();
+    public string presentationId = string.Empty;
+    public string displayName = string.Empty;
+    public string narrativeFlavor = string.Empty;
+    [Obsolete("Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.")]
+    public List<CharacterSkillCandidateResponseDto> candidates =
+        new List<CharacterSkillCandidateResponseDto>();
 
     public bool Validate(out string error)
     {
         error = string.Empty;
-        if (candidates == null || candidates.Count == 0)
+        if (string.IsNullOrWhiteSpace(presentationId)
+            || string.IsNullOrWhiteSpace(displayName)
+            || string.IsNullOrWhiteSpace(narrativeFlavor))
         {
-            error = "candidates is required.";
+            error = "presentationId, displayName, and narrativeFlavor are required.";
             return false;
         }
-
-        if (candidates.Any(candidate => candidate == null))
+        const string prefix = "presentation:skill:";
+        if (presentationId.Length != prefix.Length + 64
+            || !presentationId.StartsWith(prefix, StringComparison.Ordinal)
+            || presentationId.Skip(prefix.Length).Any(character =>
+                !Uri.IsHexDigit(character) || char.IsUpper(character)))
         {
-            error = "candidates cannot contain null.";
+            error = "presentationId must be a canonical presentation:skill:<sha256> identifier.";
             return false;
         }
+        if ((displayName + narrativeFlavor).Any(character =>
+            character is >= '0' and <= '9'
+            or >= '０' and <= '９'
+            or '%'
+            or '％'))
+        {
+            error = "displayName and narrativeFlavor cannot restate mechanical numbers or percentages.";
+            return false;
+        }
+        return true;
+    }
+}
 
+[Serializable]
+public sealed class CharacterSkillModuleSelectionResponseDto : ILlmJsonPayload
+{
+    public string selectionId = string.Empty;
+    public List<string> positiveModuleIds = new List<string>();
+    public List<string> drawbackModuleIds = new List<string>();
+    public List<string> evidenceFactIds = new List<string>();
+    public string displayName = string.Empty;
+    public string narrativeFlavor = string.Empty;
+
+    public bool Validate(out string error)
+    {
+        error = string.Empty;
+        if (string.IsNullOrWhiteSpace(selectionId)
+            || positiveModuleIds == null
+            || drawbackModuleIds == null
+            || evidenceFactIds == null
+            || string.IsNullOrWhiteSpace(displayName)
+            || string.IsNullOrWhiteSpace(narrativeFlavor))
+        {
+            error = "The six module-selection response fields are required.";
+            return false;
+        }
+        if ((displayName + narrativeFlavor).Any(character =>
+            character is >= '0' and <= '9'
+            or >= '０' and <= '９'
+            or '%'
+            or '％'))
+        {
+            error = "displayName and narrativeFlavor cannot invent or restate mechanical numbers.";
+            return false;
+        }
+        return true;
+    }
+}
+
+[Serializable]
+public sealed class CharacterSkillLegacyGenerationResponseDto : ILlmJsonPayload
+{
+    public List<CharacterSkillCandidateResponseDto> candidates =
+        new List<CharacterSkillCandidateResponseDto>();
+
+    public bool Validate(out string error)
+    {
+        error = string.Empty;
+        if (candidates == null || candidates.Count == 0 || candidates.Any(value => value == null))
+        {
+            error = "Legacy candidates are required and cannot contain null.";
+            return false;
+        }
         return true;
     }
 }
@@ -70,34 +142,92 @@ public sealed class CharacterSkillGenerationResponseDto : ILlmJsonPayload
 [Serializable]
 public sealed class CharacterSkillCandidateResponseDto
 {
-    public int index;
-    public string name = string.Empty;
+    public string ruleId = string.Empty;
+    public string combinationId = string.Empty;
+    public string displayName = string.Empty;
     public string description = string.Empty;
     public string narrativeReason = string.Empty;
-    public string trigger = string.Empty;
-    public string target = string.Empty;
-    public string ultimateDomain = string.Empty;
-    public int cooldownTurns;
-    public string combinationId = string.Empty;
-    public List<CharacterSkillModuleResponseDto> modules = new List<CharacterSkillModuleResponseDto>();
-}
-
-[Serializable]
-public sealed class CharacterSkillModuleResponseDto
-{
-    public string pairId = string.Empty;
-    public string moduleId = string.Empty;
-    public string variantId = string.Empty;
 }
 
 public sealed class CharacterSkillAllowedCombination
 {
     public string Id { get; set; } = string.Empty;
+    public string RuleId { get; set; } = string.Empty;
     public int Cost { get; set; }
     public List<CharacterSkillModuleSelection> Modules { get; set; } = new List<CharacterSkillModuleSelection>();
 
     public string Signature => string.Join(",", Modules
         .Select(module => $"{module.moduleId}|{module.variantId}"));
+    public string MechanicalIdentity { get; set; } = string.Empty;
+}
+
+public static class CharacterSkillRuleIdentity
+{
+    public static void Ensure(CharacterSkillDraft draft)
+    {
+        if (draft?.rules == null)
+        {
+            return;
+        }
+
+        Dictionary<string, int> occurrences = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (CharacterSkillCandidateRule rule in draft.rules.Where(value => value != null))
+        {
+            if (draft.kind == CharacterSkillKind.Ultimate
+                && rule.ultimateDomain == CharacterUltimateDomain.None)
+            {
+                bool requested = draft.requestedUltimateDomain != CharacterUltimateDomain.None;
+                rule.ultimateDomain = requested
+                    ? draft.requestedUltimateDomain
+                    : CharacterUltimateDomain.Offense;
+                rule.mechanicalPolicySource = requested
+                    ? CharacterSkillMechanicalPolicySource.RequestedUltimateDomain
+                    : CharacterSkillMechanicalPolicySource.LegacyDeterministicDefault;
+                rule.trigger = rule.ultimateDomain switch
+                {
+                    CharacterUltimateDomain.Defense => CharacterSkillTrigger.InvasionStarted,
+                    CharacterUltimateDomain.Management => CharacterSkillTrigger.OperatingDayStarted,
+                    _ => CharacterSkillTrigger.ManualCombat
+                };
+            }
+            string signature = CanonicalSignature(draft.kind, rule);
+            occurrences.TryGetValue(signature, out int occurrence);
+            occurrences[signature] = occurrence + 1;
+            if (string.IsNullOrWhiteSpace(rule.ruleId))
+            {
+                rule.ruleId = "skill-rule:"
+                    + NarrativeInferenceHash.ComputeSha256Utf8(
+                        (draft.requestKey ?? string.Empty)
+                        + "|" + signature
+                        + "|duplicate=" + occurrence);
+            }
+        }
+    }
+
+    private static string CanonicalSignature(
+        CharacterSkillKind kind,
+        CharacterSkillCandidateRule rule)
+    {
+        return string.Join("|",
+            kind,
+            rule.rarity,
+            rule.budget,
+            rule.trigger,
+            rule.target,
+            rule.targetingMode,
+            rule.effectArea,
+            rule.areaSize,
+            rule.ultimateDomain,
+            rule.cooldownTurns,
+            rule.manualDurationHours,
+            rule.manualCooldownDays,
+            string.Join(",", (rule.allowedModuleIds ?? new List<string>())
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .OrderBy(value => value, StringComparer.Ordinal)),
+            string.Join(",", (rule.allowedVariantIds ?? new List<string>())
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .OrderBy(value => value, StringComparer.Ordinal)));
+    }
 }
 
 public static class CharacterSkillCombinationCatalog
@@ -121,7 +251,16 @@ public static class CharacterSkillCombinationCatalog
 
         List<Atom> atoms = rule.allowedModuleIds
             .Select(settings.FindModule)
-            .Where(module => module != null)
+            .Where(module => module != null
+                && module.Allows(kind, rule.trigger, rule.target)
+                && CharacterSkillValidation.IsTargetCompatible(module, rule.target)
+                && MatchesMechanicalDomain(kind, rule.ultimateDomain, module)
+                && !CharacterSkillValidation.WouldSelfTrigger(module, rule.trigger)
+                && (module is not CharacterManagementSkillModuleRule
+                    || CharacterSkillRuntimeEffects.IsManagementModuleReachable(
+                        kind,
+                        rule.trigger,
+                        module)))
             .SelectMany(module => (module.variants ?? new List<CharacterSkillNumericVariant>())
                 .Where(variant => variant != null
                     && variant.cost <= rule.budget
@@ -135,7 +274,7 @@ public static class CharacterSkillCombinationCatalog
             new Dictionary<string, CharacterSkillAllowedCombination>(StringComparer.Ordinal);
         for (int first = 0; first < atoms.Count; first++)
         {
-            AddCombination(combinations, rule.budget, atoms[first]);
+            AddCombination(combinations, rule, kind, atoms[first]);
             for (int second = first + 1; second < atoms.Count; second++)
             {
                 if (SameModule(atoms[first], atoms[second])
@@ -145,7 +284,7 @@ public static class CharacterSkillCombinationCatalog
                     continue;
                 }
 
-                AddCombination(combinations, rule.budget, atoms[first], atoms[second]);
+                AddCombination(combinations, rule, kind, atoms[first], atoms[second]);
                 for (int third = second + 1; third < atoms.Count; third++)
                 {
                     if (SameModule(atoms[first], atoms[third])
@@ -157,7 +296,7 @@ public static class CharacterSkillCombinationCatalog
                         continue;
                     }
 
-                    AddCombination(combinations, rule.budget, atoms[first], atoms[second], atoms[third]);
+                    AddCombination(combinations, rule, kind, atoms[first], atoms[second], atoms[third]);
                 }
             }
         }
@@ -168,21 +307,36 @@ public static class CharacterSkillCombinationCatalog
             .ThenBy(combination => combination.Signature, StringComparer.Ordinal)
             .Take(Mathf.Max(1, maximumCount))
             .ToList();
-        for (int i = 0; i < result.Count; i++)
+        return result;
+    }
+
+    internal static List<CharacterSkillAllowedCombination> RequireLegalCombinations(
+        CharacterSkillCandidateRule rule,
+        CharacterSkillSystemSettingsSO settings,
+        CharacterSkillKind kind)
+    {
+        List<CharacterSkillAllowedCombination> combinations = Build(rule, settings, kind);
+        if (combinations.Count == 0)
         {
-            result[i].Id = $"c{i}";
+            throw new InvalidOperationException(
+                "CharacterSkill rule has zero legal combinations; ruleId="
+                + (rule?.ruleId ?? "<missing>")
+                + "; kind=" + kind
+                + "; trigger=" + (rule?.trigger.ToString() ?? "<missing>")
+                + ".");
         }
 
-        return result;
+        return combinations;
     }
 
     private static void AddCombination(
         IDictionary<string, CharacterSkillAllowedCombination> combinations,
-        int budget,
+        CharacterSkillCandidateRule rule,
+        CharacterSkillKind kind,
         params Atom[] atoms)
     {
         int cost = atoms.Sum(atom => atom.Variant.cost);
-        if (cost > budget)
+        if (cost > rule.budget)
         {
             return;
         }
@@ -197,10 +351,28 @@ public static class CharacterSkillCombinationCatalog
             .ToList();
         string signature = string.Join(",", modules
             .Select(module => $"{module.moduleId}|{module.variantId}"));
+        string mechanicalIdentity = string.Join("|",
+            kind,
+            rule.rarity,
+            rule.trigger,
+            rule.target,
+            rule.targetingMode,
+            rule.effectArea,
+            rule.areaSize,
+            rule.ultimateDomain,
+            rule.cooldownTurns,
+            rule.manualDurationHours,
+            rule.manualCooldownDays,
+            signature);
         combinations[signature] = new CharacterSkillAllowedCombination
         {
+            Id = "skill-combination:"
+                + NarrativeInferenceHash.ComputeSha256Utf8(
+                    (rule.ruleId ?? string.Empty) + "|" + mechanicalIdentity),
+            RuleId = rule.ruleId ?? string.Empty,
             Cost = cost,
-            Modules = modules
+            Modules = modules,
+            MechanicalIdentity = mechanicalIdentity
         };
     }
 
@@ -213,6 +385,20 @@ public static class CharacterSkillCombinationCatalog
     {
         return (left.Module is CharacterManagementSkillModuleRule)
             != (right.Module is CharacterManagementSkillModuleRule);
+    }
+
+    private static bool MatchesMechanicalDomain(
+        CharacterSkillKind kind,
+        CharacterUltimateDomain domain,
+        CharacterSkillModuleRule module)
+    {
+        if (kind != CharacterSkillKind.Ultimate)
+        {
+            return true;
+        }
+        return domain == CharacterUltimateDomain.Management
+            ? module is CharacterManagementSkillModuleRule
+            : module is not CharacterManagementSkillModuleRule;
     }
 }
 
@@ -237,17 +423,14 @@ public sealed class CharacterSkillGenerationService :
         public bool cancelled;
         public string correction = string.Empty;
         public string preparedPrompt = string.Empty;
-    }
-
-    private sealed class PreparedRuleFallback
-    {
-        public PendingRequest request;
-        public List<CharacterSkillInstance> skills;
+        public NarrativePublicContextMaterial publicMaterial;
+        public string transportRequestKey = string.Empty;
     }
 
     private readonly ICharacterSkillSystemSettingsProvider settingsProvider;
     private readonly ILocalLlmRuntimeProvider llmRuntimeProvider;
     private readonly IUiClock uiClock;
+    private readonly IGameplayOutcomeNarrativeEvidenceQuery outcomeEvidenceQuery;
     private readonly Dictionary<string, PendingRequest> pending = new Dictionary<string, PendingRequest>();
     private readonly List<PendingRequest> tickBuffer = new List<PendingRequest>();
     private float providerUnhealthyUntil;
@@ -260,6 +443,23 @@ public sealed class CharacterSkillGenerationService :
         0f,
         providerUnhealthyUntil - uiClock.Time);
     public int ProviderCircuitTripCount { get; private set; }
+    public NarrativeInferenceAuditRecord? LastInferenceAudit { get; private set; }
+
+    [Inject]
+    public CharacterSkillGenerationService(
+        ICharacterSkillSystemSettingsProvider settingsProvider,
+        ILocalLlmRuntimeProvider llmRuntimeProvider,
+        IUiClock uiClock,
+        IGameplayOutcomeNarrativeEvidenceQuery outcomeEvidenceQuery)
+    {
+        this.settingsProvider = settingsProvider
+            ?? throw new ArgumentNullException(nameof(settingsProvider));
+        this.llmRuntimeProvider = llmRuntimeProvider
+            ?? throw new ArgumentNullException(nameof(llmRuntimeProvider));
+        this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
+        this.outcomeEvidenceQuery = outcomeEvidenceQuery
+            ?? throw new ArgumentNullException(nameof(outcomeEvidenceQuery));
+    }
 
     public CharacterSkillGenerationService(
         ICharacterSkillSystemSettingsProvider settingsProvider,
@@ -286,9 +486,23 @@ public sealed class CharacterSkillGenerationService :
 
         CharacterGrowthState growth = progression.GrowthState;
         growth.EnsureCollections();
+        settingsProvider.Settings.RequireFormulaCatalog();
+        NarrativeFormulaStrengthPolicy formulaPolicy =
+            settingsProvider.Settings.RequireFormulaPolicy();
         string actorId = progression.Actor != null
             ? CharacterPersistentIdentity.Require(progression.Actor).Value
             : $"unbound-growth:{growth.generationSeed}";
+        List<GameplayOutcomeEvidenceBindingSnapshot> outcomeEvidence =
+            GameplayOutcomeEvidenceFormulaProjection.CaptureExact(
+                progression.Actor == null || outcomeEvidenceQuery == null
+                    ? Array.Empty<GameplayOutcomeNarrativeEvidenceSource>()
+                    : outcomeEvidenceQuery.GetForCharacter(
+                        actorId, 24, 0f, includeCompacted: false));
+        int formulaBudget = CharacterSkillFormulaGeneration
+            .CalculateNarrativeBudget(
+                progression,
+                settingsProvider.Settings,
+                outcomeEvidence);
 
         string requestKey = $"skill:{actorId}:{kind}:{Mathf.Max(1, unlockLevel)}:r{Mathf.Max(0, revision)}";
         IRandomStream random = new DeterministicRandomSequence(
@@ -298,7 +512,9 @@ public sealed class CharacterSkillGenerationService :
             unlockLevel = Mathf.Max(1, unlockLevel),
             kind = kind,
             requestKey = requestKey,
-            requestedUltimateDomain = CharacterUltimateDomain.None
+            requestedUltimateDomain = CharacterUltimateDomain.None,
+            formulaVersion = formulaPolicy.FormulaVersion,
+            formulaCatalogSha256 = settingsProvider.Settings.formulaPolicy.RequireCatalogSha256()
         };
 
         int candidateCount = kind == CharacterSkillKind.Active ? 3 : 1;
@@ -317,7 +533,24 @@ public sealed class CharacterSkillGenerationService :
                 CharacterSkillKind.Ultimate => CharacterSkillRarity.Legendary,
                 _ => CharacterSkillRarity.Common
             };
-            draft.rules.Add(CreateCandidateRule(progression, kind, rarity, random));
+            draft.rules.Add(CreateCandidateRule(
+                progression,
+                kind,
+                rarity,
+                draft.requestedUltimateDomain,
+                formulaBudget,
+                random));
+        }
+        CharacterSkillRuleIdentity.Ensure(draft);
+        if (formulaPolicy.FormulaVersion >= CharacterSkillFormulaGeneration.ModuleSelectionFormulaVersion)
+        {
+            CharacterSkillFormulaGeneration.InitializeModuleSelection(
+                progression, draft, settingsProvider.Settings, outcomeEvidence);
+        }
+        else
+        {
+            CharacterSkillFormulaGeneration.FreezeMechanics(
+                progression, draft, settingsProvider.Settings);
         }
 
         if (kind == CharacterSkillKind.Active)
@@ -338,15 +571,58 @@ public sealed class CharacterSkillGenerationService :
         {
             return;
         }
+        CharacterSkillRuleIdentity.Ensure(draft);
+        bool moduleSelection = draft.formulaVersion >=
+            CharacterSkillFormulaGeneration.ModuleSelectionFormulaVersion;
+        int expectedCount = draft.kind == CharacterSkillKind.Active ? 3 : 1;
+        bool invalidSelectionState = moduleSelection
+            ? draft.moduleSelectionOffers == null
+                || draft.moduleSelectionOffers.Count != expectedCount
+                || draft.nextPresentationIndex < 0
+                || draft.nextPresentationIndex >= draft.moduleSelectionOffers.Count
+                || (draft.candidates?.Count ?? 0) != draft.nextPresentationIndex
+                || (draft.frozenMechanics?.Count ?? 0) != draft.nextPresentationIndex
+            : draft.frozenMechanics == null
+                || draft.frozenMechanics.Count != expectedCount
+                || draft.nextPresentationIndex < 0
+                || draft.nextPresentationIndex >= draft.frozenMechanics.Count
+                || (draft.candidates?.Count ?? 0) != draft.nextPresentationIndex
+                || (draft.kind == CharacterSkillKind.Active
+                    && draft.frozenMechanics.Select(value => value?.formulaCapabilities?.FirstOrDefault()?.capabilityId)
+                        .Distinct(StringComparer.Ordinal).Count() != 3);
+        if (draft.formulaVersion <= 0 || invalidSelectionState)
+        {
+            throw new InvalidOperationException(
+                "CharacterSkill request state is incomplete or stale; legacy variants are load-only.");
+        }
+        if (draft.presentationState == CharacterSkillPresentationState.AwaitingNarrativeRetry)
+        {
+            draft.presentationState = CharacterSkillPresentationState.PresentationPending;
+            draft.presentationFailureCount = 0;
+        }
 
         if (!pending.TryGetValue(draft.requestKey, out PendingRequest request))
         {
+            if (!TryBuildLivePublicMaterial(
+                    progression,
+                    out NarrativePublicContextMaterial publicMaterial,
+                    out string unavailableReason))
+            {
+                RegisterPresentationFailure(
+                    new PendingRequest { progression = progression, draft = draft },
+                    unavailableReason,
+                    removeExisting: false);
+                return;
+            }
+
             request = new PendingRequest
             {
                 progression = progression,
                 draft = draft,
-                nextAttemptAt = uiClock.Time
+                nextAttemptAt = uiClock.Time,
+                publicMaterial = publicMaterial
             };
+            request.transportRequestKey = BuildTransportRequestKey(request);
             pending.Add(draft.requestKey, request);
         }
         else
@@ -354,8 +630,34 @@ public sealed class CharacterSkillGenerationService :
             if (!ReferenceEquals(request.progression, progression)
                 || !ReferenceEquals(request.draft, draft))
             {
-                request.preparedPrompt = string.Empty;
-                request.correction = string.Empty;
+                request.cancelled = true;
+                if (request.inFlight
+                    && llmRuntimeProvider.TryGetRuntime(out ILocalLlmRuntime runtime)
+                    && runtime is ICorrelatedCharacterSkillLlmRuntime correlatedRuntime)
+                    correlatedRuntime.CancelCharacterSkillRequest(request.transportRequestKey);
+                request.progression?.MarkGenerationRequestCompleted(request.draft?.requestKey);
+                RemoveRequest(draft.requestKey);
+                if (!TryBuildLivePublicMaterial(
+                        progression,
+                        out NarrativePublicContextMaterial publicMaterial,
+                        out string unavailableReason))
+                {
+                    RegisterPresentationFailure(
+                        new PendingRequest { progression = progression, draft = draft },
+                        unavailableReason,
+                        removeExisting: false);
+                    return;
+                }
+
+                request = new PendingRequest
+                {
+                    progression = progression,
+                    draft = draft,
+                    nextAttemptAt = uiClock.Time,
+                    publicMaterial = publicMaterial
+                };
+                request.transportRequestKey = BuildTransportRequestKey(request);
+                pending.Add(draft.requestKey, request);
             }
 
             request.progression = progression;
@@ -364,6 +666,33 @@ public sealed class CharacterSkillGenerationService :
 
         progression.MarkGenerationRequestPending(draft.requestKey);
         draft.requestSubmitted = true;
+    }
+
+    private static bool TryBuildLivePublicMaterial(
+        CharacterProgression progression,
+        out NarrativePublicContextMaterial publicMaterial,
+        out string unavailableReason)
+    {
+        try
+        {
+            publicMaterial = CharacterSkillPromptBuilder.BuildPublicMaterial(progression);
+            unavailableReason = string.Empty;
+            return true;
+        }
+        catch (InvalidOperationException exception)
+        {
+            publicMaterial = null;
+            unavailableReason = string.IsNullOrWhiteSpace(exception.Message)
+                ? "Public narrative context is not currently readable."
+                : exception.Message.Trim();
+            return false;
+        }
+    }
+
+    private static string NormalizeDiagnostic(string value)
+    {
+        string normalized = value?.Trim() ?? string.Empty;
+        return normalized.Length == 0 ? "<none>" : normalized.Replace("\r", " ").Replace("\n", " ");
     }
 
     public void CancelRequests(CharacterProgression progression)
@@ -382,8 +711,11 @@ public sealed class CharacterSkillGenerationService :
             .ToArray())
         {
             pair.Value.cancelled = true;
-            correlatedRuntime?.CancelCharacterSkillRequest(pair.Key);
+            correlatedRuntime?.CancelCharacterSkillRequest(
+                pair.Value.transportRequestKey);
             pending.Remove(pair.Key);
+            pair.Value.draft.requestSubmitted = false;
+            pair.Value.progression.MarkGenerationRequestCompleted(pair.Key);
         }
     }
 
@@ -405,10 +737,6 @@ public sealed class CharacterSkillGenerationService :
         float now = uiClock.Time;
         if (IsProviderCircuitOpenAt(now))
         {
-            CompletePendingThroughProviderCircuit(
-                timedOutRequest: null,
-                now,
-                "cooldown-active");
             return;
         }
 
@@ -467,81 +795,258 @@ public sealed class CharacterSkillGenerationService :
     {
         skills = new List<CharacterSkillInstance>();
         error = string.Empty;
-        if (draft == null || draft.rules == null || draft.rules.Count == 0)
+        if (draft == null || draft.formulaVersion <= 0)
         {
-            error = "Draft rules are missing.";
+            error = "A formula draft is required; legacy candidate selection is load-only.";
+            return false;
+        }
+        if (draft.formulaVersion >= CharacterSkillFormulaGeneration.ModuleSelectionFormulaVersion)
+            return TryValidateModuleSelectionResponse(draft, response, out skills, out error);
+        if (draft.frozenMechanics == null || draft.frozenMechanics.Count == 0)
+        {
+            error = "A frozen legacy formula draft is required.";
+            return false;
+        }
+        if (draft.nextPresentationIndex < 0
+            || draft.nextPresentationIndex >= draft.frozenMechanics.Count)
+        {
+            error = "The formula draft has no pending presentation slot.";
             return false;
         }
 
-        if (!LlmJsonResponseParser.TryParse(
+        if (!NarrativeExactKeyContract.TryValidateProfileResponse(
+                LocalLlmRequestProfiles.CharacterSkill.Id,
+                response,
+                out _,
+                out error)
+            || !LlmJsonResponseParser.TryParse(
             response,
             out CharacterSkillGenerationResponseDto payload,
             out error))
         {
             return false;
         }
-
-        if (payload.candidates.Count != draft.rules.Count)
+        CharacterSkillInstance frozen = draft.frozenMechanics[draft.nextPresentationIndex];
+        if (frozen == null
+            || frozen.formulaVersion != draft.formulaVersion
+            || !string.Equals(
+                frozen.formulaCatalogSha256,
+                draft.formulaCatalogSha256,
+                StringComparison.Ordinal)
+            || !string.Equals(payload.presentationId, frozen.presentationId, StringComparison.Ordinal))
         {
-            error = $"Expected {draft.rules.Count} candidates, received {payload.candidates.Count}.";
+            error = "The presentationId is stale or does not match the frozen mechanics.";
             return false;
         }
-
-        HashSet<int> seenIndexes = new HashSet<int>();
-        HashSet<string> seenCombinations = new HashSet<string>(StringComparer.Ordinal);
-        foreach (CharacterSkillCandidateResponseDto candidate in payload.candidates.OrderBy(item => item.index))
+        string displayName = payload.displayName?.Trim() ?? string.Empty;
+        string narrativeFlavor = payload.narrativeFlavor?.Trim() ?? string.Empty;
+        if (displayName.Length == 0 || displayName.Length > 14
+            || narrativeFlavor.Length == 0 || narrativeFlavor.Length > 90)
         {
-            if (candidate.index < 0
-                || candidate.index >= draft.rules.Count
-                || !seenIndexes.Add(candidate.index))
-            {
-                error = $"Candidate index {candidate.index} is invalid or duplicated.";
-                return false;
-            }
-
-            if (!TryBuildSkill(draft, candidate, out CharacterSkillInstance skill, out error))
-            {
-                return false;
-            }
-
-            string combination = string.Join(",", skill.modules
-                .Select(module => $"{module.moduleId}:{module.variantId}")
-                .OrderBy(value => value, StringComparer.Ordinal));
-            if (!seenCombinations.Add(combination))
-            {
-                error = "Candidate module combinations must be distinct.";
-                return false;
-            }
-
-            skills.Add(skill);
+            error = "Presentation text is missing or exceeds the player-facing length limit.";
+            return false;
         }
-
+        string visibleText = displayName + " " + narrativeFlavor;
+        if (visibleText.IndexOf("LLM", StringComparison.OrdinalIgnoreCase) >= 0
+            || visibleText.Contains("생성 중")
+            || visibleText.Contains("요청 키"))
+        {
+            error = "Technical generation text cannot appear in a skill presentation.";
+            return false;
+        }
+        CharacterSkillInstance skill = frozen.Clone();
+        CharacterSkillFormulaGeneration.ValidateRestoredFormulaSkill(
+            skill,
+            settingsProvider.Settings);
+        skill.displayName = displayName;
+        skill.narrativeFlavor = narrativeFlavor;
+        skill.description = skill.mechanicalDescription;
+        skill.narrativeReason = narrativeFlavor;
+        skills.Add(skill);
         return true;
+    }
+
+    private bool TryValidateModuleSelectionResponse(
+        CharacterSkillDraft draft,
+        string response,
+        out List<CharacterSkillInstance> skills,
+        out string error)
+    {
+        skills = new List<CharacterSkillInstance>();
+        error = string.Empty;
+        if (draft.nextPresentationIndex < 0
+            || draft.nextPresentationIndex >= (draft.moduleSelectionOffers?.Count ?? 0))
+        {
+            error = "The formula draft has no pending module-selection slot.";
+            return false;
+        }
+        if (!LlmJsonResponseParser.TryParse(
+                LocalLlmRequestProfiles.CharacterSkillModuleSelection.Id, response,
+                out CharacterSkillModuleSelectionResponseDto payload, out error))
+            return false;
+        string displayName = payload.displayName?.Trim() ?? string.Empty;
+        string narrativeFlavor = payload.narrativeFlavor?.Trim() ?? string.Empty;
+        if (displayName.Length == 0 || displayName.Length > 14
+            || narrativeFlavor.Length == 0 || narrativeFlavor.Length > 90)
+        {
+            error = "Presentation text is missing or exceeds the player-facing length limit.";
+            return false;
+        }
+        try
+        {
+            CharacterSkillInstance skill = CharacterSkillFormulaGeneration.ResolveModuleSelection(
+                draft,
+                new NarrativeFormulaModuleSelectionChoice(
+                    payload.selectionId, payload.positiveModuleIds,
+                    payload.drawbackModuleIds, payload.evidenceFactIds),
+                settingsProvider.Settings);
+            skill.displayName = displayName;
+            skill.narrativeFlavor = narrativeFlavor;
+            skill.description = skill.mechanicalDescription;
+            skill.narrativeReason = narrativeFlavor;
+            skills.Add(skill);
+            return true;
+        }
+        catch (Exception exception) when (exception is InvalidOperationException
+                                         or ArgumentException
+                                         or OverflowException)
+        {
+            error = exception.Message;
+            return false;
+        }
     }
 
     private CharacterSkillCandidateRule CreateCandidateRule(
         CharacterProgression progression,
         CharacterSkillKind kind,
         CharacterSkillRarity rarity,
+        CharacterUltimateDomain requestedUltimateDomain,
+        int formulaBudget,
         IRandomStream random)
     {
         CharacterSkillTrigger trigger;
         CharacterSkillTarget target;
+        CharacterUltimateDomain ultimateDomain = CharacterUltimateDomain.None;
+        CharacterSkillTargetingMode ruleTargetingMode =
+            CharacterSkillTargetingMode.Self;
+        CharacterSkillEffectArea ruleEffectArea =
+            CharacterSkillEffectArea.Single;
+        int ruleAreaSize = 1;
+        int ruleManualDurationHours = 0;
+        CharacterSkillMechanicalPolicySource policySource =
+            CharacterSkillMechanicalPolicySource.AuthoredRule;
         if (kind == CharacterSkillKind.Active)
         {
-            trigger = CharacterSkillTrigger.ManualCombat;
-            CharacterSkillTarget[] targets =
+            CharacterSkillTrigger narrativeTrigger =
+                CharacterGrowthRules.ChoosePassiveTrigger(
+                    progression.NarrativeLedger,
+                    random);
+            bool manualWork = narrativeTrigger is CharacterSkillTrigger.WorkStarted
+                or CharacterSkillTrigger.WorkCompleted;
+            if (manualWork)
             {
-                CharacterSkillTarget.Enemy,
-                CharacterSkillTarget.Self,
-                CharacterSkillTarget.Ally
-            };
-            target = targets[random.NextInt(0, targets.Length)];
+                trigger = CharacterSkillTrigger.ManualWork;
+                List<CharacterSkillTargetingMode> affordableModes = new();
+                if (CountAffordableManualCapabilities(
+                        CharacterSkillTarget.Self,
+                        CharacterSkillEffectArea.Single,
+                        1,
+                        formulaBudget) >= 3)
+                    affordableModes.Add(CharacterSkillTargetingMode.Self);
+                if (CountAffordableManualCapabilities(
+                        CharacterSkillTarget.Ally,
+                        CharacterSkillEffectArea.Single,
+                        1,
+                        formulaBudget) >= 3)
+                {
+                    affordableModes.Add(CharacterSkillTargetingMode.PlayerSelected);
+                    affordableModes.Add(CharacterSkillTargetingMode.DeterministicRandom);
+                }
+                if (CountAffordableManualCapabilities(
+                        CharacterSkillTarget.Ally,
+                        CharacterSkillEffectArea.Dungeon,
+                        1,
+                        formulaBudget) >= 3)
+                    affordableModes.Add(CharacterSkillTargetingMode.AllEligible);
+                if (affordableModes.Count == 0)
+                    throw new InvalidOperationException(
+                        "ManualWork active rules cannot afford three distinct capabilities.");
+                ruleTargetingMode = affordableModes[
+                    random.NextInt(0, affordableModes.Count)];
+                target = ruleTargetingMode == CharacterSkillTargetingMode.Self
+                    ? CharacterSkillTarget.Self
+                    : CharacterSkillTarget.Ally;
+                if (ruleTargetingMode == CharacterSkillTargetingMode.Self)
+                {
+                    ruleEffectArea = CharacterSkillEffectArea.Single;
+                    ruleAreaSize = 1;
+                }
+                else if (ruleTargetingMode == CharacterSkillTargetingMode.AllEligible)
+                {
+                    ruleEffectArea = CharacterSkillEffectArea.Dungeon;
+                    ruleAreaSize = 1;
+                }
+                else
+                {
+                    (CharacterSkillEffectArea Area, int Size)[] affordableAreas =
+                    {
+                        (CharacterSkillEffectArea.Single, 1),
+                        (CharacterSkillEffectArea.Room, 1),
+                        (CharacterSkillEffectArea.Square, 3),
+                        (CharacterSkillEffectArea.Square, 5),
+                        (CharacterSkillEffectArea.Square, 7)
+                    };
+                    affordableAreas = affordableAreas.Where(value =>
+                            CountAffordableManualCapabilities(
+                                target,
+                                value.Area,
+                                value.Size,
+                                formulaBudget) >= 3)
+                        .ToArray();
+                    if (affordableAreas.Length == 0)
+                        throw new InvalidOperationException(
+                            "ManualWork active rules cannot afford three distinct capabilities.");
+                    (ruleEffectArea, ruleAreaSize) = affordableAreas[
+                        random.NextInt(0, affordableAreas.Length)];
+                }
+                ruleManualDurationHours = GameCalendarRules.HoursPerDay;
+            }
+            else
+            {
+                trigger = CharacterSkillTrigger.ManualCombat;
+                CharacterSkillTarget[] targets =
+                {
+                    CharacterSkillTarget.Enemy,
+                    CharacterSkillTarget.Self,
+                    CharacterSkillTarget.Ally
+                };
+                target = targets[random.NextInt(0, targets.Length)];
+                ruleTargetingMode = target == CharacterSkillTarget.Self
+                    ? CharacterSkillTargetingMode.Self
+                    : CharacterSkillTargetingMode.PlayerSelected;
+            }
         }
         else if (kind == CharacterSkillKind.Ultimate)
         {
-            trigger = CharacterSkillTrigger.ManualCombat;
-            target = CharacterSkillTarget.Enemy;
+            bool hasRequestedDomain = requestedUltimateDomain != CharacterUltimateDomain.None;
+            ultimateDomain = hasRequestedDomain
+                ? requestedUltimateDomain
+                : CharacterUltimateDomain.Offense;
+            policySource = hasRequestedDomain
+                ? CharacterSkillMechanicalPolicySource.RequestedUltimateDomain
+                : CharacterSkillMechanicalPolicySource.LegacyDeterministicDefault;
+            trigger = ultimateDomain switch
+            {
+                CharacterUltimateDomain.Defense => CharacterSkillTrigger.InvasionStarted,
+                CharacterUltimateDomain.Management => CharacterSkillTrigger.OperatingDayStarted,
+                _ => CharacterSkillTrigger.ManualCombat
+            };
+            // Management ultimates are consumed by owner-management runtime
+            // paths, so their formula modules must target the owner rather
+            // than the combat-only Enemy default used by offense/defense.
+            target = ultimateDomain == CharacterUltimateDomain.Management
+                ? CharacterSkillTarget.Self
+                : CharacterSkillTarget.Enemy;
         }
         else
         {
@@ -552,9 +1057,17 @@ public sealed class CharacterSkillGenerationService :
         CharacterSkillCandidateRule rule = new CharacterSkillCandidateRule
         {
             rarity = rarity,
-            budget = settingsProvider.Settings.GetBudget(rarity),
+            budget = formulaBudget,
             trigger = trigger,
-            target = target
+            target = target,
+            targetingMode = ruleTargetingMode,
+            effectArea = ruleEffectArea,
+            areaSize = ruleAreaSize,
+            ultimateDomain = ultimateDomain,
+            cooldownTurns = 0,
+            manualDurationHours = ruleManualDurationHours,
+            manualCooldownDays = trigger == CharacterSkillTrigger.ManualWork ? 1 : 0,
+            mechanicalPolicySource = policySource
         };
         CharacterSkillFormationRules.Resolve(
             target,
@@ -563,24 +1076,20 @@ public sealed class CharacterSkillGenerationService :
             out rule.targetPositions);
         IEnumerable<CharacterSkillModuleRule> available = settingsProvider.Settings.Modules
             .Where(module => module != null
-                && (kind == CharacterSkillKind.Ultimate
-                    ? module.allowedKinds == null || module.allowedKinds.Count == 0 || module.allowedKinds.Contains(kind)
-                    : module.Allows(kind, trigger, target)))
-            .Where(module => kind == CharacterSkillKind.Ultimate
-                || CharacterSkillValidation.IsTargetCompatible(module.id, target));
+                && module.Allows(kind, trigger, target)
+                && CharacterSkillValidation.IsTargetCompatible(module, target)
+                && CharacterSkillFormulaRuntimeContextPolicy.ConsumesAllAppliedAxes(
+                    kind, rule, module))
+            .Where(module => kind != CharacterSkillKind.Ultimate
+                || (ultimateDomain == CharacterUltimateDomain.Management
+                    ? module is CharacterManagementSkillModuleRule
+                    : module is not CharacterManagementSkillModuleRule));
         available = available.Where(module => !CharacterSkillValidation.WouldSelfTrigger(
-            module.id,
+            module,
             trigger));
         foreach (CharacterSkillModuleRule module in available)
         {
             rule.allowedModuleIds.Add(module.id);
-            foreach (CharacterSkillNumericVariant variant in module.variants ?? new List<CharacterSkillNumericVariant>())
-            {
-                if (variant != null && variant.cost <= rule.budget)
-                {
-                    rule.allowedVariantIds.Add(variant.id);
-                }
-            }
         }
 
         rule.allowedModuleIds = rule.allowedModuleIds.Distinct(StringComparer.Ordinal).ToList();
@@ -588,16 +1097,65 @@ public sealed class CharacterSkillGenerationService :
         return rule;
     }
 
+    private int CountAffordableManualCapabilities(
+        CharacterSkillTarget target,
+        CharacterSkillEffectArea area,
+        int areaSize,
+        int budget)
+    {
+        NarrativeFormulaGenerationCostContext authored = settingsProvider.Settings
+            .formulaPolicy.RequireGenerationCostContext(
+                CharacterSkillTrigger.ManualWork,
+                target);
+        NarrativeFormulaGenerationCostContext context = new(
+            authored.TriggerFrequencyUnits,
+            authored.GuaranteedProc,
+            CharacterSkillAreaRules.ResolveCostTargetCount(
+                area,
+                areaSize,
+                authored.TargetCount));
+        return settingsProvider.Settings.Modules
+            .Where(module => module != null
+                && module.Allows(
+                    CharacterSkillKind.Active,
+                    CharacterSkillTrigger.ManualWork,
+                    target)
+                && CharacterSkillValidation.IsTargetCompatible(module, target)
+                && CharacterSkillFormulaRuntimeContextPolicy.ConsumesAllAppliedAxes(
+                    CharacterSkillKind.Active,
+                    CharacterSkillTrigger.ManualWork,
+                    CharacterUltimateDomain.None,
+                    module)
+                && !CharacterSkillValidation.WouldSelfTrigger(
+                    module,
+                    CharacterSkillTrigger.ManualWork)
+                && CharacterSkillRuntimeEffects.IsManagementModuleReachable(
+                    CharacterSkillKind.Active,
+                    CharacterSkillTrigger.ManualWork,
+                    module))
+            .Select(module => settingsProvider.Settings.RequireFormulaDescriptor(module))
+            .Where(descriptor => descriptor.CalculateContextCost(context, 1) <= budget)
+            .Select(descriptor => descriptor.CapabilityId)
+            .Distinct(StringComparer.Ordinal)
+            .Count();
+    }
+
     private void TrySubmit(PendingRequest request, float now)
     {
+        if (request.publicMaterial == null
+            && !TryBuildLivePublicMaterial(
+                request.progression,
+                out request.publicMaterial,
+                out string unavailableReason))
+        {
+            RegisterPresentationFailure(request, unavailableReason, removeExisting: false);
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(request.transportRequestKey))
+            request.transportRequestKey = BuildTransportRequestKey(request);
         if (!llmRuntimeProvider.TryGetRuntime(out ILocalLlmRuntime runtime))
         {
-            if (TryCompleteRuleFallback(request, out string fallbackError))
-            {
-                return;
-            }
-            LastDiagnostic = $"fallback-failed={request.draft.requestKey}; reason={fallbackError}";
-            ScheduleRetry(request, now);
+            RegisterPresentationFailure(request, "runtime-unavailable", removeExisting: false);
             return;
         }
 
@@ -605,26 +1163,51 @@ public sealed class CharacterSkillGenerationService :
         request.submittedAt = now;
         if (string.IsNullOrEmpty(request.preparedPrompt))
         {
-            request.preparedPrompt = CharacterSkillPromptBuilder.Build(
+            request.preparedPrompt = CharacterSkillPromptBuilder.BuildEnvelope(
                 request.progression,
                 request.draft,
                 settingsProvider.Settings,
-                request.correction);
+                request.publicMaterial,
+                request.correction).Prompt;
         }
 
         string prompt = request.preparedPrompt;
         LastDiagnostic = $"submitted={request.draft.requestKey}; attempt={request.attempts + 1}; prompt={prompt.Length}";
-        bool accepted = runtime is ICorrelatedCharacterSkillLlmRuntime correlatedRuntime
-            ? correlatedRuntime.GenerateCharacterSkillAsync(
-                request.draft.requestKey,
-                prompt,
-                result => HandleResult(request, result))
-            : runtime.GenerateCharacterSkillAsync(prompt, result => HandleResult(request, result));
+        bool moduleSelection = request.draft.formulaVersion >=
+            CharacterSkillFormulaGeneration.ModuleSelectionFormulaVersion;
+        bool accepted;
+        if (moduleSelection)
+        {
+            accepted = runtime is ICharacterSkillModuleSelectionLlmRuntime selectionRuntime
+                && selectionRuntime.GenerateCharacterSkillModuleSelectionAsync(
+                    request.transportRequestKey,
+                    prompt,
+                    result => HandleResult(request, result));
+        }
+        else
+        {
+            accepted = runtime is ICorrelatedCharacterSkillLlmRuntime correlatedRuntime
+                ? correlatedRuntime.GenerateCharacterSkillAsync(
+                    request.transportRequestKey,
+                    prompt,
+                    result => HandleResult(request, result))
+                : runtime.GenerateCharacterSkillAsync(prompt, result => HandleResult(request, result));
+        }
         if (!accepted)
         {
             request.inFlight = false;
             request.submittedAt = 0f;
-            ScheduleRetry(request, uiClock.Time);
+            RecordAudit(
+                request,
+                false,
+                "Character skill request was not accepted.",
+                false,
+                string.Empty,
+                null);
+            RegisterPresentationFailure(
+                request,
+                "Character skill request was not accepted.",
+                removeExisting: false);
         }
     }
 
@@ -667,14 +1250,34 @@ public sealed class CharacterSkillGenerationService :
             foreach (CharacterSkillInstance skill in skills)
             {
                 skill.narrativeTrace = result.NarrativeTrace;
+                request.draft.candidates.Add(skill);
+                if (request.draft.formulaVersion >= CharacterSkillFormulaGeneration.ModuleSelectionFormulaVersion)
+                    request.draft.frozenMechanics.Add(skill.Clone());
             }
-            request.draft.candidates = skills;
+            RecordAudit(request, true, string.Empty, false, string.Empty, skills);
+            request.draft.nextPresentationIndex++;
+            int expectedCount = request.draft.formulaVersion >=
+                    CharacterSkillFormulaGeneration.ModuleSelectionFormulaVersion
+                ? request.draft.moduleSelectionOffers.Count
+                : request.draft.frozenMechanics.Count;
+            if (request.draft.nextPresentationIndex < expectedCount)
+            {
+                request.attempts = 0;
+                request.correction = string.Empty;
+                request.preparedPrompt = string.Empty;
+                request.transportRequestKey = BuildTransportRequestKey(request);
+                request.nextAttemptAt = uiClock.Time;
+                LastDiagnostic = $"presentation-ready={request.draft.requestKey}; next={request.draft.nextPresentationIndex}";
+                return;
+            }
+
             request.draft.isReady = true;
+            request.draft.presentationState = CharacterSkillPresentationState.Ready;
             request.draft.requestSubmitted = false;
             request.progression.MarkGenerationRequestCompleted(request.draft.requestKey);
             RemoveRequest(request.draft.requestKey);
             request.progression.OnDraftReady(request.draft);
-            LastDiagnostic = $"ready={request.draft.requestKey}; candidates={skills.Count}";
+            LastDiagnostic = $"ready={request.draft.requestKey}; candidates={request.draft.candidates.Count}";
             return;
         }
 
@@ -687,19 +1290,18 @@ public sealed class CharacterSkillGenerationService :
         else
         {
             LastDiagnostic = $"failed={request.draft.requestKey}; status={result.Status}; error={result.Error}";
-            if (TryCompleteRuleFallback(request, out _))
-            {
-                return;
-            }
         }
-
-        if (result.IsSuccess && request.attempts >= 1
-            && TryCompleteRuleFallback(request, out _))
-        {
-            return;
-        }
-
-        ScheduleRetry(request, uiClock.Time);
+        RecordAudit(
+            request,
+            false,
+            result.IsSuccess ? validationError : result.Error,
+            false,
+            string.Empty,
+            skills);
+        RegisterPresentationFailure(
+            request,
+            result.IsSuccess ? validationError : "provider-result-" + result.Status,
+            removeExisting: false);
     }
 
     private static bool TryValidateNarrativeText(
@@ -738,14 +1340,60 @@ public sealed class CharacterSkillGenerationService :
         return true;
     }
 
-    private void ScheduleRetry(PendingRequest request, float now)
+    private void RegisterPresentationFailure(
+        PendingRequest request,
+        string reason,
+        bool removeExisting)
     {
+        if (request?.draft == null || request.progression == null)
+            throw new InvalidOperationException("Presentation failure lost its owning draft.");
+        request.inFlight = false;
+        request.submittedAt = 0f;
+        request.draft.presentationFailureCount++;
         request.attempts++;
+        request.correction = reason?.Trim() ?? string.Empty;
+        request.preparedPrompt = string.Empty;
+        LastDiagnostic = $"presentation-failed={request.draft.requestKey}; count={request.draft.presentationFailureCount}; reason={NormalizeDiagnostic(reason)}";
+        if (request.draft.presentationFailureCount >= 5)
+        {
+            request.cancelled = true;
+            request.draft.presentationState = CharacterSkillPresentationState.AwaitingNarrativeRetry;
+            request.draft.requestSubmitted = false;
+            request.progression.MarkGenerationRequestCompleted(request.draft.requestKey);
+            RemoveRequest(request.draft.requestKey);
+            return;
+        }
+        request.draft.presentationState = CharacterSkillPresentationState.PresentationPending;
+        if (!pending.ContainsKey(request.draft.requestKey))
+        {
+            pending.Add(request.draft.requestKey, request);
+            request.progression.MarkGenerationRequestPending(request.draft.requestKey);
+            request.draft.requestSubmitted = true;
+        }
+        if (removeExisting)
+        {
+            request.transportRequestKey = BuildTransportRequestKey(request);
+        }
         CharacterSkillSystemSettingsSO settings = settingsProvider.Settings;
-        float delay = Mathf.Min(
+        request.nextAttemptAt = uiClock.Time + Mathf.Min(
             settings.maximumRetrySeconds,
             settings.initialRetrySeconds * Mathf.Pow(2f, Mathf.Min(8, request.attempts - 1)));
-        request.nextAttemptAt = now + delay;
+    }
+
+    private static string BuildTransportRequestKey(PendingRequest request)
+    {
+        if (request.draft.formulaVersion >= CharacterSkillFormulaGeneration.ModuleSelectionFormulaVersion)
+        {
+            CharacterSkillModuleOfferState offer =
+                request.draft.moduleSelectionOffers[request.draft.nextPresentationIndex];
+            return NarrativePublicContextIdentity.Bind(
+                request.draft.requestKey + ":" + offer.selectionId,
+                request.publicMaterial.SemanticHash);
+        }
+        CharacterSkillInstance frozen = request.draft.frozenMechanics[request.draft.nextPresentationIndex];
+        return NarrativePublicContextIdentity.Bind(
+            request.draft.requestKey + ":" + frozen.presentationId,
+            request.publicMaterial.SemanticHash);
     }
 
     private bool HasTimedOut(PendingRequest request, float now)
@@ -791,90 +1439,17 @@ public sealed class CharacterSkillGenerationService :
             providerUnhealthyUntil,
             now + cooldown);
         ProviderCircuitTripCount++;
-        CompletePendingThroughProviderCircuit(
+        RecordAudit(
             timedOutRequest,
-            now,
-            "accepted-request-timeout");
-    }
-
-    private void CompletePendingThroughProviderCircuit(
-        PendingRequest timedOutRequest,
-        float now,
-        string reason)
-    {
-        PendingRequest[] requests = pending.Values
-            .Where(request => request != null)
-            .OrderBy(request => request.draft?.requestKey, StringComparer.Ordinal)
-            .ToArray();
-        if (requests.Length == 0)
-        {
-            return;
-        }
-
-        // Validate and build every fallback before committing any of them.
-        // An invalid authored rule is a content error, not permission to leave
-        // a partially prepared visitor pool behind a silent retry chain.
-        List<PreparedRuleFallback> prepared =
-            new List<PreparedRuleFallback>(requests.Length);
-        foreach (PendingRequest request in requests)
-        {
-            if (!TryBuildRuleFallback(
-                    request,
-                    out List<CharacterSkillInstance> skills,
-                    out string fallbackError))
-            {
-                LastDiagnostic = "provider-circuit-fallback-failed="
-                    + (request.draft?.requestKey ?? "<missing>")
-                    + "; reason=" + fallbackError
-                    + "; trigger="
-                    + (timedOutRequest?.draft?.requestKey ?? "cooldown")
-                    + "; pending=" + requests.Length;
-                throw new InvalidOperationException(LastDiagnostic);
-            }
-
-            prepared.Add(new PreparedRuleFallback
-            {
-                request = request,
-                skills = skills
-            });
-        }
-
-        ICorrelatedCharacterSkillLlmRuntime correlatedRuntime =
-            llmRuntimeProvider.TryGetRuntime(out ILocalLlmRuntime runtime)
-                ? runtime as ICorrelatedCharacterSkillLlmRuntime
-                : null;
-
-        // Invalidate every accepted callback before asking the provider to
-        // cancel. A provider is allowed to race a final callback with
-        // cancellation, and that late result must not overwrite the validated
-        // rule fallback committed by this circuit trip.
-        foreach (PendingRequest request in requests)
-        {
-            bool wasInFlight = request.inFlight;
-            request.cancelled = true;
-            request.inFlight = false;
-            request.submittedAt = 0f;
-            if (wasInFlight)
-            {
-                request.attempts++;
-                correlatedRuntime?.CancelCharacterSkillRequest(
-                    request.draft?.requestKey);
-            }
-        }
-
-        foreach (PreparedRuleFallback completion in prepared)
-        {
-            CommitRuleFallback(completion.request, completion.skills);
-        }
-
-        LastDiagnostic = "provider-circuit-rule-fallback"
-            + "; reason=" + reason
-            + "; trigger="
-            + (timedOutRequest?.draft?.requestKey ?? "cooldown")
-            + "; completed=" + prepared.Count
-            + "; cooldownRemaining="
-            + Mathf.Max(0f, providerUnhealthyUntil - now).ToString("0.###")
-            + "; trips=" + ProviderCircuitTripCount;
+            false,
+            "Accepted CharacterSkill presentation request timed out.",
+            false,
+            string.Empty,
+            null);
+        RegisterPresentationFailure(
+            timedOutRequest,
+            "accepted-request-timeout",
+            removeExisting: false);
     }
 
     private void RemoveRequest(string requestKey)
@@ -885,354 +1460,186 @@ public sealed class CharacterSkillGenerationService :
         }
     }
 
-    private bool TryCompleteRuleFallback(PendingRequest request, out string error)
-    {
-        if (!TryBuildRuleFallback(
-                request,
-                out List<CharacterSkillInstance> skills,
-                out error))
-        {
-            return false;
-        }
-
-        CommitRuleFallback(request, skills);
-        LastDiagnostic = $"rule-fallback={request.draft.requestKey}; candidates={skills.Count}";
-        return true;
-    }
-
-    private bool TryBuildRuleFallback(
+    private void RecordAudit(
         PendingRequest request,
-        out List<CharacterSkillInstance> skills,
-        out string error)
+        bool succeeded,
+        string validationError,
+        bool fallbackUsed,
+        string fallbackReason,
+        IReadOnlyCollection<CharacterSkillInstance> skills)
     {
-        skills = new List<CharacterSkillInstance>();
-        error = string.Empty;
-        if (request?.draft?.rules == null || request.progression == null)
+        if (request?.draft == null)
         {
-            error = "Rule fallback request is incomplete.";
-            return false;
+            return;
         }
-
-        string[] names = { "기록의 맹세", "철야의 수법", "귀환의 결" };
-        string characterName = request.progression.Actor?.Identity?.DisplayName;
-        if (string.IsNullOrWhiteSpace(characterName))
-        {
-            characterName = request.progression.GrowthState?.displayName;
-        }
-        characterName = string.IsNullOrWhiteSpace(characterName) ? "이 인물" : characterName.Trim();
-        if (characterName.Length > 24)
-        {
-            characterName = characterName.Substring(0, 24);
-        }
-
-        for (int index = 0; index < request.draft.rules.Count; index++)
-        {
-            CharacterSkillCandidateRule rule = request.draft.rules[index];
-            List<CharacterSkillAllowedCombination> combinations =
-                CharacterSkillCombinationCatalog.Build(
-                    rule,
-                    settingsProvider.Settings,
-                    request.draft.kind);
-            if (combinations.Count == 0)
-            {
-                error = $"Rule fallback candidate {index} has no authored module combination.";
-                return false;
-            }
-
-            CharacterSkillAllowedCombination combination = combinations[0];
-            CharacterUltimateDomain ultimateDomain = CharacterUltimateDomain.None;
-            if (request.draft.kind == CharacterSkillKind.Ultimate)
-            {
-                bool management = combination.Modules.Any(selection =>
-                    settingsProvider.Settings.FindModule(selection.moduleId)
-                        is CharacterManagementSkillModuleRule);
-                ultimateDomain = management
-                    ? CharacterUltimateDomain.Management
-                    : CharacterUltimateDomain.Offense;
-            }
-
-            CharacterSkillCandidateResponseDto candidate = new CharacterSkillCandidateResponseDto
-            {
-                index = index,
-                trigger = rule.trigger.ToString(),
-                target = rule.target.ToString(),
-                ultimateDomain = ultimateDomain.ToString(),
-                combinationId = combination.Id,
-                name = names[index % names.Length],
-                description = $"{characterName}의 실제 기록으로 확정된 기술이다.",
-                narrativeReason = "효과와 비용은 규칙이 정하고 문구만 임시로 붙였다."
-            };
-            if (!TryBuildSkill(request.draft, candidate, out CharacterSkillInstance skill, out error))
-            {
-                return false;
-            }
-            skill.narrativeTrace = new NarrativeGenerationTrace
-            {
-                schemaId = LocalLlmRequestProfiles.CharacterSkill.Id,
-                schemaVersion = LlmStaticSchemaCatalog.Require(
-                    LocalLlmRequestProfiles.CharacterSkill.Id).Version,
-                schemaHash = LlmStaticSchemaCatalog.Require(
-                    LocalLlmRequestProfiles.CharacterSkill.Id).Hash,
-                verdict = NarrativeQualityVerdict.SoftPass,
-                retryCount = request.attempts,
-                usedFallback = true
-            };
-            skills.Add(skill);
-        }
-
-        return true;
+        string targetId = request.progression?.Actor?.Identity?.PersistentId
+            ?? request.progression?.GrowthState?.displayName
+            ?? string.Empty;
+        string packet = request.draft.formulaVersion >=
+                CharacterSkillFormulaGeneration.ModuleSelectionFormulaVersion
+            ? CharacterSkillPromptBuilder.BuildModuleSelectionPacket(
+                request.draft, settingsProvider.Settings)
+            : CharacterSkillPromptBuilder.BuildPresentationPacket(request.draft);
+        string selectedIds = skills == null
+            ? string.Empty
+            : string.Join(",", skills
+                .Where(skill => skill != null)
+                .Select(skill => skill.presentationId));
+        LastInferenceAudit = new NarrativeInferenceAuditRecord(
+            request.draft.formulaVersion >= CharacterSkillFormulaGeneration.ModuleSelectionFormulaVersion
+                ? LocalLlmRequestProfiles.CharacterSkillModuleSelection.Id
+                : LocalLlmRequestProfiles.CharacterSkill.Id,
+            request.transportRequestKey,
+            NarrativeInferenceHash.ComputeSha256Utf8(packet),
+            succeeded,
+            validationError,
+            fallbackUsed,
+            fallbackReason,
+            selectedIds,
+            -1,
+            targetId,
+            NarrativeInferenceTimestamp.FromUtc(DateTime.UtcNow));
     }
 
-    private void CommitRuleFallback(
-        PendingRequest request,
-        List<CharacterSkillInstance> skills)
-    {
-        request.draft.candidates = skills;
-        request.draft.isReady = true;
-        request.draft.requestSubmitted = false;
-        request.progression.MarkGenerationRequestCompleted(request.draft.requestKey);
-        RemoveRequest(request.draft.requestKey);
-        request.progression.OnDraftReady(request.draft);
-    }
-
-    private bool TryBuildSkill(
-        CharacterSkillDraft draft,
-        CharacterSkillCandidateResponseDto candidate,
-        out CharacterSkillInstance skill,
-        out string error)
-    {
-        skill = null;
-        error = string.Empty;
-        CharacterSkillCandidateRule rule = draft.rules[candidate.index];
-        if (string.IsNullOrWhiteSpace(candidate.name)
-            || candidate.name.Trim().Length > 14
-            || string.IsNullOrWhiteSpace(candidate.description)
-            || candidate.description.Trim().Length > 90
-            || string.IsNullOrWhiteSpace(candidate.narrativeReason)
-            || candidate.narrativeReason.Trim().Length > 90)
-        {
-            error = "Skill text is missing or exceeds the player-facing length limit.";
-            return false;
-        }
-
-        string visibleText = $"{candidate.name} {candidate.description} {candidate.narrativeReason}";
-        if (visibleText.IndexOf("LLM", StringComparison.OrdinalIgnoreCase) >= 0
-            || visibleText.Contains("생성 중")
-            || visibleText.Contains("요청 키"))
-        {
-            error = "Technical generation text cannot appear in a skill.";
-            return false;
-        }
-
-        CharacterUltimateDomain domain = CharacterUltimateDomain.None;
-        CharacterSkillTrigger trigger = rule.trigger;
-        CharacterSkillTarget target = rule.target;
-        if (draft.kind == CharacterSkillKind.Ultimate)
-        {
-            if (!Enum.TryParse(candidate.ultimateDomain, true, out domain)
-                || domain == CharacterUltimateDomain.None)
-            {
-                error = "Ultimate domain must be Offense, Defense, or Management.";
-                return false;
-            }
-
-            trigger = domain switch
-            {
-                CharacterUltimateDomain.Defense => CharacterSkillTrigger.InvasionStarted,
-                CharacterUltimateDomain.Management => CharacterSkillTrigger.OperatingDayStarted,
-                _ => CharacterSkillTrigger.ManualCombat
-            };
-            if (!Enum.TryParse(candidate.target, true, out target))
-            {
-                error = $"Unknown target '{candidate.target}'.";
-                return false;
-            }
-        }
-        else
-        {
-            if (!Enum.TryParse(candidate.trigger, true, out CharacterSkillTrigger responseTrigger)
-                || responseTrigger != trigger
-                || !Enum.TryParse(candidate.target, true, out CharacterSkillTarget responseTarget)
-                || responseTarget != target)
-            {
-                error = "The generated trigger or target differs from the game-authored rule.";
-                return false;
-            }
-        }
-
-        List<CharacterSkillModuleResponseDto> responseModules = candidate.modules
-            ?? new List<CharacterSkillModuleResponseDto>();
-        if (!string.IsNullOrWhiteSpace(candidate.combinationId))
-        {
-            if (responseModules.Count > 0)
-            {
-                error = "Use either combinationId or modules, not both.";
-                return false;
-            }
-
-            CharacterSkillAllowedCombination combination = CharacterSkillCombinationCatalog
-                .Build(rule, settingsProvider.Settings, draft.kind)
-                .FirstOrDefault(item => string.Equals(
-                    item.Id,
-                    candidate.combinationId.Trim(),
-                    StringComparison.Ordinal));
-            if (combination == null)
-            {
-                error = $"Unknown combination '{candidate.combinationId}'.";
-                return false;
-            }
-
-            responseModules = combination.Modules
-                .Select(module => new CharacterSkillModuleResponseDto
-                {
-                    moduleId = module.moduleId,
-                    variantId = module.variantId
-                })
-                .ToList();
-        }
-
-        if (responseModules.Count == 0)
-        {
-            error = "At least one module is required.";
-            return false;
-        }
-
-        int cost = 0;
-        HashSet<string> moduleIds = new HashSet<string>(StringComparer.Ordinal);
-        List<CharacterSkillModuleSelection> selections = new List<CharacterSkillModuleSelection>();
-        foreach (CharacterSkillModuleResponseDto moduleDto in responseModules)
-        {
-            string moduleId = moduleDto?.moduleId ?? string.Empty;
-            string variantId = moduleDto?.variantId ?? string.Empty;
-            if (moduleDto != null && !string.IsNullOrWhiteSpace(moduleDto.pairId))
-            {
-                string[] pair = moduleDto.pairId.Split('|');
-                if (pair.Length != 2)
-                {
-                    error = $"Unknown module pair '{moduleDto.pairId}'.";
-                    return false;
-                }
-
-                moduleId = pair[0].Trim();
-                variantId = pair[1].Trim();
-            }
-
-            if (moduleDto == null
-                || !moduleIds.Add(moduleId)
-                || !rule.allowedModuleIds.Contains(moduleId, StringComparer.Ordinal))
-            {
-                error = $"Unknown or duplicated module '{moduleId}'.";
-                return false;
-            }
-
-            CharacterSkillModuleRule module = settingsProvider.Settings.FindModule(moduleId);
-            CharacterSkillNumericVariant variant = module?.FindVariant(variantId);
-            if (module == null
-                || variant == null
-                || !rule.allowedVariantIds.Contains(variantId, StringComparer.Ordinal)
-                || !CharacterSkillValidation.IsTargetCompatible(module.id, target)
-                || !module.Allows(draft.kind, trigger, target))
-            {
-                error = $"Module pair '{moduleId}|{variantId}' has an invalid variant, trigger, or target.";
-                return false;
-            }
-
-            if (draft.kind == CharacterSkillKind.Ultimate
-                && (domain == CharacterUltimateDomain.Management) != (module is CharacterManagementSkillModuleRule))
-            {
-                error = "Ultimate modules do not match the selected domain.";
-                return false;
-            }
-
-            if (CharacterSkillValidation.WouldSelfTrigger(module.id, trigger))
-            {
-                error = $"Module '{module.id}' would trigger itself recursively.";
-                return false;
-            }
-
-            cost += variant.cost;
-            selections.Add(new CharacterSkillModuleSelection
-            {
-                moduleId = module.id,
-                variantId = variant.id
-            });
-        }
-
-        if (cost > rule.budget)
-        {
-            error = $"Skill cost {cost} exceeds budget {rule.budget}.";
-            return false;
-        }
-
-        CharacterSkillFormationRules.Resolve(
-            target,
-            selections,
-            out OffenseFormationMask usableFrom,
-            out OffenseFormationMask targetPositions);
-        skill = new CharacterSkillInstance
-        {
-            id = $"{draft.requestKey}:{candidate.index}",
-            displayName = candidate.name.Trim(),
-            description = candidate.description.Trim(),
-            narrativeReason = candidate.narrativeReason.Trim(),
-            kind = draft.kind,
-            rarity = rule.rarity,
-            trigger = trigger,
-            target = target,
-            ultimateDomain = domain,
-            cooldownTurns = Mathf.Clamp(candidate.cooldownTurns, 0, 9),
-            usableFrom = usableFrom,
-            targetPositions = targetPositions,
-            modules = selections,
-            requestKey = draft.requestKey
-        };
-        return true;
-    }
 }
 
 public static class CharacterSkillValidation
 {
-    public static bool IsTargetCompatible(string moduleId, CharacterSkillTarget target)
+    public static bool IsTargetCompatible(
+        string capabilityId,
+        CharacterSkillTarget target)
     {
-        string id = moduleId?.Trim() ?? string.Empty;
-        bool enemy = target == CharacterSkillTarget.Enemy || target == CharacterSkillTarget.AllEnemies;
-        bool friendly = target == CharacterSkillTarget.Self
-            || target == CharacterSkillTarget.Ally
-            || target == CharacterSkillTarget.AllAllies;
-        return id switch
-        {
-            "damage" or "dot" or "vulnerability" or "delay" or "debuff" => enemy,
-            "heal" or "guard" or "buff" or "cleanse" or "protect" or "cooldown_adjust" => friendly,
-            "reposition" => enemy || friendly,
-            "multi_target" or "conditional_amplify" => enemy || friendly,
-            "work_speed" or "output" or "cleaning" or "repair" or "stock" or "research"
-                or "needs" or "mood" or "relationship" or "revenue" => !enemy,
-            _ => false
-        };
+        return CharacterSkillModuleCapabilityRegistry
+            .Require(capabilityId)
+            .IsTargetCompatible(target);
     }
 
-    public static bool WouldSelfTrigger(string moduleId, CharacterSkillTrigger trigger)
+    public static bool IsTargetCompatible(
+        CharacterSkillModuleRule module,
+        CharacterSkillTarget target)
     {
-        return (string.Equals(moduleId, "mood", StringComparison.Ordinal)
-                && trigger == CharacterSkillTrigger.MoodChanged)
-            || (string.Equals(moduleId, "needs", StringComparison.Ordinal)
-                && trigger == CharacterSkillTrigger.NeedChanged)
-            || (string.Equals(moduleId, "relationship", StringComparison.Ordinal)
-                && trigger == CharacterSkillTrigger.RelationshipChanged);
+        return CharacterSkillModuleCapabilityRegistry
+            .Require(module)
+            .IsTargetCompatible(target);
+    }
+
+    public static bool WouldSelfTrigger(
+        string capabilityId,
+        CharacterSkillTrigger trigger)
+    {
+        return CharacterSkillModuleCapabilityRegistry
+            .Require(capabilityId)
+            .WouldSelfTrigger(trigger);
+    }
+
+    public static bool WouldSelfTrigger(
+        CharacterSkillModuleRule module,
+        CharacterSkillTrigger trigger)
+    {
+        return CharacterSkillModuleCapabilityRegistry
+            .Require(module)
+            .WouldSelfTrigger(trigger);
     }
 }
 
 public static class CharacterSkillPromptBuilder
 {
+    public static NarrativePublicContextMaterial BuildPublicMaterial(
+        CharacterProgression progression)
+    {
+        return NarrativeRequestContextBuilder.BuildPublicMaterialForProgression(
+            LocalLlmRequestProfiles.CharacterSkill.Id,
+            progression,
+            requireCharacterFact: true,
+            requireMotif: true);
+    }
+
+    public static NarrativePublicContextMaterial BuildPublicMaterial(
+        CharacterProgression progression,
+        IEnumerable<NarrativeLedgerPublicationDescriptor> ledgerPublicationDescriptors)
+    {
+        if (ledgerPublicationDescriptors == null)
+            throw new ArgumentNullException(nameof(ledgerPublicationDescriptors));
+        return NarrativeRequestContextBuilder.BuildPublicMaterialForProgression(
+            LocalLlmRequestProfiles.CharacterSkill.Id,
+            progression,
+            requireCharacterFact: true,
+            requireMotif: true,
+            requiredOriginalFactIds: null,
+            ledgerPublicationDescriptors);
+    }
+
     public static string Build(
         CharacterProgression progression,
         CharacterSkillDraft draft,
         CharacterSkillSystemSettingsSO settings,
         string correction = "")
     {
+        return BuildEnvelope(
+            progression,
+            draft,
+            settings,
+            BuildPublicMaterial(progression),
+            correction).Prompt;
+    }
+
+    public static NarrativePublicPromptEnvelope BuildEnvelope(
+        CharacterProgression progression,
+        CharacterSkillDraft draft,
+        CharacterSkillSystemSettingsSO settings,
+        string correction = "")
+    {
+        return BuildEnvelope(
+            progression,
+            draft,
+            settings,
+            BuildPublicMaterial(progression),
+            correction);
+    }
+
+    public static NarrativePublicPromptEnvelope BuildEnvelope(
+        CharacterProgression progression,
+        CharacterSkillDraft draft,
+        CharacterSkillSystemSettingsSO settings,
+        NarrativePublicContextMaterial publicMaterial,
+        string correction = "")
+    {
+        if (progression == null) throw new ArgumentNullException(nameof(progression));
+        if (draft == null) throw new ArgumentNullException(nameof(draft));
+        if (settings == null) throw new ArgumentNullException(nameof(settings));
+        if (publicMaterial == null) throw new ArgumentNullException(nameof(publicMaterial));
+        string subjectId = progression.Actor?.Identity?.PersistentId?.Trim() ?? string.Empty;
+        if (!string.Equals(
+                publicMaterial.ProfileId,
+                LocalLlmRequestProfiles.CharacterSkill.Id,
+                StringComparison.Ordinal)
+            || publicMaterial.SubjectKind != NarrativePublicSubjectKind.Character
+            || !string.Equals(publicMaterial.SubjectId, subjectId, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Character skill prompt material does not match its target character.");
+        }
+        bool moduleSelection = draft.formulaVersion >=
+            CharacterSkillFormulaGeneration.ModuleSelectionFormulaVersion;
+        bool hasPending = moduleSelection
+            ? draft.nextPresentationIndex >= 0
+                && draft.nextPresentationIndex < (draft.moduleSelectionOffers?.Count ?? 0)
+            : draft.nextPresentationIndex >= 0
+                && draft.nextPresentationIndex < (draft.frozenMechanics?.Count ?? 0);
+        if (draft.formulaVersion <= 0
+            || draft.presentationState != CharacterSkillPresentationState.PresentationPending
+            || !hasPending)
+        {
+            throw new InvalidOperationException(
+                "Character skill presentation requires one frozen formula mechanic at the pending index.");
+        }
         StringBuilder builder = new StringBuilder(4096);
-        builder.AppendLine("당신은 던전 경영 RPG의 제한형 기술 조합기다.");
-        builder.AppendLine("아래에 제시된 ID만 사용한다. 수치를 만들거나 기술적 생성 과정을 언급하지 않는다.");
+        builder.AppendLine(moduleSelection
+            ? "당신은 던전 경영 RPG 기술에 어울리는 기능 모듈과 실제 근거를 고르고 이름과 서사를 작성한다."
+            : "당신은 던전 경영 RPG 기술의 이름과 서사 표현만 작성한다.");
+        builder.AppendLine(moduleSelection
+            ? "C#이 합법인 개별 모듈 전체를 제공한다. 모듈만 선택하며 수치와 비용은 응답 후 C#이 계산한다."
+            : "C#이 아래 기술 효과를 이미 확정했다. 효과, 비용, 대상, 조건을 선택하거나 바꾸지 않는다.");
         if (!string.IsNullOrWhiteSpace(correction))
         {
             string compactCorrection = correction.Replace('\r', ' ').Replace('\n', ' ').Trim();
@@ -1243,8 +1650,9 @@ public static class CharacterSkillPromptBuilder
 
             builder.AppendLine($"이전 응답 거부 이유={compactCorrection}. 이번 응답에서 반드시 고친다.");
         }
-        builder.AppendLine($"kind={draft.kind}");
-        builder.AppendLine($"candidateCount={draft.rules.Count}; candidateIndexes={string.Join(",", Enumerable.Range(0, draft.rules.Count))}");
+        builder.Append(moduleSelection
+            ? BuildModuleSelectionPacket(draft, settings)
+            : BuildPresentationPacket(draft));
         string characterName = progression.Actor?.Identity?.DisplayName;
         if (string.IsNullOrWhiteSpace(characterName))
         {
@@ -1255,52 +1663,161 @@ public static class CharacterSkillPromptBuilder
         builder.AppendLine($"origin={progression.GrowthState.origin ?? string.Empty}");
         builder.AppendLine($"species={progression.Actor?.SpeciesTag ?? string.Empty}");
         builder.AppendLine($"potential={CharacterSkillDisplay.Potential(progression.GrowthState.potentialGrade)}");
-        builder.AppendLine("facts:");
-        foreach (CharacterNarrativeFact fact in progression.NarrativeLedger.Facts
-            .Where(item => item != null)
-            .OrderByDescending(item => item.milestoneCount)
-            .ThenByDescending(item => item.lastDay)
-            .Take(18))
-        {
-            builder.AppendLine(
-                $"- domain={fact.domain}; fact={fact.factId}; subject={fact.subjectId}; outcome={fact.outcome}; count={fact.count}; total={fact.totalValue:0.##}");
-        }
-
-        builder.AppendLine("candidateRules (각 후보는 자기 줄의 exact 값을 그대로 사용):");
-        for (int i = 0; i < draft.rules.Count; i++)
-        {
-            CharacterSkillCandidateRule rule = draft.rules[i];
-            builder.AppendLine(
-                $"- index={i}; rarity={rule.rarity}; budget={rule.budget}; trigger={rule.trigger}; target={rule.target}; usableFrom={CharacterSkillFormationRules.Format(rule.usableFrom)}; targetPositions={CharacterSkillFormationRules.Format(rule.targetPositions)}");
-            List<CharacterSkillAllowedCombination> combinations =
-                CharacterSkillCombinationCatalog.Build(rule, settings, draft.kind);
-            builder.AppendLine("  combinationOptions=" + string.Join(",", combinations
-                .Select(combination => $"{combination.Id}[{combination.Signature}]")));
-        }
-
         builder.AppendLine("반드시 JSON 객체 하나만 반환한다.");
-        builder.AppendLine("형식: {\"candidates\":[{\"index\":0,\"name\":\"12자 이하 한국어 이름\",\"description\":\"40자 이하 효과 설명\",\"narrativeReason\":\"35자 이하 획득 계기\",\"trigger\":\"규칙의 trigger\",\"target\":\"규칙의 target\",\"ultimateDomain\":\"None 또는 Offense/Defense/Management\",\"cooldownTurns\":0,\"combinationId\":\"c0\"}]}");
+        builder.AppendLine(moduleSelection
+            ? "형식: {\"selectionId\":\"제공된 값 그대로\",\"positiveModuleIds\":[\"1~3개\"],\"drawbackModuleIds\":[\"선택적 해로운 모듈 0~1개\"],\"evidenceFactIds\":[\"제공된 근거\"],\"displayName\":\"14자 이하 한국어 이름\",\"narrativeFlavor\":\"90자 이하 획득 서사\"}"
+            : "형식: {\"presentationId\":\"제공된 값 그대로\",\"displayName\":\"14자 이하 한국어 이름\",\"narrativeFlavor\":\"90자 이하 획득 서사\"}");
         builder.AppendLine("절대 규칙:");
-        builder.AppendLine("1. candidates 수와 index는 candidateRules와 정확히 같아야 한다.");
-        builder.AppendLine("2. trigger와 target은 해당 index 줄의 값을 철자와 대소문자까지 그대로 복사한다.");
-        builder.AppendLine("3. combinationId는 해당 index의 combinationOptions에서 c로 시작하는 ID 하나만 정확히 고른다. modules 필드는 출력하지 않는다.");
-        builder.AppendLine("4. requestKey, kind, rarity, trigger, target 값은 moduleId나 variantId로 쓰지 않는다.");
-        if (draft.rules.Count > 1)
+        builder.AppendLine(moduleSelection
+            ? "1. 최상위에는 selectionId, positiveModuleIds, drawbackModuleIds, evidenceFactIds, displayName, narrativeFlavor만 출력한다."
+            : "1. 최상위에는 presentationId, displayName, narrativeFlavor 세 문자열만 출력한다.");
+        builder.AppendLine(moduleSelection
+            ? "2. selectionId는 제공된 값을 한 글자도 바꾸지 않고, 제공되지 않은 모듈이나 근거 ID를 만들지 않는다."
+            : "2. presentationId는 제공된 값을 한 글자도 바꾸지 않는다.");
+        builder.AppendLine(moduleSelection
+            ? "3. positiveModuleIds에는 어울리는 이로운 모듈을 최소 1개 선택한다. drawbackModules가 제공되면 부정 사건이 실제 설명에 필요할 때만 최대 1개 선택하고 그 부정 근거 ID를 반드시 함께 인용한다. 단점 설명의 '함께 선택 금지 이로운 기능'과 겹치는 모듈은 고르지 않는다. 수치, 비용, 조합 ID는 출력하지 않는다."
+            : "3. 조합, 후보, 규칙, 효과, 태그, 선택 인덱스, 수치, 비용 또는 다른 기계 필드를 출력하지 않는다.");
+        builder.AppendLine("4. 공개 사실에 없는 사건이나 결과를 만들지 않는다.");
+        builder.AppendLine($"5. displayName 또는 narrativeFlavor에 캐릭터 이름 '{characterName}'을 정확히 넣는다.");
+        return NarrativePublicPromptEnvelope.Create(builder.ToString(), publicMaterial);
+    }
+
+    public static string BuildModuleSelectionPacket(
+        CharacterSkillDraft draft,
+        CharacterSkillSystemSettingsSO settings)
+    {
+        NarrativeFormulaModuleSelectionRequest request =
+            CharacterSkillFormulaGeneration.BuildModuleSelectionRequest(draft, settings);
+        CharacterSkillCandidateRule rule = draft.rules[draft.nextPresentationIndex];
+        StringBuilder builder = new StringBuilder(2048);
+        builder.AppendLine($"selectionId={request.SelectionId}");
+        builder.AppendLine($"skillKind={draft.kind}; trigger={rule.trigger}; target={rule.target}; targeting={rule.targetingMode}; area={rule.effectArea}; areaSize={rule.areaSize}; ultimateDomain={rule.ultimateDomain}");
+        builder.AppendLine("skillContext=" + CharacterSkillPresentationSemantics
+            .DescribeContext(rule, draft.kind));
+        builder.AppendLine($"positiveModuleLimit=1..{request.MaximumPositiveModules}");
+        builder.AppendLine("positiveModules:");
+        foreach (NarrativeFormulaModuleOffer offer in request.Offers
+                     .Where(value => value.Polarity == NarrativeFormulaModulePolarity.Positive))
         {
-            builder.AppendLine($"5. candidates 배열에는 정확히 {draft.rules.Count}개만 넣고 후보별로 서로 다른 효과 조합을 고른다.");
+            CharacterSkillModuleRule module = settings.FindModule(offer.ModuleId)
+                ?? throw new InvalidOperationException(
+                    "Live module-selection packet references an unknown module '"
+                    + offer.ModuleId + "'.");
+            NarrativeFormulaCapabilityDescriptor descriptor = settings
+                .RequireFormulaDescriptor(module);
+            if (!CharacterSkillFormulaRuntimeContextPolicy.ConsumesAllAppliedAxes(
+                    draft.kind, rule, module))
+            {
+                throw new InvalidOperationException(
+                    "Live module-selection packet contains a capability whose applied axes "
+                    + "are not consumed by its runtime context: '" + offer.ModuleId + "'.");
+            }
+            builder.AppendLine($"- id={offer.ModuleId}; meaning="
+                + CharacterSkillPresentationSemantics.DescribeCapability(
+                    descriptor, rule, draft.kind));
         }
-        else
+        builder.AppendLine("drawbackModules:");
+        foreach (NarrativeFormulaModuleOffer offer in request.Offers
+                     .Where(value => value.Polarity == NarrativeFormulaModulePolarity.Drawback))
+            builder.AppendLine($"- id={offer.ModuleId}; meaning={offer.SemanticDescription}");
+        if (request.MaximumDrawbackModules == 0) builder.AppendLine("- none (return [])");
+        builder.AppendLine("evidenceFactIds=" + string.Join(",", request.EvidenceFactIds));
+        GameplayOutcomeEvidenceFormulaProjection.AppendPromptFacts(
+            builder,
+            draft.outcomeEvidenceBindings);
+        return builder.ToString();
+    }
+
+    public static string BuildPresentationPacket(CharacterSkillDraft draft)
+    {
+        if (draft?.frozenMechanics == null
+            || draft.nextPresentationIndex < 0
+            || draft.nextPresentationIndex >= draft.frozenMechanics.Count)
+            throw new InvalidOperationException("CharacterSkill has no frozen presentation at the pending index.");
+        CharacterSkillInstance frozen = draft.frozenMechanics[draft.nextPresentationIndex]
+            ?? throw new InvalidOperationException("CharacterSkill frozen presentation is null.");
+        StringBuilder builder = new StringBuilder(512);
+        builder.AppendLine($"presentationId={frozen.presentationId}");
+        builder.AppendLine($"mechanicalDescription={frozen.mechanicalDescription}");
+        builder.AppendLine("evidenceIds=" + string.Join(",", frozen.evidenceIds
+            ?? new List<string>()));
+        return builder.ToString();
+    }
+
+    public static string BuildCandidatePacket(
+        CharacterSkillDraft draft,
+        CharacterSkillSystemSettingsSO settings)
+    {
+        if (draft == null || settings == null)
         {
-            builder.AppendLine("5. candidates 배열에는 index 0 후보 하나만 넣는다. index 1이나 index 2를 만들지 않는다.");
+            return string.Empty;
         }
-        builder.AppendLine("6. name, description, narrativeReason은 자연스러운 한국어로 쓴다. 일반 액티브와 패시브의 ultimateDomain은 None이다.");
-        builder.AppendLine($"7. 각 후보의 name, description, narrativeReason 중 적어도 하나에는 캐릭터 이름 '{characterName}'을 정확히 넣고, description과 narrativeReason은 서로 다른 문장으로 쓴다.");
-        builder.AppendLine("궁극기만 서사에 맞는 계열을 고른다.");
-        return NarrativeRequestContextBuilder.ForProgression(
-                LocalLlmRequestProfiles.CharacterSkill.Id,
-                progression,
-                requireCharacterFact: true,
-                requireMotif: true)
-            .AppendToPrompt(builder.ToString());
+        CharacterSkillRuleIdentity.Ensure(draft);
+        StringBuilder builder = new StringBuilder(2048);
+        builder.AppendLine($"kind={draft.kind}");
+        builder.AppendLine(
+            $"semanticsSchemaVersion={CharacterSkillCombinationSemanticsFactory.SchemaVersion}");
+        builder.AppendLine($"candidateCount={draft.rules?.Count ?? 0}");
+        builder.AppendLine("candidateRules:");
+        foreach (CharacterSkillCandidateRule rule in draft.rules ?? new List<CharacterSkillCandidateRule>())
+        {
+            if (rule == null)
+            {
+                continue;
+            }
+            builder.AppendLine(
+                $"- ruleId={rule.ruleId}; rarity={rule.rarity}; budget={rule.budget}; trigger={rule.trigger}; target={rule.target}; targeting={rule.targetingMode}; area={rule.effectArea}; areaSize={rule.areaSize}; durationHours={rule.manualDurationHours}; cooldownDays={rule.manualCooldownDays}; ultimateDomain={rule.ultimateDomain}; cooldownTurns={rule.cooldownTurns}; usableFrom={CharacterSkillFormationRules.Format(rule.usableFrom)}; targetPositions={CharacterSkillFormationRules.Format(rule.targetPositions)}");
+            List<CharacterSkillAllowedCombination> combinations =
+                CharacterSkillCombinationCatalog.RequireLegalCombinations(
+                    rule,
+                    settings,
+                    draft.kind);
+            List<(CharacterSkillAllowedCombination Combination,
+                    CharacterSkillCombinationSemanticsDto Semantics)> projected = combinations
+                .Select(combination => (
+                    combination,
+                    CharacterSkillCombinationSemanticsFactory.Create(
+                        combination,
+                        rule,
+                        draft.kind,
+                        settings)))
+                .ToList();
+            SortedDictionary<string, string> definitions =
+                new SortedDictionary<string, string>(StringComparer.Ordinal);
+            foreach (CharacterSkillModuleSemanticsDto module in projected
+                         .SelectMany(value => value.Semantics.modules))
+            {
+                string key = CharacterSkillCombinationSemanticsFactory.GetSemanticKey(
+                    rule,
+                    draft.kind,
+                    module);
+                string json = CharacterSkillCombinationSemanticsFactory
+                    .SerializeModuleCanonical(module);
+                if (definitions.TryGetValue(key, out string existing)
+                    && !string.Equals(existing, json, StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        $"CharacterSkill semantic key '{key}' resolved to different public definitions.");
+                }
+                definitions[key] = json;
+            }
+            builder.AppendLine("  semanticDefinitions:");
+            foreach (KeyValuePair<string, string> definition in definitions)
+            {
+                builder.AppendLine($"  - key={definition.Key}; json={definition.Value}");
+            }
+            builder.AppendLine("  combinationOptions=" + string.Join(",", projected
+                .Select(value =>
+                {
+                    string semanticKeys = string.Join("+", value.Semantics.modules.Select(module =>
+                        CharacterSkillCombinationSemanticsFactory.GetSemanticKey(
+                            rule,
+                            draft.kind,
+                            module)));
+                    return $"{value.Combination.Id}[{value.Combination.Signature}]"
+                        + $"{{semanticKeys={semanticKeys}}}";
+                })));
+        }
+        return builder.ToString();
     }
 }

@@ -17,6 +17,8 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
     private IGameEventBus gameEventBus;
     private IExternalInfluenceRuntime externalInfluence;
     private IOffenseCampaignCatalog targetCatalog;
+    private IOffenseTruthRevealOutcomeCommitter truthOutcomeCommitter;
+    private IGameCalendar gameCalendar;
 
     public event Action Changed;
     public event Action<OffenseTargetSnapshot> TargetSelected;
@@ -66,7 +68,9 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
         IExternalInfluenceRuntime externalInfluence,
         IOffenseCampaignStateAuthority campaign,
         IOffenseCampaignRuntime campaignPersistence,
-        IOffenseCampaignCatalog targetCatalog)
+        IOffenseCampaignCatalog targetCatalog,
+        IOffenseTruthRevealOutcomeCommitter truthOutcomeCommitter,
+        IGameCalendar gameCalendar)
     {
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
@@ -82,6 +86,10 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
         }
         this.targetCatalog = targetCatalog
             ?? throw new ArgumentNullException(nameof(targetCatalog));
+        this.truthOutcomeCommitter = truthOutcomeCommitter
+            ?? throw new ArgumentNullException(nameof(truthOutcomeCommitter));
+        this.gameCalendar = gameCalendar
+            ?? throw new ArgumentNullException(nameof(gameCalendar));
         StartWorldMap();
     }
 
@@ -188,8 +196,7 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
             return false;
         }
 
-        if (!OffenseWorldMapService.CanAttemptTarget(MutableState, target, out message)
-            || !MutableState.MarkTargetCompleted(target.id))
+        if (!OffenseWorldMapService.CanAttemptTarget(MutableState, target, out message))
         {
             completedTarget = target.ToSnapshot(
                 HasPreciseIntel(target.id),
@@ -199,37 +206,31 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
 
         if (target.revealsTruth)
         {
-            MutableState.RevealTruth(target.id);
+            return TryCommitTruthReveal(
+                target,
+                addKnownTarget: false,
+                out completedTarget,
+                out message);
+        }
+
+        if (!MutableState.MarkTargetCompleted(target.id))
+        {
+            completedTarget = target.ToSnapshot(
+                HasPreciseIntel(target.id),
+                MutableState);
+            return false;
         }
 
         completedTarget = target.ToSnapshot(
             HasPreciseIntel(target.id),
             MutableState);
-        message = target.revealsTruth
-            ? "理쒖쥌 ?ㅽ렂?ㅻ? 留덉튂怨??섏쟾??吏꾩떎??諛앺삍?듬땲??"
-            : $"?ㅽ렂??紐⑺몴 ?꾨즺 {MutableState.CompletedTargetCount}/{targets.Count}";
+        message = $"?ㅽ렂??紐⑺몴 ?꾨즺 {MutableState.CompletedTargetCount}/{targets.Count}";
         RaiseChanged();
-
-        if (target.revealsTruth)
-        {
-            gameEventBus.RaiseAlert(
-                OffenseWorldMapService.TruthTitle,
-                target.truthText,
-                EventAlertImportance.High,
-                "원정");
-            gameEventBus.Publish(new OffenseTruthRevealedEvent(
-                target.id,
-                OffenseWorldMapService.TruthTitle,
-                target.truthText));
-        }
-        else
-        {
-            gameEventBus.RaiseAlert(
-                "원정 진척",
-                message,
-                EventAlertImportance.Medium,
-                "원정");
-        }
+        gameEventBus.RaiseAlert(
+            "원정 진척",
+            message,
+            EventAlertImportance.Medium,
+            "원정");
 
         return true;
     }
@@ -258,9 +259,101 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
             return true;
         }
 
-        MutableState.AddKnownTarget(target.id);
-        MutableState.MarkTargetCompleted(target.id);
-        MutableState.RevealTruth(target.id);
+        return TryCommitTruthReveal(
+            target,
+            addKnownTarget: true,
+            out _,
+            out message);
+    }
+
+    private bool TryCommitTruthReveal(
+        OffenseTargetDefinition target,
+        bool addKnownTarget,
+        out OffenseTargetSnapshot completedTarget,
+        out string message)
+    {
+        completedTarget = null;
+        long ownerRevision = MutableState.CompletedTargetCount
+            + (MutableState.IsTargetCompleted(target.id) ? 0L : 1L);
+        OffenseTruthRevealOutcomeReceipt receipt;
+        try
+        {
+            receipt = new OffenseTruthRevealOutcomeReceipt(
+                target.id,
+                ownerRevision,
+                target.title,
+                OffenseWorldMapService.TruthTitle,
+                target.truthText,
+                Math.Max(0, gameCalendar.Day));
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidOperationException
+                                           or OverflowException)
+        {
+            message = "진실 공개 기록이 유효하지 않습니다: " + exception.Message;
+            return false;
+        }
+
+        if (!truthOutcomeCommitter.TryPrepare(
+                receipt,
+                out PreparedExternalFactionOutcome prepared,
+                out string prepareFailure))
+        {
+            message = "진실 공개 기록 용량을 확보하지 못했습니다: "
+                + prepareFailure;
+            return false;
+        }
+
+        OffenseCampaignRestoreCandidate rollback;
+        OffenseCampaignRestoreCandidate candidate;
+        try
+        {
+            DungeonOffenseCampaignSaveData source =
+                campaignPersistence.Capture();
+            rollback = campaignPersistence.BuildRestoreCandidate(source);
+            candidate = campaignPersistence.BuildRestoreCandidate(source);
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidOperationException
+                                           or OverflowException)
+        {
+            truthOutcomeCommitter.Cancel(prepared);
+            message = "진실 공개 상태 후보를 만들지 못했습니다: "
+                + exception.Message;
+            return false;
+        }
+        if (addKnownTarget)
+            candidate.State.AddKnownTarget(target.id);
+        if (!candidate.State.IsTargetCompleted(target.id)
+            && !candidate.State.MarkTargetCompleted(target.id))
+        {
+            truthOutcomeCommitter.Cancel(prepared);
+            message = "진실 공개 목표를 완료 상태로 전환하지 못했습니다.";
+            return false;
+        }
+        candidate.State.RevealTruth(target.id);
+        if (!candidate.State.TruthRevealed)
+        {
+            truthOutcomeCommitter.Cancel(prepared);
+            message = "진실 공개 상태를 확정하지 못했습니다.";
+            return false;
+        }
+
+        campaignPersistence.PublishRestoreCandidate(candidate);
+        if (!truthOutcomeCommitter.TryCommit(
+                prepared,
+                ownerRevision,
+                out string commitFailure))
+        {
+            campaignPersistence.PublishRestoreCandidate(rollback);
+            message = "진실 공개 기록을 원자적으로 확정하지 못했습니다: "
+                + commitFailure;
+            return false;
+        }
+
+        completedTarget = target.ToSnapshot(
+            HasPreciseIntel(target.id),
+            MutableState);
         RaiseChanged();
         gameEventBus.RaiseAlert(
             OffenseWorldMapService.TruthTitle,

@@ -1,5 +1,12 @@
 # DungeonStory Current Findings
 
+## 2026-09-15 V25 evidence preflight (direct user authorization)
+
+- Existing C# ExportRequest/TestEvidence API could attach four gates, but prior packages had not-supplied evidence. Added create-only CLI/Python orchestration rather than duplicate C# authority. Official detached jobs preserve actual results; bounded wait continues the same job, never resubmits on timeout.
+- Found real verifier drift: Python required14 negative fixtures while current C# NarrativeMechanicScenarioBundle requires15. Corrected exact ID inventory and v17 stale cleaning+stock combination rejection/zero validated skills/legal-pool absence. Offline15 tamper/state tests and current-source Unity23/packet16 PASS.
+- r4 input fafc75af/source292/bundle276/four gates independently validated by sibling NarrativeAI; catalog38706406 unchanged. Natural-play samples0, no Play/replay performed, existing controlled100 not training material. Runtime capture boundaries and required family/seed/save provenance documented in Tools/Documentation/V25_NARRATIVE_TRAINING_PREFLIGHT.md. Training/model-quality/human approval not claimed.
+- KB query NarrativeMechanicCatalog code/limit6 fresh4/4: content ac262611917f9e2ac7ef84b31757ec1ab347ab272d46f2a88aef3e85eabd3d77, system0b744081970ffaa604117a79ea99469633895ca3dfacf7919c715e9565a44351. Current exporter/contracts/canonical/Unity asset source and exact test/consumer sources opened. No indexed C#/asset/authority-doc changes, no generation needed.
+
 ## 2026-09-04 공개 위키 시스템·수치 누락 전수 감사
 
 - 공개 가이드는 30개다. `게임 개요`, `건강과 공동체`는 안내 허브, `세계와 정착`, `이웃 던전`은 서사 권위로 두고 나머지 규칙은 시스템별 단일 권위 문서가 소유하게 했다.
@@ -7971,3 +7978,721 @@ Implemented result: the repair order now keeps exact material Transfer provenanc
 - The historical 353 output-line proposal is pre-application evidence. Current assets are already 357/357 topology-exact; four later reviewed topology identities must be recorded separately instead of rewriting the historical receipt.
 - Count-only physical warehouse behavior was split-brain: ordinary hauling could admit it while prepared output, conveyor and lifecycle guards ignored it. Removing the count branch is safer than maintaining two capacity dimensions.
 - `BuildingStorageAbility.capacity` remains authored metadata for non-physical room/shop projections. It is no longer a `WarehouseInventory` admission authority; `maxStoredMassGrams` is the only physical storage capacity.
+
+## 2026-09-07 WIM045 path/cleanup source batch
+
+- Valid current-source run `8D5B0213...39064` reached outside `(13,0)` to entry
+  `(17,0)` in four steps, but queried pickup `(41,0)` while the actor had not yet
+  been moved to the outside origin; raw pickup remained Pending/empty until the
+  fixture timeout.
+- `Start()` calls `Cleanup()` before writing the terminal report, but cleanup catches
+  use `verificationFailure ??=`. An existing scenario failure therefore hides any
+  secondary cleanup exception; the report had no `cleanup=` line, so restoration
+  could not be proven even though the runner terminated.
+- The freshness-gated knowledge-base query for `WimDoorConsumerScenario` and
+  `actor-aware path broker` returned no generated rows/output, so the audit fell
+  back to the directly opened C# authorities.
+- `IGridPathSearchBroker.RequestMovePathTo` is the explicit contract: `Pending`
+  returns no path, `Unreachable` returns an empty queue, and `Reachable` returns
+  the owned exact path. `GetMovePathTo` collapses only Pending to null. The fixture
+  must wait for a non-Pending status and then assert Reachable separately.
+- Production restock calls `GetMovePathTo(...Normal...)` once and treats Pending or
+  an empty path as NoPath. Exact-destination broker results are not cached, so an
+  Editor preflight cannot warm that production call; it can only prove the real
+  route and classify Pending separately. A query from a position the actor has not
+  reached is invalid fixture evidence.
+- Warehouse candidates are currently chosen from the actor's original connected
+  component, farthest first. The failed S04 stand `(41,0)` was in that component
+  but not in the outside/entrance component. Candidate acceptance must also require
+  a non-empty outside-to-pickup route that crosses the real Door and manager entry.
+- `AbilityMove.TryStartSystemMove` performs a one-shot urgent exact broker lookup and
+  treats either Pending or an empty terminal path as no path. The fixture therefore
+  proves staging and return routes to terminal status from the actor's actual
+  positions before invoking that unchanged production movement entry point; this is
+  route evidence, not cache warming.
+- Legal fixture selection now orders authored shop/warehouse candidates from the
+  real outside origin and accepts the warehouse only after the placed pickup stand
+  has a non-empty route crossing both the authored entrance Door and manager entry.
+  No Door, Stair, obstacle, or runtime topology is altered for route acceptance.
+- Cleanup still uses the existing whole-registry `RestoreAll` transaction and owned
+  FacilityBuffer authority replacement. Scenario failure remains the primary
+  `failure=`; every secondary manual/registry/buffer-or-byte cleanup exception is
+  retained and emitted, followed by exactly one explicit `cleanup=` result.
+- The approved runtime follow-up is confined to the restock pickup move. It now
+  keeps the existing lease and operation while the typed request is Pending,
+  revalidates that lease on each continuation, and checks work-run/actor/target
+  cancellation through `AbortWorkRun`. Only terminal Unreachable reports NoPath;
+  a missing broker and an invalid terminal contract have distinct failures.
+- `MoveByPath` completion was previously followed by loading without proving that
+  movement succeeded or that the actor reached the pickup stand. The executor now
+  checks both the movement reason and authoritative grid position immediately after
+  the route and before every loading/pickup mutation, then revalidates the lease
+  again immediately before physical transfer.
+- Incremental-search wall-clock slicing cannot guarantee that a nearby valid route
+  remains Pending: one `Advance` call may finish it. The focused fixture instead
+  starts the real committed Restock action under the production broker's existing
+  zero-search budget and requires exactly one budget deferral, zero searches, the
+  typed Pending phase, and a live lease/operation. A following natural scheduler
+  window resolves that same request to terminal NoPath after Door denial or to
+  Reachable before Door cancellation; both failures require pickup `0`, lease `0`,
+  and operation `0`.
+- A separate natural-budget retry follows the same legal authored route through the
+  real Restock command. It must observe the pickup stand, physical carried stock,
+  and source withdrawal, then require exact source decrease/shop increase with
+  carry `0`, lease `0`, and operation `0` at completion. This proves the arrival
+  guard admits a normal physical restock instead of only rejecting failures.
+
+## 2026-09-13 WIM 잔여 엄격 리뷰
+
+- `AGENT.md`는 삭제됐고 그 전체 규칙과 최신 검증/오케스트레이션 교정은 루트 `AGENTS.md` 450줄의 단일 권위로 통합됐다. 이 통합 자체는 게임 기능 완료 증거가 아니다.
+- 현재 WIM 권위는 `45/47`: WIM-040/041이 열려 있고, 추가 완료선으로 7.4.1 물 재고 전망과 실제 건강 귀속 분리, 8.4 대표 6인 통합 검증이 남아 있다. 연구 1/1·위키 13/13·WIM-062/063 2/2·FIRE-01 4/4의 기존 증거는 관련 의존 변경이 없으면 재개방하지 않는다.
+- WIM-041 생산 구현은 제출 참가자 roster를 canonicalize하고 대체 인원을 넣지 않는 방향으로 동결됐다. 메인 테스트 리뷰에서 최소 참가자 2명과 기존 24.9/25/100 부분 성공 기대가 충돌하고, 저장 roster 순서와 venue query의 정확한 roster/capacity 호출을 증명하지 못하는 결함을 확인했다. 생산 코드를 넓히지 않고 기존 focused witness를 교정한다.
+- 7.4.1 생산 수정은 저장량 전망을 질병 위험에서 제거하고 실제 갈증/음용/오염 권위를 유지한다. focused attribution 검증은 최신 Unity 컴파일 뒤 실행해야 한다.
+- 8.4는 기존 6인 정적 산식, 실제 생존/운반, 의복 focused 증거가 각각 있으나 같은 관찰 창의 대표 통합 증거가 없다. 새 범용 프레임워크 없이 기존 protected Play 진입점들을 최소 결합한다.
+## 2026-09-13 WIM 8.4 final representative integration finding
+
+- The prior hygiene recovery failure was a verifier false negative: the exact clean-water stack was reserved and the helper was moving through the production `WaterFixtureUseRuntime -> FluidNetworkRuntime -> WorldItemWarehouseService -> AIHaul/AbilityHaul` path when the fixed 65-second cutoff cancelled it.
+- The verifier now observes reservation, physical stack state, helper route stage, heartbeat and world/grid movement, continues only while those facts progress, and fails after a bounded 30-second no-progress interval or the 180-second hard limit. All six recovery actors receive health maintenance; only the intended consumer/helpers are AI-enabled.
+- The fresh focused run passed actual six-adult outage and primary recovery `5/5`, exact physical stock/no mint, current whole restore, authored crop/water/storage/mass projection and six-actor apparel condition/custody. Report SHA-256: `01E52176B5BF006DE727EC61093D6D6C95290F0AF3958DB09216499CEB6668EA`.
+- This closes plan 8.4's representative integration gate, not long-duration natural farming or exhaustive seed/layout certification.
+
+## 2026-09-14 WIM-040 final scope finding
+
+- The current authentic cause surface is five connected events: `grave-visit`, `story-compressed`, `quiet-promotion`, `apprentice-mistake`, and `last-lesson`. The first three are cause-aligned; the latter two have working exact producers but their authored prose claims facts the current model does not own (`rare intermediate/report hesitation`, `frailty`).
+- `newborn-welcome` cannot be inferred from reproduction publication because no household presentation fact is committed. `family-room` cannot be inferred because production has no household-room assignment caller. Twenty-four additional authored events require distinct child, housing, authorship, commission, guardian-choice, obligation, petition, rivalry, research-provenance, triage, relic, perpetrator, dental, nursery, supervised-task, tool-provenance, group-dining, shift-handoff or story-sharing authorities.
+- The minimum game-completion choice is to keep these 26 as setting/future-content definitions and exclude them from the active authored life-event catalog until their source systems exist. Building all missing domains inside WIM-040 is a large content expansion, not a defect fix.
+
+## 2026-09-14 V25 narrative mechanic Unity handoff v3 intake
+
+- The authoritative implementation prompt is the 298-line `20260914-v3`
+  Unity handoff document in the sibling NarrativeAI workspace; it is a read-only
+  contract and explicitly targets the current dirty DungeonStory checkout.
+- Current baseline remains branch `codex/wim-implementation` at commit
+  `c03d2e0a1c68067de48840f3851b388483966a6e`. The working tree contains extensive
+  user changes across gameplay, assets, generated evidence, documentation, and
+  deleted legacy content; no reset/checkout/restore or broad cleanup is authorized.
+- Root `AGENT.md` is intentionally absent. The current root `AGENTS.md` is the sole
+  project authority and requires official Unity CLI, SOURCE_EDIT/UNITY_VERIFY
+  exclusion, low-waste focused testing, balance review for traits/items/effects,
+  and evidence-backed definition-to-consumer/save/UI closure.
+- Handoff scope includes strict response contracts for six profiles, corrections
+  to existing skill/facility/equipment/persona flows, a new acquired-trait system,
+  atomic memory-seal erasure, growth UI, and a deterministic editor export with
+  Python-compatible canonical hashing and parity sidecars.
+- The prompt lists five possible design gaps. Current source and design authority
+  must be checked before asking; no costs, budgets, effects, acquisition paths,
+  milestone counting, or confirmation behavior may be invented.
+- The required knowledge-base query command returned no result text for all eight
+  grouped terms. Exit/freshness must be checked explicitly; empty output is not
+  evidence of absence. Direct current-source audit remains required.
+- The prior NarrativeAI source snapshot is `trainingEligible=false` and cannot
+  authorize acquired-trait values. It contains provisional costs 2-4 and empty
+  conflict groups for eight proposed IDs, exactly the values the v3 prompt says
+  must not be promoted without Unity design authority.
+- The global balance baseline has existing content-record sections for traits,
+  item consumption, facility/equipment evolution and effects. New acquired-trait
+  effects and the erasure item therefore require a new 17-field balance record or
+  an explicit `balance impact none` justification before authoring assets.
+- Knowledge-base freshness is confirmed: content source digest
+  `8d6788d9e54d32e77a0aa6397dafd34b7a9d98e90a1c57bb9fca4554330f278e`,
+  system source digest
+  `ac3000d566a595f26b5718f2be964c839bd13705142fff1bcbd68f87448e5869`,
+  failure count `0`. The earlier grouped code queries produced zero hits and are
+  only candidate-search results; source audit remains authoritative.
+- Start-of-task dirty manifest summary: 10,665 porcelain entries, SHA-256
+  `870678F68141C24CB2B6A55CDA3E3A3C632162D3828D1F065DC73086CE829B52`;
+  statuses are 9,698 modified, 184 deleted, 782 untracked, and one added/modified.
+  This checksum is the preservation baseline, not a request to normalize or clean
+  the worktree.
+- Two prompt-named collision points have existing user diffs and must be merged
+  semantically: `CharacterProgression.ApplyPreparedIdentity` adds a validated
+  `maximumTraitCount` up to 5 and uses it when taking prepared trait IDs;
+  `DungeonCharacterSaveData` adds six society-response movement fields. Acquired
+  trait persistence must not overwrite or reformat either change.
+
+### Export/parity audit
+
+- No current Unity `NarrativeMechanicCatalog` exporter or acquired-trait authority
+  exists. Reusable pieces are limited to deterministic asset inventory/hash and
+  atomic artifact patterns; existing semantic-digest and JsonUtility writers do
+  not match NarrativeAI canonical JSON.
+- NarrativeAI hashes compact UTF-8 JSON with recursively sorted object keys,
+  preserved array order and the top-level `catalogHash` omitted. The prior source
+  snapshot hash verifies as
+  `sha256:ee240a9d2ee80e70b34275dfd09390427b0b2138e52093df60f7a52d89d1d678`.
+- Catalog v1 rejects extra root fields, so policy, candidate ordering, conflicts,
+  packet cases and evidence belong in deterministic sidecars. Dirty provenance
+  must inventory relevant code/assets/meta rather than relying on HEAD alone.
+- Current Unity/AI parity is not yet valid: rarity names differ
+  (`Advanced/Heroic` vs `Uncommon/Epic`), Unity uses rule-local `c0...` IDs and a
+  12-candidate deterministic catalog while AI synthesizes SHA IDs over an
+  18-atom window, and AI hardcodes acquired-trait budget 7 without conflicts.
+- Export must remain `trainingEligible=false` until the runtime contracts,
+  acquired-trait authority, P0 tests, input digests and parity evidence all match.
+- Facility export has six current recipes and no lineage-only definitions (`0/6`),
+  so v1 can export every current recipe. Future lineage-only recipes must fail
+  under the present schema instead of being omitted or assigned a fake source.
+- Editor implementation should stay in the existing default editor assembly under
+  `Assets/Scripts/Services/Character/AI/Editor`; the separate EditMode asmdef does
+  not reference the needed service assemblies, so adding an asmdef would widen the
+  dependency surface unnecessarily.
+- Unity rarity names are real gameplay tokens, not aliases. The exporter must not
+  silently relabel `Advanced/Heroic` as `Uncommon/Epic`. The current Unity work can
+  export exact Unity tokens and explicit parity requirements while keeping
+  training eligibility gated; changing the external schema/profile is a separate
+  NarrativeAI import task.
+- Catalog canonical numbers can be restricted to signed integral values for the
+  current schema. Fractional response values such as facility confidence belong
+  in packet evidence, not the mechanic catalog hash domain.
+- Historical exports use create-new staging plus same-volume directory move into a
+  unique UTC version directory. A collision fails without overwrite; determinism
+  is proved by comparing the immutable catalog bytes from two distinct exports.
+
+### V25 implementation architecture contract
+
+- Existing-response work is isolated from new acquired-trait content. The first
+  source batch can close strict raw-key validation, structured audit records,
+  CharacterSkill rule identity, Facility proposal preservation, strict equipment
+  choice, catalog-owned equipment descriptions, and prose-only Persona without
+  authoring any unresolved acquired-trait balance or item acquisition values.
+- Shared inference result authority is a typed immutable audit record containing
+  profile/request/candidate-packet identity, validation outcome, explicit fallback
+  reason, selected identity/index, target identity, and deterministic game-time
+  observation. Raw response JSON is validated for its exact top-level keys before
+  DTO deserialization; JsonUtility tolerance is never treated as schema success.
+- CharacterSkill C# remains the sole mechanic authority. The model selects only a
+  legal rule-local combination and prose. Rule ID and combination ID survive into
+  runtime/save authority. Ultimate domain/cooldown policy remains an isolated
+  authoring decision and must not be guessed by the response adapter.
+- FacilityEvolution accepts only an exact legal proposed subset, retains returned
+  order/reasons/tags/confidence, and records explicit fallback. Recipe legality,
+  resources, player command and mutation compatibility remain C# authority.
+- EquipmentChoice accepts exact JSON with one in-range index. Invalid output is a
+  typed validation failure, never a clamped success. Fallback application is
+  one-shot and records its reason. Historical effect ID/name/description comes
+  from one C# registry consumed by prompt, runtime and UI.
+- Persona response contains only `personaName` and `flavorText`; existing authored
+  mechanics remain unchanged. Mechanical keys and all unknown keys are rejected.
+- Acquired traits use a separate aggregate/save authority from genetic/initial
+  traits and narrative facts. Milestone eligibility derives from the validated
+  meaningful-record ledger, while pending requests, accepted combination IDs,
+  source-instance IDs, revisions and erased outcomes are explicit persistent
+  state. Effects use a distinct `AcquiredTrait` source kind so incremental
+  projection cannot double-count profile-embedded trait effects.
+- Memory-seal erasure is a durable, idempotent operation joining one exact physical
+  item disposition with one acquired-trait state transition and effect-source
+  removal. Failure before publication preserves the item and active trait; restore
+  resumes or rolls back from explicit phases rather than inferring completion.
+- Growth UI observes commands/queries only and shows acquired traits separately;
+  it does not mutate progression, inventory or effects directly.
+- Editor export captures immutable current Unity authorities, computes Python-
+  compatible canonical JSON/hash, writes a versioned create-new directory and
+  keeps policy/parity/evidence in sidecars. `trainingEligible` remains false until
+  current-source tests and parity digests all pass. NarrativeAI is read-only.
+- Current Unity rarity tokens are gameplay authority (`Advanced`, `Heroic` rather
+  than AI snapshot aliases). Export must preserve them and expose parity failure;
+  it must not silently rename them. Any schema version transition is an external
+  import/protocol concern and does not authorize a Unity gameplay rename.
+
+### V25 game-design decisions resolved on 2026-09-14
+
+- Acquired-trait budgets, effects, conflicts and the eight-module catalog are now
+  authored Unity authority under the conservative values approved for proving the
+  complete gameplay path.
+- The seal is a physical Stored item. It is awarded once on each region's first
+  boss victory, has no craft/shop source, and is consumed only after the chosen
+  actor reaches the warehouse and the player confirms a target trait.
+- Multi-gate behavior is lowest-unprocessed 3/8/20, pending work retries through
+  the persisted callback lifecycle, and erase uses a separate confirmation modal.
+- Ultimate derivation, Facility proposal-tail handling and equipment failure
+  fallback are closed by the strict response adapters and focused regression suite.
+
+### V25 focused verification partition
+
+- Contract suite (P0 1–7, 17): exact response keys/counts, preserved model
+  combination identity without hash replacement, rule-local c0 disambiguation,
+  unknown/duplicate/budget/variant rejection, Facility order/reason/tag/confidence
+  retention, four explicit equipment failure causes without clamp success, and
+  Persona mechanical-key rejection. This suite is pure Editor code and runs once
+  after the two existing-contract production packets are integrated.
+- Acquired-trait suite (P0 8–14, 18–19): exact 3/8/20 gate lifecycle, legal
+  combination validation, instance-scoped effect idempotency/removal, pending and
+  stale callback behavior, active cap, physical seal atomic rollback, ledger and
+  growth isolation, save/restore joins and no legacy double projection. Pure
+  state/validator cases stay EditMode; the physical disposition plus growth UI
+  state transition receives one minimal live lifecycle check.
+- Export suite (P0 15–16, 20): known Python/C# Unicode fixture, top-level hash
+  omission, recursive key ordering and integer formatting; source/dirty/evidence
+  digest verification; two independent exports with byte-equal catalogs; same-
+  path collision fail-closed; packet parity sidecar and `trainingEligible` gate.
+- Existing regressions run only for changed chains: current CharacterSkill and
+  CharacterProgression save cases, FacilityEvolution ordering, Equipment history
+  lock/component roundtrip, Persona request rejection, growth presenter, physical
+  item disposition and whole character save. Previously unrelated long-running
+  suites are not part of this handoff gate.
+
+## 2026-09-14 V25 acquired-trait final authority
+
+- Acquired traits are a narrative evolution layer separate from innate
+  `CharacterTraitSO` traits. Narrative-eligible terminal facts accumulate by
+  `(domain, factId)`, manifestations are processed once at 3/8/20 meaningful
+  records, the active cap is 3, and erasure never rewinds the ledger or processed
+  milestones.
+- The authored module authority contains exactly eight modules with the approved
+  3/5/7 budgets, conflict groups and effects. Runtime projection is keyed by the
+  acquired-trait source instance, so apply/remove is idempotent and cannot remove
+  innate or another source's contribution.
+- `item:memory-erasure-seal` is awarded exactly once for the first boss victory in
+  each region, is neither crafted nor sold, and reconciles claimed-but-unpublished
+  awards after publication failure and save restore without duplication.
+- Stored use is a physical workflow: the player selects Use, target and one active
+  acquired trait, confirms in a separate modal, then the actor walks to the source
+  warehouse, picks up exactly one seal and consumes it atomically. Active failure
+  returns it to the validated source; Downed/Dead produces a current-cell recovery
+  drop. No inventory teleport or generic Loose fallback is accepted.
+- The final Unity export intentionally preserves gameplay rarity tokens
+  `Advanced`/`Heroic`. Its only remaining training blocker is the read-only
+  NarrativeAI vocabulary mismatch with `Uncommon`/`Epic`; Unity does not silently
+  alias gameplay authority. That is a cross-workspace import/protocol task, not an
+  unfinished Unity gameplay implementation.
+
+## 2026-09-14 V25 export completion claim retracted
+
+- Direct NarrativeAI `load_catalog` reproduction fails first on the rarity budget
+  vocabulary. After an in-memory Advanced→Uncommon and Heroic→Epic projection, it
+  fails again because Unity exports rich gate objects while the v1 importer requires
+  the exact list `[3,8,20]`.
+- The final manifest contains 138 paths, but 29 C# files that directly reference
+  acquired-trait or memory-erasure-seal contracts are absent. Missing production
+  authority includes manifestation/effect projection, character/save joins,
+  command/transaction, world item transfer, boss award, registration and UI.
+- `packet_parity_cases.json` has only eight cases: two CharacterSkill and six
+  AcquiredTrait. FacilityEvolution, EquipmentChoice, EvolutionHistory and Persona
+  have no cases. The CharacterSkill request also omits rarity, trigger, target,
+  ultimate domain, cooldown, formation masks, candidate count and the full legal
+  combination list/signatures present in the real production packet.
+- Therefore P0 15/16/20 and N5/N6 were not proven. Runtime/PlayMode evidence remains
+  valid, but the Unity→NarrativeAI handoff and prior aggregate evidence receipt are
+  insufficient for completion.
+
+## 2026-09-14 V25 cross-workspace export correction completed
+
+- The catalog-v1 projection now maps Unity gameplay rarity tokens only at the
+  protocol boundary (`Advanced→Uncommon`, `Heroic→Epic`) and emits the exact
+  acquired-trait gate list `[3,8,20]`. Gameplay enums and the richer authored
+  milestone policy remain unchanged and separately represented.
+- Provenance expanded from the incomplete 138-path snapshot to 255 hashed files.
+  The external verifier requires 156 explicit live/runtime/effect/custody/save/UI/
+  registration/test paths and checks every declared file against the current dirty
+  workspace rather than trusting the export's own manifest.
+- Packet parity now contains accepted and rejected cases for all six profiles.
+  CharacterSkill includes the complete authored rule and legal-combination packet;
+  nested response keys are checked exactly for CharacterSkill and FacilityEvolution.
+- The final immutable export's input digest is
+  `sha256:ce7d9e4eae37ca834777320af783566e0970549e9db4367bd79bea61ee8bfe2b`.
+  The real sibling NarrativeAI `mechanic_catalog.load_catalog` accepts it, all four
+  evidence gates validate, the policy has no blockers, and `trainingEligible=true`.
+- Fresh Unity compilation and the affected narrative/progression/full-offense
+  regressions pass with Console errors/warnings `0/0`. Two failures encountered
+  during closure were stale test setup: the reward scenario needed an explicit
+  legacy-target launch fixture and a non-awarding seal service because the physical
+  boss-award lifecycle is verified by its dedicated scenario.
+- The earlier `20260914-v25-unity-implementation-evidenced` artifact remains immutable
+  historical failure evidence and is superseded; it is not a valid completion input.
+- Balance impact: none. These changes correct protocol serialization, provenance,
+  parity/evidence, and test setup without changing gameplay costs, effects, timing,
+  acquisition, or runtime balance values.
+
+## 2026-09-14 V25 100-scenario export follow-up intake
+
+- The AI consumer now hash-pins and validates the corrected five-file Unity package,
+  passes 41 Python regressions and agrees with 16 exported parity cases. Its remaining
+  block is intentional: those cases do not provide enough C# authority state to
+  construct new prose-generation inputs safely.
+- The missing deliverable is a versioned positive-scenario sidecar with exactly 100
+  independently valid controlled fixtures across six profiles. Each row must carry
+  the actual producer request, complete legal candidates, scenario-matched public
+  facts, authored mechanical descriptions, authority/fixture state and the named
+  validator result.
+- CharacterSkill draft/target/formation/ultimate policy, acquired-trait ledger and
+  consumed milestones, facility room/identity eligibility, equipment candidate order,
+  history effect budget/evidence and Persona public facts remain C# authority. The AI
+  must consume these outputs rather than infer them from prose or rotate catalog rows.
+- Negative validation cases remain useful evidence but belong in a separate sidecar.
+  They cannot count toward the 100 normal generation inputs.
+- This is an export-only integration. It has no authorized gameplay, balance, asset,
+  AI-repository, generation, training or release-semantic change.
+
+### Other-profile producer audit
+
+- FacilityEvolution authority is the runtime recipe query over the actual source
+  facility and research state, followed by the proposal DTO validator. Six authored
+  recipes can still yield 15 distinct controlled fixtures by varying legal source,
+  room/identity metrics, lineage and recent records; event text alone is not enough
+  to claim mechanical diversity.
+- EquipmentChoice authority is
+  `EquipmentEvolutionRules.BuildLegalHistoricalEffectCandidates` over a typed usage
+  ledger. Candidate ordering and the parser's exact `selectedIndex` range must be
+  exported; the existing static first-two-effects parity is insufficient.
+- EvolutionHistory authority is `CreateAttunementHistoryNode` plus
+  `EvolutionNarrativeRequestFactory.Create`. Target/node/parent/effect/effectBudget
+  and sorted evidence IDs are locked C# fields and must round-trip exactly through
+  the validator.
+- Persona is prose-only, but its scenario facts must come from a real Customer actor
+  snapshot. Runtime multipliers/tags remain authored gameplay state and must not be
+  invented or varied by the prose response.
+- Scenario `authorityContext` is immutable audit provenance for the locked input;
+  scenario facts are the public prompt projection. Neither becomes a new gameplay
+  authority or save schema.
+
+### AcquiredTrait scenario authority audit
+
+- Positive scenarios must build a controlled `CharacterNarrativeLedger`, validate
+  the complete persistent state against authored definitions, then call
+  `CharacterAcquiredTraitRequestPacketAuthority.TryBuild` and `TryValidate`.
+  The private combination enumeration reached through `TryBuild` is the only legal
+  positive candidate producer; the existing export helper that hand-builds a
+  combination is suitable only for negative mutation cases.
+- The 3/8/20 scenarios must carry real ledger domains and globally unique fact IDs.
+  Milestone 8 fixtures include processed milestone 3 and its prior instance;
+  milestone 20 fixtures include processed 3/8 and both prior instances. Erasing an
+  acquired trait does not delete its instance or reopen its milestone.
+- Diversity comes from Work, FacilityUse, Injury, Mood, Relationship, Survival and
+  Combat evidence plus active/erased prior traits and conflict filtering. A random
+  sentence or an initial trait cannot substitute for this state.
+- Consumed/out-of-order/capacity failures belong to the manifestation lifecycle
+  service, not the request-packet validator. Negative sidecar entries must name the
+  actual layer that rejected them.
+
+### CharacterSkill scenario authority audit
+
+- Positive authority is `CharacterSkillGenerationService.CreateDraft`, followed by
+  `CharacterSkillCombinationCatalog.Build` for every rule and the production
+  response validator. The existing exporter hand-assembles a rule and therefore
+  cannot count as a positive producer run.
+- Live `CharacterSkillSystemSettings.asset` currently exposes zero Ultimate-capable
+  modules after serialized enum drift. `CreateDraft` also cannot accept a requested
+  Ultimate domain, and the Management path fixes an incompatible Enemy target.
+  Therefore the required positive Ultimate scenarios cannot be truthfully exported
+  without a small gameplay-authority bug fix; an export-only rule clone is forbidden.
+- The scenario request must preserve request key, kind/count/unlock level, rarity,
+  budget, trigger, target, ultimate domain, policy source, cooldown, formation,
+  allowed module/variant IDs and every legal combination's stable identity, cost,
+  signature and module selections.
+- Current skill modules have authored numeric variants but no single shared effect
+  description authority. Exported effect descriptions must be a deterministic
+  projection of the actual module/variant mechanics, not newly invented prose.
+
+### Scenario package current-source findings
+
+- The six actual C# producers and validators now compose successfully: positive
+  counts are `20/15/15/15/20/15` and the separate negative sidecar contains `13`
+  cases. This directly addresses the former acquired-trait gate-shape and rarity
+  import preparation gap at the Unity source boundary.
+- Equal provenance input digests do not prove package determinism. The first strict
+  two-capture comparison found equal digests and byte lengths while the Facility
+  fixture's runtime-generated persistent ID changed. The identity occurs in both
+  positive and negative FacilityEvolution scenarios and therefore also changes the
+  delivery-manifest hashes.
+- The correct fix is to assign a canonical deterministic identity to the controlled
+  FacilityEvolution test object before invoking the real recipe query and response
+  validator. Removing `facilityPersistentId` from the export or replacing the real
+  producer packet with a handcrafted clone would hide authority and is forbidden.
+- Long Unity exporter checks should use Unity CLI detached jobs. The eval command's
+  normal 5-second response budget recorded false infrastructure timeouts even when
+  the Editor later returned ready; the detached job supplied the actual 20-second
+  verdict without resubmission.
+
+### Final scenario handoff findings
+
+- The reported incomplete code-hash issue was real at the strict boundary: the v2
+  manifest omitted `EditorCharacterSkillGenerationService.cs` and its meta from the
+  newly expanded required set. Explicit producer/validator provenance is now mirrored
+  in both the Unity exporter and independent verifier. The final set is `182/182`
+  required paths within a `275`-file manifest.
+- The reported acquired-trait import shape is resolved by exporting the current
+  protocol rarity vocabulary (`Common`, `Advanced`, `Rare`) and integer manifestation
+  milestones `3/8/20`. The real NarrativeAI loader and contract validators accept the
+  final catalog/parity packet without an alias or in-memory repair.
+- Candidate completeness cannot be proven by list non-emptiness. The verifier now
+  compares Facility and history candidate order to their authoritative request,
+  requires all CharacterSkill rule/combination/module mechanics and policy source,
+  requires AcquiredTrait modules/options/evidence to match the request, and checks
+  Persona identity/customer facts plus response schema keys.
+- Minimal packet-parity fixtures and full generation scenarios are distinct contracts.
+  Parity continues to test accepted/rejected wire behavior; the 100 positive scenario
+  sidecar alone is required to carry the complete generation material. Conflating the
+  two produced an over-strict v3 verifier failure and was corrected before v4.
+- The scenario schema is draft 2020-12. Because the host does not contain the optional
+  `jsonschema` module, the repository verifier enforces its required field set,
+  closed-object contract and positive/negative document alternatives directly. This
+  keeps verification reproducible without adding a machine-local dependency.
+- `trainingEligible=false` is not an import failure. It records that this export-only
+  follow-up did not attach fresh training evidence or human approval. The catalog and
+  scenario contracts are compatible; generation, review and training remain outside
+  the authorized task.
+
+### Consumed-milestone negative review intake
+
+- The external review confirms v4's `100` positive and `13` negative machine
+  contracts, but finds no exported witness for the separate lifecycle rule: erasing
+  a manifested acquired trait must not reopen the same consumed milestone.
+- Existing normal erased-state scenarios at later milestone 8/20 prove forward
+  progress only; they do not prove same-milestone rejection or post-rejection state
+  preservation.
+- The current README's broad request handoff can leak `request.responseJson` for four
+  profiles. A safe adapter boundary must select profile-specific model-input fields
+  and exclude response/expected/accepted/failure/authority/fixture audit data.
+- The production refusal occurs before packet construction in
+  `CharacterAcquiredTraitInferenceService.SubmitMilestone`: a preserved processed
+  milestone returns `MilestoneAlreadyProcessed`, so the truthful negative case has
+  no legal-candidate packet.
+- The physical erasure transition can be exercised synchronously through
+  `MemoryErasureSealTransactionService.TryErase` with a controlled carried seal and
+  reversible physical-disposition boundary; direct state mutation is unnecessary.
+- The final command-level witness rejected milestone 3 as
+  `MilestoneAlreadyProcessed`, produced no candidate packet, preserved the erased
+  instance, processed milestone, source ledger and zero projected effects, then
+  successfully manifested the next unused milestone 8.
+- Negative schemaVersion 2 is isolated from the unchanged positive schemaVersion 1.
+  It permits an empty candidate array only as an honest representation of a command
+  rejected before candidate construction; the external verifier requires that exact
+  behavior for the new scenario.
+
+## 2026-09-14 cumulative narrative continuity intake
+
+- The external continuity audit is a read-only diagnosis, not completion evidence.
+  It proves transport of the existing 382 `factId/text` pairs but reports no Unity or
+  model execution and no end-to-end continuity verdict.
+- Three confirmed current-design gaps are in scope: shared facts collapse because the
+  projection uses truncated `factId` only; equipment live prompts expose evidence IDs
+  without readable events or prior generations; and live/export paths do not share a
+  structured public-context authority across all six profiles.
+- The target AI adapter contract is schema-v1 `publicNarrativeContext` plus scenario
+  `targetPersistentId`. It requires full IDs up to 512 characters, resolved public
+  entities, referenced facts/events, honest omission counts and recursive rejection
+  of audit/answer/raw-prompt fields.
+- The sibling NarrativeAI workspace is read-only. Its schema/validator are interface
+  specifications only; Unity must export a new immutable package and leave v8 pins,
+  source data, review state, `trainingEligible=false`, and `humanApprovalClaimed=false`
+  unchanged.
+- Balance impact is currently classified as none: the authorized work changes public
+  narrative projection, request identity and evidence serialization, not gameplay
+  costs, effects, candidate legality, probability, timing or rewards.
+
+### Frozen continuity implementation contract (2026-09-15)
+
+- **Authority:** character continuity remains `CharacterNarrativeLedger`; equipment
+  and facility continuity remains `UsageLedger` plus `CompactedHistorySegment`.
+  Public context is a deterministic projection and never becomes gameplay authority.
+- **Public identity:** each projected fact ID is derived from the length-prefixed
+  canonical tuple `(domain, originalFactId, subjectId)` and SHA-256 and is never
+  shortened. The source tuple remains visible in fact metadata/event fields so the
+  hash cannot hide a collision.
+- **Runtime contract:** one immutable `NarrativePublicContextMaterial` owns selected
+  public facts, entities, events, selection audit, semantic hash, and the
+  `NarrativeRequestContext` used by the real model prompt. Live requests and Editor
+  export consume that same material; exporters may serialize it but may not rebuild
+  facts independently.
+- **Selection:** deterministic priority plus ordinal tie-break is applied before
+  either consumer sees data. The same capped selection drives live and export, while
+  `availableFactCount` and `omittedFactCount` expose every deterministic omission.
+- **Evolution persistence:** `EvolutionNarrativeRequestSnapshot` freezes cloned
+  selected raw events and compacted prior-generation segments at request creation.
+  Save/restore reuses that snapshot and never rereads a changed ledger for the same
+  request. Legacy requests without frozen history remain explicitly history-limited;
+  no event is invented.
+- **Participants:** current/lifetime character registries may resolve stable IDs to
+  public display names. Unresolved legacy IDs must not receive guessed names, roles,
+  or relationships; their final public-label policy is a separate product decision.
+- **Commands/queries:** existing profile producers and commands remain the only
+  submission boundaries. Public-context factories are pure projections and mutate
+  neither ledgers nor requests nor gameplay state.
+- **Request/cache identity:** the public material semantic hash participates in the
+  request/candidate cache identity wherever changed narrative context could otherwise
+  reuse stale output. Mechanical candidate identity and validation remain unchanged.
+- **Failure:** unequal source tuples producing one public ID, orphan event evidence,
+  target/context mismatch, missing required readable event data, or unaccounted
+  schema-limit overflow fails loudly in focused verification/export. No fake
+  candidate or placeholder event is created to satisfy the schema.
+- **Export:** the scenario schema is versioned forward and requires
+  `targetPersistentId` plus `publicNarrativeContext`; negative schema remains
+  separately versioned. Existing v8 is immutable. New output is create-new,
+  byte-deterministic, and binds source hashes, catalog hash, input digest, and delivery
+  SHA-256.
+- **Verification:** complex fixtures cover cross-domain/long-ID separation, readable
+  equipment events and entities, prior-generation survival, six-profile parity,
+  target binding, save/restore parity, live/export semantic-hash parity, and repeat
+  export identity. Existing `100` positive/`14` negative counts stay unchanged;
+  continuity witnesses are separate. Model inference is `NOT_RUN` unless executed.
+
+### Continuity implementation findings (2026-09-15)
+
+- The original CharacterSkill export search varied a seed that did not participate
+  in its real request key. Varying the production `requestRevision` and deterministic
+  backtracking are required to preserve twenty mechanically distinct fixtures.
+- A simple top-24 fact ranking can drop one of several required raw evidence IDs when
+  the same original ID has multiple projected subject/domain tuples. The production
+  selector now reserves one deterministic representative per required original ID,
+  while retaining every other tuple as a distinct fact when capacity permits; more
+  than 24 required originals fails explicitly.
+- Persona public projection uses canonical original IDs such as `identity:name`.
+  Controlled fixture values such as `needFocus` and `Customer` authority are request
+  inputs, not public narrative facts. The independent verifier was corrected to
+  validate canonical identity plus available public background instead of demanding
+  fabricated fixture facts.
+- The current Unity console retains historical errors from unrelated earlier runs.
+  The final export/determinism window added no new error entries; completion evidence
+  therefore uses job results and a cursor-bounded console check, not the editor's
+  unbounded historical error count.
+
+### External v12 continuity audit findings (2026-09-15)
+
+- The read-only NarrativeAI adapter-v2 review verifies delivery `10/10`, manifest
+  `285/285`, mechanical witnesses `100/100`, but final model inputs only `70/100`.
+- All EquipmentChoice rows retain three participant IDs while exported entities only
+  contain the equipment. Removing those IDs makes the diagnostic copy pass, proving
+  missing public identity resolution rather than bad mechanical candidates.
+- All EvolutionHistory rows reuse a current event evidence ID in a cloned prior-
+  generation event. The adapter correctly rejects the duplicate occurrence; the
+  fixture must issue distinct events through the real ledger/generation lifecycle.
+- `NarrativePublicContextMaterial` hashes events and reference groups, but the current
+  prompt path serializes only Fxx fact labels and motifs. A day/target/count change can
+  therefore change semantic identity without being readable by the model. Completion
+  requires comparison after the final prompt transformation, not material hash parity.
+- These are narrative transport defects only. No authored effect, WU/EWU, price,
+  probability, candidate legality or gameplay state authority changes are required;
+  balance impact is classified as none.
+- Required KB queries were run for the public-context/evolution participant/model-
+  input path in `code` and `observation`. Both failed closed as `stale` with `56`
+  failures (content digest `1b850dfe...e8783`, system digest `53c0e7ca...948b`).
+  Generated rows are not used; current C# and the read-only AI adapter are the source
+  evidence. Rebuild is deferred until the source batch is frozen, per root policy.
+## 2026-09-15 — N11 frozen implementation contract
+
+- `NarrativePublicContextMaterial.AppendToPrompt` currently delegates only to `NarrativeRequestContext.AppendToPrompt`, and `NarrativeRequestContext.ToModelPrompt` consequently exposes only Fxx labels/motifs. The structured public entities, event metadata, reference groups, and selection record never reach the live final model prompt.
+- NarrativeAI adapter v2 already consumes only `publicFacts` plus `publicNarrativeContext`; it rejects unresolved equipment participants and duplicate equipment evidence IDs before building model input. The AI validator must remain unchanged.
+- Equipment scenario fixtures currently pass an empty participant-name map despite retaining actor/target IDs in the locked request.
+- Evolution-history fixtures clone a current-generation event into a prior segment, reusing its evidence ID. `UsageLedgerCompactor.Record` and `CloseGeneration` are the production issuance/compaction path and must be used instead.
+
+## 2026-09-15 — N11 strict pre-Unity review
+
+- The request factory bound `requestKey` and `publicContextSemanticHash` to an
+  anonymous material before live participant display names were resolved. The
+  submission path then rebuilt a different public material without comparing the
+  hashes. The mechanical request identity must remain stable while each prompt
+  stage binds and persists the actual resolved public-context hash before submit.
+- The formatter silently omitted unresolved equipment participants, while the
+  unchanged NarrativeAI adapter rejects any locked participant absent from public
+  entities. The C# boundary must fail closed for unresolved equipment identities,
+  require non-empty unique equipment evidence IDs, and prove locked evidence has a
+  readable event. Export-only 100-row success is insufficient without this live
+  boundary parity.
+
+## 2026-09-15 — N11 verified findings
+
+- The adapter-v2 failures were entirely at the public narrative transport boundary:
+  real participant identity closure, unique lifecycle-issued evidence, and structured
+  public information surviving the final prompt transform. Candidate legality,
+  budgets, effects, save rules and erasure policy required no change.
+- Model-facing public facts must not expose `originalFactId` or `sourceSubjectId`.
+  Collision and long-ID proofs therefore belong in a separate audit witness that
+  carries the exact source tuple and projected ID; the verifier recomputes SHA-256 and
+  confirms the projected ID appears in the referenced public facts.
+- Equipment locked evidence is publicly readable only when it occurs as an actual
+  public event evidence ID. Accepting an internal original fact ID as a substitute
+  would reopen the information mismatch and is now rejected by the handoff verifier.
+- Persona completeness can be validated from the model-visible Identity facts
+  (`Name`, `Role`, `Species`) without requiring provenance fields deliberately
+  excluded from model input.
+- The final package retains `trainingEligible=false` and
+  `humanApprovalClaimed=false`. No model inference, DPO/GGUF work, release promotion,
+  natural PlayMode, Unity MCP registration or NarrativeAI workspace write occurred.
+
+## 2026-09-15 — N12 r2 chronology findings
+
+- The r2 audit closes participant resolution, distinct lifecycle-issued evidence and
+  canonical public-payload transport. Those contracts must not be redesigned.
+- The remaining inconsistency is fixture-only: history ledger creation derives current
+  generation from `ordinal + 200` modulo 3 while the node/request derives generation
+  independently from `ordinal` modulo 4. Production uses the same evolution state
+  generation for recording and node construction.
+- Supplied boundary evidence names `12` mismatched EvolutionHistory rows and `4`
+  future-event rows. The target invariant is all `15` current event generations equal
+  the locked request generation, with every controlled prior segment/event generation
+  strictly less than current.
+- This repair has no balance impact: it changes neither effect, budget, candidate,
+  probability, WU/EWU, price nor gameplay state; it only makes deterministic Editor
+  fixture chronology match the existing production authority relationship.
+- `EvolutionNarrativeRequestFactory.Create` takes its request generation from
+  `node.generation`; its final integer argument is the effect budget. The repair
+  therefore changes the node generation authority but intentionally preserves the
+  existing budget expression.
+- `UsageLedgerCompactor.CloseGeneration` stamps the compacted segment boundaries from
+  its generation argument and preserves key-event generations. Checking both segment
+  boundaries and key events prevents a future-generation record from being hidden by
+  compaction.
+- The new v15 boundary result is `15/15` controlled history rows with request/current
+  equality, strictly earlier prior segments/events and no future event. The previous
+  `12` mismatches and `4` future rows were therefore fixture-authority defects, not an
+  AI adapter or production history-policy defect.
+- The catalog hash remains unchanged because candidates and gameplay catalog data did
+  not change. The source-bound input digest changed, as expected, because the fixture
+  source hash changed.
+
+## 2026-09-15 — N13 frozen CharacterSkill semantics contract
+
+- The required knowledge-base lookup failed closed as stale (`60` failures; content
+  digest `b2d823a69de2585c51bea9a712a29578d046080d22cfb9dacc12d694953a239a`,
+  system digest `97170a5170f871bd853a0c8870db22d3b58c6f7243a81e73499fb9e22f60f5bc`).
+  Current C# and the read-only v15 pilot evidence are therefore the source authority.
+- The public response contract remains the existing exact five fields. Effect semantics
+  are request/catalog/export input data, not an added model-response field.
+- One shared C# projection must feed `CharacterSkillPromptBuilder`, CharacterSkill
+  scenario export and catalog export. Unsupported module/variant mappings, empty or
+  duplicate terms, noncanonical ordering and missing authored definitions fail closed.
+- The projection is execution-scope aware. Current behavior differs between normal
+  offense battle, outside-combat/passive use, defense ultimate and management work;
+  a single context-free sentence would be false for several authored modules.
+- In offense battle, `conditional_amplify.wounded` tests the selected target's
+  `CurrentHealth / max(1, MaxHealth) <= 0.50` and applies a separate normal damage event
+  worth `0.35 * CalculateBasicDamage(source,target)`. `critical` uses `<= 0.25` and
+  `0.70`. Equality qualifies; caster health is irrelevant. Alphabetical module ordering
+  means the conditional executes before a later `damage` module in generated skills.
+- The existing defense-ultimate adapter is intentionally disclosed, not changed: it
+  ignores target health and the authored threshold and unconditionally contributes
+  `defenderAttack * primary * 0.5` to the aggregated hit. Changing that behavior would
+  be a balance change outside this request.
+- Other confirmed meanings that cannot be inferred safely from IDs are frozen for the
+  public projection: cooldown `one/reset` affects every existing target cooldown entry;
+  reposition moves the selected target rearward by one/two clamped rows; drain heals the
+  selected target by four and the caster by 35% of prior actual damage in the same
+  context; multi-target damages additional members of the selected target's team with a
+  hard-coded 55% basic-damage hit (up to one/seven); `buff.speed` and `debuff.slow` are
+  attack modifiers, not movement effects; delay is an additive initiative penalty;
+  research adds authored research WU per input second, not a percentage.
+- Confirmed no-op or divergent execution scopes must be described truthfully rather
+  than filled with invented behavior. This request does not alter candidates, effects,
+  costs, values, WU/EWU, legality or runtime execution.
+- The new semantics object is versioned independently and contains combination-level
+  Korean description plus ordered module entries with `moduleId`, `variantId`,
+  `effectKind`, canonical key/value terms and module Korean description. Exact field and
+  enum vocabulary is generated into the export README/schema.
+- Semantics are excluded from mechanical combination identity. `combinationId` and the
+  response schema remain unchanged; candidate-packet hash, scenario semantic hash,
+  catalog hash and source-bound input digest change. The new source file must be included
+  in exporter provenance.
+- v15 remains immutable. Exact v15 reproduction uses its recorded game commit, source
+  digest, catalog hash and delivery hashes; the current exporter does not add a hidden
+  v15 compatibility branch.
+- Balance impact classification: none. This batch exposes existing behavior and does not
+  change gameplay values or state transitions.
+- Export review caught that scenario-only coverage omitted ten authored management
+  `large` variants and left the base `catalog.json` hash unchanged. The final contract
+  therefore adds `characterSkill.semanticsCoverage`, generated by the same factory from
+  authored legality. It carries 202 representative behavior contexts, all 24 modules,
+  all 50 variants and all five runtime scopes; each row is explicitly marked
+  `representative_behavior_context_only` so its trigger/kind/domain is not generalized.
+- Final v17 keeps the complete v15 CharacterSkill combination-ID set unchanged while all
+  20 CharacterSkill scenario semantic hashes and the catalog hash change. This separates
+  mechanical identity from public explanatory bytes as intended.

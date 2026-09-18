@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
@@ -19,8 +18,6 @@ public static class ModularFacilityPlayModeVerifier
     public const string CatalogCapturePath = "Temp/modular-facility-catalog.png";
     public const string PlacementCapturePath = "Temp/modular-facility-placement.png";
     public const string CameraCapturePath = "Temp/modular-facility-camera.png";
-    public const string RecipeCapturePath = "Temp/modular-facility-recipes.png";
-    public const string RecipeCameraCapturePath = "Temp/modular-facility-recipes-camera.png";
     public const string EconomyCapturePath = "Temp/modular-facility-economy.png";
 
     [MenuItem("DungeonStory/Debug/Facilities/Run Modular Facility PlayMode Verification")]
@@ -61,7 +58,6 @@ public sealed class ModularFacilityPlayModeVerificationRunner : MonoBehaviour
     private GridUIManager gridUi;
     private BuildingSummaryInfo buildingSummary;
     private Grid grid;
-    private GridBuildingPlacementService placementService;
     private Camera mainCamera;
     private Behaviour cameraMovementController;
     private Vector3 lockedCameraPosition;
@@ -98,16 +94,10 @@ public sealed class ModularFacilityPlayModeVerificationRunner : MonoBehaviour
         mainCamera = Camera.main;
         LockCameraMovement();
         grid = controller != null ? controller.GridSystem?.grid : null;
-        placementService = controller != null
-            ? typeof(DungeonStoryGridBuildingController)
-                .GetField("placementService", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?.GetValue(controller) as GridBuildingPlacementService
-            : null;
         GameManager gameManager = UnityEngine.Object.FindFirstObjectByType<GameManager>();
         gameData = gameManager != null ? gameManager.gameData : null;
 
         Check(controller != null && grid != null, "RUNTIME_GRID", "building controller and grid resolved");
-        Check(placementService != null, "PLACEMENT_SERVICE", "runtime placement service resolved");
         Check(constructTab != null, "CONSTRUCT_TAB", "build catalog resolved");
         Check(ghostPresenter != null && gridUi != null, "PLACEMENT_UI", "ghost and placement grid resolved");
         Check(mainCamera != null, "MAIN_CAMERA", "main camera resolved");
@@ -120,7 +110,7 @@ public sealed class ModularFacilityPlayModeVerificationRunner : MonoBehaviour
         Check(gameData != null && gameData.day != null && gameData.holdingMoney != null,
             "GAME_DATA", "progression and economy data resolved");
         Check(Mouse.current == verificationMouse, "INPUT_MOUSE", "verification mouse is the active Input System mouse");
-        if (controller == null || grid == null || placementService == null
+        if (controller == null || grid == null
             || constructTab == null || ghostPresenter == null
             || gridUi == null || mainCamera == null || EventSystem.current == null
             || verificationMouse == null || gameData == null || gameData.day == null
@@ -141,7 +131,7 @@ public sealed class ModularFacilityPlayModeVerificationRunner : MonoBehaviour
 
         controller.SetGridModeNone();
         yield return null;
-        VerifyInitialWorldMigration();
+        VerifyInitialWorldPlacement();
         yield return OpenCatalog();
         VerifyCatalogContract();
 
@@ -189,9 +179,6 @@ public sealed class ModularFacilityPlayModeVerificationRunner : MonoBehaviour
 
         yield return VerifyAllCatalogPartsThroughPointer();
         VerifyCameraLock("AFTER_CATALOG_POINTERS");
-        yield return VerifyAllLegacyRecipesThroughPointer();
-        VerifyCameraLock("AFTER_RECIPE_POINTERS");
-
         Finish();
     }
 
@@ -409,371 +396,6 @@ public sealed class ModularFacilityPlayModeVerificationRunner : MonoBehaviour
                 .Select(text => text.text));
     }
 
-    private IEnumerator VerifyAllLegacyRecipesThroughPointer()
-    {
-        BuildingSO[] legacyRecipes = AssetDatabase.FindAssets("t:BuildingSO", new[]
-            {
-                "Assets/Resources/SO/Building"
-            })
-            .Select(AssetDatabase.GUIDToAssetPath)
-            .Select(AssetDatabase.LoadAssetAtPath<BuildingSO>)
-            .Where(ModularFacilityInitialPlacementMigrator.IsLegacyMonolith)
-            .Distinct()
-            .OrderBy(part => part.name, StringComparer.Ordinal)
-            .ToArray();
-        Dictionary<int, BuildingSO> modularById = AssetDatabase.FindAssets("t:BuildingSO", new[]
-            {
-                "Assets/Resources/SO/Building/Modular"
-            })
-            .Select(AssetDatabase.GUIDToAssetPath)
-            .Select(AssetDatabase.LoadAssetAtPath<BuildingSO>)
-            .Where(part => part != null)
-            .ToDictionary(part => part.id);
-        Check(legacyRecipes.Length == 21, "RECIPE_DATA_COUNT", $"recipes={legacyRecipes.Length}");
-
-        bool foundSandboxRoom = TryFindRecipeSandboxRoom(
-            legacyRecipes,
-            modularById,
-            out RoomInstance sandboxRoom,
-            out Vector2Int plannedAnchor);
-        Check(foundSandboxRoom, "RECIPE_SANDBOX_ROOM",
-            foundSandboxRoom
-                ? $"bounds={sandboxRoom.Bounds}; cells={sandboxRoom.Cells.Count}; furniture={sandboxRoom.Furniture.Count}; plannedAnchor={plannedAnchor}"
-                : "no usable formal room can fit every legacy recipe");
-        if (!foundSandboxRoom)
-        {
-            yield break;
-        }
-
-        BuildableObject[] originalFurniture = GetRecipeSandboxOccupants(sandboxRoom);
-        int clearedOriginalParts = DestroyThroughPlacementService(originalFurniture, "RECIPE_SANDBOX_CLEAR");
-        controller.GridSystem.NotifyGridObjectChanged();
-        yield return null;
-        yield return null;
-        Check(clearedOriginalParts == originalFurniture.Length,
-            "RECIPE_SANDBOX_CLEARED",
-            $"cleared={clearedOriginalParts}/{originalFurniture.Length}");
-
-        bool foundAnchor = TryFindRecipeAnchor(legacyRecipes, modularById, sandboxRoom, out Vector2Int anchor);
-        Check(foundAnchor, "RECIPE_SANDBOX_ANCHOR",
-            foundAnchor ? $"anchor={anchor}; room={sandboxRoom.Bounds}" : "no pointer-visible common anchor");
-        if (!foundAnchor)
-        {
-            yield break;
-        }
-
-        int passedRecipes = 0;
-        for (int recipeIndex = 0; recipeIndex < legacyRecipes.Length; recipeIndex++)
-        {
-            BuildingSO legacy = legacyRecipes[recipeIndex];
-            bool expanded = ModularFacilityInitialPlacementMigrator.TryExpand(
-                new InitialBuildInfo { Position = anchor, Building = legacy },
-                id => modularById.TryGetValue(id, out BuildingSO data) ? data : null,
-                out IReadOnlyList<InitialBuildInfo> recipe);
-            Check(expanded && recipe.Count >= 3,
-                "RECIPE_EXPANDED_" + legacy.name,
-                expanded ? $"parts={recipe.Count}" : "expansion failed");
-            if (!expanded)
-            {
-                continue;
-            }
-
-            List<BuildableObject> instances = new List<BuildableObject>();
-            int pointerPlaced = 0;
-            foreach (InitialBuildInfo placement in recipe)
-            {
-                yield return SelectPartThroughUi(placement.Building, placement.Building.category, captureCatalog: false);
-                if (controller.SelectedBuilding == null || controller.SelectedBuilding.id != placement.Building.id)
-                {
-                    controller.SetGridModeNone();
-                    break;
-                }
-
-                yield return PlaceSelectedPart(placement.Building, placement.Position);
-                BuildableObject instance = grid.GetGridCell(placement.Position)
-                    ?.GetOccupant(placement.Building.layer) as BuildableObject;
-                if (instance == null || instance.id != placement.Building.id)
-                {
-                    break;
-                }
-
-                pointerPlaced++;
-                instances.Add(instance);
-            }
-
-            RoomInstance room = RoomRegistry.GetLayout(grid).Rooms.FirstOrDefault(candidate =>
-                candidate != null && instances.Any(candidate.ContainsPart));
-            FacilityRole facilityRoles = instances.Aggregate(
-                FacilityRole.None,
-                (roles, part) => roles | (part.Facility?.roles ?? FacilityRole.None));
-            FacilityRole expectedRoles = (facilityRoles);
-            List<IGridOccupant> reachable = room != null && room.Doors.Count > 0
-                ? grid.GetAllReachableOccupants(room.Doors[0].centerPos)
-                : new List<IGridOccupant>();
-            BuildableObject[] visitorCores = instances
-                .Where(part => part.Facility != null && part.Facility.IsVisitorFacility)
-                .ToArray();
-            BuildableObject[] roleParts = instances
-                .Where(part => part.Facility != null && part.Facility.roles != FacilityRole.None)
-                .ToArray();
-            BuildableObject[] supportParts = instances
-                .Where(part => part.Facility == null || part.Facility.roles == FacilityRole.None)
-                .ToArray();
-            bool allVisitable = visitorCores.All(part => part.CanVisit(null, out _));
-            bool roleMembership = room != null && roleParts.All(room.ContainsPart);
-            bool supportMembership = room != null && supportParts.All(part =>
-                part.buildPoses.Any(room.ContainsCell));
-            bool mountedValid = instances
-                .Where(part => part.BuildingData.UsesIndependentRenderer)
-                .All(part => part.GetComponentInChildren<SpriteRenderer>() is SpriteRenderer renderer
-                    && renderer.enabled
-                    && renderer.sprite == part.BuildingData.sprite
-                    && part.buildPoses.All(cell => ReferenceEquals(
-                        grid.GetGridCell(cell).GetOccupant(part.BuildingData.layer),
-                        part)));
-            bool roomPassed = pointerPlaced == recipe.Count
-                && room != null
-                && room.IsUsable
-                && !room.IsSelfContained
-                && room.HasDoor
-                && expectedRoles != FacilityRole.None
-                && room.Roles == expectedRoles
-                && roleMembership
-                && supportMembership
-                && instances.All(reachable.Contains)
-                && visitorCores.Length > 0
-                && allVisitable
-                && mountedValid;
-
-            BuildableObject selectedCore = visitorCores.FirstOrDefault();
-            bool worldSelected = false;
-            if (selectedCore != null)
-            {
-                yield return SelectPlacedPartThroughPointer(
-                    selectedCore,
-                    selectedCore.centerPos,
-                    value => worldSelected = value);
-            }
-            roomPassed &= worldSelected;
-
-            string roomName = room != null
-                ? RoomEnvironmentPresentation.GetRoomName(room.Roles)
-                : string.Empty;
-            Check(roomPassed,
-                "RECIPE_POINTER_" + legacy.name,
-                $"placed={pointerPlaced}/{recipe.Count}; room={roomName}; roles={room?.Roles}; "
-                + $"reachable={instances.Count(reachable.Contains)}/{instances.Count}; "
-                + $"visitable={visitorCores.Length}; mounted={instances.Count(part => part.BuildingData.UsesIndependentRenderer)}; "
-                + $"roleMembership={roleMembership}; supportMembership={supportMembership}; "
-                + $"allVisitable={allVisitable}; mountedValid={mountedValid}; selected={worldSelected}");
-            if (roomPassed)
-            {
-                passedRecipes++;
-            }
-
-            if (recipeIndex == legacyRecipes.Length - 1)
-            {
-                Color32[] cameraPixels = CaptureCamera(mainCamera, ModularFacilityPlayModeVerifier.RecipeCameraCapturePath);
-                Check(cameraPixels.Length > 0 && cameraPixels.Any(pixel =>
-                        pixel.a > 0 && (pixel.r > 8 || pixel.g > 8 || pixel.b > 8)),
-                    "RECIPE_CAMERA_CAPTURE",
-                    $"path={ModularFacilityPlayModeVerifier.RecipeCameraCapturePath}; pixels={cameraPixels.Length}");
-                yield return CaptureScreen(
-                    ModularFacilityPlayModeVerifier.RecipeCapturePath,
-                    "RECIPE_SCREEN_CAPTURE");
-            }
-
-            int removed = DestroyThroughPlacementService(instances, "RECIPE_CLEANUP_" + legacy.name);
-            controller.GridSystem.NotifyGridObjectChanged();
-            yield return null;
-            yield return null;
-            Check(removed == instances.Count,
-                "RECIPE_CLEARED_" + legacy.name,
-                $"removed={removed}/{instances.Count}");
-        }
-
-        Check(passedRecipes == 21, "RECIPE_POINTER_TOTAL", $"passed={passedRecipes}/21");
-    }
-
-    private bool TryFindRecipeAnchor(
-        IReadOnlyList<BuildingSO> legacyRecipes,
-        IReadOnlyDictionary<int, BuildingSO> modularById,
-        RoomInstance room,
-        out Vector2Int anchor)
-    {
-        return TryFindRecipeAnchor(
-            legacyRecipes,
-            modularById,
-            room,
-            ignoredRoomFurniture: null,
-            requireRuntimeBuildable: true,
-            out anchor);
-    }
-
-    private bool TryFindRecipeSandboxRoom(
-        IReadOnlyList<BuildingSO> legacyRecipes,
-        IReadOnlyDictionary<int, BuildingSO> modularById,
-        out RoomInstance sandboxRoom,
-        out Vector2Int anchor)
-    {
-        RoomLayout layout = RoomRegistry.GetLayout(grid);
-        IEnumerable<RoomInstance> rooms = layout != null
-            ? layout.Rooms
-            : Enumerable.Empty<RoomInstance>();
-        foreach (RoomInstance candidate in rooms
-            .Where(room => room != null && room.IsUsable && !room.IsSelfContained)
-            .OrderBy(room => room.Furniture.Count == 0 ? 0 : 1)
-            .ThenByDescending(room => room.Bounds.yMin)
-            .ThenByDescending(room => room.Cells.Count))
-        {
-            BuildableObject[] ignoredFurniture = GetRecipeSandboxOccupants(candidate);
-            if (TryFindRecipeAnchor(
-                    legacyRecipes,
-                    modularById,
-                    candidate,
-                    ignoredFurniture,
-                    requireRuntimeBuildable: false,
-                    out anchor))
-            {
-                sandboxRoom = candidate;
-                return true;
-            }
-        }
-
-        sandboxRoom = null;
-        anchor = default;
-        return false;
-    }
-
-    private bool TryFindRecipeAnchor(
-        IReadOnlyList<BuildingSO> legacyRecipes,
-        IReadOnlyDictionary<int, BuildingSO> modularById,
-        RoomInstance room,
-        IReadOnlyCollection<BuildableObject> ignoredRoomFurniture,
-        bool requireRuntimeBuildable,
-        out Vector2Int anchor)
-    {
-        HashSet<Vector2Int> roomCells = new HashSet<Vector2Int>(room.Cells);
-        HashSet<BuildableObject> ignoredFurniture = ignoredRoomFurniture != null
-            ? new HashSet<BuildableObject>(ignoredRoomFurniture)
-            : null;
-        BuildingPlacementValidator validator = new BuildingPlacementValidator(
-            new GridPlacementValidator(),
-            () => new BuildingConditionContext(gameData));
-        IEnumerable<int> candidateXs = Enumerable.Range(room.Bounds.xMin, room.Bounds.width)
-            .OrderBy(x => Mathf.Abs((x + 0.5f) - room.Bounds.center.x));
-        foreach (int x in candidateXs)
-        {
-            Vector2Int candidate = new Vector2Int(x, room.Bounds.yMin);
-            bool valid = true;
-            foreach (BuildingSO legacy in legacyRecipes)
-            {
-                if (!ModularFacilityInitialPlacementMigrator.TryExpand(
-                        new InitialBuildInfo { Position = candidate, Building = legacy },
-                        id => modularById.TryGetValue(id, out BuildingSO data) ? data : null,
-                        out IReadOnlyList<InitialBuildInfo> recipe))
-                {
-                    valid = false;
-                    break;
-                }
-
-                foreach (InitialBuildInfo placement in recipe)
-                {
-                    IReadOnlyList<Vector2Int> footprint = placement.Building.GetGridPosList(placement.Position);
-                    Vector2 screenPoint = mainCamera.WorldToScreenPoint(GetCellCenter(grid, placement.Position));
-                    if (footprint.Any(cell => !roomCells.Contains(cell)
-                            || IsRecipeCellBlocked(cell, placement.Building.layer, ignoredFurniture))
-                        || (requireRuntimeBuildable && !validator.CanBuild(grid, placement.Building, placement.Position, out _))
-                        || !IsInsideScreen(screenPoint)
-                        || screenPoint.x < 32f
-                        || screenPoint.x > Screen.width - 32f
-                        || IsScreenPointOverUi(screenPoint))
-                    {
-                        valid = false;
-                        break;
-                    }
-                }
-
-                if (!valid)
-                {
-                    break;
-                }
-            }
-
-            if (valid)
-            {
-                anchor = candidate;
-                return true;
-            }
-        }
-
-        anchor = default;
-        return false;
-    }
-
-    private BuildableObject[] GetRecipeSandboxOccupants(RoomInstance room)
-    {
-        if (room == null)
-        {
-            return Array.Empty<BuildableObject>();
-        }
-
-        return room.Cells
-            .Select(cell => grid.GetGridCell(cell))
-            .Where(cell => cell != null)
-            .SelectMany(cell => cell.GetAllOccupants())
-            .OfType<BuildableObject>()
-            .Where(part => part != null
-                && !part.isDestroy
-                && part.BuildingData != null
-                && part.id >= FirstModularId
-                && part.id <= LastModularId)
-            .Distinct()
-            .ToArray();
-    }
-
-    private bool IsRecipeCellBlocked(
-        Vector2Int cell,
-        GridLayer layer,
-        IReadOnlyCollection<BuildableObject> ignoredFurniture)
-    {
-        GridCell target = grid.GetGridCell(cell);
-        if (target == null || target.GetOccupant(GridLayer.Character) != null)
-        {
-            return true;
-        }
-
-        IGridOccupant occupant = target.GetOccupant(layer);
-        if (occupant == null)
-        {
-            return false;
-        }
-
-        BuildableObject buildable = occupant as BuildableObject;
-        return buildable == null || ignoredFurniture == null || !ignoredFurniture.Contains(buildable);
-    }
-
-    private int DestroyThroughPlacementService(IEnumerable<BuildableObject> buildings, string keyPrefix)
-    {
-        int removed = 0;
-        foreach (BuildableObject building in buildings
-            .Where(part => part != null && !part.isDestroy)
-            .Distinct()
-            .ToArray())
-        {
-            if (placementService.TryDestroyBuilding(building, out BuildingSO data, out string error))
-            {
-                removed++;
-            }
-            else
-            {
-                Check(false, keyPrefix + "_" + building.id,
-                    $"{data?.objectName ?? building.name}: {error}");
-            }
-        }
-
-        return removed;
-    }
 
     private void LockCameraMovement()
     {
@@ -1058,20 +680,18 @@ public sealed class ModularFacilityPlayModeVerificationRunner : MonoBehaviour
                 && !string.IsNullOrWhiteSpace(text.text)),
             "CATALOG_NAMES_VISIBLE", "all modular buttons have a visible name label");
 
-        string[] legacyPaths =
-        {
-            "Assets/Resources/SO/Building/P1/P1_GeneralStore.asset",
-            "Assets/Resources/SO/Building/P1/P1_ResearchLab.asset",
-            "Assets/Resources/SO/Building/P1/P1_Warehouse.asset",
-            "Assets/Resources/SO/Building/P1/P1_Washroom.asset"
-        };
-        bool legacyHidden = legacyPaths
+        BuildingSO[] retiredAssets = AssetDatabase.FindAssets(
+                "t:BuildingSO",
+                new[] { "Assets/Resources/SO/Building" })
+            .Select(AssetDatabase.GUIDToAssetPath)
             .Select(AssetDatabase.LoadAssetAtPath<BuildingSO>)
-            .Where(asset => asset != null)
-            .All(asset => !asset.unlocked
-                && constructTab.GetComponentsInChildren<UIBuildingSelectButton>(true)
-                    .All(button => button == null || button.id != asset.id));
-        Check(legacyHidden, "LEGACY_MONOLITHS_HIDDEN", "representative room-sized legacy assets are absent from the catalog");
+            .Where(asset => asset != null && asset.IsDeprecatedCompatibilityAsset)
+            .ToArray();
+        Check(retiredAssets.Length == 0,
+            "RETIRED_FACILITY_ASSETS_REMOVED",
+            retiredAssets.Length == 0
+                ? "no retired compatibility BuildingSO assets remain"
+                : string.Join(", ", retiredAssets.Select(asset => asset.name)));
 
         foreach (UITab panel in constructTab.selectButtonPanelList.Where(panel => panel != null))
         {
@@ -1084,24 +704,24 @@ public sealed class ModularFacilityPlayModeVerificationRunner : MonoBehaviour
         }
     }
 
-    private void VerifyInitialWorldMigration()
+    private void VerifyInitialWorldPlacement()
     {
         BuildableObject[] worldBuildings = grid.FindAllOccupants(null)
             .OfType<BuildableObject>()
             .Where(building => building != null && !building.isDestroy && building.BuildingData != null)
             .Distinct()
             .ToArray();
-        BuildableObject[] legacy = worldBuildings
-            .Where(building => ModularFacilityInitialPlacementMigrator.IsLegacyMonolith(building.BuildingData))
+        BuildableObject[] retired = worldBuildings
+            .Where(building => building.BuildingData.IsDeprecatedCompatibilityAsset)
             .ToArray();
         BuildableObject[] modular = worldBuildings
             .Where(building => building.id >= FirstModularId && building.id <= LastModularId)
             .ToArray();
-        Check(legacy.Length == 0,
-            "INITIAL_WORLD_NO_MONOLITHS",
-            legacy.Length == 0
-                ? "legacy room-sized initial placements were expanded"
-                : string.Join(", ", legacy.Select(building => building.BuildingData.name)));
+        Check(retired.Length == 0,
+            "INITIAL_WORLD_NO_RETIRED_FACILITIES",
+            retired.Length == 0
+                ? "initial placements contain active definitions only"
+                : string.Join(", ", retired.Select(building => building.BuildingData.name)));
         Check(modular.Length >= 20,
             "INITIAL_WORLD_MODULAR_PARTS",
             $"modularInitialParts={modular.Length}");

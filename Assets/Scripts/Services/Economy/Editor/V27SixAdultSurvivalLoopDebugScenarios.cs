@@ -34,6 +34,10 @@ public static class V27SixAdultSurvivalLoopDebugScenarios
         "Assets/Resources/SO/Economy/Items/resource_twilight_grain.asset";
     private const string WaterItemPath =
         "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I01_깨끗한_물.asset";
+    private const string OutdoorCropPlotPath =
+        "Assets/Resources/SO/Building/Modular/P23_야외경작지.asset";
+    private const string IndoorCropPlotPath =
+        "Assets/Resources/SO/Building/Modular/P24_실내재배조.asset";
 
     [MenuItem("DungeonStory/V27/Verify Six Adult Food Water Closed Loop")]
     public static void RunFromMenu()
@@ -47,6 +51,8 @@ public static class V27SixAdultSurvivalLoopDebugScenarios
         ProductionRecipeSO mealRecipe = RequireAsset<ProductionRecipeSO>(MealRecipePath);
         ProductionRecipeSO waterRecipe = RequireAsset<ProductionRecipeSO>(WaterRecipePath);
         CropDefinitionSO crop = RequireAsset<CropDefinitionSO>(CropPath);
+        BuildingSO outdoorCropPlot = RequireAsset<BuildingSO>(OutdoorCropPlotPath);
+        BuildingSO indoorCropPlot = RequireAsset<BuildingSO>(IndoorCropPlotPath);
         SurvivalBalanceSettingsSO settings =
             RequireAsset<SurvivalBalanceSettingsSO>(SurvivalSettingsPath);
         ResourceEconomyContentCatalog content = new(
@@ -82,6 +88,9 @@ public static class V27SixAdultSurvivalLoopDebugScenarios
             && Exact(crop.DailyWater, 0.35f)
             && crop.Yield == 6,
             "Twilight-grain crop authority drifted from its recurring-throughput target.");
+        Require(Exact(RequireManualRefillWork(outdoorCropPlot), 1f)
+            && Exact(RequireManualRefillWork(indoorCropPlot), 1f),
+            "P23/P24 manual refill work must be one WU per physical water unit.");
         Require(settings.TryGetNeed(
                 CharacterCondition.HUNGER,
                 out CharacterNeedBalanceEntry hunger),
@@ -101,6 +110,7 @@ public static class V27SixAdultSurvivalLoopDebugScenarios
             waterRecipe,
             waterOutput,
             crop,
+            outdoorCropPlot,
             meal,
             grain,
             water);
@@ -126,6 +136,7 @@ public static class V27SixAdultSurvivalLoopDebugScenarios
             waterRecipe,
             waterOutput,
             crop,
+            outdoorCropPlot,
             meal,
             grain,
             water);
@@ -140,6 +151,7 @@ public static class V27SixAdultSurvivalLoopDebugScenarios
         ProductionRecipeSO mealRecipe = RequireAsset<ProductionRecipeSO>(MealRecipePath);
         ProductionRecipeSO waterRecipe = RequireAsset<ProductionRecipeSO>(WaterRecipePath);
         CropDefinitionSO crop = RequireAsset<CropDefinitionSO>(CropPath);
+        BuildingSO outdoorCropPlot = RequireAsset<BuildingSO>(OutdoorCropPlotPath);
         SurvivalBalanceSettingsSO settings =
             RequireAsset<SurvivalBalanceSettingsSO>(SurvivalSettingsPath);
         ResourceEconomyContentCatalog content = new(
@@ -166,6 +178,7 @@ public static class V27SixAdultSurvivalLoopDebugScenarios
             waterRecipe,
             RequireSingle(waterRecipe.Outputs, "water output"),
             crop,
+            outdoorCropPlot,
             meal,
             grain,
             water));
@@ -201,6 +214,7 @@ public static class V27SixAdultSurvivalLoopDebugScenarios
         ProductionRecipeSO waterRecipe,
         ProductionOutputDefinition waterOutput,
         CropDefinitionSO crop,
+        BuildingSO cropPlot,
         ResourceItemDefinitionSO meal,
         ResourceItemDefinitionSO grain,
         ResourceItemDefinitionSO water) => new(
@@ -216,6 +230,7 @@ public static class V27SixAdultSurvivalLoopDebugScenarios
         Milli(crop.HarvestWork),
         crop.Yield,
         Milli(crop.DailyWater),
+        Milli(RequireManualRefillWork(cropPlot)),
         waterOutput.Amount,
         Milli(waterRecipe.RequiredWork),
         Milli(mealRecipe.CleanWaterPerCycle),
@@ -244,8 +259,9 @@ public static class V27SixAdultSurvivalLoopDebugScenarios
         Require(value.CropMilliWuPerDay == 18000
             && value.CookingMilliWuPerDay == 50008
             && value.WaterMilliWuPerDay == 17560
-            && value.RecurringMilliWuPerDay == 85568
-            && value.RecurringSharePermille == 317,
+            && value.ManualWaterRefillMilliWuPerDay == 1050
+            && value.RecurringMilliWuPerDay == 86618
+            && value.RecurringSharePermille == 321,
             "Six-adult recurring WU closure drifted.");
         Require(value.DrinkingWaterDemandMilliUnitsPerDay == 5539
             && value.GrossDrinkingWaterMilliUnitsPerDay == 6924
@@ -300,8 +316,9 @@ public static class V27SixAdultSurvivalLoopDebugScenarios
             + "; recurringSharePermille=" + Invariant(value.RecurringSharePermille));
         builder.AppendLine("PASS V27_SIX_ADULT_FOOD_GROSS_125 demand=300000 gross=375000");
         builder.AppendLine("PASS V27_SIX_ADULT_FOOD_NET_110 target=330000 grossProduced=420000");
+        builder.AppendLine("PASS V27_SIX_ADULT_AUTHORED_INPUT grainBatch=6 mealBatch=6 mealWork=28000 cookingWaterPerCycle=3400 cropDailyWater=350 cropSow=3000 cropHarvest=6000 cropYield=6 refillWork=1000");
         builder.AppendLine("PASS V27_SIX_ADULT_WATER_GROSS_125 demand=5539 gross=6924 totalWithProduction=14047");
-        builder.AppendLine("PASS V27_SIX_ADULT_RECURRING_WU_35 crop=18000 cooking=50008 water=17560 total=85568");
+        builder.AppendLine("PASS V27_SIX_ADULT_RECURRING_WU_35 crop=18000 cooking=50008 waterProduction=17560 manualRefill=1050 total=86618");
         builder.AppendLine("PASS V27_SEVEN_DAY_PHYSICAL_RESERVE grain=60 immediateMeals=12 cleanWater=99"
             + ";requiredStorageMassGrams=" + Invariant(value.RequiredStorageMassGrams)
             + ";maximumRelevantStackMassGrams=" + Invariant(value.MaximumRelevantStackMassGrams));
@@ -323,7 +340,10 @@ public static class V27SixAdultSurvivalLoopDebugScenarios
             SurvivalSettingsPath,
             MealItemPath,
             GrainItemPath,
-            WaterItemPath
+            WaterItemPath,
+            OutdoorCropPlotPath,
+            IndoorCropPlotPath,
+            "Assets/Scripts/Services/Buildings/Editor/ModularFacilityAssetBuilder.cs"
         };
         StringBuilder canonical = new();
         foreach (string path in authorityPaths.OrderBy(value => value, StringComparer.Ordinal))
@@ -401,6 +421,7 @@ public static class V27SixAdultSurvivalLoopDebugScenarios
         ProductionRecipeSO waterRecipe,
         ProductionOutputDefinition waterOutput,
         CropDefinitionSO crop,
+        BuildingSO cropPlot,
         ResourceItemDefinitionSO meal,
         ResourceItemDefinitionSO grain,
         ResourceItemDefinitionSO water)
@@ -415,6 +436,7 @@ public static class V27SixAdultSurvivalLoopDebugScenarios
                 "netFoodCoveragePermille", "cropPlots", "grossMealMilliUnits",
                 "drinkingWaterDemandMilliUnits", "grossDrinkingWaterMilliUnits",
                 "grossWaterCoveragePermille", "totalWaterMilliUnits",
+                "manualWaterRefillMilliWu",
                 "recurringMilliWu", "recurringSharePermille",
                 "logisticsReservePermille", "emergencyReservePermille",
                 "growthAvailablePermille", "immediateMealUnits",
@@ -426,13 +448,17 @@ public static class V27SixAdultSurvivalLoopDebugScenarios
             {
                 SurvivalClosedLoopAssessment value = SurvivalClosedLoopCalculator.Assess(
                     Definition(population, hunger, thirst, mealRecipe, mealInput, mealOutput,
-                        waterRecipe, waterOutput, crop, meal, grain, water));
+                        waterRecipe, waterOutput, crop, cropPlot, meal, grain, water));
                 const int logisticsReservePermille = 150;
                 const int emergencyReservePermille = 100;
                 int growthAvailablePermille = 1000
                     - value.RecurringSharePermille
                     - logisticsReservePermille
                     - emergencyReservePermille;
+                VerifyStageRecurringBudget(
+                    population,
+                    value,
+                    growthAvailablePermille);
                 bool recurringTargetWarning = value.RecurringSharePermille > 350;
                 bool passed = value.Passed
                     && value.GrossFoodCoveragePermille >= 1250
@@ -463,6 +489,7 @@ public static class V27SixAdultSurvivalLoopDebugScenarios
                     Invariant(value.GrossDrinkingWaterMilliUnitsPerDay),
                     Invariant(value.GrossDrinkingWaterCoveragePermille),
                     Invariant(value.TotalWaterMilliUnitsPerDay),
+                    Invariant(value.ManualWaterRefillMilliWuPerDay),
                     Invariant(value.RecurringMilliWuPerDay),
                     Invariant(value.RecurringSharePermille),
                     Invariant(logisticsReservePermille),
@@ -482,6 +509,29 @@ public static class V27SixAdultSurvivalLoopDebugScenarios
             }
             writer.Flush();
         });
+    }
+
+    private static void VerifyStageRecurringBudget(
+        int population,
+        SurvivalClosedLoopAssessment value,
+        int growthAvailablePermille)
+    {
+        (long refill, long recurring, int share, int growth) expected = population switch
+        {
+            1 => (350L, 17844L, 397, 353),
+            3 => (700L, 46704L, 346, 404),
+            6 => (1050L, 86618L, 321, 429),
+            12 => (2100L, 173236L, 321, 429),
+            18 => (3150L, 259854L, 321, 429),
+            24 => (3850L, 339644L, 315, 435),
+            _ => throw new InvalidOperationException(
+                $"Population stage {population} lacks an authored recurring budget.")
+        };
+        Require(value.ManualWaterRefillMilliWuPerDay == expected.refill
+            && value.RecurringMilliWuPerDay == expected.recurring
+            && value.RecurringSharePermille == expected.share
+            && growthAvailablePermille == expected.growth,
+            $"Population stage {population} recurring budget drifted.");
     }
 
     private static int PopulationTier(int population) => population <= 6
@@ -542,6 +592,20 @@ public static class V27SixAdultSurvivalLoopDebugScenarios
         if (values == null || values.Count != 1)
             throw new InvalidOperationException($"Expected one {label}.");
         return values[0];
+    }
+
+    private static float RequireManualRefillWork(BuildingSO cropPlot)
+    {
+        BuildingWorkAmountAbility work = cropPlot?
+            .GetAbility<BuildingWorkAmountAbility>();
+        if (work == null
+            || !float.IsFinite(work.operateWorkRequired)
+            || work.operateWorkRequired < 0.1f)
+        {
+            throw new InvalidOperationException(
+                "Crop plot manual refill work authority is missing.");
+        }
+        return work.operateWorkRequired;
     }
 
     private static long Milli(float value) => checked((long)decimal.Round(

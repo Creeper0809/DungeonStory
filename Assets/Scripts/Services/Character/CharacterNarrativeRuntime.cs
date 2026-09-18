@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
+using VContainer;
 using VContainer.Unity;
 
 public sealed class CharacterNarrativeRuntime :
@@ -18,6 +19,7 @@ public sealed class CharacterNarrativeRuntime :
     private readonly CharacterIdentityStateStore identityStates;
     private readonly WorkCompletionIdentityDeliveryLedger completionDeliveries;
     private readonly IGameContentDefinitionSource content;
+    private readonly IGameEventBus gameEvents;
     private CharacterIdentityRuntimeStateSaveData[] stagedIdentityStates;
     private WorkCompletionIdentityDeliveryCursorSaveData[]
         stagedCompletionDeliveries;
@@ -42,6 +44,25 @@ public sealed class CharacterNarrativeRuntime :
         this.content = content;
         this.completionDeliveries = completionDeliveries
             ?? new WorkCompletionIdentityDeliveryLedger();
+    }
+
+    [Inject]
+    public CharacterNarrativeRuntime(
+        DungeonRuntimeAggregateRootStore rootStore,
+        ICharacterNarrativeCatalog catalog,
+        CharacterIdentityStateStore identityStates,
+        IGameContentDefinitionSource content,
+        WorkCompletionIdentityDeliveryLedger completionDeliveries,
+        IGameEventBus gameEvents)
+        : this(
+            rootStore,
+            catalog,
+            identityStates,
+            content,
+            completionDeliveries)
+    {
+        this.gameEvents = gameEvents
+            ?? throw new ArgumentNullException(nameof(gameEvents));
     }
 
     public int Version => version;
@@ -104,7 +125,23 @@ public sealed class CharacterNarrativeRuntime :
     {
         catalog.Require(profile.Primary);
         if (profile.Secondary.IsValid) catalog.Require(profile.Secondary);
-        long awarded = RequireWritable(characterId).AddApprovedWork(
+        CharacterNarrativeRecord record = RequireWritable(characterId);
+        CharacterProficiencySnapshot beforePrimary = RequireProficiencySnapshot(
+            record,
+            profile.Primary,
+            absoluteHour);
+        CharacterProficiencySnapshot beforeSecondary = default;
+        bool observesSecondary = profile.Secondary.IsValid
+            && profile.SecondaryWeight > 0f;
+        if (observesSecondary)
+        {
+            beforeSecondary = RequireProficiencySnapshot(
+                record,
+                profile.Secondary,
+                absoluteHour);
+        }
+
+        long awarded = record.AddApprovedWork(
             profile,
             approvedWork,
             difficultyMultiplier,
@@ -113,6 +150,24 @@ public sealed class CharacterNarrativeRuntime :
             repetitionMultiplier,
             absoluteHour);
         if (awarded > 0L) version = unchecked(version + 1);
+        PublishPromotionIfCommitted(
+            CharacterProficiencyAwardKind.ApprovedWork,
+            characterId,
+            beforePrimary,
+            RequireProficiencySnapshot(record, profile.Primary, absoluteHour),
+            absoluteHour);
+        if (observesSecondary)
+        {
+            PublishPromotionIfCommitted(
+                CharacterProficiencyAwardKind.ApprovedWork,
+                characterId,
+                beforeSecondary,
+                RequireProficiencySnapshot(
+                    record,
+                    profile.Secondary,
+                    absoluteHour),
+                absoluteHour);
+        }
         return awarded;
     }
 
@@ -124,13 +179,68 @@ public sealed class CharacterNarrativeRuntime :
         bool applyLearningMultiplier = true)
     {
         catalog.Require(proficiencyId);
-        long awarded = RequireWritable(characterId).AddDirectExperience(
+        CharacterNarrativeRecord record = RequireWritable(characterId);
+        CharacterProficiencySnapshot before = RequireProficiencySnapshot(
+            record,
+            proficiencyId,
+            absoluteHour);
+        long awarded = record.AddDirectExperience(
             proficiencyId,
             experience,
             absoluteHour,
             applyLearningMultiplier);
         if (awarded > 0L) version = unchecked(version + 1);
+        PublishPromotionIfCommitted(
+            CharacterProficiencyAwardKind.DirectExperience,
+            characterId,
+            before,
+            RequireProficiencySnapshot(record, proficiencyId, absoluteHour),
+            absoluteHour);
         return awarded;
+    }
+
+    private static CharacterProficiencySnapshot RequireProficiencySnapshot(
+        CharacterNarrativeRecord record,
+        CharacterProficiencyId proficiencyId,
+        long absoluteHour)
+    {
+        if (record == null)
+            throw new ArgumentNullException(nameof(record));
+        if (!record.TryGetProficiency(
+                proficiencyId,
+                absoluteHour,
+                out CharacterProficiencySnapshot snapshot))
+        {
+            throw new InvalidOperationException(
+                $"Character proficiency '{proficiencyId.Value}' is unavailable after catalog validation.");
+        }
+        return snapshot;
+    }
+
+    private void PublishPromotionIfCommitted(
+        CharacterProficiencyAwardKind awardKind,
+        CharacterId characterId,
+        CharacterProficiencySnapshot before,
+        CharacterProficiencySnapshot after,
+        long absoluteHour)
+    {
+        if (gameEvents == null
+            || after.CurrentMilliExperience <= before.CurrentMilliExperience
+            || (int)CareerRules.ResolveRank(after.CurrentExperience)
+                <= (int)CareerRules.ResolveRank(before.CurrentExperience))
+        {
+            return;
+        }
+
+        gameEvents.Publish(new CharacterProficiencyAwardCommitReceipt(
+            awardKind,
+            characterId,
+            after.ProficiencyId,
+            before.CurrentMilliExperience,
+            after.CurrentMilliExperience,
+            before.LifetimeMilliExperience,
+            after.LifetimeMilliExperience,
+            absoluteHour));
     }
 
     public long AddCombatExperience(

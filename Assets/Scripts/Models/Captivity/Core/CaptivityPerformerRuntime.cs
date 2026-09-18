@@ -96,13 +96,12 @@ public sealed class CaptivityPerformerRuntime
             state.performerInjuries++;
         }
 
-        int previousPrivilegeTier = state.privilegeTier;
         state.privilegeTier = state.performerFame >= 75f
             ? 2
             : state.performerFame >= 50f
                 ? 1
                 : 0;
-        ApplyMilestones(state, previousPrivilegeTier);
+        ApplyMilestones(state);
     }
 
     public bool TryResolveMilestone(
@@ -166,7 +165,7 @@ public sealed class CaptivityPerformerRuntime
         }
     }
 
-    private void ApplyMilestones(CaptiveState state, int previousPrivilegeTier)
+    private void ApplyMilestones(CaptiveState state)
     {
         if (state.performerFame >= 50f && !state.carePriorityUnlocked)
         {
@@ -191,10 +190,6 @@ public sealed class CaptivityPerformerRuntime
             PublishMilestone(state, 100, state.lastResult);
         }
 
-        if (state.privilegeTier > previousPrivilegeTier)
-        {
-            state.health = Mathf.Clamp(state.health + 5f, 0f, 100f);
-        }
     }
 
     private void PublishMilestone(

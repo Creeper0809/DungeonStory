@@ -1,0 +1,25 @@
+result=PASS_COMBAT_CONSUMER_ONLY
+parentWim023=OPEN; originalClosed=39/47; research=0/1; wiki=13/13; additionalWim=2/2; fire=0/4
+closedChildrenThisBatch=1
+runtimeSourceChanges=0; authoredAssetChanges=0; balanceImpact=none (test/verification only)
+test=Assets/Scripts/Services/Items/Editor/Wim023InstalledConsumerLiveWitness.cs
+testSha256=ABC6223175A3228113439C47D88A651814E5062EF21D4A0F9CB8648A701BFEF8
+harness=Assets/Scripts/Services/Items/Editor/Wim023PartProductionLiveWitness.cs
+harnessSha256=F18AA99BF92E423BF4F11225032DCEEF4ABCE41F0662525785A1200F64EFDCE4
+runtimeDllSha256=9C74E1825030E69F7F543189B632BD0EA36ACB33CDFE5B91528D41B5EF711BB7
+editorDllSha256=F01946C053CE0BF1FD9B5696E55D98D149593EC66D7970BE726C30B89738554E
+currentCompile=completed; failed=false; errors=[]
+evidence=wim-023-main-installed-combat-consumer.txt
+evidenceSha256=CB66D1BC64BFF12713CCF40C02429CCB0196DC72EBECF5FA94A616BB45F5F6B1
+assertions=registered authored Kobold persistent NPC; coherent current surgery/body/physical ownership restore; actual main performance/body queries; evasion bonus0->0.03; functional/movement values unchanged; same independent unarmed roll0.0213125; baseline Hit/damage7.948889; enhanced Evaded/damage0; installed physical duplicate0
+scope=controlled persistent NPC capability, proficiency100 and historical installation through registered whole-save preparation; real combat resolution consumer; NOT new natural clinical/recruitment/production proof, applied-HP whole combat loop, movement/heat/work consumption or balance certification
+failuresPreserved=wim-023-consumer-20260912-missing-proficiency-fixture.txt (FDBC5B6D4A24074D8743818D1CB57151F2881ED1279527754C0619C7EE28AC30); wim-023-consumer-20260912-missing-subject-fixture.txt
+testCorrections=existing narrative proficiency registration; int100 literal; existing persistent NPC role+AbilityWork composition; proven walkable cell; exact body RuntimeState phase; PartRecoveryPolicy; independent unarmed tracking0.08; honest cleanup scope
+review=one limited Sol setup review plus current-delta messages; root fixed its own test defects; no production delegation necessary
+compileRuns=5 (4PASS,1test-only CS0266 fixed); actualConsumerRuns=3 (2setupFAIL,1PASS); unrelatedAcceptedTestReplays=0
+consoleSince34128=warnings0; errors2; both Pipeline /api/exec main-thread5000ms timeouts (seq34129,34144); gameErrors0; doNotClaimWholeConsoleZero=true
+timeoutSemantics=timeout is not cancellation of a Started dispatcher work item; final timeout was followed by actual PASS/runnerFalse, so no duplicate test call. Earlier no-start case was observed separately before queueing once.
+protectedFiles=GameplayScene.unity, TestResults.xml, Migration/legacy-default-company-v1.done, Profile/meta-profile.json, Saves/autosave.json, Settings/user-settings.json; all6SHA256unchanged
+finalUnity=stopped/ready; compiling=false; domainReloadInProgress=false; heartbeat2026-09-12T14:26:38.0171188Z
+remaining=023movement/heat/work consumers (Human authored actor limitation retained); original009/016/017/040/041/051/052; research015; FIRE4; plan7.4 and final6adult integration
+goal=ACTIVE; no automatic Git operation

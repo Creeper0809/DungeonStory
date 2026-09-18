@@ -36,12 +36,58 @@ public static class CharacterWorldSaveValidation
             report.AddError($"{label} contains a negative counter or invalid level.");
         }
 
-        ValidateGrowth(actor.growth, label, report);
+        ValidateGrowth(actor.growth, actor.isOwner, label, report);
         ValidateNarrative(actor.narrative, label, report);
+        ValidateAcquiredTraits(actor.acquiredTraits, actor.narrative, label, report);
         ValidateSocialMemory(actor.socialMemory, label, report);
         ValidateRecovery(actor.expeditionRecovery, label, report);
         ValidateCarryInventory(actor.carryInventory, label, report);
         ValidateHaulDeliveryIntent(actor, label, report);
+        ValidateSocietyResponseMovement(actor, label, report);
+    }
+
+    private static void ValidateSocietyResponseMovement(
+        DungeonCharacterSaveData actor,
+        string label,
+        DungeonGameRestoreReport report)
+    {
+        if (actor.societyResponseMovementOperationId == null
+            || actor.societyResponseMovementExternalOperationId == null
+            || actor.societyResponseMovementFacilityId == null
+            || actor.societyResponseMovementReceiptId == null)
+        {
+            report.AddError(
+                $"{label} has null Society response movement provenance.");
+            return;
+        }
+        bool hasOwner =
+            actor.societyResponseMovementOperationId.Length > 0;
+        if (!hasOwner)
+        {
+            if (actor.societyResponseMovementExternalOperationId.Length != 0
+                || actor.societyResponseMovementFacilityId.Length != 0
+                || actor.societyResponseMovementDestinationX != 0
+                || actor.societyResponseMovementDestinationY != 0
+                || actor.societyResponseMovementReceiptId.Length != 0)
+            {
+                report.AddError(
+                    $"{label} has Society response movement fields without an owner.");
+            }
+            return;
+        }
+        if (!IsCanonicalRequired(
+                actor.societyResponseMovementOperationId)
+            || !IsCanonicalRequired(
+                actor.societyResponseMovementExternalOperationId)
+            || !new BuildingInstanceId(
+                actor.societyResponseMovementFacilityId).IsValid
+            || actor.societyResponseMovementReceiptId.Length > 0
+                && !IsCanonicalRequired(
+                    actor.societyResponseMovementReceiptId))
+        {
+            report.AddError(
+                $"{label} has invalid Society response movement provenance.");
+        }
     }
 
     public static void ValidatePopulationProfiles(
@@ -68,7 +114,7 @@ public static class CharacterWorldSaveValidation
                 report.AddError($"{label} contains a negative counter or invalid level.");
             }
 
-            ValidateGrowth(profile.growth, label, report);
+            ValidateGrowth(profile.growth, profile.isOwner, label, report);
             ValidateNarrative(profile.narrative, label, report);
             ValidateSocialMemory(profile.socialMemory, label, report);
         }
@@ -247,6 +293,7 @@ public static class CharacterWorldSaveValidation
 
     private static void ValidateGrowth(
         CharacterGrowthState growth,
+        bool isOwner,
         string label,
         DungeonGameRestoreReport report)
     {
@@ -305,9 +352,11 @@ public static class CharacterWorldSaveValidation
         {
             report.AddError($"{label} growth state repeats a trait ID.");
         }
-        if (growth.traitIds.Count > 4)
+        int maximumTraitCount = isOwner ? 5 : 4;
+        if (growth.traitIds.Count > maximumTraitCount)
         {
-            report.AddError($"{label} growth state exceeds the four-trait limit.");
+            report.AddError(
+                $"{label} growth state exceeds the {maximumTraitCount}-trait limit.");
         }
 
         ValidateStringIds(
@@ -399,6 +448,32 @@ public static class CharacterWorldSaveValidation
             {
                 report.AddError($"{label} contains an invalid or duplicate narrative fact '{key}'.");
             }
+        }
+
+        if (!CharacterAcquiredTraitMeaningfulLedgerValidator.TryValidate(
+                narrative,
+                out string meaningfulLedgerFailure))
+        {
+            report.AddError(
+                $"{label} meaningful narrative ledger is invalid: "
+                + meaningfulLedgerFailure);
+        }
+    }
+
+    private static void ValidateAcquiredTraits(
+        CharacterAcquiredTraitAggregateState state,
+        CharacterNarrativeLedger narrative,
+        string label,
+        DungeonGameRestoreReport report)
+    {
+        foreach (CharacterAcquiredTraitValidationIssue issue in
+                 CharacterAcquiredTraitStateValidator.ValidatePersistentState(
+                     state,
+                     narrative)
+                     .Where(value => value.Code
+                         != CharacterAcquiredTraitValidationIssueCode.InvalidLedger))
+        {
+            report.AddError($"{label} {issue}");
         }
     }
 
@@ -646,6 +721,10 @@ public static class CharacterWorldSaveValidation
                 + admissionFailure);
         }
     }
+
+    private static bool IsCanonicalRequired(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
 
     private static bool IsFinite(float value)
     {

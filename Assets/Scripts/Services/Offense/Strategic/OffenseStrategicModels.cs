@@ -100,6 +100,7 @@ public sealed class OffenseWorldSiteStateData
     public int expiresDay;
     public StrategicPressureAxis pressureAxis;
     public float pressureAmount;
+    public OffenseSeasonalExpeditionOfferData seasonalOffer = new();
 
     public OffenseHexCoord Coord => new OffenseHexCoord(q, r);
     public bool IsActive => state is OffenseWorldSiteState.Hidden
@@ -144,17 +145,30 @@ public sealed class OffenseTravelStateData
     public int destinationR;
     public string destinationSiteId;
     public List<OffenseHexCoordSaveData> remainingPath = new List<OffenseHexCoordSaveData>();
+    public float routeRoadMultiplier = 1f;
+    public float routeWeatherMultiplier = 1f;
+    public float routeLoadMultiplier = 1f;
+    public int activeSegmentQ;
+    public int activeSegmentR;
+    public string activeSegmentWeatherFrontId = string.Empty;
+    public float activeSegmentWeatherMultiplier = 1f;
+    public float activeSegmentTraversalCost;
     public float progressToNextTile;
     public float exposure;
     public bool pausedForDecision;
     public bool pausedForBattle;
     public int eventSequence;
     public float movementTimeMultiplier = 1f;
+    public float milestoneTimeMultiplier = 1f;
+    public float facilityTimeMultiplier = 1f;
+    public float activeSegmentDurationSeconds;
     public bool stranded;
     public string strandedReason = string.Empty;
 
     public OffenseHexCoord CurrentCoord => new OffenseHexCoord(currentQ, currentR);
     public OffenseHexCoord DestinationCoord => new OffenseHexCoord(destinationQ, destinationR);
+    public OffenseHexCoord ActiveSegmentCoord =>
+        new OffenseHexCoord(activeSegmentQ, activeSegmentR);
 }
 
 [Serializable]
@@ -311,7 +325,7 @@ public sealed class OffenseBattleDirectorStateData
 [Serializable]
 public sealed class OffenseWorldSaveData
 {
-    public const int CurrentVersion = 8;
+    public const int CurrentVersion = 10;
 
     public int version = CurrentVersion;
     public int worldSeed;

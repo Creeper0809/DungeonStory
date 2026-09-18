@@ -94,6 +94,8 @@ public sealed class SurgeryResourceServices
         ISurgeryMaterialTerminalRuntime materialTerminal,
         IPhysicalItemBatchDispositionService batchDispositions,
         IPhysicalItemMassQuery physicalMass,
+        IFacilityBufferMassAdmissionService plannedOutputAdmission,
+        IFacilityBufferPlannedOutputPublicationService plannedOutputPublication,
         IPackagedLotTareDispositionService tareDispositions)
     {
         ExtractionLedger = extractionLedger ?? throw new ArgumentNullException(nameof(extractionLedger));
@@ -116,6 +118,10 @@ public sealed class SurgeryResourceServices
             ?? throw new ArgumentNullException(nameof(batchDispositions));
         PhysicalMass = physicalMass
             ?? throw new ArgumentNullException(nameof(physicalMass));
+        PlannedOutputAdmission = plannedOutputAdmission
+            ?? throw new ArgumentNullException(nameof(plannedOutputAdmission));
+        PlannedOutputPublication = plannedOutputPublication
+            ?? throw new ArgumentNullException(nameof(plannedOutputPublication));
         TareDispositions = tareDispositions
             ?? throw new ArgumentNullException(nameof(tareDispositions));
     }
@@ -134,6 +140,9 @@ public sealed class SurgeryResourceServices
     public ISurgeryMaterialTerminalRuntime MaterialTerminal { get; }
     public IPhysicalItemBatchDispositionService BatchDispositions { get; }
     public IPhysicalItemMassQuery PhysicalMass { get; }
+    public IFacilityBufferMassAdmissionService PlannedOutputAdmission { get; }
+    public IFacilityBufferPlannedOutputPublicationService
+        PlannedOutputPublication { get; }
     public IPackagedLotTareDispositionService TareDispositions { get; }
 }
 

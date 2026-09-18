@@ -21,9 +21,17 @@ public sealed class MetaProgressionSaveSection :
     }
 
     public override string SectionId => Id;
-    public override int SectionVersion => 1;
+    public override int SectionVersion => 2;
     public override DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.Foundation;
+
+    protected override void ValidateRawPayload(string payloadJson) =>
+        RequireObjectArrayFieldsWhenTopLevelBooleanTrue(
+            payloadJson,
+            "hasLatestResult",
+            "latestResult",
+            "completedMilestoneIds",
+            "committedChoices");
 
     protected override DungeonMetaProgressionSaveData CapturePayload()
     {
@@ -95,7 +103,20 @@ public sealed class MetaProgressionSaveSection :
             difficulty = result.difficulty,
             survivalPressure = result.survivalPressure,
             legacyCurrency = result.legacyCurrency,
-            outcome = result.outcome
+            outcome = result.outcome,
+            completedMilestoneIds = result.completedMilestoneIds.ToList(),
+            committedChoices = result.committedChoices
+                .Select(value => new DungeonCommittedRunChoiceSaveData
+                {
+                    kind = value.Kind,
+                    ownerId = value.OwnerId,
+                    definitionId = value.DefinitionId,
+                    instanceId = value.InstanceId,
+                    choiceId = value.ChoiceId,
+                    operationId = value.OperationId,
+                    ordinal = value.Ordinal
+                })
+                .ToList()
         };
     }
 

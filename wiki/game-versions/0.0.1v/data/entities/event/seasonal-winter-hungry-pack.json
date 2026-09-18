@@ -16,10 +16,20 @@
   "game_version": "0.0.1v",
   "group": "events-campaign",
   "kind": "event",
-  "relations": [],
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-hound",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴사냥개",
+      "type": "references"
+    }
+  ],
   "schema_version": 1,
   "slug": "seasonal-winter-hungry-pack",
   "spoiler_tier": "warning",
-  "summary": "먹이를 잃은 야생 무리가 가축과 쓰레기장을 습격한다.",
+  "summary": "겨울 외곽 둥지에 동굴사냥개 세 마리가 도착해 실제 먹잇감을 탐색한다.",
   "title": "굶주린 무리"
 }

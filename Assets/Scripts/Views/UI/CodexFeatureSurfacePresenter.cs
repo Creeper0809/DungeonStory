@@ -7,7 +7,8 @@ public enum CodexFeatureViewMode
 {
     Codex,
     Reports,
-    Events
+    Events,
+    Outcomes
 }
 
 public sealed class CodexFeatureSurfaceModel
@@ -288,20 +289,26 @@ public sealed class CodexFeatureSurfacePresenter : IFeatureSurfaceTabPresenter
 
     private readonly ICodexFeatureQueryService queryService;
     private readonly ICodexFeatureCommandService commandService;
+    private readonly IGameplayOutcomePresentationQuery outcomePresentation;
     private CodexFeatureViewMode viewMode;
     private CodexEntryCategory category = CodexEntryCategory.Monster;
     private EventAlertImportance? eventImportance;
     private string selectedEntryId = string.Empty;
     private int selectedEventId = -1;
+    private OutcomeCursor outcomeCursor = OutcomeCursor.FirstPage(8);
+    private GameplayOutcomeStatus? outcomeStatus;
 
     public CodexFeatureSurfacePresenter(
         ICodexFeatureQueryService queryService,
-        ICodexFeatureCommandService commandService)
+        ICodexFeatureCommandService commandService,
+        IGameplayOutcomePresentationQuery outcomePresentation)
     {
         this.queryService = queryService
             ?? throw new ArgumentNullException(nameof(queryService));
         this.commandService = commandService
             ?? throw new ArgumentNullException(nameof(commandService));
+        this.outcomePresentation = outcomePresentation
+            ?? throw new ArgumentNullException(nameof(outcomePresentation));
     }
 
     public TabId Id => TabId.Codex;
@@ -315,10 +322,17 @@ public sealed class CodexFeatureSurfacePresenter : IFeatureSurfaceTabPresenter
 
         view.AddSection(
             "도감/기록",
-            "도감, 전투·운영 보고서, 이벤트 히스토리를 조회합니다.");
+            "도감, 전투·운영 보고서, 이벤트 히스토리와 확정 결과 원장을 조회합니다.");
         AddModeButton(view, CodexFeatureViewMode.Codex, "도감", "P2Action_ArchiveCodex");
         AddModeButton(view, CodexFeatureViewMode.Reports, "보고서", "P2Action_ArchiveReports");
         AddModeButton(view, CodexFeatureViewMode.Events, "이벤트", "P2Action_ArchiveEvents");
+        AddModeButton(view, CodexFeatureViewMode.Outcomes, "결과 원장", "P2Action_OutcomeLedger");
+
+        if (viewMode == CodexFeatureViewMode.Outcomes)
+        {
+            PresentOutcomes(view);
+            return;
+        }
 
         CodexFeatureSurfaceModel model =
             queryService.Capture(viewMode, category, eventImportance);
@@ -333,9 +347,99 @@ public sealed class CodexFeatureSurfacePresenter : IFeatureSurfaceTabPresenter
             case CodexFeatureViewMode.Events:
                 PresentEvents(view, model);
                 break;
+            case CodexFeatureViewMode.Outcomes:
+                throw new InvalidOperationException(
+                    "Outcome ledger mode is rendered before legacy codex capture.");
             default:
                 throw new ArgumentOutOfRangeException();
         }
+    }
+
+    private void PresentOutcomes(IFeatureSurfaceView view)
+    {
+        OutcomeFilter filter = new(
+            default,
+            default,
+            outcomeStatus,
+            int.MinValue,
+            int.MaxValue,
+            includeCompacted: true);
+        GameplayOutcomePresentationPage page = outcomePresentation.GetGlobalPage(
+            outcomeCursor,
+            filter);
+        view.AddSection(
+            "게임 결과 서사 원장",
+            "게임 규칙에서 확정된 결과를 같은 원본 ID로 조회합니다. 알림 피드와는 별도인 저장 원장입니다.");
+        AddOutcomeFilterButton(view, null, "전체", 0);
+        AddOutcomeFilterButton(view, GameplayOutcomeStatus.Succeeded, "성공", 1);
+        AddOutcomeFilterButton(view, GameplayOutcomeStatus.Failed, "실패", 2);
+        AddOutcomeFilterButton(view, GameplayOutcomeStatus.Blocked, "차단", 3);
+        if (page.Rows.Count == 0)
+        {
+            view.AddLabel("현재 필터에 해당하는 확정 결과가 없습니다.", 18f, 40f);
+        }
+        for (int index = 0; index < page.Rows.Count; index++)
+        {
+            GameplayOutcomePresentationRow row = page.Rows[index];
+            string day = row.FirstDay == row.LastDay
+                ? $"{row.FirstDay}일"
+                : $"{row.FirstDay}~{row.LastDay}일";
+            view.AddDataCard(
+                $"P2Action_OutcomeLedgerRow_{index}",
+                row.SourceKind == GameplayOutcomePresentationSourceKind.Compacted
+                    ? $"{day} · 통합 기억"
+                    : $"{day} · 확정 결과",
+                row.Text,
+                "확인",
+                () => view.ShowFeedback("확정 결과를 확인했습니다."),
+                110f);
+        }
+        view.AddDataCard(
+            "P2Action_OutcomeLedgerFirstPage",
+            "처음으로",
+            "최신 결과부터 다시 조회합니다.",
+            "처음",
+            () =>
+            {
+                outcomeCursor = OutcomeCursor.FirstPage(8);
+                view.RequestRefresh();
+            },
+            58f);
+        if (page.Rows.Count == outcomeCursor.Limit)
+        {
+            OutcomeCursor next = page.NextCursor;
+            view.AddDataCard(
+                "P2Action_OutcomeLedgerNextPage",
+                "이전 시점 더 보기",
+                "현재 페이지보다 오래된 확정 결과를 조회합니다.",
+                "다음",
+                () =>
+                {
+                    outcomeCursor = next;
+                    view.RequestRefresh();
+                },
+                58f);
+        }
+    }
+
+    private void AddOutcomeFilterButton(
+        IFeatureSurfaceView view,
+        GameplayOutcomeStatus? status,
+        string label,
+        int index)
+    {
+        view.AddDataCard(
+            $"P2Action_OutcomeLedgerFilter_{index}",
+            outcomeStatus == status ? $"{label} 선택됨" : label,
+            "확정 결과 상태 필터를 전환합니다.",
+            label,
+            () =>
+            {
+                outcomeStatus = status;
+                outcomeCursor = OutcomeCursor.FirstPage(8);
+                view.RequestRefresh();
+            },
+            58f);
     }
 
     private void PresentCodex(

@@ -344,8 +344,8 @@ public readonly struct ResearchOutcomeEvent : ICharacterIdentityEvent
 
 public readonly struct SocialConflictEvent : ICharacterIdentityEvent
 {
-    public SocialConflictEvent(CharacterId instigator, CharacterId target, string conflictId, float severity, CharacterCommandOrigin origin, int day)
-    { Instigator = Valid(instigator); Target = Valid(target); ConflictId = Text(conflictId); Severity = Mathf.Max(0f, severity); Origin = origin; AbsoluteDay = Math.Max(0, day); }
+    public SocialConflictEvent(CharacterId instigator, CharacterId target, string conflictId, float severity, CharacterCommandOrigin origin, int day, string operationId = "")
+    { Instigator = Valid(instigator); Target = Valid(target); ConflictId = Text(conflictId); Severity = Mathf.Max(0f, severity); Origin = origin; AbsoluteDay = Math.Max(0, day); OperationId = operationId?.Trim() ?? string.Empty; }
     public string EventId => "event:social-conflict";
     public CharacterId Instigator { get; }
     public CharacterId Target { get; }
@@ -353,20 +353,35 @@ public readonly struct SocialConflictEvent : ICharacterIdentityEvent
     public float Severity { get; }
     public CharacterCommandOrigin Origin { get; }
     public int AbsoluteDay { get; }
+    public string OperationId { get; }
     private static CharacterId Valid(CharacterId value) => value.IsValid ? value : throw new ArgumentException("Conflict participant is required.");
     private static string Text(string value) => string.IsNullOrWhiteSpace(value) ? throw new ArgumentException("Conflict id is required.") : value.Trim();
 }
 
 public readonly struct ApologyEvent : ICharacterIdentityEvent
 {
-    public ApologyEvent(CharacterId offender, CharacterId recipient, string offenseId, bool restitutionProvided, int day)
-    { Offender = Valid(offender); Recipient = Valid(recipient); OffenseId = Text(offenseId); RestitutionProvided = restitutionProvided; AbsoluteDay = Math.Max(0, day); }
+    public ApologyEvent(
+        CharacterId offender,
+        CharacterId recipient,
+        string offenseId,
+        bool restitutionProvided,
+        int day,
+        string operationId = "")
+    {
+        Offender = Valid(offender);
+        Recipient = Valid(recipient);
+        OffenseId = Text(offenseId);
+        RestitutionProvided = restitutionProvided;
+        AbsoluteDay = Math.Max(0, day);
+        OperationId = operationId?.Trim() ?? string.Empty;
+    }
     public string EventId => "event:apology";
     public CharacterId Offender { get; }
     public CharacterId Recipient { get; }
     public string OffenseId { get; }
     public bool RestitutionProvided { get; }
     public int AbsoluteDay { get; }
+    public string OperationId { get; }
     public CharacterCommandOrigin Origin => CharacterCommandOrigin.DirectPlayerOrder;
     private static CharacterId Valid(CharacterId value) => value.IsValid ? value : throw new ArgumentException("Apology participant is required.");
     private static string Text(string value) => string.IsNullOrWhiteSpace(value) ? throw new ArgumentException("Offense id is required.") : value.Trim();
@@ -420,6 +435,39 @@ public readonly struct CharacterInjuredIdentityEvent : ICharacterIdentityEvent
         CombatDamageType damageType,
         float appliedDamage,
         int day)
+        : this(
+            character,
+            attacker,
+            damageType,
+            appliedDamage,
+            day,
+            string.Empty,
+            string.Empty,
+            default,
+            default,
+            string.Empty,
+            default,
+            string.Empty,
+            string.Empty,
+            CharacterCommandOrigin.ScriptedForced)
+    {
+    }
+
+    public CharacterInjuredIdentityEvent(
+        CharacterId character,
+        CharacterId attacker,
+        CombatDamageType damageType,
+        float appliedDamage,
+        int day,
+        string workAccidentOperationId,
+        string workAccidentWorkerDisplayName,
+        WorkTypeId workAccidentWorkTypeId,
+        BuildingInstanceId workAccidentFacilityInstanceId,
+        string workAccidentFacilityDisplayName,
+        CoreGridCell workAccidentLocation,
+        string workAccidentDamagedAnatomyNodeId,
+        string workAccidentObservedCause,
+        CharacterCommandOrigin origin)
     {
         Character = character.IsValid
             ? character
@@ -428,6 +476,45 @@ public readonly struct CharacterInjuredIdentityEvent : ICharacterIdentityEvent
         DamageType = damageType;
         AppliedDamage = Mathf.Max(0f, appliedDamage);
         AbsoluteDay = Math.Max(0, day);
+        WorkAccidentOperationId = workAccidentOperationId?.Trim()
+            ?? string.Empty;
+        WorkAccidentWorkerDisplayName =
+            workAccidentWorkerDisplayName?.Trim() ?? string.Empty;
+        WorkAccidentWorkTypeId = workAccidentWorkTypeId;
+        WorkAccidentFacilityInstanceId = workAccidentFacilityInstanceId;
+        WorkAccidentFacilityDisplayName =
+            workAccidentFacilityDisplayName?.Trim() ?? string.Empty;
+        WorkAccidentLocation = workAccidentLocation;
+        WorkAccidentDamagedAnatomyNodeId =
+            workAccidentDamagedAnatomyNodeId?.Trim() ?? string.Empty;
+        WorkAccidentObservedCause = workAccidentObservedCause?.Trim()
+            ?? string.Empty;
+        Origin = origin;
+        if (WorkAccidentOperationId.Length > 0
+            && (WorkAccidentWorkerDisplayName.Length == 0
+                || !WorkAccidentWorkTypeId.IsValid
+                || !WorkAccidentFacilityInstanceId.IsValid
+                || WorkAccidentFacilityDisplayName.Length == 0
+                || WorkAccidentDamagedAnatomyNodeId.Length == 0
+                || WorkAccidentObservedCause.Length == 0
+                || AppliedDamage <= 0f))
+        {
+            throw new ArgumentException(
+                "Work-accident injury evidence must contain the exact worker, work, facility, node, damage and observed cause.",
+                nameof(workAccidentOperationId));
+        }
+        if (WorkAccidentOperationId.Length == 0
+            && (WorkAccidentWorkerDisplayName.Length > 0
+                || WorkAccidentWorkTypeId.IsValid
+                || WorkAccidentFacilityInstanceId.IsValid
+                || WorkAccidentFacilityDisplayName.Length > 0
+                || WorkAccidentDamagedAnatomyNodeId.Length > 0
+                || WorkAccidentObservedCause.Length > 0))
+        {
+            throw new ArgumentException(
+                "Partial work-accident injury evidence is not allowed.",
+                nameof(workAccidentOperationId));
+        }
     }
 
     public string EventId => "event:character-injured";
@@ -436,7 +523,17 @@ public readonly struct CharacterInjuredIdentityEvent : ICharacterIdentityEvent
     public CombatDamageType DamageType { get; }
     public float AppliedDamage { get; }
     public int AbsoluteDay { get; }
-    public CharacterCommandOrigin Origin => CharacterCommandOrigin.ScriptedForced;
+    public string WorkAccidentOperationId { get; }
+    public string WorkAccidentWorkerDisplayName { get; }
+    public WorkTypeId WorkAccidentWorkTypeId { get; }
+    public BuildingInstanceId WorkAccidentFacilityInstanceId { get; }
+    public string WorkAccidentFacilityDisplayName { get; }
+    public CoreGridCell WorkAccidentLocation { get; }
+    public string WorkAccidentDamagedAnatomyNodeId { get; }
+    public string WorkAccidentObservedCause { get; }
+    public bool HasWorkAccidentEvidence =>
+        WorkAccidentOperationId.Length > 0;
+    public CharacterCommandOrigin Origin { get; }
 }
 
 public readonly struct ExpeditionOutcomeEvent : ICharacterIdentityEvent
@@ -1302,8 +1399,12 @@ public static class CharacterAutonomousWorkPolicy
 
 public sealed class CharacterMoodPolicyService
 {
+    private const string RequiredFunctionalCapacityBelowThreshold =
+        "RequiredFunctionalCapacityBelowThreshold";
     private readonly CharacterIdentityRuleRouter router;
     private readonly CharacterPersistentNeedRuntime persistentNeeds;
+    public CharacterMoodApplicationRejection LastRejectedApplication { get; private set; }
+
     public CharacterMoodPolicyService(
         CharacterIdentityRuleRouter router,
         CharacterPersistentNeedRuntime persistentNeeds)
@@ -1330,19 +1431,14 @@ public sealed class CharacterMoodPolicyService
                 * GameCalendarRules.SecondsPerDay;
             if (resolved < 0f)
             {
-                CharacterPerformanceSnapshot duration = actor.Stats.EvaluatePerformance(
-                    CharacterPerformanceFormulaIds.NegativeMoodDuration);
-                if (!duration.IsApplicable)
-                    throw new InvalidOperationException(
-                        duration.Failure?.Message
-                        ?? "Negative mood duration is unavailable.");
-                durationSeconds *= duration.Value;
-                CharacterPerformanceExecutionTrace.Record(
-                    CharacterPerformanceFormulaIds.NegativeMoodDuration,
-                    "CharacterMoodPolicyService.Apply",
-                    durationDays * GameCalendarRules.SecondsPerDay,
-                    durationSeconds,
-                    eventId);
+                if (!TryResolveNegativeMoodDuration(
+                        actor,
+                        eventId,
+                        durationSeconds,
+                        durationDays * GameCalendarRules.SecondsPerDay,
+                        "CharacterMoodPolicyService.Apply",
+                        out durationSeconds))
+                    return 0f;
             }
             actor.ApplyResolvedMoodFactor(
                 $"identity:{eventId}",
@@ -1379,19 +1475,14 @@ public sealed class CharacterMoodPolicyService
                 resolvedDuration = authoredDays * GameCalendarRules.SecondsPerDay;
             if (resolved < 0f)
             {
-                CharacterPerformanceSnapshot duration = actor.Stats.EvaluatePerformance(
-                    CharacterPerformanceFormulaIds.NegativeMoodDuration);
-                if (!duration.IsApplicable)
-                    throw new InvalidOperationException(
-                        duration.Failure?.Message
-                        ?? "Negative mood duration is unavailable.");
-                resolvedDuration *= duration.Value;
-                CharacterPerformanceExecutionTrace.Record(
-                    CharacterPerformanceFormulaIds.NegativeMoodDuration,
-                    "CharacterMoodPolicyService.ApplySeconds",
-                    durationSeconds,
-                    resolvedDuration,
-                    eventId);
+                if (!TryResolveNegativeMoodDuration(
+                        actor,
+                        eventId,
+                        resolvedDuration,
+                        durationSeconds,
+                        "CharacterMoodPolicyService.ApplySeconds",
+                        out resolvedDuration))
+                    return 0f;
             }
             actor.ApplyResolvedMoodFactor(
                 eventId?.Trim() ?? string.Empty,
@@ -1402,6 +1493,136 @@ public sealed class CharacterMoodPolicyService
         }
         return resolved;
     }
+
+    private bool TryResolveNegativeMoodDuration(
+        CharacterActor actor,
+        string eventId,
+        float durationSeconds,
+        float traceInputSeconds,
+        string consumerId,
+        out float resolvedDuration)
+    {
+        CharacterPerformanceSnapshot duration = actor.Stats.EvaluatePerformance(
+            CharacterPerformanceFormulaIds.NegativeMoodDuration);
+        if (duration.IsApplicable)
+        {
+            resolvedDuration = durationSeconds * duration.Value;
+            CharacterPerformanceExecutionTrace.Record(
+                CharacterPerformanceFormulaIds.NegativeMoodDuration,
+                consumerId,
+                traceInputSeconds,
+                resolvedDuration,
+                eventId);
+            return true;
+        }
+
+        if (string.Equals(
+                duration.Failure?.Code,
+                RequiredFunctionalCapacityBelowThreshold,
+                StringComparison.Ordinal))
+        {
+            LastRejectedApplication = new CharacterMoodApplicationRejection(
+                actor,
+                eventId,
+                duration.Failure);
+            resolvedDuration = 0f;
+            return false;
+        }
+
+        throw new InvalidOperationException(
+            duration.Failure?.Message
+            ?? "Negative mood duration is unavailable.");
+    }
+}
+
+public readonly struct SocialConflictCommittedReceiptEvent
+{
+    public SocialConflictCommittedReceiptEvent(
+        string operationId,
+        CharacterId instigator,
+        CharacterId target,
+        CharacterId customer,
+        SpeciesCultureId instigatorCulture,
+        SpeciesCultureId targetCulture,
+        BuildingInstanceId facilityInstanceId,
+        CoreGridCell location,
+        int absoluteDay)
+    {
+        OperationId = string.IsNullOrWhiteSpace(operationId)
+            ? throw new ArgumentException("Social conflict operation id is required.")
+            : operationId.Trim();
+        Instigator = instigator.IsValid
+            ? instigator
+            : throw new ArgumentException("Social conflict instigator is required.");
+        Target = target.IsValid
+            ? target
+            : throw new ArgumentException("Social conflict target is required.");
+        Customer = customer.IsValid
+            ? customer
+            : throw new ArgumentException("Social conflict customer is required.");
+        InstigatorCulture = instigatorCulture.IsValid
+            ? instigatorCulture
+            : throw new ArgumentException("Instigator culture is required.");
+        TargetCulture = targetCulture.IsValid
+            ? targetCulture
+            : throw new ArgumentException("Target culture is required.");
+        if (Instigator.Equals(Target))
+        {
+            throw new ArgumentException(
+                "Social conflict participants must be distinct.");
+        }
+        if (!Customer.Equals(Instigator) && !Customer.Equals(Target))
+        {
+            throw new ArgumentException(
+                "Social conflict customer must be a participant.");
+        }
+        if (InstigatorCulture.Equals(TargetCulture))
+        {
+            throw new ArgumentException(
+                "Social conflict cultures must be distinct.");
+        }
+        FacilityInstanceId = facilityInstanceId.IsValid
+            ? facilityInstanceId
+            : throw new ArgumentException("Visitor facility is required.");
+        Location = location;
+        AbsoluteDay = Math.Max(1, absoluteDay);
+    }
+
+    public string OperationId { get; }
+    public CharacterId Instigator { get; }
+    public CharacterId Target { get; }
+    public CharacterId Customer { get; }
+    public SpeciesCultureId InstigatorCulture { get; }
+    public SpeciesCultureId TargetCulture { get; }
+    public BuildingInstanceId FacilityInstanceId { get; }
+    public CoreGridCell Location { get; }
+    public int AbsoluteDay { get; }
+}
+
+public sealed class CharacterMoodApplicationRejection
+{
+    public CharacterMoodApplicationRejection(
+        CharacterActor actor,
+        string eventId,
+        CharacterPerformanceFailure failure)
+    {
+        Actor = actor;
+        EventId = eventId?.Trim() ?? string.Empty;
+        Failure = failure == null
+            ? null
+            : new CharacterPerformanceFailure
+            {
+                Code = failure.Code,
+                CapacityId = failure.CapacityId,
+                CurrentValue = failure.CurrentValue,
+                RequiredValue = failure.RequiredValue,
+                Message = failure.Message
+            };
+    }
+
+    public CharacterActor Actor { get; }
+    public string EventId { get; }
+    public CharacterPerformanceFailure Failure { get; }
 }
 
 public sealed class CombatIdentityEventAdapter : IStartable, IDisposable

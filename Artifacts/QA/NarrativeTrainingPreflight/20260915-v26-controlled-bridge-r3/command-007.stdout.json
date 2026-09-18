@@ -1,0 +1,32 @@
+{
+  "success": true,
+  "command": "job wait",
+  "data": {
+    "jobId": "d6d479c08d084efb85c2564878029b79",
+    "command": "eval",
+    "state": "completed",
+    "cancellationRequested": false,
+    "result": {
+      "output": null,
+      "diagnostics": [],
+      "success": true,
+      "command": "eval",
+      "result": {
+        "directory": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Artifacts\\Exports\\NarrativeMechanicCatalog\\20260915-v26-controlled-bridge-r3",
+        "inputDigest": "sha256:fafc75af266d751b3363b36fa58ee799c5c2310aac65a3496ca97af0cdf55d59",
+        "catalogHash": "sha256:38706406b7a4192ff8408d34a44c507a4b94ae308da9a82cceb3feb42545bd25",
+        "trainingEligible": false
+      },
+      "executionTimeMs": 27288,
+      "message": null,
+      "error": null,
+      "errorDetails": null,
+      "executedAt": "2026-09-15T14:07:04.3003364Z"
+    },
+    "error": null,
+    "errorDetails": null,
+    "progress": null
+  },
+  "errors": [],
+  "warnings": []
+}

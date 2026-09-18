@@ -2,15 +2,18 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using VContainer;
 
 /// <summary>
-/// Diagnostics-only correlation and one-shot receipt authority for completed
-/// generic recipe cycles. Normal gameplay cycles that have no registered
-/// action remain allocation-free apart from the caller's existing work.
+/// Correlation and one-shot receipt authority for completed generic recipe
+/// cycles. It also forwards a typed declared-loss fact for the actual actor
+/// that closes a prepared-output cycle.
 /// </summary>
 public sealed class ProductionRecipeExecutionReceiptAuthority :
     IProductionRecipeExecutionReceiptAuthority
 {
+    private readonly IObservedCareerLifeEventCommand observedLifeEvents;
+    private readonly ProductionCompletedOutcomeBridge gameplayOutcomes;
     private readonly Dictionary<string, ProductionRecipeExecutionCorrelation>
         correlationByAction = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> actionByCycle =
@@ -19,6 +22,28 @@ public sealed class ProductionRecipeExecutionReceiptAuthority :
         receiptByAction = new(StringComparer.Ordinal);
     private readonly Dictionary<string, ExactCycleStaging> exactByAction =
         new(StringComparer.Ordinal);
+
+    public ProductionRecipeExecutionReceiptAuthority()
+    {
+    }
+
+    public ProductionRecipeExecutionReceiptAuthority(
+        IObservedCareerLifeEventCommand observedLifeEvents)
+    {
+        this.observedLifeEvents = observedLifeEvents
+            ?? throw new ArgumentNullException(nameof(observedLifeEvents));
+    }
+
+    [Inject]
+    public ProductionRecipeExecutionReceiptAuthority(
+        IObservedCareerLifeEventCommand observedLifeEvents,
+        ProductionCompletedOutcomeBridge gameplayOutcomes)
+    {
+        this.observedLifeEvents = observedLifeEvents
+            ?? throw new ArgumentNullException(nameof(observedLifeEvents));
+        this.gameplayOutcomes = gameplayOutcomes
+            ?? throw new ArgumentNullException(nameof(gameplayOutcomes));
+    }
 
     public bool RequiresExactCapture(
         ProductionBillId billId,
@@ -31,6 +56,55 @@ public sealed class ProductionRecipeExecutionReceiptAuthority :
             return false;
         }
         return actionByCycle.ContainsKey(CycleKey(billId, cycleSequence));
+    }
+
+    public bool TryEnsureExactCapture(
+        ProductionBillId billId,
+        int cycleSequence,
+        string recipeId,
+        BuildingInstanceId facilityId,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        ProductionRecipeExecutionCorrelation correlation;
+        try
+        {
+            correlation = new ProductionRecipeExecutionCorrelation(
+                billId,
+                cycleSequence,
+                recipeId,
+                facilityId);
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidOperationException
+                                           or OverflowException)
+        {
+            failureReason = "recipe-execution-correlation-invalid:"
+                + exception.Message;
+            return false;
+        }
+
+        string cycleKey = CycleKey(billId, cycleSequence);
+        if (actionByCycle.TryGetValue(cycleKey, out string existingAction))
+        {
+            if (correlationByAction.TryGetValue(
+                    existingAction,
+                    out ProductionRecipeExecutionCorrelation existing)
+                && string.Equals(
+                    existing.SourceDigest,
+                    correlation.SourceDigest,
+                    StringComparison.Ordinal))
+            {
+                return true;
+            }
+            failureReason = "recipe-execution-cycle-correlation-conflict";
+            return false;
+        }
+
+        string actionId = "production-gameplay-cycle:"
+            + billId.Value + ":"
+            + cycleSequence.ToString("D8", CultureInfo.InvariantCulture);
+        return TryRegisterExecution(actionId, correlation, out failureReason);
     }
 
     public bool TryRegisterExecution(
@@ -154,21 +228,120 @@ public sealed class ProductionRecipeExecutionReceiptAuthority :
         int wipInputQuantity,
         long wipInputMassGrams,
         ProductionPreparedOutputBatchSaveData completedBatch,
+        out string failureReason) => TryPublishCompletedCore(
+        billId,
+        cycleSequence,
+        recipeId,
+        facilityId,
+        string.Empty,
+        false,
+        wipInputCommitId,
+        wipInputQuantity,
+        wipInputMassGrams,
+        completedBatch,
+        out failureReason);
+
+    public bool TryPublishCompleted(
+        ProductionBillId billId,
+        int cycleSequence,
+        string recipeId,
+        BuildingInstanceId facilityId,
+        string workerPersistentId,
+        string wipInputCommitId,
+        int wipInputQuantity,
+        long wipInputMassGrams,
+        ProductionPreparedOutputBatchSaveData completedBatch,
+        out string failureReason) => TryPublishCompletedCore(
+        billId,
+        cycleSequence,
+        recipeId,
+        facilityId,
+        workerPersistentId,
+        true,
+        wipInputCommitId,
+        wipInputQuantity,
+        wipInputMassGrams,
+        completedBatch,
+        out failureReason);
+
+    [GameplayInternalOnly(
+        "Publishes a completed prepared-output cycle and its declared-loss observation.",
+        "ProductionRecipeExecutionReceiptAuthority.TryPublishCompleted overloads")]
+    private bool TryPublishCompletedCore(
+        ProductionBillId billId,
+        int cycleSequence,
+        string recipeId,
+        BuildingInstanceId facilityId,
+        string workerPersistentId,
+        bool observeDeclaredLoss,
+        string wipInputCommitId,
+        int wipInputQuantity,
+        long wipInputMassGrams,
+        ProductionPreparedOutputBatchSaveData completedBatch,
         out string failureReason)
     {
         failureReason = string.Empty;
+        if (observeDeclaredLoss
+            && completedBatch?.totalDeclaredLossMassGrams > 0L
+            && !string.IsNullOrWhiteSpace(workerPersistentId))
+        {
+            if (observedLifeEvents == null)
+            {
+                failureReason =
+                    "production-declared-loss-life-event-authority-missing";
+                return false;
+            }
+            try
+            {
+                ProductionDeclaredLossCycleReceipt loss = new(
+                    billId,
+                    cycleSequence,
+                    recipeId,
+                    facilityId,
+                    workerPersistentId,
+                    completedBatch);
+                if (!observedLifeEvents.TryCaptureProductionDeclaredLoss(
+                        loss,
+                        out _,
+                        out string observedFailure))
+                {
+                    failureReason = string.IsNullOrWhiteSpace(observedFailure)
+                        ? "production-declared-loss-life-event-failed"
+                        : observedFailure;
+                    return false;
+                }
+            }
+            catch (Exception exception) when (exception is ArgumentException
+                or InvalidOperationException or OverflowException)
+            {
+                failureReason =
+                    "production-declared-loss-life-event-source-invalid:"
+                    + exception.Message;
+                return false;
+            }
+        }
         if (actionByCycle.Count == 0)
         {
-            // Keep the normal gameplay completion path allocation-free while
-            // no diagnostics action owns a generic cycle.
-            return true;
+            return TryCommitPreparedGameplayOutcome(
+                billId,
+                cycleSequence,
+                recipeId,
+                facilityId,
+                workerPersistentId,
+                completedBatch,
+                out failureReason);
         }
         string cycleKey = CycleKey(billId, cycleSequence);
         if (!actionByCycle.TryGetValue(cycleKey, out string actionId))
         {
-            // Receipt capture is opt-in diagnostics. Uncorrelated gameplay is
-            // deliberately untouched and must not acquire a hidden owner.
-            return true;
+            return TryCommitPreparedGameplayOutcome(
+                billId,
+                cycleSequence,
+                recipeId,
+                facilityId,
+                workerPersistentId,
+                completedBatch,
+                out failureReason);
         }
         if (!correlationByAction.TryGetValue(
                 actionId,
@@ -279,13 +452,27 @@ public sealed class ProductionRecipeExecutionReceiptAuthority :
                     candidate.RuntimeReceiptDigest,
                     StringComparison.Ordinal))
                 {
-                    return true;
+                    return TryCommitPreparedGameplayOutcome(
+                        billId,
+                        cycleSequence,
+                        recipeId,
+                        facilityId,
+                        workerPersistentId,
+                        completedBatch,
+                        out failureReason);
                 }
                 failureReason = "recipe-execution-completed-replay-conflict";
                 return false;
             }
             receiptByAction.Add(actionId, candidate);
-            return true;
+            return TryCommitPreparedGameplayOutcome(
+                billId,
+                cycleSequence,
+                recipeId,
+                facilityId,
+                workerPersistentId,
+                completedBatch,
+                out failureReason);
         }
         catch (Exception exception) when (exception is ArgumentException
                                            or InvalidOperationException
@@ -295,6 +482,111 @@ public sealed class ProductionRecipeExecutionReceiptAuthority :
                 + exception.Message;
             return false;
         }
+    }
+
+    public bool TryCommitExactCompletedOutcome(
+        ProductionBillId billId,
+        int cycleSequence,
+        string recipeId,
+        BuildingInstanceId facilityId,
+        string workerPersistentId,
+        IReadOnlyList<ProductionResolvedOutputSaveData> completedOutputs,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (gameplayOutcomes == null)
+        {
+#if UNITY_EDITOR
+            // Parameterless construction is retained only for the pre-existing
+            // detached receipt-authority Editor scenarios. Runtime composition
+            // always uses the injected constructor and fails if the bridge is absent.
+            return true;
+#else
+            failureReason = "production-gameplay-outcome-bridge-missing";
+            return false;
+#endif
+        }
+        if (completedOutputs == null
+            || completedOutputs.Any(output => output == null
+                || output.amount < 0
+                || output.committedAmount != output.amount
+                || output.committedMassGrams < 0L))
+        {
+            failureReason = "production-exact-outcome-state-incomplete";
+            return false;
+        }
+
+        string cycleKey = CycleKey(billId, cycleSequence);
+        if (!actionByCycle.TryGetValue(cycleKey, out string actionId)
+            || !receiptByAction.TryGetValue(
+                actionId,
+                out ProductionRecipeExecutionReceipt exactReceipt)
+            || exactReceipt == null
+            || !exactReceipt.Correlation.BillId.Equals(billId)
+            || exactReceipt.Correlation.CycleSequence != cycleSequence
+            || !string.Equals(
+                exactReceipt.Correlation.RecipeId,
+                recipeId,
+                StringComparison.Ordinal)
+            || !exactReceipt.Correlation.FacilityId.Equals(facilityId))
+        {
+            failureReason = "production-exact-final-receipt-missing";
+            return false;
+        }
+
+        try
+        {
+            return gameplayOutcomes.TryCommitExact(
+                exactReceipt,
+                workerPersistentId,
+                out failureReason);
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidOperationException
+                                           or OverflowException)
+        {
+            failureReason = "production-exact-outcome-invalid:" + exception.Message;
+            return false;
+        }
+    }
+
+    private bool TryCommitPreparedGameplayOutcome(
+        ProductionBillId billId,
+        int cycleSequence,
+        string recipeId,
+        BuildingInstanceId facilityId,
+        string workerPersistentId,
+        ProductionPreparedOutputBatchSaveData completedBatch,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (gameplayOutcomes == null)
+        {
+#if UNITY_EDITOR
+            // See TryCommitExactCompletedOutcome: detached Editor receipt tests
+            // do not stand in for the live mandatory outcome recorder.
+            return true;
+#else
+            failureReason = "production-gameplay-outcome-bridge-missing";
+            return false;
+#endif
+        }
+        if (completedBatch == null
+            || completedBatch.phase != ProductionPreparedOutputPhase.Completed
+            || completedBatch.lines == null
+            || completedBatch.lines.Any(line => line == null))
+        {
+            failureReason = "production-prepared-outcome-state-incomplete";
+            return false;
+        }
+        // Prepared-output execution now prepares and commits the exact ledger
+        // receipt at the reversible physical-publication boundary.  This later
+        // Completed-before-clear callback may only prove that durable joint
+        // commit; emitting a second aggregate would lose physical provenance.
+        return gameplayOutcomes.TryRequireDurablePreparedOutcome(
+            billId,
+            cycleSequence,
+            out failureReason);
     }
 
     public bool TryCaptureExactCommittedUnit(
@@ -503,7 +795,9 @@ public sealed class ProductionRecipeExecutionReceiptAuthority :
                         stack.StackId,
                         stack.Quantity,
                         stack.MassGrams,
-                        unit.CommitId)))
+                        unit.CommitId,
+                        stack.ComponentSignature,
+                        stack.ItemInstanceId)))
                 .ToArray();
             ProductionRecipeExecutionReceipt candidate = new(
                 actionId,

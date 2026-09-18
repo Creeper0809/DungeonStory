@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
@@ -17,6 +18,9 @@ public static class OffenseBattleDebugScenarios
         List<string> errors = new List<string>();
         Run("damage and initiative", VerifyDamageAndInitiative, errors);
         Run("heal target and drain source", VerifyHealTargetAndDrainSource, errors);
+        Run("loaded ammunition settlement producer",
+            VerifyLoadedAmmunitionSettlementProducer,
+            errors);
         Run("guard and cooldown", VerifyGuardAndCooldown, errors);
         Run("planned round begins every participant once", VerifyPlannedRoundFinalization, errors);
         Run("enemy target priority", VerifyEnemyTargetPriority, errors);
@@ -81,6 +85,8 @@ public static class OffenseBattleDebugScenarios
             "enemy:heal-check", "Enemy", OffenseBattleTeam.Enemies,
             100f, 4f, 4f, 4f, 1f, 1f);
         OffenseBattleSession healSession = Session(healer, wounded, enemy);
+        OffenseExpeditionRun settlement = SettlementRun("expedition:test");
+        BindSettlementOwner(healSession, settlement);
         Require(healSession.TryExecuteCommand(
             new OffenseBattleCommand(
                 1,
@@ -93,6 +99,17 @@ public static class OffenseBattleDebugScenarios
             $"Field dressing healed {wounded.CurrentHealth}, expected target health 58.");
         Require(Mathf.Approximately(healer.CurrentHealth, 100f),
             "Field dressing healed the source instead of the target.");
+        Require(settlement.TreatmentReceipts.Count == 1
+                && settlement.TreatmentReceipts[0].kind
+                    == OffenseExpeditionTreatmentKind.Healing
+                && string.Equals(
+                    settlement.TreatmentReceipts[0].characterId,
+                    wounded.PersistentId,
+                    StringComparison.Ordinal)
+                && Mathf.Approximately(
+                    settlement.TreatmentReceipts[0].healedAmount,
+                    18f),
+            "The actual battle Heal commit did not record the applied treatment amount once.");
 
         CharacterCombatAbilityDefinition drain = CharacterCombatAbilityCatalog.CreateVampireDrain();
         OffenseBattleCombatant vampire = Combatant(
@@ -118,6 +135,134 @@ public static class OffenseBattleDebugScenarios
             "Drain did not heal the source.");
         Require(target.CurrentHealth < target.Stats.MaxHealth,
             "Drain did not damage the target.");
+        return true;
+    }
+
+    private static bool VerifyLoadedAmmunitionSettlementProducer()
+    {
+        ICombatEquipmentRuntime equipment =
+            OffenseEditorTestDependencies.CreateCombatEquipmentRuntime();
+        CombatEquipmentInstance crossbow = equipment.CreateExternalInstance(
+            "weapon:crossbow",
+            CombatEquipmentQuality.Normal);
+        OffenseBattleCombatant ally = Combatant(
+            "ally:ammo-settlement",
+            "Ammo Settlement",
+            OffenseBattleTeam.Allies,
+            100f, 8f, 6f, 5f, 20f, 5f);
+        OffenseBattleCombatant enemy = Combatant(
+            "enemy:ammo-settlement",
+            "Ammo Target",
+            OffenseBattleTeam.Enemies,
+            500f, 4f, 4f, 4f, 1f, 1f);
+        Require(equipment.TryAssignToCharacter(
+                ally.PersistentId,
+                crossbow.instanceId,
+                out _)
+            && equipment.TrySetActiveWeapon(
+                ally.PersistentId,
+                crossbow.instanceId,
+                out _),
+            "Could not prepare the allied weapon for settlement proof.");
+        Require(equipment.TryLoadExternalAmmunition(
+                crossbow.instanceId,
+                "ammo:bolt-iron",
+                3),
+            "Could not load the allied weapon for settlement proof.");
+        Require(equipment.TryGetActiveWeapon(
+                ally.PersistentId,
+                out CombatWeaponSnapshot weapon),
+            "Could not project the loaded allied weapon for settlement proof.");
+        ally.SetCombatEquipment(
+            weapon,
+            equipment.GetArmor(ally.PersistentId),
+            equipment.GetShield(ally.PersistentId));
+        OffenseExpeditionRun settlement =
+            SettlementRun("expedition:ammo-settlement");
+        OffenseBattleSession first = new(
+            "battle:ammo-settlement-a",
+            settlement.ExpeditionId,
+            settlement.Target.id,
+            "Ammo Settlement A",
+            DungeonDifficulty.Normal,
+            new[] { ally, enemy },
+            OffenseEditorTestDependencies.CreateCombatResolution(),
+            equipment);
+        BindSettlementOwner(first, settlement);
+        Require(equipment.TryGetInstance(
+                crossbow.instanceId,
+                out CombatEquipmentInstance firstBefore),
+            "Could not read the loaded weapon before the first attack.");
+        Require(first.TryExecuteCommand(
+                new OffenseBattleCommand(
+                    1,
+                    ally.PersistentId,
+                    OffenseBattleActionType.BasicAttack,
+                    enemy.PersistentId),
+                out _),
+            "The actual loaded-ammunition attack was rejected.");
+        Require(equipment.TryGetInstance(
+                crossbow.instanceId,
+                out CombatEquipmentInstance firstAfter)
+            && firstBefore.loadedAmmunition.remaining
+                > firstAfter.loadedAmmunition.remaining,
+            "The actual loaded-ammunition attack did not commit consumption.");
+        int firstConsumed = firstBefore.loadedAmmunition.remaining
+            - firstAfter.loadedAmmunition.remaining;
+
+        Require(equipment.TryLoadExternalAmmunition(
+                crossbow.instanceId,
+                "ammo:incendiary-bolt",
+                2),
+            "Could not reload the allied weapon for settlement proof.");
+        Require(equipment.TryGetActiveWeapon(
+                ally.PersistentId,
+                out CombatWeaponSnapshot reloaded),
+            "Could not project the reloaded weapon snapshot.");
+        ally.SetCombatEquipment(
+            reloaded,
+            equipment.GetArmor(ally.PersistentId),
+            equipment.GetShield(ally.PersistentId));
+        OffenseBattleSession second = new(
+            "battle:ammo-settlement-b",
+            settlement.ExpeditionId,
+            settlement.Target.id,
+            "Ammo Settlement B",
+            DungeonDifficulty.Normal,
+            new[] { ally, enemy },
+            OffenseEditorTestDependencies.CreateCombatResolution(),
+            equipment);
+        BindSettlementOwner(second, settlement);
+        Require(equipment.TryGetInstance(
+                crossbow.instanceId,
+                out CombatEquipmentInstance secondBefore),
+            "Could not read the reloaded weapon before the second attack.");
+        Require(second.TryExecuteCommand(
+                new OffenseBattleCommand(
+                    1,
+                    ally.PersistentId,
+                    OffenseBattleActionType.BasicAttack,
+                    enemy.PersistentId),
+                out _),
+            "The actual attack after reloading was rejected.");
+        Require(equipment.TryGetInstance(
+                crossbow.instanceId,
+                out CombatEquipmentInstance secondAfter)
+            && secondBefore.loadedAmmunition.remaining
+                > secondAfter.loadedAmmunition.remaining,
+            "The actual attack after reloading did not commit consumption.");
+        int secondConsumed = secondBefore.loadedAmmunition.remaining
+            - secondAfter.loadedAmmunition.remaining;
+        Require(settlement.AmmunitionConsumptions.Count == 2
+                && settlement.AmmunitionConsumptions.Any(value =>
+                    value.InstanceId == crossbow.instanceId
+                    && value.ItemId == "ammo:bolt-iron"
+                    && value.Quantity == firstConsumed)
+                && settlement.AmmunitionConsumptions.Any(value =>
+                    value.InstanceId == crossbow.instanceId
+                    && value.ItemId == "ammo:incendiary-bolt"
+                    && value.Quantity == secondConsumed),
+            "Actual battle consumption did not preserve both ammunition types on the same reloaded weapon instance.");
         return true;
     }
 
@@ -920,6 +1065,33 @@ public static class OffenseBattleDebugScenarios
             OffenseEditorTestDependencies.CreateCombatEquipmentRuntime());
     }
 
+    private static OffenseExpeditionRun SettlementRun(string expeditionId) =>
+        new(
+            expeditionId,
+            new OffenseTargetDefinition
+            {
+                id = "target:settlement-proof",
+                title = "Settlement Proof",
+                requiredMembers = 1,
+                requiredPower = 0f,
+                durationSeconds = 10f
+            },
+            Array.Empty<CharacterActor>(),
+            0f);
+
+    private static void BindSettlementOwner(
+        OffenseBattleSession session,
+        OffenseExpeditionRun settlement)
+    {
+        MethodInfo method = typeof(OffenseBattleSession).GetMethod(
+            "BindSettlementOwner",
+            BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMethodException(
+                typeof(OffenseBattleSession).FullName,
+                "BindSettlementOwner");
+        method.Invoke(session, new object[] { settlement });
+    }
+
     private static bool VerifyEmptyRangedWeaponRecovery()
     {
         ICombatEquipmentRuntime runtime =
@@ -1284,7 +1456,8 @@ public static class OffenseBattleDebugScenarios
             Require(ModularFacilityRuntimeEffects.ApplyWorkCompleted(
                     worker.BuildingVisitor,
                     building,
-                    BuiltInWorkTypeIds.Craft) == 1
+                    BuiltInWorkTypeIds.Craft,
+                    0f) == 1
                 && runtime.CraftQueue.Count == 0
                 && !building.HasPendingEquipmentCraftWork(),
                 "Craft work completion did not consume the authoritative work-unit order.");

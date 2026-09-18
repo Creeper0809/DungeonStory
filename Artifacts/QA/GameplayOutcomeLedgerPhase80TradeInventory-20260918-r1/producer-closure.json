@@ -1,0 +1,396 @@
+{
+  "schemaVersion": 1,
+  "phase": "phase80-trade-inventory-outcomes",
+  "generatedAt": "2026-09-18",
+  "sourceMode": "SOURCE_EDIT",
+  "balanceImpact": "none-audit-only-no-runtime-change",
+  "rows": [
+    {
+      "candidate": "FacilityCrimeEvent",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "ShopCrimeRuntime.TryResolve",
+      "blocker": "the exact retail lot is removed and committed to an external Sink before the event is constructed; no gameplay-outcome reservation or rollback-capable joint owner exists",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "FacilityRevenueEvent",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "ShopCustomerInteractionService shopping and meal completion paths",
+      "blocker": "IGameMoneyAccount.Add commits revenue before the event and exposes no compensating debit tied to an outcome result key",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "FacilityShopPurchasedEvent",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "DailyFacilityShopRuntime.PublishPurchase",
+      "blocker": "FacilityShopService spends money and mutates unlock state before invoking the publish callback; neither mutation has a shared rollback transaction",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "FacilityStockConsumedEvent",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "ShopCrimeRuntime and ShopCustomerInteractionService",
+      "blocker": "the event is emitted after exact retail transfer/Sink completion and contains only category plus amount, with no durable result identity or rollback seam",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "FacilityVisitEvent",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "BuildingVisitEventPublisher.PublishVisit",
+      "blocker": "the publisher is an observer port with no visit-result operation id, owner revision, detached state candidate, or save-backed outbox",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "GrandProjectPhysicalInputReceipt",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "GrandProjectRuntime.ApplyWork via GrandProjectApplicationAdapter",
+      "blocker": "the physical input outbox and grand-project completion outbox are durable, but neither reserves or persists the gameplay-outcome result before the material Sink commit",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "GuestRequestDeliveryReceipt",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "GuestRequestDeliveryRuntime.AdvanceDelivery",
+      "blocker": "the physical transfer commits pending before the campaign command records the receipt; the guest delivery outbox has no gameplay-outcome result key or joint commit phase",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "ItemExtractionReceipt",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "ItemTransferService extraction path",
+      "blocker": "source quantity, child stack and lease slices are already mutated when the receipt is created, and there is no public post-success rollback transaction or outcome outbox",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "MetaUpgradePurchasedEvent",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "MetaProgressionRuntime.TryPurchaseUpgrade",
+      "blocker": "MetaProgressionState spends currency and increments the level before the event; it exposes neither preview-plus-detached-candidate nor exact rollback at a persistent owner revision",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "PackagedLotTareOutputReceipt",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "PackagedLotTareDispositionService.EnsureTerminalSinkOutputs",
+      "blocker": "multiple tare outputs are spawned incrementally and the gateway has no exact remove/rollback operation for outputs already created when a later spawn or outcome commit fails",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "PhysicalItemBatchDispositionReceipt",
+      "classification": "Record",
+      "status": "implemented_source_awaiting_unity_verification",
+      "producer": "PhysicalItemBatchDispositionService",
+      "implementation": "the service now prepares the typed participant before mutation, persists expected GameplayResultKey plus exact source facts in the physical pending row, commits at the predicted repository revision, never rolls physical state back after canonical ledger commit, restores/reconciles missing attachments by exact identity, and retires the row only after PublishedAcknowledged or an exact Compacted/Forgotten tombstone proves prior acknowledgement",
+      "exactFacts": [
+        "disposition kind",
+        "operation id",
+        "reason code",
+        "request fingerprint",
+        "owner revision",
+        "source stack ids",
+        "item definition ids",
+        "item instance ids",
+        "quantity per source and total",
+        "mass grams per source and total",
+        "source coordinates",
+        "immutable Korean display and pronunciation snapshots",
+        "expected result key",
+        "canonical outcome id/state/lowercase SHA-256"
+      ],
+      "verification": "static source and save-contract checks pass; Unity compilation and Editor regression execution are pending by instruction",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "PhysicalItemDispositionReceipt",
+      "classification": "Record",
+      "status": "exact_substitute_source_awaiting_unity_verification",
+      "producer": "PhysicalItemDispositionExtensions.TryCommitPhysicalDisposition",
+      "exactSubstitute": "PhysicalItemBatchDispositionReceipt",
+      "sameOperationProof": "the extension now invokes TryCommitBatchPhysicalDisposition with the same operation ID, reason, disposition, exact stack ID and quantity; it no longer calls TryConsumeStackQuantity",
+      "preservedFacts": [
+        "disposition kind",
+        "operation ID",
+        "reason code",
+        "exact source stack ID",
+        "item definition and optional instance ID",
+        "quantity and gram mass",
+        "source position",
+        "immutable Korean display/pronunciation snapshot",
+        "owner revision and canonical outcome attachment"
+      ],
+      "saveProof": "PhysicalItemsSaveSection persists the batch pending row, exact source facts, expected result key and canonical attachment until PublishedAcknowledged or a matching terminal tombstone",
+      "verification": "static call-path and equal-operation checks pass; Unity compilation and Editor regression execution are pending by instruction",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "PhysicalItemExactSourcePublicationReceipt",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "PhysicalItemExactSourcePublicationService.TryCommit",
+      "blocker": "the exact-source transaction owns physical admission and acknowledgement, but no save-backed gameplay-outcome result is prepared with the plan or committed before the pending transaction is removed",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "PhysicalItemRelocationReceipt",
+      "classification": "Record",
+      "status": "implemented_source_awaiting_unity_verification",
+      "producer": "PhysicalItemRelocationService.TryRelocateQuantity",
+      "implementation": "the service prepares an exact typed outcome before mutation, applies through a reversible relocation handle, persists a bounded fail-closed operation journal with exact receipt/result identity, rolls back physical state and journal only before canonical ledger commit, and never rolls back after canonical commit",
+      "exactFacts": [
+        "operation and reason IDs",
+        "source and destination stack IDs",
+        "item definition and optional instance IDs",
+        "quantity and exact gram mass",
+        "source and destination coordinates",
+        "destination state and destination owner ID",
+        "immutable Korean display and pronunciation snapshot",
+        "owner revision and expected gameplay result key",
+        "canonical outcome ID/state/lowercase SHA-256"
+      ],
+      "saveProof": "PhysicalItemsSaveSection persists the relocation journal and canonical attachment; same-operation restore retry returns the original receipt without a second mutation, different payload conflicts, and PublishedAcknowledged/Compacted/Forgotten identities advance the retained acknowledgement proof",
+      "verification": "static source/save-contract checks and Editor regression source are present; Unity compilation and execution are pending by instruction",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "PhysicalItemSourcePublicationReceipt",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "PhysicalItemSourcePublicationService.TryEnsureLooseOutputs",
+      "blocker": "outputs are spawned one by one using deterministic markers, but no batch rollback exists and deterministic markers alone are not a durable gameplay-outcome joint commit",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "PhysicalItemTransformReceipt",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "PhysicalItemTransformService transform paths",
+      "blocker": "the service rolls back only internal exceptions; after successful return there is no reversible handle or durable transform outbox with which to join outcome commit",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "RegionalSupplyDeliveryTransferReceipt",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "RegionalSupplyContractRuntime.AdvanceDelivery",
+      "blocker": "the regional delivery outbox persists the physical receipt and reward phase but contains no gameplay-outcome result key, immutable display snapshots, or canonical acknowledged replay state",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "ReservedRetailStockTransferReceipt",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "ItemTransferService reserved retail transfer path",
+      "blocker": "an in-process rollback receipt exists, but it is not save-compatible and callers can acknowledge/consume it without a gameplay-outcome prepare and joint persistent commit",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "ResourceStockPolicySaleTransferReceipt",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "ResourceStockPolicyRuntime.EvaluateSale",
+      "blocker": "the sale outbox spans physical transfer and idempotent income, but does not persist a gameplay-outcome result or reserve it before the transfer commit",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "StockSupplyEvent",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "StockSupplyService purchase path and OffenseStockRewardGrantHandler",
+      "blocker": "both publishers run after physical spawn; the purchase path may also spend/refund money and allows partial delivery, while the event has no operation id or exact stack receipts",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "WarehouseMassAdmissionReceipt",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "WarehouseMassAdmissionService.TryCommit",
+      "blocker": "TryCommit verifies that warehouse inventory was already changed by another owner and then commits admission bookkeeping; it cannot roll back that inventory or atomically join the gameplay-outcome outbox",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "WorldResourceRenewableDebitReceipt",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "WorldResourceRuntime via WorldResourceEnvironmentPortAdapter",
+      "blocker": "the renewable patch debit can be rolled back only inside the larger world-resource cycle; recording at the port would survive a later output-publication rollback, while the cycle owner has no joint gameplay-outcome outbox",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "BuildingRetailPurchaseCommitResult",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "AbilityShopping.Purchase",
+      "blocker": "the result preserves the committed physical retail lot but is an in-memory single-resolution latch created after the transfer; it has no stable operation id, owner revision, immutable buyer/facility display snapshots, save-backed outbox, or joint gameplay-outcome acknowledgement phase",
+      "higherExactFor": [
+        "FacilityStockConsumedEvent"
+      ],
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "FacilityShopPurchaseResult",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "FacilityShopService.TryPurchaseOffer",
+      "blocker": "the authoritative result carries success, offer identity and cost, but money and unlock state are mutated before it is returned and it has no durable result key or rollback-capable joint owner",
+      "higherExactFor": [
+        "FacilityShopPurchasedEvent"
+      ],
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "StockSupplyResult",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "StockSupplyService paid delivery and internal production paths",
+      "blocker": "the authoritative result preserves requested/delivered quantity, cost and source label but not exact physical stack/instance receipts, operation identity, owner revision, display snapshots or a save-backed money/physical/outcome transaction",
+      "higherExactFor": [
+        "StockSupplyEvent"
+      ],
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "AutoProcurementResult",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "Treasury auto-procurement runtime",
+      "blocker": "the result is persisted as the last daily procurement outcome and carries day/rule/item/quantity/cost, but it lacks an exact purchase operation key, physical definition/instance receipt, immutable display snapshot and gameplay-outcome phase joined to the treasury transaction",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "AnimalPenCompatibilityResult",
+      "classification": "NonResult",
+      "status": "verified_nonresult_source_audit_pending_final_hash",
+      "producer": "animal husbandry compatibility evaluation",
+      "nonResultCategory": "pure-query-or-projection",
+      "reason": "EvaluatePen computes current risk/issues for query ports and UI without committing an admission, move or other gameplay result",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "BalanceAttributionResult",
+      "classification": "NonResult",
+      "status": "verified_nonresult_source_audit_pending_final_hash",
+      "producer": "V27 balance attribution audit",
+      "nonResultCategory": "debug-diagnostic",
+      "reason": "deterministic balance attribution is consumed only by Editor audit/debug scenarios and is not a gameplay command result",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "BalanceSccAuditResult",
+      "classification": "NonResult",
+      "status": "verified_nonresult_source_audit_pending_final_hash",
+      "producer": "V27 balance SCC audit",
+      "nonResultCategory": "debug-diagnostic",
+      "reason": "SCC audit output is consumed only by Editor audit/debug code and never represents a player gameplay mutation",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "PairedRunWindowResult",
+      "classification": "NonResult",
+      "status": "verified_nonresult_source_audit_pending_final_hash",
+      "producer": "population-capacity paired-run analysis",
+      "nonResultCategory": "debug-diagnostic",
+      "reason": "paired-run windows are authored and consumed by V27 Editor performance/verifier analysis rather than gameplay commands",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "PreparedOutputPickupBoundaryResult",
+      "classification": "NonResult",
+      "status": "verified_nonresult_source_audit_pending_final_hash",
+      "producer": "WorldItemWarehouseService prepared-output pickup boundary",
+      "nonResultCategory": "pure-query-or-projection",
+      "reason": "the internal type is only the fail-closed return of pre-mutation boundary validation and never carries committed pickup facts",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "RegularCustomerRecruitResult",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "RegularCustomerSystem recruitment transition",
+      "blocker": "the terminal recruit result is not prepared before regular-customer state mutation and has no save-backed outcome attachment or canonical replay proof",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "RegularCustomerVisitResult",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "RegularCustomerSystem visit transition",
+      "blocker": "the visit result has no stable result key, immutable participant/facility snapshots, owner revision or joint service-session/outcome transaction",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "ShopFeatureCommandResult",
+      "classification": "NonResult",
+      "status": "verified_nonresult_source_audit_pending_final_hash",
+      "producer": "ShopFeatureSurfacePresenter command adapter",
+      "nonResultCategory": "presentation-ui-wrapper",
+      "reason": "the wrapper contains only success and localized message after delegating to authoritative domain command/result owners",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "SubstanceUseResult",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "character consumable substance use",
+      "blocker": "the result is authoritative consumption state but has no pre-mutation gameplay reservation, exact item/character snapshots or durable physical/character/outcome joint commit",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "WarehouseFeatureCommandResult",
+      "classification": "NonResult",
+      "status": "verified_nonresult_source_audit_pending_final_hash",
+      "producer": "WarehouseFeatureSurfacePresenter command adapter",
+      "nonResultCategory": "presentation-ui-wrapper",
+      "reason": "the wrapper contains only success and localized message after delegating warehouse/contract/project commands to their owners",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "WasteFeedRequestResult",
+      "classification": "Record",
+      "status": "blocked",
+      "producer": "waste feed request runtime",
+      "blocker": "the request terminal result is not joined to the exact input custody mutation and lacks a persistent result key, display snapshots and canonical acknowledgement phase",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "WasteFeedResult",
+      "classification": "NonResult",
+      "status": "verified_nonresult_source_audit_pending_final_hash",
+      "producer": "waste processing feed runtime",
+      "nonResultCategory": "contract-or-interface",
+      "reason": "the type has no production constructor/caller outside its declaration; actual direct feed commands return WasteFeedRequestResult",
+      "observerCaptureAccepted": false
+    },
+    {
+      "candidate": "WastePolicyCommandResult",
+      "classification": "RecordCandidateUnresolved",
+      "status": "blocked",
+      "producer": "waste policy command runtime",
+      "blocker": "the command result may be UI/control feedback, but there is no verified exact policy-state result substitute or exclusion proof",
+      "observerCaptureAccepted": false
+    }
+  ],
+  "summary": {
+    "initialReceiptEventCandidateCount": 22,
+    "authoritativeResultExpansionCount": 17,
+    "candidateCount": 39,
+    "implemented": 0,
+    "sourceImplementedAwaitingUnityVerification": 3,
+    "blocked": 28,
+    "pending": 0,
+    "provisionalNonResultSourceAudited": 8,
+    "nonResultWithExactSubstitute": 0,
+    "unresolved": 28
+  },
+  "releaseGate": "BLOCKED",
+  "humanApprovalClaimed": false
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "40개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "5"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "수정딱정벌레 사체에서 분리한 장식성 갑각. 아직 제작 재료로 소비되지 않는다. 밀로세아 가도를 지난 수정딱정벌레 갑각 묶음에는 마지막 검문소의 색실이 하나씩 더해진다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "resource-crystal-beetle-carapace",
+  "spoiler_tier": "none",
+  "summary": "수정딱정벌레 사체에서 분리한 장식성 갑각. 아직 제작 재료로 소비되지 않는다.",
+  "title": "수정딱정벌레 갑각"
+}

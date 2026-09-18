@@ -1,0 +1,39 @@
+{
+  "component": "SmartFormat.NET-Korean particle-selection port",
+  "upstreamRepository": "https://github.com/what-studio/SmartFormat.NET-Korean",
+  "pinnedCommit": "cd149be3a683a2ef49fbef44e31308d39c3ca375",
+  "pinnedCommitDate": "2017-03-31T15:30:47+09:00",
+  "retrievedAt": "2026-09-18",
+  "license": {
+    "spdx": "BSD-3-Clause",
+    "upstream": {
+      "path": "LICENSE",
+      "sha256": "65290EF637F5270C4E0419BDB15C0BD9C5181F979D80A0B48B374F9ACCF56C3E"
+    },
+    "vendored": {
+      "path": "LICENSE",
+      "sha256": "0672AC2447CF133DD553CE4CBA221B70D824F4E804928687E1DB2077E58A249F",
+      "lineEndings": "LF; textual content is byte-for-byte equivalent after CRLF-to-LF normalization of the upstream checkout."
+    }
+  },
+  "upstreamSourceFiles": [
+    {
+      "path": "SmartFormat.NET-Korean/Extensions/KoreanFormatter.cs",
+      "sha256": "970203A38F1F2D6A1A245601E3223B1D068C80DA835F23291AF2FEF86A0D3F13"
+    },
+    {
+      "path": "SmartFormat.NET-Korean/Utilities/Hangul.cs",
+      "sha256": "4F7F8D34FA5DC32C5D346F7D2D8D891B51C264EB12CD6292073EB5E38E3DA427"
+    }
+  ],
+  "compatibilityDecision": {
+    "directPackageVendoring": "rejected",
+    "reason": "Upstream references SmartFormat.NET 1.6.1.0/net40. DungeonStory has no SmartFormat dependency and this change is not allowed to modify Packages/manifest.json or Packages/packages-lock.json.",
+    "localPort": "Runtime/SmartFormatKoreanParticleSelector.cs",
+    "localChanges": [
+      "Removes SmartFormat formatter interfaces and retains only final-consonant and allomorph selection.",
+      "Exposes an engine-independent coda result for DungeonStory's adapter.",
+      "Leaves number, initialism, rich-text, cache, and unknown-pronunciation policy to the project adapter."
+    ]
+  }
+}

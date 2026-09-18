@@ -35,6 +35,8 @@ public static class FluidNetworkBatchDebugContract
                 CreateNullProxy<IPhysicalItemBatchDispositionService>(),
                 CreateNullProxy<IWorldFilthQuery>(),
                 CreateNullProxy<IGameClock>(),
+                NoEnvironmentalFieldQuery.Instance,
+                NeutralSeasonalEventQuery.Instance,
                 CreateNullProxy<IFacilityCapabilityQuery>(),
                 CreateNullProxy<IBuildingFacilityStateChangePort>(),
                 new DungeonRuntimeAggregateRootStore(),

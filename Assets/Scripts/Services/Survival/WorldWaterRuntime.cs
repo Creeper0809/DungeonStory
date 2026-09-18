@@ -44,6 +44,7 @@ public sealed class WorldWaterRuntime :
 
     private readonly IGridSystemProvider gridSystemProvider;
     private readonly IGameClock gameClock;
+    private readonly ISeasonalEventQuery seasonalEvents;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private readonly IDiseaseDefinitionCatalog diseaseDefinitions;
     private readonly Tile waterTile;
@@ -65,12 +66,15 @@ public sealed class WorldWaterRuntime :
     public WorldWaterRuntime(
         IGridSystemProvider gridSystemProvider,
         IGameClock gameClock,
+        ISeasonalEventQuery seasonalEvents,
         IGameContentCatalog contentCatalog,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
         IDiseaseDefinitionCatalog diseaseDefinitions)
     {
         this.gridSystemProvider = gridSystemProvider ?? throw new ArgumentNullException(nameof(gridSystemProvider));
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        this.seasonalEvents = seasonalEvents
+            ?? throw new ArgumentNullException(nameof(seasonalEvents));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
         this.diseaseDefinitions = diseaseDefinitions
@@ -110,11 +114,26 @@ public sealed class WorldWaterRuntime :
         {
             return;
         }
+        float regenerationMultiplier =
+            seasonalEvents.GetWorldWaterRegenerationMultiplier();
+        if (float.IsNaN(regenerationMultiplier)
+            || float.IsInfinity(regenerationMultiplier)
+            || regenerationMultiplier <= 0f
+            || regenerationMultiplier > 1f)
+        {
+            throw new InvalidOperationException(
+                "Seasonal world-water regeneration multiplier must be finite and within (0, 1].");
+        }
 
         bool changed = false;
         foreach (WorldWaterSourceSaveData source in sources)
         {
-            float next = Mathf.Min(source.capacity, source.remaining + source.regenerationPerSecond * delta);
+            float next = Mathf.Min(
+                source.capacity,
+                source.remaining
+                    + source.regenerationPerSecond
+                    * regenerationMultiplier
+                    * delta);
             changed |= !Mathf.Approximately(next, source.remaining);
             source.remaining = next;
         }
