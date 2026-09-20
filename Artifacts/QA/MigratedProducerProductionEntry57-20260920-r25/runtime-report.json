@@ -1,0 +1,9 @@
+{
+  "schema": "migrated-producer-production-entry-e2e@1",
+  "status": "PASS",
+  "expectedKinds": 57,
+  "coverageContract": "success+reject-rollback+delivery-retry",
+  "unityMcpUsed": false,
+  "dungeonPlayerMcpUsed": false,
+  "detail": ""
+}

@@ -238,7 +238,7 @@ result-type switch.
 - [x] Pass the dedicated r18 runner at exact 57/57 and add it to the focused batch.
 - [x] Pass focused r81 at 49/49 and live `GameplayScene` full-world r40 at 81/81 sections with canonical baseline restoration.
 - [x] Pass Unity 6000.3.8f1 compile r164 with zero C# errors.
-- [ ] Refresh the final-frozen inventory/closure for a later export gate because r44/r4 predate the production fixes and E2E sources.
+- [x] Refresh the final-frozen inventory/closure after the production fixes: clean source commit `a88a0482d`, inventory r46 and closure r6.
 
 This closes automated production-entry E2E, not a claim that a person manually played 57 UI paths. Unity MCP and `dungeon-player` MCP were not used.
 
@@ -264,9 +264,10 @@ The earlier `CHANGES_REQUIRED` remains historical review evidence; this correcti
 
 ## Active finalization batch: source freeze, evidence refresh and push — 2026-09-20
 
-- [ ] Rebuild the current-source final-frozen inventory and final closure into new immutable evidence directories.
-- [ ] Verify hashes, closure policy, scoped whitespace and the already-completed compile/runtime evidence on the exact frozen source.
-- [ ] Curate Git contents: include source, tests, contracts, planning/docs and necessary compact QA evidence; exclude Player builds, transient process files and redundant intermediate run output.
-- [ ] Commit the complete Phase80 implementation batch on `codex/wim-implementation` and push it to `origin`.
+- [x] Rebuild the current-source final-frozen inventory and final closure into new immutable evidence directories.
+- [x] Verify hashes, closure policy, scoped whitespace and the already-completed compile/runtime evidence on the exact frozen source.
+- [x] Curate Git contents: include source, tests, contracts, planning/docs and necessary compact QA evidence; exclude Player builds, transient process files and redundant intermediate run output.
+- [x] Commit the frozen source as `a88a0482d` on `codex/wim-implementation`.
+- [ ] Commit final evidence/completion records and push the branch to `origin`.
 
 Window: `SOURCE_EDIT / EDIT_READY`. Unity is not running, no further gameplay source edit is planned, and Unity MCP plus `dungeon-player` MCP remain unused. Human/training flags remain unchanged.

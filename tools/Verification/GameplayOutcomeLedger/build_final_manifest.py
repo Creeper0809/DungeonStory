@@ -27,11 +27,11 @@ EXPECTED_EXCLUDED = 228
 EXPECTED_MIGRATED = 57
 MIGRATED_AUTHORITY = "MigratedProducerOutcomeReceipt"
 RUNTIME_REPORT = (
-    "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260920-r80/"
+    "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260920-r83/"
     "focused-runtime-report.json"
 )
 SAVE_REPORT = (
-    "Artifacts/QA/GameplayOutcomeLedgerPhase80FullWorldSave-20260920-r37/"
+    "Artifacts/QA/GameplayOutcomeLedgerPhase80FullWorldSave-20260920-r42/"
     "full-world-round-trip-playmode-report.txt"
 )
 MIGRATED_CATALOG = (

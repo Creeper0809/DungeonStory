@@ -1,0 +1,14 @@
+{
+  "sha256": {
+    "build_inventory.py": "2fde12824c279b6b8a53e6ee2fe517c9d5b0ceaa5012eee928813a383f5e70cb",
+    "REVIEW.md": "e7defac126d7861c3ca84aa40f7684697f86a0fd6d261d7f9f3d819547af6a77",
+    "metadata.json": "0cb4f8e68dab602fdf82c8951374aa1e952c60fa11c88ebbfc3fb69379bbceae",
+    "producer-inventory.csv": "2a00ae960bf75818c1d73b560a84d83d1af5c60616838b4b0b867ea12fc4fbf0",
+    "producer-inventory.json": "f1e193881c16ecbdf21548aa6be6cb75a64daf78f80254e96178e6e88d2fe619",
+    "publish-calls.csv": "8ceec01ac3ad692712956292c76329f592154c4f9c27d40cb8f9d76a6a62a647",
+    "publish-calls.json": "f5a07ae1982ee9415841d569758e1c88396e367c5d4fb4fffbefc59808eadf78",
+    "record-integration-input.csv": "4a7d7373d47fe7c7cd6380ea804083bf178a168b2ad0fb0853c54197570ad3a4",
+    "save-section-catalog.json": "f55bbaaaa122476ad2d45a88a93e432da7b884d8ddf0debc29265d7ef7d6e18f",
+    "reviewed-dispositions.json": "a10918b70fd09acaa7604bc66a65479a5e082962fa08020b2b02e4ac88d8d3ec"
+  }
+}
